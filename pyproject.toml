@@ -1,0 +1,22 @@
+[project]
+name = "whatsapp-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "agno>=2.3.7",
+    "ddgs>=9.9.2",
+    "dotenv>=0.9.9",
+    "exa-py>=2.0.1",
+    "ipykernel>=7.1.0",
+    "lancedb>=0.25.3",
+    "lxml-html-clean>=0.4.3",
+    "newspaper4k>=0.9.4.1",
+    "openai>=2.9.0",
+    "pillow>=12.0.0",
+    "pypdf>=6.4.0",
+    "requests>=2.32.5",
+    "sqlalchemy>=2.0.44",
+    "tantivy>=0.25.1",
+]
