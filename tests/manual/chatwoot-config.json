@@ -1,0 +1,8 @@
+{
+  "url": "http://localhost:3000",
+  "account_id": 1,
+  "inbox_id": 1,
+  "api_key": "NAO_COMMITAR_AQUI",
+  "integration_type": "native_evolution_chatwoot",
+  "notes": "Usando integração nativa Evolution-Chatwoot. Conversas sincronizam automaticamente."
+}

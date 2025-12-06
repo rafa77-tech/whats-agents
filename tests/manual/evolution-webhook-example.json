@@ -1,0 +1,23 @@
+{
+  "event": "messages.upsert",
+  "instance": "Revoluna",
+  "data": {
+    "key": {
+      "remoteJid": "5511981677736@s.whatsapp.net",
+      "fromMe": false,
+      "id": "3EB0A6D8B3C4F5E6D7A8B9C0"
+    },
+    "pushName": "Dr. Teste",
+    "message": {
+      "conversation": "Oi Julia, tudo bem?"
+    },
+    "messageType": "conversation",
+    "messageTimestamp": 1733500800,
+    "owner": "Revoluna",
+    "source": "web"
+  },
+  "destination": "http://localhost:8000/webhook/evolution",
+  "date_time": "2024-12-06T15:00:00.000Z",
+  "server_url": "http://localhost:8080",
+  "apikey": "c24ecc..."
+}

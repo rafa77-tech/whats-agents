@@ -19,3 +19,13 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Claude Code / MCP
+.mcp.json
+
+# Chat logs (conversas de debug)
+_chat*.txt
+
+# Logs
+*.log
+logs/

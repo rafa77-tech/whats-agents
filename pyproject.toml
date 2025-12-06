@@ -1,22 +1,23 @@
 [project]
 name = "whatsapp-api"
 version = "0.1.0"
-description = "Add your description here"
+description = "Agente Júlia - Escalista Virtual para Revoluna"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "agno>=2.3.7",
-    "ddgs>=9.9.2",
-    "dotenv>=0.9.9",
-    "exa-py>=2.0.1",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "anthropic>=0.40.0",
+    "supabase>=2.10.0",
+    "httpx>=0.28.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
     "ipykernel>=7.1.0",
-    "lancedb>=0.25.3",
-    "lxml-html-clean>=0.4.3",
-    "newspaper4k>=0.9.4.1",
-    "openai>=2.9.0",
-    "pillow>=12.0.0",
-    "pypdf>=6.4.0",
-    "requests>=2.32.5",
-    "sqlalchemy>=2.0.44",
-    "tantivy>=0.25.1",
 ]
