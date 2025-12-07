@@ -174,23 +174,64 @@ async def verificar_conflito(
     Returns:
         True se ha conflito, False se pode agendar
     """
+    resultado = await verificar_conflito_vaga(cliente_id, data, periodo_id)
+    return resultado["conflito"]
+
+
+async def verificar_conflito_vaga(
+    cliente_id: str,
+    data: str,
+    periodo_id: str
+) -> dict:
+    """
+    Verifica se medico ja tem vaga reservada/confirmada no mesmo dia e periodo.
+
+    Args:
+        cliente_id: ID do medico
+        data: Data do plantao (YYYY-MM-DD)
+        periodo_id: ID do periodo
+
+    Returns:
+        dict com:
+        - conflito: bool
+        - vaga_conflitante: dict ou None (se houver conflito)
+        - mensagem: str explicativa
+    """
     response = (
         supabase.table("vagas")
-        .select("id")
+        .select("id, hospital_id, data, periodo_id, status, hospitais(nome)")
         .eq("cliente_id", cliente_id)
         .eq("data", data)
         .eq("periodo_id", periodo_id)
         .in_("status", ["reservada", "confirmada"])
         .is_("deleted_at", "null")
+        .limit(1)
         .execute()
     )
 
-    tem_conflito = len(response.data) > 0
+    if response.data:
+        vaga_conflitante = response.data[0]
+        hospital_nome = vaga_conflitante.get("hospitais", {}).get("nome", "Hospital")
+        logger.info(
+            f"Conflito encontrado: medico {cliente_id} ja tem plantao em {data} "
+            f"no {hospital_nome}"
+        )
+        return {
+            "conflito": True,
+            "vaga_conflitante": {
+                "id": vaga_conflitante["id"],
+                "hospital": hospital_nome,
+                "data": vaga_conflitante["data"],
+                "status": vaga_conflitante["status"]
+            },
+            "mensagem": f"Voce ja tem plantao em {data} no {hospital_nome}"
+        }
 
-    if tem_conflito:
-        logger.info(f"Conflito encontrado: medico {cliente_id} ja tem plantao em {data}")
-
-    return tem_conflito
+    return {
+        "conflito": False,
+        "vaga_conflitante": None,
+        "mensagem": None
+    }
 
 
 async def reservar_vaga(
