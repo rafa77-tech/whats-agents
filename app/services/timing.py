@@ -6,8 +6,12 @@ import random
 import logging
 import time
 from datetime import datetime, time as dt_time, timedelta
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
+
+# Timezone Brasil
+TZ_BRASIL = ZoneInfo("America/Sao_Paulo")
 
 # Horário comercial
 HORARIO_INICIO = dt_time(8, 0)   # 8h
@@ -36,7 +40,7 @@ def calcular_delay_resposta(
         Delay em segundos (20-120s tipicamente)
     """
     hora_atual = hora_atual or datetime.now()
-    base_delay = 20  # Mínimo 20 segundos
+    base_delay = 5  # Mínimo 5 segundos (era 20, reduzido para testes)
 
     # Fator: tamanho da mensagem
     palavras = len(mensagem.split())
@@ -73,8 +77,8 @@ def calcular_delay_resposta(
     variacao = random.uniform(0.7, 1.3)
     delay *= variacao
 
-    # Limitar entre 20s e 120s
-    return max(20, min(120, delay))
+    # Limitar entre 5s e 30s (era 20-120s, reduzido para testes)
+    return max(5, min(30, delay))
 
 
 def calcular_tempo_digitacao(texto: str) -> float:
@@ -131,7 +135,7 @@ def log_timing(mensagem: str, delay: float, tempo_real: float):
 
 def esta_em_horario_comercial(dt: datetime = None) -> bool:
     """
-    Verifica se está em horário comercial.
+    Verifica se está em horário comercial (horário de Brasília).
 
     Horário: 8h-20h, segunda a sexta
 
@@ -141,7 +145,12 @@ def esta_em_horario_comercial(dt: datetime = None) -> bool:
     Returns:
         True se está em horário comercial
     """
-    dt = dt or datetime.now()
+    # Sempre usar horário de Brasília
+    dt = dt or datetime.now(TZ_BRASIL)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=TZ_BRASIL)
+    else:
+        dt = dt.astimezone(TZ_BRASIL)
 
     # Verificar dia da semana
     if dt.weekday() not in DIAS_UTEIS:
@@ -154,7 +163,7 @@ def esta_em_horario_comercial(dt: datetime = None) -> bool:
 
 def proximo_horario_comercial(dt: datetime = None) -> datetime:
     """
-    Retorna próximo horário comercial disponível.
+    Retorna próximo horário comercial disponível (horário de Brasília).
 
     Args:
         dt: Data/hora de referência (opcional, usa datetime.now() se None)
@@ -162,7 +171,12 @@ def proximo_horario_comercial(dt: datetime = None) -> datetime:
     Returns:
         Próximo datetime em horário comercial
     """
-    dt = dt or datetime.now()
+    # Sempre usar horário de Brasília
+    dt = dt or datetime.now(TZ_BRASIL)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=TZ_BRASIL)
+    else:
+        dt = dt.astimezone(TZ_BRASIL)
 
     while True:
         # Se é dia útil
