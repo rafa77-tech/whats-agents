@@ -365,7 +365,14 @@ async def processar_mensagem(data: dict):
                 )
             return
 
-        # 11. Calcular delay humanizado ANTES de processar
+        # 11. Registrar mensagem do médico nas métricas
+        from app.services.metricas import metricas_service
+        await metricas_service.registrar_mensagem(
+            conversa_id=conversa["id"],
+            origem="medico"
+        )
+
+        # 12. Calcular delay humanizado ANTES de processar
         from app.services.timing import calcular_delay_resposta, log_timing
         import time
         
@@ -373,7 +380,7 @@ async def processar_mensagem(data: dict):
         delay = calcular_delay_resposta(mensagem.texto or "")
         logger.info(f"⏳ Delay calculado: {delay:.1f}s")
 
-        # 12. Gerar resposta (enquanto "lê" a mensagem)
+        # 13. Gerar resposta (enquanto "lê" a mensagem)
         resposta = await processar_mensagem_completo(
             mensagem_texto=mensagem.texto or "",
             medico=medico,
@@ -387,14 +394,14 @@ async def processar_mensagem(data: dict):
 
         logger.info(f"✓ Resposta gerada: {resposta[:50]}...")
 
-        # 13. Calcular tempo restante de delay
+        # 14. Calcular tempo restante de delay
         tempo_processamento = time.time() - tempo_inicio
         delay_restante = max(0, delay - tempo_processamento)
         
         # Log timing
         log_timing(mensagem.texto or "", delay, tempo_processamento)
 
-        # 14. Aguardar delay restante (simulando "pensar")
+        # 15. Aguardar delay restante (simulando "pensar")
         if delay_restante > 5:
             # Mostrar "digitando" antes de enviar
             await asyncio.sleep(delay_restante - 5)
@@ -404,7 +411,7 @@ async def processar_mensagem(data: dict):
             await asyncio.sleep(delay_restante)
             await mostrar_digitando(mensagem.telefone)
 
-        # 15. Enviar resposta com timing humanizado (quebra mensagens longas)
+        # 16. Enviar resposta com timing humanizado (quebra mensagens longas)
         from app.services.agente import enviar_resposta
         resultado = await enviar_resposta(
             telefone=mensagem.telefone,
@@ -414,7 +421,14 @@ async def processar_mensagem(data: dict):
         if resultado:
             logger.info(f"✓ Mensagem enviada para {mensagem.telefone[:8]}...")
 
-            # 16. Salvar interação de saída
+            # 17. Registrar resposta da Júlia nas métricas (com tempo de resposta)
+            await metricas_service.registrar_mensagem(
+                conversa_id=conversa["id"],
+                origem="ai",
+                tempo_resposta_segundos=tempo_processamento
+            )
+
+            # 18. Salvar interação de saída
             await salvar_interacao(
                 conversa_id=conversa["id"],
                 cliente_id=medico["id"],

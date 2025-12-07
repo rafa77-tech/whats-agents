@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Júlia - Dashboard</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            color: #333; 
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card { 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin: 10px; 
+            display: inline-block; 
+            min-width: 200px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .card h3 { 
+            margin: 0 0 10px 0; 
+            color: #666; 
+            font-size: 14px; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .card .valor { 
+            font-size: 32px; 
+            font-weight: bold; 
+            color: #333; 
+        }
+        .grid { 
+            display: flex; 
+            flex-wrap: wrap; 
+        }
+        .refresh { 
+            position: fixed; 
+            top: 10px; 
+            right: 10px; 
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .refresh:hover {
+            background: #45a049;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <button class="refresh" onclick="atualizar()">🔄 Atualizar</button>
+    
+    <div class="container">
+        <h1>📊 Dashboard Júlia</h1>
+        
+        <div class="controls">
+            <label>Últimos</label>
+            <select id="dias" onchange="atualizar()">
+                <option value="1">1 dia</option>
+                <option value="7" selected>7 dias</option>
+                <option value="30">30 dias</option>
+            </select>
+        </div>
+
+        <div class="grid" id="metricas">
+            <div class="loading">Carregando métricas...</div>
+        </div>
+    </div>
+
+    <script>
+        async function atualizar() {
+            const metricasDiv = document.getElementById('metricas');
+            metricasDiv.innerHTML = '<div class="loading">Carregando métricas...</div>';
+            
+            try {
+                const dias = document.getElementById('dias').value;
+                const resp = await fetch(`/metricas/resumo?dias=${dias}`);
+                const data = await resp.json();
+
+                if (data.erro) {
+                    metricasDiv.innerHTML = `<div class="error">Erro ao carregar métricas: ${data.erro}</div>`;
+                    return;
+                }
+
+                metricasDiv.innerHTML = `
+                    <div class="card">
+                        <h3>Conversas</h3>
+                        <div class="valor">${data.conversas.total}</div>
+                    </div>
+                    <div class="card">
+                        <h3>Conversas Ativas</h3>
+                        <div class="valor">${data.conversas.ativas}</div>
+                    </div>
+                    <div class="card">
+                        <h3>Mensagens Recebidas</h3>
+                        <div class="valor">${data.mensagens.recebidas}</div>
+                    </div>
+                    <div class="card">
+                        <h3>Mensagens Enviadas</h3>
+                        <div class="valor">${data.mensagens.enviadas}</div>
+                    </div>
+                    <div class="card">
+                        <h3>Handoffs</h3>
+                        <div class="valor">${data.handoffs.total}</div>
+                    </div>
+                    <div class="card">
+                        <h3>Taxa de Resposta</h3>
+                        <div class="valor">${(data.taxas.resposta * 100).toFixed(1)}%</div>
+                    </div>
+                    <div class="card">
+                        <h3>Taxa de Handoff</h3>
+                        <div class="valor">${(data.taxas.handoff * 100).toFixed(1)}%</div>
+                    </div>
+                `;
+            } catch (error) {
+                metricasDiv.innerHTML = `<div class="error">Erro ao carregar métricas: ${error.message}</div>`;
+            }
+        }
+
+        // Atualizar a cada 30s
+        atualizar();
+        setInterval(atualizar, 30000);
+    </script>
+</body>
+</html>
+

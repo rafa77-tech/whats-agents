@@ -86,7 +86,14 @@ async def buscar_ou_criar_conversa(cliente_id: str) -> Optional[dict]:
 
     # Criar nova
     logger.info(f"Criando nova conversa para {cliente_id}")
-    return await criar_conversa(cliente_id)
+    conversa = await criar_conversa(cliente_id)
+    
+    # Iniciar métricas para a nova conversa
+    if conversa:
+        from app.services.metricas import metricas_service
+        await metricas_service.iniciar_metricas_conversa(conversa["id"])
+    
+    return conversa
 
 
 async def atualizar_conversa(conversa_id: str, **campos) -> Optional[dict]:
