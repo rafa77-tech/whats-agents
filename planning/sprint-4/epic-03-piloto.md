@@ -165,11 +165,11 @@ def validar_selecao_piloto() -> dict:
 
 ## DoD
 
-- [ ] Query de seleção implementada
-- [ ] Critérios de seleção aplicados
-- [ ] 100 médicos selecionados
-- [ ] Médicos marcados com tag `piloto_v1`
-- [ ] Validação confirma seleção correta
+- [x] Query de seleção implementada
+- [x] Critérios de seleção aplicados
+- [x] 100 médicos selecionados
+- [x] Médicos marcados com tag `piloto_v1`
+- [x] Validação confirma seleção correta
 
 ---
 
@@ -290,11 +290,11 @@ controlador_envio = ControladorEnvio()
 
 ## DoD
 
-- [ ] Configurações de piloto definidas
-- [ ] Controle de horário funciona
-- [ ] Limite diário de 50 primeiros contatos
-- [ ] Intervalo de 5 minutos entre envios
-- [ ] Função de próximo horário disponível
+- [x] Configurações de piloto definidas
+- [x] Controle de horário funciona
+- [x] Limite diário de 50 primeiros contatos
+- [x] Intervalo de 5 minutos entre envios
+- [x] Função de próximo horário disponível
 
 ---
 
@@ -447,11 +447,11 @@ async def executar_campanha(campanha_id: str):
 
 ## DoD
 
-- [ ] Mensagem de primeiro contato definida
-- [ ] Campanha criada no banco
-- [ ] Envios agendados para cada médico
-- [ ] Executor respeita rate limiting
-- [ ] Logs de cada envio
+- [x] Mensagem de primeiro contato definida
+- [x] Campanha criada no banco
+- [x] Envios agendados para cada médico
+- [x] Executor respeita rate limiting
+- [x] Logs de cada envio
 
 ---
 
@@ -629,11 +629,11 @@ async def status_piloto():
 
 ## DoD
 
-- [ ] Script de execução funciona
-- [ ] Campanha executa respeitando limites
-- [ ] Dashboard de status em tempo real
-- [ ] Checklist de monitoramento definido
-- [ ] Logs completos de cada envio
+- [x] Script de execução funciona
+- [x] Campanha executa respeitando limites
+- [x] Dashboard de status em tempo real
+- [x] Checklist de monitoramento definido
+- [x] Logs completos de cada envio
 
 ---
 
@@ -847,9 +847,9 @@ if __name__ == "__main__":
 
 ## DoD
 
-- [ ] Script de análise funciona
-- [ ] Todas as métricas calculadas
-- [ ] Relatório formatado gerado
-- [ ] Comparação com metas
-- [ ] Exportação JSON para análise
-- [ ] Conclusões e próximos passos
+- [x] Script de análise funciona
+- [x] Todas as métricas calculadas
+- [x] Relatório formatado gerado
+- [x] Comparação com metas
+- [x] Exportação JSON para análise
+- [x] Conclusões e próximos passos

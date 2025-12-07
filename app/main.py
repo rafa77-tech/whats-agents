@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs
+from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs, metricas, admin, piloto
+from fastapi.staticfiles import StaticFiles
 
 # Configurar logging
 setup_logging()
@@ -46,6 +47,12 @@ app.include_router(test_llm.router)
 app.include_router(test_whatsapp.router)
 app.include_router(webhook.router)
 app.include_router(jobs.router)
+app.include_router(metricas.router)
+app.include_router(admin.router)
+app.include_router(piloto.router)
+
+# Arquivos estáticos
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.get("/")
