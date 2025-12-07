@@ -437,7 +437,7 @@ done
 - [x] `verificar_intervalo_minimo()` implementada ✅ Testado em 2025-12-07
 - [x] `pode_enviar()` integra todas as verificações ✅ Testado em 2025-12-07
 - [x] `registrar_envio()` incrementa contadores ✅ Testado em 2025-12-07
-- [ ] Envio de WhatsApp usa rate limiting (integração pendente)
+- [x] Envio de WhatsApp usa rate limiting ✅ Integrado em 2025-12-07
 - [x] Testes unitários passando (19/19) ✅ 2025-12-07
 - [ ] 21ª mensagem na hora é bloqueada (teste E2E pendente)
 - [x] Mensagem fora do horário comercial é bloqueada ✅ Testado em 2025-12-07
@@ -816,9 +816,9 @@ curl http://localhost:8000/health/circuits
 - [x] Estados CLOSED, OPEN, HALF_OPEN funcionam ✅ Testado em 2025-12-07
 - [x] Transição automática para HALF_OPEN após timeout ✅ Testado em 2025-12-07
 - [x] Recuperação automática após sucesso em HALF_OPEN ✅ Testado em 2025-12-07
-- [ ] Integrado com Evolution API (pendente)
-- [ ] Integrado com Claude API (pendente)
-- [ ] Integrado com Supabase (pendente)
+- [x] Integrado com Evolution API ✅ Integrado em 2025-12-07
+- [x] Integrado com Claude API ✅ Integrado em 2025-12-07
+- [x] Integrado com Supabase ✅ Integrado em 2025-12-07
 - [x] Endpoint `/health/circuits` funcionando ✅ Testado em 2025-12-07
 - [x] Fallback funciona quando circuit está aberto ✅ Testado em 2025-12-07
 - [x] Testes unitários passando (14/14) ✅ 2025-12-07
@@ -1169,8 +1169,8 @@ curl -X POST http://localhost:8000/test/enviar-proativo \
 - [x] Mensagem de confirmação é enviada ✅ Testado em 2025-12-07
 - [x] `pode_enviar_proativo()` bloqueia envios ✅ Testado em 2025-12-07
 - [x] Coluna `opted_out` existe no banco ✅ (já existe no schema)
-- [ ] Integrado no webhook de mensagens (pendente)
-- [ ] Integrado no sistema de fila (pendente)
+- [x] Integrado no webhook de mensagens ✅ Integrado em 2025-12-07
+- [ ] Integrado no sistema de fila (pendente - fila não implementada ainda)
 - [x] Testes unitários passando (27 total) ✅ 2025-12-07
 - [ ] 5 cenários de opt-out testados manualmente (pendente)
 
