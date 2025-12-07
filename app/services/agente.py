@@ -81,7 +81,8 @@ async def gerar_resposta_julia(
         historico=contexto.get("historico", ""),
         primeira_msg=contexto.get("primeira_msg", False),
         data_hora_atual=contexto.get("data_hora_atual", ""),
-        dia_semana=contexto.get("dia_semana", "")
+        dia_semana=contexto.get("dia_semana", ""),
+        contexto_especialidade=contexto.get("especialidade", "")
     )
 
     # Montar historico como messages (para o Claude ter contexto da conversa)

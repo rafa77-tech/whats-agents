@@ -6,8 +6,13 @@ from typing import Optional
 import logging
 
 from app.services.interacao import carregar_historico, formatar_historico_para_llm
+from app.config.especialidades import obter_config_especialidade
+from app.services.redis import cache_get_json, cache_set_json
 
 logger = logging.getLogger(__name__)
+
+# TTL do cache em segundos
+CACHE_TTL_CONTEXTO = 120  # 2 minutos
 
 # Dias da semana em portugues
 DIAS_SEMANA = ["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"]
@@ -38,8 +43,9 @@ def formatar_contexto_medico(medico: dict) -> str:
         partes.append(f"Titulo: {medico['titulo']}")
 
     # Especialidade
-    if medico.get("especialidade"):
-        partes.append(f"Especialidade: {medico['especialidade']}")
+    especialidade_nome = medico.get("especialidade") or medico.get("especialidade_nome")
+    if especialidade_nome:
+        partes.append(f"Especialidade: {especialidade_nome}")
 
     # CRM
     if medico.get("crm"):
@@ -66,6 +72,35 @@ def formatar_contexto_medico(medico: dict) -> str:
                 partes.append(f"Valor minimo: R$ {prefs['valor_minimo']}")
 
     return "\n".join(partes) if partes else "Medico novo, sem informacoes ainda."
+
+
+def montar_contexto_especialidade(medico: dict) -> str:
+    """
+    Monta contexto específico da especialidade.
+    
+    Args:
+        medico: Dados do médico
+    
+    Returns:
+        String com contexto da especialidade ou vazio
+    """
+    especialidade_nome = medico.get("especialidade") or medico.get("especialidade_nome")
+    if not especialidade_nome:
+        return ""
+    
+    config = obter_config_especialidade(especialidade_nome)
+    if not config:
+        return ""
+    
+    partes = [
+        f"## Informações da Especialidade ({config['nome_display']})",
+        f"- Tipos de plantão comuns: {', '.join(config['tipo_plantao'])}",
+        f"- Faixa de valor: {config['valor_medio']}",
+        f"- Setores: {', '.join(config['vocabulario']['setores'])}",
+        f"- Contexto: {config['contexto_extra']}"
+    ]
+    
+    return "\n".join(partes)
 
 
 def formatar_contexto_vagas(vagas: list[dict], limite: int = 3) -> str:
@@ -118,7 +153,25 @@ async def montar_contexto_completo(
     Returns:
         Dict com todos os contextos formatados
     """
-    # Carregar historico
+    # Cache de partes estáticas do contexto
+    cache_key = f"contexto:medico:{medico.get('id')}"
+    cached_estatico = await cache_get_json(cache_key)
+    
+    if cached_estatico:
+        contexto_medico_str = cached_estatico.get("medico", "")
+        contexto_especialidade_str = cached_estatico.get("especialidade", "")
+    else:
+        # Montar partes estáticas
+        contexto_medico_str = formatar_contexto_medico(medico)
+        contexto_especialidade_str = montar_contexto_especialidade(medico)
+        
+        # Salvar no cache
+        await cache_set_json(cache_key, {
+            "medico": contexto_medico_str,
+            "especialidade": contexto_especialidade_str
+        }, CACHE_TTL_CONTEXTO)
+
+    # Partes dinâmicas sempre buscam (não cachear)
     historico_raw = await carregar_historico(conversa["id"], limite=10)
     historico = formatar_historico_para_llm(historico_raw)
 
@@ -130,7 +183,8 @@ async def montar_contexto_completo(
     dia_semana = DIAS_SEMANA[agora.weekday()]
 
     return {
-        "medico": formatar_contexto_medico(medico),
+        "medico": contexto_medico_str,
+        "especialidade": contexto_especialidade_str,
         "historico": historico,
         "historico_raw": historico_raw,
         "vagas": formatar_contexto_vagas(vagas) if vagas else "",

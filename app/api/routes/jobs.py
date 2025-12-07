@@ -10,6 +10,7 @@ from app.services.qualidade import avaliar_conversas_pendentes
 from app.services.alertas import executar_verificacao_alertas
 from app.services.relatorio import gerar_relatorio_diario, enviar_relatorio_slack
 from app.services.feedback import atualizar_prompt_com_feedback
+from app.services.followup import followup_service
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 logger = logging.getLogger(__name__)
@@ -121,6 +122,87 @@ async def job_atualizar_prompt_feedback():
         })
     except Exception as e:
         logger.error(f"Erro ao atualizar prompt com feedback: {e}")
+        return JSONResponse(
+            {"status": "error", "message": str(e)},
+            status_code=500
+        )
+
+
+@router.post("/processar-campanhas-agendadas")
+async def job_processar_campanhas_agendadas():
+    """
+    Job para iniciar campanhas agendadas.
+    
+    Executar via cron a cada minuto:
+    * * * * * curl -X POST http://localhost:8000/jobs/processar-campanhas-agendadas
+    """
+    try:
+        from datetime import datetime
+        from app.services.supabase import supabase
+        from app.services.campanha import criar_envios_campanha
+        
+        agora = datetime.utcnow().isoformat()
+        
+        # Buscar campanhas prontas
+        campanhas_resp = (
+            supabase.table("campanhas")
+            .select("id")
+            .eq("status", "agendada")
+            .lte("agendar_para", agora)
+            .execute()
+        )
+        
+        campanhas = campanhas_resp.data or []
+        iniciadas = 0
+        
+        for campanha in campanhas:
+            await criar_envios_campanha(campanha["id"])
+            supabase.table("campanhas").update({
+                "status": "ativa",
+                "iniciada_em": agora
+            }).eq("id", campanha["id"]).execute()
+            iniciadas += 1
+        
+        return JSONResponse({
+            "status": "ok",
+            "message": f"{iniciadas} campanha(s) iniciada(s)"
+        })
+    except Exception as e:
+        logger.error(f"Erro ao processar campanhas agendadas: {e}")
+        return JSONResponse(
+            {"status": "error", "message": str(e)},
+            status_code=500
+        )
+
+
+@router.post("/followup-diario")
+async def job_followup_diario():
+    """
+    Job diário de follow-up.
+    
+    Executar via cron às 10h:
+    0 10 * * * curl -X POST http://localhost:8000/jobs/followup-diario
+    """
+    try:
+        pendentes = await followup_service.verificar_followups_pendentes()
+        
+        enviados = 0
+        for item in pendentes:
+            sucesso = await followup_service.enviar_followup(
+                conversa_id=item["conversa"]["id"],
+                tipo=item["tipo"]
+            )
+            if sucesso:
+                enviados += 1
+        
+        return JSONResponse({
+            "status": "ok",
+            "message": f"{enviados} follow-up(s) agendado(s)",
+            "pendentes": len(pendentes),
+            "enviados": enviados
+        })
+    except Exception as e:
+        logger.error(f"Erro ao processar follow-ups: {e}")
         return JSONResponse(
             {"status": "error", "message": str(e)},
             status_code=500

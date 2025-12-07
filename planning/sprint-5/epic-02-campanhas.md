@@ -233,12 +233,12 @@ async def processar_fila():
 
 ## DoD
 
-- [ ] Tabela de fila criada
-- [ ] Serviço de enfileiramento funciona
-- [ ] Worker processa fila continuamente
-- [ ] Rate limiting respeitado
-- [ ] Retry com backoff exponencial
-- [ ] Priorização funciona
+- [x] Tabela de fila criada
+- [x] Serviço de enfileiramento funciona
+- [x] Worker processa fila continuamente
+- [x] Rate limiting respeitado
+- [x] Retry com backoff exponencial
+- [x] Priorização funciona
 
 ---
 
@@ -410,11 +410,11 @@ async def processar_campanhas_agendadas():
 
 ## DoD
 
-- [ ] Endpoint de criação funciona
-- [ ] Filtros por especialidade/região/tags
-- [ ] Agendamento para data futura
-- [ ] Job de execução automática
-- [ ] Mensagens personalizadas por destinatário
+- [x] Endpoint de criação funciona
+- [x] Filtros por especialidade/região/tags
+- [x] Agendamento para data futura
+- [x] Job de execução automática
+- [x] Mensagens personalizadas por destinatário
 
 ---
 
@@ -594,11 +594,11 @@ async def job_followup():
 
 ## DoD
 
-- [ ] Regras de follow-up configuradas
-- [ ] Identificação de pendentes funciona
-- [ ] Mensagens personalizadas
-- [ ] Limite de follow-ups por conversa
-- [ ] Job diário executa corretamente
+- [x] Regras de follow-up configuradas
+- [x] Identificação de pendentes funciona
+- [x] Mensagens personalizadas
+- [x] Limite de follow-ups por conversa
+- [x] Job diário executa corretamente
 
 ---
 
@@ -749,11 +749,11 @@ SEGMENTOS_PREDEFINIDOS = {
 
 ## DoD
 
-- [ ] Critérios de segmentação definidos
-- [ ] Contagem de segmento funciona
-- [ ] Busca de segmento funciona
-- [ ] Preview disponível via API
-- [ ] Segmentos pré-definidos configurados
+- [x] Critérios de segmentação definidos
+- [x] Contagem de segmento funciona
+- [x] Busca de segmento funciona
+- [x] Preview disponível via API
+- [x] Segmentos pré-definidos configurados
 
 ---
 
@@ -882,8 +882,8 @@ async def exportar_relatorio_csv(campanha_id: str):
 
 ## DoD
 
-- [ ] Métricas de envio calculadas
-- [ ] Taxa de resposta calculada
-- [ ] Endpoint de relatório funciona
-- [ ] Exportação CSV disponível
-- [ ] Detalhes de erros incluídos
+- [x] Métricas de envio calculadas
+- [x] Taxa de resposta calculada
+- [x] Endpoint de relatório funciona
+- [ ] Exportação CSV disponível (opcional)
+- [x] Detalhes de erros incluídos

@@ -6,13 +6,20 @@ from typing import Optional
 import logging
 
 from app.services.supabase import supabase
+from app.config.especialidades import obter_config_especialidade
+from app.config.regioes import detectar_regiao_por_telefone
+from app.services.redis import cache_get_json, cache_set_json, cache_delete
 
 logger = logging.getLogger(__name__)
 
+# TTL do cache em segundos
+CACHE_TTL_VAGAS = 60  # 1 minuto (vagas mudam frequentemente)
+
 
 async def buscar_vagas_compativeis(
-    especialidade_id: str,
+    especialidade_id: str = None,
     cliente_id: str = None,
+    medico: dict = None,
     limite: int = 5
 ) -> list[dict]:
     """
@@ -23,18 +30,39 @@ async def buscar_vagas_compativeis(
     - Status = aberta
     - Data >= hoje
     - Nao oferece vaga ja reservada pelo mesmo medico
+    - Preferencias do medico (se houver)
 
     Ordenacao:
     - Data mais proxima primeiro
 
     Args:
-        especialidade_id: ID da especialidade do medico
+        especialidade_id: ID da especialidade do medico (opcional se medico fornecido)
         cliente_id: ID do medico (para excluir vagas dele)
+        medico: Dados completos do medico (opcional, para aplicar preferencias)
         limite: Maximo de vagas a retornar
 
     Returns:
         Lista de vagas com dados de hospital, periodo e setor
     """
+    # Se medico fornecido, usar especialidade_id dele
+    if medico and not especialidade_id:
+        especialidade_id = medico.get("especialidade_id")
+    
+    if not especialidade_id:
+        logger.warning("Nenhuma especialidade fornecida para buscar vagas")
+        return []
+    
+    # Tentar cache primeiro
+    cache_key = f"vagas:especialidade:{especialidade_id}:limite:{limite}"
+    cached = await cache_get_json(cache_key)
+    if cached:
+        logger.debug(f"Cache hit para vagas: especialidade {especialidade_id}")
+        # Aplicar filtros de preferências mesmo no cache
+        if medico:
+            preferencias = medico.get("preferencias_detectadas") or {}
+            cached = filtrar_por_preferencias(cached, preferencias)
+        return cached[:limite]
+    
     hoje = date.today().isoformat()
 
     query = (
@@ -45,7 +73,7 @@ async def buscar_vagas_compativeis(
         .gte("data", hoje)
         .is_("deleted_at", "null")
         .order("data")
-        .limit(limite)
+        .limit(limite * 2)  # Buscar mais para filtrar
     )
 
     response = query.execute()
@@ -53,7 +81,17 @@ async def buscar_vagas_compativeis(
 
     logger.info(f"Encontradas {len(vagas)} vagas para especialidade {especialidade_id}")
 
-    return vagas
+    # Aplicar filtros de preferências se médico fornecido
+    if medico:
+        preferencias = medico.get("preferencias_detectadas") or {}
+        vagas = filtrar_por_preferencias(vagas, preferencias)
+
+    vagas_finais = vagas[:limite]
+    
+    # Salvar no cache
+    await cache_set_json(cache_key, vagas_finais, CACHE_TTL_VAGAS)
+    
+    return vagas_finais
 
 
 def filtrar_por_preferencias(vagas: list[dict], preferencias: dict) -> list[dict]:
@@ -223,6 +261,11 @@ async def reservar_vaga(
     vaga_atualizada = response.data[0]
     logger.info(f"Vaga {vaga_id} reservada para medico {cliente_id}")
 
+    # Invalidar cache de vagas
+    if vaga.get("especialidade_id"):
+        # Invalidar cache para esta especialidade
+        await invalidar_cache_vagas(vaga["especialidade_id"])
+
     # Notificar gestor via Slack
     if notificar_gestor and medico:
         try:
@@ -313,3 +356,105 @@ def formatar_vaga_para_mensagem(vaga: dict) -> str:
         partes.append(f"R$ {valor:,.0f}".replace(",", "."))
 
     return ", ".join(partes)
+
+
+async def invalidar_cache_vagas(especialidade_id: Optional[str] = None):
+    """
+    Invalida cache de vagas após alteração.
+    
+    Args:
+        especialidade_id: ID da especialidade (opcional, invalida todas se None)
+    """
+    try:
+        from app.services.redis import redis_client
+        
+        if especialidade_id:
+            # Invalidar padrão específico
+            pattern = f"vagas:especialidade:{especialidade_id}:*"
+        else:
+            pattern = "vagas:*"
+        
+        # Buscar todas as chaves que correspondem ao padrão
+        keys = await redis_client.keys(pattern)
+        
+        if keys:
+            await redis_client.delete(*keys)
+            logger.debug(f"Cache invalidado: {len(keys)} chave(s) removida(s)")
+    except Exception as e:
+        logger.warning(f"Erro ao invalidar cache de vagas: {e}")
+
+
+def formatar_vagas_contexto(vagas: list[dict], especialidade: str = None) -> str:
+    """
+    Formata vagas para incluir no contexto do LLM.
+    
+    Args:
+        vagas: Lista de vagas
+        especialidade: Nome da especialidade (opcional)
+    
+    Returns:
+        String formatada com vagas
+    """
+    if not vagas:
+        return "Não há vagas disponíveis no momento para esta especialidade."
+    
+    config = obter_config_especialidade(especialidade) if especialidade else {}
+    nome_display = config.get("nome_display", "médico") if config else "médico"
+    
+    texto = f"## Vagas Disponíveis para {nome_display}:\n\n"
+    
+    for i, v in enumerate(vagas[:5], 1):
+        hospital = v.get("hospitais", {})
+        periodo = v.get("periodos", {})
+        setor = v.get("setores", {})
+        
+        texto += f"""**Vaga {i}:**
+- Hospital: {hospital.get('nome', 'N/A')} ({hospital.get('cidade', 'N/A')})
+- Data: {v.get('data', 'N/A')}
+- Período: {periodo.get('nome', 'N/A')} ({periodo.get('hora_inicio', '')}-{periodo.get('hora_fim', '')})
+- Setor: {setor.get('nome', 'N/A')}
+- Valor: R$ {v.get('valor', 'N/A')}
+- ID: {v.get('id', 'N/A')}
+"""
+    
+    return texto
+
+
+async def buscar_vagas_por_regiao(
+    medico: dict,
+    limite: int = 5
+) -> list[dict]:
+    """
+    Busca vagas priorizando região do médico.
+    
+    Args:
+        medico: Dados do médico
+        limite: Máximo de vagas a retornar
+    
+    Returns:
+        Lista de vagas ordenadas por prioridade de região
+    """
+    # Buscar vagas compatíveis
+    vagas = await buscar_vagas_compativeis(
+        medico=medico,
+        limite=limite * 2
+    )
+    
+    # Detectar região do médico
+    telefone = medico.get("telefone", "")
+    regiao_medico = detectar_regiao_por_telefone(telefone)
+    
+    if not regiao_medico:
+        # Se não detectar região, retornar como está
+        return vagas[:limite]
+    
+    # Ordenar: vagas da região primeiro
+    def prioridade_regiao(vaga):
+        hospital = vaga.get("hospitais", {})
+        hospital_regiao = hospital.get("regiao")
+        if hospital_regiao == regiao_medico:
+            return 0  # Alta prioridade
+        return 1
+    
+    vagas_ordenadas = sorted(vagas, key=prioridade_regiao)
+    return vagas_ordenadas[:limite]

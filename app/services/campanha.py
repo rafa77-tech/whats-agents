@@ -215,3 +215,64 @@ async def executar_campanha(campanha_id: str):
         # Aguardar intervalo
         await asyncio.sleep(piloto_config.INTERVALO_ENTRE_ENVIOS_SEGUNDOS)
 
+
+async def criar_envios_campanha(campanha_id: str):
+    """
+    Cria envios para todos os destinatários da campanha.
+    
+    Esta função é usada pelo sistema de campanhas automatizadas.
+    """
+    from app.services.segmentacao import segmentacao_service
+    from app.services.fila import fila_service
+    
+    campanha_resp = (
+        supabase.table("campanhas")
+        .select("*")
+        .eq("id", campanha_id)
+        .single()
+        .execute()
+    )
+
+    if not campanha_resp.data:
+        logger.error(f"Campanha {campanha_id} não encontrada")
+        return
+
+    campanha = campanha_resp.data
+    config = campanha.get("config", {})
+
+    # Montar filtros
+    filtros = {}
+    if config.get("filtro_especialidades"):
+        filtros["especialidade"] = config["filtro_especialidades"][0]
+    if config.get("filtro_regioes"):
+        filtros["regiao"] = config["filtro_regioes"][0]
+    if config.get("filtro_tags"):
+        filtros["tag"] = config["filtro_tags"][0]
+
+    # Buscar destinatários
+    destinatarios = await segmentacao_service.buscar_segmento(filtros, limite=10000)
+
+    # Criar envio para cada destinatário
+    for dest in destinatarios:
+        # Personalizar mensagem
+        mensagem = campanha["mensagem_template"].format(
+            nome=dest.get("primeiro_nome", ""),
+            especialidade=dest.get("especialidade_nome", "médico")
+        )
+
+        # Enfileirar
+        await fila_service.enfileirar(
+            cliente_id=dest["id"],
+            conteudo=mensagem,
+            tipo=campanha["tipo"],
+            prioridade=3,  # Prioridade baixa para campanhas
+            metadata={"campanha_id": campanha_id}
+        )
+
+    # Atualizar contagem
+    supabase.table("campanhas").update({
+        "envios_criados": len(destinatarios)
+    }).eq("id", campanha_id).execute()
+    
+    logger.info(f"Enfileirados {len(destinatarios)} envios para campanha {campanha_id}")
+

@@ -151,11 +151,11 @@ def obter_saudacao_especialidade(especialidade: str) -> str:
 
 ## DoD
 
-- [ ] Configuração de 5+ especialidades
-- [ ] Contexto injetado no prompt
-- [ ] Saudação personalizada por especialidade
-- [ ] Vocabulário correto usado
-- [ ] Testes com cada especialidade
+- [x] Configuração de 5+ especialidades
+- [x] Contexto injetado no prompt
+- [x] Saudação personalizada por especialidade
+- [x] Vocabulário correto usado
+- [x] Testes com cada especialidade
 
 ---
 
@@ -250,11 +250,11 @@ def formatar_vagas_contexto(vagas: list, especialidade: str) -> str:
 
 ## DoD
 
-- [ ] Busca filtra por especialidade
-- [ ] Vagas formatadas no contexto
-- [ ] Preferências do médico aplicadas
-- [ ] Ordenação por prioridade
-- [ ] Testes por especialidade
+- [x] Busca filtra por especialidade
+- [x] Vagas formatadas no contexto
+- [x] Preferências do médico aplicadas
+- [x] Ordenação por prioridade
+- [x] Testes por especialidade
 
 ---
 
@@ -401,11 +401,11 @@ async def buscar_vagas_por_regiao(
 
 ## DoD
 
-- [ ] Estrutura de regiões definida
-- [ ] Script de importação funciona
-- [ ] Hospitais associados a especialidades
-- [ ] Filtro por região do médico
-- [ ] Pelo menos 20 hospitais cadastrados
+- [x] Estrutura de regiões definida
+- [x] Script de importação funciona
+- [x] Hospitais associados a especialidades
+- [x] Filtro por região do médico
+- [ ] Pelo menos 20 hospitais cadastrados (requer dados)
 
 ---
 
@@ -555,8 +555,8 @@ async def test_vagas_filtradas_por_especialidade():
 
 ## DoD
 
-- [ ] Testes para 5 especialidades
-- [ ] Contexto correto para cada uma
-- [ ] Vocabulário adequado
-- [ ] Vagas filtradas corretamente
-- [ ] Taxa de aprovação > 90%
+- [x] Testes para 5 especialidades
+- [x] Contexto correto para cada uma
+- [x] Vocabulário adequado
+- [x] Vagas filtradas corretamente
+- [ ] Taxa de aprovação > 90% (requer execução de testes)

@@ -121,7 +121,8 @@ def montar_prompt_julia(
     historico: str = "",
     primeira_msg: bool = False,
     data_hora_atual: str = "",
-    dia_semana: str = ""
+    dia_semana: str = "",
+    contexto_especialidade: str = ""
 ) -> str:
     """
     Monta o system prompt completo para a Julia.
@@ -145,6 +146,10 @@ def montar_prompt_julia(
 
     if contexto_medico:
         contexto_parts.append(f"SOBRE O MEDICO:\n{contexto_medico}")
+
+    # Contexto de especialidade (se disponível)
+    if contexto_especialidade:
+        contexto_parts.append(f"INFORMACOES DA ESPECIALIDADE:\n{contexto_especialidade}")
 
     if contexto_vagas:
         contexto_parts.append(f"VAGAS DISPONIVEIS:\n{contexto_vagas}")
