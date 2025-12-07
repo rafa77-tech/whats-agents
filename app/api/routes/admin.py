@@ -14,6 +14,24 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 logger = logging.getLogger(__name__)
 
 
+@router.get("/clientes/telefone/{telefone}")
+async def buscar_cliente_por_telefone(telefone: str):
+    """Busca cliente pelo telefone."""
+    try:
+        response = (
+            supabase.table("clientes")
+            .select("*")
+            .eq("telefone", telefone)
+            .execute()
+        )
+        if response.data:
+            return response.data[0]
+        return {"erro": "Cliente não encontrado", "telefone": telefone}
+    except Exception as e:
+        logger.error(f"Erro ao buscar cliente por telefone: {e}")
+        return {"erro": str(e)}
+
+
 @router.get("/conversas")
 async def listar_conversas(
     status: Optional[str] = None,

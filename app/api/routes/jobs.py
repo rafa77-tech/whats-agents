@@ -3,6 +3,7 @@ Endpoints para jobs e tarefas agendadas.
 """
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 import logging
 
 from app.services.fila_mensagens import processar_mensagens_agendadas
@@ -14,6 +15,127 @@ from app.services.followup import followup_service
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 logger = logging.getLogger(__name__)
+
+
+class PrimeiraMensagemRequest(BaseModel):
+    telefone: str
+
+
+@router.post("/primeira-mensagem")
+async def job_primeira_mensagem(request: PrimeiraMensagemRequest):
+    """
+    Envia primeira mensagem de prospecção para um médico.
+
+    Usado para testes manuais (CT-01).
+
+    Args:
+        telefone: Telefone do médico (ex: 5511999999999)
+    """
+    from app.services.supabase import supabase
+    from app.services.agente import gerar_resposta_julia, enviar_resposta
+    from app.services.contexto import montar_contexto_completo
+    from app.services.interacao import salvar_interacao
+    from datetime import datetime
+
+    try:
+        # 1. Buscar cliente pelo telefone
+        cliente_resp = (
+            supabase.table("clientes")
+            .select("*")
+            .eq("telefone", request.telefone)
+            .execute()
+        )
+
+        if not cliente_resp.data:
+            return JSONResponse(
+                {"status": "error", "message": f"Cliente não encontrado: {request.telefone}"},
+                status_code=404
+            )
+
+        cliente = cliente_resp.data[0]
+        logger.info(f"Cliente encontrado: {cliente['primeiro_nome']} ({cliente['id']})")
+
+        # 2. Criar ou buscar conversa ativa
+        conversa_resp = (
+            supabase.table("conversations")
+            .select("*")
+            .eq("cliente_id", cliente["id"])
+            .eq("status", "active")
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+        if conversa_resp.data:
+            conversa = conversa_resp.data[0]
+            logger.info(f"Conversa existente: {conversa['id']}")
+        else:
+            # Criar nova conversa
+            nova_conversa = (
+                supabase.table("conversations")
+                .insert({
+                    "cliente_id": cliente["id"],
+                    "status": "active",
+                    "controlled_by": "ai",
+                    "canal": "whatsapp",
+                    "iniciado_por": "julia"
+                })
+                .execute()
+            )
+            conversa = nova_conversa.data[0]
+            logger.info(f"Nova conversa criada: {conversa['id']}")
+
+        # 3. Montar contexto (vai detectar primeira_msg automaticamente)
+        contexto = await montar_contexto_completo(cliente, conversa)
+
+        # 4. Gerar primeira mensagem
+        # Para primeira mensagem, usamos prompt especial sem mensagem de entrada
+        resposta = await gerar_resposta_julia(
+            mensagem="[INICIO_PROSPECCAO]",  # Trigger especial
+            contexto=contexto,
+            medico=cliente,
+            conversa=conversa,
+            incluir_historico=False,
+            usar_tools=False  # Primeira msg não usa tools
+        )
+
+        logger.info(f"Resposta gerada: {resposta[:100]}...")
+
+        # 5. Enviar via WhatsApp
+        resultado_envio = await enviar_resposta(request.telefone, resposta)
+
+        # 6. Salvar interação no banco
+        await salvar_interacao(
+            conversa_id=conversa["id"],
+            cliente_id=cliente["id"],
+            origem="julia",
+            tipo="texto",
+            conteudo=resposta,
+            metadata={"tipo": "prospeccao", "primeira_mensagem": True}
+        )
+
+        # 7. Atualizar cliente
+        supabase.table("clientes").update({
+            "ultima_mensagem_data": datetime.utcnow().isoformat(),
+            "ultima_mensagem_tipo": "outbound",
+            "stage_jornada": "prospectado"
+        }).eq("id", cliente["id"]).execute()
+
+        return JSONResponse({
+            "status": "ok",
+            "message": "Primeira mensagem enviada",
+            "cliente": cliente["primeiro_nome"],
+            "conversa_id": conversa["id"],
+            "resposta": resposta,
+            "envio": resultado_envio
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao enviar primeira mensagem: {e}", exc_info=True)
+        return JSONResponse(
+            {"status": "error", "message": str(e)},
+            status_code=500
+        )
 
 
 @router.post("/processar-mensagens-agendadas")
@@ -175,17 +297,146 @@ async def job_processar_campanhas_agendadas():
         )
 
 
+@router.post("/report-periodo")
+async def job_report_periodo(tipo: str = "manha"):
+    """
+    Gera e envia report do periodo.
+
+    Periodos: manha (10h), almoco (13h), tarde (17h), fim_dia (20h)
+
+    Executar via cron:
+    0 10 * * * curl -X POST "http://localhost:8000/jobs/report-periodo?tipo=manha"
+    """
+    try:
+        from app.services.relatorio import gerar_report_periodo, enviar_report_periodo_slack
+        report = await gerar_report_periodo(tipo)
+        await enviar_report_periodo_slack(report)
+        return JSONResponse({
+            "status": "ok",
+            "periodo": tipo,
+            "metricas": report["metricas"]
+        })
+    except Exception as e:
+        logger.error(f"Erro ao gerar report {tipo}: {e}")
+        return JSONResponse(
+            {"status": "error", "message": str(e)},
+            status_code=500
+        )
+
+
+@router.post("/report-semanal")
+async def job_report_semanal():
+    """
+    Gera e envia report semanal.
+
+    Executar via cron segunda as 9h:
+    0 9 * * 1 curl -X POST http://localhost:8000/jobs/report-semanal
+    """
+    try:
+        from app.services.relatorio import gerar_report_semanal, enviar_report_semanal_slack
+        report = await gerar_report_semanal()
+        await enviar_report_semanal_slack(report)
+        return JSONResponse({
+            "status": "ok",
+            "semana": report["semana"],
+            "metricas": report["metricas"]
+        })
+    except Exception as e:
+        logger.error(f"Erro ao gerar report semanal: {e}")
+        return JSONResponse(
+            {"status": "error", "message": str(e)},
+            status_code=500
+        )
+
+
+@router.post("/processar-followups")
+async def job_processar_followups():
+    """
+    Job diario para processar follow-ups pendentes.
+
+    Usa a nova implementacao com stages (48h -> 5d -> 15d).
+
+    Executar via cron as 10h:
+    0 10 * * * curl -X POST http://localhost:8000/jobs/processar-followups
+    """
+    try:
+        from app.services.followup import processar_followups_pendentes
+        stats = await processar_followups_pendentes()
+        return JSONResponse({
+            "status": "ok",
+            "stats": stats
+        })
+    except Exception as e:
+        logger.error(f"Erro ao processar follow-ups: {e}")
+        return JSONResponse(
+            {"status": "error", "message": str(e)},
+            status_code=500
+        )
+
+
+@router.post("/processar-pausas-expiradas")
+async def job_processar_pausas_expiradas():
+    """
+    Job diario para reativar conversas pausadas.
+
+    Conversas em 'nao_respondeu' com pausa > 60 dias voltam para 'recontato'.
+
+    Executar via cron as 6h:
+    0 6 * * * curl -X POST http://localhost:8000/jobs/processar-pausas-expiradas
+    """
+    try:
+        from app.services.followup import processar_pausas_expiradas
+        stats = await processar_pausas_expiradas()
+        return JSONResponse({
+            "status": "ok",
+            "stats": stats
+        })
+    except Exception as e:
+        logger.error(f"Erro ao processar pausas expiradas: {e}")
+        return JSONResponse(
+            {"status": "error", "message": str(e)},
+            status_code=500
+        )
+
+
+@router.post("/sincronizar-briefing")
+async def job_sincronizar_briefing():
+    """
+    Job para sincronizar briefing do Google Docs.
+
+    Verifica se o documento mudou e atualiza diretrizes no banco.
+
+    Executar via cron a cada hora:
+    0 * * * * curl -X POST http://localhost:8000/jobs/sincronizar-briefing
+    """
+    try:
+        from app.services.briefing import sincronizar_briefing
+        result = await sincronizar_briefing()
+        return JSONResponse({
+            "status": "ok",
+            "result": result
+        })
+    except Exception as e:
+        logger.error(f"Erro ao sincronizar briefing: {e}")
+        return JSONResponse(
+            {"status": "error", "message": str(e)},
+            status_code=500
+        )
+
+
 @router.post("/followup-diario")
 async def job_followup_diario():
     """
-    Job diário de follow-up.
-    
-    Executar via cron às 10h:
+    Job diario de follow-up (LEGADO).
+
+    Mantido para compatibilidade. Usa a implementacao antiga.
+
+    Executar via cron as 10h:
     0 10 * * * curl -X POST http://localhost:8000/jobs/followup-diario
     """
     try:
         pendentes = await followup_service.verificar_followups_pendentes()
-        
+
         enviados = 0
         for item in pendentes:
             sucesso = await followup_service.enviar_followup(
@@ -194,7 +445,7 @@ async def job_followup_diario():
             )
             if sucesso:
                 enviados += 1
-        
+
         return JSONResponse({
             "status": "ok",
             "message": f"{enviados} follow-up(s) agendado(s)",

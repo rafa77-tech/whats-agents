@@ -15,6 +15,7 @@ from app.services.interacao import salvar_interacao
 from app.services.agente import processar_mensagem_completo
 from app.services.optout import detectar_optout, processar_optout
 from app.services.handoff_detector import detectar_trigger_handoff
+from app.services.deteccao_bot import detectar_mencao_bot, registrar_deteccao_bot
 
 router = APIRouter(prefix="/webhook", tags=["Webhooks"])
 logger = logging.getLogger(__name__)
@@ -140,6 +141,20 @@ async def processar_mensagem(data: dict):
             message_id=mensagem.message_id
         )
         logger.info("✓ Interação de entrada salva")
+
+        # 7.5. Verificar detecção de bot (S7.E6.3)
+        if mensagem.texto:
+            deteccao = detectar_mencao_bot(mensagem.texto)
+            if deteccao["detectado"]:
+                logger.warning(f"⚠️ Detecção de bot: '{deteccao['trecho']}'")
+                await registrar_deteccao_bot(
+                    cliente_id=medico["id"],
+                    conversa_id=conversa["id"],
+                    mensagem=mensagem.texto,
+                    padrao=deteccao["padrao"],
+                    trecho=deteccao["trecho"]
+                )
+                # Não bloqueia processamento, apenas registra
 
         # 8. Verificar opt-out ANTES de gerar resposta
         if mensagem.texto and detectar_optout(mensagem.texto)[0]:
@@ -337,33 +352,8 @@ async def processar_mensagem(data: dict):
                     logger.warning(f"Erro ao sincronizar mensagem com Chatwoot: {e}")
             return
 
-        # 10.5. Verificar horário comercial
-        from app.services.timing import esta_em_horario_comercial, proximo_horario_comercial
-        from app.services.fila_mensagens import agendar_resposta
-        
-        if not esta_em_horario_comercial():
-            # Gerar resposta mas agendar para depois
-            resposta = await processar_mensagem_completo(
-                mensagem_texto=mensagem.texto or "",
-                medico=medico,
-                conversa=conversa,
-                vagas=None
-            )
-            
-            if resposta:
-                proximo_horario = proximo_horario_comercial()
-                await agendar_resposta(
-                    conversa_id=conversa["id"],
-                    mensagem=mensagem.texto or "",
-                    resposta=resposta,
-                    agendar_para=proximo_horario
-                )
-                
-                logger.info(
-                    f"⏰ Mensagem agendada para {proximo_horario} "
-                    f"(fora do horário comercial)"
-                )
-            return
+        # Nota: Julia responde 24h quando médico inicia contato
+        # Horário comercial só se aplica a mensagens PROATIVAS (campanhas, prospecção)
 
         # 11. Registrar mensagem do médico nas métricas
         from app.services.metricas import metricas_service
