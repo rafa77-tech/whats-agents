@@ -179,6 +179,102 @@ class ChatwootService:
                 logger.error(f"Erro ao enviar mensagem para Chatwoot: {e}")
                 return False
 
+    async def adicionar_label(self, conversation_id: int, label: str) -> bool:
+        """
+        Adiciona uma label a uma conversa no Chatwoot.
+
+        Args:
+            conversation_id: ID da conversa no Chatwoot
+            label: Nome da label (ex: "humano")
+
+        Returns:
+            True se adicionou com sucesso
+        """
+        if not self.configurado:
+            logger.warning("Chatwoot nao configurado, ignorando adicao de label")
+            return False
+
+        # Primeiro buscar labels atuais
+        conversa = await self.buscar_conversa_por_id(conversation_id)
+        if not conversa:
+            logger.error(f"Conversa {conversation_id} nao encontrada no Chatwoot")
+            return False
+
+        labels_atuais = conversa.get("labels", [])
+
+        # Se label ja existe, nao precisa adicionar
+        if label in labels_atuais:
+            logger.debug(f"Label '{label}' ja existe na conversa {conversation_id}")
+            return True
+
+        # Adicionar nova label
+        novas_labels = labels_atuais + [label]
+
+        url = (
+            f"{self.base_url}/api/v1/accounts/{self.account_id}"
+            f"/conversations/{conversation_id}/labels"
+        )
+
+        payload = {"labels": novas_labels}
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                response = await client.post(url, json=payload, headers=self.headers)
+                response.raise_for_status()
+                logger.info(f"Label '{label}' adicionada a conversa {conversation_id}")
+                return True
+            except Exception as e:
+                logger.error(f"Erro ao adicionar label no Chatwoot: {e}")
+                return False
+
+    async def remover_label(self, conversation_id: int, label: str) -> bool:
+        """
+        Remove uma label de uma conversa no Chatwoot.
+
+        Args:
+            conversation_id: ID da conversa no Chatwoot
+            label: Nome da label a remover (ex: "humano")
+
+        Returns:
+            True se removeu com sucesso
+        """
+        if not self.configurado:
+            logger.warning("Chatwoot nao configurado, ignorando remocao de label")
+            return False
+
+        # Primeiro buscar labels atuais
+        conversa = await self.buscar_conversa_por_id(conversation_id)
+        if not conversa:
+            logger.error(f"Conversa {conversation_id} nao encontrada no Chatwoot")
+            return False
+
+        labels_atuais = conversa.get("labels", [])
+
+        # Se label nao existe, nao precisa remover
+        if label not in labels_atuais:
+            logger.debug(f"Label '{label}' nao existe na conversa {conversation_id}")
+            return True
+
+        # Remover label
+        novas_labels = [l for l in labels_atuais if l != label]
+
+        url = (
+            f"{self.base_url}/api/v1/accounts/{self.account_id}"
+            f"/conversations/{conversation_id}/labels"
+        )
+
+        payload = {"labels": novas_labels}
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                response = await client.post(url, json=payload, headers=self.headers)
+                response.raise_for_status()
+                logger.info(f"Label '{label}' removida da conversa {conversation_id}")
+                return True
+            except Exception as e:
+                logger.error(f"Erro ao remover label no Chatwoot: {e}")
+                return False
+
 
 # Instancia global
 chatwoot_service = ChatwootService()

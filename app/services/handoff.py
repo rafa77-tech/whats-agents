@@ -149,6 +149,11 @@ async def iniciar_handoff(
                     content=mensagem_transicao,
                     message_type="outgoing"
                 )
+                # Adicionar label "humano" no Chatwoot para o gestor ver
+                await chatwoot_service.adicionar_label(
+                    conversation_id=int(chatwoot_conversation_id),
+                    label="humano"
+                )
         except Exception as e:
             logger.error(f"Erro ao enviar mensagem de transição: {e}")
             # Continua mesmo se falhar
@@ -205,12 +210,23 @@ async def iniciar_handoff(
         return None
 
 
-async def finalizar_handoff(conversa_id: str) -> bool:
+async def finalizar_handoff(
+    conversa_id: str,
+    notas: str = "Gestor removeu label 'humano' no Chatwoot",
+    resolvido_por: str = "gestor"
+) -> bool:
     """
     Finaliza handoff e retorna controle para IA.
 
+    1. Atualiza conversa para controlled_by = 'ai'
+    2. Marca handoff como resolvido com timestamp
+    3. Notifica no Slack sobre a resolução
+    4. Calcula duração do handoff
+
     Args:
         conversa_id: ID da conversa
+        notas: Observações sobre a resolução
+        resolvido_por: Quem resolveu (gestor, sistema, etc)
 
     Returns:
         True se sucesso
@@ -218,7 +234,22 @@ async def finalizar_handoff(conversa_id: str) -> bool:
     supabase = get_supabase()
 
     try:
-        # 1. Atualizar conversa para controle IA
+        # 1. Buscar conversa com dados do cliente para notificação
+        conversa_response = (
+            supabase.table("conversations")
+            .select("*, clientes(*)")
+            .eq("id", conversa_id)
+            .single()
+            .execute()
+        )
+
+        if not conversa_response.data:
+            logger.error(f"Conversa {conversa_id} não encontrada para finalizar handoff")
+            return False
+
+        conversa = conversa_response.data
+
+        # 2. Atualizar conversa para controle IA
         supabase.table("conversations").update({
             "controlled_by": "ai",
             "escalation_reason": None,
@@ -227,11 +258,44 @@ async def finalizar_handoff(conversa_id: str) -> bool:
 
         logger.info(f"Conversa {conversa_id} retornada para controle IA")
 
-        # 2. Atualizar handoffs pendentes como resolvidos
-        supabase.table("handoffs").update({
-            "status": "resolvido",
-            "resolvido_em": datetime.utcnow().isoformat()
-        }).eq("conversa_id", conversa_id).eq("status", "pendente").execute()
+        # 2.1 Remover label "humano" do Chatwoot (se existir)
+        chatwoot_conversation_id = conversa.get("chatwoot_conversation_id")
+        if chatwoot_conversation_id and chatwoot_service.configurado:
+            try:
+                await chatwoot_service.remover_label(
+                    conversation_id=int(chatwoot_conversation_id),
+                    label="humano"
+                )
+            except Exception as e:
+                logger.warning(f"Erro ao remover label do Chatwoot: {e}")
+
+        # 3. Atualizar handoffs pendentes como resolvidos
+        handoff_response = (
+            supabase.table("handoffs")
+            .update({
+                "status": "resolvido",
+                "resolvido_em": datetime.utcnow().isoformat(),
+                "resolvido_por": resolvido_por,
+                "notas": notas
+            })
+            .eq("conversa_id", conversa_id)
+            .eq("status", "pendente")
+            .execute()
+        )
+
+        # 4. Notificar Slack se tiver handoff resolvido
+        if handoff_response.data:
+            handoff = handoff_response.data[0]
+            logger.info(f"Handoff {handoff['id']} marcado como resolvido")
+
+            # Notificar no Slack
+            try:
+                from app.services.slack import notificar_handoff_resolvido
+                await notificar_handoff_resolvido(conversa, handoff)
+            except Exception as e:
+                logger.error(f"Erro ao notificar Slack sobre handoff resolvido: {e}")
+        else:
+            logger.warning(f"Nenhum handoff pendente encontrado para conversa {conversa_id}")
 
         return True
 
