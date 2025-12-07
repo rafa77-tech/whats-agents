@@ -1,12 +1,16 @@
 """
 Servico para montagem de contexto do agente.
 """
+from datetime import datetime
 from typing import Optional
 import logging
 
 from app.services.interacao import carregar_historico, formatar_historico_para_llm
 
 logger = logging.getLogger(__name__)
+
+# Dias da semana em portugues
+DIAS_SEMANA = ["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"]
 
 
 def formatar_contexto_medico(medico: dict) -> str:
@@ -81,18 +85,17 @@ def formatar_contexto_vagas(vagas: list[dict], limite: int = 3) -> str:
     linhas = []
     for v in vagas[:limite]:
         hospital = v.get("hospitais", {}).get("nome", "Hospital")
-        data = v.get("data_plantao", "")
+        data = v.get("data", "")
         periodo = v.get("periodos", {}).get("nome", "")
-        valor = v.get("valor_min", 0)
+        valor = v.get("valor") or 0
         setor = v.get("setores", {}).get("nome", "")
+        vaga_id = v.get("id", "")
 
-        linha = f"- {hospital}, {data}, {periodo}"
+        linha = f"- [{vaga_id[:8]}] {hospital}, {data}, {periodo}"
         if setor:
             linha += f", {setor}"
-        linha += f", R$ {valor:,.0f}"
-
-        if v.get("prioridade") == "urgente":
-            linha += " (URGENTE)"
+        if valor:
+            linha += f", R$ {valor:,.0f}"
 
         linhas.append(linha)
 
@@ -122,6 +125,10 @@ async def montar_contexto_completo(
     # Verificar se e primeira mensagem
     primeira_msg = len(historico_raw) == 0
 
+    # Data/hora atual para calculo de lembretes
+    agora = datetime.now()
+    dia_semana = DIAS_SEMANA[agora.weekday()]
+
     return {
         "medico": formatar_contexto_medico(medico),
         "historico": historico,
@@ -129,4 +136,6 @@ async def montar_contexto_completo(
         "vagas": formatar_contexto_vagas(vagas) if vagas else "",
         "primeira_msg": primeira_msg,
         "controlled_by": conversa.get("controlled_by", "ai"),
+        "data_hora_atual": agora.strftime("%Y-%m-%d %H:%M"),
+        "dia_semana": dia_semana,
     }

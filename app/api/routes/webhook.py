@@ -13,6 +13,7 @@ from app.services.medico import buscar_ou_criar_medico
 from app.services.conversa import buscar_ou_criar_conversa
 from app.services.interacao import salvar_interacao
 from app.services.agente import processar_mensagem_completo
+from app.services.optout import detectar_optout, processar_optout
 
 router = APIRouter(prefix="/webhook", tags=["Webhooks"])
 logger = logging.getLogger(__name__)
@@ -139,20 +140,43 @@ async def processar_mensagem(data: dict):
         )
         logger.info("✓ Interação de entrada salva")
 
-        # 8. Verificar se IA controla a conversa
+        # 8. Verificar opt-out ANTES de gerar resposta
+        if mensagem.texto and detectar_optout(mensagem.texto):
+            logger.info(f"🛑 Opt-out detectado para {mensagem.telefone[:8]}...")
+            resposta_optout = await processar_optout(
+                cliente_id=medico["id"],
+                telefone=mensagem.telefone
+            )
+            if resposta_optout:
+                await evolution.enviar_mensagem(
+                    telefone=mensagem.telefone,
+                    texto=resposta_optout,
+                    verificar_rate_limit=False  # Confirmação não conta no rate limit
+                )
+                await salvar_interacao(
+                    conversa_id=conversa["id"],
+                    cliente_id=medico["id"],
+                    tipo="saida",
+                    conteudo=resposta_optout,
+                    autor_tipo="julia",
+                )
+                logger.info("✓ Confirmação de opt-out enviada")
+            return
+
+        # 9. Verificar se IA controla a conversa
         if conversa.get("controlled_by") != "ai":
             logger.info("⏸ Conversa sob controle humano, não gerando resposta")
             return
 
-        # 9. Delay humano (simula leitura + digitação)
+        # 10. Delay humano (simula leitura + digitação)
         delay = random.uniform(2, 5)  # 2-5 segundos
         logger.info(f"⏳ Delay humano: {delay:.1f}s")
         await asyncio.sleep(delay)
 
-        # 10. Manter digitando
+        # 11. Manter digitando
         await mostrar_digitando(mensagem.telefone)
 
-        # 11. Gerar resposta da Julia
+        # 12. Gerar resposta da Julia
         resposta = await processar_mensagem_completo(
             mensagem_texto=mensagem.texto or "",
             medico=medico,
@@ -166,16 +190,17 @@ async def processar_mensagem(data: dict):
 
         logger.info(f"✓ Resposta gerada: {resposta[:50]}...")
 
-        # 12. Enviar resposta via WhatsApp
+        # 13. Enviar resposta via WhatsApp (sem verificar rate limit para respostas)
         resultado = await evolution.enviar_mensagem(
             telefone=mensagem.telefone,
-            texto=resposta
+            texto=resposta,
+            verificar_rate_limit=False  # Respostas a mensagens recebidas não contam
         )
 
         if resultado:
             logger.info(f"✓ Mensagem enviada para {mensagem.telefone[:8]}...")
 
-            # 13. Salvar interação de saída
+            # 14. Salvar interação de saída
             await salvar_interacao(
                 conversa_id=conversa["id"],
                 cliente_id=medico["id"],

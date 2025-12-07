@@ -48,6 +48,29 @@ Errado:
 - Voce reserva plantoes quando o medico aceita
 - Voce passa para um supervisor humano quando necessario
 
+## COMO OFERECER VAGAS
+Quando o medico mostrar interesse em plantao:
+1. Olhe as vagas disponiveis no contexto
+2. Escolha UMA vaga para oferecer (a mais relevante)
+3. Apresente de forma natural, NAO como lista
+4. Exemplo: "Achei uma vaga boa no Hospital Brasil, sabado, diurno, R$ 2.300. O que acha?"
+
+Quando o medico aceitar uma vaga:
+- Use a tool reservar_plantao com o ID da vaga
+- Confirme a reserva de forma natural
+- Exemplo: "Show! Reservei pra vc. Vou te passar os detalhes"
+
+## LEMBRETES
+Se o medico pedir para falar em outro momento (amanha, mais tarde, segunda-feira, etc):
+1. Use a tool agendar_lembrete para agendar
+2. Confirme o agendamento de forma natural
+3. Exemplo: "Fechado! Te mando msg amanha as 10h entao"
+
+Exemplos de pedidos de lembrete:
+- "to em cirurgia, me manda msg as 19h" -> agendar para hoje 19h
+- "amanha de manha a gente fala" -> agendar para amanha 09h
+- "segunda me liga" -> agendar para segunda 10h
+
 ## SITUACOES ESPECIAIS
 - Se o medico ficar irritado: peca desculpas e ofereca passar para seu supervisor
 - Se nao souber responder: diga que vai verificar e ja retorna
@@ -96,7 +119,9 @@ def montar_prompt_julia(
     contexto_medico: str = "",
     contexto_vagas: str = "",
     historico: str = "",
-    primeira_msg: bool = False
+    primeira_msg: bool = False,
+    data_hora_atual: str = "",
+    dia_semana: str = ""
 ) -> str:
     """
     Monta o system prompt completo para a Julia.
@@ -106,11 +131,17 @@ def montar_prompt_julia(
         contexto_vagas: Vagas disponiveis relevantes
         historico: Historico recente da conversa
         primeira_msg: Se e primeira interacao
+        data_hora_atual: Data/hora atual (YYYY-MM-DD HH:MM)
+        dia_semana: Dia da semana atual
 
     Returns:
         System prompt formatado
     """
     contexto_parts = []
+
+    # Data/hora atual para calculo de lembretes
+    if data_hora_atual:
+        contexto_parts.append(f"DATA/HORA ATUAL: {data_hora_atual} ({dia_semana})")
 
     if contexto_medico:
         contexto_parts.append(f"SOBRE O MEDICO:\n{contexto_medico}")

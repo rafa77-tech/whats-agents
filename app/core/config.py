@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     SLACK_WEBHOOK_URL: str = ""
     SLACK_CHANNEL: str = "#julia-gestao"
 
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
+
     # Rate Limiting
     MAX_MSGS_POR_HORA: int = 20
     MAX_MSGS_POR_DIA: int = 100

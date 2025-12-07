@@ -97,11 +97,11 @@ def filtrar_por_preferencias(vagas: list, preferencias: dict) -> list:
 
 ## DoD
 
-- [ ] Função `buscar_vagas_compativeis()` implementada
-- [ ] Filtro por especialidade funciona
-- [ ] Filtro por preferências funciona
-- [ ] Ordenação por prioridade e data funciona
-- [ ] Retorna dados completos (hospital, período, setor)
+- [x] Função `buscar_vagas_compativeis()` implementada
+- [x] Filtro por especialidade funciona
+- [x] Filtro por preferências funciona
+- [x] Ordenação por prioridade e data funciona
+- [x] Retorna dados completos (hospital, período, setor)
 
 ---
 
@@ -149,11 +149,11 @@ async def reservar_vaga(vaga_id: str, cliente_id: str) -> dict:
 
 ## DoD
 
-- [ ] Função `reservar_vaga()` implementada
-- [ ] Verifica se vaga está disponível antes
-- [ ] Atualiza status para "reservada"
-- [ ] Associa médico à vaga
-- [ ] Retorna erro se vaga não disponível
+- [x] Função `reservar_vaga()` implementada
+- [x] Verifica se vaga está disponível antes
+- [x] Atualiza status para "reservada"
+- [x] Associa médico à vaga
+- [x] Retorna erro se vaga não disponível
 
 ---
 
@@ -192,9 +192,9 @@ async def verificar_conflito(
 
 ## DoD
 
-- [ ] Função `verificar_conflito()` implementada
-- [ ] Retorna True se há conflito
-- [ ] Considera apenas vagas reservadas/confirmadas
+- [x] Função `verificar_conflito()` implementada
+- [x] Retorna True se há conflito
+- [x] Considera apenas vagas reservadas/confirmadas
 
 ---
 
@@ -230,9 +230,9 @@ async def notificar_plantao_fechado(
 
 ## DoD
 
-- [ ] Notificação enviada ao Slack após reserva
-- [ ] Inclui dados do médico e vaga
-- [ ] Formato legível e com cor verde
+- [x] Notificação enviada ao Slack após reserva
+- [x] Inclui dados do médico e vaga
+- [x] Formato legível e com cor verde
 
 ---
 
@@ -290,11 +290,11 @@ E então chamar a função de reserva.
 
 ## DoD
 
-- [ ] Vagas aparecem no contexto do agente
-- [ ] Júlia oferece vaga quando médico mostra interesse
-- [ ] Oferta é natural (não lista)
-- [ ] Médico pode aceitar verbalmente
-- [ ] Aceite gera reserva no banco
+- [x] Vagas aparecem no contexto do agente
+- [x] Júlia oferece vaga quando médico mostra interesse
+- [x] Oferta é natural (não lista)
+- [x] Médico pode aceitar verbalmente
+- [x] Aceite gera reserva no banco
 
 ---
 
@@ -501,10 +501,10 @@ Júlia: "Combinado! Segunda de manhã te chamo!"
 
 ## DoD
 
-- [ ] Tool `agendar_lembrete` definida
-- [ ] Handler processa e enfileira corretamente
-- [ ] Data atual disponível no contexto da LLM
-- [ ] System prompt orienta uso da tool
-- [ ] Validação de data no passado
-- [ ] Mensagem de retorno personalizada ou padrão
-- [ ] Lembrete executado no horário agendado
+- [x] Tool `agendar_lembrete` definida
+- [x] Handler processa e enfileira corretamente
+- [x] Data atual disponível no contexto da LLM
+- [x] System prompt orienta uso da tool
+- [x] Validação de data no passado
+- [x] Mensagem de retorno personalizada ou padrão
+- [x] Lembrete executado no horário agendado
