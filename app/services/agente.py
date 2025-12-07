@@ -11,13 +11,19 @@ from app.services.llm import gerar_resposta, gerar_resposta_com_tools, continuar
 from app.services.interacao import converter_historico_para_messages
 from app.services.mensagem import quebrar_mensagem
 from app.services.whatsapp import enviar_com_digitacao
-from app.tools.vagas import TOOL_RESERVAR_PLANTAO, handle_reservar_plantao
+from app.tools.vagas import (
+    TOOL_BUSCAR_VAGAS,
+    TOOL_RESERVAR_PLANTAO,
+    handle_buscar_vagas,
+    handle_reservar_plantao,
+)
 from app.tools.lembrete import TOOL_AGENDAR_LEMBRETE, handle_agendar_lembrete
 
 logger = logging.getLogger(__name__)
 
 # Tools disponiveis para o agente
 JULIA_TOOLS = [
+    TOOL_BUSCAR_VAGAS,
     TOOL_RESERVAR_PLANTAO,
     TOOL_AGENDAR_LEMBRETE,
 ]
@@ -42,6 +48,9 @@ async def processar_tool_call(
         Resultado da tool
     """
     logger.info(f"Processando tool: {tool_name}")
+
+    if tool_name == "buscar_vagas":
+        return await handle_buscar_vagas(tool_input, medico, conversa)
 
     if tool_name == "reservar_plantao":
         return await handle_reservar_plantao(tool_input, medico, conversa)
@@ -82,7 +91,8 @@ async def gerar_resposta_julia(
         primeira_msg=contexto.get("primeira_msg", False),
         data_hora_atual=contexto.get("data_hora_atual", ""),
         dia_semana=contexto.get("dia_semana", ""),
-        contexto_especialidade=contexto.get("especialidade", "")
+        contexto_especialidade=contexto.get("especialidade", ""),
+        contexto_handoff=contexto.get("handoff_recente", "")
     )
 
     # Montar historico como messages (para o Claude ter contexto da conversa)

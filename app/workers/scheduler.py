@@ -29,9 +29,19 @@ JOBS = [
         "schedule": "*/15 * * * *",  # A cada 15 minutos
     },
     {
+        "name": "processar_followups",
+        "endpoint": "/jobs/processar-followups",
+        "schedule": "0 10 * * *",  # Diário às 10h
+    },
+    {
+        "name": "processar_pausas_expiradas",
+        "endpoint": "/jobs/processar-pausas-expiradas",
+        "schedule": "0 6 * * *",  # Diário às 6h
+    },
+    {
         "name": "followup_diario",
         "endpoint": "/jobs/followup-diario",
-        "schedule": "0 10 * * *",  # Diário às 10h
+        "schedule": "0 10 * * *",  # Diário às 10h (legado)
     },
     {
         "name": "avaliar_conversas_pendentes",
@@ -41,12 +51,44 @@ JOBS = [
     {
         "name": "relatorio_diario",
         "endpoint": "/jobs/relatorio-diario",
-        "schedule": "0 8 * * *",  # Diário às 8h
+        "schedule": "0 8 * * *",  # Diário às 8h (legado)
+    },
+    # Reports periódicos (4x por dia + semanal)
+    {
+        "name": "report_manha",
+        "endpoint": "/jobs/report-periodo?tipo=manha",
+        "schedule": "0 10 * * *",  # 10h todos os dias
+    },
+    {
+        "name": "report_almoco",
+        "endpoint": "/jobs/report-periodo?tipo=almoco",
+        "schedule": "0 13 * * *",  # 13h todos os dias
+    },
+    {
+        "name": "report_tarde",
+        "endpoint": "/jobs/report-periodo?tipo=tarde",
+        "schedule": "0 17 * * *",  # 17h todos os dias
+    },
+    {
+        "name": "report_fim_dia",
+        "endpoint": "/jobs/report-periodo?tipo=fim_dia",
+        "schedule": "0 20 * * *",  # 20h todos os dias
+    },
+    {
+        "name": "report_semanal",
+        "endpoint": "/jobs/report-semanal",
+        "schedule": "0 9 * * 1",  # Segunda às 9h
     },
     {
         "name": "atualizar_prompt_feedback",
         "endpoint": "/jobs/atualizar-prompt-feedback",
         "schedule": "0 2 * * 0",  # Semanal (domingo às 2h)
+    },
+    # Sincronizacao de briefing (Google Docs)
+    {
+        "name": "sincronizar_briefing",
+        "endpoint": "/jobs/sincronizar-briefing",
+        "schedule": "0 * * * *",  # A cada hora, minuto 0
     },
 ]
 

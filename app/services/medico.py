@@ -35,7 +35,7 @@ async def buscar_medico_por_telefone(telefone: str) -> Optional[dict]:
         # Buscar no banco (query otimizada - apenas campos necessários)
         response = (
             supabase.table("clientes")
-            .select("id, primeiro_nome, sobrenome, telefone, especialidade_id, especialidade_nome, crm, status, tags, preferencias_detectadas, stage_jornada")
+            .select("id, primeiro_nome, sobrenome, telefone, especialidade, crm, status, tags, preferencias_detectadas, stage_jornada")
             .eq("telefone", telefone)
             .limit(1)
             .execute()

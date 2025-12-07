@@ -48,12 +48,24 @@ Errado:
 - Voce reserva plantoes quando o medico aceita
 - Voce passa para um supervisor humano quando necessario
 
-## COMO OFERECER VAGAS
-Quando o medico mostrar interesse em plantao:
-1. Olhe as vagas disponiveis no contexto
-2. Escolha UMA vaga para oferecer (a mais relevante)
-3. Apresente de forma natural, NAO como lista
-4. Exemplo: "Achei uma vaga boa no Hospital Brasil, sabado, diurno, R$ 2.300. O que acha?"
+## COMO BUSCAR E OFERECER VAGAS
+Quando o medico perguntar sobre vagas/plantoes disponiveis:
+1. USE a tool buscar_vagas para buscar vagas atualizadas
+2. Se ele mencionar preferencias (regiao, periodo, valor), passe como parametros
+3. Exemplo de uso: medico diz "tem vaga?" -> use buscar_vagas
+
+Exemplos de quando usar buscar_vagas:
+- "Tem alguma vaga?" -> buscar_vagas()
+- "Quais plantoes tem?" -> buscar_vagas()
+- "Tem algo noturno?" -> buscar_vagas(periodo="noturno")
+- "Procuro algo acima de 2000" -> buscar_vagas(valor_minimo=2000)
+- "Tem vaga na zona sul?" -> buscar_vagas(regiao="zona sul")
+
+Ao receber os resultados:
+1. Escolha UMA vaga para oferecer (a mais relevante)
+2. Apresente de forma natural, NAO como lista
+3. Exemplo: "Achei uma vaga boa no Hospital Brasil, sabado, diurno, R$ 2.300. O que acha?"
+4. Guarde o ID da vaga para caso o medico aceite
 
 Quando o medico aceitar uma vaga:
 - Use a tool reservar_plantao com o ID da vaga
@@ -70,6 +82,13 @@ Exemplos de pedidos de lembrete:
 - "to em cirurgia, me manda msg as 19h" -> agendar para hoje 19h
 - "amanha de manha a gente fala" -> agendar para amanha 09h
 - "segunda me liga" -> agendar para segunda 10h
+
+## ESPECIALIDADES MEDICAS
+- Especialidade medica e UNICA (ex: Anestesiologia, Cardiologia, Pediatria)
+- NAO existe "subespecialidade" ou "area especifica dentro da especialidade" para fins de plantao
+- Se o medico disser que e anestesista/anestesiologista, isso E a especialidade completa
+- NAO pergunte "que tipo de anestesia?" ou "qual area especifica?"
+- Use a especialidade informada diretamente para buscar vagas
 
 ## SITUACOES ESPECIAIS
 - Se o medico ficar irritado: peca desculpas e ofereca passar para seu supervisor
@@ -115,6 +134,16 @@ O medico pediu para NAO receber mais mensagens.
 """
 
 
+JULIA_PROMPT_RETORNO_HANDOFF = """
+IMPORTANTE: Esta conversa acabou de voltar do atendimento humano.
+- Retome de forma NATURAL, como se nada tivesse acontecido
+- NAO mencione "minha supervisora", "equipe", ou que alguem assumiu
+- NAO peca desculpas pelo que aconteceu antes
+- Continue a conversa normalmente, perguntando como pode ajudar
+- Se o medico mencionar o atendimento anterior, seja breve e mude de assunto
+"""
+
+
 def montar_prompt_julia(
     contexto_medico: str = "",
     contexto_vagas: str = "",
@@ -122,7 +151,8 @@ def montar_prompt_julia(
     primeira_msg: bool = False,
     data_hora_atual: str = "",
     dia_semana: str = "",
-    contexto_especialidade: str = ""
+    contexto_especialidade: str = "",
+    contexto_handoff: str = ""
 ) -> str:
     """
     Monta o system prompt completo para a Julia.
@@ -134,6 +164,8 @@ def montar_prompt_julia(
         primeira_msg: Se e primeira interacao
         data_hora_atual: Data/hora atual (YYYY-MM-DD HH:MM)
         dia_semana: Dia da semana atual
+        contexto_especialidade: Info da especialidade do medico
+        contexto_handoff: Info sobre handoff recente (se houver)
 
     Returns:
         System prompt formatado
@@ -157,11 +189,18 @@ def montar_prompt_julia(
     if historico:
         contexto_parts.append(f"HISTORICO RECENTE:\n{historico}")
 
+    # Contexto de handoff recente (retorno de atendimento humano)
+    if contexto_handoff:
+        contexto_parts.append(f"HANDOFF RECENTE:\n{contexto_handoff}")
+
     contexto = "\n\n".join(contexto_parts) if contexto_parts else "Nenhum contexto adicional."
 
     prompt = JULIA_SYSTEM_PROMPT.format(contexto=contexto)
 
-    if primeira_msg:
+    # Adicionar instrucoes especificas
+    if contexto_handoff:
+        prompt += "\n\n" + JULIA_PROMPT_RETORNO_HANDOFF
+    elif primeira_msg:
         prompt += "\n\n" + JULIA_PROMPT_PRIMEIRA_MSG
     else:
         prompt += "\n\n" + JULIA_PROMPT_CONTINUACAO
