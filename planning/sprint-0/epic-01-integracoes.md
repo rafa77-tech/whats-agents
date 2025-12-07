@@ -95,12 +95,14 @@ O Gestor não precisa testar. O Dev validará na story S0.E1.2.
 
 ## DoD (Definition of Done)
 
-- [x ] Conta criada em console.anthropic.com
-- [x ] Método de pagamento adicionado
-- [x ] Limite de gastos configurado ($50)
-- [x ] API Key gerada (formato: `sk-ant-...`)
-- [x ] API Key guardada em local seguro
-- [x ] API Key comunicada ao Dev de forma segura
+- [x] Conta criada em console.anthropic.com
+- [x] Método de pagamento adicionado
+- [x] Limite de gastos configurado ($50)
+- [x] API Key gerada (formato: `sk-ant-...`)
+- [x] API Key guardada em local seguro
+- [x] API Key comunicada ao Dev de forma segura
+
+**Status: COMPLETO** ✅
 
 ---
 
@@ -144,8 +146,8 @@ Este teste confirma que a API key está funcionando e que conseguimos nos comuni
 
 ## Pré-requisitos
 
-- [x ] Story S0.E1.1 completa (API key disponível)
-- [x ] `curl` instalado (padrão no Mac/Linux)
+- [x] Story S0.E1.1 completa (API key disponível)
+- [x] `curl` instalado (padrão no Mac/Linux)
 
 ---
 
@@ -253,11 +255,13 @@ Execute os curls acima. Se receber resposta JSON com `"type": "message"`, está 
 
 ## DoD (Definition of Done)
 
-- [x ] Curl básico retorna resposta do Claude
-- [x ] Curl com system prompt retorna resposta informal
-- [x ] Arquivo `tests/manual/claude-test.json` criado com resposta
-- [x ] Nenhum erro de autenticação (`401`) ou rate limit (`429`)
-- [x ] Tempo de resposta < 5 segundos
+- [x] Curl básico retorna resposta do Claude
+- [x] Curl com system prompt retorna resposta informal
+- [x] Arquivo `tests/manual/claude-test.json` criado com resposta
+- [x] Nenhum erro de autenticação (`401`) ou rate limit (`429`)
+- [x] Tempo de resposta < 5 segundos
+
+**Status: COMPLETO** ✅
 
 ---
 
@@ -302,9 +306,9 @@ Este é o canal principal de comunicação da Júlia com os médicos.
 
 ## Pré-requisitos
 
-- [x ] Docker Compose rodando (`docker compose ps` mostra evolution-api UP)
-- [x ] Celular com WhatsApp instalado
-- [x ] Número que será usado (preferencialmente número novo/teste)
+- [x] Docker Compose rodando (`docker compose ps` mostra evolution-api UP)
+- [x] Celular com WhatsApp instalado
+- [x] Número que será usado (preferencialmente número novo/teste)
 
 ---
 
@@ -397,11 +401,13 @@ curl http://localhost:8080/instance/connectionState/Revoluna \
 
 ## DoD (Definition of Done)
 
-- [x ] Evolution API rodando (docker ps mostra UP)
-- [x ] Instância "Revoluna" criada
-- [x ] QR code escaneado com sucesso
-- [x ] Status da instância é "open" ou "connected"
-- [x ] API key do Evolution documentada (para o dev)
+- [x] Evolution API rodando (docker ps mostra UP)
+- [x] Instância "Revoluna" criada
+- [x] QR code escaneado com sucesso
+- [x] Status da instância é "open" ou "connected"
+- [x] API key do Evolution documentada (para o dev)
+
+**Status: COMPLETO** ✅
 
 ---
 
@@ -445,8 +451,8 @@ Este teste confirma que a integração com WhatsApp está funcionando corretamen
 
 ## Pré-requisitos
 
-- [x ] Story S0.E1.3 completa (WhatsApp conectado)
-- [x ] Um número de teste para receber mensagens (pode ser seu número pessoal)
+- [x] Story S0.E1.3 completa (WhatsApp conectado)
+- [x] Um número de teste para receber mensagens (pode ser seu número pessoal)
 
 ---
 
@@ -576,6 +582,8 @@ EOF
 - [x] Arquivo `tests/manual/evolution-webhook-example.json` criado
 - [x] Tempo de envio < 3 segundos
 
+**Status: COMPLETO** ✅
+
 ---
 
 ## Troubleshooting
@@ -619,6 +627,7 @@ O Chatwoot é onde o gestor irá visualizar e intervir nas conversas da Júlia.
 ## Pré-requisitos
 
 - [x] Docker Compose rodando (`docker compose ps` mostra Chatwoot UP)
+- [x] Acesso à máquina local
 
 ---
 
@@ -687,6 +696,8 @@ Se já existe conta (tela de login):
 - [x] Dashboard carrega corretamente
 - [x] Credenciais documentadas (local seguro)
 
+**Status: COMPLETO** ✅
+
 > **Nota:** Usando integração nativa Evolution-Chatwoot (não via API separada)
 
 ---
@@ -732,6 +743,7 @@ O inbox é o canal por onde as conversas da Júlia aparecerão.
 
 - [x] Story S0.E1.5 completa (conta Chatwoot criada)
 - [x] Acesso ao painel Chatwoot
+- [x] Integração Evolution-Chatwoot configurada
 
 ---
 
@@ -866,6 +878,8 @@ EOF
 - [x] Mensagem aparece no painel visual
 - [x] Arquivo `tests/manual/chatwoot-config.json` criado (sem a key!)
 
+**Status: COMPLETO** ✅
+
 > **Nota:** Usando integração nativa Evolution-Chatwoot. Inbox criado automaticamente pela integração.
 > Conversas do WhatsApp aparecem automaticamente no Chatwoot sem necessidade de sincronização via API.
 
@@ -977,12 +991,14 @@ Verifique se a mensagem aparece no canal `#julia-gestao`.
 
 ## DoD (Definition of Done)
 
-- [x ] Canal `#julia-gestao` criado
-- [x ] Slack App "Julia Bot" criado
-- [x ] Incoming Webhook ativado
-- [x ] Webhook URL gerado (formato: `https://hooks.slack.com/...`)
-- [x ] Teste básico funciona (mensagem chega no canal)
-- [x ] URL comunicada ao Dev de forma segura
+- [x] Canal `#julia-gestao` criado
+- [x] Slack App "Julia Bot" criado
+- [x] Incoming Webhook ativado
+- [x] Webhook URL gerado (formato: `https://hooks.slack.com/...`)
+- [x] Teste básico funciona (mensagem chega no canal)
+- [x] URL comunicada ao Dev de forma segura
+
+**Status: COMPLETO** ✅
 
 ---
 
@@ -1026,6 +1042,7 @@ Este teste confirma que a integração está pronta para reports e alertas.
 ## Pré-requisitos
 
 - [x] Story S0.E1.7 completa (webhook URL disponível)
+- [x] Acesso ao Slack workspace
 
 ---
 
@@ -1155,6 +1172,25 @@ EOF
 - [x] Notificação com cor verde funciona
 - [x] Arquivo `tests/manual/slack-examples.md` criado
 - [x] Todas as mensagens aparecem no canal `#julia-gestao`
+
+**Status: COMPLETO** ✅
+
+---
+
+# Epic 1 Summary
+
+**Status Geral: COMPLETO** ✅
+
+| Story | Status |
+|-------|--------|
+| S0.E1.1 - Obter API Key Anthropic | ✅ |
+| S0.E1.2 - Testar chamada Claude API | ✅ |
+| S0.E1.3 - Conectar WhatsApp Evolution | ✅ |
+| S0.E1.4 - Testar envio/recebimento Evolution | ✅ |
+| S0.E1.5 - Configurar conta Chatwoot | ✅ |
+| S0.E1.6 - Criar inbox e testar Chatwoot | ✅ |
+| S0.E1.7 - Criar webhook Slack | ✅ |
+| S0.E1.8 - Testar envio Slack | ✅ |
 
 ---
 

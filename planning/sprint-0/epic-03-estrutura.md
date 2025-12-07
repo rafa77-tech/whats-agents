@@ -46,9 +46,9 @@ Esta é a fundação do código. Uma estrutura bem organizada facilita o desenvo
 
 ## Pré-requisitos
 
-- [ ] Python 3.13+ instalado
-- [ ] uv instalado (`pip install uv`)
-- [ ] Repositório clonado
+- [x] Python 3.13+ instalado
+- [x] uv instalado (`pip install uv`)
+- [x] Repositório clonado
 
 ---
 
@@ -347,15 +347,17 @@ open http://localhost:8000/docs
 
 ## DoD (Definition of Done)
 
-- [ ] Diretórios criados: `app/`, `app/api/`, `app/core/`, `app/services/`, `app/models/`
-- [ ] Arquivo `app/main.py` criado e funcional
-- [ ] Arquivo `app/core/config.py` criado
-- [ ] Arquivo `app/api/routes/health.py` criado
-- [ ] `pyproject.toml` atualizado com dependências
-- [ ] Dependências instaladas (`uv sync`)
-- [ ] Aplicação roda sem erros (`uvicorn app.main:app`)
-- [ ] Endpoint `/health` retorna status healthy
-- [ ] Swagger UI acessível em `/docs`
+- [x] Diretórios criados: `app/`, `app/api/`, `app/core/`, `app/services/`, `app/models/`
+- [x] Arquivo `app/main.py` criado e funcional
+- [x] Arquivo `app/core/config.py` criado
+- [x] Arquivo `app/api/routes/health.py` criado
+- [x] `pyproject.toml` atualizado com dependências
+- [x] Dependências instaladas (`uv sync`)
+- [x] Aplicação roda sem erros (`uvicorn app.main:app`)
+- [x] Endpoint `/health` retorna status healthy
+- [x] Swagger UI acessível em `/docs`
+
+**Status: COMPLETO** ✅ (07/12/2025)
 
 ---
 
@@ -398,8 +400,8 @@ O Supabase é nossa fonte de verdade para todos os dados.
 
 ## Pré-requisitos
 
-- [ ] Story S0.E3.1 completa (estrutura FastAPI)
-- [ ] Supabase URL e Service Key disponíveis
+- [x] Story S0.E3.1 completa (estrutura FastAPI)
+- [x] Supabase URL e Service Key disponíveis
 
 ---
 
@@ -600,11 +602,13 @@ curl http://localhost:8000/test/db/medicos/count
 
 ## DoD (Definition of Done)
 
-- [ ] Arquivo `app/services/supabase.py` criado
-- [ ] Funções auxiliares implementadas (`get_medico_by_telefone`, etc)
-- [ ] Rota de teste `/test/db/connection` funciona
-- [ ] Consegue contar médicos na base
-- [ ] Nenhum erro de conexão
+- [x] Arquivo `app/services/supabase.py` criado
+- [x] Funções auxiliares implementadas (`get_medico_by_telefone`, etc)
+- [x] Rota de teste `/test/db/connection` funciona
+- [x] Consegue contar médicos na base
+- [x] Nenhum erro de conexão
+
+**Status: COMPLETO** ✅ (07/12/2025)
 
 ---
 
@@ -647,8 +651,8 @@ O Anthropic Claude é o cérebro da Júlia.
 
 ## Pré-requisitos
 
-- [ ] Story S0.E1.1 completa (API key disponível)
-- [ ] Story S0.E3.1 completa (estrutura FastAPI)
+- [x] Story S0.E1.1 completa (API key disponível)
+- [x] Story S0.E3.1 completa (estrutura FastAPI)
 
 ---
 
@@ -857,13 +861,15 @@ curl -X POST http://localhost:8000/test/llm/resposta \
 
 ## DoD (Definition of Done)
 
-- [ ] Arquivo `app/services/llm.py` criado
-- [ ] Função `gerar_resposta()` implementada
-- [ ] Função `gerar_resposta_complexa()` implementada
-- [ ] `JULIA_SYSTEM_PROMPT` básico definido
-- [ ] Rota `/test/llm/health` funciona
-- [ ] Rota `/test/llm/resposta` gera respostas
-- [ ] Resposta com persona usa linguagem informal
+- [x] Arquivo `app/services/llm.py` criado
+- [x] Função `gerar_resposta()` implementada
+- [x] Função `gerar_resposta_complexa()` implementada
+- [x] `JULIA_SYSTEM_PROMPT` básico definido
+- [x] Rota `/test/llm/health` funciona
+- [x] Rota `/test/llm/resposta` gera respostas
+- [x] Resposta com persona usa linguagem informal
+
+**Status: COMPLETO** ✅ (07/12/2025)
 
 ---
 
@@ -906,8 +912,8 @@ A Evolution é nossa ponte com o WhatsApp.
 
 ## Pré-requisitos
 
-- [ ] Story S0.E1.3 e S0.E1.4 completas (Evolution configurado e testado)
-- [ ] Story S0.E3.1 completa (estrutura FastAPI)
+- [x] Story S0.E1.3 e S0.E1.4 completas (Evolution configurado e testado)
+- [x] Story S0.E3.1 completa (estrutura FastAPI)
 
 ---
 
@@ -1125,12 +1131,14 @@ curl -X POST http://localhost:8000/test/whatsapp/enviar \
 
 ## DoD (Definition of Done)
 
-- [ ] Arquivo `app/services/whatsapp.py` criado
-- [ ] Classe `EvolutionClient` implementada
-- [ ] Métodos: `enviar_mensagem`, `enviar_presenca`, `marcar_como_lida`, `verificar_conexao`
-- [ ] Funções de conveniência: `enviar_whatsapp`, `mostrar_digitando`
-- [ ] Rota `/test/whatsapp/status` funciona
-- [ ] Consegue enviar mensagem real (testado com número de teste)
+- [x] Arquivo `app/services/whatsapp.py` criado
+- [x] Classe `EvolutionClient` implementada
+- [x] Métodos: `enviar_mensagem`, `enviar_presenca`, `marcar_como_lida`, `verificar_conexao`
+- [x] Funções de conveniência: `enviar_whatsapp`, `mostrar_digitando`
+- [x] Rota `/test/whatsapp/status` funciona
+- [x] Consegue enviar mensagem real (testado com número de teste)
+
+**Status: COMPLETO** ✅ (07/12/2025)
 
 ---
 
@@ -1173,8 +1181,8 @@ Todas as configurações em um só lugar, pronto para rodar.
 
 ## Pré-requisitos
 
-- [ ] Todas as outras stories do Epic 1 completas (APIs configuradas)
-- [ ] Todas as chaves/URLs disponíveis
+- [x] Todas as outras stories do Epic 1 completas (APIs configuradas)
+- [x] Todas as chaves/URLs disponíveis
 
 ---
 
@@ -1411,13 +1419,15 @@ curl http://localhost:8000/test/whatsapp/status
 
 ## DoD (Definition of Done)
 
-- [ ] Arquivo `.env.example` atualizado com todas as variáveis
-- [ ] Arquivo `.env` criado com valores reais
-- [ ] `.env` está no `.gitignore`
-- [ ] Script `scripts/check_env.py` criado e funciona
-- [ ] Todas as variáveis obrigatórias preenchidas
-- [ ] Aplicação roda sem erros de configuração
-- [ ] Endpoints de teste de todas as integrações funcionam
+- [x] Arquivo `.env.example` atualizado com todas as variáveis
+- [x] Arquivo `.env` criado com valores reais
+- [x] `.env` está no `.gitignore`
+- [x] Script `scripts/check_env.py` criado e funciona
+- [x] Todas as variáveis obrigatórias preenchidas
+- [x] Aplicação roda sem erros de configuração
+- [x] Endpoints de teste de todas as integrações funcionam
+
+**Status: COMPLETO** ✅ (07/12/2025)
 
 ---
 
@@ -1428,3 +1438,23 @@ curl http://localhost:8000/test/whatsapp/status
 | `.env` commitado | Não está no gitignore | Adicionar e remover do git |
 | Variável não carrega | Arquivo no lugar errado | Deve estar na raiz do projeto |
 | Encoding errado | Caracteres especiais | Usar UTF-8 |
+
+---
+
+# Epic 3 Summary
+
+**Status Geral: COMPLETO** ✅
+
+| Story | Status | Data |
+|-------|--------|------|
+| S0.E3.1 - Estrutura FastAPI | ✅ Completo | 07/12/2025 |
+| S0.E3.2 - Cliente Supabase | ✅ Completo | 07/12/2025 |
+| S0.E3.3 - Cliente Anthropic | ✅ Completo | 07/12/2025 |
+| S0.E3.4 - Cliente Evolution | ✅ Completo | 07/12/2025 |
+| S0.E3.5 - Arquivo .env | ✅ Completo | 07/12/2025 |
+
+**Endpoints de Teste Funcionando:**
+- `/health` - Health check da API
+- `/test/db/connection` - Conexão Supabase
+- `/test/llm/health` - Conexão Anthropic
+- `/test/whatsapp/status` - Conexão Evolution API

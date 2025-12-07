@@ -1,35 +1,37 @@
 # Sprint 0: Setup & Configuração
 
+## Status: COMPLETO ✅ (07/12/2025)
+
 ## Objetivo da Sprint
 
 > **Todas as integrações externas funcionando e validadas antes de escrever código de negócio.**
 
 Ao final desta sprint, você deve conseguir:
-- Enviar uma mensagem via Evolution API
-- Receber uma resposta do Claude
-- Ver uma mensagem no Chatwoot
-- Receber uma notificação no Slack
-- Consultar dados no Supabase
+- ✅ Enviar uma mensagem via Evolution API
+- ✅ Receber uma resposta do Claude
+- ✅ Ver uma mensagem no Chatwoot
+- ✅ Receber uma notificação no Slack
+- ✅ Consultar dados no Supabase
 
 ---
 
 ## Métricas de Sucesso
 
-| Métrica | Meta |
-|---------|------|
-| APIs funcionando | 100% (4/4) |
-| Dados básicos cadastrados | Hospitais, vagas, médicos |
-| Estrutura do projeto | FastAPI rodando |
+| Métrica | Meta | Resultado |
+|---------|------|-----------|
+| APIs funcionando | 100% (4/4) | ✅ 100% |
+| Dados básicos cadastrados | Hospitais, vagas, médicos | ✅ 85 hosp, 4.973 vagas, 29.645 médicos |
+| Estrutura do projeto | FastAPI rodando | ✅ Funcionando |
 
 ---
 
 ## Epics
 
-| Epic | Nome | Stories | Prioridade |
-|------|------|---------|------------|
-| E1 | [Integrações](./epic-01-integracoes.md) | 8 | P0 |
-| E2 | [Dados](./epic-02-dados.md) | 4 | P0 |
-| E3 | [Estrutura do Projeto](./epic-03-estrutura.md) | 5 | P0 |
+| Epic | Nome | Stories | Status |
+|------|------|---------|--------|
+| E1 | [Integrações](./epic-01-integracoes.md) | 8 | ✅ COMPLETO |
+| E2 | [Dados](./epic-02-dados.md) | 4 | ✅ COMPLETO |
+| E3 | [Estrutura do Projeto](./epic-03-estrutura.md) | 5 | ✅ COMPLETO |
 
 ---
 
@@ -37,35 +39,35 @@ Ao final desta sprint, você deve conseguir:
 
 ### Epic 1: Integrações
 
-| ID | Story | Responsável | Dependência | Status |
-|----|-------|-------------|-------------|--------|
-| S0.E1.1 | Obter API Key Anthropic | Gestor | - | 🔴 |
-| S0.E1.2 | Testar chamada Claude API | Dev | S0.E1.1 | 🔴 |
-| S0.E1.3 | Conectar WhatsApp Evolution | Gestor | - | 🔴 |
-| S0.E1.4 | Testar envio/recebimento Evolution | Dev | S0.E1.3 | 🔴 |
-| S0.E1.5 | Configurar conta Chatwoot | Gestor | - | 🔴 |
-| S0.E1.6 | Criar inbox e testar Chatwoot | Dev | S0.E1.5 | 🔴 |
-| S0.E1.7 | Criar webhook Slack | Gestor | - | 🔴 |
-| S0.E1.8 | Testar envio Slack | Dev | S0.E1.7 | 🔴 |
+| ID | Story | Responsável | Status |
+|----|-------|-------------|--------|
+| S0.E1.1 | Obter API Key Anthropic | Gestor | ✅ |
+| S0.E1.2 | Testar chamada Claude API | Dev | ✅ |
+| S0.E1.3 | Conectar WhatsApp Evolution | Gestor | ✅ |
+| S0.E1.4 | Testar envio/recebimento Evolution | Dev | ✅ |
+| S0.E1.5 | Configurar conta Chatwoot | Gestor | ✅ |
+| S0.E1.6 | Criar inbox e testar Chatwoot | Dev | ✅ |
+| S0.E1.7 | Criar webhook Slack | Gestor | ✅ |
+| S0.E1.8 | Testar envio Slack | Dev | ✅ |
 
 ### Epic 2: Dados
 
-| ID | Story | Responsável | Dependência | Status |
-|----|-------|-------------|-------------|--------|
-| S0.E2.1 | Seed de dados auxiliares | Dev | - | 🔴 |
-| S0.E2.2 | Cadastrar hospitais | Gestor | S0.E2.1 | 🔴 |
-| S0.E2.3 | Cadastrar vagas reais | Gestor | S0.E2.2 | 🔴 |
-| S0.E2.4 | Selecionar médicos piloto | Dev | - | 🔴 |
+| ID | Story | Responsável | Resultado |
+|----|-------|-------------|-----------|
+| S0.E2.1 | Seed de dados auxiliares | Dev | ✅ 56 esp, 9 set, 6 per |
+| S0.E2.2 | Cadastrar hospitais | Gestor | ✅ 85 hospitais |
+| S0.E2.3 | Cadastrar vagas reais | Gestor | ✅ 4.973 vagas |
+| S0.E2.4 | Selecionar médicos piloto | Dev | ✅ 100 médicos |
 
 ### Epic 3: Estrutura do Projeto
 
-| ID | Story | Responsável | Dependência | Status |
-|----|-------|-------------|-------------|--------|
-| S0.E3.1 | Criar estrutura FastAPI | Dev | - | 🔴 |
-| S0.E3.2 | Configurar cliente Supabase | Dev | - | 🔴 |
-| S0.E3.3 | Configurar cliente Anthropic | Dev | S0.E1.1 | 🔴 |
-| S0.E3.4 | Configurar cliente Evolution | Dev | S0.E1.3 | 🔴 |
-| S0.E3.5 | Criar arquivo .env completo | Dev | E1 completo | 🔴 |
+| ID | Story | Responsável | Status |
+|----|-------|-------------|--------|
+| S0.E3.1 | Criar estrutura FastAPI | Dev | ✅ |
+| S0.E3.2 | Configurar cliente Supabase | Dev | ✅ |
+| S0.E3.3 | Configurar cliente Anthropic | Dev | ✅ |
+| S0.E3.4 | Configurar cliente Evolution | Dev | ✅ |
+| S0.E3.5 | Criar arquivo .env completo | Dev | ✅ |
 
 ---
 
@@ -105,14 +107,16 @@ Dia 3:
 
 A sprint só está completa quando:
 
-- [ ] Todas as 17 stories com DoD completo
-- [ ] `curl` para Evolution envia mensagem com sucesso
-- [ ] `curl` para Claude retorna resposta
-- [ ] Chatwoot mostra inbox configurado
-- [ ] Slack recebe mensagem de teste
-- [ ] Supabase tem: especialidades, setores, períodos, hospitais, vagas
-- [ ] FastAPI roda sem erros
-- [ ] Arquivo `.env` com todas as variáveis
+- [x] Todas as 17 stories com DoD completo
+- [x] `curl` para Evolution envia mensagem com sucesso
+- [x] `curl` para Claude retorna resposta
+- [x] Chatwoot mostra inbox configurado
+- [x] Slack recebe mensagem de teste
+- [x] Supabase tem: especialidades, setores, períodos, hospitais, vagas
+- [x] FastAPI roda sem erros
+- [x] Arquivo `.env` com todas as variáveis
+
+**Sprint DoD: COMPLETO** ✅
 
 ---
 

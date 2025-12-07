@@ -46,7 +46,7 @@ A Evolution API envia um POST para nosso servidor sempre que uma mensagem chega.
 
 ## Pré-requisitos
 
-- [ ] Sprint 0 completa
+- [x] Sprint 0 completa
 - [ ] Evolution API configurada com webhook apontando para nossa API
 
 ---
@@ -92,7 +92,7 @@ class MessageData(BaseModel):
 class EvolutionWebhookPayload(BaseModel):
     """Payload completo do webhook Evolution."""
     event: str  # Tipo de evento (messages.upsert, connection.update, etc)
-    instance: str  # Nome da instância (julia)
+    instance: str  # Nome da instância (Revoluna)
     data: Any  # Dados variam por tipo de evento
 
 
@@ -224,8 +224,8 @@ app.include_router(webhook.router)
 
 ```bash
 # Atualizar webhook para apontar para nossa API
-curl -X POST "http://localhost:8080/webhook/set/julia" \
-  -H "apikey: $EVOLUTION_API_KEY" \
+curl -X POST "http://localhost:8080/webhook/set/Revoluna" \
+  -H "apikey: $AUTHENTICATION_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "http://host.docker.internal:8000/webhook/evolution",
@@ -263,13 +263,13 @@ uv run uvicorn app.main:app --reload --port 8000
 
 ## DoD (Definition of Done)
 
-- [ ] Arquivo `app/schemas/evolution.py` criado
-- [ ] Arquivo `app/api/routes/webhook.py` criado
-- [ ] Endpoint `/webhook/evolution` registrado
-- [ ] Webhook configurado na Evolution
-- [ ] Mensagem enviada → aparece no log
-- [ ] Resposta do endpoint é 200 OK
-- [ ] Não há erros no log
+- [x] Arquivo `app/schemas/evolution.py` criado
+- [x] Arquivo `app/api/routes/webhook.py` criado
+- [x] Endpoint `/webhook/evolution` registrado
+- [x] Webhook configurado na Evolution (apontando para FastAPI)
+- [x] Mensagem enviada → aparece no log ✅ Testado em 2025-12-07
+- [x] Resposta do endpoint é 200 OK
+- [x] Não há erros no log ✅ Testado em 2025-12-07
 
 ---
 
@@ -312,7 +312,7 @@ O payload da Evolution é complexo. Precisamos extrair só o que importa.
 
 ## Pré-requisitos
 
-- [ ] Story S1.E1.1 completa
+- [x] Story S1.E1.1 completa
 
 ---
 
@@ -662,12 +662,12 @@ uv run pytest tests/test_parser.py -v
 
 ## DoD (Definition of Done)
 
-- [ ] Schema `MensagemRecebida` criado
-- [ ] Função `parsear_mensagem()` implementada
-- [ ] Função `extrair_telefone()` implementada
-- [ ] Função `identificar_tipo()` implementada
-- [ ] Testes unitários criados e passando
-- [ ] Log mostra mensagem parseada corretamente
+- [x] Schema `MensagemRecebida` criado
+- [x] Função `parsear_mensagem()` implementada
+- [x] Função `extrair_telefone()` implementada
+- [x] Função `identificar_tipo()` implementada
+- [x] Testes unitários criados e passando (34 testes)
+- [x] Log mostra mensagem parseada corretamente ✅ Testado em 2025-12-07
 
 ---
 ---
@@ -692,7 +692,7 @@ Isso faz a conversa parecer mais natural - o médico vê que a mensagem foi lida
 
 ## Pré-requisitos
 
-- [ ] Story S1.E1.2 completa
+- [x] Story S1.E1.2 completa
 
 ---
 
@@ -762,9 +762,11 @@ async def processar_mensagem(data: dict):
 
 ## DoD (Definition of Done)
 
-- [ ] Mensagem recebida é marcada como lida (✓✓ azul)
-- [ ] Status mostra "online" após receber mensagem
-- [ ] Funciona consistentemente em 5 testes seguidos
+- [x] Código para marcar como lida implementado (`evolution.marcar_como_lida()`)
+- [x] Código para mostrar online implementado (`mostrar_online()`)
+- [x] Mensagem recebida é marcada como lida (✓✓ azul) ✅ Testado em 2025-12-07
+- [x] Status mostra "online" após receber mensagem ✅ Testado em 2025-12-07
+- [ ] Funciona consistentemente em 5 testes seguidos - pendente validação
 
 ---
 ---
@@ -789,7 +791,7 @@ Isso dá tempo para o LLM processar e parece mais natural.
 
 ## Pré-requisitos
 
-- [ ] Story S1.E1.3 completa
+- [x] Story S1.E1.3 completa
 
 ---
 
@@ -846,9 +848,11 @@ async def manter_digitando(telefone: str, duracao_max: int = 30):
 
 ## DoD (Definition of Done)
 
-- [ ] Status "digitando..." aparece antes da resposta
-- [ ] Digitando se mantém enquanto processa
-- [ ] Não há erro se digitando for chamado múltiplas vezes
+- [x] Código para mostrar digitando implementado (`mostrar_digitando()`)
+- [x] Função `manter_digitando()` implementada
+- [x] Status "digitando..." aparece antes da resposta ✅ Testado em 2025-12-07
+- [ ] Digitando se mantém enquanto processa - pendente (Epic 2 - LLM)
+- [x] Não há erro se digitando for chamado múltiplas vezes ✅ Testado em 2025-12-07
 
 ---
 ---
@@ -873,7 +877,7 @@ Evita loops infinitos e processamento desnecessário.
 
 ## Pré-requisitos
 
-- [ ] Story S1.E1.2 completa
+- [x] Story S1.E1.2 completa
 
 ---
 
@@ -935,8 +939,13 @@ def deve_processar(mensagem: MensagemRecebida) -> bool:
 
 ## DoD (Definition of Done)
 
-- [ ] Mensagens próprias não são processadas
-- [ ] Mensagens de grupos não são processadas
-- [ ] Status/stories não são processados
-- [ ] Log indica claramente quando ignora mensagem
-- [ ] Apenas mensagens válidas chegam ao processamento
+- [x] Função `deve_processar()` implementada
+- [x] Filtro de mensagens próprias implementado (`from_me`)
+- [x] Filtro de grupos implementado (`is_grupo`)
+- [x] Filtro de status/stories implementado (`is_status`)
+- [x] Testes unitários para `deve_processar()` passando
+- [x] Mensagens próprias não são processadas ✅ Testado em 2025-12-07
+- [ ] Mensagens de grupos não são processadas - pendente teste
+- [ ] Status/stories não são processados - pendente teste
+- [x] Log indica claramente quando ignora mensagem ✅ (usa logger.debug)
+- [x] Apenas mensagens válidas chegam ao processamento ✅ Testado em 2025-12-07
