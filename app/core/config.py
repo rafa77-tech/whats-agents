@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     # Empresa
     NOME_EMPRESA: str = "Revoluna"
 
+    # Limites de mensagem
+    MAX_MENSAGEM_CHARS: int = 4000  # Máximo para processar normalmente
+    MAX_MENSAGEM_CHARS_TRUNCAR: int = 10000  # Acima disso, truncar
+    MAX_MENSAGEM_CHARS_REJEITAR: int = 50000  # Acima disso, pedir resumo
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
