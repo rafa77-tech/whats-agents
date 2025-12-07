@@ -90,6 +90,12 @@ JOBS = [
         "endpoint": "/jobs/sincronizar-briefing",
         "schedule": "0 * * * *",  # A cada hora, minuto 0
     },
+    # Monitor de conexao WhatsApp
+    {
+        "name": "verificar_whatsapp",
+        "endpoint": "/jobs/verificar-whatsapp",
+        "schedule": "* * * * *",  # A cada minuto
+    },
 ]
 
 

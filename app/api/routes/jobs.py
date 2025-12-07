@@ -12,6 +12,7 @@ from app.services.alertas import executar_verificacao_alertas
 from app.services.relatorio import gerar_relatorio_diario, enviar_relatorio_slack
 from app.services.feedback import atualizar_prompt_com_feedback
 from app.services.followup import followup_service
+from app.services.monitor_whatsapp import executar_verificacao_whatsapp
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 logger = logging.getLogger(__name__)
@@ -454,6 +455,33 @@ async def job_followup_diario():
         })
     except Exception as e:
         logger.error(f"Erro ao processar follow-ups: {e}")
+        return JSONResponse(
+            {"status": "error", "message": str(e)},
+            status_code=500
+        )
+
+
+@router.post("/verificar-whatsapp")
+async def job_verificar_whatsapp():
+    """
+    Job para verificar conexao WhatsApp e detectar erros de criptografia.
+
+    - Verifica se a instancia esta conectada
+    - Analisa logs para erros de PreKeyError (criptografia)
+    - Envia alerta Slack se detectar problemas
+    - Reinicia Evolution API automaticamente se necessario
+
+    Executar via cron a cada minuto:
+    * * * * * curl -X POST http://localhost:8000/jobs/verificar-whatsapp
+    """
+    try:
+        resultado = await executar_verificacao_whatsapp()
+        return JSONResponse({
+            "status": "ok",
+            "verificacao": resultado
+        })
+    except Exception as e:
+        logger.error(f"Erro ao verificar WhatsApp: {e}")
         return JSONResponse(
             {"status": "error", "message": str(e)},
             status_code=500
