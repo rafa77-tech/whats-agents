@@ -29,3 +29,6 @@ _chat*.txt
 # Logs
 *.log
 logs/
+
+# Test data exports
+tests/*_rows.csv
