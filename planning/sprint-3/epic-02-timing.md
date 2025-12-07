@@ -170,12 +170,12 @@ def log_timing(mensagem: str, delay: float, tempo_real: float):
 
 ## DoD
 
-- [ ] Calculador de delay implementado
-- [ ] Delay varia entre 20-120 segundos
-- [ ] Fatores de complexidade funcionam
-- [ ] Fator de hora do dia funciona
-- [ ] Variação aleatória implementada
-- [ ] Integrado no fluxo de resposta
+- [x] Calculador de delay implementado
+- [x] Delay varia entre 20-120 segundos
+- [x] Fatores de complexidade funcionam
+- [x] Fator de hora do dia funciona
+- [x] Variação aleatória implementada
+- [x] Integrado no fluxo de resposta
 
 ---
 
@@ -274,11 +274,11 @@ async def enviar_resposta(
 
 ## DoD
 
-- [ ] Calculador de tempo de digitação funciona
-- [ ] "Digitando" mostrado antes de cada mensagem
-- [ ] Tempo proporcional ao tamanho
-- [ ] Mínimo 3s, máximo 15s por mensagem
-- [ ] Integrado no fluxo de envio
+- [x] Calculador de tempo de digitação funciona
+- [x] "Digitando" mostrado antes de cada mensagem
+- [x] Tempo proporcional ao tamanho
+- [x] Mínimo 3s, máximo 15s por mensagem
+- [x] Integrado no fluxo de envio
 
 ---
 
@@ -422,12 +422,12 @@ async def processar_e_responder(
 
 ## DoD
 
-- [ ] Função de quebra implementada
-- [ ] Máximo 150 caracteres por mensagem
-- [ ] Quebra em pontos naturais
-- [ ] Delay entre mensagens da sequência
-- [ ] Delay varia (continuação vs novo pensamento)
-- [ ] Integrado no fluxo de resposta
+- [x] Função de quebra implementada
+- [x] Máximo 150 caracteres por mensagem
+- [x] Quebra em pontos naturais
+- [x] Delay entre mensagens da sequência
+- [x] Delay varia (continuação vs novo pensamento)
+- [x] Integrado no fluxo de resposta
 
 ---
 
@@ -622,9 +622,11 @@ ON mensagens_agendadas(status, agendar_para);
 
 ## DoD
 
-- [ ] Verificador de horário comercial funciona
-- [ ] Horário: 8h-20h, segunda a sexta
-- [ ] Mensagens fora do horário são agendadas
-- [ ] Job processa mensagens agendadas
-- [ ] Tabela de agendamento criada
-- [ ] Logs indicam agendamento
+- [x] Verificador de horário comercial funciona
+- [x] Horário: 8h-20h, segunda a sexta
+- [x] Mensagens fora do horário são agendadas
+- [x] Job processa mensagens agendadas
+- [x] Endpoint para processar mensagens agendadas criado
+- [x] Logs indicam agendamento
+
+**Nota:** A tabela `mensagens_agendadas` precisa ser criada no banco de dados conforme SQL na epic.

@@ -212,3 +212,42 @@ async def manter_digitando(telefone: str, duracao_max: int = 30):
     while asyncio.get_event_loop().time() - inicio < duracao_max:
         await mostrar_digitando(telefone)
         await asyncio.sleep(5)  # Reenviar a cada 5s
+
+
+async def enviar_com_digitacao(
+    telefone: str,
+    texto: str,
+    tempo_digitacao: float = None
+) -> dict:
+    """
+    Envia mensagem com simulação de digitação.
+
+    1. Mostra "composing" (digitando)
+    2. Aguarda tempo proporcional
+    3. Envia mensagem
+
+    Args:
+        telefone: Número do destinatário
+        texto: Texto da mensagem
+        tempo_digitacao: Tempo de digitação em segundos (opcional, calcula automaticamente)
+
+    Returns:
+        Resultado do envio
+    """
+    import asyncio
+    from app.services.timing import calcular_tempo_digitacao
+
+    tempo = tempo_digitacao or calcular_tempo_digitacao(texto)
+
+    # Iniciar "digitando"
+    await mostrar_digitando(telefone)
+
+    # Aguardar tempo de digitação
+    await asyncio.sleep(tempo)
+
+    # Enviar mensagem
+    return await evolution.enviar_mensagem(
+        telefone=telefone,
+        texto=texto,
+        verificar_rate_limit=False  # Respostas não contam no rate limit
+    )

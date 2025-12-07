@@ -1,12 +1,16 @@
 """
 Servico principal do agente Julia.
 """
+import asyncio
+import random
 import logging
 from typing import Optional
 
 from app.core.prompts import montar_prompt_julia
 from app.services.llm import gerar_resposta, gerar_resposta_com_tools, continuar_apos_tool
 from app.services.interacao import converter_historico_para_messages
+from app.services.mensagem import quebrar_mensagem
+from app.services.whatsapp import enviar_com_digitacao
 from app.tools.vagas import TOOL_RESERVAR_PLANTAO, handle_reservar_plantao
 from app.tools.lembrete import TOOL_AGENDAR_LEMBRETE, handle_agendar_lembrete
 
@@ -204,3 +208,69 @@ async def processar_mensagem_completo(
     except Exception as e:
         logger.error(f"Erro ao processar mensagem: {e}")
         return None
+
+
+async def enviar_mensagens_sequencia(
+    telefone: str,
+    mensagens: list[str]
+) -> list[dict]:
+    """
+    Envia sequência de mensagens com timing natural.
+
+    Entre mensagens:
+    - Delay curto (1-3s) para continuação
+    - Delay médio (3-5s) para novo pensamento
+
+    Args:
+        telefone: Número do destinatário
+        mensagens: Lista de mensagens a enviar
+
+    Returns:
+        Lista de resultados do envio
+    """
+    resultados = []
+
+    for i, msg in enumerate(mensagens):
+        # Calcular delay entre mensagens
+        if i > 0:
+            # Se começa com minúscula, é continuação (delay curto)
+            if msg and msg[0].islower():
+                delay = random.uniform(1, 3)
+            else:
+                delay = random.uniform(3, 5)
+
+            await asyncio.sleep(delay)
+
+        # Enviar com digitação
+        resultado = await enviar_com_digitacao(
+            telefone=telefone,
+            texto=msg
+        )
+        resultados.append(resultado)
+
+    return resultados
+
+
+async def enviar_resposta(
+    telefone: str,
+    resposta: str
+) -> dict:
+    """
+    Envia resposta com timing humanizado.
+    Quebra mensagens longas em sequência se necessário.
+
+    Args:
+        telefone: Número do destinatário
+        resposta: Texto da resposta
+
+    Returns:
+        Resultado do envio (ou primeiro resultado se múltiplas mensagens)
+    """
+    # Quebrar resposta se necessário
+    mensagens = quebrar_mensagem(resposta)
+
+    if len(mensagens) == 1:
+        return await enviar_com_digitacao(telefone, resposta)
+    else:
+        resultados = await enviar_mensagens_sequencia(telefone, mensagens)
+        return resultados[0] if resultados else {}

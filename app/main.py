@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook
+from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs
 
 # Configurar logging
 setup_logging()
@@ -45,6 +45,7 @@ app.include_router(test_db.router)
 app.include_router(test_llm.router)
 app.include_router(test_whatsapp.router)
 app.include_router(webhook.router)
+app.include_router(jobs.router)
 
 
 @app.get("/")
