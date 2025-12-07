@@ -215,10 +215,10 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [ ] Julia confirma a reserva
-- [ ] Menciona proximos passos (docs)
-- [ ] Tom continua natural
-- [ ] Vaga atualizada no banco (status = reservada)
+- [x ] Julia confirma a reserva
+- [x ] Menciona proximos passos (docs)
+- [x ] Tom continua natural
+- [x ] Vaga atualizada no banco (status = reservada)
 
 **Exemplo Esperado:**
 ```
@@ -256,11 +256,11 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [ ] Julia NAO aceita imediatamente
-- [ ] Mostra que vai "verificar"
-- [ ] Resposta natural, nao automatica
-- [ ] Se tiver margem, oferece valor maior
-- [ ] Se nao tiver, explica gentilmente
+- [x ] Julia NAO aceita imediatamente
+- [x ] Mostra que vai "verificar"
+- [x ] Resposta natural, nao automatica
+- [x ] Se tiver margem, oferece valor maior
+- [x ] Se nao tiver, explica gentilmente
 
 **Exemplo Esperado (com margem):**
 ```
@@ -278,7 +278,7 @@ Puxa, esse ja e o melhor valor que tenho pra esse plantao
 Mas posso te avisar quando surgir algo melhor, blz?
 ```
 
-**Resultado:** [ ] PASSOU  [ ] FALHOU
+**Resultado:** [x ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
