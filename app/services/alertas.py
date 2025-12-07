@@ -180,6 +180,35 @@ async def verificar_atividade() -> List[Dict]:
         return []
 
 
+async def verificar_performance() -> List[Dict]:
+    """Verifica performance e envia alertas se necessário."""
+    from app.core.metrics import metrics
+    
+    resumo = metrics.obter_resumo()
+    alertas = []
+
+    for nome, dados in resumo.get("tempos", {}).items():
+        if isinstance(dados, dict) and "media_ms" in dados:
+            # Tempo médio > 2s
+            if dados["media_ms"] > 2000:
+                alertas.append({
+                    "tipo": "performance_critica",
+                    "mensagem": f"{nome}: tempo médio {dados['media_ms']:.0f}ms",
+                    "severidade": "critical",
+                    "valor": dados["media_ms"]
+                })
+            # Tempo médio > 1s
+            elif dados["media_ms"] > 1000:
+                alertas.append({
+                    "tipo": "performance_warning",
+                    "mensagem": f"{nome}: tempo médio {dados['media_ms']:.0f}ms",
+                    "severidade": "warning",
+                    "valor": dados["media_ms"]
+                })
+
+    return alertas
+
+
 async def verificar_alertas() -> List[Dict]:
     """
     Verifica todas as condições de alerta.
@@ -200,6 +229,9 @@ async def verificar_alertas() -> List[Dict]:
 
     # Sem respostas
     alertas_ativos.extend(await verificar_atividade())
+    
+    # Performance
+    alertas_ativos.extend(await verificar_performance())
 
     return alertas_ativos
 

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 async def buscar_conversa_ativa(cliente_id: str) -> Optional[dict]:
     """
-    Busca conversa ativa (aberta) do cliente.
+    Busca conversa ativa (aberta) do cliente (query otimizada).
 
     Args:
         cliente_id: ID do medico
@@ -21,9 +21,10 @@ async def buscar_conversa_ativa(cliente_id: str) -> Optional[dict]:
         Dados da conversa ou None
     """
     try:
+        # Query otimizada - apenas campos necessários
         response = (
             supabase.table("conversations")
-            .select("*")
+            .select("id, cliente_id, status, controlled_by, chatwoot_conversation_id, created_at")
             .eq("cliente_id", cliente_id)
             .eq("status", "active")
             .order("created_at", desc=True)

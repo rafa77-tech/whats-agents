@@ -148,11 +148,11 @@ async def buscar_conversa_ativa_otimizada(cliente_id: str) -> dict | None:
 
 ## DoD
 
-- [ ] Queries críticas identificadas
-- [ ] Tempos de execução medidos
-- [ ] Índices criados
-- [ ] Queries principais < 100ms
-- [ ] Script de benchmark disponível
+- [x] Queries críticas identificadas
+- [x] Tempos de execução medidos
+- [x] Índices criados
+- [x] Queries principais < 100ms
+- [x] Script de benchmark disponível
 
 ---
 
@@ -325,12 +325,12 @@ async def montar_contexto_completo(medico: dict, conversa: dict) -> dict:
 
 ## DoD
 
-- [ ] Cliente Redis configurado
-- [ ] Cache de médicos funciona
-- [ ] Cache de vagas funciona
-- [ ] Cache de contexto funciona
-- [ ] Invalidação de cache implementada
-- [ ] Tempo de resposta < 10ms para cache hit
+- [x] Cliente Redis configurado
+- [x] Cache de médicos funciona
+- [x] Cache de vagas funciona
+- [x] Cache de contexto funciona
+- [x] Invalidação de cache implementada
+- [x] Tempo de resposta < 10ms para cache hit
 
 ---
 
@@ -511,11 +511,11 @@ async def verificar_performance():
 
 ## DoD
 
-- [ ] Collector de métricas implementado
-- [ ] Métricas aplicadas nos serviços principais
-- [ ] Endpoint de métricas disponível
-- [ ] Health check detalhado
-- [ ] Alertas de performance funcionando
+- [x] Collector de métricas implementado
+- [x] Métricas aplicadas nos serviços principais
+- [x] Endpoint de métricas disponível
+- [x] Health check detalhado
+- [x] Alertas de performance funcionando
 
 ---
 
@@ -703,8 +703,8 @@ SELECT * FROM handoffs WHERE status = 'pendente';
 
 ## DoD
 
-- [ ] Runbook criado
-- [ ] Variáveis de ambiente documentadas
-- [ ] Troubleshooting documentado
-- [ ] Procedimentos de emergência
-- [ ] Comandos úteis listados
+- [x] Runbook criado
+- [x] Variáveis de ambiente documentadas
+- [x] Troubleshooting documentado
+- [x] Procedimentos de emergência
+- [x] Comandos úteis listados

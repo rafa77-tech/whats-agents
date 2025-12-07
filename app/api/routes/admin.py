@@ -8,6 +8,7 @@ from datetime import datetime
 import logging
 
 from app.services.supabase import supabase
+from app.core.metrics import metrics
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 logger = logging.getLogger(__name__)
@@ -269,4 +270,37 @@ async def obter_tags_predefinidas():
     """Retorna tags pré-definidas disponíveis."""
     from app.constants.tags import TAGS_PREDEFINIDAS
     return TAGS_PREDEFINIDAS
+
+
+@router.get("/metricas/performance")
+async def metricas_performance():
+    """Retorna métricas de performance."""
+    return metrics.obter_resumo()
+
+
+@router.get("/metricas/health")
+async def health_check():
+    """Health check detalhado com métricas."""
+    resumo = metrics.obter_resumo()
+
+    # Verificar thresholds
+    problemas = []
+
+    for nome, dados in resumo.get("tempos", {}).items():
+        if isinstance(dados, dict) and "media_ms" in dados:
+            if dados["media_ms"] > 2000:  # > 2s
+                problemas.append(f"{nome}: {dados['media_ms']:.0f}ms (crítico)")
+            elif dados["media_ms"] > 1000:  # > 1s
+                problemas.append(f"{nome}: {dados['media_ms']:.0f}ms (lento)")
+
+    # Verificar erros
+    for nome, count in resumo.get("erros", {}).items():
+        if count > 10:  # Mais de 10 erros
+            problemas.append(f"{nome}: {count} erros")
+
+    return {
+        "status": "healthy" if not problemas else "degraded",
+        "problemas": problemas,
+        "metricas": resumo
+    }
 
