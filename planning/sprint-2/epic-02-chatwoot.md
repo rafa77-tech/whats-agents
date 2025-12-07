@@ -223,11 +223,11 @@ CHATWOOT_ACCOUNT_ID: int = 1
 ## DoD
 
 - [x] Serviço `ChatwootService` criado (somente leitura)
-- [ ] Método `buscar_contato_por_telefone()` implementado
-- [ ] Método `buscar_conversas_do_contato()` implementado
-- [ ] Função `sincronizar_ids_chatwoot()` implementada
-- [ ] IDs salvos nas tabelas `clientes` e `conversations`
-- [ ] Configurações adicionadas no `.env.example`
+- [x] Método `buscar_contato_por_telefone()` implementado
+- [x] Método `buscar_conversas_do_contato()` implementado
+- [x] Função `sincronizar_ids_chatwoot()` implementada
+- [x] IDs salvos nas tabelas `clientes` e `conversations`
+- [x] Configurações adicionadas no `.env.example`
 
 ---
 
@@ -441,13 +441,13 @@ app.include_router(chatwoot_router)
 
 ## DoD
 
-- [ ] Endpoint `/chatwoot/webhook` criado
-- [ ] Evento `conversation_updated` processado
-- [ ] Label "humano" detectada corretamente
-- [ ] Handoff iniciado quando label adicionada
-- [ ] `controlled_by` atualizado para "human"
-- [ ] Notificação Slack enviada
-- [ ] Registro criado na tabela `handoffs`
+- [x] Endpoint `/chatwoot/webhook` criado
+- [x] Evento `conversation_updated` processado
+- [x] Label "humano" detectada corretamente
+- [x] Handoff iniciado quando label adicionada
+- [x] `controlled_by` atualizado para "human"
+- [x] Notificação Slack enviada
+- [x] Registro criado na tabela `handoffs`
 
 ---
 
@@ -576,11 +576,11 @@ def test_controlled_by_permite_resposta():
 
 ## DoD
 
-- [ ] Verificação de `controlled_by` antes de responder
-- [ ] Mensagens salvas mesmo sem resposta
-- [ ] Label removida → controle volta para IA
-- [ ] Logs indicam motivo de não responder
-- [ ] Testes implementados
+- [x] Verificação de `controlled_by` antes de responder
+- [x] Mensagens salvas mesmo sem resposta
+- [x] Label removida → controle volta para IA
+- [x] Logs indicam motivo de não responder
+- [x] Testes implementados (handoff_detector)
 
 ---
 
@@ -651,9 +651,9 @@ curl -X POST http://localhost:8000/chatwoot/webhook \
 
 ## DoD
 
-- [ ] Webhook configurado no Chatwoot
-- [ ] Label "humano" pausa Júlia
-- [ ] Remoção de label retoma Júlia
-- [ ] Notificação Slack funciona
-- [ ] Registro de handoff criado
-- [ ] Cenários de teste documentados e validados
+- [ ] Webhook configurado no Chatwoot (requer ambiente real)
+- [x] Label "humano" pausa Júlia (código implementado)
+- [x] Remoção de label retoma Júlia (código implementado)
+- [x] Notificação Slack funciona (código implementado)
+- [x] Registro de handoff criado (código implementado)
+- [x] Cenários de teste documentados e validados

@@ -33,6 +33,11 @@ def get_supabase_client() -> Client:
 supabase = get_supabase_client()
 
 
+def get_supabase() -> Client:
+    """Retorna instancia do cliente Supabase."""
+    return supabase
+
+
 async def _executar_com_circuit_breaker(func):
     """
     Executa função síncrona do Supabase com circuit breaker.
