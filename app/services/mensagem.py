@@ -14,12 +14,12 @@ RESPOSTA_MENSAGEM_LONGA = (
 )
 
 
-def quebrar_mensagem(texto: str, max_chars: int = 150) -> list[str]:
+def quebrar_mensagem(texto: str, max_chars: int = 400) -> list[str]:
     """
     Quebra mensagem longa em várias curtas.
 
     Regras:
-    - Máximo 150 caracteres por mensagem
+    - Máximo 400 caracteres por mensagem (adequado para WhatsApp)
     - Quebra em pontos naturais (., !, ?)
     - Mantém emojis com o texto anterior
     - Não quebra no meio de palavras
