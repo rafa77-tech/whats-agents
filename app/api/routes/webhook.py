@@ -14,6 +14,7 @@ from app.services.conversa import buscar_ou_criar_conversa
 from app.services.interacao import salvar_interacao
 from app.services.agente import processar_mensagem_completo
 from app.services.optout import detectar_optout, processar_optout
+from app.services.handoff_detector import detectar_trigger_handoff
 
 router = APIRouter(prefix="/webhook", tags=["Webhooks"])
 logger = logging.getLogger(__name__)
@@ -141,42 +142,238 @@ async def processar_mensagem(data: dict):
         logger.info("✓ Interação de entrada salva")
 
         # 8. Verificar opt-out ANTES de gerar resposta
-        if mensagem.texto and detectar_optout(mensagem.texto):
+        if mensagem.texto and detectar_optout(mensagem.texto)[0]:
             logger.info(f"🛑 Opt-out detectado para {mensagem.telefone[:8]}...")
-            resposta_optout = await processar_optout(
+            from app.services.optout import MENSAGEM_CONFIRMACAO_OPTOUT
+            
+            sucesso = await processar_optout(
                 cliente_id=medico["id"],
                 telefone=mensagem.telefone
             )
-            if resposta_optout:
+            if sucesso:
                 await evolution.enviar_mensagem(
                     telefone=mensagem.telefone,
-                    texto=resposta_optout,
+                    texto=MENSAGEM_CONFIRMACAO_OPTOUT,
                     verificar_rate_limit=False  # Confirmação não conta no rate limit
                 )
                 await salvar_interacao(
                     conversa_id=conversa["id"],
                     cliente_id=medico["id"],
                     tipo="saida",
-                    conteudo=resposta_optout,
+                    conteudo=MENSAGEM_CONFIRMACAO_OPTOUT,
                     autor_tipo="julia",
                 )
                 logger.info("✓ Confirmação de opt-out enviada")
             return
 
-        # 9. Verificar se IA controla a conversa
-        if conversa.get("controlled_by") != "ai":
-            logger.info("⏸ Conversa sob controle humano, não gerando resposta")
+        # 8.5. Tratar mensagens não-texto (áudio, imagem, documento, vídeo)
+        from app.services.respostas_especiais import (
+            obter_resposta_audio,
+            obter_resposta_imagem,
+            obter_resposta_documento,
+            obter_resposta_video
+        )
+        from app.services.agente import enviar_resposta
+
+        if mensagem.tipo == "audio":
+            logger.info("🎤 Mensagem de áudio recebida")
+            resposta = obter_resposta_audio()
+            await enviar_resposta(mensagem.telefone, resposta)
+            
+            # Salvar interações
+            await salvar_interacao(
+                conversa_id=conversa["id"],
+                cliente_id=medico["id"],
+                tipo="entrada",
+                conteudo="[Áudio recebido]",
+                autor_tipo="medico",
+                message_id=mensagem.message_id
+            )
+            await salvar_interacao(
+                conversa_id=conversa["id"],
+                cliente_id=medico["id"],
+                tipo="saida",
+                conteudo=resposta,
+                autor_tipo="julia",
+            )
+            logger.info("✓ Resposta para áudio enviada")
             return
 
-        # 10. Delay humano (simula leitura + digitação)
-        delay = random.uniform(2, 5)  # 2-5 segundos
-        logger.info(f"⏳ Delay humano: {delay:.1f}s")
-        await asyncio.sleep(delay)
+        if mensagem.tipo == "imagem":
+            logger.info("🖼️ Mensagem de imagem recebida")
+            caption = mensagem.texto or ""
+            resposta = obter_resposta_imagem(caption)
+            await enviar_resposta(mensagem.telefone, resposta)
+            
+            # Salvar interação
+            conteudo_imagem = f"[Imagem: {caption}]" if caption else "[Imagem recebida]"
+            await salvar_interacao(
+                conversa_id=conversa["id"],
+                cliente_id=medico["id"],
+                tipo="entrada",
+                conteudo=conteudo_imagem,
+                autor_tipo="medico",
+                message_id=mensagem.message_id
+            )
+            await salvar_interacao(
+                conversa_id=conversa["id"],
+                cliente_id=medico["id"],
+                tipo="saida",
+                conteudo=resposta,
+                autor_tipo="julia",
+            )
+            logger.info("✓ Resposta para imagem enviada")
+            return
 
-        # 11. Manter digitando
-        await mostrar_digitando(mensagem.telefone)
+        if mensagem.tipo == "documento":
+            logger.info("📄 Mensagem de documento recebida")
+            resposta = obter_resposta_documento()
+            await enviar_resposta(mensagem.telefone, resposta)
+            
+            # Salvar interação
+            await salvar_interacao(
+                conversa_id=conversa["id"],
+                cliente_id=medico["id"],
+                tipo="entrada",
+                conteudo=f"[Documento: {mensagem.texto or 'sem nome'}]",
+                autor_tipo="medico",
+                message_id=mensagem.message_id
+            )
+            await salvar_interacao(
+                conversa_id=conversa["id"],
+                cliente_id=medico["id"],
+                tipo="saida",
+                conteudo=resposta,
+                autor_tipo="julia",
+            )
+            logger.info("✓ Resposta para documento enviada")
+            return
 
-        # 12. Gerar resposta da Julia
+        if mensagem.tipo == "video":
+            logger.info("🎥 Mensagem de vídeo recebida")
+            resposta = obter_resposta_video()
+            await enviar_resposta(mensagem.telefone, resposta)
+            
+            # Salvar interação
+            await salvar_interacao(
+                conversa_id=conversa["id"],
+                cliente_id=medico["id"],
+                tipo="entrada",
+                conteudo="[Vídeo recebido]",
+                autor_tipo="medico",
+                message_id=mensagem.message_id
+            )
+            await salvar_interacao(
+                conversa_id=conversa["id"],
+                cliente_id=medico["id"],
+                tipo="saida",
+                conteudo=resposta,
+                autor_tipo="julia",
+            )
+            logger.info("✓ Resposta para vídeo enviada")
+            return
+
+        # 8.6. Tratar mensagens muito longas
+        if mensagem.texto:
+            from app.services.mensagem import tratar_mensagem_longa, RESPOSTA_MENSAGEM_LONGA
+            
+            texto_processado, acao = tratar_mensagem_longa(mensagem.texto)
+            
+            if acao == "pedir_resumo":
+                logger.warning(f"📏 Mensagem muito longa ({len(mensagem.texto)} chars), pedindo resumo")
+                await enviar_resposta(mensagem.telefone, RESPOSTA_MENSAGEM_LONGA)
+                
+                # Salvar interação de entrada (truncada)
+                await salvar_interacao(
+                    conversa_id=conversa["id"],
+                    cliente_id=medico["id"],
+                    tipo="entrada",
+                    conteudo=texto_processado + "... [truncada]",
+                    autor_tipo="medico",
+                    message_id=mensagem.message_id
+                )
+                await salvar_interacao(
+                    conversa_id=conversa["id"],
+                    cliente_id=medico["id"],
+                    tipo="saida",
+                    conteudo=RESPOSTA_MENSAGEM_LONGA,
+                    autor_tipo="julia",
+                )
+                return
+            
+            if acao == "truncada":
+                logger.warning(
+                    f"📏 Mensagem truncada de {len(mensagem.texto)} para {len(texto_processado)} chars"
+                )
+                mensagem.texto = texto_processado
+
+        # 9. Verificar triggers de handoff ANTES de processar
+        if mensagem.texto:
+            from app.services.handoff import iniciar_handoff
+            trigger = detectar_trigger_handoff(mensagem.texto)
+            if trigger:
+                logger.info(f"🚨 Trigger de handoff detectado: {trigger['tipo']}")
+                await iniciar_handoff(
+                    conversa_id=conversa["id"],
+                    cliente_id=medico["id"],
+                    motivo=trigger["motivo"],
+                    trigger_type=trigger["tipo"]
+                )
+                return  # Não gera resposta automática
+
+        # 10. Verificar se IA controla a conversa
+        if conversa.get("controlled_by") != "ai":
+            logger.info("⏸ Conversa sob controle humano, não gerando resposta")
+            # Sincronizar mensagem recebida com Chatwoot para gestor ver
+            from app.services.chatwoot import chatwoot_service
+            if conversa.get("chatwoot_conversation_id") and chatwoot_service.configurado:
+                try:
+                    await chatwoot_service.enviar_mensagem(
+                        conversation_id=conversa["chatwoot_conversation_id"],
+                        content=mensagem.texto or "[mídia]",
+                        message_type="incoming"
+                    )
+                except Exception as e:
+                    logger.warning(f"Erro ao sincronizar mensagem com Chatwoot: {e}")
+            return
+
+        # 10.5. Verificar horário comercial
+        from app.services.timing import esta_em_horario_comercial, proximo_horario_comercial
+        from app.services.fila_mensagens import agendar_resposta
+        
+        if not esta_em_horario_comercial():
+            # Gerar resposta mas agendar para depois
+            resposta = await processar_mensagem_completo(
+                mensagem_texto=mensagem.texto or "",
+                medico=medico,
+                conversa=conversa,
+                vagas=None
+            )
+            
+            if resposta:
+                proximo_horario = proximo_horario_comercial()
+                await agendar_resposta(
+                    conversa_id=conversa["id"],
+                    mensagem=mensagem.texto or "",
+                    resposta=resposta,
+                    agendar_para=proximo_horario
+                )
+                
+                logger.info(
+                    f"⏰ Mensagem agendada para {proximo_horario} "
+                    f"(fora do horário comercial)"
+                )
+            return
+
+        # 11. Calcular delay humanizado ANTES de processar
+        from app.services.timing import calcular_delay_resposta, log_timing
+        import time
+        
+        tempo_inicio = time.time()
+        delay = calcular_delay_resposta(mensagem.texto or "")
+        logger.info(f"⏳ Delay calculado: {delay:.1f}s")
+
+        # 12. Gerar resposta (enquanto "lê" a mensagem)
         resposta = await processar_mensagem_completo(
             mensagem_texto=mensagem.texto or "",
             medico=medico,
@@ -190,17 +387,34 @@ async def processar_mensagem(data: dict):
 
         logger.info(f"✓ Resposta gerada: {resposta[:50]}...")
 
-        # 13. Enviar resposta via WhatsApp (sem verificar rate limit para respostas)
-        resultado = await evolution.enviar_mensagem(
+        # 13. Calcular tempo restante de delay
+        tempo_processamento = time.time() - tempo_inicio
+        delay_restante = max(0, delay - tempo_processamento)
+        
+        # Log timing
+        log_timing(mensagem.texto or "", delay, tempo_processamento)
+
+        # 14. Aguardar delay restante (simulando "pensar")
+        if delay_restante > 5:
+            # Mostrar "digitando" antes de enviar
+            await asyncio.sleep(delay_restante - 5)
+            await mostrar_digitando(mensagem.telefone)
+            await asyncio.sleep(5)
+        else:
+            await asyncio.sleep(delay_restante)
+            await mostrar_digitando(mensagem.telefone)
+
+        # 15. Enviar resposta com timing humanizado (quebra mensagens longas)
+        from app.services.agente import enviar_resposta
+        resultado = await enviar_resposta(
             telefone=mensagem.telefone,
-            texto=resposta,
-            verificar_rate_limit=False  # Respostas a mensagens recebidas não contam
+            resposta=resposta
         )
 
         if resultado:
             logger.info(f"✓ Mensagem enviada para {mensagem.telefone[:8]}...")
 
-            # 14. Salvar interação de saída
+            # 16. Salvar interação de saída
             await salvar_interacao(
                 conversa_id=conversa["id"],
                 cliente_id=medico["id"],
