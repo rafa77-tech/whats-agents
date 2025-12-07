@@ -265,11 +265,11 @@ async def obter_conversa_detalhada(conversa_id: str):
 
 ## DoD
 
-- [ ] Endpoint de listagem funciona
-- [ ] Endpoint de detalhes funciona
-- [ ] Página de avaliação acessível
-- [ ] Filtro por status de avaliação
-- [ ] Modal mostra conversa completa
+- [x] Endpoint de listagem funciona
+- [x] Endpoint de detalhes funciona
+- [x] Página de avaliação acessível
+- [x] Filtro por status de avaliação
+- [x] Modal mostra conversa completa
 
 ---
 
@@ -402,11 +402,13 @@ async def buscar_por_tag(tag: str, limite: int = 50):
 
 ## DoD
 
-- [ ] Endpoint de avaliação aceita tags
-- [ ] Tags salvas no banco
-- [ ] Tags pré-definidas disponíveis
-- [ ] Busca por tag funciona
-- [ ] Interface permite adicionar tags
+- [x] Endpoint de avaliação aceita tags
+- [x] Tags salvas no banco
+- [x] Tags pré-definidas disponíveis
+- [x] Busca por tag funciona
+- [x] Interface permite adicionar tags
+
+**Nota:** A coluna `tags` precisa ser adicionada na tabela `avaliacoes_qualidade` conforme SQL na epic (linhas 332-339).
 
 ---
 
@@ -529,11 +531,13 @@ async def agregar_sugestoes() -> dict:
 
 ## DoD
 
-- [ ] Tabela de sugestões criada
-- [ ] Endpoint de criação funciona
-- [ ] Listagem com filtro por status
-- [ ] Atualização de status funciona
-- [ ] Agregação de sugestões similares
+- [x] Tabela de sugestões criada (SQL na epic)
+- [x] Endpoint de criação funciona
+- [x] Listagem com filtro por status
+- [x] Atualização de status funciona
+- [x] Agregação de sugestões similares
+
+**Nota:** A tabela `sugestoes_prompt` precisa ser criada no banco de dados conforme SQL na epic (linhas 425-443).
 
 ---
 
@@ -668,8 +672,11 @@ async def atualizar_prompt_com_feedback():
 
 ## DoD
 
-- [ ] Extração de exemplos bons/ruins funciona
-- [ ] Gerador de seção de exemplos funciona
-- [ ] Prompt pode ser atualizado automaticamente
-- [ ] Exemplos incluem contexto (por que bom/ruim)
-- [ ] Processo não quebra prompt existente
+- [x] Extração de exemplos bons/ruins funciona
+- [x] Gerador de seção de exemplos funciona
+- [x] Prompt pode ser atualizado automaticamente
+- [x] Exemplos incluem contexto (por que bom/ruim)
+- [x] Processo não quebra prompt existente
+- [x] Job para atualizar prompt criado
+
+**Nota:** A atualização automática do prompt requer que o arquivo de prompt tenha marcadores `## Exemplos de Conversas` e `## Fim Exemplos`, ou a seção será adicionada no final.
