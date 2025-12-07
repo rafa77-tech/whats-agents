@@ -40,6 +40,9 @@ class Settings(BaseSettings):
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
+    
+    # Julia API (para scheduler)
+    JULIA_API_URL: str = "http://localhost:8000"
 
     # Rate Limiting
     MAX_MSGS_POR_HORA: int = 20

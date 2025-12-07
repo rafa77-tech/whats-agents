@@ -1,0 +1,177 @@
+"""
+Scheduler para executar jobs agendados.
+"""
+import asyncio
+import httpx
+import logging
+from datetime import datetime
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+# URL da API
+JULIA_API_URL = settings.JULIA_API_URL
+
+JOBS = [
+    {
+        "name": "processar_mensagens_agendadas",
+        "endpoint": "/jobs/processar-mensagens-agendadas",
+        "schedule": "* * * * *",  # A cada minuto
+    },
+    {
+        "name": "processar_campanhas_agendadas",
+        "endpoint": "/jobs/processar-campanhas-agendadas",
+        "schedule": "* * * * *",  # A cada minuto
+    },
+    {
+        "name": "verificar_alertas",
+        "endpoint": "/jobs/verificar-alertas",
+        "schedule": "*/15 * * * *",  # A cada 15 minutos
+    },
+    {
+        "name": "followup_diario",
+        "endpoint": "/jobs/followup-diario",
+        "schedule": "0 10 * * *",  # Diário às 10h
+    },
+    {
+        "name": "avaliar_conversas_pendentes",
+        "endpoint": "/jobs/avaliar-conversas-pendentes",
+        "schedule": "0 2 * * *",  # Diário às 2h
+    },
+    {
+        "name": "relatorio_diario",
+        "endpoint": "/jobs/relatorio-diario",
+        "schedule": "0 8 * * *",  # Diário às 8h
+    },
+    {
+        "name": "atualizar_prompt_feedback",
+        "endpoint": "/jobs/atualizar-prompt-feedback",
+        "schedule": "0 2 * * 0",  # Semanal (domingo às 2h)
+    },
+]
+
+
+def parse_cron(schedule: str) -> dict:
+    """Parse cron expression simples."""
+    parts = schedule.split()
+    if len(parts) != 5:
+        raise ValueError(f"Cron inválido: {schedule}")
+    return {
+        "minute": parts[0],
+        "hour": parts[1],
+        "day": parts[2],
+        "month": parts[3],
+        "weekday": parts[4],
+    }
+
+
+def matches_cron_field(field: str, value: int) -> bool:
+    """Verifica se valor corresponde ao campo cron."""
+    if field == "*":
+        return True
+    
+    # Suporta */N (a cada N)
+    if field.startswith("*/"):
+        interval = int(field[2:])
+        return value % interval == 0
+    
+    # Suporta lista (1,2,3)
+    if "," in field:
+        return str(value) in field.split(",")
+    
+    # Valor exato
+    return str(value) == field
+
+
+def should_run(schedule: str, now: datetime) -> bool:
+    """Verifica se job deve executar agora."""
+    try:
+        cron = parse_cron(schedule)
+    except ValueError as e:
+        logger.error(f"Erro ao parsear cron {schedule}: {e}")
+        return False
+    
+    # Verificar minuto
+    if not matches_cron_field(cron["minute"], now.minute):
+        return False
+    
+    # Verificar hora
+    if not matches_cron_field(cron["hour"], now.hour):
+        return False
+    
+    # Verificar dia do mês
+    if not matches_cron_field(cron["day"], now.day):
+        return False
+    
+    # Verificar mês
+    if not matches_cron_field(cron["month"], now.month):
+        return False
+    
+    # Verificar dia da semana (0=domingo, 6=sábado)
+    # Cron: 0=domingo, 7=domingo também
+    if cron["weekday"] != "*":
+        weekday_cron = cron["weekday"]
+        weekday_now = now.weekday()  # 0=segunda, 6=domingo
+        # Converter: Python weekday -> Cron weekday
+        # Python: 0=seg, 1=ter, ..., 6=dom
+        # Cron: 0=dom, 1=seg, ..., 6=sab
+        cron_weekday = (weekday_now + 1) % 7
+        if not matches_cron_field(weekday_cron, cron_weekday):
+            return False
+    
+    return True
+
+
+async def execute_job(job: dict):
+    """Executa um job."""
+    try:
+        url = f"{JULIA_API_URL}{job['endpoint']}"
+        logger.info(f"🔄 Executando job: {job['name']} -> {url}")
+        
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            response = await client.post(url)
+            if response.status_code == 200:
+                logger.info(f"✅ Job {job['name']} executado com sucesso")
+            else:
+                logger.error(f"❌ Job {job['name']} falhou: {response.status_code} - {response.text}")
+    except httpx.TimeoutException:
+        logger.error(f"⏱️  Timeout ao executar job {job['name']}")
+    except Exception as e:
+        logger.error(f"❌ Erro ao executar job {job['name']}: {e}", exc_info=True)
+
+
+async def scheduler_loop():
+    """Loop principal do scheduler."""
+    logger.info("🕐 Scheduler iniciado")
+    logger.info(f"📡 API URL: {JULIA_API_URL}")
+    logger.info(f"📋 {len(JOBS)} jobs configurados")
+    
+    last_minute = -1
+    
+    while True:
+        try:
+            now = datetime.now()
+            
+            # Executar jobs apenas no início de cada minuto
+            if now.minute != last_minute:
+                last_minute = now.minute
+                
+                for job in JOBS:
+                    if should_run(job["schedule"], now):
+                        logger.info(f"⏰ Trigger: {job['name']} (schedule: {job['schedule']})")
+                        await execute_job(job)
+            
+            # Aguardar até próximo segundo
+            await asyncio.sleep(1)
+            
+        except KeyboardInterrupt:
+            logger.info("🛑 Scheduler interrompido")
+            break
+        except Exception as e:
+            logger.error(f"❌ Erro no scheduler: {e}", exc_info=True)
+            await asyncio.sleep(10)  # Aguardar antes de retry
+
+
+if __name__ == "__main__":
+    asyncio.run(scheduler_loop())
+

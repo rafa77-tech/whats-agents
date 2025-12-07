@@ -16,7 +16,7 @@ services:
       - 5432
 
   redis:
-    image: redis:latest
+    image: redis:7-alpine
     networks:
       - evolution-net
     container_name: redis
@@ -26,6 +26,11 @@ services:
       - evolution_redis:/data
     ports:
       - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -108,12 +113,107 @@ services:
     networks:
       - evolution-net
 
+  # Agente Júlia - API Principal
+  julia-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: julia-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - REDIS_URL=redis://redis:6379/0
+      - EVOLUTION_API_URL=http://evolution-api:8080
+      - CHATWOOT_URL=http://chatwoot:3000
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - evolution-net
+    volumes:
+      - ./static:/app/static:ro
+      - julia_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=julia-api"
+
+  # Agente Júlia - Worker de Fila
+  julia-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: julia-worker
+    restart: unless-stopped
+    command: ["python", "-m", "app.workers", "fila"]
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - REDIS_URL=redis://redis:6379/0
+      - EVOLUTION_API_URL=http://evolution-api:8080
+    depends_on:
+      redis:
+        condition: service_healthy
+      julia-api:
+        condition: service_healthy
+    networks:
+      - evolution-net
+    volumes:
+      - julia_logs:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=julia-worker"
+
+  # Agente Júlia - Scheduler (Jobs Agendados)
+  julia-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: julia-scheduler
+    restart: unless-stopped
+    command: ["python", "-m", "app.workers", "scheduler"]
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - JULIA_API_URL=http://julia-api:8000
+    depends_on:
+      julia-api:
+        condition: service_healthy
+    networks:
+      - evolution-net
+    volumes:
+      - julia_logs:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=julia-scheduler"
+
 volumes:
   postgres_data:
   pgadmin_data:
   evolution_redis:
   storage_data:
   n8n_data:
+  julia_logs:
 
 networks:
   evolution-net:
