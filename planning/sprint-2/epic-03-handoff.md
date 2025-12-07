@@ -210,11 +210,11 @@ async def processar_mensagem(conversa: dict, mensagem: str, contexto: dict):
 
 ## DoD
 
-- [ ] Detector de frases de pedido de humano funciona
-- [ ] Detector de situação jurídica funciona
-- [ ] Detector de sentimento negativo funciona
-- [ ] Integração no fluxo de processamento
-- [ ] Handoff iniciado quando trigger detectado
+- [x] Detector de frases de pedido de humano funciona
+- [x] Detector de situação jurídica funciona
+- [x] Detector de sentimento negativo funciona
+- [x] Integração no fluxo de processamento
+- [x] Handoff iniciado quando trigger detectado
 
 ---
 
@@ -343,11 +343,11 @@ async def iniciar_handoff(
 
 ## DoD
 
-- [ ] Mensagens de transição definidas para cada tipo
-- [ ] Mensagem enviada antes do handoff
-- [ ] Tom natural e amigável
-- [ ] Mensagem salva no histórico
-- [ ] Mensagem sincronizada com Chatwoot
+- [x] Mensagens de transição definidas para cada tipo
+- [x] Mensagem enviada antes do handoff
+- [x] Tom natural e amigável
+- [x] Mensagem salva no histórico
+- [x] Mensagem sincronizada com Chatwoot
 
 ---
 
@@ -475,11 +475,11 @@ async def processar_conversation_updated(payload: dict):
 
 ## DoD
 
-- [ ] Júlia não responde quando `controlled_by='human'`
-- [ ] Mensagens ainda são salvas no histórico
-- [ ] Mensagens sincronizadas com Chatwoot
-- [ ] Função `devolver_para_ia()` implementada
-- [ ] Label "humano" removida devolve para IA
+- [x] Júlia não responde quando `controlled_by='human'`
+- [x] Mensagens ainda são salvas no histórico
+- [x] Mensagens sincronizadas com Chatwoot
+- [x] Função `finalizar_handoff()` implementada
+- [x] Label "humano" removida devolve para IA
 
 ---
 
@@ -617,11 +617,11 @@ async def obter_metricas_handoff(periodo_dias: int = 30) -> dict:
 
 ## DoD
 
-- [ ] Handoff criado com todos os campos
-- [ ] Metadata inclui contexto útil
-- [ ] Função `resolver_handoff()` implementada
-- [ ] Queries de listagem funcionam
-- [ ] Métricas básicas disponíveis
+- [x] Handoff criado com todos os campos
+- [x] Metadata inclui contexto útil
+- [x] Função `resolver_handoff()` implementada
+- [x] Queries de listagem funcionam
+- [x] Métricas básicas disponíveis
 
 ---
 
@@ -811,10 +811,10 @@ async def notificar_handoff_resolvido(conversa: dict, handoff: dict):
 
 ## DoD
 
-- [ ] Serviço Slack implementado
-- [ ] Notificação enviada quando handoff inicia
-- [ ] Mensagem inclui dados do médico
-- [ ] Mensagem inclui motivo e tipo
-- [ ] Link direto para Chatwoot
-- [ ] Notificação de handoff resolvido
-- [ ] Cores diferentes por tipo de handoff
+- [x] Serviço Slack implementado
+- [x] Notificação enviada quando handoff inicia
+- [x] Mensagem inclui dados do médico
+- [x] Mensagem inclui motivo e tipo
+- [x] Link direto para Chatwoot
+- [x] Notificação de handoff resolvido
+- [x] Cores diferentes por tipo de handoff

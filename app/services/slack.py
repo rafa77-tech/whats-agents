@@ -3,6 +3,7 @@ Servico de notificacoes via Slack.
 """
 import httpx
 import logging
+from datetime import datetime
 from typing import Optional
 
 from app.core.config import settings
@@ -108,35 +109,150 @@ async def notificar_plantao_reservado(
 
 
 async def notificar_handoff(
-    medico: dict,
-    motivo: str,
-    conversa_id: str
+    conversa: dict,
+    handoff: dict
 ) -> bool:
     """
     Notifica gestor sobre handoff para humano.
 
     Args:
-        medico: Dados do medico
-        motivo: Motivo do handoff
-        conversa_id: ID da conversa
+        conversa: Dados da conversa (com clientes)
+        handoff: Dados do handoff
 
     Returns:
         True se notificou com sucesso
     """
+    from app.core.config import settings
+
+    medico = conversa.get("clientes", {})
     nome_medico = medico.get("primeiro_nome", "Medico")
     telefone = medico.get("telefone", "")
+    chatwoot_id = conversa.get("chatwoot_conversation_id")
+    trigger_type = handoff.get("trigger_type", "manual")
+    motivo = handoff.get("motivo", handoff.get("reason", "Handoff solicitado"))
+
+    # Montar link do Chatwoot
+    chatwoot_link = ""
+    if chatwoot_id:
+        chatwoot_link = (
+            f"{settings.CHATWOOT_URL}/app/accounts/"
+            f"{settings.CHATWOOT_ACCOUNT_ID}/conversations/{chatwoot_id}"
+        )
+
+    # Cor baseada no tipo
+    cores = {
+        "pedido_humano": "#2196F3",  # Azul
+        "juridico": "#F44336",       # Vermelho
+        "sentimento_negativo": "#FF9800",  # Laranja
+        "baixa_confianca": "#9C27B0",  # Roxo
+        "manual": "#4CAF50",          # Verde
+    }
+
+    cor = cores.get(trigger_type, "#607D8B")  # Cinza como padrão
+
+    attachment = {
+        "color": cor,
+        "title": "🚨 Handoff necessário!",
+        "fields": [
+            {
+                "title": "Medico",
+                "value": nome_medico,
+                "short": True
+            },
+            {
+                "title": "Telefone",
+                "value": telefone,
+                "short": True
+            },
+            {
+                "title": "Motivo",
+                "value": motivo,
+                "short": False
+            },
+            {
+                "title": "Tipo",
+                "value": trigger_type,
+                "short": True
+            },
+        ],
+        "footer": f"Conversa ID: {conversa.get('id', '')[:8]}",
+        "ts": int(__import__("time").time())
+    }
+
+    # Adicionar link do Chatwoot se disponível
+    if chatwoot_link:
+        attachment["actions"] = [{
+            "type": "button",
+            "text": "Abrir no Chatwoot",
+            "url": chatwoot_link
+        }]
 
     mensagem = {
-        "text": "Atencao: Handoff solicitado!",
+        "text": "🚨 Handoff necessário!",
+        "attachments": [attachment]
+    }
+
+    return await enviar_slack(mensagem)
+
+
+async def notificar_handoff_resolvido(
+    conversa: dict,
+    handoff: dict
+) -> bool:
+    """
+    Notifica que handoff foi resolvido.
+
+    Args:
+        conversa: Dados da conversa (com clientes)
+        handoff: Dados do handoff resolvido
+
+    Returns:
+        True se notificou com sucesso
+    """
+    medico = conversa.get("clientes", {})
+    nome_medico = medico.get("primeiro_nome", "Medico")
+
+    # Calcular duração
+    duracao = "N/A"
+    try:
+        if handoff.get("created_at") and handoff.get("resolvido_em"):
+            criado = datetime.fromisoformat(handoff["created_at"].replace("Z", "+00:00"))
+            resolvido = datetime.fromisoformat(handoff["resolvido_em"].replace("Z", "+00:00"))
+            minutos = int((resolvido - criado).total_seconds() / 60)
+            if minutos < 60:
+                duracao = f"{minutos} minutos"
+            else:
+                horas = minutos // 60
+                mins = minutos % 60
+                duracao = f"{horas}h {mins}min"
+    except Exception:
+        pass
+
+    notas = handoff.get("notas", "Sem notas")
+
+    mensagem = {
+        "text": "✅ Handoff resolvido!",
         "attachments": [{
-            "color": "#ff9900",
-            "title": "Conversa precisa de atencao humana",
+            "color": "#4CAF50",
+            "title": "Handoff finalizado",
             "fields": [
-                {"title": "Medico", "value": nome_medico, "short": True},
-                {"title": "Telefone", "value": telefone, "short": True},
-                {"title": "Motivo", "value": motivo, "short": False},
+                {
+                    "title": "Medico",
+                    "value": nome_medico,
+                    "short": True
+                },
+                {
+                    "title": "Duracao",
+                    "value": duracao,
+                    "short": True
+                },
+                {
+                    "title": "Notas",
+                    "value": notas[:500],  # Limitar tamanho
+                    "short": False
+                },
             ],
-            "footer": f"Conversa ID: {conversa_id[:8]}",
+            "footer": "Agente Julia",
             "ts": int(__import__("time").time())
         }]
     }
