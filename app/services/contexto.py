@@ -1,13 +1,14 @@
 """
 Servico para montagem de contexto do agente.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 import logging
 
 from app.services.interacao import carregar_historico, formatar_historico_para_llm
 from app.config.especialidades import obter_config_especialidade
 from app.services.redis import cache_get_json, cache_set_json
+from app.services.supabase import get_supabase
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +104,76 @@ def montar_contexto_especialidade(medico: dict) -> str:
     return "\n".join(partes)
 
 
+async def verificar_handoff_recente(conversa_id: str, horas: int = 24) -> Optional[dict]:
+    """
+    Verifica se houve handoff resolvido recentemente para a conversa.
+
+    Args:
+        conversa_id: ID da conversa
+        horas: Janela de tempo para considerar recente (padrao 24h)
+
+    Returns:
+        Dados do handoff se encontrado, None caso contrario
+    """
+    supabase = get_supabase()
+
+    try:
+        limite_tempo = (datetime.utcnow() - timedelta(hours=horas)).isoformat()
+
+        response = (
+            supabase.table("handoffs")
+            .select("*")
+            .eq("conversa_id", conversa_id)
+            .eq("status", "resolvido")
+            .gte("resolvido_em", limite_tempo)
+            .order("resolvido_em", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+        if response.data:
+            handoff = response.data[0]
+            logger.info(f"Handoff recente encontrado: {handoff['id']}")
+            return handoff
+
+        return None
+
+    except Exception as e:
+        logger.error(f"Erro ao verificar handoff recente: {e}")
+        return None
+
+
+def formatar_contexto_handoff(handoff: dict) -> str:
+    """
+    Formata informacoes do handoff recente para o prompt.
+
+    Args:
+        handoff: Dados do handoff
+
+    Returns:
+        String formatada
+    """
+    partes = ["ATENCAO: Esta conversa estava com atendimento humano ate pouco tempo."]
+
+    motivo = handoff.get("motivo", "")
+    if motivo:
+        partes.append(f"Motivo original: {motivo}")
+
+    notas = handoff.get("notas", "")
+    if notas:
+        partes.append(f"Notas do gestor: {notas}")
+
+    trigger = handoff.get("trigger_type", "")
+    if trigger == "sentimento_negativo":
+        partes.append("O medico estava irritado - seja extra cuidadosa.")
+    elif trigger == "juridico":
+        partes.append("Houve questao juridica - evite esse assunto.")
+
+    partes.append("Retome de forma suave, sem mencionar a supervisora.")
+
+    return "\n".join(partes)
+
+
 def formatar_contexto_vagas(vagas: list[dict], limite: int = 3) -> str:
     """
     Formata vagas disponiveis para o prompt.
@@ -137,6 +208,67 @@ def formatar_contexto_vagas(vagas: list[dict], limite: int = 3) -> str:
     return "\n".join(linhas)
 
 
+async def carregar_diretrizes_ativas() -> dict:
+    """
+    Carrega diretrizes ativas do briefing.
+
+    Returns:
+        Dict com diretrizes por tipo
+    """
+    supabase = get_supabase()
+
+    try:
+        response = (
+            supabase.table("diretrizes")
+            .select("tipo, conteudo")
+            .eq("ativo", True)
+            .order("prioridade", desc=True)
+            .execute()
+        )
+
+        diretrizes = {}
+        for d in response.data or []:
+            diretrizes[d["tipo"]] = d["conteudo"]
+
+        return diretrizes
+
+    except Exception as e:
+        logger.error(f"Erro ao carregar diretrizes: {e}")
+        return {}
+
+
+def formatar_contexto_diretrizes(diretrizes: dict) -> str:
+    """
+    Formata diretrizes ativas para o prompt.
+
+    Args:
+        diretrizes: Dict com diretrizes por tipo
+
+    Returns:
+        String formatada
+    """
+    if not diretrizes:
+        return ""
+
+    partes = ["## Diretrizes do Gestor (PRIORIDADE MAXIMA)"]
+
+    if diretrizes.get("foco_semana"):
+        partes.append(f"\n**Foco:**\n{diretrizes['foco_semana']}")
+
+    if diretrizes.get("tom_semana"):
+        partes.append(f"\n**Tom:**\n{diretrizes['tom_semana']}")
+
+    if diretrizes.get("margem_negociacao"):
+        partes.append(f"\n**Margem de Negociacao:** Pode oferecer ate {diretrizes['margem_negociacao']}% a mais")
+
+    if diretrizes.get("observacoes"):
+        partes.append(f"\n**Observacoes:**\n{diretrizes['observacoes']}")
+
+    partes.append("\nSiga essas diretrizes como prioridade maxima.")
+
+    return "\n".join(partes)
+
+
 async def montar_contexto_completo(
     medico: dict,
     conversa: dict,
@@ -156,7 +288,7 @@ async def montar_contexto_completo(
     # Cache de partes estáticas do contexto
     cache_key = f"contexto:medico:{medico.get('id')}"
     cached_estatico = await cache_get_json(cache_key)
-    
+
     if cached_estatico:
         contexto_medico_str = cached_estatico.get("medico", "")
         contexto_especialidade_str = cached_estatico.get("especialidade", "")
@@ -164,7 +296,7 @@ async def montar_contexto_completo(
         # Montar partes estáticas
         contexto_medico_str = formatar_contexto_medico(medico)
         contexto_especialidade_str = montar_contexto_especialidade(medico)
-        
+
         # Salvar no cache
         await cache_set_json(cache_key, {
             "medico": contexto_medico_str,
@@ -182,6 +314,16 @@ async def montar_contexto_completo(
     agora = datetime.now()
     dia_semana = DIAS_SEMANA[agora.weekday()]
 
+    # Verificar se houve handoff recente (retorno de atendimento humano)
+    contexto_handoff = ""
+    handoff_recente = await verificar_handoff_recente(conversa["id"])
+    if handoff_recente:
+        contexto_handoff = formatar_contexto_handoff(handoff_recente)
+
+    # Carregar diretrizes do briefing (S7.E7.5)
+    diretrizes = await carregar_diretrizes_ativas()
+    contexto_diretrizes = formatar_contexto_diretrizes(diretrizes)
+
     return {
         "medico": contexto_medico_str,
         "especialidade": contexto_especialidade_str,
@@ -192,4 +334,6 @@ async def montar_contexto_completo(
         "controlled_by": conversa.get("controlled_by", "ai"),
         "data_hora_atual": agora.strftime("%Y-%m-%d %H:%M"),
         "dia_semana": dia_semana,
+        "handoff_recente": contexto_handoff,
+        "diretrizes": contexto_diretrizes,
     }
