@@ -25,7 +25,7 @@ async def buscar_conversa_ativa(cliente_id: str) -> Optional[dict]:
             supabase.table("conversations")
             .select("*")
             .eq("cliente_id", cliente_id)
-            .eq("status", "aberta")
+            .eq("status", "active")
             .order("created_at", desc=True)
             .limit(1)
             .execute()
@@ -38,7 +38,6 @@ async def buscar_conversa_ativa(cliente_id: str) -> Optional[dict]:
 
 async def criar_conversa(
     cliente_id: str,
-    origem: str = "inbound",
     controlled_by: Literal["ai", "human"] = "ai"
 ) -> Optional[dict]:
     """
@@ -46,7 +45,6 @@ async def criar_conversa(
 
     Args:
         cliente_id: ID do medico
-        origem: De onde veio (inbound, prospeccao, campanha)
         controlled_by: Quem controla (ai ou human)
 
     Returns:
@@ -57,9 +55,8 @@ async def criar_conversa(
             supabase.table("conversations")
             .insert({
                 "cliente_id": cliente_id,
-                "status": "aberta",
+                "status": "active",
                 "controlled_by": controlled_by,
-                "origem": origem,
             })
             .execute()
         )
@@ -70,16 +67,12 @@ async def criar_conversa(
         return None
 
 
-async def buscar_ou_criar_conversa(
-    cliente_id: str,
-    origem: str = "inbound"
-) -> Optional[dict]:
+async def buscar_ou_criar_conversa(cliente_id: str) -> Optional[dict]:
     """
     Busca conversa ativa ou cria nova.
 
     Args:
         cliente_id: ID do medico
-        origem: Origem da conversa
 
     Returns:
         Dados da conversa
@@ -93,7 +86,7 @@ async def buscar_ou_criar_conversa(
 
     # Criar nova
     logger.info(f"Criando nova conversa para {cliente_id}")
-    return await criar_conversa(cliente_id, origem=origem)
+    return await criar_conversa(cliente_id)
 
 
 async def atualizar_conversa(conversa_id: str, **campos) -> Optional[dict]:
@@ -116,8 +109,7 @@ async def fechar_conversa(conversa_id: str, motivo: str = "concluida") -> bool:
     """Fecha uma conversa."""
     result = await atualizar_conversa(
         conversa_id,
-        status="fechada",
-        motivo_fechamento=motivo
+        status="completed",
     )
     return result is not None
 

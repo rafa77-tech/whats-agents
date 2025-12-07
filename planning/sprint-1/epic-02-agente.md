@@ -1,5 +1,21 @@
 # Epic 2: Agente Júlia
 
+## Status: COMPLETO ✅
+
+**Completado em:** 07/12/2025
+
+| Story | Descrição | Status |
+|-------|-----------|--------|
+| S1.E2.1 | System prompt completo da Júlia | ✅ |
+| S1.E2.2 | Buscar/criar médico no banco | ✅ |
+| S1.E2.3 | Buscar/criar conversa | ✅ |
+| S1.E2.4 | Carregar histórico recente | ✅ |
+| S1.E2.5 | Montar contexto para LLM | ✅ |
+| S1.E2.6 | Chamar Claude e processar resposta | ✅ |
+| S1.E2.7 | Enviar resposta e salvar interação | ✅ |
+
+---
+
 ## Objetivo do Epic
 
 > **Criar o agente Júlia que gera respostas naturais usando Claude.**
@@ -282,14 +298,14 @@ curl -X POST http://localhost:8000/test/llm/julia \
 
 ## DoD (Definition of Done)
 
-- [ ] Arquivo `app/core/prompts.py` criado
-- [ ] `JULIA_SYSTEM_PROMPT` completo e detalhado
-- [ ] Função `montar_prompt_julia()` implementada
-- [ ] Testes unitários passando
-- [ ] Respostas são curtas (1-3 linhas)
-- [ ] Respostas usam linguagem informal
-- [ ] Respostas não revelam que é IA
-- [ ] 10 cenários testados manualmente com qualidade OK
+- [x] Arquivo `app/core/prompts.py` criado ✅ (07/12/2025)
+- [x] `JULIA_SYSTEM_PROMPT` completo e detalhado ✅
+- [x] Função `montar_prompt_julia()` implementada ✅
+- [x] Testes unitários passando ✅
+- [x] Respostas são curtas (1-3 linhas) ✅
+- [x] Respostas usam linguagem informal ✅
+- [x] Respostas não revelam que é IA ✅
+- [x] 10 cenários testados manualmente com qualidade OK ✅
 
 ---
 ---
@@ -482,13 +498,13 @@ async def test_buscar_existente():
 
 ## DoD (Definition of Done)
 
-- [ ] Arquivo `app/services/medico.py` criado
-- [ ] Função `buscar_medico_por_telefone()` implementada
-- [ ] Função `criar_medico()` implementada
-- [ ] Função `buscar_ou_criar_medico()` implementada
-- [ ] Médico existente é retornado
-- [ ] Médico novo é criado se não existe
-- [ ] Não cria duplicados
+- [x] Arquivo `app/services/medico.py` criado ✅ (07/12/2025)
+- [x] Função `buscar_medico_por_telefone()` implementada ✅
+- [x] Função `criar_medico()` implementada ✅
+- [x] Função `buscar_ou_criar_medico()` implementada ✅
+- [x] Médico existente é retornado ✅
+- [x] Médico novo é criado se não existe ✅
+- [x] Não cria duplicados ✅
 
 ---
 ---
@@ -671,13 +687,13 @@ EOF
 
 ## DoD (Definition of Done)
 
-- [ ] Arquivo `app/services/conversa.py` criado
-- [ ] Função `buscar_conversa_ativa()` implementada
-- [ ] Função `criar_conversa()` implementada
-- [ ] Função `buscar_ou_criar_conversa()` implementada
-- [ ] Função `conversa_controlada_por_ia()` implementada
-- [ ] Conversa existente é retornada
-- [ ] Nova conversa é criada se não existe
+- [x] Arquivo `app/services/conversa.py` criado ✅ (07/12/2025)
+- [x] Função `buscar_conversa_ativa()` implementada ✅
+- [x] Função `criar_conversa()` implementada ✅
+- [x] Função `buscar_ou_criar_conversa()` implementada ✅
+- [x] Função `conversa_controlada_por_ia()` implementada ✅
+- [x] Conversa existente é retornada ✅
+- [x] Nova conversa é criada se não existe ✅
 
 ---
 ---
@@ -830,12 +846,12 @@ EOF
 
 ## DoD (Definition of Done)
 
-- [ ] Arquivo `app/services/interacao.py` criado
-- [ ] Função `salvar_interacao()` implementada
-- [ ] Função `carregar_historico()` implementada
-- [ ] Função `formatar_historico_para_llm()` implementada
-- [ ] Função `converter_historico_para_messages()` implementada
-- [ ] Histórico vem em ordem cronológica
+- [x] Arquivo `app/services/interacao.py` criado ✅ (07/12/2025)
+- [x] Função `salvar_interacao()` implementada ✅
+- [x] Função `carregar_historico()` implementada ✅
+- [x] Função `formatar_historico_para_llm()` implementada ✅
+- [x] Função `converter_historico_para_messages()` implementada ✅
+- [x] Histórico vem em ordem cronológica ✅
 
 ---
 ---
@@ -1003,11 +1019,11 @@ EOF
 
 ## DoD (Definition of Done)
 
-- [ ] Arquivo `app/services/contexto.py` criado
-- [ ] Função `formatar_contexto_medico()` implementada
-- [ ] Função `formatar_contexto_vagas()` implementada
-- [ ] Função `montar_contexto_completo()` implementada
-- [ ] Contexto inclui: médico, histórico, vagas, primeira_msg
+- [x] Arquivo `app/services/contexto.py` criado ✅ (07/12/2025)
+- [x] Função `formatar_contexto_medico()` implementada ✅
+- [x] Função `formatar_contexto_vagas()` implementada ✅
+- [x] Função `montar_contexto_completo()` implementada ✅
+- [x] Contexto inclui: médico, histórico, vagas, primeira_msg ✅
 
 ---
 ---
@@ -1139,12 +1155,12 @@ EOF
 
 ## DoD (Definition of Done)
 
-- [ ] Arquivo `app/services/agente.py` criado
-- [ ] Função `gerar_resposta_julia()` implementada
-- [ ] Função `processar_mensagem_completo()` implementada
-- [ ] Resposta é gerada com base no contexto
-- [ ] Histórico é passado para o Claude
-- [ ] Conversa sob controle humano não é processada
+- [x] Arquivo `app/services/agente.py` criado ✅ (07/12/2025)
+- [x] Função `gerar_resposta_julia()` implementada ✅
+- [x] Função `processar_mensagem_completo()` implementada ✅
+- [x] Resposta é gerada com base no contexto ✅
+- [x] Histórico é passado para o Claude ✅
+- [x] Conversa sob controle humano não é processada ✅
 
 ---
 ---
@@ -1322,16 +1338,16 @@ async def processar_mensagem(data: dict):
 
 ## DoD (Definition of Done)
 
-- [ ] Webhook processa mensagem completa
-- [ ] Médico é buscado/criado
-- [ ] Conversa é buscada/criada
-- [ ] Mensagem recebida é salva como interação
-- [ ] Resposta é gerada pelo Claude
-- [ ] Resposta é enviada via WhatsApp
-- [ ] Resposta é salva como interação
-- [ ] Feedback visual funciona (lida, online, digitando)
-- [ ] Logs mostram fluxo completo
-- [ ] Testado com 5 mensagens diferentes com sucesso
+- [x] Webhook processa mensagem completa ✅ (07/12/2025)
+- [x] Médico é buscado/criado ✅
+- [x] Conversa é buscada/criada ✅
+- [x] Mensagem recebida é salva como interação ✅
+- [x] Resposta é gerada pelo Claude ✅
+- [x] Resposta é enviada via WhatsApp ✅
+- [x] Resposta é salva como interação ✅
+- [x] Feedback visual funciona (lida, online, digitando) ✅
+- [x] Logs mostram fluxo completo ✅
+- [x] Testado com 5 mensagens diferentes com sucesso ✅
 
 ---
 
@@ -1344,3 +1360,22 @@ async def processar_mensagem(data: dict):
 4. Verificar banco: médico, conversa, interações existem
 5. Tempo total < 30 segundos
 ```
+
+---
+
+## Correções Realizadas Durante Testes (07/12/2025)
+
+Durante os testes de integração, foram identificadas e corrigidas divergências entre o código planejado e o schema real do banco:
+
+| Arquivo | Problema | Correção |
+|---------|----------|----------|
+| `medico.py` | Campo `source` não existe | Alterado para `origem` |
+| `conversa.py` | Status `aberta` não existe | Alterado para `active` |
+| `conversa.py` | Campo `origem` não existe na tabela | Removido do insert |
+| `interacao.py` | Campo `remetente` não existe | Alterado para `autor_tipo` |
+| `interacao.py` | Campo `cliente_id` obrigatório | Adicionado parâmetro |
+| `interacao.py` | Campo `origem` obrigatório | Adicionado com valores `whatsapp_inbound`/`whatsapp_outbound` |
+| `webhook.py` | Atributo `push_name` errado | Alterado para `nome_contato` |
+| `webhook.py` | Método `enviar_texto` errado | Alterado para `enviar_mensagem` |
+
+**Lição aprendida:** Sempre verificar schema real do banco antes de implementar.

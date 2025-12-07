@@ -112,7 +112,7 @@ async def processar_mensagem(data: dict):
         # 5. Buscar ou criar médico
         medico = await buscar_ou_criar_medico(
             telefone=mensagem.telefone,
-            nome_whatsapp=mensagem.push_name
+            nome_whatsapp=mensagem.nome_contato
         )
         if not medico:
             logger.error("Erro ao buscar/criar médico")
@@ -121,10 +121,7 @@ async def processar_mensagem(data: dict):
         logger.info(f"✓ Médico: {medico.get('primeiro_nome', 'Novo')} ({medico['id'][:8]}...)")
 
         # 6. Buscar ou criar conversa
-        conversa = await buscar_ou_criar_conversa(
-            cliente_id=medico["id"],
-            origem="inbound"
-        )
+        conversa = await buscar_ou_criar_conversa(cliente_id=medico["id"])
         if not conversa:
             logger.error("Erro ao buscar/criar conversa")
             return
@@ -134,9 +131,10 @@ async def processar_mensagem(data: dict):
         # 7. Salvar interação de entrada
         await salvar_interacao(
             conversa_id=conversa["id"],
+            cliente_id=medico["id"],
             tipo="entrada",
             conteudo=mensagem.texto or "[mídia]",
-            remetente="medico",
+            autor_tipo="medico",
             message_id=mensagem.message_id
         )
         logger.info("✓ Interação de entrada salva")
@@ -169,9 +167,9 @@ async def processar_mensagem(data: dict):
         logger.info(f"✓ Resposta gerada: {resposta[:50]}...")
 
         # 12. Enviar resposta via WhatsApp
-        resultado = await evolution.enviar_texto(
-            numero=mensagem.telefone,
-            mensagem=resposta
+        resultado = await evolution.enviar_mensagem(
+            telefone=mensagem.telefone,
+            texto=resposta
         )
 
         if resultado:
@@ -180,9 +178,10 @@ async def processar_mensagem(data: dict):
             # 13. Salvar interação de saída
             await salvar_interacao(
                 conversa_id=conversa["id"],
+                cliente_id=medico["id"],
                 tipo="saida",
                 conteudo=resposta,
-                remetente="julia",
+                autor_tipo="julia",
                 message_id=resultado.get("key", {}).get("id")
             )
             logger.info("✓ Interação de saída salva")

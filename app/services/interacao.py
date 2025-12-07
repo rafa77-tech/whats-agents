@@ -11,9 +11,10 @@ logger = logging.getLogger(__name__)
 
 async def salvar_interacao(
     conversa_id: str,
+    cliente_id: str,
     tipo: Literal["entrada", "saida"],
     conteudo: str,
-    remetente: Literal["medico", "julia", "gestor"],
+    autor_tipo: Literal["medico", "julia", "gestor"],
     message_id: Optional[str] = None
 ) -> Optional[dict]:
     """
@@ -21,24 +22,31 @@ async def salvar_interacao(
 
     Args:
         conversa_id: ID da conversa
+        cliente_id: ID do medico/cliente
         tipo: entrada (recebida) ou saida (enviada)
         conteudo: Texto da mensagem
-        remetente: Quem enviou
+        autor_tipo: Quem enviou (medico, julia, gestor)
         message_id: ID da mensagem no WhatsApp
 
     Returns:
         Dados da interacao salva
     """
     try:
+        # Definir origem baseada no tipo
+        origem = "whatsapp_inbound" if tipo == "entrada" else "whatsapp_outbound"
+
         dados = {
             "conversation_id": conversa_id,
+            "cliente_id": cliente_id,
             "tipo": tipo,
             "conteudo": conteudo,
-            "remetente": remetente,
+            "autor_tipo": autor_tipo,
+            "canal": "whatsapp",
+            "origem": origem,
         }
 
         if message_id:
-            dados["whatsapp_message_id"] = message_id
+            dados["twilio_message_sid"] = message_id  # Reusando campo para message_id
 
         response = supabase.table("interacoes").insert(dados).execute()
         logger.debug(f"Interacao salva: {tipo} - {conteudo[:50]}...")
@@ -93,7 +101,8 @@ def formatar_historico_para_llm(interacoes: list[dict]) -> str:
 
     linhas = []
     for i in interacoes:
-        remetente = "Medico" if i["remetente"] == "medico" else "Julia"
+        autor = i.get("autor_tipo", "medico")
+        remetente = "Medico" if autor == "medico" else "Julia"
         linhas.append(f"{remetente}: {i['conteudo']}")
 
     return "\n".join(linhas)
@@ -108,7 +117,8 @@ def converter_historico_para_messages(interacoes: list[dict]) -> list[dict]:
     """
     messages = []
     for i in interacoes:
-        role = "user" if i["remetente"] == "medico" else "assistant"
+        autor = i.get("autor_tipo", "medico")
+        role = "user" if autor == "medico" else "assistant"
         messages.append({
             "role": role,
             "content": i["conteudo"]

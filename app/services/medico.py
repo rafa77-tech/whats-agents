@@ -52,7 +52,7 @@ async def criar_medico(
         dados = {
             "telefone": telefone,
             "stage_jornada": "novo",
-            "source": "whatsapp_inbound",
+            "origem": "whatsapp_inbound",
         }
 
         if nome:
