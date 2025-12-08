@@ -49,12 +49,20 @@ async def processar_conversation_updated(payload: dict):
     - Label "humano" adicionada -> iniciar handoff
     - Label "humano" removida -> finalizar handoff
     """
-    conversation = payload.get("conversation", {})
+    # Log payload para debug (INFO temporariamente para diagnostico)
+    logger.info(f"Payload conversation_updated keys: {list(payload.keys())}")
+
+    # Chatwoot pode enviar como "conversation" ou diretamente no payload
+    conversation = payload.get("conversation") or payload
     labels = conversation.get("labels", [])
     chatwoot_conversation_id = conversation.get("id")
 
+    # Extrair labels (pode vir como lista de strings ou objetos)
+    if labels and isinstance(labels[0], dict):
+        labels = [l.get("title", l.get("name", "")) for l in labels]
+
     if not chatwoot_conversation_id:
-        logger.warning("Payload sem conversation.id")
+        logger.warning(f"Payload sem conversation.id. Keys: {list(payload.keys())}")
         return
 
     logger.info(

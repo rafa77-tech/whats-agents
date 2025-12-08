@@ -131,6 +131,17 @@ async def processar_mensagem(data: dict):
 
         logger.info(f"✓ Conversa: {conversa['id'][:8]}... (controlled_by={conversa['controlled_by']})")
 
+        # 6.5. Sincronizar ID do Chatwoot se não existir (para handoff funcionar)
+        if not conversa.get("chatwoot_conversation_id"):
+            from app.services.chatwoot import sincronizar_ids_chatwoot
+            try:
+                ids = await sincronizar_ids_chatwoot(medico["id"], mensagem.telefone)
+                if ids.get("chatwoot_conversation_id"):
+                    conversa["chatwoot_conversation_id"] = str(ids["chatwoot_conversation_id"])
+                    logger.info(f"✓ Chatwoot ID sincronizado: {ids['chatwoot_conversation_id']}")
+            except Exception as e:
+                logger.warning(f"Erro ao sincronizar Chatwoot ID: {e}")
+
         # 7. Salvar interação de entrada
         await salvar_interacao(
             conversa_id=conversa["id"],
