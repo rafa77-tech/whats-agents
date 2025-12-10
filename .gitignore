@@ -32,3 +32,6 @@ logs/
 
 # Test data exports
 tests/*_rows.csv
+
+# Google credentials
+credentials/

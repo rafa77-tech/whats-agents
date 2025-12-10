@@ -1,126 +1,119 @@
-# Template: Briefing da Júlia
+# Template: Briefing da Julia
 
-Formato do Google Docs que o gestor usa para direcionar a Júlia.
+Documento Google Docs que o gestor usa para direcionar a Julia semanalmente.
 
 ---
 
 ## Formato do Documento
 
+**IMPORTANTE:** O documento DEVE usar `#` e `##` literalmente para marcar secoes.
+O Google Docs preserva esses caracteres - apenas digite-os no inicio da linha.
+
 ```markdown
-# Briefing Júlia - Semana DD/MM
+# Briefing Julia - Semana DD/MM
 
 ## Foco da Semana
-- Prioridade 1: [descrição]
-- Prioridade 2: [descrição]
-- Evitar: [descrição]
+- Prioridade 1: [descricao]
+- Prioridade 2: [descricao]
+- Evitar: [descricao]
 
-## Vagas Prioritárias
-- [Hospital] - [Especialidade] - [Urgência] - [Observação]
-
-## Médicos VIP
-- Dr. [Nome] ([CRM]) - [motivo]
-
-## Médicos Bloqueados
-- Dr. [Nome] - [motivo]
+## Vagas Prioritarias
+- [Hospital] - [Data] - ate R$ [valor]
 
 ## Tom da Semana
-- [instrução]
+- [instrucao de comunicacao]
+- Pode oferecer ate X% a mais
 
-## Metas
-- [X] novos contatos
-- [Y] médicos qualificados
-- [Z] plantões fechados
-
-## Instruções Especiais
-- [instrução livre]
+## Observacoes
+- [nota importante]
 ```
 
 ---
 
-## Seções e Como São Processadas
+## Secoes e Como Sao Processadas
 
-| Seção | Tipo de Diretriz | Comportamento |
-|-------|------------------|---------------|
-| Foco da Semana | `foco`, `evitar` | "Prioridade" → foco, "Evitar" → evitar |
-| Vagas Prioritárias | `vaga_prioritaria` | Cada linha vira diretriz |
-| Médicos VIP | `vip` | Extrai CRM, vincula ao cliente |
-| Médicos Bloqueados | `bloqueado` | Extrai CRM, vincula ao cliente |
-| Tom da Semana | `tom` | Instruções de comunicação |
-| Metas | `meta` | Métricas a atingir |
-| Instruções Especiais | `instrucao_geral` | Regras específicas |
+| Secao | Diretriz | Comportamento |
+|-------|----------|---------------|
+| Foco da Semana | `foco_semana` | Direciona priorizacao de contatos |
+| Vagas Prioritarias | `vagas_prioritarias` | Marca vagas como urgentes |
+| Tom da Semana | `tom_semana` | Instrucoes de comunicacao |
+| Observacoes | `observacoes` | Notas gerais |
 
 ---
 
 ## Exemplo Completo
 
 ```markdown
-# Briefing Júlia - Semana 09/12
+# Briefing Julia - Semana 10/12
 
 ## Foco da Semana
-- Prioridade 1: Anestesistas da Grande São Paulo
-- Prioridade 2: Cardiologistas que não responderam há 30+ dias
-- Evitar: Hospital Santa Cruz (problema de pagamento pendente)
+- Prioridade 1: Anestesistas da Grande Sao Paulo
+- Prioridade 2: Follow-up de medicos que nao responderam ha 7+ dias
+- Evitar: Contatos em horario de almoco (12h-14h)
 
-## Vagas Prioritárias
-- Hospital São Luiz Morumbi - Anestesiologia - URGENTE - Paga bem
-- Hospital Albert Einstein - Cardiologia UTI - VIP - Só médico experiente
-- Hospital Samaritano - Clínica Geral PS - Normal - Boa pra iniciantes
-
-## Médicos VIP
-- Dr. Carlos Mendes (CRM 123456) - Indicação do Dr. Paulo. Tratar super bem.
-- Dra. Ana Costa (CRM 789012) - Já trabalhou conosco, quer voltar.
-- Dr. Ricardo Souza (CRM 345678) - Presidente da associação de anestesistas.
-
-## Médicos Bloqueados
-- Dr. João Silva (CRM 111111) - Pediu para não contatar
-- Dra. Maria Santos (CRM 222222) - Processo judicial em andamento
-- Dr. Pedro Oliveira (CRM 333333) - Reclamou do último plantão
+## Vagas Prioritarias
+- Hospital Sao Luiz Morumbi - 14/12 - ate R$ 3.000
+- Hospital Albert Einstein - 15/12 - ate R$ 3.500
+- Hospital Samaritano - 16/12 - ate R$ 2.800
 
 ## Tom da Semana
-- Ser mais direta, menos enrolação
+- Ser mais direta, menos enrolacao
 - Mencionar que temos muitas vagas boas
-- Garantir pagamento em até 15 dias úteis
-- Não pressionar demais
+- Pode oferecer ate 10% a mais se necessario
+- Garantir pagamento em ate 15 dias uteis
 
-## Metas
-- 50 novos contatos iniciados
-- 10 médicos qualificados
-- 3 plantões fechados
-- 0 reclamações de spam
-
-## Instruções Especiais
-- Feriado na quinta, ajustar horários
-- Não mencionar vaga do Hospital X até sexta
-- Se perguntarem do Dr. Fernando, dizer que não trabalha mais conosco
+## Observacoes
+- Feriado na quinta, ajustar horarios
+- Nao mencionar vaga do Hospital X ate sexta
+- Semana de testes iniciais
 ```
 
 ---
 
-## Dicas para o Gestor
+## O Que NAO Vai no Briefing
 
-### Faça
-- Use o formato exato das seções (com ##)
-- Seja específico nas instruções
-- Inclua CRM quando mencionar médico
-- Atualize semanalmente
-- Mantenha conciso
-
-### Não faça
-- Não mude os nomes das seções
-- Não use formatação complexa (tabelas, imagens)
-- Não coloque informações contraditórias
-- Não esqueça de remover bloqueados quando resolver
+| Item | Onde Fica | Como Usar |
+|------|-----------|-----------|
+| Medicos bloqueados | Banco de dados (`opt_out=true`) | Via opt-out automatico ou manual |
+| Contatos prioritarios | Comando Slack | `@julia contata CRM 123456` |
+| Lista de medicos | Banco de dados | Importacao/cadastro |
 
 ---
 
 ## Como Funciona
 
-1. **Leitura:** Worker lê o documento a cada 60 minutos
-2. **Detecção:** Compara hash para detectar mudanças
-3. **Parsing:** Extrai diretrizes de cada seção
-4. **Atualização:** Desativa diretrizes antigas, insere novas
-5. **Aplicação:** Próxima mensagem da Júlia usa as novas diretrizes
+1. **Leitura:** Worker le o documento a cada 60 minutos
+2. **Deteccao:** Compara hash para detectar mudancas
+3. **Parsing:** Extrai secoes marcadas com `##`
+4. **Atualizacao:** Salva diretrizes no banco
+5. **Notificacao:** Avisa no Slack que briefing mudou
+6. **Aplicacao:** Proxima mensagem da Julia usa novas diretrizes
 
-**Expirações:**
-- Diretrizes do Google Docs: substituídas na próxima leitura
-- Diretrizes do Slack: expiram em 7 dias
+---
+
+## Dicas para o Gestor
+
+### Faca
+- Use `#` para titulo e `##` para secoes (obrigatorio!)
+- Comece cada item com `-`
+- Seja especifico nas instrucoes
+- Atualize semanalmente
+- Mantenha conciso
+
+### Nao Faca
+- Nao remova os `#` e `##`
+- Nao use formatacao visual (negrito, italico) no lugar de `##`
+- Nao coloque informacoes contraditorias
+- Nao liste medicos bloqueados aqui (use opt-out no sistema)
+
+---
+
+## Sincronizacao Manual
+
+Se precisar forcar sincronizacao:
+
+```bash
+curl -X POST http://localhost:8000/jobs/sincronizar-briefing
+```
+
+Ou aguardar o proximo ciclo automatico (a cada 60 min).

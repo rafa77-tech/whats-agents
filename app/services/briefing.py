@@ -64,11 +64,7 @@ async def sincronizar_briefing() -> dict:
     # 5. Atualizar diretrizes no banco
     await _atualizar_diretrizes(briefing)
 
-    # 6. Atualizar medicos VIP/bloqueados
-    await _atualizar_medicos_vip(briefing.get("medicos_vip", []))
-    await _atualizar_medicos_bloqueados(briefing.get("medicos_bloqueados", []))
-
-    # 7. Atualizar vagas prioritarias
+    # 6. Atualizar vagas prioritarias
     await _atualizar_vagas_prioritarias(briefing.get("vagas_prioritarias", []))
 
     # 8. Salvar registro de sincronizacao
@@ -158,41 +154,12 @@ async def _upsert_diretriz(tipo: str, conteudo: str, prioridade: int):
                 "tipo": tipo,
                 "conteudo": conteudo,
                 "prioridade": prioridade,
-                "ativo": True
+                "ativo": True,
+                "origem": "google_docs"
             }).execute()
 
     except Exception as e:
         logger.error(f"Erro ao upsert diretriz {tipo}: {e}")
-
-
-async def _atualizar_medicos_vip(medicos: list):
-    """Marca medicos como VIP baseado no briefing."""
-    for med in medicos:
-        crm = med.get("crm")
-        if crm:
-            try:
-                supabase.table("clientes").update({
-                    "vip": True,
-                    "notas_vip": med.get("observacao", "")
-                }).eq("crm", crm).execute()
-                logger.debug(f"Medico CRM {crm} marcado como VIP")
-            except Exception as e:
-                logger.error(f"Erro ao marcar medico {crm} como VIP: {e}")
-
-
-async def _atualizar_medicos_bloqueados(medicos: list):
-    """Marca medicos como bloqueados baseado no briefing."""
-    for med in medicos:
-        crm = med.get("crm")
-        if crm:
-            try:
-                supabase.table("clientes").update({
-                    "bloqueado": True,
-                    "motivo_bloqueio": med.get("observacao", "Via briefing")
-                }).eq("crm", crm).execute()
-                logger.debug(f"Medico CRM {crm} marcado como bloqueado")
-            except Exception as e:
-                logger.error(f"Erro ao marcar medico {crm} como bloqueado: {e}")
 
 
 async def _atualizar_vagas_prioritarias(vagas: list):
@@ -228,29 +195,27 @@ async def _notificar_atualizacao(briefing: dict):
         foco = briefing.get("foco_semana", ["N/A"])
         primeiro_foco = foco[0][:50] if foco else "N/A"
 
+        tom = briefing.get("tom_semana", [])
+        primeiro_tom = tom[0][:50] if tom else "N/A"
+
         await enviar_slack({
-            "text": "Briefing atualizado!",
+            "text": "📋 Briefing atualizado!",
             "attachments": [{
                 "color": "#36a64f",
                 "fields": [
                     {
-                        "title": "Foco",
+                        "title": "Foco da Semana",
                         "value": primeiro_foco,
+                        "short": False
+                    },
+                    {
+                        "title": "Tom",
+                        "value": primeiro_tom,
                         "short": False
                     },
                     {
                         "title": "Vagas Prioritarias",
                         "value": str(len(briefing.get("vagas_prioritarias", []))),
-                        "short": True
-                    },
-                    {
-                        "title": "Medicos VIP",
-                        "value": str(len(briefing.get("medicos_vip", []))),
-                        "short": True
-                    },
-                    {
-                        "title": "Medicos Bloqueados",
-                        "value": str(len(briefing.get("medicos_bloqueados", []))),
                         "short": True
                     },
                     {

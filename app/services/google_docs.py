@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Configuracao
 SCOPES = ['https://www.googleapis.com/auth/documents.readonly']
-CREDENTIALS_PATH = os.getenv('GOOGLE_DOCS_CREDENTIALS_PATH')
-DOC_ID = os.getenv('GOOGLE_BRIEFING_DOC_ID')
+CREDENTIALS_PATH = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+DOC_ID = os.getenv('BRIEFING_DOC_ID')
 
 # Cache para evitar reimportar
 _docs_service = None
@@ -29,7 +29,7 @@ _docs_service = None
 def _get_credentials():
     """Carrega credenciais do Service Account."""
     if not CREDENTIALS_PATH:
-        raise ValueError("GOOGLE_DOCS_CREDENTIALS_PATH nao configurado")
+        raise ValueError("GOOGLE_APPLICATION_CREDENTIALS nao configurado")
 
     if not os.path.exists(CREDENTIALS_PATH):
         raise FileNotFoundError(f"Arquivo de credenciais nao encontrado: {CREDENTIALS_PATH}")
@@ -144,14 +144,14 @@ def verificar_configuracao() -> dict:
     }
 
     if not CREDENTIALS_PATH:
-        status["erros"].append("GOOGLE_DOCS_CREDENTIALS_PATH nao definido")
+        status["erros"].append("GOOGLE_APPLICATION_CREDENTIALS nao definido")
     elif os.path.exists(CREDENTIALS_PATH):
         status["credentials_existe"] = True
     else:
         status["erros"].append(f"Arquivo nao encontrado: {CREDENTIALS_PATH}")
 
     if not DOC_ID:
-        status["erros"].append("GOOGLE_BRIEFING_DOC_ID nao definido")
+        status["erros"].append("BRIEFING_DOC_ID nao definido")
 
     status["configurado"] = len(status["erros"]) == 0
 

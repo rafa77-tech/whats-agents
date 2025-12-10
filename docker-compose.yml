@@ -138,6 +138,7 @@ services:
       - evolution-net
     volumes:
       - ./static:/app/static:ro
+      - ./credentials:/app/credentials:ro
       - julia_logs:/app/logs
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"]

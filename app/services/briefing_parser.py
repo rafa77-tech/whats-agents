@@ -40,6 +40,27 @@ def parsear_briefing(conteudo: str) -> dict:
     """
     Parseia documento de briefing e extrai secoes.
 
+    IMPORTANTE: O documento DEVE usar formato Markdown com # e ##
+    para marcar secoes. Isso evita interpretar texto livre como input.
+
+    Formato esperado:
+    ```
+    # Briefing Julia - Semana DD/MM
+
+    ## Foco da Semana
+    - Item 1
+    - Item 2
+
+    ## Vagas Prioritarias
+    - Hospital X - Data - ate R$ Y
+
+    ## Tom da Semana
+    - Instrucao 1
+
+    ## Observacoes
+    - Nota 1
+    ```
+
     Args:
         conteudo: Texto completo do documento
 
@@ -49,8 +70,6 @@ def parsear_briefing(conteudo: str) -> dict:
     secoes = {
         "foco_semana": [],
         "vagas_prioritarias": [],
-        "medicos_vip": [],
-        "medicos_bloqueados": [],
         "tom_semana": [],
         "observacoes": [],
         "margem_negociacao": None,
@@ -61,13 +80,14 @@ def parsear_briefing(conteudo: str) -> dict:
     if not conteudo:
         return secoes
 
-    # Extrair titulo (# Titulo)
-    titulo_match = re.search(r'^#\s+(.+?)$', conteudo, re.MULTILINE)
+    # Extrair titulo (# Titulo) - permite espacos no inicio da linha
+    titulo_match = re.search(r'^\s*#\s+(.+?)$', conteudo, re.MULTILINE)
     if titulo_match:
         secoes["titulo"] = titulo_match.group(1).strip()
 
-    # Dividir por secoes (## Titulo)
-    partes = re.split(r'\n##\s+', conteudo)
+    # Dividir por secoes (## Titulo) - EXIGE marcador Markdown
+    # Permite espacos antes do ## (Google Docs adiciona espacos)
+    partes = re.split(r'\n\s*##\s+', conteudo)
 
     for parte in partes:
         linhas = parte.strip().split('\n')
@@ -76,24 +96,21 @@ def parsear_briefing(conteudo: str) -> dict:
 
         titulo = linhas[0].lower().strip()
 
-        # Extrair itens (linhas que comecam com -)
+        # Extrair itens (linhas que comecam com - ou *)
+        # strip() remove espacos que Google Docs adiciona
         itens = []
         for linha in linhas[1:]:
             linha_limpa = linha.strip()
             if linha_limpa.startswith('-'):
-                itens.append(linha_limpa.lstrip('- ').strip())
+                itens.append(linha_limpa[1:].strip())
             elif linha_limpa.startswith('*'):
-                itens.append(linha_limpa.lstrip('* ').strip())
+                itens.append(linha_limpa[1:].strip())
 
         # Classificar secao
         if 'foco' in titulo:
             secoes["foco_semana"] = itens
         elif 'vaga' in titulo and 'priorit' in titulo:
             secoes["vagas_prioritarias"] = _parsear_vagas(itens)
-        elif 'vip' in titulo or ('medico' in titulo and 'vip' in titulo):
-            secoes["medicos_vip"] = _parsear_medicos(itens)
-        elif 'bloqueado' in titulo or 'block' in titulo:
-            secoes["medicos_bloqueados"] = _parsear_medicos(itens)
         elif 'tom' in titulo:
             secoes["tom_semana"] = itens
             # Extrair margem de negociacao se mencionada
@@ -106,8 +123,7 @@ def parsear_briefing(conteudo: str) -> dict:
 
     logger.info(f"Briefing parseado: {len(secoes['foco_semana'])} focos, "
                 f"{len(secoes['vagas_prioritarias'])} vagas prioritarias, "
-                f"{len(secoes['medicos_vip'])} VIPs, "
-                f"{len(secoes['medicos_bloqueados'])} bloqueados")
+                f"{len(secoes['tom_semana'])} instrucoes de tom")
 
     return secoes
 
@@ -144,40 +160,6 @@ def _parsear_vagas(itens: List[str]) -> List[Dict]:
     return vagas
 
 
-def _parsear_medicos(itens: List[str]) -> List[Dict]:
-    """
-    Extrai informacoes de medicos (VIP ou bloqueados).
-
-    Formato esperado: "Dr. Nome (CRM XXXXX) - observacao"
-    """
-    medicos = []
-    for item in itens:
-        # Formato esperado: "Dr. Nome (CRM XXXXX) - observacao"
-        match = re.search(
-            r'(?:Dr\.?a?\.?\s*)?(.+?)\s*\(CRM\s*(\d+)\)',
-            item,
-            re.IGNORECASE
-        )
-        if match:
-            # Extrair observacao (texto apos o ultimo -)
-            obs = ""
-            if '-' in item:
-                partes = item.split('-')
-                if len(partes) > 1:
-                    obs = partes[-1].strip()
-
-            medicos.append({
-                "nome": match.group(1).strip(),
-                "crm": match.group(2),
-                "observacao": obs
-            })
-        else:
-            # Se nao conseguiu parsear, salva como raw
-            medicos.append({"raw": item})
-
-    return medicos
-
-
 def validar_briefing(secoes: dict) -> dict:
     """
     Valida estrutura do briefing parseado.
@@ -193,22 +175,12 @@ def validar_briefing(secoes: dict) -> dict:
 
     # Verificar campos obrigatorios
     if not secoes.get("foco_semana"):
-        avisos.append("Secao 'Foco da Semana' esta vazia")
+        avisos.append("Secao '## Foco da Semana' esta vazia ou ausente")
 
     # Verificar vagas prioritarias tem estrutura correta
     for i, vaga in enumerate(secoes.get("vagas_prioritarias", [])):
         if "raw" in vaga:
-            avisos.append(f"Vaga {i+1} nao pôde ser parseada: {vaga['raw'][:50]}")
-
-    # Verificar medicos VIP tem CRM
-    for i, med in enumerate(secoes.get("medicos_vip", [])):
-        if "raw" in med:
-            avisos.append(f"Medico VIP {i+1} nao pôde ser parseado: {med['raw'][:50]}")
-
-    # Verificar medicos bloqueados tem CRM
-    for i, med in enumerate(secoes.get("medicos_bloqueados", [])):
-        if "raw" in med:
-            avisos.append(f"Medico bloqueado {i+1} nao pôde ser parseado: {med['raw'][:50]}")
+            avisos.append(f"Vaga {i+1} nao pode ser parseada: {vaga['raw'][:50]}")
 
     return {
         "valido": len(erros) == 0,
