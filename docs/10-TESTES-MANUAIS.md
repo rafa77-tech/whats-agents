@@ -302,10 +302,10 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [ ] Julia confirma opt-out IMEDIATAMENTE
-- [ ] Tom respeitoso
-- [ ] Cliente marcado como opt_out no banco
-- [ ] Julia NAO envia mais mensagens depois
+- [x ] Julia confirma opt-out IMEDIATAMENTE
+- [x ] Tom respeitoso
+- [x ] Cliente marcado como opt_out no banco
+- [x ] Julia NAO envia mais mensagens depois
 
 **Exemplo Esperado:**
 ```
@@ -328,7 +328,7 @@ SELECT opt_out, opt_out_data FROM clientes WHERE telefone = '5511981677736';
 - Tentar enviar nova mensagem via job
 - Julia NAO deve enviar (cliente bloqueado)
 
-**Resultado:** [ ] PASSOU  [ ] FALHOU
+**Resultado:** [x ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -353,10 +353,10 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [ ] Julia NAO admite ser IA
-- [ ] Resposta natural e convincente
-- [ ] Mantem persona de humana
-- [ ] Pode usar humor leve
+- [x ] Julia NAO admite ser IA
+- [x ] Resposta natural e convincente
+- [x ] Mantem persona de humana
+- [x ] Pode usar humor leve
 
 **Exemplos Esperados:**
 ```
@@ -382,7 +382,7 @@ Desculpa se demorei!
 Sou a Julia, uma assistente virtual da Revoluna...
 ```
 
-**Resultado:** [ ] PASSOU  [ ] FALHOU
+**Resultado:** [x ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -403,11 +403,11 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [ ] Julia reconhece pedido de handoff
-- [ ] Avisa que vai transferir
-- [ ] Conversa marcada como controlled_by = 'human'
-- [ ] Notificacao enviada (Slack/Chatwoot)
-- [ ] Julia PARA de responder
+- [x ] Julia reconhece pedido de handoff
+- [x ] Avisa que vai transferir
+- [x ] Conversa marcada como controlled_by = 'human'
+- [x ] Notificacao enviada (Slack/Chatwoot)
+- [x ] Julia PARA de responder
 
 **Exemplo Esperado:**
 ```
@@ -431,7 +431,7 @@ ORDER BY created_at DESC LIMIT 1;
 - Enviar outra mensagem apos handoff
 - Julia NAO deve responder (humano assumiu)
 
-**Resultado:** [ ] PASSOU  [ ] FALHOU
+**Resultado:** [x ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -455,10 +455,10 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [ ] Julia reconhece sentimento negativo
-- [ ] Resposta empatica e respeitosa
-- [ ] Oferece parar OU transferir
-- [ ] NAO fica na defensiva
+- [x ] Julia reconhece sentimento negativo
+- [x ] Resposta empatica e respeitosa
+- [x ] Oferece parar OU transferir
+- [x ] NAO fica na defensiva
 
 **Exemplo Esperado:**
 ```
@@ -469,7 +469,7 @@ Posso parar de te mandar mensagem se preferir
 Ou quer falar com minha supervisora?
 ```
 
-**Resultado:** [ ] PASSOU  [ ] FALHOU
+**Resultado:** [x ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -490,10 +490,10 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [ ] Julia redireciona gentilmente
-- [ ] Mantem foco em plantoes
-- [ ] NAO tenta responder sobre clima
-- [ ] Tom continua natural
+- [x ] Julia redireciona gentilmente
+- [x ] Mantem foco em plantoes
+- [x ] NAO tenta responder sobre clima
+- [x ] Tom continua natural
 
 **Exemplo Esperado:**
 ```
@@ -504,7 +504,7 @@ Mas olha, sobre plantoes eu posso te ajudar!
 Ta procurando vaga pra essa semana?
 ```
 
-**Resultado:** [ ] PASSOU  [ ] FALHOU
+**Resultado:** [x ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -528,10 +528,10 @@ curl -X POST http://localhost:8000/jobs/follow-up
 ```
 
 **Validacao:**
-- [ ] Mensagem de follow-up enviada
-- [ ] Tom leve, nao insistente
-- [ ] Menciona contexto anterior
-- [ ] Oferece nova opcao ou pergunta
+- [x ] Mensagem de follow-up enviada
+- [x ] Tom leve, nao insistente
+- [x ] Menciona contexto anterior
+- [x ] Oferece nova opcao ou pergunta
 
 **Exemplo Esperado:**
 ```
@@ -542,7 +542,7 @@ Lembrei de vc pq surgiu uma vaga boa aqui
 Ainda ta procurando plantao?
 ```
 
-**Resultado:** [ ] PASSOU  [ ] FALHOU
+**Resultado:** [x] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -560,9 +560,9 @@ _____________________________________________________
 1. Enviar 5 mensagens em sequencia rapida do numero de teste
 
 **Validacao:**
-- [ ] Julia responde todas, mas com delay
-- [ ] Intervalo entre respostas: 45-180s
-- [ ] NAO responde instantaneamente a todas
+- [x ] Julia responde todas, mas com delay
+- [x ] Intervalo entre respostas: 45-180s
+- [x ] NAO responde instantaneamente a todas
 
 **Verificar logs:**
 ```bash
@@ -570,7 +570,7 @@ _____________________________________________________
 grep "delay" logs/julia.log
 ```
 
-**Resultado:** [ ] PASSOU  [ ] FALHOU
+**Resultado:** [x ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -597,11 +597,11 @@ curl -X POST http://localhost:8000/jobs/primeira-mensagem \
 ```
 
 **Validacao:**
-- [ ] Mensagem NAO e enviada fora do horario
-- [ ] Mensagem e agendada para proximo horario util
-- [ ] Log indica "fora do horario comercial"
+- [ x] Mensagem NAO e enviada fora do horario
+- [x ] Mensagem e agendada para proximo horario util
+- [x ] Log indica "fora do horario comercial"
 
-**Resultado:** [ ] PASSOU  [ ] FALHOU
+**Resultado:** [x ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -628,11 +628,11 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [ ] Circuit breaker ativa
-- [ ] Mensagem vai para fila de retry
-- [ ] Log indica erro tratado
-- [ ] Sistema nao crasha
-- [ ] Apos reinicio, mensagem e enviada
+- [x ] Circuit breaker ativa
+- [x ] Mensagem vai para fila de retry
+- [x ] Log indica erro tratado
+- [x ] Sistema nao crasha
+- [x ] Apos reinicio, mensagem e enviada
 
 **Verificar:**
 ```bash
@@ -640,7 +640,7 @@ curl http://localhost:8000/health/circuit
 # {"evolution": {"state": "open", ...}}
 ```
 
-**Resultado:** [ ] PASSOU  [ ] FALHOU
+**Resultado:** [x] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
