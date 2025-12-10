@@ -1,0 +1,225 @@
+"""
+Pos-processadores do pipeline.
+"""
+import asyncio
+import logging
+import time
+
+from .base import PostProcessor, ProcessorContext, ProcessorResult
+from app.services.timing import calcular_delay_resposta
+from app.services.agente import enviar_resposta
+from app.services.interacao import salvar_interacao
+from app.services.metricas import metricas_service
+from app.services.whatsapp import mostrar_digitando
+from app.services.validacao_output import validar_e_corrigir, output_validator
+
+logger = logging.getLogger(__name__)
+
+
+class ValidateOutputProcessor(PostProcessor):
+    """
+    Valida resposta antes de enviar.
+
+    Detecta e bloqueia:
+    - Revelacao de que Julia e IA
+    - Formatos proibidos (bullets, markdown)
+    - Linguagem robotica/corporativa
+
+    Prioridade: 5 (roda ANTES de todos)
+    """
+    name = "validate_output"
+    priority = 5
+
+    async def process(
+        self,
+        context: ProcessorContext,
+        response: str
+    ) -> ProcessorResult:
+        if not response:
+            return ProcessorResult(success=True, response=response)
+
+        # Validar e tentar corrigir
+        resposta_validada, foi_modificado = await validar_e_corrigir(response)
+
+        if foi_modificado:
+            if resposta_validada:
+                logger.info("Resposta foi corrigida pela validacao")
+                context.metadata["resposta_corrigida"] = True
+                context.metadata["resposta_original"] = response
+            else:
+                # Resposta bloqueada (revelacao critica de IA)
+                logger.critical(
+                    f"Resposta BLOQUEADA! Revelaria IA. "
+                    f"Original: {response[:100]}..."
+                )
+                context.metadata["resposta_bloqueada"] = True
+                context.metadata["resposta_original"] = response
+                # Retorna vazio - nao envia nada
+                return ProcessorResult(
+                    success=True,
+                    response="",
+                    metadata={"blocked": True}
+                )
+
+        return ProcessorResult(success=True, response=resposta_validada)
+
+
+class TimingProcessor(PostProcessor):
+    """
+    Aplica delay humanizado antes de enviar.
+
+    Prioridade: 10 (roda primeiro)
+    """
+    name = "timing"
+    priority = 10
+
+    async def process(
+        self,
+        context: ProcessorContext,
+        response: str
+    ) -> ProcessorResult:
+        if not response:
+            return ProcessorResult(success=True, response=response)
+
+        # Calcular delay
+        delay = calcular_delay_resposta(context.mensagem_texto)
+        tempo_inicio = context.metadata.get("tempo_inicio", time.time())
+        tempo_processamento = time.time() - tempo_inicio
+        delay_restante = max(0, delay - tempo_processamento)
+
+        logger.debug(
+            f"Delay: {delay:.1f}s, processamento: {tempo_processamento:.1f}s, "
+            f"restante: {delay_restante:.1f}s"
+        )
+
+        # Aguardar e mostrar digitando
+        if delay_restante > 5:
+            await asyncio.sleep(delay_restante - 5)
+            await mostrar_digitando(context.telefone)
+            await asyncio.sleep(5)
+        elif delay_restante > 0:
+            await asyncio.sleep(delay_restante)
+            await mostrar_digitando(context.telefone)
+
+        return ProcessorResult(success=True, response=response)
+
+
+class SendMessageProcessor(PostProcessor):
+    """
+    Envia mensagem via WhatsApp.
+
+    Prioridade: 20
+    """
+    name = "send_message"
+    priority = 20
+
+    async def process(
+        self,
+        context: ProcessorContext,
+        response: str
+    ) -> ProcessorResult:
+        if not response:
+            return ProcessorResult(success=True, response=response)
+
+        resultado = await enviar_resposta(
+            telefone=context.telefone,
+            resposta=response
+        )
+
+        if resultado:
+            context.metadata["message_sent"] = True
+            context.metadata["sent_message_id"] = resultado.get("key", {}).get("id")
+            logger.info(f"Mensagem enviada para {context.telefone[:8]}...")
+        else:
+            logger.error("Falha ao enviar mensagem")
+            return ProcessorResult(
+                success=False,
+                error="Falha ao enviar mensagem"
+            )
+
+        return ProcessorResult(success=True, response=response)
+
+
+class SaveInteractionProcessor(PostProcessor):
+    """
+    Salva interacoes no banco.
+
+    Prioridade: 30
+    """
+    name = "save_interaction"
+    priority = 30
+
+    async def process(
+        self,
+        context: ProcessorContext,
+        response: str
+    ) -> ProcessorResult:
+        try:
+            # Salvar interacao de entrada (se ainda nao salvou)
+            if not context.metadata.get("entrada_salva"):
+                await salvar_interacao(
+                    conversa_id=context.conversa["id"],
+                    cliente_id=context.medico["id"],
+                    tipo="entrada",
+                    conteudo=context.mensagem_texto or "[midia]",
+                    autor_tipo="medico",
+                    message_id=context.message_id
+                )
+                context.metadata["entrada_salva"] = True
+
+            # Salvar interacao de saida (se enviou)
+            if response and context.metadata.get("message_sent"):
+                await salvar_interacao(
+                    conversa_id=context.conversa["id"],
+                    cliente_id=context.medico["id"],
+                    tipo="saida",
+                    conteudo=response,
+                    autor_tipo="julia",
+                    message_id=context.metadata.get("sent_message_id")
+                )
+
+            logger.debug("Interacoes salvas")
+
+        except Exception as e:
+            logger.error(f"Erro ao salvar interacoes: {e}")
+            # Nao para o pipeline por isso
+
+        return ProcessorResult(success=True, response=response)
+
+
+class MetricsProcessor(PostProcessor):
+    """
+    Registra metricas da conversa.
+
+    Prioridade: 40
+    """
+    name = "metrics"
+    priority = 40
+
+    async def process(
+        self,
+        context: ProcessorContext,
+        response: str
+    ) -> ProcessorResult:
+        try:
+            tempo_inicio = context.metadata.get("tempo_inicio", time.time())
+            tempo_resposta = time.time() - tempo_inicio
+
+            # Registrar mensagem do medico
+            await metricas_service.registrar_mensagem(
+                conversa_id=context.conversa["id"],
+                origem="medico"
+            )
+
+            # Registrar resposta da Julia
+            if response:
+                await metricas_service.registrar_mensagem(
+                    conversa_id=context.conversa["id"],
+                    origem="ai",
+                    tempo_resposta_segundos=tempo_resposta
+                )
+
+        except Exception as e:
+            logger.warning(f"Erro ao registrar metricas: {e}")
+
+        return ProcessorResult(success=True, response=response)
