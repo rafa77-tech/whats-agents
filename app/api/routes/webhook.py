@@ -1,24 +1,24 @@
 """
-Endpoints de webhook para integrações externas.
+Endpoints de webhook para integracoes externas.
 """
 import asyncio
-import random
-from fastapi import APIRouter, Request, BackgroundTasks
-from fastapi.responses import JSONResponse
+import hashlib
+import hmac
+import time
+from fastapi import APIRouter, Request, BackgroundTasks, HTTPException
+from fastapi.responses import JSONResponse, PlainTextResponse
 import logging
 
-from app.services.parser import parsear_mensagem, deve_processar
-from app.services.whatsapp import evolution, mostrar_online, mostrar_digitando
-from app.services.medico import buscar_ou_criar_medico
-from app.services.conversa import buscar_ou_criar_conversa
-from app.services.interacao import salvar_interacao
-from app.services.agente import processar_mensagem_completo
-from app.services.optout import detectar_optout, processar_optout
-from app.services.handoff_detector import detectar_trigger_handoff
-from app.services.deteccao_bot import detectar_mencao_bot, registrar_deteccao_bot
+from app.core.config import settings
+from app.pipeline.setup import message_pipeline
+from app.pipeline.base import ProcessorResult
 
 router = APIRouter(prefix="/webhook", tags=["Webhooks"])
 logger = logging.getLogger(__name__)
+
+# Semaforo para limitar processamento simultaneo de mensagens
+# Evita sobrecarga da Evolution API e timeouts em cascata
+_semaforo_processamento = asyncio.Semaphore(2)  # Maximo 2 mensagens simultaneas
 
 
 @router.post("/evolution")
@@ -30,30 +30,26 @@ async def evolution_webhook(
     Recebe webhooks da Evolution API.
 
     Responde imediatamente com 200 e processa em background
-    para não bloquear a Evolution.
+    para nao bloquear a Evolution.
     """
     try:
-        # Parsear payload
         payload = await request.json()
         logger.info(f"Webhook Evolution recebido: {payload.get('event')}")
 
-        # Validar estrutura básica
         event = payload.get("event")
         instance = payload.get("instance")
         data = payload.get("data")
 
         if not event or not instance:
-            logger.warning(f"Payload inválido: {payload}")
+            logger.warning(f"Payload invalido: {payload}")
             return JSONResponse({"status": "invalid_payload"}, status_code=400)
 
-        # Processar por tipo de evento
         if event == "messages.upsert":
-            # Agendar processamento em background
-            background_tasks.add_task(processar_mensagem, data)
+            background_tasks.add_task(processar_mensagem_pipeline, data)
             logger.info("Mensagem agendada para processamento")
 
         elif event == "connection.update":
-            logger.info(f"Status conexão: {data}")
+            logger.info(f"Status conexao: {data}")
 
         else:
             logger.debug(f"Evento ignorado: {event}")
@@ -62,385 +58,156 @@ async def evolution_webhook(
 
     except Exception as e:
         logger.error(f"Erro no webhook: {str(e)}")
-        # Ainda retorna 200 para não causar retry da Evolution
         return JSONResponse({"status": "error", "message": str(e)})
 
 
-async def processar_mensagem(data: dict):
-    """Processa mensagem recebida."""
-    # Parsear mensagem
-    mensagem = parsear_mensagem(data)
+async def processar_mensagem_pipeline(data: dict):
+    """
+    Processa mensagem usando o pipeline modular.
 
-    if not mensagem:
-        logger.warning("Mensagem não pôde ser parseada")
-        return
+    O pipeline processa a mensagem atraves de:
+    1. Pre-processadores (parse, opt-out, media, handoff, etc)
+    2. Core processor (LLM)
+    3. Pos-processadores (timing, envio, salvamento, metricas)
 
-    # Verificar se deve processar
-    if not deve_processar(mensagem):
-        if mensagem.from_me:
-            logger.debug("Ignorando mensagem própria")
-        elif mensagem.is_grupo:
-            logger.debug("Ignorando mensagem de grupo")
-        elif mensagem.is_status:
-            logger.debug("Ignorando status")
-        return
+    Se um pre-processador retorna uma resposta (ex: opt-out, media),
+    a resposta e enviada diretamente sem passar pelo LLM.
+    """
+    async with _semaforo_processamento:
+        try:
+            # Adicionar tempo de inicio para calculo de metricas
+            data["_tempo_inicio"] = time.time()
 
-    logger.info(
-        f"Mensagem parseada: "
-        f"tel={mensagem.telefone}, "
-        f"tipo={mensagem.tipo}, "
-        f"from_me={mensagem.from_me}, "
-        f"texto={mensagem.texto[:50] if mensagem.texto else 'N/A'}..."
-    )
+            result = await message_pipeline.process(data)
+
+            if not result.success:
+                logger.error(f"Pipeline falhou: {result.error}")
+            elif result.response:
+                logger.info("Pipeline concluido com resposta")
+            else:
+                logger.info("Pipeline concluido sem resposta")
+
+        except Exception as e:
+            logger.error(f"Erro no pipeline: {e}", exc_info=True)
+
+
+# ============================================================
+# SLACK WEBHOOK
+# ============================================================
+
+def _verificar_assinatura_slack(body: bytes, timestamp: str, signature: str) -> bool:
+    """
+    Verifica se a requisicao veio realmente do Slack.
+
+    Usa HMAC SHA256 com o Signing Secret para validar.
+    """
+    if not settings.SLACK_SIGNING_SECRET:
+        logger.warning("SLACK_SIGNING_SECRET nao configurado")
+        return False
+
+    # Verificar se timestamp nao e muito antigo (previne replay attacks)
+    try:
+        req_timestamp = int(timestamp)
+        current_time = int(time.time())
+        if abs(current_time - req_timestamp) > 60 * 5:  # 5 minutos
+            logger.warning("Timestamp do Slack muito antigo")
+            return False
+    except ValueError:
+        return False
+
+    # Calcular assinatura esperada
+    sig_basestring = f"v0:{timestamp}:{body.decode('utf-8')}"
+    my_signature = 'v0=' + hmac.new(
+        settings.SLACK_SIGNING_SECRET.encode('utf-8'),
+        sig_basestring.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(my_signature, signature)
+
+
+@router.post("/slack")
+async def slack_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks
+):
+    """
+    Recebe eventos do Slack (mencoes, comandos).
+
+    Eventos suportados:
+    - url_verification: Verificacao inicial do Slack
+    - event_callback: Eventos de mensagens/mencoes
+    """
+    body = await request.body()
+
+    # Verificar assinatura (exceto em verificacao inicial)
+    timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
+    signature = request.headers.get("X-Slack-Signature", "")
 
     try:
-        # 1. Marcar como lida
-        await evolution.marcar_como_lida(
-            mensagem.telefone,
-            mensagem.message_id
+        payload = await request.json()
+    except Exception as e:
+        logger.error(f"Erro ao parsear JSON do Slack: {e}")
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    # URL Verification (handshake inicial do Slack)
+    if payload.get("type") == "url_verification":
+        challenge = payload.get("challenge", "")
+        logger.info("Slack URL verification recebida")
+        return PlainTextResponse(content=challenge)
+
+    # Verificar assinatura para outros eventos
+    if not _verificar_assinatura_slack(body, timestamp, signature):
+        logger.warning("Assinatura Slack invalida")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    # Processar evento
+    event_type = payload.get("type")
+
+    if event_type == "event_callback":
+        event = payload.get("event", {})
+        event_subtype = event.get("type")
+
+        logger.info(f"Evento Slack recebido: {event_subtype}")
+
+        # Ignorar mensagens do proprio bot
+        if event.get("bot_id"):
+            return JSONResponse({"status": "ignored", "reason": "bot_message"})
+
+        # Mencao ao bot (app_mention) ou mensagem direta
+        if event_subtype in ["app_mention", "message"]:
+            # Processar em background para responder rapido
+            background_tasks.add_task(_processar_comando_slack, event)
+            return JSONResponse({"status": "processing"})
+
+    return JSONResponse({"status": "ok"})
+
+
+async def _processar_comando_slack(event: dict):
+    """
+    Processa comando recebido via Slack.
+
+    Comandos suportados:
+    - @julia contata <telefone/CRM>
+    - @julia bloqueia <telefone/CRM>
+    - @julia status
+    - @julia pausa
+    - @julia retoma
+    """
+    from app.services.slack_comandos import processar_comando
+
+    try:
+        texto = event.get("text", "")
+        channel = event.get("channel", "")
+        user = event.get("user", "")
+
+        logger.info(f"Processando comando Slack: {texto[:100]}")
+
+        await processar_comando(
+            texto=texto,
+            channel=channel,
+            user=user
         )
-        logger.info(f"✓ Mensagem {mensagem.message_id[:8]}... marcada como lida")
-
-        # 2. Mostrar online
-        await mostrar_online(mensagem.telefone)
-        logger.info(f"✓ Presença 'online' enviada para {mensagem.telefone[:8]}...")
-
-        # 3. Pequena pausa (simula leitura)
-        await asyncio.sleep(1)
-
-        # 4. Mostrar digitando
-        await mostrar_digitando(mensagem.telefone)
-        logger.info(f"✓ Presença 'digitando' enviada para {mensagem.telefone[:8]}...")
-
-        # 5. Buscar ou criar médico
-        medico = await buscar_ou_criar_medico(
-            telefone=mensagem.telefone,
-            nome_whatsapp=mensagem.nome_contato
-        )
-        if not medico:
-            logger.error("Erro ao buscar/criar médico")
-            return
-
-        logger.info(f"✓ Médico: {medico.get('primeiro_nome', 'Novo')} ({medico['id'][:8]}...)")
-
-        # 6. Buscar ou criar conversa
-        conversa = await buscar_ou_criar_conversa(cliente_id=medico["id"])
-        if not conversa:
-            logger.error("Erro ao buscar/criar conversa")
-            return
-
-        logger.info(f"✓ Conversa: {conversa['id'][:8]}... (controlled_by={conversa['controlled_by']})")
-
-        # 6.5. Sincronizar ID do Chatwoot se não existir (para handoff funcionar)
-        if not conversa.get("chatwoot_conversation_id"):
-            from app.services.chatwoot import sincronizar_ids_chatwoot
-            try:
-                ids = await sincronizar_ids_chatwoot(medico["id"], mensagem.telefone)
-                if ids.get("chatwoot_conversation_id"):
-                    conversa["chatwoot_conversation_id"] = str(ids["chatwoot_conversation_id"])
-                    logger.info(f"✓ Chatwoot ID sincronizado: {ids['chatwoot_conversation_id']}")
-            except Exception as e:
-                logger.warning(f"Erro ao sincronizar Chatwoot ID: {e}")
-
-        # 7. Salvar interação de entrada
-        await salvar_interacao(
-            conversa_id=conversa["id"],
-            cliente_id=medico["id"],
-            tipo="entrada",
-            conteudo=mensagem.texto or "[mídia]",
-            autor_tipo="medico",
-            message_id=mensagem.message_id
-        )
-        logger.info("✓ Interação de entrada salva")
-
-        # 7.5. Verificar detecção de bot (S7.E6.3)
-        if mensagem.texto:
-            deteccao = detectar_mencao_bot(mensagem.texto)
-            if deteccao["detectado"]:
-                logger.warning(f"⚠️ Detecção de bot: '{deteccao['trecho']}'")
-                await registrar_deteccao_bot(
-                    cliente_id=medico["id"],
-                    conversa_id=conversa["id"],
-                    mensagem=mensagem.texto,
-                    padrao=deteccao["padrao"],
-                    trecho=deteccao["trecho"]
-                )
-                # Não bloqueia processamento, apenas registra
-
-        # 8. Verificar opt-out ANTES de gerar resposta
-        if mensagem.texto and detectar_optout(mensagem.texto)[0]:
-            logger.info(f"🛑 Opt-out detectado para {mensagem.telefone[:8]}...")
-            from app.services.optout import MENSAGEM_CONFIRMACAO_OPTOUT
-            
-            sucesso = await processar_optout(
-                cliente_id=medico["id"],
-                telefone=mensagem.telefone
-            )
-            if sucesso:
-                await evolution.enviar_mensagem(
-                    telefone=mensagem.telefone,
-                    texto=MENSAGEM_CONFIRMACAO_OPTOUT,
-                    verificar_rate_limit=False  # Confirmação não conta no rate limit
-                )
-                await salvar_interacao(
-                    conversa_id=conversa["id"],
-                    cliente_id=medico["id"],
-                    tipo="saida",
-                    conteudo=MENSAGEM_CONFIRMACAO_OPTOUT,
-                    autor_tipo="julia",
-                )
-                logger.info("✓ Confirmação de opt-out enviada")
-            return
-
-        # 8.5. Tratar mensagens não-texto (áudio, imagem, documento, vídeo)
-        from app.services.respostas_especiais import (
-            obter_resposta_audio,
-            obter_resposta_imagem,
-            obter_resposta_documento,
-            obter_resposta_video
-        )
-        from app.services.agente import enviar_resposta
-
-        if mensagem.tipo == "audio":
-            logger.info("🎤 Mensagem de áudio recebida")
-            resposta = obter_resposta_audio()
-            await enviar_resposta(mensagem.telefone, resposta)
-            
-            # Salvar interações
-            await salvar_interacao(
-                conversa_id=conversa["id"],
-                cliente_id=medico["id"],
-                tipo="entrada",
-                conteudo="[Áudio recebido]",
-                autor_tipo="medico",
-                message_id=mensagem.message_id
-            )
-            await salvar_interacao(
-                conversa_id=conversa["id"],
-                cliente_id=medico["id"],
-                tipo="saida",
-                conteudo=resposta,
-                autor_tipo="julia",
-            )
-            logger.info("✓ Resposta para áudio enviada")
-            return
-
-        if mensagem.tipo == "imagem":
-            logger.info("🖼️ Mensagem de imagem recebida")
-            caption = mensagem.texto or ""
-            resposta = obter_resposta_imagem(caption)
-            await enviar_resposta(mensagem.telefone, resposta)
-            
-            # Salvar interação
-            conteudo_imagem = f"[Imagem: {caption}]" if caption else "[Imagem recebida]"
-            await salvar_interacao(
-                conversa_id=conversa["id"],
-                cliente_id=medico["id"],
-                tipo="entrada",
-                conteudo=conteudo_imagem,
-                autor_tipo="medico",
-                message_id=mensagem.message_id
-            )
-            await salvar_interacao(
-                conversa_id=conversa["id"],
-                cliente_id=medico["id"],
-                tipo="saida",
-                conteudo=resposta,
-                autor_tipo="julia",
-            )
-            logger.info("✓ Resposta para imagem enviada")
-            return
-
-        if mensagem.tipo == "documento":
-            logger.info("📄 Mensagem de documento recebida")
-            resposta = obter_resposta_documento()
-            await enviar_resposta(mensagem.telefone, resposta)
-            
-            # Salvar interação
-            await salvar_interacao(
-                conversa_id=conversa["id"],
-                cliente_id=medico["id"],
-                tipo="entrada",
-                conteudo=f"[Documento: {mensagem.texto or 'sem nome'}]",
-                autor_tipo="medico",
-                message_id=mensagem.message_id
-            )
-            await salvar_interacao(
-                conversa_id=conversa["id"],
-                cliente_id=medico["id"],
-                tipo="saida",
-                conteudo=resposta,
-                autor_tipo="julia",
-            )
-            logger.info("✓ Resposta para documento enviada")
-            return
-
-        if mensagem.tipo == "video":
-            logger.info("🎥 Mensagem de vídeo recebida")
-            resposta = obter_resposta_video()
-            await enviar_resposta(mensagem.telefone, resposta)
-            
-            # Salvar interação
-            await salvar_interacao(
-                conversa_id=conversa["id"],
-                cliente_id=medico["id"],
-                tipo="entrada",
-                conteudo="[Vídeo recebido]",
-                autor_tipo="medico",
-                message_id=mensagem.message_id
-            )
-            await salvar_interacao(
-                conversa_id=conversa["id"],
-                cliente_id=medico["id"],
-                tipo="saida",
-                conteudo=resposta,
-                autor_tipo="julia",
-            )
-            logger.info("✓ Resposta para vídeo enviada")
-            return
-
-        # 8.6. Tratar mensagens muito longas
-        if mensagem.texto:
-            from app.services.mensagem import tratar_mensagem_longa, RESPOSTA_MENSAGEM_LONGA
-            
-            texto_processado, acao = tratar_mensagem_longa(mensagem.texto)
-            
-            if acao == "pedir_resumo":
-                logger.warning(f"📏 Mensagem muito longa ({len(mensagem.texto)} chars), pedindo resumo")
-                await enviar_resposta(mensagem.telefone, RESPOSTA_MENSAGEM_LONGA)
-                
-                # Salvar interação de entrada (truncada)
-                await salvar_interacao(
-                    conversa_id=conversa["id"],
-                    cliente_id=medico["id"],
-                    tipo="entrada",
-                    conteudo=texto_processado + "... [truncada]",
-                    autor_tipo="medico",
-                    message_id=mensagem.message_id
-                )
-                await salvar_interacao(
-                    conversa_id=conversa["id"],
-                    cliente_id=medico["id"],
-                    tipo="saida",
-                    conteudo=RESPOSTA_MENSAGEM_LONGA,
-                    autor_tipo="julia",
-                )
-                return
-            
-            if acao == "truncada":
-                logger.warning(
-                    f"📏 Mensagem truncada de {len(mensagem.texto)} para {len(texto_processado)} chars"
-                )
-                mensagem.texto = texto_processado
-
-        # 9. Verificar triggers de handoff ANTES de processar
-        if mensagem.texto:
-            from app.services.handoff import iniciar_handoff
-            trigger = detectar_trigger_handoff(mensagem.texto)
-            if trigger:
-                logger.info(f"🚨 Trigger de handoff detectado: {trigger['tipo']}")
-                await iniciar_handoff(
-                    conversa_id=conversa["id"],
-                    cliente_id=medico["id"],
-                    motivo=trigger["motivo"],
-                    trigger_type=trigger["tipo"]
-                )
-                return  # Não gera resposta automática
-
-        # 10. Verificar se IA controla a conversa
-        if conversa.get("controlled_by") != "ai":
-            logger.info("⏸ Conversa sob controle humano, não gerando resposta")
-            # Sincronizar mensagem recebida com Chatwoot para gestor ver
-            from app.services.chatwoot import chatwoot_service
-            if conversa.get("chatwoot_conversation_id") and chatwoot_service.configurado:
-                try:
-                    await chatwoot_service.enviar_mensagem(
-                        conversation_id=conversa["chatwoot_conversation_id"],
-                        content=mensagem.texto or "[mídia]",
-                        message_type="incoming"
-                    )
-                except Exception as e:
-                    logger.warning(f"Erro ao sincronizar mensagem com Chatwoot: {e}")
-            return
-
-        # Nota: Julia responde 24h quando médico inicia contato
-        # Horário comercial só se aplica a mensagens PROATIVAS (campanhas, prospecção)
-
-        # 11. Registrar mensagem do médico nas métricas
-        from app.services.metricas import metricas_service
-        await metricas_service.registrar_mensagem(
-            conversa_id=conversa["id"],
-            origem="medico"
-        )
-
-        # 12. Calcular delay humanizado ANTES de processar
-        from app.services.timing import calcular_delay_resposta, log_timing
-        import time
-        
-        tempo_inicio = time.time()
-        delay = calcular_delay_resposta(mensagem.texto or "")
-        logger.info(f"⏳ Delay calculado: {delay:.1f}s")
-
-        # 13. Gerar resposta (enquanto "lê" a mensagem)
-        resposta = await processar_mensagem_completo(
-            mensagem_texto=mensagem.texto or "",
-            medico=medico,
-            conversa=conversa,
-            vagas=None  # TODO: Buscar vagas relevantes
-        )
-
-        if not resposta:
-            logger.warning("Julia não gerou resposta")
-            return
-
-        logger.info(f"✓ Resposta gerada: {resposta[:50]}...")
-
-        # 14. Calcular tempo restante de delay
-        tempo_processamento = time.time() - tempo_inicio
-        delay_restante = max(0, delay - tempo_processamento)
-        
-        # Log timing
-        log_timing(mensagem.texto or "", delay, tempo_processamento)
-
-        # 15. Aguardar delay restante (simulando "pensar")
-        if delay_restante > 5:
-            # Mostrar "digitando" antes de enviar
-            await asyncio.sleep(delay_restante - 5)
-            await mostrar_digitando(mensagem.telefone)
-            await asyncio.sleep(5)
-        else:
-            await asyncio.sleep(delay_restante)
-            await mostrar_digitando(mensagem.telefone)
-
-        # 16. Enviar resposta com timing humanizado (quebra mensagens longas)
-        from app.services.agente import enviar_resposta
-        resultado = await enviar_resposta(
-            telefone=mensagem.telefone,
-            resposta=resposta
-        )
-
-        if resultado:
-            logger.info(f"✓ Mensagem enviada para {mensagem.telefone[:8]}...")
-
-            # 17. Registrar resposta da Júlia nas métricas (com tempo de resposta)
-            await metricas_service.registrar_mensagem(
-                conversa_id=conversa["id"],
-                origem="ai",
-                tempo_resposta_segundos=tempo_processamento
-            )
-
-            # 18. Salvar interação de saída
-            await salvar_interacao(
-                conversa_id=conversa["id"],
-                cliente_id=medico["id"],
-                tipo="saida",
-                conteudo=resposta,
-                autor_tipo="julia",
-                message_id=resultado.get("key", {}).get("id")
-            )
-            logger.info("✓ Interação de saída salva")
-        else:
-            logger.error("Falha ao enviar mensagem")
 
     except Exception as e:
-        logger.error(f"Erro ao processar: {e}", exc_info=True)
+        logger.error(f"Erro ao processar comando Slack: {e}", exc_info=True)

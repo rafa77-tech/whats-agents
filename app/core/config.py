@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     # Slack
     SLACK_WEBHOOK_URL: str = ""
     SLACK_CHANNEL: str = "#julia-gestao"
+    SLACK_BOT_TOKEN: str = ""
+    SLACK_SIGNING_SECRET: str = ""
+
+    # Voyage AI (embeddings - recomendado pela Anthropic)
+    VOYAGE_API_KEY: str = ""
+    VOYAGE_MODEL: str = "voyage-3.5-lite"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
