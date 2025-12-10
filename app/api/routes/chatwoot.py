@@ -117,3 +117,95 @@ async def chatwoot_status():
         "base_url": chatwoot_service.base_url if chatwoot_service.configurado else None,
         "account_id": chatwoot_service.account_id if chatwoot_service.configurado else None,
     }
+
+
+@router.get("/test-api")
+async def chatwoot_test_api():
+    """
+    Testa conectividade com API do Chatwoot.
+
+    Util para verificar se a API key esta funcionando.
+    """
+    import httpx
+    from app.services.chatwoot import chatwoot_service
+
+    if not chatwoot_service.configurado:
+        return {"status": "error", "message": "Chatwoot nao configurado"}
+
+    # Testar endpoint de profile (valida API key)
+    url = f"{chatwoot_service.base_url}/api/v1/profile"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=chatwoot_service.headers)
+
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    "status": "ok",
+                    "api_key_valid": True,
+                    "user": data.get("name", "Unknown"),
+                    "email": data.get("email", "Unknown"),
+                    "account_id": chatwoot_service.account_id
+                }
+            elif response.status_code == 401:
+                return {
+                    "status": "error",
+                    "api_key_valid": False,
+                    "message": "API key invalida. Regenere em Profile Settings > Access Token no Chatwoot.",
+                    "chatwoot_url": chatwoot_service.base_url
+                }
+            else:
+                return {
+                    "status": "error",
+                    "http_status": response.status_code,
+                    "message": response.text
+                }
+    except httpx.ConnectError:
+        return {
+            "status": "error",
+            "message": f"Nao foi possivel conectar ao Chatwoot em {chatwoot_service.base_url}"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
+@router.post("/sync/{telefone}")
+async def chatwoot_sync_ids(telefone: str):
+    """
+    Sincroniza IDs do Chatwoot para um telefone.
+
+    Util para testar se a sincronizacao esta funcionando apos
+    corrigir a API key.
+
+    Args:
+        telefone: Telefone no formato 5511999999999
+    """
+    from app.services.chatwoot import sincronizar_ids_chatwoot
+    from app.services.supabase import get_supabase
+
+    supabase = get_supabase()
+
+    # Buscar cliente pelo telefone
+    response = supabase.table("clientes").select("id, telefone, primeiro_nome").eq("telefone", telefone).execute()
+
+    if not response.data:
+        return {"status": "error", "message": f"Cliente nao encontrado com telefone {telefone}"}
+
+    cliente = response.data[0]
+
+    # Sincronizar IDs
+    resultado = await sincronizar_ids_chatwoot(cliente["id"], telefone)
+
+    return {
+        "status": "ok" if resultado.get("chatwoot_conversation_id") else "partial",
+        "cliente": {
+            "id": cliente["id"],
+            "nome": cliente.get("primeiro_nome", "N/A"),
+            "telefone": telefone
+        },
+        "chatwoot": resultado
+    }

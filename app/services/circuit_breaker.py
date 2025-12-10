@@ -154,9 +154,9 @@ class CircuitBreaker:
 # Instâncias globais para cada serviço
 circuit_evolution = CircuitBreaker(
     nome="evolution",
-    falhas_para_abrir=3,
-    timeout_segundos=10.0,
-    tempo_reset_segundos=30
+    falhas_para_abrir=5,          # Aumentado: 5 falhas (era 3)
+    timeout_segundos=30.0,        # Aumentado: 30s (era 10s)
+    tempo_reset_segundos=15       # Reduzido: 15s (era 30s) - recupera mais rápido
 )
 
 circuit_claude = CircuitBreaker(

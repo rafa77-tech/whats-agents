@@ -74,7 +74,7 @@ async def _buscar_especialidade_id_por_nome(nome: str) -> str | None:
 
 TOOL_BUSCAR_VAGAS = {
     "name": "buscar_vagas",
-    "description": """Busca vagas de plantao compativeis com o perfil do medico.
+    "description": """LISTA vagas de plantao disponiveis. Esta tool apenas MOSTRA opcoes, NAO reserva.
 
 QUANDO USAR:
 - Medico pergunta por vagas/plantoes disponiveis
@@ -89,8 +89,13 @@ EXEMPLOS DE GATILHO:
 - "O que voces tem de vaga?"
 - "Tem algo pra essa semana?"
 - "Quero ver as vagas"
+- "Tem vaga de cardiologia?" (especifica especialidade)
+
+NAO USE ESTA TOOL PARA RESERVAR!
+Se o medico quer RESERVAR uma vaga, use 'reservar_plantao' ao inves.
 
 PARAMETROS OPCIONAIS:
+- especialidade: Se medico pedir especialidade DIFERENTE da dele (ex: "vagas de cardiologia")
 - regiao: Se medico mencionar regiao especifica (ex: "zona sul", "ABC")
 - periodo: Se medico pedir turno especifico (diurno, noturno)
 - valor_minimo: Se medico mencionar valor minimo aceitavel
@@ -103,6 +108,10 @@ NAO use esta tool se:
     "input_schema": {
         "type": "object",
         "properties": {
+            "especialidade": {
+                "type": "string",
+                "description": "Especialidade solicitada pelo medico (ex: 'cardiologia', 'anestesiologia'). Se nao especificada, usa a especialidade cadastrada do medico."
+            },
             "regiao": {
                 "type": "string",
                 "description": "Regiao de preferencia do medico (ex: 'zona sul', 'ABC', 'centro'). Extrair da mensagem se mencionado."
@@ -142,52 +151,74 @@ async def handle_buscar_vagas(
 
     Fluxo:
     1. Extrai parametros da tool_input
-    2. Aplica filtros de preferencias do medico
+    2. Determina especialidade (solicitada vs cadastrada)
     3. Busca vagas compativeis com especialidade
     4. Filtra por conflitos existentes
-    5. Formata resultado para LLM
+    5. Formata resultado para LLM (com alerta se especialidade diferente)
 
     Args:
-        tool_input: Input da tool (regiao, periodo, valor_minimo, etc)
+        tool_input: Input da tool (especialidade, regiao, periodo, valor_minimo, etc)
         medico: Dados do medico (incluindo especialidade_id, preferencias)
         conversa: Dados da conversa atual
 
     Returns:
         Dict com vagas encontradas e contexto formatado
     """
+    especialidade_solicitada = tool_input.get("especialidade")
     regiao = tool_input.get("regiao")
     periodo = tool_input.get("periodo", "qualquer")
     valor_minimo = tool_input.get("valor_minimo", 0)
     dias_semana = tool_input.get("dias_semana", [])
     limite = min(tool_input.get("limite", 5), 10)  # Max 10
 
+    # Especialidade cadastrada do médico
+    especialidade_medico = medico.get("especialidade")
+    especialidade_id = None
+    especialidade_nome = None
+    especialidade_diferente = False
+
+    # Se médico solicitou especialidade específica, usar ela
+    if especialidade_solicitada:
+        especialidade_id = await _buscar_especialidade_id_por_nome(especialidade_solicitada)
+        if especialidade_id:
+            especialidade_nome = especialidade_solicitada.title()
+            # Verificar se é diferente da cadastrada
+            if especialidade_medico and especialidade_medico.lower() != especialidade_solicitada.lower():
+                especialidade_diferente = True
+                logger.info(
+                    f"Medico pediu {especialidade_solicitada} mas cadastro e {especialidade_medico}"
+                )
+        else:
+            logger.warning(f"Especialidade '{especialidade_solicitada}' nao encontrada no banco")
+            return {
+                "success": False,
+                "error": f"Especialidade '{especialidade_solicitada}' nao encontrada",
+                "vagas": [],
+                "mensagem_sugerida": f"Nao conheco a especialidade '{especialidade_solicitada}'. Pode confirmar o nome?"
+            }
+    else:
+        # Usar especialidade cadastrada do médico
+        especialidade_id = medico.get("especialidade_id")
+        if not especialidade_id and especialidade_medico:
+            especialidade_id = await _buscar_especialidade_id_por_nome(especialidade_medico)
+        especialidade_nome = especialidade_medico
+
     logger.info(
         f"Buscando vagas para medico {medico.get('id')}: "
-        f"regiao={regiao}, periodo={periodo}, valor_min={valor_minimo}"
+        f"especialidade={especialidade_nome}, regiao={regiao}, periodo={periodo}"
     )
-
-    # Verificar se medico tem especialidade
-    # Prioridade: especialidade_id > lookup por nome
-    especialidade_id = medico.get("especialidade_id")
-
-    if not especialidade_id:
-        # Tentar obter especialidade_id pelo nome da especialidade
-        especialidade_nome = medico.get("especialidade")
-        if especialidade_nome:
-            especialidade_id = await _buscar_especialidade_id_por_nome(especialidade_nome)
-            if especialidade_id:
-                logger.info(f"Especialidade '{especialidade_nome}' mapeada para ID {especialidade_id}")
-                # Atualizar medico dict para usar nas próximas funções
-                medico["especialidade_id"] = especialidade_id
 
     if not especialidade_id:
         logger.warning(f"Medico {medico.get('id')} sem especialidade definida")
         return {
             "success": False,
-            "error": "Especialidade do medico nao identificada",
+            "error": "Especialidade nao identificada",
             "vagas": [],
-            "mensagem_sugerida": "Qual sua especialidade? Preciso saber pra te mostrar as vagas certas"
+            "mensagem_sugerida": "Qual especialidade voce quer buscar? Me fala que eu procuro pra voce"
         }
+
+    # Atualizar medico dict para usar nas próximas funções
+    medico["especialidade_id"] = especialidade_id
 
     # Aplicar preferencias extras do input da tool
     preferencias_extras = {}
@@ -245,16 +276,36 @@ async def handle_buscar_vagas(
         vagas_final = vagas_sem_conflito[:limite]
 
         if not vagas_final:
-            logger.info(f"Nenhuma vaga encontrada para medico {medico.get('id')}")
+            logger.info(f"Nenhuma vaga encontrada para especialidade {especialidade_nome}")
+
+            # Se buscou especialidade diferente da cadastrada e não encontrou, sugerir a cadastrada
+            if especialidade_diferente and especialidade_medico:
+                return {
+                    "success": True,
+                    "vagas": [],
+                    "total_encontradas": 0,
+                    "especialidade_buscada": especialidade_nome,
+                    "especialidade_cadastrada": especialidade_medico,
+                    "mensagem_sugerida": (
+                        f"Nao tenho vaga de {especialidade_nome} no momento. "
+                        f"Mas vi que voce e de {especialidade_medico} - quer que eu veja as vagas dessa especialidade?"
+                    )
+                }
+
             return {
                 "success": True,
                 "vagas": [],
                 "total_encontradas": 0,
-                "mensagem_sugerida": "Nao tem vaga disponivel no momento pra sua especialidade. Mas assim que surgir algo, te aviso!"
+                "especialidade_buscada": especialidade_nome,
+                "mensagem_sugerida": f"Nao tem vaga de {especialidade_nome} no momento. Mas assim que surgir algo, te aviso!"
             }
 
         # Formatar para contexto do LLM
-        especialidade_nome = medico.get("especialidades", {}).get("nome")
+        # Prioridade: objeto relacionado > campo texto
+        especialidade_nome = (
+            medico.get("especialidades", {}).get("nome")
+            or medico.get("especialidade")
+        )
         contexto_formatado = formatar_vagas_contexto(vagas_final, especialidade_nome)
 
         # Preparar lista simplificada para resposta
@@ -268,20 +319,38 @@ async def handle_buscar_vagas(
                 "periodo": v.get("periodos", {}).get("nome"),
                 "valor": v.get("valor"),
                 "setor": v.get("setores", {}).get("nome"),
+                "especialidade": v.get("especialidades", {}).get("nome") or especialidade_nome,
             })
 
         logger.info(f"Encontradas {len(vagas_final)} vagas para medico {medico.get('id')}")
+
+        # Construir instrução baseada no contexto
+        instrucao_base = (
+            f"Estas vagas sao de {especialidade_nome}. "
+            "Apresente as vagas de forma natural, uma por vez. "
+            "SEMPRE mencione a DATA do plantao (dia/mes) pois sera usada para reservar. "
+            "Quando o medico aceitar, use a tool reservar_plantao com a DATA no formato YYYY-MM-DD."
+        )
+
+        # Alerta se especialidade diferente da cadastrada
+        alerta_especialidade = None
+        if especialidade_diferente:
+            alerta_especialidade = (
+                f"ALERTA: O medico pediu vagas de {especialidade_nome}, mas o cadastro dele e {especialidade_medico}. "
+                f"Mencione naturalmente que encontrou vagas de {especialidade_nome} como ele pediu, "
+                f"mas confirme se ele tambem atua nessa area ou se quer ver vagas de {especialidade_medico}."
+            )
+            instrucao_base = alerta_especialidade + " " + instrucao_base
 
         return {
             "success": True,
             "vagas": vagas_resumo,
             "total_encontradas": len(vagas_final),
+            "especialidade_buscada": especialidade_nome,
+            "especialidade_cadastrada": especialidade_medico,
+            "especialidade_diferente": especialidade_diferente,
             "contexto": contexto_formatado,
-            "instrucao": (
-                "Apresente as vagas de forma natural, uma por vez. "
-                "SEMPRE mencione a DATA do plantao (dia/mes) pois sera usada para reservar. "
-                "Quando o medico aceitar, use a tool reservar_plantao com a DATA no formato YYYY-MM-DD."
-            )
+            "instrucao": instrucao_base
         }
 
     except Exception as e:
@@ -373,21 +442,22 @@ def _filtrar_por_dias_semana(vagas: list[dict], dias_desejados: list[str]) -> li
 
 TOOL_RESERVAR_PLANTAO = {
     "name": "reservar_plantao",
-    "description": """Reserva um plantao/vaga para o medico.
+    "description": """RESERVA um plantao/vaga para o medico. Use esta tool para CONFIRMAR uma reserva.
 
-Use quando o medico aceitar uma vaga que voce ofereceu.
-Exemplos de aceite:
-- "Pode reservar"
-- "Quero essa"
-- "Fechado"
-- "Aceito"
-- "Pode ser"
-- "Vou querer"
+QUANDO USAR:
+- Medico pede para RESERVAR uma vaga
+- Medico ACEITA uma vaga oferecida
+- Medico diz: "Pode reservar", "Quero essa", "Fechado", "Aceito", "Pode ser", "Vou querer"
+- Medico pede: "Reserva pra mim", "Quero reservar", "Fecha essa vaga"
+- Medico especifica: "Quero a vaga do dia X no hospital Y"
 
 COMO USAR:
-- Use o parametro 'data_plantao' com a data no formato YYYY-MM-DD (ex: 2025-12-12)
-- A data e obrigatoria e suficiente para identificar a vaga
-- NAO invente IDs - use apenas a data do plantao que o medico escolheu""",
+- Use o parametro 'data_plantao' com a data no formato YYYY-MM-DD (ex: 2025-12-09)
+- A data e OBRIGATORIA e suficiente para identificar a vaga
+- Extraia a data da conversa (se medico diz "hoje" use a data atual, se diz "dia 15" use essa data)
+- NAO invente IDs - use apenas a data do plantao
+
+IMPORTANTE: Se o medico quer VER vagas antes de reservar, use 'buscar_vagas' primeiro.""",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -416,6 +486,8 @@ async def _buscar_vaga_por_data(data: str, especialidade_id: str) -> dict | None
     Returns:
         Vaga encontrada ou None
     """
+    logger.info(f"_buscar_vaga_por_data: data={data}, especialidade_id={especialidade_id}")
+
     try:
         response = (
             supabase.table("vagas")
@@ -423,17 +495,22 @@ async def _buscar_vaga_por_data(data: str, especialidade_id: str) -> dict | None
             .eq("data", data)
             .eq("especialidade_id", especialidade_id)
             .eq("status", "aberta")
-            .is_("deleted_at", "null")
             .limit(1)
             .execute()
         )
 
+        logger.info(f"_buscar_vaga_por_data: encontradas {len(response.data) if response.data else 0} vagas")
+
         if response.data:
-            return response.data[0]
+            vaga = response.data[0]
+            logger.info(f"_buscar_vaga_por_data: vaga encontrada id={vaga.get('id')}")
+            return vaga
+
+        logger.warning(f"_buscar_vaga_por_data: nenhuma vaga encontrada para data={data}, especialidade_id={especialidade_id}")
         return None
 
     except Exception as e:
-        logger.error(f"Erro ao buscar vaga por data: {e}")
+        logger.error(f"Erro ao buscar vaga por data: {e}", exc_info=True)
         return None
 
 
@@ -455,6 +532,8 @@ async def handle_reservar_plantao(
     """
     data_plantao = tool_input.get("data_plantao")
     confirmacao = tool_input.get("confirmacao", "")
+
+    logger.info(f"handle_reservar_plantao: tool_input={tool_input}, medico_id={medico.get('id')}")
 
     if not data_plantao:
         return {
@@ -478,14 +557,18 @@ async def handle_reservar_plantao(
         ano = datetime.now().year
         data_normalizada = f"{ano}-{partes[1]}-{partes[0]}"
 
-    logger.info(f"Buscando vaga para data: {data_normalizada}")
+    logger.info(f"handle_reservar_plantao: data_normalizada={data_normalizada}")
 
     # Verificar especialidade do médico
     especialidade_id = medico.get("especialidade_id")
+    logger.info(f"handle_reservar_plantao: especialidade_id do medico={especialidade_id}")
+
     if not especialidade_id:
         especialidade_nome = medico.get("especialidade")
+        logger.info(f"handle_reservar_plantao: especialidade_nome={especialidade_nome}, buscando ID...")
         if especialidade_nome:
             especialidade_id = await _buscar_especialidade_id_por_nome(especialidade_nome)
+            logger.info(f"handle_reservar_plantao: especialidade_id resolvido={especialidade_id}")
 
     if not especialidade_id:
         return {
@@ -520,15 +603,27 @@ async def handle_reservar_plantao(
 
         logger.info(f"Plantao reservado: {vaga_id} para medico {medico['id']}")
 
+        # Extrair dados completos do hospital
+        hospital_data = vaga.get("hospitais", {})
+
         return {
             "success": True,
             "message": f"Plantao reservado com sucesso: {vaga_formatada}",
             "vaga": {
                 "id": vaga_atualizada["id"],
-                "hospital": vaga.get("hospitais", {}).get("nome"),
+                "hospital": hospital_data.get("nome"),
+                "endereco": hospital_data.get("endereco_formatado"),
+                "bairro": hospital_data.get("bairro"),
+                "cidade": hospital_data.get("cidade"),
                 "data": vaga_atualizada.get("data"),
+                "periodo": vaga.get("periodos", {}).get("nome"),
+                "valor": vaga.get("valor"),
                 "status": vaga_atualizada.get("status")
-            }
+            },
+            "instrucao": (
+                "Confirme a reserva mencionando o hospital, data, periodo e valor. "
+                "Se o medico perguntar o endereco, use: " + (hospital_data.get("endereco_formatado") or "endereco nao disponivel")
+            )
         }
 
     except ValueError as e:
@@ -546,8 +641,111 @@ async def handle_reservar_plantao(
         }
 
 
+# =============================================================================
+# TOOL: BUSCAR INFO HOSPITAL
+# =============================================================================
+
+TOOL_BUSCAR_INFO_HOSPITAL = {
+    "name": "buscar_info_hospital",
+    "description": """Busca informacoes sobre um hospital (endereco, cidade, bairro).
+
+QUANDO USAR:
+- Medico pergunta endereco de um hospital
+- Medico quer saber onde fica um hospital
+- Medico pergunta: "Qual endereco?", "Onde fica?", "Como chego la?"
+- Medico menciona nome de hospital e quer mais info
+
+IMPORTANTE: Use esta tool para buscar informacoes do banco. NAO invente enderecos!
+
+PARAMETROS:
+- nome_hospital: Nome (ou parte do nome) do hospital a buscar""",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "nome_hospital": {
+                "type": "string",
+                "description": "Nome do hospital (ou parte dele) para buscar. Ex: 'Salvalus', 'Santa Casa'"
+            }
+        },
+        "required": ["nome_hospital"]
+    }
+}
+
+
+async def handle_buscar_info_hospital(
+    tool_input: dict,
+    medico: dict,
+    conversa: dict
+) -> dict:
+    """
+    Busca informacoes de um hospital pelo nome.
+
+    Args:
+        tool_input: Input da tool (nome_hospital)
+        medico: Dados do medico (nao usado aqui)
+        conversa: Dados da conversa (nao usado aqui)
+
+    Returns:
+        Dict com informacoes do hospital ou erro
+    """
+    nome_hospital = tool_input.get("nome_hospital", "").strip()
+
+    if not nome_hospital:
+        return {
+            "success": False,
+            "error": "Nome do hospital nao informado",
+            "mensagem_sugerida": "Qual hospital voce quer saber o endereco?"
+        }
+
+    logger.info(f"Buscando info do hospital: {nome_hospital}")
+
+    try:
+        response = (
+            supabase.table("hospitais")
+            .select("*")
+            .ilike("nome", f"%{nome_hospital}%")
+            .limit(1)
+            .execute()
+        )
+
+        if not response.data:
+            logger.warning(f"Hospital '{nome_hospital}' nao encontrado")
+            return {
+                "success": False,
+                "error": f"Hospital '{nome_hospital}' nao encontrado",
+                "mensagem_sugerida": f"Nao encontrei o hospital '{nome_hospital}' no nosso sistema. Pode me dar o nome completo?"
+            }
+
+        hospital = response.data[0]
+        logger.info(f"Hospital encontrado: {hospital.get('nome')}")
+
+        return {
+            "success": True,
+            "hospital": {
+                "nome": hospital.get("nome"),
+                "endereco": hospital.get("endereco_formatado"),
+                "logradouro": hospital.get("logradouro"),
+                "numero": hospital.get("numero"),
+                "bairro": hospital.get("bairro"),
+                "cidade": hospital.get("cidade"),
+                "estado": hospital.get("estado"),
+                "cep": hospital.get("cep"),
+            },
+            "instrucao": f"Informe o endereco ao medico: {hospital.get('endereco_formatado') or 'endereco nao disponivel'}"
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar hospital: {e}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e),
+            "mensagem_sugerida": "Tive um probleminha pra buscar o endereco. Deixa eu verificar aqui e ja te mando"
+        }
+
+
 # Lista de todas as tools de vagas
 TOOLS_VAGAS = [
     TOOL_BUSCAR_VAGAS,
     TOOL_RESERVAR_PLANTAO,
+    TOOL_BUSCAR_INFO_HOSPITAL,
 ]

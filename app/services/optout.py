@@ -68,26 +68,33 @@ def detectar_optout(texto: str) -> Tuple[bool, str]:
     return False, ""
 
 
-async def processar_optout(cliente_id: str, telefone: str) -> bool:
+async def processar_optout(cliente_id: str, telefone: str, motivo: str = "") -> bool:
     """
     Processa opt-out: atualiza banco e prepara confirmação.
 
     Args:
         cliente_id: ID do médico
         telefone: Telefone do médico
+        motivo: Mensagem que triggou o opt-out
 
     Returns:
         True se processado com sucesso
     """
+    from datetime import datetime
+
     try:
         # Atualizar status do médico
+        update_data = {
+            "opted_out": True,
+            "opted_out_at": datetime.utcnow().isoformat(),
+        }
+
+        if motivo:
+            update_data["opted_out_reason"] = motivo[:200]  # Limitar tamanho
+
         response = (
             supabase.table("clientes")
-            .update({
-                "opted_out": True,
-                "opted_out_at": "now()",
-                "stage_jornada": "optout",
-            })
+            .update(update_data)
             .eq("id", cliente_id)
             .execute()
         )

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 import logging
 
 from app.services.fila_mensagens import processar_mensagens_agendadas
+from app.services.fila import fila_service
 from app.services.qualidade import avaliar_conversas_pendentes
 from app.services.alertas import executar_verificacao_alertas
 from app.services.relatorio import gerar_relatorio_diario, enviar_relatorio_slack
@@ -36,6 +37,7 @@ async def job_primeira_mensagem(request: PrimeiraMensagemRequest):
     from app.services.agente import gerar_resposta_julia, enviar_resposta
     from app.services.contexto import montar_contexto_completo
     from app.services.interacao import salvar_interacao
+    from app.services.optout import verificar_opted_out
     from datetime import datetime
 
     try:
@@ -55,6 +57,16 @@ async def job_primeira_mensagem(request: PrimeiraMensagemRequest):
 
         cliente = cliente_resp.data[0]
         logger.info(f"Cliente encontrado: {cliente['primeiro_nome']} ({cliente['id']})")
+
+        # 1.1 Verificar opt-out
+        if await verificar_opted_out(cliente["id"]):
+            logger.info(f"🛑 Cliente {cliente['id']} fez opt-out, não enviando mensagem")
+            return JSONResponse({
+                "status": "blocked",
+                "message": "Cliente fez opt-out, mensagem não enviada",
+                "cliente": cliente["primeiro_nome"],
+                "opted_out": True
+            })
 
         # 2. Criar ou buscar conversa ativa
         conversa_resp = (
@@ -484,6 +496,107 @@ async def job_verificar_whatsapp():
         logger.error(f"Erro ao verificar WhatsApp: {e}")
         return JSONResponse(
             {"status": "error", "message": str(e)},
+            status_code=500
+        )
+
+
+@router.post("/processar-fila-mensagens")
+async def job_processar_fila_mensagens(limite: int = 20):
+    """
+    Job para processar fila de mensagens (follow-ups, lembretes, etc).
+
+    Processa mensagens pendentes na tabela fila_mensagens:
+    - Verifica opt-out antes de enviar
+    - Envia via WhatsApp com simulacao de digitacao
+    - Marca como enviada ou registra erro
+
+    Executar via cron a cada minuto:
+    * * * * * curl -X POST http://localhost:8000/jobs/processar-fila-mensagens
+    """
+    from app.services.whatsapp import enviar_com_digitacao
+    from app.services.interacao import salvar_interacao
+    from app.services.supabase import supabase
+
+    stats = {
+        "processadas": 0,
+        "enviadas": 0,
+        "bloqueadas_optout": 0,
+        "erros": 0
+    }
+
+    try:
+        for _ in range(limite):
+            # Obter proxima mensagem da fila
+            mensagem = await fila_service.obter_proxima()
+            if not mensagem:
+                break
+
+            stats["processadas"] += 1
+            cliente = mensagem.get("clientes", {})
+            telefone = cliente.get("telefone")
+            cliente_id = mensagem.get("cliente_id")
+
+            if not telefone:
+                logger.warning(f"Telefone nao encontrado para mensagem {mensagem['id']}")
+                await fila_service.marcar_erro(mensagem["id"], "Telefone nao encontrado")
+                stats["erros"] += 1
+                continue
+
+            # Verificar opt-out
+            cliente_resp = (
+                supabase.table("clientes")
+                .select("opted_out")
+                .eq("id", cliente_id)
+                .single()
+                .execute()
+            )
+
+            if cliente_resp.data and cliente_resp.data.get("opted_out"):
+                logger.info(f"Cliente {cliente_id} fez opt-out, cancelando mensagem {mensagem['id']}")
+                supabase.table("fila_mensagens").update({
+                    "status": "cancelada",
+                    "erro": "Cliente fez opt-out"
+                }).eq("id", mensagem["id"]).execute()
+                stats["bloqueadas_optout"] += 1
+                continue
+
+            # Enviar mensagem
+            try:
+                await enviar_com_digitacao(
+                    telefone=telefone,
+                    texto=mensagem["conteudo"]
+                )
+
+                # Marcar como enviada
+                await fila_service.marcar_enviada(mensagem["id"])
+
+                # Salvar interacao
+                if mensagem.get("conversa_id"):
+                    await salvar_interacao(
+                        conversa_id=mensagem["conversa_id"],
+                        cliente_id=cliente_id,
+                        tipo="saida",
+                        conteudo=mensagem["conteudo"],
+                        autor_tipo="julia"
+                    )
+
+                logger.info(f"Mensagem {mensagem['id']} enviada para {telefone}")
+                stats["enviadas"] += 1
+
+            except Exception as e:
+                logger.error(f"Erro ao enviar mensagem {mensagem['id']}: {e}")
+                await fila_service.marcar_erro(mensagem["id"], str(e))
+                stats["erros"] += 1
+
+        return JSONResponse({
+            "status": "ok",
+            "stats": stats
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao processar fila de mensagens: {e}")
+        return JSONResponse(
+            {"status": "error", "message": str(e), "stats": stats},
             status_code=500
         )
 

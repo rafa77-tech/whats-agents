@@ -10,6 +10,7 @@ from app.services.supabase import supabase
 from app.services.whatsapp import enviar_com_digitacao
 from app.core.piloto_config import piloto_config
 from app.templates.mensagens import formatar_primeiro_contato
+from app.services.abertura import obter_abertura
 
 logger = logging.getLogger(__name__)
 
@@ -275,4 +276,82 @@ async def criar_envios_campanha(campanha_id: str):
     }).eq("id", campanha_id).execute()
     
     logger.info(f"Enfileirados {len(destinatarios)} envios para campanha {campanha_id}")
+
+
+async def enviar_mensagem_prospeccao(
+    cliente_id: str,
+    telefone: str,
+    nome: str,
+    campanha_id: str = None,
+    usar_aberturas_variadas: bool = True
+) -> dict:
+    """
+    Envia mensagem de prospeccao com abertura variada.
+
+    Args:
+        cliente_id: ID do medico
+        telefone: Telefone do medico
+        nome: Nome do medico
+        campanha_id: ID da campanha (opcional)
+        usar_aberturas_variadas: Se usa sistema de variacoes
+
+    Returns:
+        Resultado do envio
+    """
+    from app.services.agente import enviar_mensagens_sequencia
+
+    try:
+        if usar_aberturas_variadas:
+            # Obter abertura personalizada (evita repeticao)
+            mensagens = await obter_abertura(
+                cliente_id=cliente_id,
+                nome=nome
+            )
+
+            logger.info(
+                f"Prospeccao com abertura variada para {nome}: "
+                f"{len(mensagens)} mensagens"
+            )
+        else:
+            # Usar template fixo antigo
+            medico = {"primeiro_nome": nome}
+            texto = formatar_primeiro_contato(medico)
+            mensagens = [texto]
+
+        # Enviar em sequencia com timing natural
+        resultados = await enviar_mensagens_sequencia(
+            telefone=telefone,
+            mensagens=mensagens
+        )
+
+        # Registrar envio se tem campanha
+        if campanha_id:
+            try:
+                supabase.table("envios_campanha").insert({
+                    "campanha_id": campanha_id,
+                    "cliente_id": cliente_id,
+                    "status": "enviado",
+                    "tipo": "primeiro_contato",
+                    "enviado_em": datetime.utcnow().isoformat(),
+                    "metadata": {
+                        "mensagens_enviadas": len(mensagens),
+                        "abertura_variada": usar_aberturas_variadas
+                    }
+                }).execute()
+            except Exception as e:
+                logger.warning(f"Erro ao registrar envio: {e}")
+
+        return {
+            "success": True,
+            "mensagens_enviadas": len(mensagens),
+            "primeira_mensagem": mensagens[0] if mensagens else None,
+            "resultados": resultados
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao enviar prospeccao para {cliente_id}: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
 

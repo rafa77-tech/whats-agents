@@ -100,9 +100,19 @@ async def processar_mensagens_agendadas():
                 conversa = conversa_response.data
                 cliente = conversa.get("clientes", {})
                 telefone = cliente.get("telefone")
+                cliente_id = cliente.get("id")
 
                 if not telefone:
                     logger.warning(f"Telefone não encontrado para mensagem {msg.get('id')}")
+                    continue
+
+                # Verificar opt-out antes de enviar
+                if cliente_id and cliente.get("opted_out"):
+                    logger.info(f"🛑 Cliente {cliente_id} fez opt-out, cancelando mensagem {msg.get('id')}")
+                    supabase.table("mensagens_agendadas").update({
+                        "status": "cancelada",
+                        "erro": "Cliente fez opt-out"
+                    }).eq("id", msg["id"]).execute()
                     continue
 
                 # Enviar resposta

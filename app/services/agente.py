@@ -14,10 +14,13 @@ from app.services.whatsapp import enviar_com_digitacao
 from app.tools.vagas import (
     TOOL_BUSCAR_VAGAS,
     TOOL_RESERVAR_PLANTAO,
+    TOOL_BUSCAR_INFO_HOSPITAL,
     handle_buscar_vagas,
     handle_reservar_plantao,
+    handle_buscar_info_hospital,
 )
 from app.tools.lembrete import TOOL_AGENDAR_LEMBRETE, handle_agendar_lembrete
+from app.tools.memoria import TOOL_SALVAR_MEMORIA, handle_salvar_memoria
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +28,9 @@ logger = logging.getLogger(__name__)
 JULIA_TOOLS = [
     TOOL_BUSCAR_VAGAS,
     TOOL_RESERVAR_PLANTAO,
+    TOOL_BUSCAR_INFO_HOSPITAL,
     TOOL_AGENDAR_LEMBRETE,
+    TOOL_SALVAR_MEMORIA,
 ]
 
 
@@ -58,6 +63,12 @@ async def processar_tool_call(
     if tool_name == "agendar_lembrete":
         return await handle_agendar_lembrete(tool_input, medico, conversa)
 
+    if tool_name == "buscar_info_hospital":
+        return await handle_buscar_info_hospital(tool_input, medico, conversa)
+
+    if tool_name == "salvar_memoria":
+        return await handle_salvar_memoria(tool_input, medico, conversa)
+
     return {"success": False, "error": f"Tool desconhecida: {tool_name}"}
 
 
@@ -83,8 +94,8 @@ async def gerar_resposta_julia(
     Returns:
         Texto da resposta gerada
     """
-    # Montar system prompt
-    system_prompt = montar_prompt_julia(
+    # Montar system prompt (async - carrega do banco)
+    system_prompt = await montar_prompt_julia(
         contexto_medico=contexto.get("medico", ""),
         contexto_vagas=contexto.get("vagas", ""),
         historico=contexto.get("historico", ""),
@@ -92,7 +103,10 @@ async def gerar_resposta_julia(
         data_hora_atual=contexto.get("data_hora_atual", ""),
         dia_semana=contexto.get("dia_semana", ""),
         contexto_especialidade=contexto.get("especialidade", ""),
-        contexto_handoff=contexto.get("handoff_recente", "")
+        contexto_handoff=contexto.get("handoff_recente", ""),
+        contexto_memorias=contexto.get("memorias", ""),
+        especialidade_id=medico.get("especialidade_id"),
+        diretrizes=contexto.get("diretrizes", "")
     )
 
     # Montar historico como messages (para o Claude ter contexto da conversa)
@@ -203,8 +217,10 @@ async def processar_mensagem_completo(
             logger.info("Conversa sob controle humano, nao processando")
             return None
 
-        # Montar contexto
-        contexto = await montar_contexto_completo(medico, conversa, vagas)
+        # Montar contexto (passa mensagem para busca RAG de memorias)
+        contexto = await montar_contexto_completo(
+            medico, conversa, vagas, mensagem_atual=mensagem_texto
+        )
 
         # Gerar resposta
         resposta = await gerar_resposta_julia(

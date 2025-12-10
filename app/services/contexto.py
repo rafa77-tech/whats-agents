@@ -9,6 +9,7 @@ from app.services.interacao import carregar_historico, formatar_historico_para_l
 from app.config.especialidades import obter_config_especialidade
 from app.services.redis import cache_get_json, cache_set_json
 from app.services.supabase import get_supabase
+from app.services.memoria import enriquecer_contexto_com_memorias
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +273,8 @@ def formatar_contexto_diretrizes(diretrizes: dict) -> str:
 async def montar_contexto_completo(
     medico: dict,
     conversa: dict,
-    vagas: list[dict] = None
+    vagas: list[dict] = None,
+    mensagem_atual: str = None
 ) -> dict:
     """
     Monta contexto completo para o agente.
@@ -281,6 +283,7 @@ async def montar_contexto_completo(
         medico: Dados do medico
         conversa: Dados da conversa
         vagas: Lista de vagas disponiveis (opcional)
+        mensagem_atual: Mensagem atual do medico (para busca RAG)
 
     Returns:
         Dict com todos os contextos formatados
@@ -324,6 +327,19 @@ async def montar_contexto_completo(
     diretrizes = await carregar_diretrizes_ativas()
     contexto_diretrizes = formatar_contexto_diretrizes(diretrizes)
 
+    # Buscar memorias relevantes via RAG (Sprint 8 - Epic 02)
+    contexto_memorias = ""
+    if mensagem_atual and medico.get("id"):
+        try:
+            contexto_memorias = await enriquecer_contexto_com_memorias(
+                cliente_id=medico["id"],
+                mensagem_atual=mensagem_atual
+            )
+            if contexto_memorias:
+                logger.debug(f"Memorias RAG carregadas para medico {medico['id']}")
+        except Exception as e:
+            logger.warning(f"Erro ao carregar memorias RAG: {e}")
+
     return {
         "medico": contexto_medico_str,
         "especialidade": contexto_especialidade_str,
@@ -336,4 +352,5 @@ async def montar_contexto_completo(
         "dia_semana": dia_semana,
         "handoff_recente": contexto_handoff,
         "diretrizes": contexto_diretrizes,
+        "memorias": contexto_memorias,  # Sprint 8 - RAG
     }

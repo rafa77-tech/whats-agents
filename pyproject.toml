@@ -17,6 +17,7 @@ dependencies = [
     "google-api-python-client>=2.187.0",
     "google-auth>=2.43.0",
     "google-auth-oauthlib>=1.2.2",
+    "voyageai>=0.3.0",
 ]
 
 [project.optional-dependencies]

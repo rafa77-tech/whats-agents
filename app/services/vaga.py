@@ -71,7 +71,6 @@ async def buscar_vagas_compativeis(
         .eq("especialidade_id", especialidade_id)
         .eq("status", "aberta")
         .gte("data", hoje)
-        .is_("deleted_at", "null")
         .order("data")
         .limit(limite * 2)  # Buscar mais para filtrar
     )
@@ -152,7 +151,6 @@ async def buscar_vaga_por_id(vaga_id: str) -> dict | None:
         supabase.table("vagas")
         .select("*, hospitais(*), periodos(*), setores(*), especialidades(*)")
         .eq("id", vaga_id)
-        .is_("deleted_at", "null")
         .execute()
     )
     return response.data[0] if response.data else None
@@ -204,7 +202,6 @@ async def verificar_conflito_vaga(
         .eq("data", data)
         .eq("periodo_id", periodo_id)
         .in_("status", ["reservada", "confirmada"])
-        .is_("deleted_at", "null")
         .limit(1)
         .execute()
     )
