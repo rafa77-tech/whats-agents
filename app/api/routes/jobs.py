@@ -50,13 +50,24 @@ async def job_primeira_mensagem(request: PrimeiraMensagemRequest):
         )
 
         if not cliente_resp.data:
-            return JSONResponse(
-                {"status": "error", "message": f"Cliente não encontrado: {request.telefone}"},
-                status_code=404
+            # Cliente nao existe - criar novo
+            logger.info(f"Cliente nao encontrado, criando novo: {request.telefone}")
+            novo_cliente = (
+                supabase.table("clientes")
+                .insert({
+                    "telefone": request.telefone,
+                    "primeiro_nome": "Doutor(a)",  # Nome generico ate descobrir
+                    "status": "novo",
+                    "origem": "slack_comando",
+                    "stage_jornada": "novo"
+                })
+                .execute()
             )
-
-        cliente = cliente_resp.data[0]
-        logger.info(f"Cliente encontrado: {cliente['primeiro_nome']} ({cliente['id']})")
+            cliente = novo_cliente.data[0]
+            logger.info(f"Novo cliente criado: {cliente['id']}")
+        else:
+            cliente = cliente_resp.data[0]
+            logger.info(f"Cliente encontrado: {cliente.get('primeiro_nome', 'N/A')} ({cliente['id']})")
 
         # 1.1 Verificar opt-out
         if await verificar_opted_out(cliente["id"]):
@@ -90,8 +101,7 @@ async def job_primeira_mensagem(request: PrimeiraMensagemRequest):
                     "cliente_id": cliente["id"],
                     "status": "active",
                     "controlled_by": "ai",
-                    "canal": "whatsapp",
-                    "iniciado_por": "julia"
+                    "stage": "novo"
                 })
                 .execute()
             )
@@ -117,14 +127,25 @@ async def job_primeira_mensagem(request: PrimeiraMensagemRequest):
         # 5. Enviar via WhatsApp
         resultado_envio = await enviar_resposta(request.telefone, resposta)
 
+        # 5.1 Sincronizar IDs com Chatwoot (após envio, Chatwoot cria contato/conversa)
+        # Aguardar um pouco para Chatwoot processar
+        import asyncio
+        await asyncio.sleep(2)  # Dar tempo pro Chatwoot processar
+
+        from app.services.chatwoot import sincronizar_ids_chatwoot
+        try:
+            ids_chatwoot = await sincronizar_ids_chatwoot(cliente["id"], request.telefone)
+            logger.info(f"IDs Chatwoot sincronizados: {ids_chatwoot}")
+        except Exception as e:
+            logger.warning(f"Erro ao sincronizar Chatwoot (nao critico): {e}")
+
         # 6. Salvar interação no banco
         await salvar_interacao(
             conversa_id=conversa["id"],
             cliente_id=cliente["id"],
-            origem="julia",
-            tipo="texto",
+            tipo="saida",
             conteudo=resposta,
-            metadata={"tipo": "prospeccao", "primeira_mensagem": True}
+            autor_tipo="julia"
         )
 
         # 7. Atualizar cliente
