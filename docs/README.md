@@ -12,8 +12,8 @@ Julia e um agente de IA que prospecta medicos, oferece plantoes, gerencia relaci
 |---|-----------|-----------|
 | 1 | [Arquitetura](./01-ARQUITETURA.md) | Visao geral do sistema, componentes e fluxos |
 | 2 | [API e Endpoints](./02-API-ENDPOINTS.md) | Referencia completa de todos os endpoints |
-| 3 | [Servicos](./03-SERVICOS.md) | Detalhes dos 41 modulos de servico |
-| 4 | [Banco de Dados](./04-BANCO-DE-DADOS.md) | Schema das 32 tabelas e relacionamentos |
+| 3 | [Servicos](./03-SERVICOS.md) | Detalhes dos 46 modulos de servico |
+| 4 | [Banco de Dados](./04-BANCO-DE-DADOS.md) | Schema das 35 tabelas e relacionamentos |
 | 5 | [Configuracao e Setup](./05-CONFIGURACAO.md) | Como configurar e rodar o projeto |
 | 6 | [Deploy e Operacao](./06-DEPLOY.md) | Docker, workers e monitoramento |
 | 7 | [Logica de Negocio](./07-LOGICA-NEGOCIO.md) | Fluxos de negocio e regras |
@@ -72,12 +72,12 @@ whatsapp-api/
 
 | Recurso | Quantidade |
 |---------|------------|
-| Arquivos Python | 77 |
+| Arquivos Python | 100 |
 | Endpoints API | 25+ |
-| Servicos | 41 |
-| Tabelas no banco | 32 |
-| Migracoes | 30 |
-| Testes | 23 |
+| Servicos | 46 |
+| Tabelas no banco | 35 |
+| Migracoes | 44 |
+| Testes | 443 |
 
 ---
 
@@ -166,8 +166,8 @@ O sistema monitora quando medicos suspeitam que estao falando com IA:
 
 - **Projeto:** Agente Julia - Revoluna
 - **Inicio:** 05/12/2025
-- **Fase atual:** MVP em desenvolvimento
+- **Sprint atual:** 9 - Julia como Colega no Slack (Completa)
 
 ---
 
-*Documentacao gerada em 07/12/2025*
+*Documentacao atualizada em 11/12/2025*

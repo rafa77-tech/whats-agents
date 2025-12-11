@@ -411,11 +411,90 @@ Escalar para 100 médicos com métricas consolidadas.
 
 ---
 
-## Próximo Passo
+## Sprints Adicionais (Pós-MVP)
 
-**Sprint 0 começa agora.** Tarefas imediatas:
+### Sprint 6: Multi-instância WhatsApp
 
-1. **Gestor:** Criar conta Anthropic → gerar API key
-2. **Gestor:** Escanear QR code Evolution API
-3. **Dev:** Criar estrutura FastAPI
-4. **Dev:** Configurar clientes (Supabase, Anthropic)
+**Objetivo:** Gerenciar múltiplas instâncias WhatsApp para escalabilidade.
+
+**Entregáveis:**
+- [x] Tabela `whatsapp_instances` com pool de instâncias
+- [x] Distribuição inteligente de mensagens
+- [x] Monitoramento de conexão e health check
+- [x] Rate limiting por instância
+
+---
+
+### Sprint 7: Briefing via Google Docs
+
+**Objetivo:** Gestor configura Julia via Google Docs em linguagem natural.
+
+**Entregáveis:**
+- [x] Integração Google Docs API
+- [x] Parser de briefing (seções, vagas prioritárias)
+- [x] Sincronização automática (1h)
+- [x] Notificação no Slack após sync
+- [x] Handoff humano → IA via Chatwoot
+
+---
+
+### Sprint 8: Memória & Pipeline
+
+**Objetivo:** Preparar arquitetura para produção com memória de longo prazo.
+
+**Entregáveis:**
+- [x] Tool `salvar_memoria` com embeddings Voyage AI
+- [x] RAG para busca semântica de contexto
+- [x] Pipeline de processamento extensível
+- [x] Sistema de prompts dinâmicos (versionados no banco)
+- [x] Validação de output (impede revelar que é IA)
+- [x] 15+ variações de abertura
+
+---
+
+### Sprint 9: Julia como Colega no Slack
+
+**Objetivo:** Gestor conversa com Julia em linguagem natural no Slack.
+
+**Entregáveis:**
+- [x] Agente conversacional com LLM
+- [x] 14 tools de gestão (métricas, médicos, vagas, etc)
+- [x] Confirmação antes de ações críticas
+- [x] Sessão com contexto (30 min TTL)
+- [x] 5 tipos de abordagem automáticos
+- [x] Formatação amigável das respostas
+- [x] 109+ testes específicos
+
+**Exemplos de uso:**
+```
+Gestor: Julia, como foi hoje?
+Julia: Dia bom! 📈
+       Enviadas: 15
+       Respostas: 5 (33%)
+       - 3 positivas
+       - 2 neutras
+
+Gestor: Manda msg pro 11999 oferecendo vaga do Sao Luiz
+Julia: Vou mandar msg pro `11 99988-7766` (*oferta de vaga*):
+       > oferecendo vaga do Sao Luiz
+       Posso enviar?
+
+Gestor: Sim
+Julia: Pronto! Mandei pro Dr Carlos
+```
+
+---
+
+## Status Atual
+
+**Todas as sprints (0-9) foram concluídas.**
+
+| Métrica | Valor |
+|---------|-------|
+| Arquivos Python | 100 |
+| Serviços | 46 |
+| Tabelas | 35 |
+| Migrações | 44 |
+| Testes | 443 |
+
+**Próximos passos:** Piloto com médicos reais + ajustes de persona

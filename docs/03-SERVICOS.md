@@ -1,6 +1,6 @@
 # Servicos e Componentes
 
-> Detalhes dos 41 modulos de servico do sistema
+> Detalhes dos 46 modulos de servico do sistema
 
 ---
 
@@ -11,7 +11,8 @@ Os servicos estao em `app/services/` e sao organizados por responsabilidade:
 ```
 app/services/
 ├── Core do Agente
-│   ├── agente.py          # Orquestrador principal
+│   ├── agente.py          # Orquestrador principal (WhatsApp)
+│   ├── agente_slack.py    # Agente conversacional Slack (Sprint 9)
 │   ├── llm.py             # Cliente Anthropic
 │   ├── conversa.py        # Gestao de conversas
 │   ├── interacao.py       # Log de mensagens
@@ -21,31 +22,42 @@ app/services/
 │   ├── deteccao_bot.py    # Detecta quando percebem IA
 │   ├── handoff_detector.py # Detecta triggers de handoff
 │   ├── optout.py          # Detecta opt-out
-│   └── contexto.py        # Monta contexto para LLM
+│   ├── contexto.py        # Monta contexto para LLM
+│   ├── memoria.py         # RAG com embeddings (Sprint 8)
+│   ├── embedding.py       # Cliente Voyage AI (Sprint 8)
+│   └── validacao_output.py # Valida output do LLM (Sprint 8)
 │
 ├── Mensagens
 │   ├── whatsapp.py        # Cliente Evolution API
 │   ├── mensagem.py        # Formatacao de mensagens
 │   ├── parser.py          # Parse de payloads
-│   └── timing.py          # Humanizacao de timing
+│   ├── timing.py          # Humanizacao de timing
+│   ├── abertura.py        # Variacoes de abertura (Sprint 8)
+│   └── fila_mensagens.py  # Fila de envio agendado
 │
 ├── Resiliencia
 │   ├── rate_limiter.py    # Limites de envio
 │   ├── circuit_breaker.py # Protecao contra falhas
-│   └── redis.py           # Cliente Redis
+│   ├── redis.py           # Cliente Redis
+│   └── monitor_whatsapp.py # Health check WhatsApp
 │
 ├── Integracao
 │   ├── supabase.py        # Cliente banco de dados
 │   ├── chatwoot.py        # Cliente Chatwoot
-│   ├── slack.py           # Notificacoes Slack
-│   └── google_docs.py     # Leitura de briefing
+│   ├── slack.py           # Notificacoes Slack (outbound)
+│   ├── slack_comandos.py  # Comandos Slack (inbound)
+│   ├── slack_formatter.py # Formatacao respostas Slack (Sprint 9)
+│   ├── google_docs.py     # Leitura de briefing
+│   ├── briefing.py        # Sincronizacao de briefing (Sprint 7)
+│   └── briefing_parser.py # Parser do Google Docs (Sprint 7)
 │
 ├── Negocio
 │   ├── vaga.py            # Gestao de vagas/plantoes
 │   ├── campanha.py        # Campanhas de outreach
 │   ├── followup.py        # Follow-ups automaticos
 │   ├── handoff.py         # Execucao de handoff
-│   └── segmentacao.py     # Segmentacao de medicos
+│   ├── segmentacao.py     # Segmentacao de medicos
+│   └── tipos_abordagem.py # 5 tipos de abordagem (Sprint 9)
 │
 └── Analytics
     ├── metricas.py        # Coleta de metricas

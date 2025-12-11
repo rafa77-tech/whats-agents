@@ -14,21 +14,66 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 ## Estado Atual
 
-**Fase:** 0 - Setup & Configuração
-**Início:** 05/12/2025
+**Sprint Atual:** 9 - Julia como Colega no Slack
+**Início do Projeto:** 05/12/2025
+**Última Atualização:** 11/12/2025
 
-### Foco Inicial: Anestesiologia
+### Métricas do Projeto
 
-| Métrica | Valor |
-|---------|-------|
-| Total anestesistas | 1.660 |
-| Com CRM | 1.345 (81%) |
-| Prioridade | Primeira especialidade do MVP |
+| Recurso | Quantidade |
+|---------|------------|
+| Arquivos Python | 100 |
+| Serviços | 46 |
+| Tabelas no banco | 35 |
+| Migrações | 44 |
+| Testes | 443 |
+| Endpoints API | 25+ |
 
-**Por que Anestesiologia:**
-- Alta demanda no mercado
-- Boa base de dados com CRM
-- Perfil de médico que faz plantão avulso
+### Sprints Concluídas
+
+| Sprint | Foco | Status |
+|--------|------|--------|
+| 0 | Setup & Configuração | ✅ Completa |
+| 1 | Core do Agente (webhook, LLM) | ✅ Completa |
+| 2 | Vagas & Chatwoot | ✅ Completa |
+| 3 | Persona & Timing | ✅ Completa |
+| 4 | Métricas & Feedback | ✅ Completa |
+| 5 | Campanhas & Escalabilidade | ✅ Completa |
+| 6 | Multi-instância WhatsApp | ✅ Completa |
+| 7 | Briefing Google Docs | ✅ Completa |
+| 8 | Memória & Pipeline | ✅ Completa |
+| 9 | Julia no Slack (NLP) | ✅ Completa |
+
+### Funcionalidades Implementadas
+
+**Core:**
+- [x] Webhook Evolution API com processamento de mensagens
+- [x] Agente Julia com Claude (Haiku + Sonnet híbrido)
+- [x] Sistema de tools (buscar_vagas, reservar_plantao, salvar_memoria)
+- [x] Rate limiting (20/hora, 100/dia)
+- [x] Circuit breaker para resiliência
+
+**Integrações:**
+- [x] Evolution API (WhatsApp)
+- [x] Chatwoot (supervisão + handoff)
+- [x] Slack (notificações + comandos NLP)
+- [x] Google Docs (briefing automático)
+- [x] Supabase (PostgreSQL + pgvector)
+
+**Inteligência:**
+- [x] Memória de longo prazo (RAG com embeddings)
+- [x] Detecção de opt-out automática
+- [x] Detecção de handoff (sentimento negativo, pedido humano)
+- [x] Detecção de bot (37 padrões)
+- [x] Pipeline de processamento extensível
+- [x] Sistema de prompts dinâmicos
+
+**Gestão via Slack:**
+- [x] Linguagem natural para comandos
+- [x] 14 tools de gestão (métricas, médicos, vagas, etc)
+- [x] Confirmação antes de ações críticas
+- [x] Contexto de sessão (30 min TTL)
+- [x] 5 tipos de abordagem (discovery, oferta, reativação, followup, custom)
 
 ### Contexto de Mercado (Crítico)
 
@@ -39,43 +84,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | Regulatório | Sem risco CFM para contato automatizado |
 | Modelo | Apenas Revoluna (não é multi-tenant) |
 
-**Ciclo de vida da vaga:**
-- Hospital define escala mensal (X médicos, período Y, dias Z)
-- Ideal: preencher com 30 dias de antecedência
-- Urgência cresce conforme data se aproxima
-- Fontes de urgência: escala não fechada, médico doente, cancelamento de última hora
-
 **Implicação:** Qualidade > quantidade. Uma mensagem mal escrita = bloqueio.
-
-### Concluído
-- [x] Documentação base estruturada
-- [x] Análise de custos LLM (decisão: Haiku + Sonnet híbrido)
-- [x] Projeto Supabase criado
-- [x] MCP Supabase configurado no Claude Code
-- [x] Schema do banco executado (27 tabelas, 14 migrações)
-- [x] Docker Compose configurado (Evolution, Chatwoot, n8n, Redis)
-- [x] Documentação de fluxos de negócio detalhados
-- [x] Documentação de métricas e critérios de sucesso
-- [x] Documentação de escopo MVP
-- [x] Documentação de integrações externas
-- [x] Documentação de fonte de dados
-- [x] Estratégia de testes e warm-up
-- [x] Sistema de preferências do médico planejado
-- [x] Planejamento de sprints (6 sprints, ~100h dev)
-
-### Pendente
-- [ ] Obter API key Anthropic
-- [ ] Configurar Slack webhook
-- [ ] Configurar Google Docs API
-- [ ] Testar Evolution API + conectar número WhatsApp
-- [ ] Testar Chatwoot
-
-### Próxima Fase (1 - MVP)
-- Estrutura FastAPI
-- Webhook Evolution API
-- Agente Júlia básico
-- Integração Chatwoot
-- Sistema de handoff
 
 ---
 
@@ -152,15 +161,16 @@ CRM, RG e dados bancários, blz?
 
 | Componente | Tecnologia | Status |
 |------------|------------|--------|
-| Backend | Python 3.13+ / FastAPI | A implementar |
-| Package Manager | uv (Astral) | Configurado |
-| LLM Principal | Claude 3.5 Haiku | A configurar |
-| LLM Complexo | Claude 4 Sonnet | A configurar |
-| Banco de Dados | Supabase (PostgreSQL + pgvector) | Configurado |
-| WhatsApp | Evolution API | Docker rodando |
-| Supervisão | Chatwoot | Docker rodando |
-| Automação | n8n | Docker rodando |
-| Notificações | Slack | A configurar |
+| Backend | Python 3.13+ / FastAPI | ✅ Implementado |
+| Package Manager | uv (Astral) | ✅ Configurado |
+| LLM Principal | Claude 3.5 Haiku | ✅ Funcionando |
+| LLM Complexo | Claude 4 Sonnet | ✅ Funcionando |
+| Banco de Dados | Supabase (PostgreSQL + pgvector) | ✅ Funcionando |
+| WhatsApp | Evolution API | ✅ Integrado |
+| Supervisão | Chatwoot | ✅ Integrado |
+| Notificações | Slack | ✅ Integrado |
+| Cache/Filas | Redis | ✅ Funcionando |
+| Embeddings | Voyage AI | ✅ Funcionando |
 
 ### Decisões Técnicas
 
@@ -179,23 +189,33 @@ CRM, RG e dados bancários, blz?
 ```
 /whatsapp-api
 ├── CLAUDE.md                    # Este arquivo (fonte única)
-├── docs/
-│   ├── SPEC.md                 # Especificações do produto
-│   ├── TECHNICAL.md            # Arquitetura técnica
-│   ├── DATABASE.md             # Schema do banco
-│   ├── SETUP.md                # Checklist de configuração
-│   ├── BRIEFING_TEMPLATE.md    # Template do Google Docs
-│   └── archive/                # Documentos históricos
+├── app/
+│   ├── api/routes/             # 10 routers de endpoints
+│   ├── services/               # 46 módulos de serviço
+│   ├── tools/                  # Tools do agente (vagas, memoria, slack)
+│   ├── pipeline/               # Pipeline de processamento
+│   ├── prompts/                # Sistema de prompts dinâmicos
+│   ├── templates/              # Templates de mensagens
+│   ├── workers/                # Scheduler e workers
+│   ├── core/                   # Config, logging, prompts
+│   └── main.py                 # FastAPI app
 │
-├── .claude/
-│   └── commands/
-│       └── pm-agent.md         # Prompt do PM Agent
+├── tests/                      # 443 testes
 │
-├── deprecated/                  # Código legacy
+├── docs/                       # Documentação técnica
+│   ├── README.md               # Índice da documentação
+│   ├── 01-ARQUITETURA.md       # Visão geral do sistema
+│   ├── 02-API-ENDPOINTS.md     # Referência de endpoints
+│   ├── 03-SERVICOS.md          # Detalhes dos serviços
+│   └── ...                     # Outros docs
 │
-├── docker-compose.yml          # Evolution, Chatwoot, n8n
+├── planning/                   # Sprints e épicos
+│   ├── sprint-0/ a sprint-9/   # Planejamento de cada sprint
+│   └── README.md               # Visão geral do roadmap
+│
+├── docker-compose.yml          # Evolution, Chatwoot, Redis
 ├── .env.example                # Template de variáveis
-└── pyproject.toml              # Dependências Python
+└── pyproject.toml              # Dependências Python (uv)
 ```
 
 ---
@@ -224,17 +244,18 @@ docker compose logs -f <serviço> # Logs
 
 ## Banco de Dados
 
-**27 tabelas** organizadas em categorias:
+**35 tabelas** organizadas em categorias:
 
 | Categoria | Tabelas | Principais |
 |-----------|---------|------------|
-| Core do Agente | 5 | clientes, conversations, interacoes, handoffs, doctor_context |
-| Gestão de Vagas | 7 | vagas, hospitais, especialidades, setores, periodos |
+| Core do Agente | 6 | clientes, conversations, interacoes, handoffs, doctor_context, fila_mensagens |
+| Gestão de Vagas | 7 | vagas, hospitais, especialidades, setores, periodos, tipos_vaga, formas_recebimento |
 | Campanhas | 4 | campanhas, envios, execucoes_campanhas, metricas_campanhas |
-| Gestão Júlia | 7 | diretrizes, reports, julia_status, briefing_config, feedbacks_gestor |
-| Infraestrutura | 2 | whatsapp_instances, notificacoes_gestor |
+| Gestão Júlia | 10 | diretrizes, reports, julia_status, briefing_config, feedbacks_gestor, prompts, slack_sessoes |
+| Analytics | 4 | metricas_conversa, avaliacoes_qualidade, metricas_deteccao_bot, sugestoes_prompt |
+| Infraestrutura | 4 | whatsapp_instances, notificacoes_gestor, slack_comandos, briefing_sync_log |
 
-**Detalhes completos:** `docs/DATABASE.md`
+**Detalhes completos:** `docs/04-BANCO-DE-DADOS.md`
 
 ---
 
