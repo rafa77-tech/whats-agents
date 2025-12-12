@@ -196,14 +196,16 @@ uv run pytest tests/ -v -k "slack"
 ```
 
 **DoD:**
-- [ ] Diretorio `app/services/slack/formatter/` criado
-- [ ] `primitives.py` com 7 funcoes (~50 linhas)
-- [ ] `converters.py` com 4 funcoes (~80 linhas)
-- [ ] `templates.py` com templates movidos (~300 linhas)
-- [ ] `__init__.py` com re-exports
-- [ ] `slack_formatter.py` original com deprecation warning
-- [ ] Todos os testes passando
-- [ ] Commit: `refactor(slack): reorganiza formatter em modulos`
+- [x] Diretorio `app/services/slack/formatter/` criado
+- [x] `primitives.py` com 8 funcoes (60 linhas)
+- [x] `converters.py` com 6 funcoes (100 linhas)
+- [x] `templates.py` com templates movidos (340 linhas)
+- [x] `__init__.py` com re-exports
+- [x] `slack_formatter.py` original com deprecation warning
+- [x] Todos os testes passando (59 slack tests)
+- [x] Commit: `refactor(slack): reorganiza formatter em modulos`
+
+**Status:** 🟢 Concluida
 
 ---
 
