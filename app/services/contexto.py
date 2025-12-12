@@ -10,11 +10,9 @@ from app.config.especialidades import obter_config_especialidade
 from app.services.redis import cache_get_json, cache_set_json
 from app.services.supabase import supabase
 from app.services.memoria import enriquecer_contexto_com_memorias
+from app.core.config import DatabaseConfig
 
 logger = logging.getLogger(__name__)
-
-# TTL do cache em segundos
-CACHE_TTL_CONTEXTO = 120  # 2 minutos
 
 # Dias da semana em portugues
 DIAS_SEMANA = ["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"]
@@ -300,7 +298,7 @@ async def montar_contexto_completo(
         await cache_set_json(cache_key, {
             "medico": contexto_medico_str,
             "especialidade": contexto_especialidade_str
-        }, CACHE_TTL_CONTEXTO)
+        }, DatabaseConfig.CACHE_TTL_CONTEXTO)
 
     # Partes dinâmicas sempre buscam (não cachear)
     historico_raw = await carregar_historico(conversa["id"], limite=10)

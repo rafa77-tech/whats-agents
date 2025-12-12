@@ -11,16 +11,13 @@ from typing import Any
 
 import anthropic
 
-from app.core.config import settings
+from app.core.config import settings, DatabaseConfig
 from app.services.supabase import supabase
 from app.tools.slack_tools import SLACK_TOOLS, TOOLS_CRITICAS, executar_tool
 from app.services import slack_formatter as fmt
 from app.services.tipos_abordagem import TipoAbordagem, inferir_tipo, descrever_tipo
 
 logger = logging.getLogger(__name__)
-
-# Timeout de sessao em minutos
-SESSION_TIMEOUT_MINUTES = 30
 
 
 # =============================================================================
@@ -191,7 +188,7 @@ class AgenteSlack:
     async def _salvar_sessao(self):
         """Salva sessao no banco."""
         try:
-            expires_at = datetime.now(timezone.utc) + timedelta(minutes=SESSION_TIMEOUT_MINUTES)
+            expires_at = datetime.now(timezone.utc) + timedelta(minutes=DatabaseConfig.SESSION_TIMEOUT_MINUTES)
 
             # Limitar historico a ultimas 20 mensagens
             mensagens_limitadas = self.mensagens[-20:] if len(self.mensagens) > 20 else self.mensagens

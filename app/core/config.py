@@ -70,6 +70,37 @@ class Settings(BaseSettings):
         extra = "ignore"  # Ignora variáveis extras do .env
 
 
+class DatabaseConfig:
+    """
+    Configuracoes centralizadas de banco de dados e cache.
+
+    Sprint 10 - S10.E1.4
+    """
+
+    # Cache TTLs (segundos)
+    CACHE_TTL_CONTEXTO: int = 120  # 2 minutos - contexto de conversa
+    CACHE_TTL_MEDICO: int = 300  # 5 minutos - dados de medico
+    CACHE_TTL_VAGAS: int = 60  # 1 minuto - vagas mudam frequentemente
+    CACHE_TTL_ABERTURA: int = 86400 * 30  # 30 dias - aberturas usadas
+    CACHE_TTL_HOSPITAIS: int = 3600  # 1 hora - hospitais raramente mudam
+    CACHE_TTL_PROMPTS: int = 300  # 5 minutos - prompts do sistema
+
+    # Session timeouts
+    SESSION_TIMEOUT_MINUTES: int = 30  # Sessao Slack
+
+    # Limites de query
+    MAX_RESULTS_DEFAULT: int = 100
+    MAX_RESULTS_ABSOLUTE: int = 1000
+
+    # Intervalos de timing
+    INTERVALO_MIN_SEGUNDOS: int = 45
+    INTERVALO_MAX_SEGUNDOS: int = 180
+
+    # Retry
+    MAX_RETRIES: int = 3
+    RETRY_DELAY_SECONDS: float = 0.5
+
+
 @lru_cache()
 def get_settings() -> Settings:
     """Retorna instância cacheada das configurações."""

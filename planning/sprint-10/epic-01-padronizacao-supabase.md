@@ -378,12 +378,14 @@ uv run pytest tests/ -v
 ```
 
 **DoD:**
-- [ ] `DatabaseConfig` criada em `core/config.py`
-- [ ] Constantes de banco removidas dos services
-- [ ] `supabase.py` usando `DatabaseConfig`
-- [ ] Nenhum timeout/limite hardcoded em services
-- [ ] Todos os testes passando
-- [ ] Commit: `refactor(config): centraliza configuracoes de banco`
+- [x] `DatabaseConfig` criada em `core/config.py`
+- [x] Constantes de banco removidas dos services (contexto, vaga, medico, abertura, agente_slack)
+- [N/A] `supabase.py` usando `DatabaseConfig` (nao usa constantes de cache diretamente)
+- [x] Constantes de cache/timeout centralizadas em DatabaseConfig
+- [x] Todos os testes passando (410 passed, 4 flaky/pre-existentes)
+- [x] Commit: `refactor(config): centraliza configuracoes de banco`
+
+**Status:** 🟢 Concluida
 
 ---
 

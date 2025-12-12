@@ -6,11 +6,9 @@ import logging
 
 from app.services.supabase import supabase
 from app.services.redis import cache_get_json, cache_set_json, cache_delete
+from app.core.config import DatabaseConfig
 
 logger = logging.getLogger(__name__)
-
-# TTL do cache em segundos
-CACHE_TTL_MEDICO = 300  # 5 minutos
 
 
 async def buscar_medico_por_telefone(telefone: str) -> Optional[dict]:
@@ -45,7 +43,7 @@ async def buscar_medico_por_telefone(telefone: str) -> Optional[dict]:
         
         # Salvar no cache se encontrado
         if medico:
-            await cache_set_json(cache_key, medico, CACHE_TTL_MEDICO)
+            await cache_set_json(cache_key, medico, DatabaseConfig.CACHE_TTL_MEDICO)
         
         return medico
     except Exception as e:

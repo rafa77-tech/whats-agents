@@ -18,11 +18,9 @@ from app.templates.aberturas import (
 )
 from app.services.redis import cache_get, cache_set
 from app.services.supabase import supabase
+from app.core.config import DatabaseConfig
 
 logger = logging.getLogger(__name__)
-
-# Cache de ultima abertura usada por medico
-CACHE_TTL_ABERTURA = 86400 * 30  # 30 dias
 
 
 async def obter_abertura(
@@ -143,7 +141,7 @@ async def _get_ultima_abertura(cliente_id: str) -> Optional[dict]:
         if response.data and response.data[0].get("ultima_abertura"):
             abertura = response.data[0]["ultima_abertura"]
             # Cachear
-            await cache_set(cache_key, json.dumps(abertura), CACHE_TTL_ABERTURA)
+            await cache_set(cache_key, json.dumps(abertura), DatabaseConfig.CACHE_TTL_ABERTURA)
             return abertura
 
     except Exception as e:
@@ -170,7 +168,7 @@ async def _salvar_abertura_usada(
 
     # Cache
     cache_key = f"abertura:ultima:{cliente_id}"
-    await cache_set(cache_key, json.dumps(abertura), CACHE_TTL_ABERTURA)
+    await cache_set(cache_key, json.dumps(abertura), DatabaseConfig.CACHE_TTL_ABERTURA)
 
     # Banco (async, nao bloqueia)
     try:

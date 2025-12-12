@@ -9,11 +9,9 @@ from app.services.supabase import supabase
 from app.config.especialidades import obter_config_especialidade
 from app.config.regioes import detectar_regiao_por_telefone
 from app.services.redis import cache_get_json, cache_set_json, cache_delete
+from app.core.config import DatabaseConfig
 
 logger = logging.getLogger(__name__)
-
-# TTL do cache em segundos
-CACHE_TTL_VAGAS = 60  # 1 minuto (vagas mudam frequentemente)
 
 
 async def buscar_vagas_compativeis(
@@ -88,7 +86,7 @@ async def buscar_vagas_compativeis(
     vagas_finais = vagas[:limite]
     
     # Salvar no cache
-    await cache_set_json(cache_key, vagas_finais, CACHE_TTL_VAGAS)
+    await cache_set_json(cache_key, vagas_finais, DatabaseConfig.CACHE_TTL_VAGAS)
     
     return vagas_finais
 
