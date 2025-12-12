@@ -4,7 +4,7 @@ Carregador de prompts com cache.
 import logging
 from typing import Optional
 
-from app.services.supabase import get_supabase
+from app.services.supabase import supabase
 from app.services.redis import cache_get, cache_set, cache_delete
 
 logger = logging.getLogger(__name__)
@@ -82,8 +82,6 @@ async def carregar_prompt(nome: str, versao: str = None) -> Optional[str]:
         return cached
 
     try:
-        supabase = get_supabase()
-
         # Buscar no banco
         query = supabase.table("prompts").select("conteudo")
 
@@ -132,8 +130,6 @@ async def carregar_prompt_especialidade(especialidade_id: str) -> Optional[str]:
         return cached
 
     try:
-        supabase = get_supabase()
-
         response = (
             supabase.table("prompts")
             .select("conteudo")
@@ -172,8 +168,6 @@ async def listar_prompts() -> list[dict]:
         Lista de prompts com metadados
     """
     try:
-        supabase = get_supabase()
-
         response = (
             supabase.table("prompts")
             .select("id, nome, versao, tipo, ativo, descricao, created_at")
@@ -201,8 +195,6 @@ async def ativar_versao(nome: str, versao: str) -> bool:
         True se ativou com sucesso
     """
     try:
-        supabase = get_supabase()
-
         # O trigger cuida de desativar o anterior
         response = (
             supabase.table("prompts")

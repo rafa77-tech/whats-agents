@@ -34,7 +34,17 @@ supabase = get_supabase_client()
 
 
 def get_supabase() -> Client:
-    """Retorna instancia do cliente Supabase."""
+    """
+    DEPRECATED: Use `from app.services.supabase import supabase` diretamente.
+
+    Esta funcao sera removida em versao futura.
+    """
+    import warnings
+    warnings.warn(
+        "get_supabase() is deprecated. Use 'from app.services.supabase import supabase' directly.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     return supabase
 
 

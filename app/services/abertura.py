@@ -17,7 +17,7 @@ from app.templates.aberturas import (
     montar_abertura_completa
 )
 from app.services.redis import cache_get, cache_set
-from app.services.supabase import get_supabase
+from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +132,6 @@ async def _get_ultima_abertura(cliente_id: str) -> Optional[dict]:
 
     # Buscar no banco
     try:
-        supabase = get_supabase()
         response = (
             supabase.table("clientes")
             .select("ultima_abertura")
@@ -175,7 +174,6 @@ async def _salvar_abertura_usada(
 
     # Banco (async, nao bloqueia)
     try:
-        supabase = get_supabase()
         supabase.table("clientes").update({
             "ultima_abertura": abertura
         }).eq("id", cliente_id).execute()
@@ -259,7 +257,6 @@ async def resetar_abertura_cliente(cliente_id: str) -> bool:
         await cache_delete(cache_key)
 
         # Limpar banco
-        supabase = get_supabase()
         supabase.table("clientes").update({
             "ultima_abertura": None
         }).eq("id", cliente_id).execute()

@@ -9,7 +9,7 @@ from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 import logging
 
-from app.services.supabase import get_supabase
+from app.services.supabase import supabase
 from app.services.handoff import iniciar_handoff, finalizar_handoff
 
 logger = logging.getLogger(__name__)
@@ -68,8 +68,6 @@ async def processar_conversation_updated(payload: dict):
     logger.info(
         f"Conversa {chatwoot_conversation_id} atualizada, labels: {labels}"
     )
-
-    supabase = get_supabase()
 
     # Buscar nossa conversa pelo chatwoot_conversation_id
     response = (
@@ -185,9 +183,6 @@ async def chatwoot_sync_ids(telefone: str):
         telefone: Telefone no formato 5511999999999
     """
     from app.services.chatwoot import sincronizar_ids_chatwoot
-    from app.services.supabase import get_supabase
-
-    supabase = get_supabase()
 
     # Buscar cliente pelo telefone
     response = supabase.table("clientes").select("id, telefone, primeiro_nome").eq("telefone", telefone).execute()

@@ -8,7 +8,7 @@ import logging
 from app.services.interacao import carregar_historico, formatar_historico_para_llm
 from app.config.especialidades import obter_config_especialidade
 from app.services.redis import cache_get_json, cache_set_json
-from app.services.supabase import get_supabase
+from app.services.supabase import supabase
 from app.services.memoria import enriquecer_contexto_com_memorias
 
 logger = logging.getLogger(__name__)
@@ -116,8 +116,6 @@ async def verificar_handoff_recente(conversa_id: str, horas: int = 24) -> Option
     Returns:
         Dados do handoff se encontrado, None caso contrario
     """
-    supabase = get_supabase()
-
     try:
         limite_tempo = (datetime.utcnow() - timedelta(hours=horas)).isoformat()
 
@@ -216,8 +214,6 @@ async def carregar_diretrizes_ativas() -> dict:
     Returns:
         Dict com diretrizes por tipo
     """
-    supabase = get_supabase()
-
     try:
         response = (
             supabase.table("diretrizes")

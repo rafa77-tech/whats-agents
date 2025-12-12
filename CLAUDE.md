@@ -14,9 +14,9 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 ## Estado Atual
 
-**Sprint Atual:** 9 - Julia como Colega no Slack
+**Sprint Atual:** 10 - Refatoracao e Divida Tecnica
 **Início do Projeto:** 05/12/2025
-**Última Atualização:** 11/12/2025
+**Última Atualização:** 12/12/2025
 
 ### Métricas do Projeto
 
@@ -43,6 +43,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 7 | Briefing Google Docs | ✅ Completa |
 | 8 | Memória & Pipeline | ✅ Completa |
 | 9 | Julia no Slack (NLP) | ✅ Completa |
+| 10 | Refatoracao e Divida Tecnica | 🟡 Em andamento |
 
 ### Funcionalidades Implementadas
 
@@ -210,7 +211,7 @@ CRM, RG e dados bancários, blz?
 │   └── ...                     # Outros docs
 │
 ├── planning/                   # Sprints e épicos
-│   ├── sprint-0/ a sprint-9/   # Planejamento de cada sprint
+│   ├── sprint-0/ a sprint-10/  # Planejamento de cada sprint
 │   └── README.md               # Visão geral do roadmap
 │
 ├── docker-compose.yml          # Evolution, Chatwoot, Redis

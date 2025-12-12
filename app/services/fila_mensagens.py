@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from app.services.supabase import get_supabase
+from app.services.supabase import supabase
 from app.services.timing import proximo_horario_comercial
 from app.services.whatsapp import enviar_com_digitacao
 
@@ -30,8 +30,6 @@ async def agendar_resposta(
     Returns:
         Dados da mensagem agendada ou None se erro
     """
-    supabase = get_supabase()
-
     try:
         response = (
             supabase.table("mensagens_agendadas")
@@ -61,7 +59,6 @@ async def processar_mensagens_agendadas():
 
     Executar via cron a cada minuto.
     """
-    supabase = get_supabase()
     agora = datetime.now()
 
     try:

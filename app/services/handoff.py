@@ -6,7 +6,7 @@ import random
 import logging
 from typing import Optional
 
-from app.services.supabase import get_supabase
+from app.services.supabase import supabase
 from app.services.slack import notificar_handoff
 from app.services.whatsapp import evolution
 from app.services.chatwoot import chatwoot_service
@@ -77,8 +77,6 @@ async def iniciar_handoff(
     Returns:
         Dados do handoff criado ou None se erro
     """
-    supabase = get_supabase()
-
     try:
         # Buscar conversa com dados do cliente
         conversa_response = (
@@ -231,8 +229,6 @@ async def finalizar_handoff(
     Returns:
         True se sucesso
     """
-    supabase = get_supabase()
-
     try:
         # 1. Buscar conversa com dados do cliente para notificação
         conversa_response = (
@@ -320,8 +316,6 @@ async def resolver_handoff(
     Returns:
         Dados do handoff atualizado ou None se erro
     """
-    supabase = get_supabase()
-
     try:
         update_data = {
             "status": "resolvido",
@@ -361,8 +355,6 @@ async def listar_handoffs_pendentes() -> list:
     Returns:
         Lista de handoffs pendentes com dados da conversa e cliente
     """
-    supabase = get_supabase()
-
     try:
         # Buscar handoffs pendentes
         handoffs_response = (
@@ -410,8 +402,6 @@ async def obter_metricas_handoff(periodo_dias: int = 30) -> dict:
     Returns:
         Dict com métricas agregadas
     """
-    supabase = get_supabase()
-
     try:
         data_inicio = (datetime.now() - timedelta(days=periodo_dias)).isoformat()
 
@@ -479,8 +469,6 @@ async def verificar_handoff_ativo(conversa_id: str) -> bool:
     Returns:
         True se conversa esta sob controle humano
     """
-    supabase = get_supabase()
-
     try:
         response = (
             supabase.table("conversations")

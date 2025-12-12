@@ -10,7 +10,7 @@ import logging
 from typing import Optional
 
 from app.core.config import settings
-from app.services.supabase import get_supabase
+from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
 
@@ -293,7 +293,6 @@ async def sincronizar_ids_chatwoot(cliente_id: str, telefone: str) -> dict:
     Returns:
         Dict com chatwoot_contact_id e chatwoot_conversation_id
     """
-    supabase = get_supabase()
     resultado = {
         "chatwoot_contact_id": None,
         "chatwoot_conversation_id": None
