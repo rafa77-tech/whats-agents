@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 import logging
 
-from app.services.supabase import supabase
+from app.services.supabase import supabase, contar_interacoes_periodo
 from app.services.slack import enviar_slack
 
 logger = logging.getLogger(__name__)
@@ -62,25 +62,9 @@ async def gerar_report_periodo(tipo: str = "manha") -> dict:
 async def _coletar_metricas_periodo(inicio: datetime, fim: datetime) -> dict:
     """Coleta metricas do periodo."""
     try:
-        # Mensagens enviadas
-        enviadas_resp = (
-            supabase.table("interacoes")
-            .select("id", count="exact")
-            .eq("direcao", "saida")
-            .gte("created_at", inicio.isoformat())
-            .lte("created_at", fim.isoformat())
-            .execute()
-        )
-
-        # Mensagens recebidas (respostas)
-        recebidas_resp = (
-            supabase.table("interacoes")
-            .select("id", count="exact")
-            .eq("direcao", "entrada")
-            .gte("created_at", inicio.isoformat())
-            .lte("created_at", fim.isoformat())
-            .execute()
-        )
+        # Mensagens enviadas e recebidas usando helper centralizado
+        total_enviadas = await contar_interacoes_periodo(inicio, fim, direcao="saida")
+        total_recebidas = await contar_interacoes_periodo(inicio, fim, direcao="entrada")
 
         # Plantoes fechados
         plantoes_resp = (
@@ -105,8 +89,6 @@ async def _coletar_metricas_periodo(inicio: datetime, fim: datetime) -> dict:
         from app.services.deteccao_bot import calcular_taxa_deteccao_periodo
         deteccao = await calcular_taxa_deteccao_periodo(inicio, fim)
 
-        total_enviadas = enviadas_resp.count or 0
-        total_recebidas = recebidas_resp.count or 0
         taxa_resposta = (total_recebidas / total_enviadas * 100) if total_enviadas > 0 else 0
 
         return {

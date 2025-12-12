@@ -237,7 +237,9 @@ uv run pytest tests/test_supabase_helpers.py -v
 - [x] Cada helper com type hints completos
 - [x] Cada helper com docstring explicativa
 - [x] Testes para cada helper (minimo 2 casos por helper) - 18 testes criados
-- [ ] Commit: `feat(supabase): adiciona helpers de queries comuns`
+- [x] Commit: `feat(supabase): adiciona helpers de queries comuns`
+
+**Status:** 🟢 Concluida (commit b63d6bc)
 
 ---
 
@@ -296,13 +298,18 @@ uv run pytest tests/ -v -k "handoff or campanha or relatorio or metricas or medi
 ```
 
 **DoD:**
-- [ ] `handoff.py` usando helpers (2 substituicoes)
-- [ ] `campanha.py` usando helpers (1 substituicao)
-- [ ] `relatorio.py` usando helpers (2 substituicoes)
-- [ ] `metricas.py` usando helpers (1 substituicao)
-- [ ] `medico.py` usando helpers (1 substituicao)
-- [ ] Todos os testes passando
-- [ ] Commit: `refactor: substitui queries duplicadas por helpers centralizados`
+- [N/A] `handoff.py` - queries tem filtros customizados (periodo), helper nao aplicavel
+- [N/A] `campanha.py` - queries sao para tabela `envios_campanha`, nao interacoes
+- [x] `relatorio.py` usando helpers (2 substituicoes - contagem de interacoes)
+- [N/A] `metricas.py` - nao possui queries de interacoes
+- [N/A] `medico.py` - query usa select de campos especificos, diferente do helper
+- [x] Todos os testes passando (411 passed, 3 pre-existentes failed)
+- [x] Commit: `refactor: substitui queries duplicadas por helpers centralizados`
+
+**Nota:** Analise real revelou menos duplicacao do que previsto. Outras queries
+usam filtros/selects especificos que nao se adequam aos helpers genericos.
+
+**Status:** 🟢 Concluida
 
 ---
 
