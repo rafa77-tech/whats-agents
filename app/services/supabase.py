@@ -224,3 +224,198 @@ async def marcar_optout(cliente_id: str) -> dict | None:
 
     response = await _executar_com_circuit_breaker(_update)
     return response.data[0] if response.data else None
+
+
+# =============================================================================
+# HELPERS CENTRALIZADOS (Sprint 10 - S10.E1.2)
+# =============================================================================
+
+async def contar_interacoes_periodo(
+    inicio: datetime,
+    fim: datetime,
+    direcao: Optional[str] = None,
+    cliente_id: Optional[str] = None
+) -> int:
+    """
+    Conta interacoes em um periodo.
+
+    Args:
+        inicio: Data/hora inicial
+        fim: Data/hora final
+        direcao: 'entrada' ou 'saida' (opcional)
+        cliente_id: Filtrar por cliente/medico (opcional)
+
+    Returns:
+        Numero de interacoes
+
+    Example:
+        >>> count = await contar_interacoes_periodo(
+        ...     inicio=datetime(2024, 1, 1),
+        ...     fim=datetime(2024, 1, 31),
+        ...     direcao="saida"
+        ... )
+    """
+    def _query():
+        query = supabase.table("interacoes").select("id", count="exact")
+        query = query.gte("created_at", inicio.isoformat())
+        query = query.lte("created_at", fim.isoformat())
+
+        if direcao:
+            query = query.eq("direcao", direcao)
+        if cliente_id:
+            query = query.eq("cliente_id", cliente_id)
+
+        return query.execute()
+
+    response = await _executar_com_circuit_breaker(_query)
+    return response.count or 0
+
+
+async def buscar_medico_por_telefone(telefone: str) -> Optional[dict]:
+    """
+    Busca medico pelo telefone.
+
+    Args:
+        telefone: Numero do telefone (com ou sem formatacao)
+
+    Returns:
+        Dict com dados do medico ou None
+
+    Example:
+        >>> medico = await buscar_medico_por_telefone("11999887766")
+    """
+    telefone_limpo = "".join(filter(str.isdigit, telefone))
+
+    def _query():
+        return supabase.table("clientes").select("*").eq("telefone", telefone_limpo).execute()
+
+    response = await _executar_com_circuit_breaker(_query)
+    return response.data[0] if response.data else None
+
+
+async def buscar_conversa_ativa(cliente_id: str) -> Optional[dict]:
+    """
+    Busca conversa ativa de um cliente/medico.
+
+    Args:
+        cliente_id: ID do cliente
+
+    Returns:
+        Dict com dados da conversa ou None
+
+    Example:
+        >>> conversa = await buscar_conversa_ativa("uuid-do-cliente")
+    """
+    def _query():
+        return (
+            supabase.table("conversations")
+            .select("*")
+            .eq("cliente_id", cliente_id)
+            .eq("status", "active")
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+    response = await _executar_com_circuit_breaker(_query)
+    return response.data[0] if response.data else None
+
+
+async def listar_handoffs_pendentes() -> list[dict]:
+    """
+    Lista todos os handoffs pendentes de resolucao.
+
+    Returns:
+        Lista de handoffs com dados do cliente
+
+    Example:
+        >>> pendentes = await listar_handoffs_pendentes()
+        >>> print(f"{len(pendentes)} handoffs aguardando")
+    """
+    def _query():
+        return (
+            supabase.table("handoffs")
+            .select("*, conversations(*, clientes(*))")
+            .eq("status", "pendente")
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+    response = await _executar_com_circuit_breaker(_query)
+    return response.data or []
+
+
+async def buscar_vagas_disponiveis(
+    especialidade_id: Optional[str] = None,
+    regiao: Optional[str] = None,
+    limite: int = 10
+) -> list[dict]:
+    """
+    Busca vagas disponiveis com filtros.
+
+    Args:
+        especialidade_id: Filtrar por especialidade (opcional)
+        regiao: Filtrar por regiao (opcional)
+        limite: Maximo de resultados (default: 10)
+
+    Returns:
+        Lista de vagas com dados do hospital e especialidade
+
+    Example:
+        >>> vagas = await buscar_vagas_disponiveis(limite=5)
+    """
+    def _query():
+        query = (
+            supabase.table("vagas")
+            .select("*, hospitais(nome, endereco), especialidades(nome)")
+            .eq("status", "aberta")
+            .gte("data", datetime.now(timezone.utc).date().isoformat())
+        )
+
+        if especialidade_id:
+            query = query.eq("especialidade_id", especialidade_id)
+        if regiao:
+            query = query.eq("regiao", regiao)
+
+        return query.order("data").limit(limite).execute()
+
+    response = await _executar_com_circuit_breaker(_query)
+    return response.data or []
+
+
+async def atualizar_controle_conversa(
+    conversa_id: str,
+    controlled_by: str,
+    motivo: Optional[str] = None
+) -> bool:
+    """
+    Atualiza quem controla a conversa (ai ou human).
+
+    Args:
+        conversa_id: ID da conversa
+        controlled_by: 'ai' ou 'human'
+        motivo: Motivo da mudanca (opcional)
+
+    Returns:
+        True se atualizou com sucesso
+
+    Example:
+        >>> await atualizar_controle_conversa("uuid", "human", "pedido do medico")
+    """
+    def _update():
+        data = {
+            "controlled_by": controlled_by,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        if motivo:
+            data["escalation_reason"] = motivo
+
+        return (
+            supabase.table("conversations")
+            .update(data)
+            .eq("id", conversa_id)
+            .execute()
+        )
+
+    response = await _executar_com_circuit_breaker(_update)
+    return len(response.data) > 0 if response.data else False

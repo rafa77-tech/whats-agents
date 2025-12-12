@@ -97,10 +97,12 @@ uv run pytest tests/ -v
 ```
 
 **DoD:**
-- [ ] Zero chamadas a `get_supabase()` fora de `supabase.py`
-- [ ] `get_supabase()` marcada como deprecated com warning
-- [ ] Todos os testes passando
-- [ ] Commit com mensagem: `refactor(supabase): padroniza import direto do singleton`
+- [x] Zero chamadas a `get_supabase()` fora de `supabase.py`
+- [x] `get_supabase()` marcada como deprecated com warning
+- [x] Todos os testes passando
+- [x] Commit com mensagem: `refactor(supabase): padroniza import direto do singleton`
+
+**Status:** 🟢 Concluida (commit 1177a72)
 
 ---
 
@@ -231,10 +233,10 @@ uv run pytest tests/test_supabase_helpers.py -v
 ```
 
 **DoD:**
-- [ ] 5 helpers criados em `supabase.py`
-- [ ] Cada helper com type hints completos
-- [ ] Cada helper com docstring explicativa
-- [ ] Testes para cada helper (minimo 2 casos por helper)
+- [x] 5 helpers criados em `supabase.py` (6 criados: +atualizar_controle_conversa)
+- [x] Cada helper com type hints completos
+- [x] Cada helper com docstring explicativa
+- [x] Testes para cada helper (minimo 2 casos por helper) - 18 testes criados
 - [ ] Commit: `feat(supabase): adiciona helpers de queries comuns`
 
 ---
