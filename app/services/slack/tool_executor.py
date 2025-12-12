@@ -7,7 +7,7 @@ import json
 import logging
 from typing import Any
 
-from app.tools.slack_tools import TOOLS_CRITICAS, executar_tool
+from app.tools.slack import TOOLS_CRITICAS, executar_tool
 from app.services.slack.formatter import (
     formatar_telefone,
     formatar_data,

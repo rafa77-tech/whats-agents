@@ -218,7 +218,7 @@ class TestToolExecution:
     """Testes de execução de tools."""
 
     @pytest.mark.asyncio
-    @patch("app.tools.slack_tools.supabase")
+    @patch("app.tools.slack.metricas.supabase")
     async def test_buscar_metricas_hoje(self, mock_supabase):
         """Verifica busca de métricas."""
         # Mock das queries
@@ -230,7 +230,7 @@ class TestToolExecution:
         assert "metricas" in result
 
     @pytest.mark.asyncio
-    @patch("app.tools.slack_tools.supabase")
+    @patch("app.tools.slack.sistema.supabase")
     async def test_status_sistema(self, mock_supabase):
         """Verifica status do sistema."""
         mock_supabase.table.return_value.select.return_value.order.return_value.limit.return_value.execute.return_value = MagicMock(
@@ -303,7 +303,7 @@ class TestCompararPeriodos:
     """Testes da tool comparar_periodos."""
 
     @pytest.mark.asyncio
-    @patch("app.tools.slack_tools.supabase")
+    @patch("app.tools.slack.metricas.supabase")
     async def test_comparar_semana_vs_semana_passada(self, mock_supabase):
         """Verifica comparação entre semanas."""
         mock_supabase.table.return_value.select.return_value.eq.return_value.gte.return_value.lte.return_value.execute.return_value = MagicMock(count=10)

@@ -12,7 +12,7 @@ from typing import Any
 import anthropic
 
 from app.core.config import settings
-from app.tools.slack_tools import SLACK_TOOLS
+from app.tools.slack import SLACK_TOOLS
 from app.services.slack.session import SessionManager
 from app.services.slack.tool_executor import ToolExecutor
 from app.services.slack.prompts import SYSTEM_PROMPT_AGENTE
