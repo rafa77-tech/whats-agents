@@ -65,7 +65,7 @@ class TestAgenteSlack:
         assert agente.sessao is None
 
     @pytest.mark.asyncio
-    @patch("app.services.agente_slack.supabase")
+    @patch("app.services.slack.session.supabase")
     async def test_criar_sessao(self, mock_supabase):
         """Verifica criação de nova sessão."""
         mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
@@ -174,8 +174,8 @@ class TestConfirmacao:
             "contexto": {}
         }
 
-        # Mock da execução
-        with patch("app.services.agente_slack.executar_tool") as mock_exec:
+        # Mock da execução (patch no tool_executor onde executar_tool eh importado)
+        with patch("app.services.slack.tool_executor.executar_tool") as mock_exec:
             mock_exec.return_value = {"success": True, "nome": "Dr Carlos"}
 
             resposta = await agente._processar_confirmacao("sim")

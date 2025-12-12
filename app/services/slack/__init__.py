@@ -2,8 +2,12 @@
 Servicos Slack.
 
 Modulo principal para integracao com Slack.
-Sprint 10 - S10.E2.1
+Sprint 10 - S10.E2.1, S10.E2.2
 """
+from .agent import AgenteSlack, processar_mensagem_slack
+from .session import SessionManager
+from .tool_executor import ToolExecutor
+from .prompts import SYSTEM_PROMPT_AGENTE
 from .formatter import (
     bold,
     italic,
@@ -37,6 +41,12 @@ from .formatter import (
 )
 
 __all__ = [
+    # Agent components
+    "AgenteSlack",
+    "processar_mensagem_slack",
+    "SessionManager",
+    "ToolExecutor",
+    "SYSTEM_PROMPT_AGENTE",
     # Primitives
     "bold",
     "italic",
