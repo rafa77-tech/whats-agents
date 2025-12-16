@@ -33,14 +33,16 @@ logger = logging.getLogger(__name__)
 class ToolExecutor:
     """Executa tools do agente Slack."""
 
-    def __init__(self, user_id: str):
+    def __init__(self, user_id: str, channel_id: str = ""):
         """
         Inicializa o executor.
 
         Args:
             user_id: ID do usuario Slack
+            channel_id: ID do canal Slack
         """
         self.user_id = user_id
+        self.channel_id = channel_id
 
     def is_tool_critica(self, tool_name: str) -> bool:
         """Verifica se tool requer confirmacao."""
@@ -58,7 +60,7 @@ class ToolExecutor:
             Resultado da execucao
         """
         logger.info(f"Executando tool: {tool_name} com params {tool_input}")
-        return await executar_tool(tool_name, tool_input, self.user_id)
+        return await executar_tool(tool_name, tool_input, self.user_id, self.channel_id)
 
     def gerar_preview(self, tool_name: str, tool_input: dict) -> str:
         """

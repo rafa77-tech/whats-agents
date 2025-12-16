@@ -36,7 +36,7 @@ class AgenteSlack:
         self.channel_id = channel_id
         self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
         self.session = SessionManager(user_id, channel_id)
-        self.executor = ToolExecutor(user_id)
+        self.executor = ToolExecutor(user_id, channel_id)
 
     # =========================================================================
     # PROPRIEDADES DE COMPATIBILIDADE (backward compat para testes)
@@ -107,6 +107,12 @@ class AgenteSlack:
             resposta = await self._processar_confirmacao(texto)
             if resposta:
                 return resposta
+
+        # Verificar se tem briefing aguardando aprovacao
+        resposta_briefing = await self._verificar_briefing_pendente(texto)
+        if resposta_briefing:
+            await self.session.salvar()
+            return resposta_briefing
 
         # Chamar LLM com tools
         resposta = await self._chamar_llm()
@@ -278,6 +284,47 @@ class AgenteSlack:
 
         # Nao foi confirmacao nem cancelamento, continuar conversa normal
         return None
+
+    async def _verificar_briefing_pendente(self, texto: str) -> str | None:
+        """
+        Verifica se tem briefing aguardando aprovacao e processa resposta.
+
+        Args:
+            texto: Mensagem do usuario
+
+        Returns:
+            Resposta se processou briefing, None se nao tinha pendente
+        """
+        try:
+            from app.services.briefing_aprovacao import (
+                get_aprovacao_service,
+                StatusAprovacao
+            )
+
+            service = get_aprovacao_service()
+            briefing = await service.buscar_pendente(self.channel_id)
+
+            if not briefing:
+                return None
+
+            # Tem briefing pendente - processar resposta
+            logger.info(f"Briefing pendente encontrado: {briefing.doc_nome}")
+
+            status, mensagem = await service.processar_resposta(briefing, texto)
+
+            # Se foi aprovado, guardar no contexto
+            if status == StatusAprovacao.APROVADO:
+                self.session.atualizar_contexto("briefing_aprovado", {
+                    "id": briefing.id,
+                    "doc_nome": briefing.doc_nome,
+                    "doc_id": briefing.doc_id
+                })
+
+            return mensagem
+
+        except Exception as e:
+            logger.error(f"Erro ao verificar briefing pendente: {e}")
+            return None
 
     def _preparar_contexto(self) -> str:
         """Prepara contexto para o system prompt."""

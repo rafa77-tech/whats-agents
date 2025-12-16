@@ -98,7 +98,7 @@ TOOLS_CRITICAS = {
 # EXECUTOR CENTRAL
 # =============================================================================
 
-async def executar_tool(nome: str, params: dict, user_id: str) -> dict[str, Any]:
+async def executar_tool(nome: str, params: dict, user_id: str, channel_id: str = "") -> dict[str, Any]:
     """
     Executa uma tool pelo nome.
 
@@ -106,6 +106,7 @@ async def executar_tool(nome: str, params: dict, user_id: str) -> dict[str, Any]
         nome: Nome da tool
         params: Parametros da tool
         user_id: ID do usuario Slack
+        channel_id: ID do canal Slack (opcional, usado por algumas tools)
 
     Returns:
         Resultado da execucao
@@ -125,7 +126,7 @@ async def executar_tool(nome: str, params: dict, user_id: str) -> dict[str, Any]
         "buscar_historico": handle_buscar_historico,
         "pausar_julia": lambda p: handle_pausar_julia(p, user_id),
         "retomar_julia": lambda p: handle_retomar_julia(p, user_id),
-        "processar_briefing": handle_processar_briefing,
+        "processar_briefing": lambda p: handle_processar_briefing(p, channel_id, user_id),
     }
 
     handler = handlers.get(nome)

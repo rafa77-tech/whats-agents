@@ -57,7 +57,7 @@ Se o nome nao for especificado ou for muito vago, liste os documentos disponivei
 # HANDLER
 # =============================================================================
 
-async def handle_processar_briefing(params: dict) -> dict[str, Any]:
+async def handle_processar_briefing(params: dict, channel_id: str = "", user_id: str = "") -> dict[str, Any]:
     """
     Handler para processar briefing.
 
@@ -66,6 +66,11 @@ async def handle_processar_briefing(params: dict) -> dict[str, Any]:
        - Se unico match: le/analisa
        - Se multiplos: pede confirmacao
        - Se nenhum: mostra disponiveis
+
+    Args:
+        params: Parametros da tool
+        channel_id: ID do canal Slack (passado pelo executor)
+        user_id: ID do usuario Slack (passado pelo executor)
     """
     nome = params.get("nome_documento", "").strip()
     acao = params.get("acao", "analisar")
@@ -104,7 +109,7 @@ async def handle_processar_briefing(params: dict) -> dict[str, Any]:
     if acao == "ler":
         return await _ler_briefing(doc_info)
     else:  # analisar
-        return await _iniciar_analise_briefing(doc_info)
+        return await _iniciar_analise_briefing(doc_info, channel_id, user_id)
 
 
 async def _listar_briefings() -> dict[str, Any]:
@@ -161,11 +166,11 @@ async def _ler_briefing(doc_info: DocInfo) -> dict[str, Any]:
     }
 
 
-async def _iniciar_analise_briefing(doc_info: DocInfo) -> dict[str, Any]:
+async def _iniciar_analise_briefing(doc_info: DocInfo, channel_id: str = "", user_id: str = "") -> dict[str, Any]:
     """
     Inicia analise de um briefing.
 
-    Retorna dados para o agente continuar com a analise via Sonnet.
+    Faz a analise completa com Sonnet, escreve no doc e cria registro pendente.
     """
     doc = await ler_documento(doc_info.id)
 
@@ -192,18 +197,50 @@ async def _iniciar_analise_briefing(doc_info: DocInfo) -> dict[str, Any]:
             "mensagem": f"O briefing '{doc.info.nome}' ta praticamente vazio. Pede pro gestor escrever o que ele precisa."
         }
 
-    return {
-        "success": True,
-        "acao": "analisar",
-        "documento": {
-            "nome": doc.info.nome,
-            "id": doc.info.id,
-            "url": doc.info.url,
-            "ultima_modificacao": doc.info.ultima_modificacao.strftime("%d/%m %H:%M"),
-            "ja_processado": doc.ja_processado,
-        },
-        "conteudo": doc.conteudo,
-        "caracteres": len(doc.conteudo),
-        "pronto_para_analise": True,
-        "mensagem": f"Li o briefing '{doc.info.nome}'. Vou analisar e criar um plano."
-    }
+    # Verificar se ja tem plano pendente
+    if doc.ja_processado:
+        return {
+            "success": True,
+            "acao": "ja_processado",
+            "documento": {
+                "nome": doc.info.nome,
+                "id": doc.info.id,
+                "url": doc.info.url,
+            },
+            "mensagem": f"Esse briefing '{doc.info.nome}' ja tem um plano meu. Quer que eu faca uma nova analise?"
+        }
+
+    # Processar briefing completo (analise + escrita + pendente)
+    try:
+        from app.services.briefing_aprovacao import processar_briefing_completo
+
+        briefing_id, mensagem_slack = await processar_briefing_completo(
+            doc_id=doc.info.id,
+            doc_nome=doc.info.nome,
+            conteudo=doc.conteudo,
+            doc_url=doc.info.url,
+            channel_id=channel_id,
+            user_id=user_id
+        )
+
+        return {
+            "success": True,
+            "acao": "analisado",
+            "briefing_id": briefing_id,
+            "documento": {
+                "nome": doc.info.nome,
+                "id": doc.info.id,
+                "url": doc.info.url,
+                "ultima_modificacao": doc.info.ultima_modificacao.strftime("%d/%m %H:%M"),
+            },
+            "mensagem": mensagem_slack,
+            "aguardando_aprovacao": True
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao processar briefing: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "mensagem": f"Ops, tive um problema ao analisar o briefing: {e}"
+        }
