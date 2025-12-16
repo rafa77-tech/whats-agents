@@ -4,6 +4,25 @@ Servicos Slack.
 Modulo principal para integracao com Slack.
 Sprint 10 - S10.E2.1, S10.E2.2
 """
+# Re-export funcoes de notificacao do arquivo slack.py original
+# Workaround para conflito de namespace (diretorio slack/ vs arquivo slack.py)
+import sys
+import importlib.util
+
+# Carregar slack.py diretamente
+_spec = importlib.util.spec_from_file_location(
+    "slack_notifications",
+    str(__file__).replace("slack/__init__.py", "slack.py")
+)
+_slack_notifications = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_slack_notifications)
+
+enviar_slack = _slack_notifications.enviar_slack
+notificar_plantao_reservado = _slack_notifications.notificar_plantao_reservado
+notificar_handoff = _slack_notifications.notificar_handoff
+notificar_handoff_resolvido = _slack_notifications.notificar_handoff_resolvido
+notificar_erro = _slack_notifications.notificar_erro
+
 from .agent import AgenteSlack, processar_mensagem_slack
 from .session import SessionManager
 from .tool_executor import ToolExecutor
@@ -41,6 +60,12 @@ from .formatter import (
 )
 
 __all__ = [
+    # Notifications (from slack.py)
+    "enviar_slack",
+    "notificar_plantao_reservado",
+    "notificar_handoff",
+    "notificar_handoff_resolvido",
+    "notificar_erro",
     # Agent components
     "AgenteSlack",
     "processar_mensagem_slack",
