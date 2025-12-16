@@ -191,6 +191,58 @@ class SaveInteractionProcessor(PostProcessor):
         return ProcessorResult(success=True, response=response)
 
 
+class ChatwootResponseProcessor(PostProcessor):
+    """
+    Sincroniza mensagens com Chatwoot quando ha formato LID.
+
+    A integracao automatica Evolution-Chatwoot pode ter bugs com LID format,
+    entao enviamos diretamente para garantir que as mensagens aparecam
+    corretamente (usuario como incoming, Julia como outgoing).
+
+    Prioridade: 25 (logo apos SendMessage)
+    """
+    name = "chatwoot_response"
+    priority = 25
+
+    async def process(
+        self,
+        context: ProcessorContext,
+        response: str
+    ) -> ProcessorResult:
+        # So sincroniza se tiver ID da conversa do Chatwoot
+        chatwoot_conversation_id = context.metadata.get("chatwoot_conversation_id")
+        if not chatwoot_conversation_id:
+            return ProcessorResult(success=True, response=response)
+
+        try:
+            from app.services.chatwoot import chatwoot_service
+
+            # 1. Enviar mensagem do usuario como incoming (se ainda nao foi sincronizada)
+            if context.mensagem_texto and not context.metadata.get("chatwoot_incoming_sent"):
+                await chatwoot_service.enviar_mensagem(
+                    conversation_id=chatwoot_conversation_id,
+                    content=context.mensagem_texto,
+                    message_type="incoming"
+                )
+                context.metadata["chatwoot_incoming_sent"] = True
+                logger.info(f"Mensagem do usuario sincronizada com Chatwoot conversa {chatwoot_conversation_id}")
+
+            # 2. Enviar resposta da Julia como outgoing (se mensagem foi enviada)
+            if response and context.metadata.get("message_sent"):
+                await chatwoot_service.enviar_mensagem(
+                    conversation_id=chatwoot_conversation_id,
+                    content=response,
+                    message_type="outgoing"
+                )
+                logger.info(f"Resposta sincronizada com Chatwoot conversa {chatwoot_conversation_id}")
+
+        except Exception as e:
+            # Erro na sincronizacao nao deve parar o pipeline
+            logger.warning(f"Erro ao sincronizar com Chatwoot (nao critico): {e}")
+
+        return ProcessorResult(success=True, response=response)
+
+
 class MetricsProcessor(PostProcessor):
     """
     Registra metricas da conversa.

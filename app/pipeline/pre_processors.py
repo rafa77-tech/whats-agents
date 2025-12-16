@@ -66,6 +66,12 @@ class ParseMessageProcessor(PreProcessor):
         context.metadata["nome_contato"] = mensagem.nome_contato
         context.metadata["remote_jid"] = mensagem.remote_jid  # Guardar JID original
 
+        # Guardar IDs do Chatwoot para sincronizacao
+        if mensagem.chatwoot_conversation_id:
+            context.metadata["chatwoot_conversation_id"] = mensagem.chatwoot_conversation_id
+        if mensagem.chatwoot_inbox_id:
+            context.metadata["chatwoot_inbox_id"] = mensagem.chatwoot_inbox_id
+
         return ProcessorResult(success=True)
 
 
