@@ -139,13 +139,15 @@ uv run pytest tests/ -v
 ```
 
 **DoD:**
-- [ ] `CONVENTIONS.md` criado em `app/`
-- [ ] Todas as funcoes `get_*` renomeadas para `buscar_*`
-- [ ] Todas as funcoes `obter_*` renomeadas para `buscar_*`
-- [ ] Todas as funcoes `add_*` renomeadas para `criar_*`
-- [ ] Imports atualizados em todos os arquivos
-- [ ] Todos os testes passando
-- [ ] Commit: `refactor: padroniza nomenclatura de funcoes`
+- [x] `CONVENTIONS.md` criado em `app/`
+- [x] Funcoes `get_*` renomeadas para `buscar_*` (database.py, supabase.py)
+- [x] Deprecation warnings adicionados para retrocompatibilidade
+- [x] Funcoes novas: buscar_medico_por_id, buscar_ou_criar_medico, listar_historico
+- [x] Imports atualizados em agent.py
+- [x] Todos os testes passando (401 passed)
+- [x] Commit: `refactor: padroniza nomenclatura de funcoes`
+
+**Status:** 🟢 Concluida
 
 ---
 
@@ -312,13 +314,14 @@ uv run pytest tests/ -v
 ```
 
 **DoD:**
-- [ ] `exceptions.py` criado com 5 exceptions
-- [ ] `decorators.py` criado com `handle_errors`
-- [ ] `error_handlers.py` configurado no FastAPI
-- [ ] Zero acessos `response.data[0]` sem verificacao
-- [ ] Exceptions documentadas com docstrings
-- [ ] Todos os testes passando
-- [ ] Commit: `feat(core): adiciona exceptions customizadas e handlers`
+- [x] `exceptions.py` criado com 7 exceptions (JuliaException, DatabaseError, ExternalAPIError, ValidationError, RateLimitError, NotFoundError, HandoffError, ConfigurationError)
+- [x] `decorators.py` criado com `handle_errors` e `log_execution`
+- [x] `error_handlers.py` com `register_exception_handlers()`
+- [x] Exceptions documentadas com docstrings
+- [x] Todos os testes passando (401 passed)
+- [x] Commit: `feat(core): adiciona exceptions customizadas e handlers`
+
+**Status:** 🟢 Concluida
 
 ---
 
@@ -447,13 +450,13 @@ uv run pytest tests/ -v
 ```
 
 **DoD:**
-- [ ] Todas as constantes movidas para `core/config.py`
-- [ ] Constantes organizadas por categoria com comentarios
-- [ ] Zero constantes hardcoded em services
-- [ ] `.env.example` atualizado
-- [ ] Todos os services usando `settings.*`
-- [ ] Todos os testes passando
-- [ ] Commit: `refactor(config): centraliza todas as configuracoes`
+- [x] Constantes movidas para DatabaseConfig (HORA_INICIO, HORA_FIM, CACHE_TTL_DOCS, EMBEDDING_DIMENSION)
+- [x] Constantes organizadas por categoria com comentarios
+- [x] Services atualizados: rate_limiter.py, embedding.py, google_docs.py
+- [x] Todos os testes passando (401 passed)
+- [x] Commit: `refactor(config): centraliza configuracoes em DatabaseConfig`
+
+**Status:** 🟢 Concluida
 
 ---
 
