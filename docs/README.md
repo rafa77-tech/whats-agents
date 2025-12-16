@@ -20,6 +20,7 @@ Julia e um agente de IA que prospecta medicos, oferece plantoes, gerencia relaci
 | 8 | [Persona Julia](./08-PERSONA-JULIA.md) | Identidade, tom e exemplos |
 | 9 | [Integracoes](./09-INTEGRACOES.md) | WhatsApp, Chatwoot, Slack, etc |
 | 10 | [Testes Manuais](./10-TESTES-MANUAIS.md) | Guia de testes antes do lancamento |
+| 11 | [Sistema de Prompts](./11-SISTEMA-PROMPTS.md) | Organizacao e planejamento dos prompts |
 
 ---
 
