@@ -84,6 +84,7 @@ class DatabaseConfig:
     CACHE_TTL_ABERTURA: int = 86400 * 30  # 30 dias - aberturas usadas
     CACHE_TTL_HOSPITAIS: int = 3600  # 1 hora - hospitais raramente mudam
     CACHE_TTL_PROMPTS: int = 300  # 5 minutos - prompts do sistema
+    CACHE_TTL_DOCS: int = 300  # 5 minutos - cache Google Docs
 
     # Session timeouts
     SESSION_TIMEOUT_MINUTES: int = 30  # Sessao Slack
@@ -92,13 +93,20 @@ class DatabaseConfig:
     MAX_RESULTS_DEFAULT: int = 100
     MAX_RESULTS_ABSOLUTE: int = 1000
 
-    # Intervalos de timing
+    # Intervalos de timing (rate limiting)
     INTERVALO_MIN_SEGUNDOS: int = 45
     INTERVALO_MAX_SEGUNDOS: int = 180
+
+    # Horario comercial
+    HORA_INICIO: int = 8   # 08:00
+    HORA_FIM: int = 20     # 20:00
 
     # Retry
     MAX_RETRIES: int = 3
     RETRY_DELAY_SECONDS: float = 0.5
+
+    # Embeddings
+    EMBEDDING_DIMENSION: int = 1024
 
 
 @lru_cache()

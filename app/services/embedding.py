@@ -10,12 +10,12 @@ Usa Voyage AI voyage-3.5-lite (recomendado pela Anthropic).
 import logging
 from typing import Optional
 
-from app.core.config import settings
+from app.core.config import settings, DatabaseConfig
 
 logger = logging.getLogger(__name__)
 
-# Dimensao do embedding (voyage-3.5-lite = 1024)
-EMBEDDING_DIMENSION = 1024
+# Dimensao do embedding (centralizado em config.py)
+EMBEDDING_DIMENSION = DatabaseConfig.EMBEDDING_DIMENSION
 
 # Cliente Voyage (lazy load)
 _voyage_client = None

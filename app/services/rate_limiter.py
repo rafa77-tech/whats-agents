@@ -8,17 +8,17 @@ from datetime import datetime
 from typing import Tuple
 
 from app.services.redis import redis_client
-from app.core.config import settings
+from app.core.config import settings, DatabaseConfig
 
 logger = logging.getLogger(__name__)
 
-# Constantes de limite (do config.py)
+# Constantes de limite (centralizadas em config.py)
 LIMITE_POR_HORA = settings.MAX_MSGS_POR_HORA
 LIMITE_POR_DIA = settings.MAX_MSGS_POR_DIA
-INTERVALO_MIN_SEGUNDOS = 45
-INTERVALO_MAX_SEGUNDOS = 180
-HORA_INICIO = 8   # 08:00
-HORA_FIM = 20     # 20:00
+INTERVALO_MIN_SEGUNDOS = DatabaseConfig.INTERVALO_MIN_SEGUNDOS
+INTERVALO_MAX_SEGUNDOS = DatabaseConfig.INTERVALO_MAX_SEGUNDOS
+HORA_INICIO = DatabaseConfig.HORA_INICIO
+HORA_FIM = DatabaseConfig.HORA_FIM
 DIAS_PERMITIDOS = [0, 1, 2, 3, 4]  # Seg-Sex (0=Segunda)
 
 
