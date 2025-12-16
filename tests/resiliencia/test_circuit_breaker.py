@@ -31,17 +31,17 @@ def reset_circuits():
 
 class TestCircuitEvolution:
     """Testes para circuit breaker da Evolution API."""
-    
+
     @pytest.mark.asyncio
-    async def test_abre_apos_3_falhas(self):
-        """Evolution circuit abre após 3 falhas consecutivas."""
+    async def test_abre_apos_5_falhas(self):
+        """Evolution circuit abre após 5 falhas consecutivas."""
         async def sempre_falha():
             raise Exception("Connection refused")
-        
-        for i in range(3):
+
+        for i in range(5):
             with pytest.raises(Exception):
                 await circuit_evolution.executar(sempre_falha)
-        
+
         assert circuit_evolution.estado == CircuitState.OPEN
     
     @pytest.mark.asyncio

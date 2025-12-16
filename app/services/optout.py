@@ -13,20 +13,26 @@ logger = logging.getLogger(__name__)
 # Padrões de opt-out (case insensitive)
 # Normalizados para funcionar sem acentos
 PADROES_OPTOUT = [
-    r'\bpara\b.*\bmensag',        # "para de mandar mensagem"
-    r'\bnao\b.*\bquer.*\breceb',  # "não quero receber"
-    r'\bremov.*\blista',          # "remove da lista"
-    r'\bsai\s*fora\b',            # "sai fora"
-    r'\bnao\b.*\bmand.*\bmais',   # "não me mande mais"
-    r'\bpare\b',                  # "pare"
-    r'\bstop\b',                  # "STOP"
-    r'\bdesinscrever\b',          # "desinscrever"
-    r'\bcancelar?\b.*\benvio',    # "cancelar envio"
-    r'\bbloque(ar|ia)?\b',        # "bloquear"
-    r'\bnao\b.*\binteress',       # "não tenho interesse"
-    r'\bchega\b',                 # "chega"
-    r'\bpara\b.*\bme\b.*\bcontatar', # "para de me contatar"
-    r'\bdesist[oi]',              # "desisto"
+    r'\bpara\b.*\b(mensag|msg|mand)',  # "para de mandar mensagem/msg"
+    r'\bnao\b.*\bquer.*\b(receb|mais\b(?!.*\bhorario))', # "não quero receber/mais nada" (não "mais outro horário")
+    r'\bremov.*\b(lista|contato|numero)', # "remove da lista/contato/numero"
+    r'\bsai\s*fora\b',                 # "sai fora"
+    r'\bnao\b.*\bmand.*\bmais',        # "não me mande mais"
+    r'\bpare\b',                       # "pare"
+    r'^\s*parar\s*$',                  # "parar" (apenas sozinho)
+    r'\bstop\b',                       # "STOP"
+    r'^\s*sair\s*$',                   # "SAIR" (apenas sozinho)
+    r'\bdesinscrever\b',               # "desinscrever"
+    r'^\s*cancelar?\s*$',              # "cancelar" (apenas sozinho)
+    r'^\s*bloque(ar|ia)?\s*$',         # "bloqueia" (apenas sozinho)
+    r'\bvou\b.*\bbloque',              # "vou te bloquear"
+    r'\bbloque(ar|ia)?\b.*\b(msg|mensag|contato)', # "bloquear mensagem/contato"
+    r'\bnao\b.*\binteress',            # "não tenho interesse"
+    r'\bchega\b',                      # "chega"
+    r'\bpara\b.*\bme\b.*\bcontatar',   # "para de me contatar"
+    r'\bdesist[oi]',                   # "desisto"
+    r'\b(tira|exclui)\b.*\b(lista|numero|contato)', # "me tira da lista"
+    r'\bpra\b.*\bparar\b.*\bmand',     # "já falei pra parar de mandar"
 ]
 
 
