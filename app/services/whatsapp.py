@@ -147,6 +147,57 @@ class EvolutionClient:
         url = f"{self.base_url}/instance/connectionState/{self.instance}"
         return await self._fazer_request("GET", url, timeout=10.0)
 
+    async def buscar_contatos(self, push_name: str = None) -> list:
+        """
+        Busca contatos na Evolution API.
+
+        Args:
+            push_name: Filtrar por nome do contato (opcional)
+
+        Returns:
+            Lista de contatos
+        """
+        url = f"{self.base_url}/chat/findContacts/{self.instance}"
+        payload = {}
+        if push_name:
+            payload["where"] = {"pushName": push_name}
+
+        try:
+            result = await self._fazer_request("POST", url, payload, timeout=10.0)
+            return result if isinstance(result, list) else []
+        except Exception as e:
+            logger.warning(f"Erro ao buscar contatos: {e}")
+            return []
+
+    async def resolver_lid_para_telefone(self, push_name: str) -> str:
+        """
+        Resolve LID para número de telefone real.
+
+        Busca contatos pelo pushName e retorna o que tem formato
+        @s.whatsapp.net (número real) em vez de @lid.
+
+        Args:
+            push_name: Nome do contato no WhatsApp
+
+        Returns:
+            Número de telefone ou string vazia se não encontrado
+        """
+        if not push_name:
+            return ""
+
+        contatos = await self.buscar_contatos(push_name)
+
+        for contato in contatos:
+            remote_jid = contato.get("remoteJid", "")
+            # Pegar apenas contatos com número real (não LID)
+            if "@s.whatsapp.net" in remote_jid:
+                telefone = remote_jid.split("@")[0]
+                logger.info(f"LID resolvido para {telefone} via pushName '{push_name}'")
+                return telefone
+
+        logger.warning(f"Nao foi possivel resolver LID para pushName '{push_name}'")
+        return ""
+
     async def set_webhook(self, url: str, events: list = None) -> dict:
         """Configura webhook da instancia."""
         if events is None:

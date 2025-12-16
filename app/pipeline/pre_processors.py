@@ -42,12 +42,29 @@ class ParseMessageProcessor(PreProcessor):
                 metadata={"motivo": "mensagem ignorada (propria/grupo/status)"}
             )
 
+        # Se é LID, tentar resolver para número real
+        telefone = mensagem.telefone
+        if mensagem.is_lid and mensagem.nome_contato:
+            logger.info(f"Tentando resolver LID para '{mensagem.nome_contato}'")
+            telefone_resolvido = await evolution.resolver_lid_para_telefone(mensagem.nome_contato)
+            if telefone_resolvido:
+                telefone = telefone_resolvido
+                logger.info(f"LID resolvido com sucesso: {telefone}")
+            else:
+                logger.warning(f"Nao foi possivel resolver LID para '{mensagem.nome_contato}'")
+                return ProcessorResult(
+                    success=True,
+                    should_continue=False,
+                    metadata={"motivo": "LID nao resolvido - sem numero real"}
+                )
+
         # Popular contexto
         context.mensagem_texto = mensagem.texto or ""
-        context.telefone = mensagem.telefone
+        context.telefone = telefone
         context.message_id = mensagem.message_id
         context.tipo_mensagem = mensagem.tipo
         context.metadata["nome_contato"] = mensagem.nome_contato
+        context.metadata["remote_jid"] = mensagem.remote_jid  # Guardar JID original
 
         return ProcessorResult(success=True)
 

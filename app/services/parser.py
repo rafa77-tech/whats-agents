@@ -10,6 +10,11 @@ from app.schemas.mensagem import MensagemRecebida
 logger = logging.getLogger(__name__)
 
 
+def is_lid_format(jid: str) -> bool:
+    """Verifica se JID está no formato LID (dispositivo vinculado)."""
+    return "@lid" in jid if jid else False
+
+
 def extrair_telefone(jid: str) -> str:
     """
     Extrai número de telefone do JID do WhatsApp.
@@ -17,8 +22,15 @@ def extrair_telefone(jid: str) -> str:
     Exemplo:
         "5511999999999@s.whatsapp.net" -> "5511999999999"
         "5511999999999-123456@g.us" -> "5511999999999" (grupo)
+        "123456789:123@lid" -> "" (LID - não é número válido)
     """
     if not jid:
+        return ""
+
+    # LID format não contém número de telefone real
+    # É um identificador interno do WhatsApp (dispositivo vinculado)
+    if is_lid_format(jid):
+        logger.debug(f"Formato LID detectado: {jid}")
         return ""
 
     # Remover sufixo
@@ -27,6 +39,10 @@ def extrair_telefone(jid: str) -> str:
     # Se for grupo, pegar só o primeiro número
     if "-" in telefone:
         telefone = telefone.split("-")[0]
+
+    # Remover caracteres não numéricos
+    if ":" in telefone:
+        telefone = telefone.split(":")[0]
 
     return telefone
 
@@ -142,15 +158,27 @@ def parsear_mensagem(data: dict) -> Optional[MensagemRecebida]:
                 is_status=True,
             )
 
+        # Verificar se é formato LID
+        is_lid = is_lid_format(jid)
+        telefone = extrair_telefone(jid)
+
+        # Extrair dados do Chatwoot do payload (Evolution envia quando integrado)
+        chatwoot_conversation_id = data.get("chatwootConversationId")
+        chatwoot_inbox_id = data.get("chatwootInboxId")
+
         # Mensagem normal
         return MensagemRecebida(
-            telefone=extrair_telefone(jid),
+            telefone=telefone,
             message_id=message_id,
             from_me=from_me,
             tipo=identificar_tipo(message),
             texto=extrair_texto(message),
             nome_contato=data.get("pushName"),
             timestamp=datetime.fromtimestamp(data.get("messageTimestamp", 0)),
+            is_lid=is_lid,
+            chatwoot_conversation_id=chatwoot_conversation_id,
+            chatwoot_inbox_id=chatwoot_inbox_id,
+            remote_jid=jid if is_lid else None,
         )
 
     except Exception as e:
@@ -172,6 +200,12 @@ def deve_processar(mensagem: MensagemRecebida) -> bool:
     # Ignorar status/stories
     if mensagem.is_status:
         return False
+
+    # Se é LID mas tem chatwoot_conversation_id, pode processar
+    # O telefone será resolvido depois via Chatwoot
+    if mensagem.is_lid and mensagem.chatwoot_conversation_id:
+        logger.info(f"Mensagem LID com Chatwoot conversation {mensagem.chatwoot_conversation_id}")
+        return True
 
     # Ignorar se não tem telefone válido
     if not mensagem.telefone or len(mensagem.telefone) < 10:

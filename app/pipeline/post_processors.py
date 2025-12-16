@@ -92,14 +92,18 @@ class TimingProcessor(PostProcessor):
             f"restante: {delay_restante:.1f}s"
         )
 
-        # Aguardar e mostrar digitando
-        if delay_restante > 5:
-            await asyncio.sleep(delay_restante - 5)
-            await mostrar_digitando(context.telefone)
-            await asyncio.sleep(5)
-        elif delay_restante > 0:
-            await asyncio.sleep(delay_restante)
-            await mostrar_digitando(context.telefone)
+        # Aguardar e mostrar digitando (com tratamento de erro)
+        try:
+            if delay_restante > 5:
+                await asyncio.sleep(delay_restante - 5)
+                await mostrar_digitando(context.telefone)
+                await asyncio.sleep(5)
+            elif delay_restante > 0:
+                await asyncio.sleep(delay_restante)
+                await mostrar_digitando(context.telefone)
+        except Exception as e:
+            # Erro no mostrar_digitando nao deve parar o pipeline
+            logger.warning(f"Erro ao mostrar digitando (nao critico): {e}")
 
         return ProcessorResult(success=True, response=response)
 

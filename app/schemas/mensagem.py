@@ -25,6 +25,12 @@ class MensagemRecebida(BaseModel):
     # Flags
     is_grupo: bool = False  # Se veio de grupo
     is_status: bool = False  # Se é status/story
+    is_lid: bool = False  # Se é formato LID (dispositivo vinculado)
+
+    # Dados do Chatwoot (para resolver LID)
+    chatwoot_conversation_id: Optional[int] = None
+    chatwoot_inbox_id: Optional[int] = None
+    remote_jid: Optional[str] = None  # JID original (para resolver LID)
 
 
 class MensagemParaEnviar(BaseModel):

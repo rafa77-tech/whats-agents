@@ -32,7 +32,7 @@ async def agendar_resposta(
     """
     try:
         response = (
-            supabase.table("mensagens_agendadas")
+            supabase.table("fila_mensagens")
             .insert({
                 "conversa_id": conversa_id,
                 "mensagem_original": mensagem,
@@ -53,7 +53,7 @@ async def agendar_resposta(
         return None
 
 
-async def processar_mensagens_agendadas():
+async def processar_fila_mensagens():
     """
     Job que processa mensagens agendadas.
 
@@ -64,7 +64,7 @@ async def processar_mensagens_agendadas():
     try:
         # Buscar mensagens prontas para envio
         response = (
-            supabase.table("mensagens_agendadas")
+            supabase.table("fila_mensagens")
             .select("*")
             .eq("status", "pendente")
             .lte("agendar_para", agora.isoformat())
@@ -106,7 +106,7 @@ async def processar_mensagens_agendadas():
                 # Verificar opt-out antes de enviar
                 if cliente_id and cliente.get("opted_out"):
                     logger.info(f"🛑 Cliente {cliente_id} fez opt-out, cancelando mensagem {msg.get('id')}")
-                    supabase.table("mensagens_agendadas").update({
+                    supabase.table("fila_mensagens").update({
                         "status": "cancelada",
                         "erro": "Cliente fez opt-out"
                     }).eq("id", msg["id"]).execute()
@@ -119,7 +119,7 @@ async def processar_mensagens_agendadas():
                 )
 
                 # Marcar como enviada
-                supabase.table("mensagens_agendadas").update({
+                supabase.table("fila_mensagens").update({
                     "status": "enviada",
                     "enviada_em": datetime.now().isoformat()
                 }).eq("id", msg["id"]).execute()
@@ -132,3 +132,6 @@ async def processar_mensagens_agendadas():
     except Exception as e:
         logger.error(f"Erro ao processar mensagens agendadas: {e}")
 
+
+# Alias para compatibilidade (nome antigo usado em jobs.py e scheduler)
+processar_mensagens_agendadas = processar_fila_mensagens
