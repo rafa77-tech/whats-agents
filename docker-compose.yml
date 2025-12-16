@@ -48,7 +48,7 @@ services:
 
   evolution-api:
     container_name: evolution_api
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:v2.3.7
     restart: always
     ports:
       - "8080:8080"
