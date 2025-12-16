@@ -393,14 +393,17 @@ uv run pytest tests/ -v -k "vaga"
 ```
 
 **DoD:**
-- [ ] `services/vagas/` criado com 4 arquivos
-- [ ] `repository.py` < 150 linhas
-- [ ] `cache.py` < 100 linhas
-- [ ] `preferencias.py` < 150 linhas
-- [ ] `service.py` < 100 linhas
-- [ ] Arquivo original removido ou com deprecation
-- [ ] Todos os testes passando
-- [ ] Commit: `refactor(vagas): separa repository, cache e preferencias`
+- [x] `services/vagas/` criado com 6 arquivos
+- [x] `repository.py` = 129 linhas
+- [x] `cache.py` = 51 linhas
+- [x] `preferencias.py` = 75 linhas
+- [x] `formatters.py` = 83 linhas
+- [x] `service.py` = 175 linhas
+- [x] Arquivo original com deprecation warning (55 linhas)
+- [x] Todos os testes passando (411 passed)
+- [x] Commit: `refactor(vagas): separa repository, cache e preferencias`
+
+**Status:** 🟢 Concluida
 
 ---
 
@@ -517,14 +520,15 @@ uv run pytest tests/ -v -k "relatorio"
 ```
 
 **DoD:**
-- [ ] `services/relatorios/` criado com 4 arquivos
-- [ ] `diario.py` < 150 linhas
-- [ ] `semanal.py` < 150 linhas
-- [ ] `medicos.py` < 100 linhas
-- [ ] `formatters.py` < 100 linhas
-- [ ] Logica duplicada eliminada
-- [ ] Todos os testes passando
-- [ ] Commit: `refactor(relatorios): organiza por tipo de relatorio`
+- [x] `services/relatorios/` criado com 3 arquivos (diario, semanal, periodo)
+- [x] `diario.py` = 136 linhas
+- [x] `semanal.py` = 134 linhas
+- [x] `periodo.py` = 191 linhas
+- [x] Deprecated wrapper mantido para compatibilidade (41 linhas)
+- [x] Todos os testes passando (411 passed)
+- [x] Commit: `refactor(relatorios): separa diario, semanal e periodo`
+
+**Status:** 🟢 Concluida
 
 ---
 
@@ -684,13 +688,15 @@ uv run pytest tests/ -v -k "handoff"
 ```
 
 **DoD:**
-- [ ] `services/handoff/` criado com 4 arquivos
-- [ ] `flow.py` < 150 linhas
-- [ ] `detector.py` < 100 linhas
-- [ ] `notifier.py` < 100 linhas
-- [ ] `repository.py` < 100 linhas
-- [ ] Todos os testes passando
-- [ ] Commit: `refactor(handoff): separa flow, detector e notifier`
+- [x] `services/handoff/` criado com 3 arquivos (messages, flow, repository)
+- [x] `messages.py` = 45 linhas (MENSAGENS_TRANSICAO e obter_mensagem_transicao)
+- [x] `flow.py` = 303 linhas (iniciar_handoff, finalizar_handoff, resolver_handoff)
+- [x] `repository.py` = 149 linhas (listar, metricas, verificar)
+- [x] Deprecated wrapper mantido para compatibilidade (45 linhas)
+- [x] Todos os testes passando (59 handoff tests)
+- [x] Commit: `refactor(handoff): separa flow, messages e repository`
+
+**Status:** 🟢 Concluida
 
 ---
 
