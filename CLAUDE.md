@@ -22,12 +22,12 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 | Recurso | Quantidade |
 |---------|------------|
-| Arquivos Python | 100 |
-| Serviços | 46 |
-| Tabelas no banco | 35 |
-| Migrações | 44 |
-| Testes | 443 |
-| Endpoints API | 25+ |
+| Arquivos Python | 140 |
+| Serviços | 49 |
+| Tabelas no banco | 37 |
+| Migrações | 45 |
+| Testes | 492 |
+| Endpoints API | 59 |
 
 ### Sprints Concluídas
 
@@ -44,7 +44,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 8 | Memória & Pipeline | ✅ Completa |
 | 9 | Julia no Slack (NLP) | ✅ Completa |
 | 10 | Refatoracao e Divida Tecnica | ✅ Completa |
-| 11 | Briefing Conversacional | 🟡 Em andamento |
+| 11 | Briefing Conversacional | ✅ Completa |
 
 ### Funcionalidades Implementadas
 

@@ -54,18 +54,20 @@ Julia e uma **escalista virtual** que:
 whatsapp-api/
 ├── app/
 │   ├── api/routes/       # 10 routers de endpoints
-│   ├── services/         # 41 modulos de servico
+│   ├── services/         # 49 modulos de servico
 │   ├── core/             # Config, prompts, logging
-│   ├── tools/            # Ferramentas do agente (vagas, lembrete)
+│   ├── tools/            # Ferramentas do agente (vagas, slack, briefing)
+│   ├── prompts/          # Sistema de prompts dinamicos
+│   ├── pipeline/         # Pipeline de processamento
 │   ├── workers/          # Scheduler e fila
 │   ├── schemas/          # Pydantic models
 │   └── main.py           # FastAPI app
-├── tests/
+├── tests/                # 492 testes
 │   ├── persona/          # Testes de identidade
 │   ├── resiliencia/      # Testes de circuit breaker
 │   └── optout/           # Testes de opt-out
 ├── docs/                 # Esta documentacao
-├── planning/             # Sprints e epics
+├── planning/             # Sprints e epics (0-11)
 └── docker-compose.yml    # Evolution, Chatwoot, Redis
 ```
 
@@ -73,12 +75,12 @@ whatsapp-api/
 
 | Recurso | Quantidade |
 |---------|------------|
-| Arquivos Python | 100 |
-| Endpoints API | 25+ |
-| Servicos | 46 |
-| Tabelas no banco | 35 |
-| Migracoes | 44 |
-| Testes | 443 |
+| Arquivos Python | 140 |
+| Endpoints API | 59 |
+| Servicos | 49 |
+| Tabelas no banco | 37 |
+| Migracoes | 45 |
+| Testes | 492 |
 
 ---
 
@@ -167,8 +169,8 @@ O sistema monitora quando medicos suspeitam que estao falando com IA:
 
 - **Projeto:** Agente Julia - Revoluna
 - **Inicio:** 05/12/2025
-- **Sprint atual:** 9 - Julia como Colega no Slack (Completa)
+- **Sprint atual:** 11 - Briefing Conversacional (Completa)
 
 ---
 
-*Documentacao atualizada em 11/12/2025*
+*Documentacao atualizada em 16/12/2025*
