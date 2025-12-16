@@ -14,9 +14,9 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 ## Estado Atual
 
-**Sprint Atual:** 10 - Refatoracao e Divida Tecnica
+**Sprint Atual:** 11 - Briefing Conversacional
 **Início do Projeto:** 05/12/2025
-**Última Atualização:** 12/12/2025
+**Última Atualização:** 16/12/2025
 
 ### Métricas do Projeto
 
@@ -43,7 +43,8 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 7 | Briefing Google Docs | ✅ Completa |
 | 8 | Memória & Pipeline | ✅ Completa |
 | 9 | Julia no Slack (NLP) | ✅ Completa |
-| 10 | Refatoracao e Divida Tecnica | 🟡 Em andamento |
+| 10 | Refatoracao e Divida Tecnica | ✅ Completa |
+| 11 | Briefing Conversacional | 🟡 Em andamento |
 
 ### Funcionalidades Implementadas
 
@@ -301,6 +302,61 @@ docker compose logs -f <serviço> # Logs
 - Rate limiting é crítico
 - Testes de persona antes de qualquer deploy
 - Sempre respeitar opt-out imediatamente
+- **Seguir convenções de código em `app/CONVENTIONS.md`**
+
+---
+
+## Convenções de Código
+
+Ver arquivo completo em `app/CONVENTIONS.md`. Resumo:
+
+### Nomenclatura de Funções
+
+| Operação | Prefixo | Exemplo |
+|----------|---------|---------|
+| Buscar um | `buscar_` | `buscar_medico_por_telefone()` |
+| Buscar vários | `listar_` | `listar_vagas_disponiveis()` |
+| Criar | `criar_` | `criar_conversa()` |
+| Atualizar | `atualizar_` | `atualizar_status_vaga()` |
+| Deletar | `deletar_` | `deletar_handoff()` |
+
+### Predicados (retornam bool)
+
+| Prefixo | Uso |
+|---------|-----|
+| `pode_` | Permissão/capacidade |
+| `tem_` | Existência |
+| `esta_` | Estado atual |
+| `eh_` | Identidade/tipo |
+
+### Ações
+
+| Prefixo | Uso |
+|---------|-----|
+| `enviar_` | Envia para sistema externo |
+| `processar_` | Transforma/processa dados |
+| `gerar_` | Cria output/relatório |
+| `formatar_` | Formata para exibição |
+| `notificar_` | Envia notificação |
+
+### Import do Supabase
+
+```python
+# Correto
+from app.services.supabase import supabase
+
+# Incorreto (deprecated)
+from app.services.supabase import get_supabase
+```
+
+### Exceptions Customizadas
+
+Usar exceptions de `app/core/exceptions.py`:
+- `DatabaseError` - erros de banco
+- `ExternalAPIError` - erros de APIs externas
+- `ValidationError` - erros de validação
+- `RateLimitError` - rate limit atingido
+- `NotFoundError` - recurso não encontrado
 
 ---
 
