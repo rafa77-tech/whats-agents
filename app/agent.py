@@ -30,15 +30,15 @@ class JuliaAgent:
         Retorna None se a conversa estiver sob controle humano.
         """
         # 1. Buscar/criar medico
-        medico = await db.get_or_create_medico(telefone)
+        medico = await db.buscar_ou_criar_medico(telefone)
         cliente_id = medico["id"]
 
         # 2. Buscar/criar conversa
-        conversa = await db.get_or_create_conversa(cliente_id)
+        conversa = await db.buscar_ou_criar_conversa(cliente_id)
         conversa_id = conversa["id"]
 
         # 3. Salvar mensagem recebida
-        await db.save_interacao(
+        await db.salvar_interacao(
             conversa_id=conversa_id,
             cliente_id=cliente_id,
             direcao="entrada",
@@ -51,8 +51,8 @@ class JuliaAgent:
             return None
 
         # 5. Carregar contexto
-        historico = await db.get_historico(conversa_id, limit=10)
-        vagas = await db.get_vagas_disponiveis(
+        historico = await db.listar_historico(conversa_id, limit=10)
+        vagas = await db.listar_vagas_disponiveis(
             especialidade_id=medico.get("especialidade_id"),
             limit=3
         )
@@ -83,7 +83,7 @@ class JuliaAgent:
             return None
 
         # 9. Salvar resposta
-        await db.save_interacao(
+        await db.salvar_interacao(
             conversa_id=conversa_id,
             cliente_id=cliente_id,
             direcao="saida",
@@ -91,7 +91,7 @@ class JuliaAgent:
         )
 
         # 10. Atualizar conversa
-        await db.update_conversa(conversa_id, {
+        await db.atualizar_conversa(conversa_id, {
             "last_message_at": "now()"
         })
 

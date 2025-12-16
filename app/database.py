@@ -21,12 +21,12 @@ class DatabaseClient:
 
     # === MEDICOS (clientes) ===
 
-    async def get_medico_by_phone(self, telefone: str) -> Optional[dict]:
+    async def buscar_medico_por_telefone(self, telefone: str) -> Optional[dict]:
         """Busca medico pelo telefone."""
         response = self.client.table("clientes").select("*").eq("telefone", telefone).execute()
         return response.data[0] if response.data else None
 
-    async def create_medico(self, telefone: str, primeiro_nome: Optional[str] = None) -> dict:
+    async def criar_medico(self, telefone: str, primeiro_nome: Optional[str] = None) -> dict:
         """Cria novo medico."""
         data = {
             "telefone": telefone,
@@ -38,14 +38,14 @@ class DatabaseClient:
         logger.info(f"Novo medico criado: {telefone[:8]}...")
         return response.data[0]
 
-    async def get_or_create_medico(self, telefone: str) -> dict:
+    async def buscar_ou_criar_medico(self, telefone: str) -> dict:
         """Busca ou cria medico."""
-        medico = await self.get_medico_by_phone(telefone)
+        medico = await self.buscar_medico_por_telefone(telefone)
         if not medico:
-            medico = await self.create_medico(telefone)
+            medico = await self.criar_medico(telefone)
         return medico
 
-    async def update_medico(self, medico_id: str, data: dict) -> dict:
+    async def atualizar_medico(self, medico_id: str, data: dict) -> dict:
         """Atualiza dados do medico."""
         data["updated_at"] = datetime.now(timezone.utc).isoformat()
         response = self.client.table("clientes").update(data).eq("id", medico_id).execute()
@@ -53,7 +53,7 @@ class DatabaseClient:
 
     # === CONVERSAS ===
 
-    async def get_conversa_ativa(self, cliente_id: str) -> Optional[dict]:
+    async def buscar_conversa_ativa(self, cliente_id: str) -> Optional[dict]:
         """Busca conversa ativa do cliente."""
         response = (
             self.client.table("conversations")
@@ -66,7 +66,7 @@ class DatabaseClient:
         )
         return response.data[0] if response.data else None
 
-    async def create_conversa(self, cliente_id: str) -> dict:
+    async def criar_conversa(self, cliente_id: str) -> dict:
         """Cria nova conversa."""
         data = {
             "cliente_id": cliente_id,
@@ -78,14 +78,14 @@ class DatabaseClient:
         logger.info(f"Nova conversa criada para cliente {cliente_id}")
         return response.data[0]
 
-    async def get_or_create_conversa(self, cliente_id: str) -> dict:
+    async def buscar_ou_criar_conversa(self, cliente_id: str) -> dict:
         """Busca ou cria conversa ativa."""
-        conversa = await self.get_conversa_ativa(cliente_id)
+        conversa = await self.buscar_conversa_ativa(cliente_id)
         if not conversa:
-            conversa = await self.create_conversa(cliente_id)
+            conversa = await self.criar_conversa(cliente_id)
         return conversa
 
-    async def update_conversa(self, conversa_id: str, data: dict) -> dict:
+    async def atualizar_conversa(self, conversa_id: str, data: dict) -> dict:
         """Atualiza conversa."""
         data["updated_at"] = datetime.now(timezone.utc).isoformat()
         response = self.client.table("conversations").update(data).eq("id", conversa_id).execute()
@@ -93,7 +93,7 @@ class DatabaseClient:
 
     # === INTERACOES (mensagens) ===
 
-    async def save_interacao(
+    async def salvar_interacao(
         self,
         conversa_id: str,
         cliente_id: str,
@@ -118,7 +118,7 @@ class DatabaseClient:
         response = self.client.table("interacoes").insert(data).execute()
         return response.data[0]
 
-    async def get_historico(self, conversa_id: str, limit: int = 20) -> list:
+    async def listar_historico(self, conversa_id: str, limit: int = 20) -> list:
         """Busca historico de mensagens da conversa."""
         response = (
             self.client.table("interacoes")
@@ -133,7 +133,7 @@ class DatabaseClient:
 
     # === VAGAS ===
 
-    async def get_vagas_disponiveis(
+    async def listar_vagas_disponiveis(
         self,
         especialidade_id: Optional[str] = None,
         limit: int = 5
@@ -156,7 +156,7 @@ class DatabaseClient:
 
     # === HANDOFFS ===
 
-    async def create_handoff(
+    async def criar_handoff(
         self,
         conversa_id: str,
         motivo: str
@@ -171,7 +171,7 @@ class DatabaseClient:
         response = self.client.table("handoffs").insert(data).execute()
 
         # Atualizar conversa para controle humano
-        await self.update_conversa(conversa_id, {"controlled_by": "human"})
+        await self.atualizar_conversa(conversa_id, {"controlled_by": "human"})
 
         logger.warning(f"Handoff criado: {motivo}")
         return response.data[0]

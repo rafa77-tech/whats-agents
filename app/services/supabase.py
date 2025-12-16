@@ -68,81 +68,63 @@ async def _executar_com_circuit_breaker(func):
     return await circuit_supabase.executar(_async_wrapper)
 
 
-# Funcoes auxiliares para operacoes comuns
-async def get_medico_by_telefone(telefone: str) -> dict | None:
-    """Busca medico pelo telefone."""
-    def _query():
-        return supabase.table("clientes").select("*").eq("telefone", telefone).execute()
+# =============================================================================
+# FUNCOES DEPRECATED (manter para retrocompatibilidade)
+# =============================================================================
 
-    response = await _executar_com_circuit_breaker(_query)
-    return response.data[0] if response.data else None
+async def get_medico_by_telefone(telefone: str) -> dict | None:
+    """DEPRECATED: Use buscar_medico_por_telefone()."""
+    import warnings
+    warnings.warn(
+        "get_medico_by_telefone is deprecated. Use buscar_medico_por_telefone instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return await buscar_medico_por_telefone(telefone)
 
 
 async def get_medico_by_id(medico_id: str) -> dict | None:
-    """Busca medico pelo ID."""
-    def _query():
-        return supabase.table("clientes").select("*").eq("id", medico_id).execute()
-
-    response = await _executar_com_circuit_breaker(_query)
-    return response.data[0] if response.data else None
+    """DEPRECATED: Use buscar_medico_por_id()."""
+    import warnings
+    warnings.warn(
+        "get_medico_by_id is deprecated. Use buscar_medico_por_id instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return await buscar_medico_por_id(medico_id)
 
 
 async def get_or_create_medico(telefone: str, primeiro_nome: Optional[str] = None) -> dict:
-    """Busca ou cria medico."""
-    medico = await get_medico_by_telefone(telefone)
-    if not medico:
-        data = {
-            "telefone": telefone,
-            "primeiro_nome": primeiro_nome,
-            "stage_jornada": "novo",
-            "status": "novo"
-        }
-
-        def _insert():
-            return supabase.table("clientes").insert(data).execute()
-
-        response = await _executar_com_circuit_breaker(_insert)
-        logger.info(f"Novo medico criado: {telefone[:8]}...")
-        return response.data[0]
-    return medico
+    """DEPRECATED: Use buscar_ou_criar_medico()."""
+    import warnings
+    warnings.warn(
+        "get_or_create_medico is deprecated. Use buscar_ou_criar_medico instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return await buscar_ou_criar_medico(telefone, primeiro_nome)
 
 
 async def get_vagas_disponiveis(especialidade_id: str = None, limit: int = 10) -> list:
-    """Busca vagas abertas para uma especialidade."""
-    def _query():
-        query = (
-            supabase.table("vagas")
-            .select("*, hospitais(*), periodos(*), setores(*), especialidades(*)")
-            .eq("status", "aberta")
-            .gte("data", datetime.now(timezone.utc).date().isoformat())
-            .order("data")
-            .limit(limit)
-        )
-
-        if especialidade_id:
-            query = query.eq("especialidade_id", especialidade_id)
-
-        return query.execute()
-
-    response = await _executar_com_circuit_breaker(_query)
-    return response.data
+    """DEPRECATED: Use buscar_vagas_disponiveis()."""
+    import warnings
+    warnings.warn(
+        "get_vagas_disponiveis is deprecated. Use buscar_vagas_disponiveis instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return await buscar_vagas_disponiveis(especialidade_id=especialidade_id, limite=limit)
 
 
 async def get_conversa_ativa(cliente_id: str) -> dict | None:
-    """Busca conversa ativa do cliente."""
-    def _query():
-        return (
-            supabase.table("conversations")
-            .select("*")
-            .eq("cliente_id", cliente_id)
-            .eq("status", "active")
-            .order("created_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-
-    response = await _executar_com_circuit_breaker(_query)
-    return response.data[0] if response.data else None
+    """DEPRECATED: Use buscar_conversa_ativa()."""
+    import warnings
+    warnings.warn(
+        "get_conversa_ativa is deprecated. Use buscar_conversa_ativa instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return await buscar_conversa_ativa(cliente_id)
 
 
 async def criar_conversa(cliente_id: str, origem: str = "prospeccao") -> dict:
@@ -194,19 +176,14 @@ async def salvar_interacao(
 
 
 async def get_historico(conversa_id: str, limit: int = 20) -> list:
-    """Busca historico de mensagens da conversa."""
-    def _query():
-        return (
-            supabase.table("interacoes")
-            .select("*")
-            .eq("conversation_id", conversa_id)
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute()
-        )
-
-    response = await _executar_com_circuit_breaker(_query)
-    return list(reversed(response.data)) if response.data else []
+    """DEPRECATED: Use listar_historico()."""
+    import warnings
+    warnings.warn(
+        "get_historico is deprecated. Use listar_historico instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return await listar_historico(conversa_id, limite=limit)
 
 
 async def marcar_optout(cliente_id: str) -> dict | None:
@@ -419,3 +396,78 @@ async def atualizar_controle_conversa(
 
     response = await _executar_com_circuit_breaker(_update)
     return len(response.data) > 0 if response.data else False
+
+
+async def buscar_medico_por_id(medico_id: str) -> Optional[dict]:
+    """
+    Busca medico pelo ID.
+
+    Args:
+        medico_id: UUID do medico
+
+    Returns:
+        Dict com dados do medico ou None
+    """
+    def _query():
+        return supabase.table("clientes").select("*").eq("id", medico_id).execute()
+
+    response = await _executar_com_circuit_breaker(_query)
+    return response.data[0] if response.data else None
+
+
+async def buscar_ou_criar_medico(
+    telefone: str,
+    primeiro_nome: Optional[str] = None
+) -> dict:
+    """
+    Busca medico ou cria se nao existir.
+
+    Args:
+        telefone: Numero do telefone
+        primeiro_nome: Nome do medico (opcional)
+
+    Returns:
+        Dict com dados do medico
+    """
+    medico = await buscar_medico_por_telefone(telefone)
+    if not medico:
+        telefone_limpo = "".join(filter(str.isdigit, telefone))
+        data = {
+            "telefone": telefone_limpo,
+            "primeiro_nome": primeiro_nome,
+            "stage_jornada": "novo",
+            "status": "novo"
+        }
+
+        def _insert():
+            return supabase.table("clientes").insert(data).execute()
+
+        response = await _executar_com_circuit_breaker(_insert)
+        logger.info(f"Novo medico criado: {telefone[:8]}...")
+        return response.data[0]
+    return medico
+
+
+async def listar_historico(conversa_id: str, limite: int = 20) -> list:
+    """
+    Lista historico de mensagens de uma conversa.
+
+    Args:
+        conversa_id: ID da conversa
+        limite: Maximo de mensagens (default: 20)
+
+    Returns:
+        Lista de mensagens em ordem cronologica
+    """
+    def _query():
+        return (
+            supabase.table("interacoes")
+            .select("*")
+            .eq("conversation_id", conversa_id)
+            .order("created_at", desc=True)
+            .limit(limite)
+            .execute()
+        )
+
+    response = await _executar_com_circuit_breaker(_query)
+    return list(reversed(response.data)) if response.data else []
