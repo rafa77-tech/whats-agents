@@ -287,12 +287,8 @@ class DetectorPerfil:
 
         # 1. Se tem dados estruturados, usa como base
         if dados_cliente:
-            # Calcular anos de experiência se tiver CRM
-            anos_exp = None
-            if dados_cliente.get("crm"):
-                # Assumir que médico com CRM tem pelo menos 6 anos (faculdade)
-                # Se tiver data de registro, calcular
-                pass
+            # Usar anos_experiencia se disponível
+            anos_exp = dados_cliente.get("anos_experiencia")
 
             resultado_dados = self.detectar_por_dados(
                 anos_experiencia=anos_exp,
