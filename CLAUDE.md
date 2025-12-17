@@ -14,19 +14,19 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 ## Estado Atual
 
-**Sprint Atual:** 11 - Briefing Conversacional
+**Sprint Atual:** 13 - Conhecimento Dinâmico (Completa)
 **Início do Projeto:** 05/12/2025
-**Última Atualização:** 16/12/2025
+**Última Atualização:** 17/12/2025
 
 ### Métricas do Projeto
 
 | Recurso | Quantidade |
 |---------|------------|
-| Arquivos Python | 140 |
-| Serviços | 49 |
-| Tabelas no banco | 37 |
-| Migrações | 45 |
-| Testes | 492 |
+| Arquivos Python | 150 |
+| Serviços | 53 |
+| Tabelas no banco | 38 |
+| Migrações | 46 |
+| Testes | 567 |
 | Endpoints API | 59 |
 
 ### Sprints Concluídas
@@ -45,6 +45,8 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 9 | Julia no Slack (NLP) | ✅ Completa |
 | 10 | Refatoracao e Divida Tecnica | ✅ Completa |
 | 11 | Briefing Conversacional | ✅ Completa |
+| 12 | Deploy Produção (planejado) | 📋 Planejado |
+| 13 | Conhecimento Dinâmico (RAG) | ✅ Completa |
 
 ### Funcionalidades Implementadas
 
@@ -69,6 +71,12 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 - [x] Detecção de bot (37 padrões)
 - [x] Pipeline de processamento extensível
 - [x] Sistema de prompts dinâmicos
+- [x] Conhecimento dinâmico (Sprint 13)
+  - Indexação de 529 chunks de docs/julia/
+  - Detector de objeções (10 tipos + subtipos)
+  - Detector de perfil médico (7 perfis)
+  - Detector de objetivo de conversa (8 objetivos)
+  - Injeção automática de conhecimento no prompt
 
 **Gestão via Slack:**
 - [x] Linguagem natural para comandos
