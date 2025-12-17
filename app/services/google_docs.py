@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 # Configuracao
 SCOPES = [
     'https://www.googleapis.com/auth/documents',  # Leitura e escrita em Docs
-    'https://www.googleapis.com/auth/drive.readonly',  # Listar arquivos no Drive
+    'https://www.googleapis.com/auth/drive',  # Acesso completo ao Drive (necessário para ver compartilhados)
 ]
 CREDENTIALS_PATH = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 DOC_ID = os.getenv('BRIEFING_DOC_ID')  # Legado - doc unico
@@ -164,7 +164,9 @@ async def listar_documentos(folder_id: Optional[str] = None, force_refresh: bool
             q=query,
             fields="files(id, name, modifiedTime, webViewLink)",
             orderBy="modifiedTime desc",
-            pageSize=50
+            pageSize=50,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True
         ).execute()
 
         files = results.get('files', [])
@@ -250,20 +252,28 @@ async def ler_documento(doc_id: str) -> Optional[DocContent]:
         # Detectar se ja foi processado
         secao_plano = _detectar_secao_plano(conteudo)
 
-        # Buscar metadata do Drive para data de modificacao
-        drive_service = _get_drive_service()
-        file_meta = drive_service.files().get(
-            fileId=doc_id,
-            fields="modifiedTime, webViewLink"
-        ).execute()
+        # Tentar buscar metadata do Drive, mas nao falhar se nao conseguir
+        ultima_mod = datetime.now()
+        url = f"https://docs.google.com/document/d/{doc_id}/edit"
+
+        try:
+            drive_service = _get_drive_service()
+            file_meta = drive_service.files().get(
+                fileId=doc_id,
+                fields="modifiedTime, webViewLink"
+            ).execute()
+            ultima_mod = datetime.fromisoformat(
+                file_meta['modifiedTime'].replace('Z', '+00:00')
+            )
+            url = file_meta.get('webViewLink', url)
+        except Exception as drive_err:
+            logger.debug(f"Drive API indisponivel para metadata: {drive_err}")
 
         info = DocInfo(
             id=doc_id,
             nome=document.get('title', 'Sem titulo'),
-            ultima_modificacao=datetime.fromisoformat(
-                file_meta['modifiedTime'].replace('Z', '+00:00')
-            ),
-            url=file_meta.get('webViewLink', f"https://docs.google.com/document/d/{doc_id}")
+            ultima_modificacao=ultima_mod,
+            url=url
         )
 
         logger.info(f"Documento lido: {info.nome}")

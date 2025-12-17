@@ -53,6 +53,8 @@ class BuscadorConhecimento:
         Returns:
             Lista de resultados ordenados por relevância
         """
+        import json
+
         from app.services.embedding import gerar_embedding
         from app.services.supabase import supabase
         from app.services.redis import cache_get, cache_set
@@ -65,7 +67,7 @@ class BuscadorConhecimento:
             cached = await cache_get(cache_key)
             if cached:
                 logger.debug(f"Busca em cache: {query[:50]}...")
-                return [ResultadoBusca(**r) for r in cached]
+                return [ResultadoBusca(**r) for r in json.loads(cached)]
 
         # Gerar embedding da query
         query_embedding = await gerar_embedding(query)
@@ -96,25 +98,22 @@ class BuscadorConhecimento:
             for r in response.data
         ]
 
-        # Salvar em cache
+        # Salvar em cache (serializa lista para JSON string)
         if usar_cache and resultados:
-            await cache_set(
-                cache_key,
-                [
-                    {
-                        "id": r.id,
-                        "arquivo": r.arquivo,
-                        "secao": r.secao,
-                        "conteudo": r.conteudo,
-                        "tipo": r.tipo,
-                        "subtipo": r.subtipo,
-                        "tags": r.tags,
-                        "similaridade": r.similaridade,
-                    }
-                    for r in resultados
-                ],
-                CACHE_TTL_BUSCA,
-            )
+            cache_data = json.dumps([
+                {
+                    "id": r.id,
+                    "arquivo": r.arquivo,
+                    "secao": r.secao,
+                    "conteudo": r.conteudo,
+                    "tipo": r.tipo,
+                    "subtipo": r.subtipo,
+                    "tags": r.tags,
+                    "similaridade": r.similaridade,
+                }
+                for r in resultados
+            ], ensure_ascii=False)
+            await cache_set(cache_key, cache_data, CACHE_TTL_BUSCA)
 
         logger.info(f"Busca '{query[:30]}...': {len(resultados)} resultados")
         return resultados
