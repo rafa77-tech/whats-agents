@@ -133,6 +133,64 @@ def detectar_formato_proibido(texto: str) -> ValidacaoResult:
     return ValidacaoResult(valido=True)
 
 
+# Padroes de instrucoes internas vazadas (modelo "pensando em voz alta")
+PADROES_INSTRUCAO_INTERNA = [
+    # Marcadores de instrucao
+    (r'#{3,}', 'marcador_hash', 'alta'),
+    (r'\[instruc', 'marcador_instrucao', 'critica'),
+    (r'\[nota\]', 'marcador_nota', 'critica'),
+    (r'\[interno\]', 'marcador_interno', 'critica'),
+    (r'\[TODO\]', 'marcador_todo', 'critica'),
+
+    # Checklist/verificacao interna
+    (r'cheque\s+se\b', 'checklist_interna', 'alta'),
+    (r'verificar\s+se\b', 'checklist_interna', 'alta'),
+    (r'lembrar\s+de\b', 'nota_interna', 'media'),
+    (r'nota:\s', 'nota_explicita', 'alta'),
+    (r'obs:\s', 'obs_explicita', 'alta'),
+
+    # Pensamento em voz alta
+    (r'preciso\s+(agora\s+)?(verificar|checar|confirmar)', 'pensamento_voz_alta', 'alta'),
+    (r'vou\s+(agora\s+)?(verificar|checar|confirmar)', 'pensamento_voz_alta', 'media'),
+    (r'deixa\s+eu\s+(verificar|checar|ver)', 'pensamento_voz_alta', 'media'),
+
+    # Referencias a tools/sistema
+    (r'us(ei|ando|ar)\s+(a\s+)?tool\b', 'referencia_tool', 'critica'),
+    (r'chamei\s+(a\s+)?fun[çc][aã]o', 'referencia_funcao', 'critica'),
+    (r'execut(ei|ando)\s+(o\s+)?sistema', 'referencia_sistema', 'critica'),
+]
+
+
+def detectar_instrucao_interna(texto: str) -> ValidacaoResult:
+    """
+    Detecta instrucoes internas vazadas (modelo pensando em voz alta).
+
+    Args:
+        texto: Resposta a validar
+
+    Returns:
+        ValidacaoResult com detalhes
+    """
+    texto_lower = texto.lower()
+
+    for padrao, tipo, severidade in PADROES_INSTRUCAO_INTERNA:
+        match = re.search(padrao, texto_lower, re.IGNORECASE)
+        if match:
+            logger.warning(
+                f"Instrucao interna vazada: tipo={tipo}, "
+                f"trecho='{match.group()[:50]}'"
+            )
+            return ValidacaoResult(
+                valido=False,
+                motivo=f"Instrucao interna vazada ({tipo})",
+                tipo_violacao=tipo,
+                trecho_problematico=match.group()[:100],
+                severidade=severidade
+            )
+
+    return ValidacaoResult(valido=True)
+
+
 # Padroes de linguagem corporativa/robotica
 PADROES_LINGUAGEM_ROBOTICA = [
     # Muito formal
@@ -200,6 +258,7 @@ class OutputValidator:
     def __init__(self):
         self.validadores: list[Callable[[str], ValidacaoResult]] = [
             detectar_revelacao_ia,
+            detectar_instrucao_interna,  # Detectar "pensamento em voz alta"
             detectar_formato_proibido,
             detectar_linguagem_robotica,
         ]
