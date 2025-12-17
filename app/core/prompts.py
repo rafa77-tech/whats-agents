@@ -67,7 +67,8 @@ async def montar_prompt_julia(
     contexto_memorias: str = "",
     especialidade_id: str = None,
     diretrizes: str = "",
-    abertura_ja_enviada: bool = False
+    abertura_ja_enviada: bool = False,
+    conhecimento: str = "",  # E03: Conhecimento dinâmico RAG
 ) -> str:
     """
     Monta o system prompt completo para a Julia.
@@ -87,6 +88,7 @@ async def montar_prompt_julia(
         especialidade_id: ID da especialidade para prompt especifico
         diretrizes: Diretrizes do gestor
         abertura_ja_enviada: Se a abertura automatica ja foi enviada
+        conhecimento: Conhecimento dinamico do orquestrador (E03)
 
     Returns:
         System prompt formatado
@@ -125,5 +127,6 @@ async def montar_prompt_julia(
         diretrizes=diretrizes,
         contexto=contexto,
         memorias=contexto_memorias,
-        primeira_msg=primeira_msg
+        conhecimento=conhecimento,
+        primeira_msg=primeira_msg,
     )

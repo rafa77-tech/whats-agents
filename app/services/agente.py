@@ -21,6 +21,7 @@ from app.tools.vagas import (
 )
 from app.tools.lembrete import TOOL_AGENDAR_LEMBRETE, handle_agendar_lembrete
 from app.tools.memoria import TOOL_SALVAR_MEMORIA, handle_salvar_memoria
+from app.services.conhecimento import OrquestradorConhecimento
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +95,29 @@ async def gerar_resposta_julia(
     Returns:
         Texto da resposta gerada
     """
+    # E03: Detectar situação e buscar conhecimento relevante
+    conhecimento_dinamico = ""
+    try:
+        orquestrador = OrquestradorConhecimento()
+        historico_msgs = []
+        if contexto.get("historico_raw"):
+            historico_msgs = [
+                m.get("conteudo", "") for m in contexto["historico_raw"]
+                if m.get("tipo") == "recebida"
+            ][-5:]  # Últimas 5 mensagens recebidas
+
+        situacao = await orquestrador.analisar_situacao(
+            mensagem=mensagem,
+            historico=historico_msgs,
+            dados_cliente=medico,
+            stage=medico.get("stage_jornada", "novo"),
+        )
+        conhecimento_dinamico = situacao.resumo
+        logger.debug(f"Situação detectada: objecao={situacao.objecao.tipo}, perfil={situacao.perfil.perfil}, objetivo={situacao.objetivo.objetivo}")
+    except Exception as e:
+        logger.warning(f"Erro ao buscar conhecimento dinâmico: {e}")
+        # Continua sem conhecimento dinâmico
+
     # Montar system prompt (async - carrega do banco)
     system_prompt = await montar_prompt_julia(
         contexto_medico=contexto.get("medico", ""),
@@ -106,7 +130,8 @@ async def gerar_resposta_julia(
         contexto_handoff=contexto.get("handoff_recente", ""),
         contexto_memorias=contexto.get("memorias", ""),
         especialidade_id=medico.get("especialidade_id"),
-        diretrizes=contexto.get("diretrizes", "")
+        diretrizes=contexto.get("diretrizes", ""),
+        conhecimento=conhecimento_dinamico,
     )
 
     # Montar historico como messages (para o Claude ter contexto da conversa)

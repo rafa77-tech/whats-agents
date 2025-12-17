@@ -29,6 +29,7 @@ class PromptBuilder:
         self._diretrizes: str = ""
         self._contexto: str = ""
         self._memorias: str = ""
+        self._conhecimento: str = ""  # E03: Conhecimento dinâmico RAG
 
     async def com_base(self) -> "PromptBuilder":
         """Carrega prompt base."""
@@ -66,6 +67,50 @@ class PromptBuilder:
         self._memorias = memorias
         return self
 
+    def com_conhecimento(self, conhecimento: str) -> "PromptBuilder":
+        """
+        Adiciona conhecimento dinâmico (E03).
+
+        O conhecimento é gerado pelo OrquestradorConhecimento
+        baseado na situação detectada (objeção, perfil, objetivo).
+
+        Args:
+            conhecimento: Resumo formatado do orquestrador
+        """
+        self._conhecimento = conhecimento
+        return self
+
+    async def com_conhecimento_automatico(
+        self,
+        mensagem: str,
+        historico: list[str] = None,
+        dados_cliente: dict = None,
+        stage: str = "novo",
+    ) -> "PromptBuilder":
+        """
+        Detecta situação e busca conhecimento automaticamente.
+
+        Args:
+            mensagem: Última mensagem do médico
+            historico: Mensagens anteriores
+            dados_cliente: Dados do cliente
+            stage: Stage atual da jornada
+
+        Returns:
+            self para encadeamento
+        """
+        from app.services.conhecimento import OrquestradorConhecimento
+
+        orquestrador = OrquestradorConhecimento()
+        contexto = await orquestrador.analisar_situacao(
+            mensagem=mensagem,
+            historico=historico,
+            dados_cliente=dados_cliente,
+            stage=stage,
+        )
+        self._conhecimento = contexto.resumo
+        return self
+
     def build(self) -> str:
         """
         Monta prompt final.
@@ -89,19 +134,23 @@ class PromptBuilder:
         if self._prompt_tools:
             partes.append(f"\n{self._prompt_tools}")
 
-        # 4. Diretrizes do gestor
+        # 4. Conhecimento dinâmico (E03 - situação detectada + RAG)
+        if self._conhecimento:
+            partes.append(f"\n{self._conhecimento}")
+
+        # 5. Diretrizes do gestor
         if self._diretrizes:
             partes.append(f"\n## DIRETRIZES DO GESTOR (PRIORIDADE MAXIMA)\n{self._diretrizes}")
 
-        # 5. Memorias do medico
+        # 6. Memorias do medico
         if self._memorias:
             partes.append(f"\n{self._memorias}")
 
-        # 6. Contexto dinamico
+        # 7. Contexto dinamico
         if self._contexto:
             partes.append(f"\n## CONTEXTO DA CONVERSA\n{self._contexto}")
 
-        # 7. Instrucoes de primeira mensagem (se aplicavel)
+        # 8. Instrucoes de primeira mensagem (se aplicavel)
         if self._prompt_primeira_msg:
             partes.append(f"\n## INSTRUCOES PARA ESTA RESPOSTA\n{self._prompt_primeira_msg}")
 
@@ -113,7 +162,8 @@ async def construir_prompt_julia(
     diretrizes: str = "",
     contexto: str = "",
     memorias: str = "",
-    primeira_msg: bool = False
+    conhecimento: str = "",
+    primeira_msg: bool = False,
 ) -> str:
     """
     Funcao helper para construir prompt completo.
@@ -123,6 +173,7 @@ async def construir_prompt_julia(
         diretrizes: Diretrizes do gestor
         contexto: Contexto dinamico da conversa
         memorias: Memorias do medico (RAG)
+        conhecimento: Conhecimento dinâmico (E03)
         primeira_msg: Se e primeira mensagem
 
     Returns:
@@ -142,5 +193,6 @@ async def construir_prompt_julia(
     builder.com_diretrizes(diretrizes)
     builder.com_contexto(contexto)
     builder.com_memorias(memorias)
+    builder.com_conhecimento(conhecimento)
 
     return builder.build()
