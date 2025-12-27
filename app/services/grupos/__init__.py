@@ -11,7 +11,19 @@ Responsável por:
 """
 
 from app.services.grupos.ingestor import ingerir_mensagem_grupo
+from app.services.grupos.heuristica import calcular_score_heuristica, ResultadoHeuristica
+from app.services.grupos.classificador import (
+    classificar_batch_heuristica,
+    classificar_mensagem_individual,
+)
 
 __all__ = [
+    # Ingestão
     "ingerir_mensagem_grupo",
+    # Heurística
+    "calcular_score_heuristica",
+    "ResultadoHeuristica",
+    # Classificador
+    "classificar_batch_heuristica",
+    "classificar_mensagem_individual",
 ]
