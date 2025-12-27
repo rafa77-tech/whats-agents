@@ -31,6 +31,8 @@ from app.services.policy import (
     save_doctor_state_updates,
     PrimaryAction,
     PolicyDecision,
+    log_policy_decision,
+    log_policy_effect,
 )
 
 logger = logging.getLogger(__name__)
@@ -340,11 +342,23 @@ async def processar_mensagem_completo(
 
         # 5. PolicyDecide: decidir ação
         policy = PolicyDecide()
+        is_first_msg = contexto.get("primeira_msg", False)
+        conversa_status = conversa.get("status", "active")
         decision = policy.decide(
             state,
-            is_first_message=contexto.get("primeira_msg", False),
-            conversa_status=conversa.get("status", "active"),
+            is_first_message=is_first_msg,
+            conversa_status=conversa_status,
             conversa_last_message_at=conversa.get("last_message_at"),
+        )
+
+        # 5b. Log estruturado da decisão (Sprint 15)
+        log_policy_decision(
+            state=state,
+            decision=decision,
+            conversation_id=conversa.get("id"),
+            message_id=None,  # TODO: passar message_id quando disponível
+            is_first_message=is_first_msg,
+            conversa_status=conversa_status,
         )
 
         # 6. Se requer humano → handoff
@@ -356,14 +370,40 @@ async def processar_mensagem_completo(
                     motivo=decision.reasoning,
                     trigger_type="policy_grave_objection",
                 )
+                # Log effect: handoff triggered
+                log_policy_effect(
+                    cliente_id=medico["id"],
+                    conversation_id=conversa.get("id"),
+                    message_id=None,
+                    rule_matched=decision.rule_id,
+                    effect="handoff_triggered",
+                    details={"motivo": decision.reasoning},
+                )
             except Exception as e:
                 logger.error(f"Erro ao criar handoff: {e}")
+                log_policy_effect(
+                    cliente_id=medico["id"],
+                    conversation_id=conversa.get("id"),
+                    message_id=None,
+                    rule_matched=decision.rule_id,
+                    effect="error",
+                    details={"error": str(e), "action": "handoff"},
+                )
             # Resposta padrão de transferência
             return "Entendi. Vou pedir pra minha supervisora te ajudar aqui, um momento."
 
         # 7. Se ação é WAIT → não responder
         if decision.primary_action == PrimaryAction.WAIT:
             logger.info(f"PolicyDecide: WAIT - {decision.reasoning}")
+            # Log effect: wait applied
+            log_policy_effect(
+                cliente_id=medico["id"],
+                conversation_id=conversa.get("id"),
+                message_id=None,
+                rule_matched=decision.rule_id,
+                effect="wait_applied",
+                details={"reasoning": decision.reasoning},
+            )
             return None
 
         # 8. Gerar resposta com constraints
@@ -375,12 +415,25 @@ async def processar_mensagem_completo(
             policy_decision=decision,
         )
 
-        # 9. StateUpdate pós-envio
+        # 9. StateUpdate pós-envio + log effect
         if resposta:
             outbound_updates = state_updater.on_outbound_message(state, actor="julia")
             if outbound_updates:
                 await save_doctor_state_updates(medico["id"], outbound_updates)
                 logger.debug(f"doctor_state pós-envio: {list(outbound_updates.keys())}")
+
+            # Log effect: message sent
+            log_policy_effect(
+                cliente_id=medico["id"],
+                conversation_id=conversa.get("id"),
+                message_id=None,
+                rule_matched=decision.rule_id,
+                effect="message_sent",
+                details={
+                    "primary_action": decision.primary_action.value,
+                    "response_length": len(resposta),
+                },
+            )
 
         return resposta
 

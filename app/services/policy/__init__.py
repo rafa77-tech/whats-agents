@@ -35,6 +35,8 @@ from .repository import (
 
 from .state_update import StateUpdate, state_updater
 from .decide import PolicyDecide, policy_decide, get_policy_decision
+from .version import POLICY_VERSION, get_policy_version
+from .logger import log_policy_decision, log_policy_effect
 
 __all__ = [
     # Enums
@@ -62,4 +64,10 @@ __all__ = [
     "PolicyDecide",
     "policy_decide",
     "get_policy_decision",
+    # Version
+    "POLICY_VERSION",
+    "get_policy_version",
+    # Logger
+    "log_policy_decision",
+    "log_policy_effect",
 ]

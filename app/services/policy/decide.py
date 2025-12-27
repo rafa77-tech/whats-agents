@@ -53,7 +53,7 @@ class PolicyDecide:
         # Regra especial: primeiro contato com médico novo
         decision = rule_new_doctor_first_contact(state, **kwargs)
         if decision:
-            self._log_decision(state, decision)
+            decision.rule_id = "rule_new_doctor_first_contact"
             return decision
 
         # Demais regras em ordem de prioridade
@@ -61,7 +61,7 @@ class PolicyDecide:
             try:
                 decision = rule_fn(state, **kwargs)
                 if decision:
-                    self._log_decision(state, decision)
+                    decision.rule_id = rule_fn.__name__
                     return decision
             except Exception as e:
                 logger.error(f"Erro na regra {rule_fn.__name__}: {e}")
@@ -69,7 +69,7 @@ class PolicyDecide:
 
         # Fallback: regra default (sempre retorna)
         decision = rule_default(state, **kwargs)
-        self._log_decision(state, decision)
+        decision.rule_id = "rule_default"
         return decision
 
     def _log_decision(self, state: DoctorState, decision: PolicyDecision):

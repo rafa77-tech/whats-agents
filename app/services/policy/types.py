@@ -160,10 +160,12 @@ class PolicyDecision:
     requires_human: bool
     constraints_text: str  # Bloco para injetar no prompt
     reasoning: str  # Para logs/debug
+    rule_id: str = ""  # Nome da função da regra que disparou (para rastreabilidade)
 
     def to_dict(self) -> dict:
         """Serializa para logging."""
         return {
+            "rule_id": self.rule_id,
             "primary_action": self.primary_action.value,
             "allowed_actions": self.allowed_actions,
             "forbidden_actions": self.forbidden_actions,
