@@ -15,6 +15,11 @@ from app.services.grupos.heuristica import calcular_score_heuristica, ResultadoH
 from app.services.grupos.classificador import (
     classificar_batch_heuristica,
     classificar_mensagem_individual,
+    classificar_batch_llm,
+)
+from app.services.grupos.classificador_llm import (
+    classificar_com_llm,
+    ResultadoClassificacaoLLM,
 )
 
 __all__ = [
@@ -23,7 +28,11 @@ __all__ = [
     # Heurística
     "calcular_score_heuristica",
     "ResultadoHeuristica",
-    # Classificador
+    # Classificador heurística
     "classificar_batch_heuristica",
     "classificar_mensagem_individual",
+    # Classificador LLM
+    "classificar_batch_llm",
+    "classificar_com_llm",
+    "ResultadoClassificacaoLLM",
 ]
