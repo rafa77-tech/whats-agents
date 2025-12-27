@@ -58,6 +58,23 @@ from .briefing import (
     handle_processar_briefing,
 )
 
+from .grupos import (
+    TOOL_LISTAR_VAGAS_REVISAO,
+    TOOL_APROVAR_VAGA_GRUPO,
+    TOOL_REJEITAR_VAGA_GRUPO,
+    TOOL_DETALHES_VAGA_GRUPO,
+    TOOL_ESTATISTICAS_GRUPOS,
+    TOOL_ADICIONAR_ALIAS_HOSPITAL,
+    TOOL_BUSCAR_HOSPITAL,
+    handle_listar_vagas_revisao,
+    handle_aprovar_vaga_grupo,
+    handle_rejeitar_vaga_grupo,
+    handle_detalhes_vaga_grupo,
+    handle_estatisticas_grupos,
+    handle_adicionar_alias_hospital,
+    handle_buscar_hospital_grupos,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -81,6 +98,14 @@ SLACK_TOOLS = [
     TOOL_PAUSAR_JULIA,
     TOOL_RETOMAR_JULIA,
     TOOL_PROCESSAR_BRIEFING,
+    # Grupos WhatsApp (Sprint 14)
+    TOOL_LISTAR_VAGAS_REVISAO,
+    TOOL_APROVAR_VAGA_GRUPO,
+    TOOL_REJEITAR_VAGA_GRUPO,
+    TOOL_DETALHES_VAGA_GRUPO,
+    TOOL_ESTATISTICAS_GRUPOS,
+    TOOL_ADICIONAR_ALIAS_HOSPITAL,
+    TOOL_BUSCAR_HOSPITAL,
 ]
 
 # Tools que requerem confirmacao
@@ -91,6 +116,10 @@ TOOLS_CRITICAS = {
     "reservar_vaga",
     "pausar_julia",
     "retomar_julia",
+    # Grupos WhatsApp (Sprint 14)
+    "aprovar_vaga_grupo",
+    "rejeitar_vaga_grupo",
+    "adicionar_alias_hospital",
 }
 
 
@@ -127,6 +156,14 @@ async def executar_tool(nome: str, params: dict, user_id: str, channel_id: str =
         "pausar_julia": lambda p: handle_pausar_julia(p, user_id),
         "retomar_julia": lambda p: handle_retomar_julia(p, user_id),
         "processar_briefing": lambda p: handle_processar_briefing(p, channel_id, user_id),
+        # Grupos WhatsApp (Sprint 14)
+        "listar_vagas_revisao": handle_listar_vagas_revisao,
+        "aprovar_vaga_grupo": handle_aprovar_vaga_grupo,
+        "rejeitar_vaga_grupo": handle_rejeitar_vaga_grupo,
+        "detalhes_vaga_grupo": handle_detalhes_vaga_grupo,
+        "estatisticas_grupos": handle_estatisticas_grupos,
+        "adicionar_alias_hospital": handle_adicionar_alias_hospital,
+        "buscar_hospital_grupos": handle_buscar_hospital_grupos,
     }
 
     handler = handlers.get(nome)
@@ -170,6 +207,14 @@ __all__ = [
     "TOOL_RETOMAR_JULIA",
     # Tools individuais - Briefing (Sprint 11)
     "TOOL_PROCESSAR_BRIEFING",
+    # Tools individuais - Grupos WhatsApp (Sprint 14)
+    "TOOL_LISTAR_VAGAS_REVISAO",
+    "TOOL_APROVAR_VAGA_GRUPO",
+    "TOOL_REJEITAR_VAGA_GRUPO",
+    "TOOL_DETALHES_VAGA_GRUPO",
+    "TOOL_ESTATISTICAS_GRUPOS",
+    "TOOL_ADICIONAR_ALIAS_HOSPITAL",
+    "TOOL_BUSCAR_HOSPITAL",
     # Helpers exportados para testes
     "_calcular_datas_periodo",
     "_buscar_medico_por_identificador",
