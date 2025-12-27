@@ -198,6 +198,50 @@ class EvolutionClient:
         logger.warning(f"Nao foi possivel resolver LID para pushName '{push_name}'")
         return ""
 
+    async def buscar_info_grupo(self, grupo_jid: str) -> dict:
+        """
+        Busca informações de um grupo pelo JID.
+
+        Args:
+            grupo_jid: JID do grupo (ex: "123456789@g.us")
+
+        Returns:
+            Dict com informações do grupo (subject, size, participants, etc)
+        """
+        # Buscar na lista de grupos (Evolution API v2)
+        grupos = await self.listar_grupos()
+        for grupo in grupos:
+            if grupo.get("id") == grupo_jid:
+                return grupo
+        return {}
+
+    async def listar_grupos(self) -> list:
+        """
+        Lista todos os grupos que a instância participa.
+
+        Returns:
+            Lista de grupos com id, subject, size, etc
+        """
+        url = f"{self.base_url}/group/fetchAllGroups/{self.instance}"
+
+        async def _request():
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    url,
+                    params={"getParticipants": "false"},
+                    headers=self.headers,
+                    timeout=15.0
+                )
+                response.raise_for_status()
+                return response.json()
+
+        try:
+            result = await circuit_evolution.executar(_request)
+            return result if isinstance(result, list) else []
+        except Exception as e:
+            logger.warning(f"Erro ao listar grupos: {e}")
+            return []
+
     async def set_webhook(self, url: str, events: list = None) -> dict:
         """Configura webhook da instancia."""
         if events is None:

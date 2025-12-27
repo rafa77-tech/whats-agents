@@ -10,6 +10,7 @@ from uuid import UUID
 
 from app.core.logging import get_logger
 from app.services.supabase import supabase
+from app.services.whatsapp import evolution
 from app.schemas.mensagem import MensagemRecebida
 
 logger = get_logger(__name__)
@@ -27,12 +28,27 @@ async def obter_ou_criar_grupo(jid: str, nome: Optional[str] = None) -> UUID:
         UUID do grupo
     """
     # Tentar buscar existente
-    result = supabase.table("grupos_whatsapp").select("id").eq("jid", jid).execute()
+    result = supabase.table("grupos_whatsapp").select("id, nome").eq("jid", jid).execute()
 
     if result.data:
         grupo_id = result.data[0]["id"]
+        nome_atual = result.data[0].get("nome")
+
+        # Se não tem nome ainda, buscar na API
+        if not nome_atual:
+            nome_api = await _buscar_nome_grupo_api(jid)
+            if nome_api:
+                supabase.table("grupos_whatsapp").update({
+                    "nome": nome_api
+                }).eq("id", grupo_id).execute()
+                logger.info(f"Nome do grupo atualizado: {nome_api}")
+
         logger.debug(f"Grupo existente: {grupo_id}")
         return UUID(grupo_id)
+
+    # Buscar nome na API se não veio no webhook
+    if not nome:
+        nome = await _buscar_nome_grupo_api(jid)
 
     # Criar novo
     novo_grupo = {
@@ -46,8 +62,32 @@ async def obter_ou_criar_grupo(jid: str, nome: Optional[str] = None) -> UUID:
     result = supabase.table("grupos_whatsapp").insert(novo_grupo).execute()
     grupo_id = result.data[0]["id"]
 
-    logger.info(f"Novo grupo criado: {grupo_id} ({jid})")
+    logger.info(f"Novo grupo criado: {grupo_id} ({jid}) - {nome or 'sem nome'}")
     return UUID(grupo_id)
+
+
+async def _buscar_nome_grupo_api(jid: str) -> Optional[str]:
+    """
+    Busca nome do grupo na Evolution API.
+
+    Args:
+        jid: JID do grupo
+
+    Returns:
+        Nome do grupo ou None
+    """
+    try:
+        info = await evolution.buscar_info_grupo(jid)
+        if info:
+            # Evolution API retorna 'subject' como nome do grupo
+            nome = info.get("subject") or info.get("name")
+            if nome:
+                logger.debug(f"Nome do grupo obtido da API: {nome}")
+                return nome
+    except Exception as e:
+        logger.warning(f"Erro ao buscar nome do grupo {jid}: {e}")
+
+    return None
 
 
 async def obter_ou_criar_contato(
