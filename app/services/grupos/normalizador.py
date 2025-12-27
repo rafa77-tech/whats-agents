@@ -532,13 +532,29 @@ async def normalizar_vaga(vaga_id: UUID) -> ResultadoNormalizacao:
         dados = vaga.data
         updates = {}
 
-        # Normalizar hospital
+        # Normalizar hospital (com criação automática se não existir)
         if dados.get("hospital_raw"):
-            match = await normalizar_hospital(dados["hospital_raw"])
+            from app.services.grupos.hospital_web import normalizar_ou_criar_hospital
+
+            # Tentar obter região do grupo
+            regiao_grupo = ""
+            if dados.get("grupo_origem_id"):
+                try:
+                    grupo = supabase.table("grupos_whatsapp") \
+                        .select("regiao") \
+                        .eq("id", dados["grupo_origem_id"]) \
+                        .single() \
+                        .execute()
+                    regiao_grupo = grupo.data.get("regiao", "") if grupo.data else ""
+                except Exception:
+                    pass
+
+            match = await normalizar_ou_criar_hospital(dados["hospital_raw"], regiao_grupo)
             if match:
-                updates["hospital_id"] = str(match.entidade_id)
+                updates["hospital_id"] = str(match.hospital_id)
                 updates["hospital_match_score"] = match.score
-                resultado.hospital_id = match.entidade_id
+                updates["hospital_criado"] = match.foi_criado
+                resultado.hospital_id = match.hospital_id
                 resultado.hospital_nome = match.nome
                 resultado.hospital_score = match.score
 

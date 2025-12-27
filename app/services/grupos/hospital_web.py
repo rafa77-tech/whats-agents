@@ -96,7 +96,7 @@ async def buscar_hospital_web(
     if not nome_hospital:
         return None
 
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
     prompt = PROMPT_BUSCA_HOSPITAL.format(
         nome_hospital=nome_hospital,
@@ -104,7 +104,7 @@ async def buscar_hospital_web(
     )
 
     try:
-        response = client.messages.create(
+        response = await client.messages.create(
             model="claude-3-haiku-20240307",
             max_tokens=500,
             temperature=0,
@@ -173,14 +173,14 @@ async def criar_hospital(
         "logradouro": info.logradouro,
         "numero": info.numero,
         "bairro": info.bairro,
-        "cidade": info.cidade,
-        "estado": info.estado,
+        "cidade": info.cidade or "Não informada",  # Evitar NULL
+        "estado": info.estado or "SP",  # Default SP
         "cep": info.cep,
         "criado_automaticamente": True,
-        "precisa_revisao": info.confianca < 0.8,
+        "precisa_revisao": True,  # Sempre revisar criados automaticamente
     }
 
-    # Remover campos None
+    # Remover campos None (exceto cidade/estado que têm defaults)
     dados_hospital = {k: v for k, v in dados_hospital.items() if v is not None}
 
     result = supabase.table("hospitais").insert(dados_hospital).execute()
@@ -299,14 +299,11 @@ async def criar_hospital_minimo(
 
     dados = {
         "nome": nome,
-        "cidade": cidade,
-        "estado": estado,
+        "cidade": cidade or "Não informada",  # Evitar NULL
+        "estado": estado or "SP",  # Default SP
         "criado_automaticamente": True,
         "precisa_revisao": True,  # Sempre precisa revisão
     }
-
-    # Remover campos None
-    dados = {k: v for k, v in dados.items() if v is not None}
 
     result = supabase.table("hospitais").insert(dados).execute()
     hospital_id = UUID(result.data[0]["id"])

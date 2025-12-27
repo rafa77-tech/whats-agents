@@ -207,7 +207,7 @@ async def criar_vaga_principal(vaga_grupo: dict) -> UUID:
         "valor": vaga_grupo.get("valor"),
         "hora_inicio": vaga_grupo.get("hora_inicio"),
         "hora_fim": vaga_grupo.get("hora_fim"),
-        "status": "disponivel",
+        "status": "aberta",
         "origem": "grupo_whatsapp",
         "vaga_grupo_id": vaga_grupo["id"],
     }
