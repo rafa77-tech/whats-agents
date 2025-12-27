@@ -45,8 +45,10 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 9 | Julia no Slack (NLP) | ✅ Completa |
 | 10 | Refatoracao e Divida Tecnica | ✅ Completa |
 | 11 | Briefing Conversacional | ✅ Completa |
-| 12 | Deploy Produção (planejado) | 📋 Planejado |
+| 12 | Deploy Produção | 📋 Planejado |
 | 13 | Conhecimento Dinâmico (RAG) | ✅ Completa |
+| 14 | (Em definição) | 🔄 Em Progresso |
+| 15 | Policy Engine (Estado + Decisão) | 📋 Planejado |
 
 ### Funcionalidades Implementadas
 
