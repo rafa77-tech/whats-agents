@@ -21,6 +21,21 @@ from app.services.grupos.classificador_llm import (
     classificar_com_llm,
     ResultadoClassificacaoLLM,
 )
+from app.services.grupos.extrator import (
+    extrair_dados_mensagem,
+    extrair_batch,
+    VagaExtraida,
+    DadosVagaExtraida,
+    ConfiancaExtracao,
+    ResultadoExtracao,
+)
+from app.services.grupos.validacoes import (
+    validar_vaga_completa,
+    validar_valor,
+    validar_data,
+    validar_horario,
+    AlertaVaga,
+)
 
 __all__ = [
     # Ingestão
@@ -35,4 +50,17 @@ __all__ = [
     "classificar_batch_llm",
     "classificar_com_llm",
     "ResultadoClassificacaoLLM",
+    # Extrator
+    "extrair_dados_mensagem",
+    "extrair_batch",
+    "VagaExtraida",
+    "DadosVagaExtraida",
+    "ConfiancaExtracao",
+    "ResultadoExtracao",
+    # Validações
+    "validar_vaga_completa",
+    "validar_valor",
+    "validar_data",
+    "validar_horario",
+    "AlertaVaga",
 ]
