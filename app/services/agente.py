@@ -352,11 +352,12 @@ async def processar_mensagem_completo(
         )
 
         # 5b. Log estruturado da decisão (Sprint 15)
-        log_policy_decision(
+        # Retorna policy_decision_id para propagar ao handoff e effects
+        policy_decision_id = log_policy_decision(
             state=state,
             decision=decision,
             conversation_id=conversa.get("id"),
-            message_id=None,  # TODO: passar message_id quando disponível
+            interaction_id=None,  # Será preenchido quando existir
             is_first_message=is_first_msg,
             conversa_status=conversa_status,
         )
@@ -369,12 +370,13 @@ async def processar_mensagem_completo(
                     conversa_id=conversa["id"],
                     motivo=decision.reasoning,
                     trigger_type="policy_grave_objection",
+                    policy_decision_id=policy_decision_id,
                 )
                 # Log effect: handoff triggered
                 log_policy_effect(
                     cliente_id=medico["id"],
                     conversation_id=conversa.get("id"),
-                    message_id=None,
+                    policy_decision_id=policy_decision_id,
                     rule_matched=decision.rule_id,
                     effect="handoff_triggered",
                     details={"motivo": decision.reasoning},
@@ -384,7 +386,7 @@ async def processar_mensagem_completo(
                 log_policy_effect(
                     cliente_id=medico["id"],
                     conversation_id=conversa.get("id"),
-                    message_id=None,
+                    policy_decision_id=policy_decision_id,
                     rule_matched=decision.rule_id,
                     effect="error",
                     details={"error": str(e), "action": "handoff"},
@@ -399,7 +401,7 @@ async def processar_mensagem_completo(
             log_policy_effect(
                 cliente_id=medico["id"],
                 conversation_id=conversa.get("id"),
-                message_id=None,
+                policy_decision_id=policy_decision_id,
                 rule_matched=decision.rule_id,
                 effect="wait_applied",
                 details={"reasoning": decision.reasoning},
@@ -426,7 +428,7 @@ async def processar_mensagem_completo(
             log_policy_effect(
                 cliente_id=medico["id"],
                 conversation_id=conversa.get("id"),
-                message_id=None,
+                policy_decision_id=policy_decision_id,
                 rule_matched=decision.rule_id,
                 effect="message_sent",
                 details={

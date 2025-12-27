@@ -21,7 +21,8 @@ async def iniciar_handoff(
     conversa_id: str,
     cliente_id: str,
     motivo: str,
-    trigger_type: str = "manual"
+    trigger_type: str = "manual",
+    policy_decision_id: Optional[str] = None,
 ) -> Optional[dict]:
     """
     Inicia processo de handoff (IA -> Humano).
@@ -31,6 +32,7 @@ async def iniciar_handoff(
         cliente_id: ID do cliente
         motivo: Motivo do handoff
         trigger_type: Tipo do trigger (pedido_humano, juridico, etc)
+        policy_decision_id: ID da decisão de policy que originou (Sprint 15)
 
     Returns:
         Dados do handoff criado ou None se erro
@@ -83,6 +85,8 @@ async def iniciar_handoff(
         }
         if metadata:
             handoff_data["metadata"] = metadata
+        if policy_decision_id:
+            handoff_data["policy_decision_id"] = policy_decision_id
 
         response = supabase.table("handoffs").insert(handoff_data).execute()
 
