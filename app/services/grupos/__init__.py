@@ -62,6 +62,24 @@ from app.services.grupos.deduplicador import (
     listar_fontes_vaga,
     ResultadoDedup,
 )
+from app.services.grupos.importador import (
+    calcular_confianca_geral,
+    validar_para_importacao,
+    decidir_acao,
+    criar_vaga_principal,
+    processar_importacao,
+    processar_batch_importacao,
+    listar_vagas_para_revisao,
+    aprovar_vaga_revisao,
+    rejeitar_vaga_revisao,
+    obter_estatisticas_importacao,
+    ScoreConfianca,
+    ResultadoValidacao,
+    AcaoImportacao,
+    ResultadoImportacao,
+    THRESHOLD_IMPORTAR,
+    THRESHOLD_REVISAR,
+)
 
 __all__ = [
     # Ingestão
@@ -112,4 +130,21 @@ __all__ = [
     "processar_batch_deduplicacao",
     "listar_fontes_vaga",
     "ResultadoDedup",
+    # Importador
+    "calcular_confianca_geral",
+    "validar_para_importacao",
+    "decidir_acao",
+    "criar_vaga_principal",
+    "processar_importacao",
+    "processar_batch_importacao",
+    "listar_vagas_para_revisao",
+    "aprovar_vaga_revisao",
+    "rejeitar_vaga_revisao",
+    "obter_estatisticas_importacao",
+    "ScoreConfianca",
+    "ResultadoValidacao",
+    "AcaoImportacao",
+    "ResultadoImportacao",
+    "THRESHOLD_IMPORTAR",
+    "THRESHOLD_REVISAR",
 ]
