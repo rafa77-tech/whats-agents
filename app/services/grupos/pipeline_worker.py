@@ -74,9 +74,9 @@ class PipelineGrupos:
         if isinstance(mensagem_id, str):
             mensagem_id = UUID(mensagem_id)
 
-        # Buscar mensagem
+        # Buscar mensagem com dados do grupo
         msg = supabase.table("mensagens_grupo") \
-            .select("texto, nome_grupo, nome_contato, regiao") \
+            .select("texto, sender_nome, grupo_id, grupos_whatsapp(nome, regiao)") \
             .eq("id", str(mensagem_id)) \
             .single() \
             .execute()
@@ -89,6 +89,7 @@ class PipelineGrupos:
             )
 
         texto = msg.data.get("texto", "")
+        grupo_info = msg.data.get("grupos_whatsapp") or {}
         if not texto or len(texto) < 10:
             return ResultadoPipeline(
                 acao="descartar",
@@ -138,9 +139,9 @@ class PipelineGrupos:
         if isinstance(mensagem_id, str):
             mensagem_id = UUID(mensagem_id)
 
-        # Buscar mensagem
+        # Buscar mensagem com dados do grupo
         msg = supabase.table("mensagens_grupo") \
-            .select("texto, nome_grupo, nome_contato") \
+            .select("texto, sender_nome, grupos_whatsapp(nome)") \
             .eq("id", str(mensagem_id)) \
             .single() \
             .execute()
@@ -152,11 +153,13 @@ class PipelineGrupos:
                 motivo="mensagem_nao_encontrada"
             )
 
+        grupo_info = msg.data.get("grupos_whatsapp") or {}
+
         # Classificar com LLM
         resultado = await classificar_com_llm(
             texto=msg.data.get("texto", ""),
-            nome_grupo=msg.data.get("nome_grupo", ""),
-            nome_contato=msg.data.get("nome_contato", "")
+            nome_grupo=grupo_info.get("nome", ""),
+            nome_contato=msg.data.get("sender_nome", "")
         )
 
         if resultado.eh_oferta and resultado.confianca >= THRESHOLD_LLM:
@@ -189,9 +192,9 @@ class PipelineGrupos:
         if isinstance(mensagem_id, str):
             mensagem_id = UUID(mensagem_id)
 
-        # Buscar mensagem completa
+        # Buscar mensagem completa com dados do grupo
         msg = supabase.table("mensagens_grupo") \
-            .select("*") \
+            .select("*, grupos_whatsapp(nome, regiao)") \
             .eq("id", str(mensagem_id)) \
             .single() \
             .execute()
@@ -203,12 +206,14 @@ class PipelineGrupos:
                 motivo="mensagem_nao_encontrada"
             )
 
+        grupo_info = msg.data.get("grupos_whatsapp") or {}
+
         # Extrair dados
         resultado = await extrair_dados_mensagem(
             texto=msg.data.get("texto", ""),
-            nome_grupo=msg.data.get("nome_grupo", ""),
-            regiao_grupo=msg.data.get("regiao", ""),
-            nome_contato=msg.data.get("nome_contato", "")
+            nome_grupo=grupo_info.get("nome", ""),
+            regiao_grupo=grupo_info.get("regiao", ""),
+            nome_contato=msg.data.get("sender_nome", "")
         )
 
         if not resultado.vagas:
@@ -249,17 +254,22 @@ class PipelineGrupos:
         Returns:
             ID da vaga_grupo criada
         """
+        # Serializar data se existir
+        data_extraida = None
+        if vaga.dados and vaga.dados.data:
+            data_extraida = vaga.dados.data.isoformat() if hasattr(vaga.dados.data, 'isoformat') else str(vaga.dados.data)
+
         dados = {
             "mensagem_id": str(mensagem_id),
-            "grupo_id": msg_data.get("grupo_id"),
-            "hospital_extraido": vaga.dados.hospital if vaga.dados else None,
-            "especialidade_extraida": vaga.dados.especialidade if vaga.dados else None,
-            "data_extraida": vaga.dados.data if vaga.dados else None,
-            "hora_inicio_extraida": vaga.dados.hora_inicio if vaga.dados else None,
-            "hora_fim_extraida": vaga.dados.hora_fim if vaga.dados else None,
-            "valor_extraido": vaga.dados.valor if vaga.dados else None,
-            "observacoes": vaga.dados.observacoes if vaga.dados else None,
-            "confianca_extracao": vaga.confianca.media_ponderada() if vaga.confianca else None,
+            "grupo_origem_id": msg_data.get("grupo_id"),
+            "hospital_raw": vaga.dados.hospital if vaga.dados else None,
+            "especialidade_raw": vaga.dados.especialidade if vaga.dados else None,
+            "data": data_extraida,
+            "hora_inicio": vaga.dados.hora_inicio if vaga.dados else None,
+            "hora_fim": vaga.dados.hora_fim if vaga.dados else None,
+            "valor": vaga.dados.valor if vaga.dados else None,
+            "observacoes_raw": vaga.dados.observacoes if vaga.dados else None,
+            "confianca_geral": vaga.confianca.media_ponderada() if vaga.confianca else None,
             "status": "extraido",
         }
 
