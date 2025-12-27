@@ -1,5 +1,7 @@
 """
 Servico principal do agente Julia.
+
+Sprint 15: Integração com Policy Engine para decisões determinísticas.
 """
 import asyncio
 import random
@@ -22,6 +24,14 @@ from app.tools.vagas import (
 from app.tools.lembrete import TOOL_AGENDAR_LEMBRETE, handle_agendar_lembrete
 from app.tools.memoria import TOOL_SALVAR_MEMORIA, handle_salvar_memoria
 from app.services.conhecimento import OrquestradorConhecimento
+from app.services.policy import (
+    PolicyDecide,
+    StateUpdate,
+    load_doctor_state,
+    save_doctor_state_updates,
+    PrimaryAction,
+    PolicyDecision,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +89,8 @@ async def gerar_resposta_julia(
     medico: dict,
     conversa: dict,
     incluir_historico: bool = True,
-    usar_tools: bool = True
+    usar_tools: bool = True,
+    policy_decision: PolicyDecision = None,
 ) -> str:
     """
     Gera resposta da Julia para uma mensagem.
@@ -91,6 +102,7 @@ async def gerar_resposta_julia(
         conversa: Dados da conversa
         incluir_historico: Se deve passar historico como messages
         usar_tools: Se deve usar tools
+        policy_decision: Decisão da Policy Engine (Sprint 15)
 
     Returns:
         Texto da resposta gerada
@@ -118,6 +130,11 @@ async def gerar_resposta_julia(
         logger.warning(f"Erro ao buscar conhecimento dinâmico: {e}")
         # Continua sem conhecimento dinâmico
 
+    # Extrair constraints da policy (Sprint 15)
+    policy_constraints = ""
+    if policy_decision and policy_decision.constraints_text:
+        policy_constraints = policy_decision.constraints_text
+
     # Montar system prompt (async - carrega do banco)
     system_prompt = await montar_prompt_julia(
         contexto_medico=contexto.get("medico", ""),
@@ -132,6 +149,7 @@ async def gerar_resposta_julia(
         especialidade_id=medico.get("especialidade_id"),
         diretrizes=contexto.get("diretrizes", ""),
         conhecimento=conhecimento_dinamico,
+        policy_constraints=policy_constraints,
     )
 
     # Montar historico como messages (para o Claude ter contexto da conversa)
@@ -239,7 +257,18 @@ async def processar_mensagem_completo(
     vagas: list[dict] = None
 ) -> Optional[str]:
     """
-    Processa mensagem completa: monta contexto e gera resposta.
+    Processa mensagem completa com Policy Engine.
+
+    Fluxo Sprint 15:
+    1. Verificar controle (IA vs humano)
+    2. Carregar contexto e doctor_state
+    3. Detectar objeção (reutilizar detector existente)
+    4. StateUpdate: atualizar estado
+    5. PolicyDecide: decidir ação
+    6. Se handoff → transferir
+    7. Se wait → não responder
+    8. Gerar resposta com constraints
+    9. StateUpdate pós-envio
 
     Args:
         mensagem_texto: Texto da mensagem do medico
@@ -248,28 +277,110 @@ async def processar_mensagem_completo(
         vagas: Vagas disponiveis (opcional)
 
     Returns:
-        Texto da resposta ou None se erro
+        Texto da resposta ou None se erro/não deve responder
     """
     from app.services.contexto import montar_contexto_completo
+    from app.services.handoff import criar_handoff
 
     try:
-        # Verificar se conversa esta sob controle da IA
+        # 1. Verificar se conversa esta sob controle da IA
         if conversa.get("controlled_by") != "ai":
             logger.info("Conversa sob controle humano, nao processando")
             return None
 
-        # Montar contexto (passa mensagem para busca RAG de memorias)
+        # 2. Montar contexto (passa mensagem para busca RAG de memorias)
         contexto = await montar_contexto_completo(
             medico, conversa, vagas, mensagem_atual=mensagem_texto
         )
 
-        # Gerar resposta
+        # 2b. Carregar doctor_state
+        state = await load_doctor_state(medico["id"])
+        logger.debug(f"doctor_state carregado: {state.permission_state.value}, temp={state.temperature}")
+
+        # 3. Detectar objeção (REUTILIZAR detector do orquestrador)
+        objecao_dict = None
+        try:
+            orquestrador = OrquestradorConhecimento()
+            historico_msgs = []
+            if contexto.get("historico_raw"):
+                historico_msgs = [
+                    m.get("conteudo", "") for m in contexto["historico_raw"]
+                    if m.get("tipo") == "recebida"
+                ][-5:]
+
+            situacao = await orquestrador.analisar_situacao(
+                mensagem=mensagem_texto,
+                historico=historico_msgs,
+                dados_cliente=medico,
+                stage=medico.get("stage_jornada", "novo"),
+            )
+
+            if situacao.objecao.tem_objecao:
+                objecao_dict = {
+                    "tem_objecao": True,
+                    "tipo": situacao.objecao.tipo.value if situacao.objecao.tipo else "",
+                    "subtipo": situacao.objecao.subtipo,
+                    "confianca": situacao.objecao.confianca,
+                }
+                logger.debug(f"Objeção detectada: {objecao_dict}")
+        except Exception as e:
+            logger.warning(f"Erro ao detectar objeção: {e}")
+
+        # 4. StateUpdate: atualizar estado
+        state_updater = StateUpdate()
+        inbound_updates = state_updater.on_inbound_message(
+            state, mensagem_texto, objecao_dict
+        )
+        if inbound_updates:
+            await save_doctor_state_updates(medico["id"], inbound_updates)
+            logger.debug(f"doctor_state atualizado: {list(inbound_updates.keys())}")
+
+        # Recarregar state atualizado
+        state = await load_doctor_state(medico["id"])
+
+        # 5. PolicyDecide: decidir ação
+        policy = PolicyDecide()
+        decision = policy.decide(
+            state,
+            is_first_message=contexto.get("primeira_msg", False),
+            conversa_status=conversa.get("status", "active"),
+            conversa_last_message_at=conversa.get("last_message_at"),
+        )
+
+        # 6. Se requer humano → handoff
+        if decision.requires_human:
+            logger.warning(f"PolicyDecide: HANDOFF para {medico['id']} - {decision.reasoning}")
+            try:
+                await criar_handoff(
+                    conversa_id=conversa["id"],
+                    motivo=decision.reasoning,
+                    trigger_type="policy_grave_objection",
+                )
+            except Exception as e:
+                logger.error(f"Erro ao criar handoff: {e}")
+            # Resposta padrão de transferência
+            return "Entendi. Vou pedir pra minha supervisora te ajudar aqui, um momento."
+
+        # 7. Se ação é WAIT → não responder
+        if decision.primary_action == PrimaryAction.WAIT:
+            logger.info(f"PolicyDecide: WAIT - {decision.reasoning}")
+            return None
+
+        # 8. Gerar resposta com constraints
         resposta = await gerar_resposta_julia(
             mensagem_texto,
             contexto,
             medico=medico,
-            conversa=conversa
+            conversa=conversa,
+            policy_decision=decision,
         )
+
+        # 9. StateUpdate pós-envio
+        if resposta:
+            outbound_updates = state_updater.on_outbound_message(state, actor="julia")
+            if outbound_updates:
+                await save_doctor_state_updates(medico["id"], outbound_updates)
+                logger.debug(f"doctor_state pós-envio: {list(outbound_updates.keys())}")
 
         return resposta
 

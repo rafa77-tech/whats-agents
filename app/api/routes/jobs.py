@@ -245,3 +245,91 @@ async def job_processar_fila_mensagens(limite: int = 20):
     except Exception as e:
         logger.error(f"Erro ao processar fila de mensagens: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# ==========================================
+# Jobs de manutenção do doctor_state (Sprint 15)
+# ==========================================
+
+@router.post("/doctor-state-manutencao-diaria")
+async def job_doctor_state_manutencao_diaria():
+    """
+    Job diário de manutenção do doctor_state.
+
+    Executa:
+    - Decay de temperatura por inatividade
+    - Expiração de cooling_off vencidos
+    - Atualização de lifecycle stages
+    """
+    try:
+        from app.workers.temperature_decay import run_daily_maintenance
+        result = await run_daily_maintenance()
+        return JSONResponse({
+            "status": "ok",
+            "message": "Manutenção diária concluída",
+            "result": result
+        })
+    except Exception as e:
+        logger.error(f"Erro na manutenção diária: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/doctor-state-manutencao-semanal")
+async def job_doctor_state_manutencao_semanal():
+    """
+    Job semanal de manutenção do doctor_state.
+
+    Executa tudo do diário + reset de contadores semanais.
+    """
+    try:
+        from app.workers.temperature_decay import run_weekly_maintenance
+        result = await run_weekly_maintenance()
+        return JSONResponse({
+            "status": "ok",
+            "message": "Manutenção semanal concluída",
+            "result": result
+        })
+    except Exception as e:
+        logger.error(f"Erro na manutenção semanal: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/doctor-state-decay")
+async def job_doctor_state_decay(batch_size: int = 100):
+    """
+    Job específico de decay de temperatura.
+
+    Decai temperatura de médicos inativos.
+    Idempotente: usa last_decay_at para evitar decay duplo.
+    """
+    try:
+        from app.workers.temperature_decay import decay_all_temperatures
+        decayed = await decay_all_temperatures(batch_size)
+        return JSONResponse({
+            "status": "ok",
+            "message": f"Decay aplicado em {decayed} médicos",
+            "decayed": decayed
+        })
+    except Exception as e:
+        logger.error(f"Erro no decay de temperatura: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/doctor-state-expire-cooling")
+async def job_doctor_state_expire_cooling():
+    """
+    Job específico para expirar cooling_off vencidos.
+
+    Médicos com cooling_off expirado voltam para 'active'.
+    """
+    try:
+        from app.workers.temperature_decay import expire_cooling_off
+        expired = await expire_cooling_off()
+        return JSONResponse({
+            "status": "ok",
+            "message": f"{expired} cooling_off expirado(s)",
+            "expired": expired
+        })
+    except Exception as e:
+        logger.error(f"Erro ao expirar cooling_off: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)

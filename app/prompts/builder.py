@@ -30,6 +30,7 @@ class PromptBuilder:
         self._contexto: str = ""
         self._memorias: str = ""
         self._conhecimento: str = ""  # E03: Conhecimento dinâmico RAG
+        self._policy_constraints: str = ""  # E06: Constraints da Policy Engine
 
     async def com_base(self) -> "PromptBuilder":
         """Carrega prompt base."""
@@ -80,6 +81,21 @@ class PromptBuilder:
         self._conhecimento = conhecimento
         return self
 
+    def com_policy_constraints(self, constraints: str) -> "PromptBuilder":
+        """
+        Adiciona constraints da Policy Engine (E06 - Sprint 15).
+
+        Os constraints vêm do PolicyDecide e definem o que a Julia
+        PODE e NÃO PODE fazer nesta resposta.
+
+        IMPORTANTE: Esta seção tem PRIORIDADE MÁXIMA no prompt.
+
+        Args:
+            constraints: Texto de constraints do PolicyDecision
+        """
+        self._policy_constraints = constraints
+        return self
+
     async def com_conhecimento_automatico(
         self,
         mensagem: str,
@@ -119,6 +135,10 @@ class PromptBuilder:
             String com prompt completo
         """
         partes = []
+
+        # 0. Policy constraints (PRIORIDADE MÁXIMA - Sprint 15)
+        if self._policy_constraints:
+            partes.append(f"## DIRETRIZES DE POLÍTICA (PRIORIDADE MÁXIMA)\n\n{self._policy_constraints}\n\n---")
 
         # 1. Prompt base (obrigatorio)
         if self._prompt_base:
@@ -164,6 +184,7 @@ async def construir_prompt_julia(
     memorias: str = "",
     conhecimento: str = "",
     primeira_msg: bool = False,
+    policy_constraints: str = "",
 ) -> str:
     """
     Funcao helper para construir prompt completo.
@@ -175,6 +196,7 @@ async def construir_prompt_julia(
         memorias: Memorias do medico (RAG)
         conhecimento: Conhecimento dinâmico (E03)
         primeira_msg: Se e primeira mensagem
+        policy_constraints: Constraints da Policy Engine (E06)
 
     Returns:
         Prompt completo
@@ -194,5 +216,6 @@ async def construir_prompt_julia(
     builder.com_contexto(contexto)
     builder.com_memorias(memorias)
     builder.com_conhecimento(conhecimento)
+    builder.com_policy_constraints(policy_constraints)
 
     return builder.build()

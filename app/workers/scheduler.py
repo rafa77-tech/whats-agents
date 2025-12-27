@@ -84,6 +84,17 @@ JOBS = [
         "endpoint": "/jobs/atualizar-prompt-feedback",
         "schedule": "0 2 * * 0",  # Semanal (domingo às 2h)
     },
+    # Manutenção do doctor_state (Sprint 15 - Policy Engine)
+    {
+        "name": "doctor_state_manutencao_diaria",
+        "endpoint": "/jobs/doctor-state-manutencao-diaria",
+        "schedule": "0 3 * * *",  # Diário às 3h
+    },
+    {
+        "name": "doctor_state_manutencao_semanal",
+        "endpoint": "/jobs/doctor-state-manutencao-semanal",
+        "schedule": "0 4 * * 1",  # Segunda às 4h
+    },
     # Sincronizacao de briefing (Google Docs)
     {
         "name": "sincronizar_briefing",
