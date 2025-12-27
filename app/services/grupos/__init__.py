@@ -36,6 +36,17 @@ from app.services.grupos.validacoes import (
     validar_horario,
     AlertaVaga,
 )
+from app.services.grupos.normalizador import (
+    normalizar_para_busca,
+    normalizar_hospital,
+    normalizar_especialidade,
+    normalizar_periodo,
+    normalizar_setor,
+    normalizar_vaga,
+    normalizar_batch,
+    ResultadoMatch,
+    ResultadoNormalizacao,
+)
 
 __all__ = [
     # Ingestão
@@ -63,4 +74,14 @@ __all__ = [
     "validar_data",
     "validar_horario",
     "AlertaVaga",
+    # Normalizador
+    "normalizar_para_busca",
+    "normalizar_hospital",
+    "normalizar_especialidade",
+    "normalizar_periodo",
+    "normalizar_setor",
+    "normalizar_vaga",
+    "normalizar_batch",
+    "ResultadoMatch",
+    "ResultadoNormalizacao",
 ]
