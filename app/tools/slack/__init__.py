@@ -66,6 +66,8 @@ from .grupos import (
     TOOL_ESTATISTICAS_GRUPOS,
     TOOL_ADICIONAR_ALIAS_HOSPITAL,
     TOOL_BUSCAR_HOSPITAL,
+    TOOL_METRICAS_PIPELINE,
+    TOOL_STATUS_FILA_GRUPOS,
     handle_listar_vagas_revisao,
     handle_aprovar_vaga_grupo,
     handle_rejeitar_vaga_grupo,
@@ -73,6 +75,8 @@ from .grupos import (
     handle_estatisticas_grupos,
     handle_adicionar_alias_hospital,
     handle_buscar_hospital_grupos,
+    handle_metricas_pipeline_grupos,
+    handle_status_fila_grupos,
 )
 
 logger = logging.getLogger(__name__)
@@ -106,6 +110,8 @@ SLACK_TOOLS = [
     TOOL_ESTATISTICAS_GRUPOS,
     TOOL_ADICIONAR_ALIAS_HOSPITAL,
     TOOL_BUSCAR_HOSPITAL,
+    TOOL_METRICAS_PIPELINE,
+    TOOL_STATUS_FILA_GRUPOS,
 ]
 
 # Tools que requerem confirmacao
@@ -164,6 +170,8 @@ async def executar_tool(nome: str, params: dict, user_id: str, channel_id: str =
         "estatisticas_grupos": handle_estatisticas_grupos,
         "adicionar_alias_hospital": handle_adicionar_alias_hospital,
         "buscar_hospital_grupos": handle_buscar_hospital_grupos,
+        "metricas_pipeline_grupos": handle_metricas_pipeline_grupos,
+        "status_fila_grupos": handle_status_fila_grupos,
     }
 
     handler = handlers.get(nome)
@@ -215,6 +223,8 @@ __all__ = [
     "TOOL_ESTATISTICAS_GRUPOS",
     "TOOL_ADICIONAR_ALIAS_HOSPITAL",
     "TOOL_BUSCAR_HOSPITAL",
+    "TOOL_METRICAS_PIPELINE",
+    "TOOL_STATUS_FILA_GRUPOS",
     # Helpers exportados para testes
     "_calcular_datas_periodo",
     "_buscar_medico_por_identificador",

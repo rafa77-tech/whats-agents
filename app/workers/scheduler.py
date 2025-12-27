@@ -118,6 +118,16 @@ JOBS = [
         "endpoint": "/jobs/limpar-grupos-finalizados",
         "schedule": "0 3 * * *",  # Diário às 3h
     },
+    {
+        "name": "verificar_alertas_grupos",
+        "endpoint": "/jobs/verificar-alertas-grupos",
+        "schedule": "*/15 * * * *",  # A cada 15 minutos
+    },
+    {
+        "name": "consolidar_metricas_grupos",
+        "endpoint": "/jobs/consolidar-metricas-grupos",
+        "schedule": "0 1 * * *",  # Diário à 1h (consolida dia anterior)
+    },
 ]
 
 

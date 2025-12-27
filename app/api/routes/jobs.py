@@ -420,3 +420,54 @@ async def job_reprocessar_grupos_erro(limite: int = 100):
     except Exception as e:
         logger.error(f"Erro ao reprocessar erros: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/verificar-alertas-grupos")
+async def job_verificar_alertas_grupos():
+    """
+    Job para verificar alertas do pipeline de grupos.
+
+    Verifica:
+    - Fila travada (muitos erros)
+    - Taxa de conversão baixa
+    - Custo acima do orçamento
+    - Itens pendentes antigos
+    - Taxa de duplicação alta
+    """
+    try:
+        from app.services.grupos.alertas import executar_verificacao_alertas_grupos
+        alertas = await executar_verificacao_alertas_grupos()
+        return JSONResponse({
+            "status": "ok",
+            "message": f"{len(alertas)} alerta(s) encontrado(s)",
+            "alertas": alertas
+        })
+    except Exception as e:
+        logger.error(f"Erro ao verificar alertas de grupos: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/consolidar-metricas-grupos")
+async def job_consolidar_metricas_grupos():
+    """
+    Job para consolidar métricas do pipeline de grupos.
+
+    Consolida métricas do dia anterior para a tabela agregada.
+    Executar diariamente (recomendado: 1h da manhã).
+    """
+    try:
+        from app.services.grupos.metricas import consolidar_metricas_dia, coletor_metricas
+
+        # Primeiro, flush das métricas pendentes
+        await coletor_metricas.flush()
+
+        # Depois, consolidar dia anterior
+        sucesso = await consolidar_metricas_dia()
+
+        return JSONResponse({
+            "status": "ok" if sucesso else "error",
+            "message": "Métricas consolidadas" if sucesso else "Erro na consolidação"
+        })
+    except Exception as e:
+        logger.error(f"Erro ao consolidar métricas de grupos: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)

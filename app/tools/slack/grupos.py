@@ -227,6 +227,59 @@ NAO requer confirmacao - e apenas leitura de dados.""",
     }
 }
 
+TOOL_METRICAS_PIPELINE = {
+    "name": "metricas_pipeline_grupos",
+    "description": """Mostra métricas detalhadas do pipeline de processamento de grupos.
+
+QUANDO USAR:
+- Gestor quer ver custos de LLM
+- Gestor pergunta "quanto gastamos com IA?"
+- Gestor quer ver eficiência do pipeline
+- Gestor menciona "métricas de processamento"
+
+EXEMPLOS:
+- "quanto custou o pipeline essa semana?"
+- "mostra métricas de processamento"
+- "qual o custo por vaga?"
+- "como está a taxa de conversão?"
+
+NAO requer confirmacao - e apenas leitura de dados.""",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "dias": {
+                "type": "integer",
+                "description": "Período em dias (default 7, máximo 90)"
+            }
+        },
+        "required": []
+    }
+}
+
+TOOL_STATUS_FILA_GRUPOS = {
+    "name": "status_fila_grupos",
+    "description": """Mostra status da fila de processamento de grupos.
+
+QUANDO USAR:
+- Gestor quer ver o que está processando
+- Gestor pergunta "como está a fila?"
+- Gestor quer ver itens pendentes/travados
+- Gestor menciona "fila", "processamento"
+
+EXEMPLOS:
+- "como está a fila de processamento?"
+- "tem alguma coisa travada?"
+- "quantas mensagens pendentes?"
+- "status do worker de grupos"
+
+NAO requer confirmacao - e apenas leitura de dados.""",
+    "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+    }
+}
+
 
 # =============================================================================
 # HELPERS
@@ -735,4 +788,110 @@ async def handle_buscar_hospital_grupos(params: dict) -> dict:
 
     except Exception as e:
         logger.error(f"Erro ao buscar hospital: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def handle_metricas_pipeline_grupos(params: dict) -> dict:
+    """Mostra métricas detalhadas do pipeline."""
+    from app.services.grupos.metricas import obter_metricas_periodo, obter_top_grupos
+
+    dias = min(params.get("dias", 7), 90)
+
+    try:
+        metricas = await obter_metricas_periodo(dias)
+        top_grupos = await obter_top_grupos(dias=dias, limite=5)
+
+        totais = metricas.get("totais", {})
+
+        # Calcular métricas derivadas
+        total_mensagens = totais.get("mensagens", 0)
+        vagas_importadas = totais.get("vagas_importadas", 0)
+        custo_total = totais.get("custo_usd", 0)
+
+        custo_por_vaga = custo_total / vagas_importadas if vagas_importadas > 0 else 0
+        custo_por_mensagem = custo_total / total_mensagens if total_mensagens > 0 else 0
+
+        return {
+            "success": True,
+            "periodo_dias": dias,
+
+            "resumo": {
+                "mensagens_processadas": total_mensagens,
+                "vagas_importadas": vagas_importadas,
+                "vagas_revisao": totais.get("vagas_revisao", 0),
+                "vagas_duplicadas": totais.get("vagas_duplicadas", 0),
+                "grupos_ativos": totais.get("grupos_ativos", 0),
+            },
+
+            "taxas": {
+                "conversao": f"{totais.get('taxa_conversao', 0)*100:.1f}%" if totais.get('taxa_conversao') else "N/A",
+                "duplicacao": f"{totais.get('taxa_duplicacao', 0)*100:.1f}%" if totais.get('taxa_duplicacao') else "N/A",
+            },
+
+            "custos": {
+                "total_usd": f"${custo_total:.4f}",
+                "por_vaga_usd": f"${custo_por_vaga:.4f}",
+                "por_mensagem_usd": f"${custo_por_mensagem:.6f}",
+            },
+
+            "top_grupos": [
+                {"nome": g.get("nome_grupo", "N/A"), "vagas": g.get("total_vagas", 0)}
+                for g in top_grupos
+            ],
+
+            "mensagem": f"Pipeline últimos {dias}d: {vagas_importadas} vagas importadas, custo ${custo_total:.4f}"
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar métricas pipeline: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def handle_status_fila_grupos(params: dict) -> dict:
+    """Mostra status da fila de processamento."""
+    from app.services.grupos.metricas import obter_status_fila
+    from app.services.grupos.fila import obter_itens_travados
+
+    try:
+        status = await obter_status_fila()
+        travados = await obter_itens_travados(horas=2)
+
+        return {
+            "success": True,
+
+            "fila": {
+                "pendente": status.get("pendente", 0),
+                "heuristica": status.get("heuristica", 0),
+                "classificacao": status.get("classificacao", 0),
+                "extracao": status.get("extracao", 0),
+                "normalizacao": status.get("normalizacao", 0),
+                "deduplicacao": status.get("deduplicacao", 0),
+                "importacao": status.get("importacao", 0),
+                "erro": status.get("erro", 0),
+            },
+
+            "totais": {
+                "em_processamento": status.get("em_processamento", 0),
+                "finalizados_hoje": status.get("finalizados_hoje", 0),
+                "descartados_hoje": status.get("descartados_hoje", 0),
+            },
+
+            "travados": {
+                "total": len(travados),
+                "itens": [
+                    {
+                        "id": t.get("id", "")[:8],
+                        "estagio": t.get("estagio"),
+                        "tentativas": t.get("tentativas"),
+                        "ultimo_erro": t.get("ultimo_erro", "")[:50] if t.get("ultimo_erro") else None,
+                    }
+                    for t in travados[:5]  # Mostrar só 5
+                ] if travados else []
+            },
+
+            "mensagem": f"Fila: {status.get('em_processamento', 0)} em processamento, {len(travados)} travados"
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar status fila: {e}")
         return {"success": False, "error": str(e)}
