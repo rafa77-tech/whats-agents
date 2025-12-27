@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 
 from .base import PreProcessor, ProcessorContext, ProcessorResult
-from app.services.parser import parsear_mensagem, deve_processar
+from app.services.parser import parsear_mensagem, deve_processar, is_grupo
 from app.services.medico import buscar_ou_criar_medico
 from app.services.conversa import buscar_ou_criar_conversa
 from app.services.optout import detectar_optout, processar_optout, MENSAGEM_CONFIRMACAO_OPTOUT
@@ -13,6 +13,54 @@ from app.services.handoff_detector import detectar_trigger_handoff
 from app.services.whatsapp import evolution, mostrar_online
 
 logger = logging.getLogger(__name__)
+
+
+class IngestaoGrupoProcessor(PreProcessor):
+    """
+    Processa mensagens de grupo para ingestão.
+
+    Salva a mensagem para processamento posterior mas
+    NÃO permite que o pipeline continue (Julia não responde em grupos).
+
+    Prioridade: 5 (antes do ParseMessageProcessor)
+    """
+    name = "ingestao_grupo"
+    priority = 5
+
+    async def process(self, context: ProcessorContext) -> ProcessorResult:
+        data = context.mensagem_raw
+
+        # Verificar se é grupo
+        remote_jid = data.get("key", {}).get("remoteJid", "")
+        if not is_grupo(remote_jid):
+            # Não é grupo, continuar pipeline normal
+            return ProcessorResult(success=True, should_continue=True)
+
+        # É grupo - ingerir e parar pipeline
+        try:
+            from app.services.grupos.ingestor import ingerir_mensagem_grupo
+
+            mensagem = parsear_mensagem(data)
+
+            if mensagem:
+                mensagem_id = await ingerir_mensagem_grupo(mensagem, data)
+                logger.debug(f"Mensagem de grupo ingerida: {mensagem_id}")
+                return ProcessorResult(
+                    success=True,
+                    should_continue=False,  # NÃO continua (não responde)
+                    metadata={
+                        "motivo": "mensagem_grupo_ingerida",
+                        "mensagem_id": str(mensagem_id) if mensagem_id else None
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Erro na ingestão de grupo: {e}", exc_info=True)
+
+        return ProcessorResult(
+            success=True,
+            should_continue=False,
+            metadata={"motivo": "mensagem_grupo_erro_ingestao"}
+        )
 
 
 class ParseMessageProcessor(PreProcessor):

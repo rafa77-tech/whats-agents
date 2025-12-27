@@ -4,6 +4,7 @@ Configuracao do pipeline de mensagens.
 from .processor import MessageProcessor
 from .core import LLMCoreProcessor
 from .pre_processors import (
+    IngestaoGrupoProcessor,
     ParseMessageProcessor,
     PresenceProcessor,
     LoadEntitiesProcessor,
@@ -34,6 +35,7 @@ def criar_pipeline() -> MessageProcessor:
     pipeline = MessageProcessor()
 
     # Pre-processadores (ordem por prioridade)
+    pipeline.add_pre_processor(IngestaoGrupoProcessor())     # 5 - ingestão de grupos (não responde)
     pipeline.add_pre_processor(ParseMessageProcessor())      # 10
     pipeline.add_pre_processor(PresenceProcessor())          # 15
     pipeline.add_pre_processor(LoadEntitiesProcessor())      # 20
