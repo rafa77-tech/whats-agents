@@ -333,3 +333,90 @@ async def job_doctor_state_expire_cooling():
     except Exception as e:
         logger.error(f"Erro ao expirar cooling_off: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# ==========================================
+# Jobs de processamento de grupos WhatsApp (Sprint 14)
+# ==========================================
+
+@router.post("/processar-grupos")
+async def job_processar_grupos(batch_size: int = 50, max_workers: int = 5):
+    """
+    Job para processar mensagens de grupos WhatsApp.
+
+    Processa um ciclo do pipeline:
+    Pendente -> Heurística -> Classificação -> Extração -> Normalização -> Deduplicação -> Importação
+
+    Args:
+        batch_size: Quantidade de itens a processar por estágio
+        max_workers: Processamentos paralelos
+    """
+    try:
+        from app.workers.grupos_worker import processar_ciclo_grupos
+        resultado = await processar_ciclo_grupos(batch_size, max_workers)
+        return JSONResponse({
+            "status": "ok" if resultado["sucesso"] else "error",
+            "ciclo": resultado.get("ciclo", {}),
+            "fila": resultado.get("fila", {})
+        })
+    except Exception as e:
+        logger.error(f"Erro ao processar grupos: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.get("/status-grupos")
+async def job_status_grupos():
+    """
+    Retorna status do processamento de grupos.
+
+    Inclui estatísticas da fila e itens travados.
+    """
+    try:
+        from app.workers.grupos_worker import obter_status_worker
+        status = await obter_status_worker()
+        return JSONResponse(status)
+    except Exception as e:
+        logger.error(f"Erro ao obter status de grupos: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/limpar-grupos-finalizados")
+async def job_limpar_grupos_finalizados(dias: int = 7):
+    """
+    Job para limpar itens finalizados antigos da fila.
+
+    Args:
+        dias: Manter itens dos últimos N dias
+    """
+    try:
+        from app.services.grupos.fila import limpar_finalizados
+        removidos = await limpar_finalizados(dias)
+        return JSONResponse({
+            "status": "ok",
+            "message": f"{removidos} item(ns) removido(s)",
+            "removidos": removidos
+        })
+    except Exception as e:
+        logger.error(f"Erro ao limpar finalizados: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/reprocessar-grupos-erro")
+async def job_reprocessar_grupos_erro(limite: int = 100):
+    """
+    Job para reprocessar itens com erro.
+
+    Args:
+        limite: Máximo de itens a reprocessar
+    """
+    try:
+        from app.services.grupos.fila import reprocessar_erros
+        reprocessados = await reprocessar_erros(limite)
+        return JSONResponse({
+            "status": "ok",
+            "message": f"{reprocessados} item(ns) enviado(s) para reprocessamento",
+            "reprocessados": reprocessados
+        })
+    except Exception as e:
+        logger.error(f"Erro ao reprocessar erros: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)

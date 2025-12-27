@@ -80,6 +80,29 @@ from app.services.grupos.importador import (
     THRESHOLD_IMPORTAR,
     THRESHOLD_REVISAR,
 )
+from app.services.grupos.fila import (
+    EstagioPipeline,
+    ItemFila,
+    enfileirar_mensagem,
+    enfileirar_batch,
+    buscar_proximos_pendentes,
+    buscar_item_por_mensagem,
+    atualizar_estagio,
+    marcar_como_finalizado,
+    marcar_como_descartado,
+    obter_estatisticas_fila,
+    obter_itens_travados,
+    reprocessar_erros,
+    limpar_finalizados,
+)
+from app.services.grupos.pipeline_worker import (
+    PipelineGrupos,
+    ResultadoPipeline,
+    mapear_acao_para_estagio,
+    THRESHOLD_HEURISTICA,
+    THRESHOLD_HEURISTICA_ALTO,
+    THRESHOLD_LLM,
+)
 
 __all__ = [
     # Ingestão
@@ -147,4 +170,25 @@ __all__ = [
     "ResultadoImportacao",
     "THRESHOLD_IMPORTAR",
     "THRESHOLD_REVISAR",
+    # Fila de processamento
+    "EstagioPipeline",
+    "ItemFila",
+    "enfileirar_mensagem",
+    "enfileirar_batch",
+    "buscar_proximos_pendentes",
+    "buscar_item_por_mensagem",
+    "atualizar_estagio",
+    "marcar_como_finalizado",
+    "marcar_como_descartado",
+    "obter_estatisticas_fila",
+    "obter_itens_travados",
+    "reprocessar_erros",
+    "limpar_finalizados",
+    # Pipeline Worker
+    "PipelineGrupos",
+    "ResultadoPipeline",
+    "mapear_acao_para_estagio",
+    "THRESHOLD_HEURISTICA",
+    "THRESHOLD_HEURISTICA_ALTO",
+    "THRESHOLD_LLM",
 ]

@@ -99,3 +99,51 @@ async def whatsapp_status():
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat(),
         }
+
+
+@router.get("/health/grupos")
+async def grupos_worker_health():
+    """
+    Health check do worker de processamento de grupos WhatsApp.
+
+    Verifica:
+    - Estatísticas da fila por estágio
+    - Itens travados (>1h sem atualização)
+    - Erros nas últimas 24h
+    """
+    try:
+        from app.services.grupos.fila import (
+            obter_estatisticas_fila,
+            obter_itens_travados,
+        )
+
+        # Obter estatísticas
+        fila_stats = await obter_estatisticas_fila()
+
+        # Verificar itens travados
+        travados = await obter_itens_travados(horas=1)
+
+        # Determinar status
+        status = "healthy"
+        if len(travados) > 100:
+            status = "degraded"
+        if len(travados) > 500:
+            status = "unhealthy"
+
+        return {
+            "status": status,
+            "fila": fila_stats,
+            "travados": {
+                "count": len(travados),
+                "threshold_degraded": 100,
+                "threshold_unhealthy": 500,
+            },
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+        }

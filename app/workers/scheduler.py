@@ -107,6 +107,17 @@ JOBS = [
         "endpoint": "/jobs/verificar-whatsapp",
         "schedule": "* * * * *",  # A cada minuto
     },
+    # Processamento de grupos WhatsApp (Sprint 14)
+    {
+        "name": "processar_grupos",
+        "endpoint": "/jobs/processar-grupos",
+        "schedule": "*/5 * * * *",  # A cada 5 minutos
+    },
+    {
+        "name": "limpar_grupos_finalizados",
+        "endpoint": "/jobs/limpar-grupos-finalizados",
+        "schedule": "0 3 * * *",  # Diário às 3h
+    },
 ]
 
 
