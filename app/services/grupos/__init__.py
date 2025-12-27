@@ -55,6 +55,13 @@ from app.services.grupos.hospital_web import (
     InfoHospitalWeb,
     ResultadoHospitalAuto,
 )
+from app.services.grupos.deduplicador import (
+    calcular_hash_dedup,
+    processar_deduplicacao,
+    processar_batch_deduplicacao,
+    listar_fontes_vaga,
+    ResultadoDedup,
+)
 
 __all__ = [
     # Ingestão
@@ -99,4 +106,10 @@ __all__ = [
     "normalizar_ou_criar_hospital",
     "InfoHospitalWeb",
     "ResultadoHospitalAuto",
+    # Deduplicador
+    "calcular_hash_dedup",
+    "processar_deduplicacao",
+    "processar_batch_deduplicacao",
+    "listar_fontes_vaga",
+    "ResultadoDedup",
 ]
