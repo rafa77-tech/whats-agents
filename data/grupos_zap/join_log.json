@@ -1,0 +1,1664 @@
+{
+  "entradas": {
+    "LNBI0yvtmcAFHdHiAWcqQD": {
+      "nome": "Escala de Plantão Educador Físico",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:14:27.681582"
+    },
+    "DYC298I5MqCH6YE4NmZz07": {
+      "nome": "Escala de Plantão Odontologia BRASIL",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:14:31.394575"
+    },
+    "GEyGyl5CnWA8XLutPOmVaC": {
+      "nome": "Escala de Plantão Fisioterapia",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:14:35.188393"
+    },
+    "Imny5wZrUQg1d9nc0gac3W": {
+      "nome": "Escala de Plantão Enfermagem",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:14:38.899515"
+    },
+    "Jde9mBgPZrGCHZQ6dgmNLA": {
+      "nome": "Escala de Plantão Bombeiros",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:14:42.708311"
+    },
+    "KwJkflKjAq1KYuZO3nOGOT": {
+      "nome": "Escala de Plantão Técnicos de Enfermagem",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:14:46.555367"
+    },
+    "Cu4Cp2Jxy1V7ZFeqUtKayE": {
+      "nome": "Escala de Plantão Socorrista",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:14:50.369491"
+    },
+    "CzEiMLHIhoBCwRkSc5hO9z": {
+      "nome": "Escala de Plantão Psicologia",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:14:54.138989"
+    },
+    "Lu5YZDldw3qK5zFHWKFiGO": {
+      "nome": "Escala de Plantão Assistente Social",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:14:57.992365"
+    },
+    "CIf7BTOKuqp6EUgeE4Pcjp": {
+      "nome": "Escala de Plantão SP 01",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:17:36.560445"
+    },
+    "J0Hca4lB78gJzJyocrWAUj": {
+      "nome": "Escala de Plantão SP 02",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:17:40.126484"
+    },
+    "LZODYjNSqwrHTtbDvkb8tg": {
+      "nome": "Escala de Plantão Interior-SP 01",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:17:43.821728"
+    },
+    "GAxWwFzkrAwJk0UAk4IpA7": {
+      "nome": "Escala de Plantão Interior- SP 02",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:17:47.511241"
+    },
+    "FPKxAWoN4rMF9GthPmIwHP": {
+      "nome": "Escala de Plantão Rio de Janeiro 01",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:17:51.222931"
+    },
+    "LqCB1ySd5kxBUqAWcBPv9u": {
+      "nome": "Escala de Plantão Rio de Janeiro 02",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:17:54.987994"
+    },
+    "IBaiYgVtn6nJR8xRFYUwst": {
+      "nome": "Escala de Plantão Rio de Janeiro 03",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:17:58.750479"
+    },
+    "GxGep2sOr3W9p0BpWPMwly": {
+      "nome": "Escala de Plantão Rio de Janeiro 04",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:02.395238"
+    },
+    "EvfJNIavHDGKfc2KX5aYu1": {
+      "nome": "Escala de Plantão Rio Grande do Norte",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:18:05.910524"
+    },
+    "KaxcpyFeEWG9L3HEw5Dwhd": {
+      "nome": "Escala de Plantão DF 01",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:09.685790"
+    },
+    "JpLHFKW5mig9DM9Thm6S8Z": {
+      "nome": "Escala de Plantão DF 02",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:13.398487"
+    },
+    "LlYuVS8yBXzCOoHWw29q7K": {
+      "nome": "Escala de Plantão Bahia 01",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:16.934705"
+    },
+    "Iypus185ZIwKyVyWoewWfc": {
+      "nome": "Escala de Plantão Bahia 02",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:20.581035"
+    },
+    "IuMgPcl3hoWC4IGRCy0xvd": {
+      "nome": "Escala de Plantão Ocupacional 01",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:24.194196"
+    },
+    "BQFveGcJzTVLkQMdKJX2kG": {
+      "nome": "Escala de Plantão Ocupacional 02",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:27.730123"
+    },
+    "IydHJ0oQ8xL0MXss1kXCrK": {
+      "nome": "Escala de Plantão Minas Gerais",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:31.487383"
+    },
+    "EO25Ze4f3rBG4vx6oCKYPR": {
+      "nome": "Escala de Plantão Ceará 01",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:35.061789"
+    },
+    "B6Eie5LXXCJDOnpHJPgsvN": {
+      "nome": "Escala de Plantão Ceará 02",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:38.693268"
+    },
+    "EoNGq29q3NkL7ouKSPMHaw": {
+      "nome": "Escala de Plantão Pernambuco 01",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:42.551145"
+    },
+    "Br0nholnKz2C8aybZ95lYF": {
+      "nome": "Escala de Plantão Pernambuco 02",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:46.321652"
+    },
+    "FaVx4Sqb9Cz18JAQyNwLRy": {
+      "nome": "Escala de Plantão Goiás",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:49.876063"
+    },
+    "D4hhPskS1pu9bDYuNh4uUe": {
+      "nome": "Escala de Plantão Sergipe",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:53.572944"
+    },
+    "DFk65MY2ztC4arwnZK5Og3": {
+      "nome": "Escala de Plantão Amazonas",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:18:57.091148"
+    },
+    "Kc1SsIj5zF8En9THgX544X": {
+      "nome": "Escala de Plantão Alagoas",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:00.843979"
+    },
+    "FAgwnBaA4cD29qNt3EuGvS": {
+      "nome": "Escala de Plantão Paraná",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:04.464056"
+    },
+    "FD25O1U5yjHIe1HSKZIkKF": {
+      "nome": "Escala de Plantão Pará",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:08.047661"
+    },
+    "IA5DfhBJC0CBrVjRHkCa1r": {
+      "nome": "Escala de Plantão Rio Grande do Sul",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:11.637257"
+    },
+    "BiytA2pORoWHCy3abOCBfo": {
+      "nome": "Escala de Plantão Acre",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:15.213800"
+    },
+    "BkioTSNb7rSAsVwHwokh1b": {
+      "nome": "Escala de Plantão Mato Grosso",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:18.723872"
+    },
+    "BegFPWEO1nK4ZJzuLPvGjZ": {
+      "nome": "Escala de Plantão Amapá",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:22.310543"
+    },
+    "G639r1u8Ynq51bwKmx3LaQ": {
+      "nome": "Escala de Plantão Roraima",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:25.863570"
+    },
+    "FxIcd7JHSFvF1uoNKKrLSP": {
+      "nome": "Escala de Plantão Santa Catarina",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:29.715733"
+    },
+    "CNnEwGJ9NOIEJ3qevTjijb": {
+      "nome": "Escala de Plantão Piauí",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:33.297396"
+    },
+    "E8UdBp8QYqj8ThAX4GTdcz": {
+      "nome": "Escala de Plantão Maranhão",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:36.863765"
+    },
+    "In0Sq7choChGbWUroutv7v": {
+      "nome": "Escala de Plantão Tocantins",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:40.481388"
+    },
+    "INvAJc78B2YDqpmWlioA4A": {
+      "nome": "Escala de Plantão Paraíba",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:44.046782"
+    },
+    "FtSXcDDsmTRHyaHS71wGr1": {
+      "nome": "Escala de Plantão Mato Grosso do Sul",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:47.524176"
+    },
+    "Gs9laeTeoGgIoXbjvE3BQ5": {
+      "nome": "Escala de Plantão Espírito Santo",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T17:19:52.461329"
+    },
+    "FG6WhsmpLbVHvnZWocaVHL": {
+      "nome": "Escala de Plantão Nutrição BRASIL",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:17:28.877846"
+    },
+    "Gis7I03K8apHzc6TCdM7tC": {
+      "nome": "Escala de Plantão Fonoaudiologia BRASIL",
+      "sucesso": true,
+      "mensagem": "Entrou com sucesso",
+      "data": "2025-12-26T17:17:32.742797"
+    },
+    "FY7mnkEE4NWGZHilFcinwR": {
+      "nome": "Entrar Agora",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:05:16.193354"
+    },
+    "ClieZswx1BX9sis7mzpD78": {
+      "nome": "Entrar no Grupo",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:06:15.062422"
+    },
+    "DOquRxk036K4SES4yYEUiY": {
+      "nome": "Aprender Mais",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:07:06.792990"
+    },
+    "B75r4KkggQJ0oXDAWY1LKb": {
+      "nome": "Acessar Conteúdo",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:07:53.493006"
+    },
+    "GjaTW13moWR7RpHlHpzBIn": {
+      "nome": "Participar",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:08:31.350593"
+    },
+    "IOrmlHWLCfm2C5egCgDYiH": {
+      "nome": "Saiba Mais",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:09:28.165767"
+    },
+    "Jl663BVbqdU3NSlkRhb30u": {
+      "nome": "Agendar",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:10:28.503663"
+    },
+    "JOo0iIPxbNK3LCQxU1NEbn": {
+      "nome": "Entrar no Grupo",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:11:07.321069"
+    },
+    "GwUJlDjWeVDK3DfNkTza0j": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:12:00.129257"
+    },
+    "FsYoHCDxIhB1P8wAVKoQZ0": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:12:30.957369"
+    },
+    "JO4rgajKVFZKL1uYqWab35": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:13:11.018420"
+    },
+    "I9qC1tOybkd3lg23fazw95": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:14:00.923609"
+    },
+    "GVjSDivrJHtCiKg6DQQhrm": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:14:46.726439"
+    },
+    "E9vuTpylrWp93cJsOFtIQb": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:15:17.528305"
+    },
+    "Jtl2lD1TuUJ8pshqtRLn4F": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:16:17.453377"
+    },
+    "L5MJU28QwlcGrrDLkYTG0v": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:17:04.588974"
+    },
+    "BpIvNd17v6jHJxOxMNndyC": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:17:51.519722"
+    },
+    "LB6qBZ5cnqK4xmY1aLnKDw": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:18:37.425186"
+    },
+    "E4rNMjcdhhv7TZdOu8CxH2": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:19:20.188358"
+    },
+    "Gb5BnEElPVgKOk1uqN5g1H": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:19:55.115658"
+    },
+    "FkeCA4VjQC35SxsP2jc16z": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:20:34.994027"
+    },
+    "I7bq4F2w7pFEutIcGFbAvN": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:21:22.616256"
+    },
+    "JJ1kNGszDaJBUCMs8bjlt6": {
+      "nome": "Grupo Local",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T18:36:25.887952"
+    },
+    "Cv2G7H91fX6KVnDHLZhNHl": {
+      "nome": "Grupo Local",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T18:37:02.254388"
+    },
+    "EmaFTiObr6IEwETu7mzatG": {
+      "nome": "Grupo Local",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T18:37:47.749904"
+    },
+    "Im5lwH8Hrxy1gdGBJ370HA": {
+      "nome": "Grupo Local",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T18:54:13.666550"
+    },
+    "KARPjwERmO04cYQJKYP4jQ": {
+      "nome": "Grupo Local",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T18:54:56.166853"
+    },
+    "EP28aK8ZWyN3h2n3hAvGXl": {
+      "nome": "Grupo Local",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T18:55:41.220527"
+    },
+    "JFFP04z6CCGAxvmxHZGelm": {
+      "nome": "Grupo Local",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T18:56:41.322839"
+    },
+    "BApdsRg4lbn4Ss7rpD5YX0": {
+      "nome": "Grupo Local",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T18:57:41.316190"
+    },
+    "GZX95ArHDb4EGucKxIkmwE": {
+      "nome": "Grupo Local",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T18:58:30.451686"
+    },
+    "KIhZqCH9R50I13RyGEAW13": {
+      "nome": "Grupo Local",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T18:59:09.453709"
+    },
+    "DQdZ5GWmcSi2k6dOqD5O8M": {
+      "nome": "Grupo Local",
+      "sucesso": false,
+      "mensagem": "Já solicitou entrada (aguardando aprovação)",
+      "data": "2025-12-26T18:59:54.497494"
+    },
+    "F44XZ7SuURt5dAI3UG2pRb": {
+      "nome": "Nefrologista",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:00:25.794477"
+    },
+    "HXFaoIK5x0R9L6sXd4dlY4": {
+      "nome": "Oncologista",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:01:05.067836"
+    },
+    "BLXfkjG6U8g3B0zVxVjyt9": {
+      "nome": "Neurologista",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:02:01.581952"
+    },
+    "Kk7ga7lfoETCmZWx7cii5J": {
+      "nome": "Ortopedista",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:02:33.944777"
+    },
+    "HTJ1TfggRbu0rpr0y1x9AO": {
+      "nome": "Oftamologista",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:03:16.442094"
+    },
+    "LpplEN29fpeBJR2tY49QcH": {
+      "nome": "Otorrino",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:04:10.934898"
+    },
+    "JE1SdTt6Nls4r5W4nq58yR": {
+      "nome": "Cirurgia Plástica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:05:09.410200"
+    },
+    "K3Ltmp3HJmg3CKaltzCBmS": {
+      "nome": "Radioterapia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:05:46.790146"
+    },
+    "Fip5IPu2WP4JqfWkkthRqb": {
+      "nome": "Pneumologista",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:06:26.161995"
+    },
+    "K3GiiCy0H9E20zspJXSUJs": {
+      "nome": "Reumatologista",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:07:22.615004"
+    },
+    "LUbO9vcKG6P2q4b7mRN1UO": {
+      "nome": "Psiquiatria",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:08:03.910610"
+    },
+    "CKFGnWzjr3ALrtgeVCKoZ5": {
+      "nome": "Urologista",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:08:46.125433"
+    },
+    "IFUOFE4xAO55cp6vaKVFHQ": {
+      "nome": "Alergia Pediátrica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:09:37.938383"
+    },
+    "JiTpj3fiiJaLTCpNvLJxSb": {
+      "nome": "Cardiologia Pediátrica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:10:34.725942"
+    },
+    "GNoP83OWFmI1tZPkPhvftb": {
+      "nome": "CTI Pediátrico",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:11:21.056870"
+    },
+    "EsMGzIZl2jWCywKcHtNlb8": {
+      "nome": "Endocrinologia Pediátrica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:12:08.481652"
+    },
+    "JXeoZz7MvTW8gFbLoAkzWO": {
+      "nome": "Gastroenterologia Pediátrica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:12:58.805893"
+    },
+    "KmE1YLe4zq90pX4C5zzp4J": {
+      "nome": "Hematologia Pediátrica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:53:17.711532"
+    },
+    "IXa11BHNjPYGcKaiDdFLHJ": {
+      "nome": "Infectologia Pediátrica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:54:14.728075"
+    },
+    "EtbwVlHzu9DKGA8V5k6Mwu": {
+      "nome": "Nefrologia Pediátrica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:54:31.715789"
+    },
+    "C72oER4jKAMItA7Uuk7VLP": {
+      "nome": "Neonatologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:54:44.514172"
+    },
+    "EVcAsqmodkp3Yzg50QCwx3": {
+      "nome": "Neurologia Pediátrica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:54:55.316867"
+    },
+    "DQ33usugag46M35BszFgTe": {
+      "nome": "Pneumologia Pediátrica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:55:42.323288"
+    },
+    "HvDGrMCiL8XEVFlLsVkkce": {
+      "nome": "Dúvidas ECG | 5",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:56:23.129313"
+    },
+    "FnXmZy9kPOJE7v9qJonX3x": {
+      "nome": "Artigos Medicina",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-26T20:12:09.958129",
+      "nao_retentar": true
+    },
+    "JeAKJAjYe577VHnlQ51B9h": {
+      "nome": "Prescrições Médicas na Prática 2",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:57:05.283552"
+    },
+    "FyW2UfeEj7D5jujzCKPnqx": {
+      "nome": "Médicos no Exterior 🇺🇸",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:57:44.283034"
+    },
+    "F7jsCaMomrVLXvZgY3oE00": {
+      "nome": "Urgência e Emergência 🚨 3",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-26T20:12:50.136575",
+      "nao_retentar": true
+    },
+    "LdfcPmX4cUv9uakCILcMQ5": {
+      "nome": "ECO",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-26T20:13:40.350751",
+      "nao_retentar": true
+    },
+    "BiTruQnAdS34cHu3ufR8Qv": {
+      "nome": "ECG",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T19:59:15.778725"
+    },
+    "HaSARCedmQ2DCQYVNyyzG6": {
+      "nome": "Endoscopia",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-26T20:13:55.574502",
+      "nao_retentar": true
+    },
+    "H46lSMUB1E6CYBAmmnQfaS": {
+      "nome": "Genética Médica",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-26T20:14:21.792072",
+      "nao_retentar": true
+    },
+    "CDulfW6E8lf1v4ognBbgyU": {
+      "nome": "Medicina Nuclear",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-26T20:14:54.014261",
+      "nao_retentar": true
+    },
+    "DvmZKUHkfxeKSqxzg1DIWr": {
+      "nome": "Patologia",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-26T20:15:32.238749",
+      "nao_retentar": true
+    },
+    "J4MyswEc2nk8QBCc7xNlFY": {
+      "nome": "Ultrassonografia (US)",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-26T20:15:50.458342",
+      "nao_retentar": true
+    },
+    "LDYFmJWblVv2YPXfGUf6f2": {
+      "nome": "Anestesiologia",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: resource-limi",
+      "data": "2025-12-26T20:16:48.196852",
+      "nao_retentar": true
+    },
+    "D10rH2UwUx57doCxokuPbA": {
+      "nome": "Cirurgia do Aparelho Digestivo",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T20:04:07.478275"
+    },
+    "G9H1LZE46t8JogUvFKfeRm": {
+      "nome": "Cirurgia de Cabeça e Pescoço",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T20:05:07.365582"
+    },
+    "HHuEUCsxVvzHb45swDL5Hi": {
+      "nome": "Cirurgia Cardiovascular",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T20:05:49.178311"
+    },
+    "HA1ghn9DLQt1WF7cDz2wcL": {
+      "nome": "Cirurgia da Mão",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T20:06:06.328481"
+    },
+    "CStb44LI5XzJF8fNMruRPE": {
+      "nome": "Mastologia",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-26T20:17:09.349536",
+      "nao_retentar": true
+    },
+    "BoUYioqUOSSBMZCW7E9KJ2": {
+      "nome": "Neurocirurgia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T20:07:16.354903"
+    },
+    "IDAvvZMmPHA3yiSQt6VFd3": {
+      "nome": "Oncocirurgia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T20:07:43.495076"
+    },
+    "E90X3mubDZh5DfHc8wh0xF": {
+      "nome": "Cirurgia Pediátrica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T20:08:40.427563"
+    },
+    "CJ0Yb5rrPWw0HZyUAly9V9": {
+      "nome": "Proctologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T20:09:10.317796"
+    },
+    "Fp3E2PbI2aw5bsNlfGbI1Q": {
+      "nome": "Cirurgia Torácica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-26T20:09:50.023818"
+    },
+    "IXSzqlVsZL2CoLltrj5NpQ": {
+      "nome": "Acupuntura",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-26T20:17:36.546252",
+      "nao_retentar": true
+    },
+    "L5WKysKEjGPFU0vo0jIQU3": {
+      "nome": "Alergia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:12:03.655594"
+    },
+    "C0sqWBv9CASLhtUyoUq0Yr": {
+      "nome": "Cardiologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:12:42.358258"
+    },
+    "EiwDiNiVb958vBMIp74bfC": {
+      "nome": "UTI",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:13:05.127152"
+    },
+    "JycWJmDAFn6CcQtK94JqrK": {
+      "nome": "Dermatologia",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: resource-limi",
+      "data": "2025-12-27T11:17:04.609679",
+      "nao_retentar": true
+    },
+    "BYDvMrR3QbX6gplNmbk9N4": {
+      "nome": "Emergência",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:17:14.804320",
+      "nao_retentar": true
+    },
+    "CAHbRrF8hm9EDPXIBjXOmP": {
+      "nome": "Endocrinologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:14:38.550561"
+    },
+    "IHzcz3jY2HF1wkPI5MnHdO": {
+      "nome": "Gastroenterologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:14:49.395429"
+    },
+    "CDB8FfzpT5AB78v3gYuU3O": {
+      "nome": "Geriatria",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:15:00.214929"
+    },
+    "CfZ2en5u51gBxhzQEHuLoS": {
+      "nome": "Hematologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:15:10.928433"
+    },
+    "EvIhRLX9UMsCId172Bl7Zu": {
+      "nome": "Infectologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:15:21.677110"
+    },
+    "J0fqfMyl9jN9YdIzL5FKyf": {
+      "nome": "Medicina do Esporte",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:17:25.027968",
+      "nao_retentar": true
+    },
+    "Dckuh9LzKL47VbmhHcEezm": {
+      "nome": "Medicina de Família e Comunidade",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: resource-limi",
+      "data": "2025-12-27T11:17:35.513246",
+      "nao_retentar": true
+    },
+    "GAhSRh8GcjgFa5RQoYankQ": {
+      "nome": "Medicina do Trabalho",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:15:53.158100"
+    },
+    "DKNsJBJPAig6gxpcXCgJlf": {
+      "nome": "Medicina Legal",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:16:03.864160"
+    },
+    "LmP2c6wGt00JhGUoWmpo42": {
+      "nome": "🟢HELP PEDIATRIA E NEO 👶",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:17:46.471414"
+    },
+    "DIFYsADmVNWAotGILpcgaT": {
+      "nome": "🟢PUBLICAÇÕES CIENTÍFICAS MED 📚",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:17:56.685795",
+      "nao_retentar": true
+    },
+    "LOvYUmZZYHxFuzNtvIIV8x": {
+      "nome": "🟢CONCURSOS E RESIDÊNCIAS MÉDICAS📢",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:18:07.560960"
+    },
+    "K6Qrqd1UFo16uTv5R0IBde": {
+      "nome": "🟢DERMATOLOGIA DISCUSSÕES 2",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:18:18.300344"
+    },
+    "CTRODL3q0FACYBcmAh0io7": {
+      "nome": "🟢CARDIOLOGIA DISCUSSÕES🫀",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:18:28.497137",
+      "nao_retentar": true
+    },
+    "F5TOgEdG4ZiLrIFbmQGHv6": {
+      "nome": "🟢LIVROS MED EM PDF 📚",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:18:39.185714"
+    },
+    "IWNXgOKu8F7In73s4yuKRE": {
+      "nome": "🟢MEDICINA INTENSIVA DISCUSSÕES 🆘",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:18:49.387743",
+      "nao_retentar": true
+    },
+    "EJkOnUkBCbiAT1TTa8iP80": {
+      "nome": "🟢REPASSES SP 2 💰",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:19:00.089333"
+    },
+    "BmSRw7dE5tq9730jSXQ9Go": {
+      "nome": "🟢REPASSES RJ 💰",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:19:10.992341"
+    },
+    "DSsmOyvF89qBqW8eIG2T4N": {
+      "nome": "🟢ORTOPEDIA 🦴",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:19:21.686580"
+    },
+    "Dkym5ohLjtM0LTuG2e8sCQ": {
+      "nome": "🟢PSIQUIATRIA🧠",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:19:32.399179"
+    },
+    "DtL5dAuFHWRKzT5NsFPK6q": {
+      "nome": "🟢OFTALMO DISCUSSÕES 👁️",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:19:43.145866"
+    },
+    "Hnkv4VEaeiFDqJmzwFAqvY": {
+      "nome": "🟢CIRURGIA DISCUSSÕES 🔪",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:19:53.789486"
+    },
+    "KiZ1rZJBJeg2FianaiVUUN": {
+      "nome": "🟢URGÊNCIA E EMERGÊNCIA 🚨",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:20:04.636332"
+    },
+    "KwEmnYVR2sb3kpmQfoRzTd": {
+      "nome": "🟢HELP MEDICINA DA FAMÍLIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:20:14.857016",
+      "nao_retentar": true
+    },
+    "GeAZ0ZoXsVFKBJ0THiG8hZ": {
+      "nome": "Sem nome",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:20:25.068211",
+      "nao_retentar": true
+    },
+    "KUO5aWjSu6Z1pJkgsTTkQw": {
+      "nome": "Sem nome",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:20:35.259707",
+      "nao_retentar": true
+    },
+    "CJUrIgwdzljGJARaawbQq1": {
+      "nome": "Sem nome",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:20:45.478499",
+      "nao_retentar": true
+    },
+    "BVzYJ2TjGNTBLO7d6r2UtD": {
+      "nome": "ANESTESIOLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:20:55.652687",
+      "nao_retentar": true
+    },
+    "IknbXLFBuYoECFwP9u4FqK": {
+      "nome": "Sem nome",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:21:05.821112",
+      "nao_retentar": true
+    },
+    "Iayuy2gZoo74bNxUWSMG1Q": {
+      "nome": "UROLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:21:16.045714",
+      "nao_retentar": true
+    },
+    "CNKVM9KyvcNFDflVLvvFKB": {
+      "nome": "PSIQUIATRIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:21:26.245228",
+      "nao_retentar": true
+    },
+    "EBllxoTx0v9H7ZTLNzKeUp": {
+      "nome": "CIRURGIA VASCULAR",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:21:36.462582",
+      "nao_retentar": true
+    },
+    "LIbb0YepYjt8KIQwvmkfr6": {
+      "nome": "CARDIOLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:21:46.673437",
+      "nao_retentar": true
+    },
+    "D2Mm6h49PikIONBBDF800a": {
+      "nome": "ORTOPEDIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:21:56.880272",
+      "nao_retentar": true
+    },
+    "HxgKhFKkftPGKTPO0g0QtW": {
+      "nome": "ANESTESIOLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:22:07.105957",
+      "nao_retentar": true
+    },
+    "BiguwFF8StwDWFNukKqABa": {
+      "nome": "GERIATRIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:22:17.304121",
+      "nao_retentar": true
+    },
+    "FIokT0t1bqeHUnunkXAKUY": {
+      "nome": "NEONATOLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:22:27.521320",
+      "nao_retentar": true
+    },
+    "LpOI4gS7ek37D7b5rn3j2D": {
+      "nome": "ECOGRAFIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:22:37.699784",
+      "nao_retentar": true
+    },
+    "BeStQQ9EVkkE74HzVnqIxN": {
+      "nome": "INFECTOLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:22:47.900276",
+      "nao_retentar": true
+    },
+    "ISpABHGp0G3E9K2E9WTgMp": {
+      "nome": "CIRURGIA VASCULAR",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:22:58.110895",
+      "nao_retentar": true
+    },
+    "DgMwxbQhLUl9oz3ddZS5hJ": {
+      "nome": "PNEUMOLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:23:08.310851",
+      "nao_retentar": true
+    },
+    "E5NhIINVpfl4nQMhZjDpjQ": {
+      "nome": "ENDOCRINOLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:23:18.521509",
+      "nao_retentar": true
+    },
+    "DXRCWwyDc0l8GDXMUoUlo1": {
+      "nome": "GASTROENTEROLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:23:28.689110",
+      "nao_retentar": true
+    },
+    "JsdiQ5EZ6fp12JeQJxghrO": {
+      "nome": "NEFROLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:23:38.896927",
+      "nao_retentar": true
+    },
+    "HPS47w451IJA4CEe0j00xL": {
+      "nome": "MEDICINA DO TRABALHO",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:23:49.095145",
+      "nao_retentar": true
+    },
+    "FuMTdR40ltpJyF24Qk3fCk": {
+      "nome": "REUMATOLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:23:59.311536",
+      "nao_retentar": true
+    },
+    "GkUrOiSDm1p4DrWsEqU9gA": {
+      "nome": "NEUROLOGIA CLÍNICA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:24:09.514744",
+      "nao_retentar": true
+    },
+    "DefI3H1ThWTD1VAjTP6cpw": {
+      "nome": "RADIOLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:24:19.715986",
+      "nao_retentar": true
+    },
+    "HMYGf0QGTRa9FjS2zzxJVG": {
+      "nome": "ULTRASSONOGRAFIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:24:29.935477",
+      "nao_retentar": true
+    },
+    "JleTsvdhc4Q1IhDUtEXyas": {
+      "nome": "TELEMEDICINA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:24:40.146612",
+      "nao_retentar": true
+    },
+    "Ie4EkZFtTLX2fIVNjZEKnL": {
+      "nome": "MÉDICOS EMERGENCISTAS",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:24:50.320744",
+      "nao_retentar": true
+    },
+    "IFq5gYrmls92Lb5yMZQdm9": {
+      "nome": "ALERGIA E IMUNOLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:25:00.535445",
+      "nao_retentar": true
+    },
+    "BERkcrOBjW5KZiNhAsM6Ui": {
+      "nome": "PROCTOLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:25:10.729030",
+      "nao_retentar": true
+    },
+    "EGeqxpTZx7SJfmLXw6DrV3": {
+      "nome": "UTI BRASIL",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:25:20.928691",
+      "nao_retentar": true
+    },
+    "EYAFZRe30Us1P4ZDXSiwCO": {
+      "nome": "RIO DE JANEIRO",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:25:31.101436",
+      "nao_retentar": true
+    },
+    "BMs8B8NjLqq1pPqYejM1Z8": {
+      "nome": "GOIÁS",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:25:41.315211",
+      "nao_retentar": true
+    },
+    "DE8FOBVVl0dCMDJUU2hwgv": {
+      "nome": "ESPÍRITO SANTO",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:25:51.517352",
+      "nao_retentar": true
+    },
+    "HFLcaWT3a356xDhJjTLqG3": {
+      "nome": "DISTRITO FEDERAL",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:26:01.735776",
+      "nao_retentar": true
+    },
+    "BCMu72FYzgl4nCQw807Z0j": {
+      "nome": "MINAS GERAIS",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:26:11.946537",
+      "nao_retentar": true
+    },
+    "FW4ePF29ykK1XkZ4jXFNok": {
+      "nome": "ACRE",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:26:22.159188",
+      "nao_retentar": true
+    },
+    "EJMtICgceqeJr889ICgaHk": {
+      "nome": "AMAPÁ",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:26:32.388788",
+      "nao_retentar": true
+    },
+    "LrzwZYhReKC00Cj6q5RbK4": {
+      "nome": "PARÁ",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:26:42.602039",
+      "nao_retentar": true
+    },
+    "KnNRibSxt420D1xWfdSpv2": {
+      "nome": "AMAZONAS",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:26:52.830166",
+      "nao_retentar": true
+    },
+    "BbOaAzXcPrz32qKVTZ04yK": {
+      "nome": "RONDÔNIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:27:03.055704",
+      "nao_retentar": true
+    },
+    "Kd72l3MLUbIDfiHfytmslv": {
+      "nome": "TOCANTINS",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:27:13.279292",
+      "nao_retentar": true
+    },
+    "DlAZwZxjz3wK5IyAEIw4iY": {
+      "nome": "MARANHÃO",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:30:10.701450",
+      "nao_retentar": true
+    },
+    "Dw1TSVcSNBbAEWiS0u0Kd8": {
+      "nome": "PARANÁ",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:30:20.926548",
+      "nao_retentar": true
+    },
+    "DUrHCmRCnRwFaq2ZRBhvD7": {
+      "nome": "SANTA CATARIANA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:30:31.124639",
+      "nao_retentar": true
+    },
+    "JK8vXsQbNEP9TbN3iCESsD": {
+      "nome": "RIO GRANDE DO SUL",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:30:41.342490",
+      "nao_retentar": true
+    },
+    "GNatD7isxiw6TpLZO00Emo": {
+      "nome": "SÃO PAULO",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:30:51.559372",
+      "nao_retentar": true
+    },
+    "Cl8lYUD98E49d37X3lmG3s": {
+      "nome": "RORAIMA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:31:01.756799",
+      "nao_retentar": true
+    },
+    "LW7fveqaS4KAD12G3PsiQg": {
+      "nome": "REGIÃO SUL",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:31:11.984403",
+      "nao_retentar": true
+    },
+    "LxzXMRxjjkT4yY5Wvqdol1": {
+      "nome": "CENTRO OESTE",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:31:22.211942",
+      "nao_retentar": true
+    },
+    "GkBopOjigqO8v0r0lk5tP7": {
+      "nome": "NORTE",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:31:32.429563",
+      "nao_retentar": true
+    },
+    "IlzAhVsAA1G0SzCGISBdpI": {
+      "nome": "SUDESTE",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:31:42.625495",
+      "nao_retentar": true
+    },
+    "DYFcafKTNiIK6L3Tvtw6dv": {
+      "nome": "NORDESTE",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:31:52.820853",
+      "nao_retentar": true
+    },
+    "EMnCifcUAoz4Xh7jcWKDFR": {
+      "nome": "ACRE",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:32:03.497103"
+    },
+    "KUJu8kfFpjEGw4ZvWYlMP3": {
+      "nome": "AMAZONAS",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:32:14.285064"
+    },
+    "CMGzJhHvVGq2EYCreNNd4W": {
+      "nome": "ALAGOAS",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:32:24.908462"
+    },
+    "FRhsQyjcTe87e5lDYF84Ml": {
+      "nome": "BAHIA",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:32:35.573690"
+    },
+    "ICmLk9GAu9CLDjUtN8zHer": {
+      "nome": "AMAPÁ",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:32:46.608281"
+    },
+    "DNPnoQqdiYzJMEkAmWu7qx": {
+      "nome": "CEARÁ",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:32:57.295515"
+    },
+    "Ir9vFowAEfnF7vdjbsyDmx": {
+      "nome": "DISTRITO FEDERAL",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:33:08.069004"
+    },
+    "Hmfe8Igmt2mHRIWjzgb6qy": {
+      "nome": "MARANHÃO",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:33:18.691471"
+    },
+    "LUvyg09d5ThKXTTsoUYsEz": {
+      "nome": "ESPÍRITO SANTO",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:33:28.925239",
+      "nao_retentar": true
+    },
+    "KJLufWhXQP76kJLv2bCrZ1": {
+      "nome": "MATO GROSSO",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:33:39.672746"
+    },
+    "DylYsLkEKIzLe8awjlki6e": {
+      "nome": "GOIÁS",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:33:50.291998"
+    },
+    "CjInPPtQKE5IsHTeJzdLms": {
+      "nome": "MATO GROSSO DO SUL",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:34:01.183881"
+    },
+    "HUjNciOWxxDLwfZmD74nFa": {
+      "nome": "Minas Gerais",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:34:11.985946"
+    },
+    "Ly3OTWHFgsk6FdjJ6ulKpk": {
+      "nome": "Paraná",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:34:22.765028"
+    },
+    "J2TgK9dZUdY9PjQH5qM3Sf": {
+      "nome": "Pará",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:34:33.701451"
+    },
+    "JBt19rjnM51BFRUYddExWs": {
+      "nome": "Pernambuco",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:34:44.325358"
+    },
+    "KBBtGalpCoq3JMDogSF67X": {
+      "nome": "Paraíba",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:34:55.205129"
+    },
+    "J87FRs4ahsc1V5zbV2BsTg": {
+      "nome": "Piauí",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:35:05.922582"
+    },
+    "JXAQUlHOcE2IwV5aH3PoPU": {
+      "nome": "Rio de Janeiro",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:35:16.825455"
+    },
+    "Hj8N66iLaYw8RdjCwyhHAe": {
+      "nome": "Rondônia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:35:27.573187"
+    },
+    "It7WJ046qLe4rWU8vJGVGQ": {
+      "nome": "Rio Grande do Norte",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:35:38.320219"
+    },
+    "IynIqY68rxS2M0cJnkW3xB": {
+      "nome": "Roraima",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:35:48.926484"
+    },
+    "FCWi3SOFQV0IPRT2aKoJcY": {
+      "nome": "Rio Grande do Sul",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:35:59.806590"
+    },
+    "E1iV2RZrWTZ5gudNBM6xA6": {
+      "nome": "Santa Catarina",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:36:10.590066"
+    },
+    "JLgPMrC3oWzEeWRRvK3l7l": {
+      "nome": "São Paulo",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:36:21.329864"
+    },
+    "HGv5RQB2Zm86rzi6bqot5X": {
+      "nome": "Centro-Oeste",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:36:31.545475",
+      "nao_retentar": true
+    },
+    "JaGYi1pqjlUCgeY7ZNUfT2": {
+      "nome": "Sergipe",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:36:42.156220"
+    },
+    "LwCcIKC5eiJBBd77Ze6Ecw": {
+      "nome": "Nordeste",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:36:52.389284",
+      "nao_retentar": true
+    },
+    "Flp8ZloHwdVL9fuyZoRQsv": {
+      "nome": "Tocantins",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:37:03.265239"
+    },
+    "KfH7bsKqDDDFWpDtSAYgFD": {
+      "nome": "Norte",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:37:13.457622",
+      "nao_retentar": true
+    },
+    "EoxvEXn2fbWHamueTzf1o6": {
+      "nome": "Sudeste",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:37:23.667242",
+      "nao_retentar": true
+    },
+    "HsRL3agyJywBDqsSOUQr5u": {
+      "nome": "Sul",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:37:33.878962",
+      "nao_retentar": true
+    },
+    "EjrQJGgBnFYJRK3Cc2nuJE": {
+      "nome": "Alergia e Imunologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:37:44.504666"
+    },
+    "J04Mc5e8OAk2VV17zWte1e": {
+      "nome": "Cirurgia Plástica",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:37:55.188960"
+    },
+    "BIbMTxSPsSQLu51zdcSu6R": {
+      "nome": "Anestesiologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:38:05.948590"
+    },
+    "EBI2xWKBI2X3bH3zneG2x7": {
+      "nome": "Dermatologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:38:16.599380"
+    },
+    "BXaQBdrprREIBK6wjiGdkd": {
+      "nome": "Cardiologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:38:27.236703"
+    },
+    "HAQ8o15HmDQ4J6ho5zp8ak": {
+      "nome": "Geriatria",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:38:37.827688"
+    },
+    "Lbb4rB5W4YeFv8UTbeqoKi": {
+      "nome": "Ginecologia e Obstetrícia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:39:03.949512"
+    },
+    "BhWMG2ySidp0hxJ0vcmCer": {
+      "nome": "Neurologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:39:14.643419"
+    },
+    "F3DrzCGt6Uv3EpOtaVAe4J": {
+      "nome": "Infectologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:39:25.300718"
+    },
+    "FDE4U3uR8G59zRSR5o9cyG": {
+      "nome": "Oftamologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:39:36.118322"
+    },
+    "DeDoNRBcmfBJEvwEuctVW7": {
+      "nome": "Mastologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:39:46.933055"
+    },
+    "H6XD16e4gFnHOKgdoHlmZE": {
+      "nome": "Ortopedia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:39:57.535910"
+    },
+    "LknfC4ShvkiJ1ptJsxagKV": {
+      "nome": "Otorrinolaringologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:40:08.168217"
+    },
+    "BElGNMt9NCP9fLqRtQoKuc": {
+      "nome": "Pediatria",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:40:18.827494"
+    },
+    "IKahgthH44yK4AiBpAEgGF": {
+      "nome": "Psiquiatria",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:40:29.673339"
+    },
+    "CNFpXqzzTvV6pOYIdE1eiL": {
+      "nome": "Radiologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:40:40.337102"
+    },
+    "DMh9WPQ50hRL7FNbHguzS3": {
+      "nome": "Reumatologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:40:51.128674"
+    },
+    "JHuHBUKsp1F4lW6TFric2C": {
+      "nome": "Urologia",
+      "sucesso": true,
+      "mensagem": "Solicitação enviada",
+      "data": "2025-12-27T11:41:01.837922"
+    },
+    "FUD0VCDUKMwL3oYnq858pa": {
+      "nome": "Networking Médico",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:41:12.046959"
+    },
+    "LJaht4MuRgX0Jnaa0CbA5N": {
+      "nome": "Nutrologia",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:41:22.269715"
+    },
+    "JyPTxHUbSrPH1tSFtHoygP": {
+      "nome": "NUTROLOGIA",
+      "sucesso": false,
+      "mensagem": "Erro 404: {\"status\":404,\"error\":\"Not Found\",\"response\":{\"message\":[\"Accept invite error\",\"Error: bad-request\"]",
+      "data": "2025-12-27T11:41:32.458744"
+    }
+  },
+  "ultima_execucao": "2025-12-27T11:41:32.458775",
+  "entradas_por_dia": {
+    "2025-12-26": 59,
+    "2025-12-27": 65
+  }
+}
