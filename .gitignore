@@ -35,3 +35,12 @@ tests/*_rows.csv
 
 # Google credentials
 credentials/
+
+# Dados sensíveis - grupos WhatsApp
+data/grupos_zap/grupos_consolidado.csv
+data/grupos_zap/grupos_whatsapp_saude.csv
+data/grupos_zap/grupos_whatsapp_medicos.csv
+scripts/notebooks/grupos_whatsapp_saude_COMPLETO.csv
+scripts/notebooks/grupos_whatsapp_EVOLUTION_API.csv
+scripts/notebooks/grupos_whatsapp_medicos_COMPLETO.csv
+scripts/notebooks/grupos_whatsapp_medicos_POR_ESTADO.csv
