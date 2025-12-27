@@ -47,6 +47,14 @@ from app.services.grupos.normalizador import (
     ResultadoMatch,
     ResultadoNormalizacao,
 )
+from app.services.grupos.hospital_web import (
+    buscar_hospital_web,
+    criar_hospital,
+    criar_hospital_minimo,
+    normalizar_ou_criar_hospital,
+    InfoHospitalWeb,
+    ResultadoHospitalAuto,
+)
 
 __all__ = [
     # Ingestão
@@ -84,4 +92,11 @@ __all__ = [
     "normalizar_batch",
     "ResultadoMatch",
     "ResultadoNormalizacao",
+    # Hospital Web
+    "buscar_hospital_web",
+    "criar_hospital",
+    "criar_hospital_minimo",
+    "normalizar_ou_criar_hospital",
+    "InfoHospitalWeb",
+    "ResultadoHospitalAuto",
 ]
