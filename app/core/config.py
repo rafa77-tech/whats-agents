@@ -70,6 +70,38 @@ class Settings(BaseSettings):
         extra = "ignore"  # Ignora variáveis extras do .env
 
 
+class GruposConfig:
+    """
+    Configurações do pipeline de grupos WhatsApp.
+
+    Sprint 14 - Centralizando constantes.
+    """
+
+    # Heurística
+    MIN_TAMANHO_MENSAGEM: int = 15
+    MAX_TAMANHO_MENSAGEM: int = 2000
+    THRESHOLD_HEURISTICA: float = 0.25
+    THRESHOLD_HEURISTICA_ALTO: float = 0.8
+
+    # Classificação LLM
+    THRESHOLD_LLM: float = 0.7
+    CACHE_TTL_CLASSIFICACAO: int = 86400  # 24 horas
+
+    # Importação
+    THRESHOLD_IMPORTAR: float = 0.90
+    THRESHOLD_REVISAR: float = 0.70
+
+    # Worker
+    BATCH_SIZE: int = 50
+    MAX_WORKERS: int = 5
+    INTERVALO_CICLO_SEGUNDOS: int = 10
+
+    # Alertas
+    ALERTA_THRESHOLD_ERROS: int = 10
+    ALERTA_THRESHOLD_CUSTO_USD: float = 1.0
+    ALERTA_THRESHOLD_PENDENTES_HORAS: int = 4
+
+
 class DatabaseConfig:
     """
     Configuracoes centralizadas de banco de dados e cache.

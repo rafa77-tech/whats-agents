@@ -13,7 +13,7 @@ from typing import Optional
 import anthropic
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from app.core.config import settings
+from app.core.config import settings, GruposConfig
 from app.core.logging import get_logger
 from app.services.redis import cache_get, cache_set
 from app.services.grupos.prompts import PROMPT_CLASSIFICACAO
@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 # S04.5 - Cache Redis
 # =============================================================================
 
-CACHE_TTL = 86400  # 24 horas
+CACHE_TTL = GruposConfig.CACHE_TTL_CLASSIFICACAO
 CACHE_PREFIX = "grupo:classificacao:"
 
 
@@ -129,10 +129,10 @@ def _parsear_resposta_llm(texto: str) -> ResultadoClassificacaoLLM:
     reraise=True
 )
 async def _chamar_llm(prompt: str) -> tuple:
-    """Chama o LLM com retry."""
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    """Chama o LLM com retry (async)."""
+    client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
-    response = client.messages.create(
+    response = await client.messages.create(
         model="claude-3-haiku-20240307",
         max_tokens=200,
         temperature=0,

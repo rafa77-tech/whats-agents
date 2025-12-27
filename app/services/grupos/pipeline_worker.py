@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Optional, List
 from uuid import UUID
 
+from app.core.config import GruposConfig
 from app.core.logging import get_logger
 from app.services.supabase import supabase
 from app.services.grupos.heuristica import calcular_score_heuristica
@@ -29,12 +30,12 @@ logger = get_logger(__name__)
 
 
 # =============================================================================
-# Constantes e Thresholds
+# Constantes e Thresholds (centralizados em config)
 # =============================================================================
 
-THRESHOLD_HEURISTICA = 0.3  # Score mínimo para continuar
-THRESHOLD_HEURISTICA_ALTO = 0.8  # Pular classificação LLM
-THRESHOLD_LLM = 0.7  # Confiança mínima do LLM
+THRESHOLD_HEURISTICA = GruposConfig.THRESHOLD_HEURISTICA
+THRESHOLD_HEURISTICA_ALTO = GruposConfig.THRESHOLD_HEURISTICA_ALTO
+THRESHOLD_LLM = GruposConfig.THRESHOLD_LLM
 
 
 @dataclass

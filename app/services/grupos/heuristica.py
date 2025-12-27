@@ -13,6 +13,8 @@ import re
 from dataclasses import dataclass
 from typing import List, Optional
 
+from app.core.config import GruposConfig
+
 
 # =============================================================================
 # S03.1 - Keywords Positivas (indicam oferta de plantão)
@@ -123,12 +125,12 @@ KEYWORDS_DESCARTE = [
     r"^(kk|haha|rs)",
 ]
 
-# Limites de tamanho
-MIN_TAMANHO_MENSAGEM = 15
-MAX_TAMANHO_MENSAGEM = 2000
+# Limites de tamanho (centralizados em config)
+MIN_TAMANHO_MENSAGEM = GruposConfig.MIN_TAMANHO_MENSAGEM
+MAX_TAMANHO_MENSAGEM = GruposConfig.MAX_TAMANHO_MENSAGEM
 
 # Threshold para passar
-THRESHOLD_SCORE = 0.25  # Pelo menos 1 categoria forte
+THRESHOLD_SCORE = GruposConfig.THRESHOLD_HEURISTICA
 
 
 # =============================================================================
@@ -250,8 +252,7 @@ def calcular_score_heuristica(texto: str) -> ResultadoHeuristica:
             break
 
     # Valor mencionado (peso 0.2)
-    valor_pattern = re.compile(r"r\$\s*[\d.,]+|\d+\s*(mil|k)\b", re.IGNORECASE)
-    if valor_pattern.search(texto_norm):
+    if VALOR_PATTERN_COMPILED.search(texto_norm):
         keywords_encontradas.append("valor:mencionado")
         score += 0.2
 
@@ -277,3 +278,4 @@ KEYWORDS_PLANTAO_COMPILED = [re.compile(p, re.IGNORECASE) for p in KEYWORDS_PLAN
 KEYWORDS_HOSPITAL_COMPILED = [re.compile(p, re.IGNORECASE) for p in KEYWORDS_HOSPITAL]
 KEYWORDS_ESPECIALIDADE_COMPILED = [re.compile(p, re.IGNORECASE) for p in KEYWORDS_ESPECIALIDADE]
 KEYWORDS_DESCARTE_COMPILED = [re.compile(p, re.IGNORECASE) for p in KEYWORDS_DESCARTE]
+VALOR_PATTERN_COMPILED = re.compile(r"r\$\s*[\d.,]+|\d+\s*(mil|k)\b", re.IGNORECASE)

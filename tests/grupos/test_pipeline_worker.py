@@ -33,7 +33,7 @@ class TestConstantes:
 
     def test_threshold_heuristica(self):
         """Threshold mínimo de heurística."""
-        assert THRESHOLD_HEURISTICA == 0.3
+        assert THRESHOLD_HEURISTICA == 0.25
 
     def test_threshold_heuristica_alto(self):
         """Threshold alto para pular LLM."""

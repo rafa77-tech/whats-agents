@@ -89,8 +89,8 @@ class TestClassificarComLLM:
 
     @pytest.fixture
     def mock_anthropic(self):
-        """Mock do cliente Anthropic."""
-        with patch("app.services.grupos.classificador_llm.anthropic.Anthropic") as mock:
+        """Mock do cliente AsyncAnthropic."""
+        with patch("app.services.grupos.classificador_llm.anthropic.AsyncAnthropic") as mock:
             yield mock.return_value
 
     @pytest.fixture
@@ -105,10 +105,10 @@ class TestClassificarComLLM:
     @pytest.mark.asyncio
     async def test_classificacao_oferta(self, mock_anthropic, mock_redis):
         """Deve classificar oferta corretamente."""
-        mock_anthropic.messages.create.return_value = MagicMock(
+        mock_anthropic.messages.create = AsyncMock(return_value=MagicMock(
             content=[MagicMock(text='{"eh_oferta": true, "confianca": 0.95, "motivo": "Oferta completa"}')],
             usage=MagicMock(input_tokens=100, output_tokens=50)
-        )
+        ))
 
         resultado = await classificar_com_llm(
             texto="Plantão disponível Hospital X R$ 1500",
@@ -123,10 +123,10 @@ class TestClassificarComLLM:
     @pytest.mark.asyncio
     async def test_classificacao_nao_oferta(self, mock_anthropic, mock_redis):
         """Deve identificar não-ofertas."""
-        mock_anthropic.messages.create.return_value = MagicMock(
+        mock_anthropic.messages.create = AsyncMock(return_value=MagicMock(
             content=[MagicMock(text='{"eh_oferta": false, "confianca": 0.9, "motivo": "Cumprimento"}')],
             usage=MagicMock(input_tokens=50, output_tokens=30)
-        )
+        ))
 
         resultado = await classificar_com_llm("Bom dia pessoal!")
 
@@ -136,10 +136,10 @@ class TestClassificarComLLM:
     @pytest.mark.asyncio
     async def test_erro_parse_json(self, mock_anthropic, mock_redis):
         """Deve tratar erro de parse JSON."""
-        mock_anthropic.messages.create.return_value = MagicMock(
+        mock_anthropic.messages.create = AsyncMock(return_value=MagicMock(
             content=[MagicMock(text='Resposta sem JSON')],
             usage=MagicMock(input_tokens=50, output_tokens=30)
-        )
+        ))
 
         resultado = await classificar_com_llm("Teste")
 
@@ -168,10 +168,10 @@ class TestClassificarComLLM:
     @pytest.mark.asyncio
     async def test_salva_no_cache(self, mock_anthropic, mock_redis):
         """Deve salvar resultado no cache."""
-        mock_anthropic.messages.create.return_value = MagicMock(
+        mock_anthropic.messages.create = AsyncMock(return_value=MagicMock(
             content=[MagicMock(text='{"eh_oferta": true, "confianca": 0.9, "motivo": "ok"}')],
             usage=MagicMock(input_tokens=50, output_tokens=30)
-        )
+        ))
 
         await classificar_com_llm("Plantão Hospital ABC")
 
@@ -186,10 +186,10 @@ class TestClassificarComLLM:
             "confianca": 0.85,
             "motivo": "Do cache"
         })
-        mock_anthropic.messages.create.return_value = MagicMock(
+        mock_anthropic.messages.create = AsyncMock(return_value=MagicMock(
             content=[MagicMock(text='{"eh_oferta": false, "confianca": 0.9, "motivo": "fresh"}')],
             usage=MagicMock(input_tokens=50, output_tokens=30)
-        )
+        ))
 
         resultado = await classificar_com_llm("Texto", usar_cache=False)
 

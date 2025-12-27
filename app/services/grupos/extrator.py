@@ -180,7 +180,7 @@ async def extrair_dados_mensagem(
     nome_contato: str = ""
 ) -> ResultadoExtracao:
     """
-    Extrai dados estruturados de uma mensagem.
+    Extrai dados estruturados de uma mensagem (async).
 
     Args:
         texto: Texto da mensagem
@@ -191,7 +191,7 @@ async def extrair_dados_mensagem(
     Returns:
         ResultadoExtracao com lista de vagas
     """
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
     hoje = date.today()
     amanha = hoje + timedelta(days=1)
@@ -206,7 +206,7 @@ async def extrair_dados_mensagem(
     )
 
     try:
-        response = client.messages.create(
+        response = await client.messages.create(
             model="claude-3-haiku-20240307",
             max_tokens=2000,  # Maior para múltiplas vagas
             temperature=0,

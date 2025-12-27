@@ -101,17 +101,14 @@ async def buscar_hospital_por_alias(texto: str) -> Optional[ResultadoMatch]:
             .execute()
 
         if result.data and result.data[0].get("hospitais"):
-            # Atualizar contador de uso
-            supabase.table("hospitais_alias") \
-                .update({
-                    "vezes_usado": supabase.table("hospitais_alias")
-                        .select("vezes_usado")
-                        .eq("alias_normalizado", texto_norm)
-                        .single()
-                        .execute().data.get("vezes_usado", 0) + 1
-                }) \
-                .eq("alias_normalizado", texto_norm) \
-                .execute()
+            # Atualizar contador de uso (atômico via RPC)
+            try:
+                supabase.rpc("incrementar_vezes_usado", {
+                    "p_tabela": "hospitais_alias",
+                    "p_alias_normalizado": texto_norm
+                }).execute()
+            except Exception:
+                pass  # Contador é apenas para analytics, não crítico
 
             return ResultadoMatch(
                 entidade_id=UUID(result.data[0]["hospital_id"]),

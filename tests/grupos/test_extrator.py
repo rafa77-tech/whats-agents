@@ -262,14 +262,14 @@ class TestExtrairDadosMensagem:
 
     @pytest.fixture
     def mock_anthropic(self):
-        """Mock do cliente Anthropic."""
-        with patch("app.services.grupos.extrator.anthropic.Anthropic") as mock:
+        """Mock do cliente AsyncAnthropic."""
+        with patch("app.services.grupos.extrator.anthropic.AsyncAnthropic") as mock:
             yield mock.return_value
 
     @pytest.mark.asyncio
     async def test_extracao_sucesso(self, mock_anthropic):
         """Deve extrair dados corretamente."""
-        mock_anthropic.messages.create.return_value = MagicMock(
+        mock_anthropic.messages.create = AsyncMock(return_value=MagicMock(
             content=[MagicMock(text='''
             {
               "vagas": [{
@@ -281,7 +281,7 @@ class TestExtrairDadosMensagem:
             }
             ''')],
             usage=MagicMock(input_tokens=200, output_tokens=100)
-        )
+        ))
 
         resultado = await extrair_dados_mensagem(
             texto="Plantão Hospital ABC CM R$ 1500",
@@ -295,7 +295,7 @@ class TestExtrairDadosMensagem:
     @pytest.mark.asyncio
     async def test_extracao_multiplas_vagas(self, mock_anthropic):
         """Deve extrair múltiplas vagas."""
-        mock_anthropic.messages.create.return_value = MagicMock(
+        mock_anthropic.messages.create = AsyncMock(return_value=MagicMock(
             content=[MagicMock(text='''
             {
               "vagas": [
@@ -306,7 +306,7 @@ class TestExtrairDadosMensagem:
             }
             ''')],
             usage=MagicMock(input_tokens=200, output_tokens=150)
-        )
+        ))
 
         resultado = await extrair_dados_mensagem("Lista de vagas")
 
@@ -315,10 +315,10 @@ class TestExtrairDadosMensagem:
     @pytest.mark.asyncio
     async def test_extracao_erro_parse(self, mock_anthropic):
         """Deve tratar erro de parse."""
-        mock_anthropic.messages.create.return_value = MagicMock(
+        mock_anthropic.messages.create = AsyncMock(return_value=MagicMock(
             content=[MagicMock(text="Resposta inválida")],
             usage=MagicMock(input_tokens=100, output_tokens=50)
-        )
+        ))
 
         resultado = await extrair_dados_mensagem("Teste")
 
