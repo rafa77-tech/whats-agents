@@ -200,6 +200,22 @@ async def gerar_resposta_julia(
             )
 
             resposta = resultado_final["text"] or ""
+
+            # Failsafe: se chamou tool mas não gerou resposta, forçar
+            if not resposta and tool_results:
+                logger.warning("Tool executada mas sem resposta, forçando geração")
+                # Adicionar tool_result e pedir resposta
+                historico_forcar = historico_com_tool + [
+                    {"role": "user", "content": tool_results},
+                    {"role": "user", "content": "Agora responda ao médico de forma natural e curta."}
+                ]
+                resultado_forcado = await gerar_resposta(
+                    mensagem="",
+                    historico=historico_forcar,
+                    system_prompt=system_prompt,
+                    max_tokens=150,
+                )
+                resposta = resultado_forcado or ""
         else:
             resposta = resultado["text"] or ""
     else:

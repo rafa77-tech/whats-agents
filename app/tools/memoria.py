@@ -51,6 +51,11 @@ NAO USE ESTA TOOL PARA:
 - Dados basicos ja no cadastro (nome, CRM, especialidade)
 - Conversas triviais sem informacao util
 
+IMPORTANTE - APOS SALVAR:
+Voce DEVE SEMPRE enviar uma mensagem de resposta ao medico apos usar esta tool.
+Nunca use esta tool silenciosamente. Sempre responda reconhecendo o que o medico disse.
+Exemplo: Se medico diz "nao gosto do Hospital X", salve a restricao E responda algo como "Entendi, vou lembrar disso! Deixa eu ver outras opcoes pra vc"
+
 DICA: Sempre que ouvir "prefiro", "gosto de", "nao quero", "sempre", "nunca" - provavelmente vale salvar.""",
     "input_schema": {
         "type": "object",

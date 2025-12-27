@@ -18,6 +18,13 @@ dependencies = [
     "google-auth>=2.43.0",
     "google-auth-oauthlib>=1.2.2",
     "voyageai>=0.3.0",
+    "requests>=2.32.5",
+    "beautifulsoup4>=4.14.3",
+    "pandas>=2.3.3",
+    "lxml>=6.0.2",
+    "playwright>=1.57.0",
+    "ipykernel>=7.1.0",
+    "nest-asyncio>=1.6.0",
 ]
 
 [project.optional-dependencies]
