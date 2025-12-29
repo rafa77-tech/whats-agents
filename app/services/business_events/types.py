@@ -24,6 +24,10 @@ class EventType(Enum):
     SHIFT_COMPLETED = "shift_completed"                 # Confirmado: plantão realizado
     SHIFT_NOT_COMPLETED = "shift_not_completed"         # Confirmado: não ocorreu
 
+    # Guardrails de outbound (Sprint 17)
+    OUTBOUND_BLOCKED = "outbound_blocked"    # Envio bloqueado por guardrail
+    OUTBOUND_BYPASS = "outbound_bypass"      # Envio permitido por bypass humano
+
 
 class EventSource(Enum):
     """Origens validas de eventos."""
