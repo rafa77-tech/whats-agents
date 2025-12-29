@@ -23,6 +23,7 @@ from app.services.external_handoff.repository import (
     atualizar_status_handoff,
     listar_handoffs_pendentes,
 )
+from app.services.external_handoff.confirmacao import processar_confirmacao
 
 __all__ = [
     # Tokens
@@ -39,4 +40,6 @@ __all__ = [
     "buscar_handoff_pendente_por_telefone",
     "atualizar_status_handoff",
     "listar_handoffs_pendentes",
+    # Confirmacao
+    "processar_confirmacao",
 ]

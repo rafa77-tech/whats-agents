@@ -596,3 +596,27 @@ async def confirmar_plantao(vaga_id: str, realizado: bool, confirmado_por: str =
     except Exception as e:
         logger.error(f"Erro ao confirmar plantão {vaga_id}: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# =============================================================================
+# TEMPLATES DE CAMPANHA
+# =============================================================================
+
+
+@router.post("/sync-templates")
+async def job_sync_templates():
+    """
+    Sincroniza templates de campanha do Google Drive.
+
+    Busca a pasta configurada em GOOGLE_TEMPLATES_FOLDER_ID,
+    procura subpastas para cada tipo de campanha (Discovery, Oferta, etc),
+    e sincroniza o arquivo mais recente de cada pasta para o banco.
+    """
+    try:
+        from app.services.campaign_templates import sincronizar_templates
+
+        resultado = await sincronizar_templates()
+        return JSONResponse(resultado)
+    except Exception as e:
+        logger.error(f"Erro ao sincronizar templates: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)

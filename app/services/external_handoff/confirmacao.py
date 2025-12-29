@@ -10,7 +10,7 @@ from typing import Any
 from app.services.external_handoff.repository import atualizar_status_handoff
 from app.services.supabase import supabase
 from app.services.business_events import emit_event, EventType, EventSource, BusinessEvent
-from app.services.slack.notificador import notificar_slack
+from app.services.slack import enviar_slack
 
 logger = logging.getLogger(__name__)
 
@@ -83,14 +83,22 @@ async def processar_confirmacao(
 
     # Notificar Slack
     emoji = ":white_check_mark:" if action == "confirmed" else ":x:"
-    mensagem_slack = (
-        f"{emoji} *Handoff {action.upper()}*\n"
-        f"Divulgador: {handoff.get('divulgador_nome')}\n"
-        f"Via: {confirmed_by}\n"
-        f"Vaga: {vaga_id[:8]}..."
-    )
+    cor = "#10B981" if action == "confirmed" else "#F59E0B"
+    mensagem_slack = {
+        "text": f"{emoji} Handoff {action.upper()}",
+        "attachments": [{
+            "color": cor,
+            "title": f"Handoff {action.upper()}",
+            "fields": [
+                {"title": "Divulgador", "value": handoff.get("divulgador_nome", "N/A"), "short": True},
+                {"title": "Via", "value": confirmed_by, "short": True},
+                {"title": "Vaga", "value": vaga_id[:8], "short": True},
+            ],
+            "footer": "Agente Julia - Sprint 20",
+        }]
+    }
     try:
-        await notificar_slack(mensagem_slack, canal="vagas")
+        await enviar_slack(mensagem_slack)
     except Exception as e:
         logger.warning(f"Erro ao notificar Slack: {e}")
 

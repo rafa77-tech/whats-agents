@@ -11,7 +11,7 @@ from app.services.supabase import supabase
 from app.services.external_handoff.repository import criar_handoff
 from app.services.external_handoff.tokens import gerar_par_links
 from app.services.business_events import emit_event, EventType, EventSource, BusinessEvent
-from app.services.slack.notificador import notificar_slack
+from app.services.slack import enviar_slack
 
 logger = logging.getLogger(__name__)
 
@@ -213,17 +213,24 @@ async def criar_ponte_externa(
     hospital = vaga.get("hospitais", {}).get("nome", "Hospital")
     data_plantao = vaga.get("data", "")
 
-    slack_msg = (
-        f":bridge_at_night: *Nova Ponte Externa*\n"
-        f"Medico: {medico.get('nome', 'N/A')}\n"
-        f"Divulgador: {divulgador['nome']}\n"
-        f"Hospital: {hospital}\n"
-        f"Data: {data_plantao}\n"
-        f"Expira em: {HANDOFF_EXPIRY_HOURS}h"
-    )
+    slack_msg = {
+        "text": "Nova Ponte Externa",
+        "attachments": [{
+            "color": "#9333EA",  # Roxo
+            "title": "Ponte Medico-Divulgador",
+            "fields": [
+                {"title": "Medico", "value": medico.get("nome", "N/A"), "short": True},
+                {"title": "Divulgador", "value": divulgador["nome"], "short": True},
+                {"title": "Hospital", "value": hospital, "short": True},
+                {"title": "Data", "value": data_plantao, "short": True},
+                {"title": "Expira em", "value": f"{HANDOFF_EXPIRY_HOURS}h", "short": True},
+            ],
+            "footer": "Agente Julia - Sprint 20",
+        }]
+    }
 
     try:
-        await notificar_slack(slack_msg, canal="vagas")
+        await enviar_slack(slack_msg)
     except Exception as e:
         logger.warning(f"Erro ao notificar Slack: {e}")
 

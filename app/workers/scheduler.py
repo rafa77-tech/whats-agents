@@ -101,6 +101,12 @@ JOBS = [
         "endpoint": "/jobs/sincronizar-briefing",
         "schedule": "0 * * * *",  # A cada hora, minuto 0
     },
+    # Sincronizacao de templates de campanha (Google Docs)
+    {
+        "name": "sincronizar_templates",
+        "endpoint": "/jobs/sync-templates",
+        "schedule": "0 6 * * *",  # Diário às 6h
+    },
     # Monitor de conexao WhatsApp
     {
         "name": "verificar_whatsapp",
