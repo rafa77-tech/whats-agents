@@ -24,6 +24,36 @@ logger = logging.getLogger(__name__)
 BUFFER_HORAS = 2
 
 
+def calcular_fim_plantao(data: str, hora_inicio: str, hora_fim: str) -> datetime:
+    """
+    Calcula o datetime real do fim do plantão.
+
+    Trata plantões noturnos onde hora_fim < hora_inicio
+    (ex: 19:00-07:00 significa que termina no dia seguinte).
+
+    Args:
+        data: Data do plantão (YYYY-MM-DD)
+        hora_inicio: Hora de início (HH:MM:SS)
+        hora_fim: Hora de fim (HH:MM:SS)
+
+    Returns:
+        datetime com timezone UTC do fim real do plantão
+    """
+    data_plantao = datetime.strptime(data, "%Y-%m-%d").date()
+    inicio = datetime.strptime(hora_inicio, "%H:%M:%S").time()
+    fim = datetime.strptime(hora_fim, "%H:%M:%S").time()
+
+    # Combinar data + hora_fim
+    fim_plantao = datetime.combine(data_plantao, fim)
+
+    # Se hora_fim <= hora_inicio, é plantão noturno (termina no dia seguinte)
+    # Ex: 19:00-07:00 ou 22:00-06:00
+    if fim <= inicio:
+        fim_plantao += timedelta(days=1)
+
+    return fim_plantao.replace(tzinfo=timezone.utc)
+
+
 @dataclass
 class ResultadoTransicao:
     """Resultado de uma operacao de transicao."""
@@ -74,9 +104,9 @@ async def processar_vagas_vencidas(
     limite = agora - timedelta(hours=buffer_horas)
 
     # Buscar vagas reservadas vencidas
-    # Precisamos combinar data + hora_fim para calcular fim real
+    # Precisamos combinar data + hora_inicio + hora_fim para calcular fim real
     result = supabase.table("vagas") \
-        .select("id, data, hora_fim, hospital_id, cliente_id") \
+        .select("id, data, hora_inicio, hora_fim, hospital_id, cliente_id") \
         .eq("status", "reservada") \
         .execute()
 
@@ -90,10 +120,12 @@ async def processar_vagas_vencidas(
 
     for vaga in result.data:
         try:
-            # Calcular fim real do plantao (data + hora_fim)
-            data_plantao = datetime.strptime(vaga["data"], "%Y-%m-%d").date()
-            hora_fim = datetime.strptime(vaga["hora_fim"], "%H:%M:%S").time()
-            fim_plantao = datetime.combine(data_plantao, hora_fim).replace(tzinfo=timezone.utc)
+            # Calcular fim real do plantao
+            fim_plantao = calcular_fim_plantao(
+                data=vaga["data"],
+                hora_inicio=vaga["hora_inicio"],
+                hora_fim=vaga["hora_fim"]
+            )
 
             # Verificar se ja passou do buffer
             if fim_plantao > limite:
