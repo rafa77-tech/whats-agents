@@ -2,6 +2,7 @@
 Verificação de guardrails para outbound.
 
 Sprint 17 - Ponto único de controle para envios proativos.
+Sprint 24 E04 - Cooldown entre campanhas usando doctor_state.last_touch_*.
 
 Regras (em ordem de precedência):
 R-1 - Reply só é válido com inbound_proof (interaction_id + last_inbound recente)
@@ -10,6 +11,7 @@ R1  - cooling_off bloqueia proativo
 R2  - next_allowed_at bloqueia proativo
 R3  - contact_cap_7d bloqueia proativo
 R4  - kill switches (campaigns.enabled, safe_mode)
+R5  - campaign_cooldown: 3 dias entre campanhas diferentes
 
 Toda decisão BLOCK ou BYPASS gera business_event para auditoria.
 """
@@ -36,6 +38,7 @@ logger = logging.getLogger(__name__)
 # Configurações
 CONTACT_CAP_7D_DEFAULT = 5      # Máximo de contatos em 7 dias
 REPLY_WINDOW_MINUTES = 30       # Janela máxima para considerar reply válido
+CAMPAIGN_COOLDOWN_DAYS = 3      # Dias entre campanhas diferentes (Sprint 24 E04)
 PROVIDER = "evolution"          # Provider atual (para auditoria)
 
 
@@ -95,6 +98,77 @@ def _is_human_slack_bypass(ctx: OutboundContext) -> bool:
         and ctx.channel == OutboundChannel.SLACK  # APENAS Slack
         and ctx.method in {OutboundMethod.BUTTON, OutboundMethod.COMMAND, OutboundMethod.MANUAL}
         and ctx.actor_id is not None  # Quem autorizou é obrigatório
+    )
+
+
+def _check_campaign_cooldown_state(ctx: OutboundContext, state) -> Optional[GuardrailResult]:
+    """
+    R5: Verifica cooldown entre campanhas diferentes.
+
+    Sprint 24 E04: Usa doctor_state.last_touch_* em vez de tabela separada.
+
+    Regras:
+    - Só aplica para method=CAMPAIGN
+    - 3 dias entre campanhas diferentes
+    - Mesma campanha (followup) é isenta
+    - Reply e followup NÃO são afetados
+
+    Args:
+        ctx: Contexto do envio
+        state: DoctorState do médico
+
+    Returns:
+        GuardrailResult se bloqueado, None se pode enviar
+    """
+    # Só aplica para method=CAMPAIGN
+    if ctx.method != OutboundMethod.CAMPAIGN:
+        return None
+
+    # Precisa ter last_touch de campanha
+    if not state:
+        return None
+
+    last_touch_method = getattr(state, 'last_touch_method', None)
+    if last_touch_method != "campaign":
+        return None
+
+    last_touch_at = getattr(state, 'last_touch_at', None)
+    if not last_touch_at:
+        return None
+
+    # Normalizar timezone
+    if isinstance(last_touch_at, str):
+        last_touch_at = datetime.fromisoformat(last_touch_at.replace("Z", "+00:00"))
+
+    if last_touch_at.tzinfo is None:
+        last_touch_at = last_touch_at.replace(tzinfo=timezone.utc)
+
+    now = datetime.now(timezone.utc)
+    days_since = (now - last_touch_at).days
+
+    # Cooldown expirou?
+    if days_since >= CAMPAIGN_COOLDOWN_DAYS:
+        return None
+
+    # Mesma campanha? (followup isento)
+    last_campaign_id = getattr(state, 'last_touch_campaign_id', None)
+    if ctx.campaign_id and last_campaign_id:
+        if str(ctx.campaign_id) == str(last_campaign_id):
+            logger.debug(
+                f"Campaign cooldown isento: mesma campanha {ctx.campaign_id}"
+            )
+            return None
+
+    # BLOCK - campanhas diferentes dentro do cooldown
+    return GuardrailResult(
+        decision=GuardrailDecision.BLOCK,
+        reason_code="campaign_cooldown",
+        details={
+            "days_since": days_since,
+            "required": CAMPAIGN_COOLDOWN_DAYS,
+            "last_campaign_id": str(last_campaign_id) if last_campaign_id else None,
+            "current_campaign_id": str(ctx.campaign_id) if ctx.campaign_id else None,
+        }
     )
 
 
@@ -415,43 +489,32 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
 
     # =========================================================================
     # R5: Cooldown entre campanhas (APENAS para method=CAMPAIGN)
-    # Sprint 23 E05 - Evita que médico receba campanhas diferentes em janela curta
+    # Sprint 24 E04 - Usa doctor_state.last_touch_* para cooldown
     # =========================================================================
-    if ctx.method == OutboundMethod.CAMPAIGN and ctx.campaign_id:
-        from app.services.campaign_cooldown import check_campaign_cooldown
-
-        cooldown_result = await check_campaign_cooldown(
-            cliente_id=ctx.cliente_id,
-            campaign_id=int(ctx.campaign_id),
-        )
-
-        if cooldown_result.is_blocked:
-            # Permitir bypass via Slack
-            if _is_human_slack_bypass(ctx):
-                result = GuardrailResult(
-                    decision=GuardrailDecision.ALLOW,
-                    reason_code="campaign_cooldown",
-                    human_bypass=True,
-                    details=cooldown_result.details or {}
-                )
-                await _emit_guardrail_event(ctx, result, "outbound_bypass")
-                logger.warning(
-                    f"BYPASS campaign_cooldown: {ctx.cliente_id} por {ctx.actor_id} "
-                    f"motivo={cooldown_result.reason}"
-                )
-                return result
-
+    cooldown_result = _check_campaign_cooldown_state(ctx, state)
+    if cooldown_result and cooldown_result.is_blocked:
+        # Permitir bypass via Slack
+        if _is_human_slack_bypass(ctx):
             result = GuardrailResult(
-                decision=GuardrailDecision.BLOCK,
+                decision=GuardrailDecision.ALLOW,
                 reason_code="campaign_cooldown",
+                human_bypass=True,
                 details=cooldown_result.details or {}
             )
-            await _emit_guardrail_event(ctx, result, "outbound_blocked")
-            logger.info(
-                f"BLOCK campaign_cooldown: {ctx.cliente_id} "
-                f"motivo={cooldown_result.reason}"
+            await _emit_guardrail_event(ctx, result, "outbound_bypass")
+            logger.warning(
+                f"BYPASS campaign_cooldown: {ctx.cliente_id} por {ctx.actor_id} "
+                f"({cooldown_result.details.get('days_since', 0)}d < {CAMPAIGN_COOLDOWN_DAYS}d)"
             )
             return result
+
+        await _emit_guardrail_event(ctx, cooldown_result, "outbound_blocked")
+        logger.info(
+            f"BLOCK campaign_cooldown: {ctx.cliente_id} "
+            f"({cooldown_result.details.get('days_since', 0)}d < {CAMPAIGN_COOLDOWN_DAYS}d, "
+            f"last={cooldown_result.details.get('last_campaign_id', 'N/A')[:8]}...)"
+        )
+        return cooldown_result
 
     # =========================================================================
     # Passou por todos os guardrails

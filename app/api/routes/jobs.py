@@ -751,3 +751,105 @@ async def job_processar_handoffs():
     except Exception as e:
         logger.error(f"Erro ao processar handoffs: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/processar-retomadas")
+async def job_processar_retomadas():
+    """
+    Job para processar mensagens fora do horario pendentes.
+
+    Executa as 08:00 de dias uteis.
+    Retoma conversas com contexto preservado.
+
+    Sprint 22 - Responsividade Inteligente.
+    """
+    try:
+        from app.workers.retomada_fora_horario import processar_retomadas
+
+        stats = await processar_retomadas()
+
+        return JSONResponse({
+            "status": "ok",
+            "message": f"Processadas {stats.get('processadas', 0)} retomadas",
+            **stats
+        })
+    except Exception as e:
+        logger.error(f"Erro ao processar retomadas: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# =============================================================================
+# Jobs de Reconciliação de Touches (Sprint 24 P1)
+# =============================================================================
+
+
+@router.post("/reconcile-touches")
+async def job_reconcile_touches(horas: int = 72, limite: int = 1000):
+    """
+    Job de reconciliação de doctor_state.last_touch_*.
+
+    Sprint 24 P1: Repair loop para consistência.
+
+    Corrige inconsistências causadas por falhas no _finalizar_envio(),
+    garantindo que last_touch_* reflita o estado real dos envios.
+
+    Características:
+    - 100% determinístico (usa provider_message_id como chave)
+    - Idempotente (log com PK em provider_message_id)
+    - Monotônico (só avança, nunca retrocede)
+    - Usa enviada_em como touch_at real (não created_at)
+
+    Args:
+        horas: Janela de busca em horas (default 72h)
+        limite: Máximo de registros por execução (default 1000)
+
+    Executar:
+    - A cada 10-15 minutos (frequência recomendada)
+    - Manualmente via Slack quando necessário
+    """
+    try:
+        from app.services.touch_reconciliation import executar_reconciliacao
+
+        result = await executar_reconciliacao(horas=horas, limite=limite)
+
+        return JSONResponse({
+            "status": "ok",
+            "message": result.summary,
+            "stats": {
+                "total_candidates": result.total_candidates,
+                "reconciled": result.reconciled,
+                "skipped_already_processed": result.skipped_already_processed,
+                "skipped_already_newer": result.skipped_already_newer,
+                "skipped_no_change": result.skipped_no_change,
+                "failed": result.failed,
+            },
+            "errors": result.errors[:10] if result.errors else [],
+        })
+    except Exception as e:
+        logger.error(f"Erro na reconciliação de touches: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/limpar-logs-reconciliacao")
+async def job_limpar_logs_reconciliacao(dias: int = 30):
+    """
+    Job para limpar logs antigos de reconciliação.
+
+    Mantém logs dos últimos N dias para auditoria.
+
+    Args:
+        dias: Manter logs dos últimos X dias (default 30)
+    """
+    try:
+        from app.services.touch_reconciliation import limpar_logs_antigos
+
+        removidos = await limpar_logs_antigos(dias=dias)
+
+        return JSONResponse({
+            "status": "ok",
+            "message": f"{removidos} log(s) removido(s)",
+            "removidos": removidos,
+        })
+    except Exception as e:
+        logger.error(f"Erro ao limpar logs de reconciliação: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)

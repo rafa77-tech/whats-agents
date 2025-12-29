@@ -4,13 +4,15 @@ Ponto único de envio de mensagens outbound.
 Sprint 17 - Todas as mensagens outbound DEVEM passar por aqui.
 Sprint 18.1 - C1: Deduplicação de mensagens outbound.
 Sprint 23 E01 - Outcome detalhado com enum padronizado.
+Sprint 24 E03 - Centralização da finalização (try/finally).
 
 Este módulo é o wrapper que:
 1. Verifica deduplicação (evita duplicatas em retry/timeout)
 2. Verifica guardrails antes de enviar
 3. Chama Evolution API se permitido
 4. Emite eventos de auditoria
-5. Retorna outcome detalhado para rastreamento
+5. Finalização centralizada (last_touch, atribuição)
+6. Retorna outcome detalhado para rastreamento
 
 IMPORTANTE: Nenhum outro código deve chamar evolution.enviar_mensagem() diretamente.
 Use sempre send_outbound_message() deste módulo.
@@ -49,6 +51,117 @@ logger = logging.getLogger(__name__)
 def _gerar_content_hash(texto: str) -> str:
     """Gera hash do conteúdo para deduplicação."""
     return hashlib.sha256(texto.encode()).hexdigest()[:16]
+
+
+async def _atualizar_last_touch(
+    cliente_id: str,
+    method: str,
+    campaign_id: Optional[str] = None,
+) -> None:
+    """
+    Atualiza campos last_touch_* no doctor_state.
+
+    Sprint 24 E03: Centralização do tracking de último touch.
+    Usado pelo guardrail campaign_cooldown (E04).
+
+    Args:
+        cliente_id: ID do cliente
+        method: Método do envio (campaign, followup, reply, etc)
+        campaign_id: ID da campanha (se aplicável)
+    """
+    from app.services.supabase import supabase
+
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+
+        update_data = {
+            "last_touch_at": now,
+            "last_touch_method": method,
+        }
+
+        # campaign_id só é setado para method=campaign
+        if campaign_id:
+            update_data["last_touch_campaign_id"] = campaign_id
+        else:
+            # Limpar campaign_id se não for campanha
+            update_data["last_touch_campaign_id"] = None
+
+        supabase.table("doctor_state").upsert(
+            {"cliente_id": cliente_id, **update_data},
+            on_conflict="cliente_id",
+        ).execute()
+
+        logger.debug(
+            f"Last touch atualizado: {cliente_id[:8]}... "
+            f"method={method}, campaign_id={campaign_id}"
+        )
+
+    except Exception as e:
+        # Não falha o envio se não conseguir atualizar
+        logger.error(f"Erro ao atualizar last_touch: {e}")
+
+
+async def _finalizar_envio(
+    ctx: "OutboundContext",
+    outcome: "SendOutcome",
+    dedupe_key: Optional[str] = None,
+    provider_message_id: Optional[str] = None,
+) -> None:
+    """
+    Finalização centralizada de envio outbound.
+
+    Sprint 24 E03: Garante que todas as ações de finalização
+    sejam executadas, independente do outcome.
+
+    Ações executadas:
+    - Atualizar last_touch_* no doctor_state (só para SENT/BYPASS)
+    - Registrar campaign_touch para atribuição (só para SENT/BYPASS com campaign_id)
+
+    Args:
+        ctx: Contexto do envio
+        outcome: Resultado do envio (SENT, BLOCKED_*, DEDUPED, FAILED_*)
+        dedupe_key: Chave de deduplicação usada
+        provider_message_id: ID da mensagem no provedor
+    """
+    try:
+        # Só atualiza last_touch para envios bem-sucedidos
+        if outcome in (SendOutcome.SENT, SendOutcome.BYPASS):
+            method = ctx.method.value if ctx.method else "manual"
+
+            # Atualizar doctor_state.last_touch_*
+            await _atualizar_last_touch(
+                cliente_id=ctx.cliente_id,
+                method=method,
+                campaign_id=str(ctx.campaign_id) if ctx.campaign_id else None,
+            )
+
+            # Registrar campaign attribution
+            if ctx.campaign_id and ctx.conversation_id:
+                from app.services.campaign_attribution import registrar_campaign_touch
+                await registrar_campaign_touch(
+                    conversation_id=ctx.conversation_id,
+                    campaign_id=int(ctx.campaign_id),
+                    touch_type=method,
+                    cliente_id=ctx.cliente_id,
+                )
+
+            # Registrar envio no histórico de campanhas (legado)
+            if ctx.campaign_id:
+                from app.services.campaign_cooldown import registrar_envio_campanha
+                await registrar_envio_campanha(
+                    cliente_id=ctx.cliente_id,
+                    campaign_id=int(ctx.campaign_id),
+                    campaign_type=method,
+                )
+
+            logger.debug(
+                f"Finalização completa: {ctx.cliente_id[:8]}... "
+                f"outcome={outcome.value}, method={method}"
+            )
+
+    except Exception as e:
+        # Não falha o retorno se finalização falhar
+        logger.error(f"Erro na finalização de envio: {e}")
 
 
 @dataclass
@@ -200,6 +313,10 @@ async def send_outbound_message(
         )
 
     # 3. Enviar via Evolution API
+    # Sprint 24 E03: Usar try/finally para garantir finalização
+    result: Optional[OutboundResult] = None
+    provider_message_id: Optional[str] = None
+
     try:
         if simular_digitacao:
             response = await enviar_com_digitacao(
@@ -219,32 +336,12 @@ async def send_outbound_message(
         await marcar_enviado(dedupe_key)
 
         # Extrair provider_message_id da resposta
-        provider_message_id = None
         if response and isinstance(response, dict):
             # Evolution API retorna key.id como message id
             key = response.get("key", {})
             provider_message_id = key.get("id") if isinstance(key, dict) else None
 
-        # Sprint 23 E02: Registrar touch de campanha para atribuição
-        if ctx.campaign_id and ctx.conversation_id:
-            from app.services.campaign_attribution import registrar_campaign_touch
-            await registrar_campaign_touch(
-                conversation_id=ctx.conversation_id,
-                campaign_id=int(ctx.campaign_id),
-                touch_type=ctx.method.value if ctx.method else "campaign",
-                cliente_id=ctx.cliente_id,
-            )
-
-        # Sprint 23 E05: Registrar envio no histórico para cooldown
-        if ctx.campaign_id:
-            from app.services.campaign_cooldown import registrar_envio_campanha
-            await registrar_envio_campanha(
-                cliente_id=ctx.cliente_id,
-                campaign_id=int(ctx.campaign_id),
-                campaign_type=ctx.method.value if ctx.method else "campaign",
-            )
-
-        return OutboundResult(
+        result = OutboundResult(
             success=True,
             outcome=SendOutcome.BYPASS if guardrail_result.human_bypass else SendOutcome.SENT,
             outcome_reason_code="ok" if not guardrail_result.human_bypass else guardrail_result.reason_code,
@@ -260,7 +357,7 @@ async def send_outbound_message(
     except RateLimitError as e:
         logger.warning(f"Rate limit ao enviar para {telefone[:8]}...: {e}")
         await marcar_falha(dedupe_key, f"rate_limit: {e}")
-        return OutboundResult(
+        result = OutboundResult(
             success=False,
             outcome=SendOutcome.FAILED_RATE_LIMIT,
             outcome_reason_code=f"rate_limit:{str(e)[:100]}",
@@ -274,7 +371,7 @@ async def send_outbound_message(
     except CircuitOpenError as e:
         logger.error(f"Circuit open ao enviar para {telefone[:8]}...: {e}")
         await marcar_falha(dedupe_key, f"circuit_open: {e}")
-        return OutboundResult(
+        result = OutboundResult(
             success=False,
             outcome=SendOutcome.FAILED_CIRCUIT_OPEN,
             outcome_reason_code=f"circuit_open:{str(e)[:100]}",
@@ -288,7 +385,7 @@ async def send_outbound_message(
     except Exception as e:
         logger.error(f"Erro ao enviar para {telefone[:8]}...: {e}")
         await marcar_falha(dedupe_key, str(e)[:200])
-        return OutboundResult(
+        result = OutboundResult(
             success=False,
             outcome=SendOutcome.FAILED_PROVIDER,
             outcome_reason_code=f"provider_error:{str(e)[:100]}",
@@ -298,6 +395,19 @@ async def send_outbound_message(
             dedupe_key=dedupe_key,
             error=str(e),
         )
+
+    finally:
+        # Sprint 24 E03: Finalização centralizada
+        # Garante que last_touch e atribuição sejam atualizados
+        if result:
+            await _finalizar_envio(
+                ctx=ctx,
+                outcome=result.outcome,
+                dedupe_key=dedupe_key,
+                provider_message_id=provider_message_id,
+            )
+
+    return result
 
 
 # Helpers para criar contexto facilmente

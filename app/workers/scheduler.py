@@ -146,6 +146,12 @@ JOBS = [
         "endpoint": "/jobs/processar-handoffs",
         "schedule": "*/10 * * * *",  # A cada 10 minutos
     },
+    # Retomada de mensagens fora do horario (Sprint 22)
+    {
+        "name": "processar_retomadas",
+        "endpoint": "/jobs/processar-retomadas",
+        "schedule": "0 8 * * 1-5",  # 08:00 seg-sex
+    },
 ]
 
 

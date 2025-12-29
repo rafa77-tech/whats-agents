@@ -49,24 +49,28 @@ class CampaignSend:
 
 @dataclass
 class CampaignMetrics:
-    """Metricas agregadas de uma campanha."""
+    """
+    Metricas agregadas de uma campanha.
+
+    Sprint 24 E07: Adicionado bypassed, delivered_total, e breakdown por origem.
+    """
     campaign_id: int
     total_sends: int
     delivered: int
+    bypassed: int
+    delivered_total: int
     blocked: int
     deduped: int
     failed: int
     pending: int
     delivery_rate: float
+    delivery_rate_total: float
+    block_rate: float
     first_send_at: Optional[datetime]
     last_send_at: Optional[datetime]
-
-    @property
-    def block_rate(self) -> float:
-        """Taxa de bloqueio."""
-        if self.total_sends == 0:
-            return 0.0
-        return round(self.blocked / self.total_sends * 100, 2)
+    # Breakdown por origem (monitorar migração legado → novo)
+    from_fila_mensagens: int = 0
+    from_envios_legado: int = 0
 
     @property
     def fail_rate(self) -> float:
@@ -74,6 +78,13 @@ class CampaignMetrics:
         if self.total_sends == 0:
             return 0.0
         return round(self.failed / self.total_sends * 100, 2)
+
+    @property
+    def legado_ratio(self) -> float:
+        """Percentual de envios ainda vindo do legado."""
+        if self.total_sends == 0:
+            return 0.0
+        return round(self.from_envios_legado / self.total_sends * 100, 2)
 
 
 class CampaignSendsRepository:
@@ -281,13 +292,19 @@ class CampaignSendsRepository:
             campaign_id=row["campaign_id"],
             total_sends=row.get("total_sends", 0),
             delivered=row.get("delivered", 0),
+            bypassed=row.get("bypassed", 0),
+            delivered_total=row.get("delivered_total", 0),
             blocked=row.get("blocked", 0),
             deduped=row.get("deduped", 0),
             failed=row.get("failed", 0),
             pending=row.get("pending", 0),
             delivery_rate=float(row.get("delivery_rate") or 0),
+            delivery_rate_total=float(row.get("delivery_rate_total") or 0),
+            block_rate=float(row.get("block_rate") or 0),
             first_send_at=self._parse_datetime(row.get("first_send_at")),
             last_send_at=self._parse_datetime(row.get("last_send_at")),
+            from_fila_mensagens=row.get("from_fila_mensagens", 0),
+            from_envios_legado=row.get("from_envios_legado", 0),
         )
 
     def _parse_datetime(self, value) -> Optional[datetime]:
