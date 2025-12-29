@@ -18,6 +18,7 @@ from .primitives import (
 from .converters import (
     formatar_telefone,
     formatar_valor,
+    formatar_valor_completo,
     formatar_porcentagem,
     formatar_data,
     formatar_data_hora,
@@ -55,6 +56,7 @@ __all__ = [
     # Converters
     "formatar_telefone",
     "formatar_valor",
+    "formatar_valor_completo",
     "formatar_porcentagem",
     "formatar_data",
     "formatar_data_hora",

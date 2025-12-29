@@ -99,8 +99,10 @@ async def handle_buscar_vagas(params: dict) -> dict:
     limite = min(params.get("limite", 10), 20)
 
     try:
+        # Incluir campos de valor flexivel (Sprint 19)
         query = supabase.table("vagas").select(
-            "id, data, valor, status, hospitais(nome, cidade), periodos(nome), especialidades(nome)"
+            "id, data, valor, valor_minimo, valor_maximo, valor_tipo, status, "
+            "hospitais(nome, cidade), periodos(nome), especialidades(nome)"
         )
 
         if status != "todas":
@@ -127,7 +129,11 @@ async def handle_buscar_vagas(params: dict) -> dict:
                 "cidade": v.get("hospitais", {}).get("cidade"),
                 "data": v.get("data"),
                 "periodo": v.get("periodos", {}).get("nome"),
+                # Campos de valor flexivel (Sprint 19)
                 "valor": v.get("valor"),
+                "valor_minimo": v.get("valor_minimo"),
+                "valor_maximo": v.get("valor_maximo"),
+                "valor_tipo": v.get("valor_tipo", "fixo"),
                 "especialidade": v.get("especialidades", {}).get("nome"),
                 "status": v.get("status")
             })
@@ -151,7 +157,7 @@ async def handle_reservar_vaga(params: dict) -> dict:
         return {"success": False, "error": f"Medico nao encontrado: {telefone}"}
 
     try:
-        # Buscar vaga pela data
+        # Buscar vaga pela data (inclui campos de valor flexivel - Sprint 19)
         vaga = supabase.table("vagas").select(
             "*, hospitais(nome), periodos(nome)"
         ).eq("data", data_vaga).eq("status", "aberta").limit(1).execute()
@@ -174,7 +180,11 @@ async def handle_reservar_vaga(params: dict) -> dict:
                 "hospital": vaga_data.get("hospitais", {}).get("nome"),
                 "data": vaga_data.get("data"),
                 "periodo": vaga_data.get("periodos", {}).get("nome"),
-                "valor": vaga_data.get("valor")
+                # Campos de valor flexivel (Sprint 19)
+                "valor": vaga_data.get("valor"),
+                "valor_minimo": vaga_data.get("valor_minimo"),
+                "valor_maximo": vaga_data.get("valor_maximo"),
+                "valor_tipo": vaga_data.get("valor_tipo", "fixo"),
             },
             "medico": {
                 "nome": medico.get("primeiro_nome"),

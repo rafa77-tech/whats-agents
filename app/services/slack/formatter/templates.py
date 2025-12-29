@@ -8,6 +8,7 @@ from .primitives import bold, quote
 from .converters import (
     formatar_telefone,
     formatar_valor,
+    formatar_valor_completo,
     formatar_porcentagem,
     formatar_data,
     formatar_data_hora,
@@ -160,7 +161,7 @@ def template_lista_vagas(vagas: list[dict]) -> str:
     Formata lista de vagas.
 
     Args:
-        vagas: Lista de dicts com hospital, data, periodo, valor
+        vagas: Lista de dicts com hospital, data, periodo, valor, valor_tipo, etc
 
     Returns:
         Mensagem formatada
@@ -174,13 +175,19 @@ def template_lista_vagas(vagas: list[dict]) -> str:
         hospital = v.get("hospital", "?")
         data = formatar_data(v.get("data", ""))
         periodo = v.get("periodo", "")
-        valor = v.get("valor", 0)
+
+        # Usar formatador completo de valor (Sprint 19)
+        valor_display = formatar_valor_completo(
+            valor=v.get("valor"),
+            valor_minimo=v.get("valor_minimo"),
+            valor_maximo=v.get("valor_maximo"),
+            valor_tipo=v.get("valor_tipo", "fixo")
+        )
 
         linha = f"{i+1}. {bold(hospital)} - {data}"
         if periodo:
             linha += f" ({periodo})"
-        if valor:
-            linha += f" - {formatar_valor(valor)}"
+        linha += f" - {valor_display}"
 
         linhas.append(linha)
 
@@ -291,7 +298,6 @@ def template_sucesso_reserva(vaga: dict, medico: dict) -> str:
     hospital = vaga.get("hospital", "?")
     data = formatar_data(vaga.get("data", ""))
     periodo = vaga.get("periodo", "")
-    valor = vaga.get("valor", 0)
     nome = medico.get("nome", "o medico")
 
     linhas = [
@@ -301,8 +307,23 @@ def template_sucesso_reserva(vaga: dict, medico: dict) -> str:
         f"Data: {data}" + (f" ({periodo})" if periodo else ""),
     ]
 
-    if valor:
-        linhas.append(f"Valor: {formatar_valor(valor)}")
+    # Formatar valor baseado no tipo (Sprint 19)
+    valor_tipo = vaga.get("valor_tipo", "fixo")
+    valor_display = formatar_valor_completo(
+        valor=vaga.get("valor"),
+        valor_minimo=vaga.get("valor_minimo"),
+        valor_maximo=vaga.get("valor_maximo"),
+        valor_tipo=valor_tipo
+    )
+    linhas.append(f"Valor: {valor_display}")
+
+    # Nota adicional para valores nao fixos
+    if valor_tipo == "a_combinar":
+        linhas.append("")
+        linhas.append("_Valor sera negociado com o medico_")
+    elif valor_tipo == "faixa":
+        linhas.append("")
+        linhas.append("_Valor final dentro da faixa acordada_")
 
     return "\n".join(linhas)
 

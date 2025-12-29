@@ -44,6 +44,48 @@ def formatar_valor(valor: Union[float, int]) -> str:
     return f"R$ {valor:.0f}"
 
 
+def formatar_valor_completo(
+    valor: int = None,
+    valor_minimo: int = None,
+    valor_maximo: int = None,
+    valor_tipo: str = "fixo"
+) -> str:
+    """
+    Formata valor baseado no tipo para exibicao no Slack.
+
+    Sprint 19 - Valor Flexivel em Vagas
+
+    Args:
+        valor: Valor fixo (quando tipo = fixo)
+        valor_minimo: Valor minimo da faixa
+        valor_maximo: Valor maximo da faixa
+        valor_tipo: Tipo de valor (fixo, a_combinar, faixa)
+
+    Returns:
+        String formatada
+    """
+    if valor_tipo == "fixo" and valor:
+        return f"R$ {valor:,.0f}".replace(",", ".")
+
+    elif valor_tipo == "faixa":
+        if valor_minimo and valor_maximo:
+            return f"R$ {valor_minimo:,.0f} - {valor_maximo:,.0f}".replace(",", ".")
+        elif valor_minimo:
+            return f"A partir de R$ {valor_minimo:,.0f}".replace(",", ".")
+        elif valor_maximo:
+            return f"Ate R$ {valor_maximo:,.0f}".replace(",", ".")
+        return "Faixa nao definida"
+
+    elif valor_tipo == "a_combinar":
+        return "_A combinar_"  # Italico no Slack
+
+    # Fallback
+    if valor:
+        return f"R$ {valor:,.0f}".replace(",", ".")
+
+    return "N/I"  # Nao informado
+
+
 def formatar_porcentagem(valor: float) -> str:
     """
     Formata porcentagem.
