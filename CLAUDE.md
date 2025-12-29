@@ -67,6 +67,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 - [x] Chatwoot (supervisão + handoff)
 - [x] Slack (notificações + comandos NLP)
 - [x] Google Docs (briefing automático)
+- [x] Google Drive (templates de campanha)
 - [x] Supabase (PostgreSQL + pgvector)
 
 **Inteligência:**
@@ -389,6 +390,7 @@ Usar exceptions de `app/core/exceptions.py`:
 | `docs/testes-manuais.md` | Guia de testes antes do lançamento |
 | `docs/sistema-prompts.md` | Organização e planejamento dos prompts |
 | `docs/RUNBOOK.md` | Procedimentos operacionais |
+| `docs/campaign-templates.md` | Templates de campanha no Google Drive |
 | `docs/julia/` | Base de conhecimento para RAG (objeções, templates, prompts) |
 
 ---

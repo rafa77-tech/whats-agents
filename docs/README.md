@@ -24,6 +24,7 @@ Julia e um agente de IA que prospecta medicos, oferece plantoes, gerencia relaci
 | [Runbook](./runbook.md) | Procedimentos operacionais |
 | [Setup](./setup.md) | Checklist de configuracao com status |
 | [Briefing Template](./briefing-template.md) | Template Google Docs para gestor |
+| [Campaign Templates](./campaign-templates.md) | Templates de campanha no Google Drive |
 | [Guardrails Queries](./guardrails-queries.md) | Queries de auditoria Sprint 18 |
 | [Producao Canary](./producao-canary.md) | Governanca de rollout para producao |
 | [Migracao Status](./migracao-status-fechada.md) | Notas sobre migracoes |
