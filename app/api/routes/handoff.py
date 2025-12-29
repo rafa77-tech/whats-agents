@@ -2,6 +2,7 @@
 Endpoints para confirmacao de external handoff.
 
 Sprint 20 - E05 - Links de confirmacao.
+Sprint 21 - E03 - Rate limiting por IP.
 """
 import logging
 from fastapi import APIRouter, Query, Request
@@ -14,8 +15,13 @@ from app.services.external_handoff.tokens import (
 from app.services.external_handoff.repository import buscar_handoff_por_id
 from app.services.external_handoff.confirmacao import processar_confirmacao
 from app.services.business_events import emit_event, EventType, EventSource, BusinessEvent
+from app.services.rate_limit import check_rate_limit, render_rate_limit_page
 
 logger = logging.getLogger(__name__)
+
+# Limites de rate limit para endpoint de confirmacao
+CONFIRM_RATE_LIMIT_PER_MIN = 30
+CONFIRM_RATE_LIMIT_PER_HOUR = 200
 
 router = APIRouter(prefix="/handoff", tags=["handoff"])
 
@@ -29,10 +35,11 @@ async def confirmar_handoff(
     Processa confirmacao de handoff via link externo.
 
     O divulgador clica no link e esta rota:
-    1. Valida o token JWT
-    2. Verifica se handoff ainda esta pendente
-    3. Processa a acao (confirmed/not_confirmed)
-    4. Retorna pagina HTML de feedback
+    1. Verifica rate limit por IP
+    2. Valida o token JWT
+    3. Verifica se handoff ainda esta pendente
+    4. Processa a acao (confirmed/not_confirmed)
+    5. Retorna pagina HTML de feedback
 
     Args:
         request: Request do FastAPI
@@ -41,8 +48,30 @@ async def confirmar_handoff(
     Returns:
         HTMLResponse com pagina de feedback
     """
-    # Obter IP para auditoria
-    client_ip = request.client.host if request.client else None
+    # Obter IP para rate limit e auditoria
+    # Suporte a X-Forwarded-For para proxies
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    else:
+        client_ip = request.client.host if request.client else "unknown"
+
+    # Verificar rate limit
+    allowed, reason, retry_after = await check_rate_limit(
+        key=f"handoff_confirm:{client_ip}",
+        limit_per_minute=CONFIRM_RATE_LIMIT_PER_MIN,
+        limit_per_hour=CONFIRM_RATE_LIMIT_PER_HOUR,
+    )
+
+    if not allowed:
+        logger.warning(
+            f"Rate limit atingido: IP={client_ip}, reason={reason}, retry={retry_after}s"
+        )
+        return HTMLResponse(
+            content=render_rate_limit_page(retry_after),
+            status_code=429,
+            headers={"Retry-After": str(retry_after)},
+        )
 
     logger.info(f"Confirmacao de handoff recebida, IP={client_ip}")
 

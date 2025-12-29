@@ -2,6 +2,7 @@
 Job de processamento de handoffs (follow-up e expiracao).
 
 Sprint 20 - E07 - Automacao de follow-up.
+Sprint 21 - E01 - Verificar canary flag antes de follow-ups.
 """
 import logging
 from datetime import datetime, timezone
@@ -17,6 +18,7 @@ from app.services.business_events import emit_event, EventType, EventSource, Bus
 from app.services.supabase import supabase
 from app.services.outbound import send_outbound_message
 from app.services.slack import enviar_slack
+from app.services.policy.flags import get_external_handoff_flags
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +34,9 @@ async def processar_handoffs_pendentes() -> dict:
     Processa todos os handoffs pendentes.
 
     Fluxo:
-    1. Busca handoffs com status 'pending' ou 'contacted'
-    2. Para cada handoff:
+    1. Verifica flag external_handoff (se desabilitado, apenas expira - não envia follow-ups)
+    2. Busca handoffs com status 'pending' ou 'contacted'
+    3. Para cada handoff:
        - Se expirou: expira
        - Se passou de 36h e followup_count < 3: envia follow-up 3
        - Se passou de 24h e followup_count < 2: envia follow-up 2
@@ -44,9 +47,17 @@ async def processar_handoffs_pendentes() -> dict:
     """
     logger.info("Iniciando processamento de handoffs pendentes")
 
+    # Verificar flag para follow-ups (expiracoes sempre processam)
+    flags = await get_external_handoff_flags()
+    followups_pausados = not flags.enabled
+
+    if followups_pausados:
+        logger.info("Follow-ups pausados (external_handoff.enabled=false)")
+
     stats = {
         "total_processados": 0,
         "followups_enviados": 0,
+        "followups_pausados": 0,
         "expirados": 0,
         "erros": 0,
     }
@@ -59,11 +70,13 @@ async def processar_handoffs_pendentes() -> dict:
 
         for handoff in handoffs:
             try:
-                resultado = await _processar_handoff(handoff, now)
+                resultado = await _processar_handoff(handoff, now, followups_pausados)
                 stats["total_processados"] += 1
 
                 if resultado == "followup":
                     stats["followups_enviados"] += 1
+                elif resultado == "followup_paused":
+                    stats["followups_pausados"] += 1
                 elif resultado == "expired":
                     stats["expirados"] += 1
 
@@ -79,16 +92,21 @@ async def processar_handoffs_pendentes() -> dict:
         raise
 
 
-async def _processar_handoff(handoff: dict, now: datetime) -> str:
+async def _processar_handoff(
+    handoff: dict,
+    now: datetime,
+    followups_pausados: bool = False
+) -> str:
     """
     Processa um handoff individual.
 
     Args:
         handoff: Dados do handoff
         now: Timestamp atual
+        followups_pausados: Se True, não envia follow-ups (kill switch)
 
     Returns:
-        'followup', 'expired', ou 'noop'
+        'followup', 'followup_paused', 'expired', ou 'noop'
     """
     handoff_id = handoff["id"]
     reserved_until = handoff.get("reserved_until")
@@ -115,16 +133,22 @@ async def _processar_handoff(handoff: dict, now: datetime) -> str:
 
     # Follow-up 1: apos 2h
     if followup_count == 0 and horas_desde_criacao >= FOLLOWUP_1_HORAS:
+        if followups_pausados:
+            return "followup_paused"
         await _enviar_followup(handoff, 1)
         return "followup"
 
     # Follow-up 2: apos 24h
     if followup_count == 1 and horas_desde_criacao >= FOLLOWUP_2_HORAS:
+        if followups_pausados:
+            return "followup_paused"
         await _enviar_followup(handoff, 2)
         return "followup"
 
     # Follow-up 3: apos 36h
     if followup_count == 2 and horas_desde_criacao >= FOLLOWUP_3_HORAS:
+        if followups_pausados:
+            return "followup_paused"
         await _enviar_followup(handoff, 3)
         return "followup"
 

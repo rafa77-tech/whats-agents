@@ -27,6 +27,7 @@ Julia e um agente de IA que prospecta medicos, oferece plantoes, gerencia relaci
 | [Campaign Templates](./campaign-templates.md) | Templates de campanha no Google Drive |
 | [Guardrails Queries](./guardrails-queries.md) | Queries de auditoria Sprint 18 |
 | [Producao Canary](./producao-canary.md) | Governanca de rollout para producao |
+| [Playbook Handoff](./playbook-handoff.md) | Operacao da ponte medico-divulgador |
 | [Migracao Status](./migracao-status-fechada.md) | Notas sobre migracoes |
 
 ---

@@ -2,6 +2,7 @@
 Service principal para External Handoff.
 
 Sprint 20 - E03 - Ponte automatica medico-divulgador.
+Sprint 21 - E01 - Canary flag para rollout gradual.
 """
 import logging
 from datetime import datetime, timedelta, timezone
@@ -10,8 +11,13 @@ from typing import Any, Optional
 from app.services.supabase import supabase
 from app.services.external_handoff.repository import criar_handoff
 from app.services.external_handoff.tokens import gerar_par_links
+from app.services.external_handoff.guardrails import (
+    pode_contatar_divulgador,
+    registrar_contato_externo,
+)
 from app.services.business_events import emit_event, EventType, EventSource, BusinessEvent
 from app.services.slack import enviar_slack
+from app.services.policy.flags import is_external_handoff_enabled, get_external_handoff_flags
 
 logger = logging.getLogger(__name__)
 
@@ -114,11 +120,97 @@ async def criar_ponte_externa(
         logger.error(f"Vaga {vaga_id} sem source_id")
         return {"success": False, "error": "Vaga sem origem de grupo"}
 
+    # 0. Verificar canary flag
+    if not await is_external_handoff_enabled(cliente_id):
+        flags = await get_external_handoff_flags()
+        logger.info(
+            f"Ponte externa desabilitada para cliente {cliente_id[:8]} "
+            f"(enabled={flags.enabled}, canary_pct={flags.canary_pct})"
+        )
+
+        # Notificar Slack se for por canary (flag enabled mas cliente fora do %)
+        if flags.enabled and flags.canary_pct < 100:
+            try:
+                await enviar_slack({
+                    "text": ":test_tube: Ponte externa bloqueada (canary)",
+                    "attachments": [{
+                        "color": "#FCD34D",  # Amarelo
+                        "fields": [
+                            {"title": "Cliente", "value": cliente_id[:8], "short": True},
+                            {"title": "Canary %", "value": f"{flags.canary_pct}%", "short": True},
+                        ],
+                        "footer": "Sprint 21 - Canary Flag",
+                    }]
+                })
+            except Exception:
+                pass  # Não falhar por erro de notificação
+
+        return {
+            "success": False,
+            "error": "Ponte externa temporariamente indisponivel",
+            "reason": "canary_blocked" if flags.enabled else "feature_disabled",
+        }
+
     # 1. Buscar divulgador
     divulgador = await buscar_divulgador_por_vaga_grupo(source_id)
     if not divulgador:
         logger.error(f"Divulgador nao encontrado para vaga {vaga_id}")
         return {"success": False, "error": "Divulgador nao encontrado"}
+
+    # 1.5 Verificar guardrails (opt-out + horario comercial)
+    pode_contatar, motivo, agendar_para = await pode_contatar_divulgador(
+        telefone=divulgador["telefone"]
+    )
+
+    if not pode_contatar:
+        if motivo == "opted_out":
+            logger.info(
+                f"Divulgador {divulgador['telefone'][-4:]} opted-out, "
+                f"criando handoff manual_required"
+            )
+            # Notificar Slack para intervencao manual
+            try:
+                await enviar_slack({
+                    "text": ":no_entry_sign: Divulgador opted-out",
+                    "attachments": [{
+                        "color": "#EF4444",
+                        "fields": [
+                            {"title": "Divulgador", "value": divulgador["nome"], "short": True},
+                            {"title": "Empresa", "value": divulgador.get("empresa", "N/A"), "short": True},
+                            {"title": "Medico", "value": medico.get("nome", "N/A"), "short": True},
+                        ],
+                        "footer": "Sprint 21 - Guardrails",
+                    }]
+                })
+            except Exception:
+                pass
+
+            return {
+                "success": False,
+                "error": "Divulgador nao aceita contato automatizado",
+                "reason": "opted_out",
+                "requires_manual": True,
+            }
+
+        elif motivo == "outside_business_hours":
+            logger.info(
+                f"Fora do horario comercial, ponte seria agendada para {agendar_para}"
+            )
+            # Por enquanto, retornar erro
+            # TODO: Implementar agendamento real
+            return {
+                "success": False,
+                "error": "Fora do horario comercial",
+                "reason": "outside_business_hours",
+                "schedule_for": agendar_para.isoformat() if agendar_para else None,
+            }
+
+    # Registrar/atualizar contato externo
+    await registrar_contato_externo(
+        telefone=divulgador["telefone"],
+        nome=divulgador.get("nome"),
+        empresa=divulgador.get("empresa"),
+    )
 
     # 2. Criar registro
     reserved_until = datetime.now(timezone.utc) + timedelta(hours=HANDOFF_EXPIRY_HOURS)

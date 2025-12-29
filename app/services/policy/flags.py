@@ -2,6 +2,7 @@
 Feature flags service para Policy Engine.
 
 Sprint 16 - Kill Switch
+Sprint 21 - External Handoff Canary Flag
 Permite desligar funcionalidades sem deploy.
 
 Implementação:
@@ -9,6 +10,7 @@ Implementação:
 - Fallback para Supabase se cache miss ou erro
 - Fallback para valores seguros se tudo falhar
 """
+import hashlib
 import logging
 from dataclasses import dataclass
 from typing import Optional
@@ -21,6 +23,14 @@ logger = logging.getLogger(__name__)
 # TTL curto para atualizações rápidas
 CACHE_TTL = 30  # segundos
 CACHE_PREFIX = "feature_flag"
+
+
+@dataclass
+class ExternalHandoffFlags:
+    """Flags da ponte externa (external handoff)."""
+
+    enabled: bool = False  # Default: desligado
+    canary_pct: int = 0    # Percentual do canary (0-100)
 
 
 @dataclass
@@ -211,6 +221,64 @@ async def are_campaigns_enabled() -> bool:
     return flags.enabled
 
 
+async def get_external_handoff_flags() -> ExternalHandoffFlags:
+    """
+    Retorna flags da ponte externa.
+
+    Fallback seguro: enabled=False (ponte desligada por seguranca)
+    """
+    value = await _get_flag_value("external_handoff")
+
+    if value is None:
+        logger.warning("Flag external_handoff não encontrada, usando default")
+        return ExternalHandoffFlags()
+
+    return ExternalHandoffFlags(
+        enabled=value.get("enabled", False),
+        canary_pct=value.get("canary_pct", 0),
+    )
+
+
+async def is_external_handoff_enabled(cliente_id: str) -> bool:
+    """
+    Verifica se ponte externa está habilitada para um cliente.
+
+    Implementa canary rollout gradual:
+    - Se enabled=false: retorna False
+    - Se canary_pct < 100: hash(cliente_id) % 100 < canary_pct
+
+    O hash determinístico garante que o mesmo cliente sempre
+    terá o mesmo resultado (consistência).
+
+    Args:
+        cliente_id: UUID do cliente (medico)
+
+    Returns:
+        True se ponte externa está habilitada para este cliente
+    """
+    flags = await get_external_handoff_flags()
+
+    # Se desabilitado globalmente, retorna False
+    if not flags.enabled:
+        return False
+
+    # Se canary 100%, todos passam
+    if flags.canary_pct >= 100:
+        return True
+
+    # Se canary 0%, ninguém passa
+    if flags.canary_pct <= 0:
+        return False
+
+    # Canary rollout: hash determinístico via MD5
+    # MD5 garante consistência entre sessões Python (hash() randomiza)
+    hash_bytes = hashlib.md5(cliente_id.encode()).digest()
+    cliente_hash = int.from_bytes(hash_bytes[:4], "big") % 100
+
+    # Se o hash do cliente está abaixo do percentual, está no canary
+    return cliente_hash < flags.canary_pct
+
+
 async def set_flag(key: str, value: dict, updated_by: str = "system") -> bool:
     """
     Atualiza valor de uma flag.
@@ -340,5 +408,70 @@ async def enable_rule(rule_id: str, updated_by: str = "system") -> bool:
     return await set_flag(
         "disabled_rules",
         {"rules": current.rules},
+        updated_by=updated_by,
+    )
+
+
+# === External Handoff Flag Controls ===
+
+
+async def enable_external_handoff(
+    canary_pct: int = 100,
+    updated_by: str = "system"
+) -> bool:
+    """
+    Ativa ponte externa com rollout opcional.
+
+    Args:
+        canary_pct: Percentual de clientes (0-100)
+        updated_by: Quem está ativando
+
+    Returns:
+        True se sucesso
+    """
+    return await set_flag(
+        "external_handoff",
+        {"enabled": True, "canary_pct": min(100, max(0, canary_pct))},
+        updated_by=updated_by,
+    )
+
+
+async def disable_external_handoff(updated_by: str = "system") -> bool:
+    """
+    Desativa ponte externa (kill switch).
+
+    Args:
+        updated_by: Quem está desativando
+
+    Returns:
+        True se sucesso
+    """
+    # Manter canary_pct para quando reativar
+    current = await get_external_handoff_flags()
+    return await set_flag(
+        "external_handoff",
+        {"enabled": False, "canary_pct": current.canary_pct},
+        updated_by=updated_by,
+    )
+
+
+async def set_external_handoff_canary(
+    canary_pct: int,
+    updated_by: str = "system"
+) -> bool:
+    """
+    Ajusta percentual do canary da ponte externa.
+
+    Args:
+        canary_pct: Novo percentual (0-100)
+        updated_by: Quem está ajustando
+
+    Returns:
+        True se sucesso
+    """
+    current = await get_external_handoff_flags()
+    return await set_flag(
+        "external_handoff",
+        {"enabled": current.enabled, "canary_pct": min(100, max(0, canary_pct))},
         updated_by=updated_by,
     )

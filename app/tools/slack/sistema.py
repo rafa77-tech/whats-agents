@@ -3,12 +3,21 @@ Tools de sistema para o agente Slack.
 
 Sprint 10 - S10.E2.3
 Sprint 18.1 - B1: Toggle campanhas via Slack
+Sprint 21 - E02: Kill switch ponte externa
 """
 import logging
 from datetime import datetime, timezone
 
 from app.services.supabase import supabase
-from app.services.policy.flags import get_campaigns_flags, set_flag, is_safe_mode_active
+from app.services.policy.flags import (
+    get_campaigns_flags,
+    set_flag,
+    is_safe_mode_active,
+    get_external_handoff_flags,
+    enable_external_handoff,
+    disable_external_handoff,
+    set_external_handoff_canary,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +143,45 @@ ACAO CRITICA para on/off: Peca confirmacao antes de mudar.""",
                 "type": "string",
                 "enum": ["on", "off", "status"],
                 "description": "Acao: 'on' para ativar, 'off' para desativar, 'status' para ver estado atual"
+            }
+        },
+        "required": ["acao"]
+    }
+}
+
+TOOL_TOGGLE_PONTE_EXTERNA = {
+    "name": "toggle_ponte_externa",
+    "description": """Controla a ponte externa (handoff medico-divulgador).
+
+QUANDO USAR:
+- Gestor quer ativar/desativar ponte externa
+- Gestor quer ver status da ponte externa
+- Gestor quer ajustar canary (rollout gradual)
+
+EXEMPLOS:
+- "toggle_ponte_externa off" - desliga todas as pontes
+- "toggle_ponte_externa on" - liga ponte (100%)
+- "toggle_ponte_externa on 50" - liga com canary 50%
+- "toggle_ponte_externa status" - mostra estado atual
+- "desliga ponte externa"
+- "para as pontes"
+- "status ponte"
+
+ACAO CRITICA para on/off: Peca confirmacao antes de mudar.
+Status nao requer confirmacao.""",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "acao": {
+                "type": "string",
+                "enum": ["on", "off", "status"],
+                "description": "Acao: 'on' para ativar, 'off' para desativar, 'status' para ver estado atual"
+            },
+            "canary_pct": {
+                "type": "integer",
+                "description": "Percentual do canary (0-100). Apenas para acao 'on'. Default: 100",
+                "minimum": 0,
+                "maximum": 100
             }
         },
         "required": ["acao"]
@@ -341,6 +389,161 @@ async def _emitir_evento_toggle_campanhas(enabled: bool, actor_id: str) -> None:
         event_props={
             "action": "campaigns_toggled",
             "enabled": enabled,
+            "actor_id": actor_id,
+            "channel": "slack",
+            "method": "command",
+        },
+    ))
+
+
+async def handle_toggle_ponte_externa(params: dict, user_id: str) -> dict:
+    """
+    Toggle ponte externa on/off ou retorna status.
+
+    Sprint 21 - E02: Kill switch para ponte externa.
+
+    Args:
+        params: {acao: on|off|status, canary_pct?: int}
+        user_id: ID do usuario Slack
+
+    Returns:
+        Dict com resultado da operacao
+    """
+    acao = params.get("acao", "status")
+    canary_pct = params.get("canary_pct", 100)
+
+    try:
+        # Status atual
+        flags = await get_external_handoff_flags()
+
+        if acao == "status":
+            # Contar handoffs pendentes
+            handoffs_pendentes = 0
+            try:
+                from app.services.supabase import supabase
+                result = supabase.table("external_handoffs") \
+                    .select("id", count="exact") \
+                    .in_("status", ["pending", "contacted"]) \
+                    .execute()
+                handoffs_pendentes = result.count or 0
+            except Exception:
+                pass
+
+            status_texto = (
+                f"*Ponte Externa*\n"
+                f"• Status: {'ativa' if flags.enabled else 'desativada'}\n"
+                f"• Canary: {flags.canary_pct}%\n"
+                f"• Handoffs pendentes: {handoffs_pendentes}"
+            )
+
+            return {
+                "success": True,
+                "enabled": flags.enabled,
+                "canary_pct": flags.canary_pct,
+                "handoffs_pendentes": handoffs_pendentes,
+                "mensagem": status_texto
+            }
+
+        # Toggle on
+        if acao == "on":
+            success = await enable_external_handoff(
+                canary_pct=canary_pct,
+                updated_by=user_id
+            )
+
+            if not success:
+                return {"success": False, "error": "Falha ao ativar ponte externa"}
+
+            # Emitir evento de auditoria
+            await _emitir_evento_ponte_externa(
+                enabled=True,
+                canary_pct=canary_pct,
+                actor_id=user_id,
+            )
+
+            logger.info(
+                f"Ponte externa ativada por {user_id} (canary: {canary_pct}%)",
+                extra={
+                    "event": "ponte_externa_enabled",
+                    "canary_pct": canary_pct,
+                    "actor_id": user_id,
+                    "channel": "slack",
+                }
+            )
+
+            return {
+                "success": True,
+                "enabled": True,
+                "canary_pct": canary_pct,
+                "mensagem": f"Ponte externa ativada com canary {canary_pct}%!"
+            }
+
+        # Toggle off
+        if acao == "off":
+            success = await disable_external_handoff(updated_by=user_id)
+
+            if not success:
+                return {"success": False, "error": "Falha ao desativar ponte externa"}
+
+            # Emitir evento de auditoria
+            await _emitir_evento_ponte_externa(
+                enabled=False,
+                canary_pct=flags.canary_pct,  # Manter valor anterior
+                actor_id=user_id,
+            )
+
+            logger.info(
+                f"Ponte externa desativada por {user_id}",
+                extra={
+                    "event": "ponte_externa_disabled",
+                    "actor_id": user_id,
+                    "channel": "slack",
+                }
+            )
+
+            return {
+                "success": True,
+                "enabled": False,
+                "canary_pct": flags.canary_pct,
+                "mensagem": (
+                    "Ponte externa desativada!\n"
+                    "• Novas pontes: bloqueadas\n"
+                    "• Follow-ups: pausados\n"
+                    "• Confirmacoes existentes: ainda funcionam"
+                )
+            }
+
+        return {"success": False, "error": f"Acao desconhecida: {acao}"}
+
+    except Exception as e:
+        logger.error(f"Erro ao toggle ponte externa: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def _emitir_evento_ponte_externa(
+    enabled: bool,
+    canary_pct: int,
+    actor_id: str
+) -> None:
+    """Emite business_event para auditoria de toggle ponte externa."""
+    from app.services.business_events import (
+        emit_event,
+        BusinessEvent,
+        EventType,
+        EventSource,
+    )
+
+    dedupe_key = f"ponte_externa_toggle:{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}"
+
+    await emit_event(BusinessEvent(
+        event_type=EventType.OUTBOUND_BYPASS,  # Reusa tipo existente
+        source=EventSource.OPS,
+        cliente_id=None,
+        dedupe_key=dedupe_key,
+        event_props={
+            "action": "ponte_externa_toggled",
+            "enabled": enabled,
+            "canary_pct": canary_pct,
             "actor_id": actor_id,
             "channel": "slack",
             "method": "command",

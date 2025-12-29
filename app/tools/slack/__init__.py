@@ -48,11 +48,13 @@ from .sistema import (
     TOOL_PAUSAR_JULIA,
     TOOL_RETOMAR_JULIA,
     TOOL_TOGGLE_CAMPANHAS,
+    TOOL_TOGGLE_PONTE_EXTERNA,
     handle_status_sistema,
     handle_buscar_handoffs,
     handle_pausar_julia,
     handle_retomar_julia,
     handle_toggle_campanhas,
+    handle_toggle_ponte_externa,
 )
 
 from .briefing import (
@@ -104,6 +106,7 @@ SLACK_TOOLS = [
     TOOL_PAUSAR_JULIA,
     TOOL_RETOMAR_JULIA,
     TOOL_TOGGLE_CAMPANHAS,
+    TOOL_TOGGLE_PONTE_EXTERNA,  # Sprint 21 - Kill switch ponte externa
     TOOL_PROCESSAR_BRIEFING,
     # Grupos WhatsApp (Sprint 14)
     TOOL_LISTAR_VAGAS_REVISAO,
@@ -126,6 +129,7 @@ TOOLS_CRITICAS = {
     "pausar_julia",
     "retomar_julia",
     "toggle_campanhas",  # Sprint 18.1 - B1 (exceto para status)
+    "toggle_ponte_externa",  # Sprint 21 - E02 (exceto para status)
     # Grupos WhatsApp (Sprint 14)
     "aprovar_vaga_grupo",
     "rejeitar_vaga_grupo",
@@ -166,6 +170,7 @@ async def executar_tool(nome: str, params: dict, user_id: str, channel_id: str =
         "pausar_julia": lambda p: handle_pausar_julia(p, user_id),
         "retomar_julia": lambda p: handle_retomar_julia(p, user_id),
         "toggle_campanhas": lambda p: handle_toggle_campanhas(p, user_id),
+        "toggle_ponte_externa": lambda p: handle_toggle_ponte_externa(p, user_id),
         "processar_briefing": lambda p: handle_processar_briefing(p, channel_id, user_id),
         # Grupos WhatsApp (Sprint 14)
         "listar_vagas_revisao": handle_listar_vagas_revisao,
@@ -219,6 +224,7 @@ __all__ = [
     "TOOL_PAUSAR_JULIA",
     "TOOL_RETOMAR_JULIA",
     "TOOL_TOGGLE_CAMPANHAS",
+    "TOOL_TOGGLE_PONTE_EXTERNA",
     # Tools individuais - Briefing (Sprint 11)
     "TOOL_PROCESSAR_BRIEFING",
     # Tools individuais - Grupos WhatsApp (Sprint 14)
