@@ -267,7 +267,11 @@ class PipelineGrupos:
             "data": data_extraida,
             "hora_inicio": vaga.dados.hora_inicio if vaga.dados else None,
             "hora_fim": vaga.dados.hora_fim if vaga.dados else None,
+            # Campos de valor flexível (Sprint 19)
             "valor": vaga.dados.valor if vaga.dados else None,
+            "valor_minimo": vaga.dados.valor_minimo if vaga.dados else None,
+            "valor_maximo": vaga.dados.valor_maximo if vaga.dados else None,
+            "valor_tipo": vaga.dados.valor_tipo if vaga.dados else "a_combinar",
             "observacoes_raw": vaga.dados.observacoes if vaga.dados else None,
             "confianca_geral": vaga.confianca.media_ponderada() if vaga.confianca else None,
             "status": "extraido",

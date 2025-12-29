@@ -84,15 +84,23 @@ def calcular_confianca_geral(vaga: dict) -> ScoreConfianca:
         scores.periodo = 0.5  # Sem período não é crítico
     scores.detalhes["periodo"] = scores.periodo
 
-    # Valor (5%)
+    # Valor (5%) - Atualizado para considerar valor_tipo (Sprint 19)
+    valor_tipo = vaga.get("valor_tipo", "a_combinar")
     valor = vaga.get("valor")
-    if valor and 100 <= valor <= 10000:
-        scores.valor = 1.0
-    elif valor:
-        scores.valor = 0.5  # Valor fora do range normal
+    valor_minimo = vaga.get("valor_minimo")
+    valor_maximo = vaga.get("valor_maximo")
+
+    if valor_tipo == "fixo" and valor and 100 <= valor <= 10000:
+        scores.valor = 1.0  # Valor fixo válido
+    elif valor_tipo == "faixa" and (valor_minimo or valor_maximo):
+        scores.valor = 0.9  # Faixa definida
+    elif valor_tipo == "a_combinar":
+        scores.valor = 0.7  # A combinar é aceitável, não penalizar muito
     else:
-        scores.valor = 0.3  # Sem valor não é crítico
+        scores.valor = 0.3  # Inconsistente
+
     scores.detalhes["valor"] = scores.valor
+    scores.detalhes["valor_tipo"] = valor_tipo
 
     # Cálculo ponderado
     scores.geral = (
@@ -172,8 +180,17 @@ def validar_para_importacao(vaga: dict) -> ResultadoValidacao:
     if not vaga.get("periodo_id"):
         avisos.append("período não identificado")
 
-    if not vaga.get("valor"):
-        avisos.append("valor não informado")
+    # Avisos de valor (Sprint 19 - valor flexível)
+    valor_tipo = vaga.get("valor_tipo", "a_combinar")
+    valor = vaga.get("valor")
+    valor_minimo = vaga.get("valor_minimo")
+    valor_maximo = vaga.get("valor_maximo")
+
+    if valor_tipo == "fixo" and not valor:
+        avisos.append("valor_tipo=fixo mas valor ausente")
+    elif valor_tipo == "faixa" and not valor_minimo and not valor_maximo:
+        avisos.append("valor_tipo=faixa mas limites ausentes")
+    # a_combinar não gera aviso - é um tipo válido
 
     return ResultadoValidacao(
         valido=len(erros) == 0,
@@ -204,7 +221,11 @@ async def criar_vaga_principal(vaga_grupo: dict) -> UUID:
         "periodo_id": vaga_grupo.get("periodo_id"),
         "setor_id": vaga_grupo.get("setor_id"),
         "tipos_vaga_id": vaga_grupo.get("tipo_vaga_id"),
+        # Campos de valor flexível (Sprint 19)
         "valor": vaga_grupo.get("valor"),
+        "valor_minimo": vaga_grupo.get("valor_minimo"),
+        "valor_maximo": vaga_grupo.get("valor_maximo"),
+        "valor_tipo": vaga_grupo.get("valor_tipo", "a_combinar"),
         "hora_inicio": vaga_grupo.get("hora_inicio"),
         "hora_fim": vaga_grupo.get("hora_fim"),
         "status": "aberta",

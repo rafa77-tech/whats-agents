@@ -110,14 +110,38 @@ class TestCalcularConfiancaGeral:
         assert score.detalhes["hospital"] == 0.9
 
     def test_valor_fora_range(self):
-        """Valor fora do range normal deve ter score menor."""
-        vaga_normal = {"valor": 1500}
-        vaga_alto = {"valor": 50000}
+        """Valor fixo fora do range normal deve ter score menor."""
+        # Sprint 19: precisa especificar valor_tipo para teste de range
+        vaga_normal = {"valor_tipo": "fixo", "valor": 1500}
+        vaga_alto = {"valor_tipo": "fixo", "valor": 50000}
 
         score_normal = calcular_confianca_geral(vaga_normal)
         score_alto = calcular_confianca_geral(vaga_alto)
 
+        # valor=1500 está no range (100-10000), score=1.0
+        # valor=50000 está fora do range, score=0.3
         assert score_normal.valor > score_alto.valor
+        assert score_normal.valor == 1.0
+        assert score_alto.valor == 0.3
+
+    def test_valor_tipo_a_combinar(self):
+        """Valor a combinar deve ter score aceitável (Sprint 19)."""
+        vaga = {"valor_tipo": "a_combinar"}
+        score = calcular_confianca_geral(vaga)
+        assert score.valor == 0.7
+        assert score.detalhes["valor_tipo"] == "a_combinar"
+
+    def test_valor_tipo_faixa_com_limites(self):
+        """Valor em faixa com limites deve ter bom score (Sprint 19)."""
+        vaga = {"valor_tipo": "faixa", "valor_minimo": 1500, "valor_maximo": 2000}
+        score = calcular_confianca_geral(vaga)
+        assert score.valor == 0.9
+
+    def test_valor_tipo_faixa_sem_limites(self):
+        """Valor em faixa sem limites é inconsistente (Sprint 19)."""
+        vaga = {"valor_tipo": "faixa"}  # Sem valor_minimo nem valor_maximo
+        score = calcular_confianca_geral(vaga)
+        assert score.valor == 0.3  # Inconsistente
 
 
 class TestValidarParaImportacao:
@@ -219,6 +243,53 @@ class TestValidarParaImportacao:
 
         assert resultado.valido is True
         assert any("período" in a for a in resultado.avisos)
+
+    def test_valor_tipo_fixo_sem_valor_aviso(self):
+        """valor_tipo=fixo sem valor deve gerar aviso (Sprint 19)."""
+        amanha = (datetime.now(UTC) + timedelta(days=1)).strftime("%Y-%m-%d")
+        vaga = {
+            "hospital_id": str(uuid4()),
+            "especialidade_id": str(uuid4()),
+            "data": amanha,
+            "valor_tipo": "fixo",
+            "valor": None,
+        }
+
+        resultado = validar_para_importacao(vaga)
+
+        assert resultado.valido is True  # Não bloqueia
+        assert any("fixo" in a for a in resultado.avisos)
+
+    def test_valor_tipo_faixa_sem_limites_aviso(self):
+        """valor_tipo=faixa sem limites deve gerar aviso (Sprint 19)."""
+        amanha = (datetime.now(UTC) + timedelta(days=1)).strftime("%Y-%m-%d")
+        vaga = {
+            "hospital_id": str(uuid4()),
+            "especialidade_id": str(uuid4()),
+            "data": amanha,
+            "valor_tipo": "faixa",
+        }
+
+        resultado = validar_para_importacao(vaga)
+
+        assert resultado.valido is True  # Não bloqueia
+        assert any("faixa" in a for a in resultado.avisos)
+
+    def test_valor_tipo_a_combinar_sem_aviso(self):
+        """valor_tipo=a_combinar não deve gerar aviso (Sprint 19)."""
+        amanha = (datetime.now(UTC) + timedelta(days=1)).strftime("%Y-%m-%d")
+        vaga = {
+            "hospital_id": str(uuid4()),
+            "especialidade_id": str(uuid4()),
+            "data": amanha,
+            "valor_tipo": "a_combinar",
+        }
+
+        resultado = validar_para_importacao(vaga)
+
+        assert resultado.valido is True
+        # Não deve ter aviso de valor
+        assert not any("valor" in a.lower() for a in resultado.avisos)
 
 
 class TestDecidirAcao:
