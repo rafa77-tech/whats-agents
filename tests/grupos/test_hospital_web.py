@@ -114,23 +114,27 @@ class TestBuscarHospitalWeb:
 
     @pytest.fixture
     def mock_anthropic(self):
-        """Mock do cliente Anthropic."""
-        with patch("app.services.grupos.hospital_web.anthropic.Anthropic") as mock:
-            yield mock.return_value
+        """Mock do cliente AsyncAnthropic."""
+        with patch("app.services.grupos.hospital_web.anthropic.AsyncAnthropic") as mock:
+            instance = mock.return_value
+            instance.messages = MagicMock()
+            yield instance
 
     @pytest.mark.asyncio
     async def test_hospital_encontrado(self, mock_anthropic):
         """Deve retornar info quando hospital encontrado."""
-        mock_anthropic.messages.create.return_value = MagicMock(
-            content=[MagicMock(text='''
-            {
-                "encontrado": true,
-                "nome_oficial": "Hospital São Luiz Anália Franco",
-                "cidade": "São Paulo",
-                "estado": "SP",
-                "confianca": 0.95
-            }
-            ''')]
+        mock_anthropic.messages.create = AsyncMock(
+            return_value=MagicMock(
+                content=[MagicMock(text='''
+                {
+                    "encontrado": true,
+                    "nome_oficial": "Hospital São Luiz Anália Franco",
+                    "cidade": "São Paulo",
+                    "estado": "SP",
+                    "confianca": 0.95
+                }
+                ''')]
+            )
         )
 
         resultado = await buscar_hospital_web("HSL Anália Franco")
@@ -142,8 +146,10 @@ class TestBuscarHospitalWeb:
     @pytest.mark.asyncio
     async def test_hospital_nao_encontrado(self, mock_anthropic):
         """Deve retornar None quando hospital não encontrado."""
-        mock_anthropic.messages.create.return_value = MagicMock(
-            content=[MagicMock(text='{"encontrado": false}')]
+        mock_anthropic.messages.create = AsyncMock(
+            return_value=MagicMock(
+                content=[MagicMock(text='{"encontrado": false}')]
+            )
         )
 
         resultado = await buscar_hospital_web("Hospital XYZ 123")
@@ -153,8 +159,10 @@ class TestBuscarHospitalWeb:
     @pytest.mark.asyncio
     async def test_resposta_invalida(self, mock_anthropic):
         """Deve retornar None para resposta inválida."""
-        mock_anthropic.messages.create.return_value = MagicMock(
-            content=[MagicMock(text="Resposta inválida sem JSON")]
+        mock_anthropic.messages.create = AsyncMock(
+            return_value=MagicMock(
+                content=[MagicMock(text="Resposta inválida sem JSON")]
+            )
         )
 
         resultado = await buscar_hospital_web("Hospital")
