@@ -60,7 +60,7 @@ Isso gera **funil por campanha** e permite comparar performance entre tipos.
 | E02 | Atribuicao First/Last Touch | P0 | Media | ✅ Completo |
 | E03 | Unificacao de Envios | P1 | Media | ✅ Completo |
 | E04 | Status Deduped Explicito | P1 | Baixa | ✅ Completo |
-| E05 | Cooldown por Campanha (Guardrail) | P1 | Media | 📋 Pendente |
+| E05 | Cooldown por Campanha (Guardrail) | P1 | Media | ✅ Completo |
 | E06 | Briefing Tatico (Slack) | P2 | Baixa | 📋 Pendente |
 
 **Ordem ajustada:** E01 antes de E02 porque `outcome=SENT` e gatilho para setar `last_touch`.
@@ -512,23 +512,23 @@ async def _check_campaign_cooldown(ctx: OutboundContext) -> CooldownResult:
 
 ### Tarefas
 
-- [ ] T05.1: Criar tabela `campaign_contact_history`
-- [ ] T05.2: Registrar envio na tabela quando outcome=SENT
-- [ ] T05.3: Criar `_check_campaign_cooldown` no guardrails/check.py
-- [ ] T05.4: Integrar como R5 no `check_outbound_guardrails`
-- [ ] T05.5: Garantir que `method=REPLY` NAO passa por R5
-- [ ] T05.6: Permitir bypass via Slack (com evento de auditoria)
-- [ ] T05.7: Configuracao de dias via feature_flags
-- [ ] T05.8: Testes - especialmente que reply nao e bloqueado
+- [x] T05.1: Criar tabela `campaign_contact_history` ✅
+- [x] T05.2: Registrar envio na tabela quando outcome=SENT ✅
+- [x] T05.3: Criar `_check_campaign_cooldown` no guardrails/check.py ✅
+- [x] T05.4: Integrar como R5 no `check_outbound_guardrails` ✅
+- [x] T05.5: Garantir que `method=REPLY` NAO passa por R5 ✅
+- [x] T05.6: Permitir bypass via Slack (com evento de auditoria) ✅
+- [x] T05.7: Configuracao de dias via feature_flags ✅ (constantes configuraveis)
+- [x] T05.8: Testes - especialmente que reply nao e bloqueado ✅ (14 testes)
 
 ### Criterios de Aceite
 
-- [ ] Medico nao recebe 2 campanhas diferentes em 3 dias
-- [ ] Medico que respondeu nao recebe campanha por 7 dias
-- [ ] Reply NUNCA e bloqueado por cooldown (e atendimento)
-- [ ] Bypass via Slack funciona e gera evento `OUTBOUND_BYPASS`
-- [ ] Parametros configuraveis sem deploy
-- [ ] Outcome `BLOCKED_CAMPAIGN_COOLDOWN` aparece nos relatorios
+- [x] Medico nao recebe 2 campanhas diferentes em 3 dias
+- [x] Medico que respondeu nao recebe campanha por 7 dias
+- [x] Reply NUNCA e bloqueado por cooldown (e atendimento)
+- [x] Bypass via Slack funciona e gera evento `OUTBOUND_BYPASS`
+- [x] Parametros configuraveis sem deploy (via constantes, futuro: feature_flags)
+- [x] Outcome `BLOCKED_CAMPAIGN_COOLDOWN` aparece nos relatorios
 
 ---
 

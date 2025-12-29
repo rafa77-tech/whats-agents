@@ -235,6 +235,15 @@ async def send_outbound_message(
                 cliente_id=ctx.cliente_id,
             )
 
+        # Sprint 23 E05: Registrar envio no histórico para cooldown
+        if ctx.campaign_id:
+            from app.services.campaign_cooldown import registrar_envio_campanha
+            await registrar_envio_campanha(
+                cliente_id=ctx.cliente_id,
+                campaign_id=int(ctx.campaign_id),
+                campaign_type=ctx.method.value if ctx.method else "campaign",
+            )
+
         return OutboundResult(
             success=True,
             outcome=SendOutcome.BYPASS if guardrail_result.human_bypass else SendOutcome.SENT,

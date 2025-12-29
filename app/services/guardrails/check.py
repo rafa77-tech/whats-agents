@@ -414,6 +414,46 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
         return result
 
     # =========================================================================
+    # R5: Cooldown entre campanhas (APENAS para method=CAMPAIGN)
+    # Sprint 23 E05 - Evita que médico receba campanhas diferentes em janela curta
+    # =========================================================================
+    if ctx.method == OutboundMethod.CAMPAIGN and ctx.campaign_id:
+        from app.services.campaign_cooldown import check_campaign_cooldown
+
+        cooldown_result = await check_campaign_cooldown(
+            cliente_id=ctx.cliente_id,
+            campaign_id=int(ctx.campaign_id),
+        )
+
+        if cooldown_result.is_blocked:
+            # Permitir bypass via Slack
+            if _is_human_slack_bypass(ctx):
+                result = GuardrailResult(
+                    decision=GuardrailDecision.ALLOW,
+                    reason_code="campaign_cooldown",
+                    human_bypass=True,
+                    details=cooldown_result.details or {}
+                )
+                await _emit_guardrail_event(ctx, result, "outbound_bypass")
+                logger.warning(
+                    f"BYPASS campaign_cooldown: {ctx.cliente_id} por {ctx.actor_id} "
+                    f"motivo={cooldown_result.reason}"
+                )
+                return result
+
+            result = GuardrailResult(
+                decision=GuardrailDecision.BLOCK,
+                reason_code="campaign_cooldown",
+                details=cooldown_result.details or {}
+            )
+            await _emit_guardrail_event(ctx, result, "outbound_blocked")
+            logger.info(
+                f"BLOCK campaign_cooldown: {ctx.cliente_id} "
+                f"motivo={cooldown_result.reason}"
+            )
+            return result
+
+    # =========================================================================
     # Passou por todos os guardrails
     # =========================================================================
     return GuardrailResult(
