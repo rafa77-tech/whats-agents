@@ -124,6 +124,131 @@ def _detectar_secao_plano(conteudo: str) -> Optional[str]:
 
 
 # =============================================================================
+# FUNCOES DE CRIACAO (Drive)
+# =============================================================================
+
+
+async def criar_pasta(nome: str, parent_id: Optional[str] = None) -> Optional[str]:
+    """
+    Cria uma pasta no Google Drive.
+
+    Args:
+        nome: Nome da pasta
+        parent_id: ID da pasta pai (opcional)
+
+    Returns:
+        ID da pasta criada ou None se erro
+    """
+    try:
+        service = _get_drive_service()
+
+        file_metadata = {
+            'name': nome,
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+
+        if parent_id:
+            file_metadata['parents'] = [parent_id]
+
+        folder = service.files().create(
+            body=file_metadata,
+            fields='id, webViewLink'
+        ).execute()
+
+        folder_id = folder.get('id')
+        logger.info(f"Pasta criada: {nome} (ID: {folder_id})")
+        return folder_id
+
+    except Exception as e:
+        logger.error(f"Erro ao criar pasta {nome}: {e}")
+        return None
+
+
+async def criar_documento(nome: str, conteudo: str, parent_id: Optional[str] = None) -> Optional[str]:
+    """
+    Cria um documento no Google Drive com conteudo inicial.
+
+    Args:
+        nome: Nome do documento
+        conteudo: Conteudo inicial (texto)
+        parent_id: ID da pasta pai (opcional)
+
+    Returns:
+        ID do documento criado ou None se erro
+    """
+    try:
+        drive_service = _get_drive_service()
+        docs_service = _get_docs_service()
+
+        # Criar documento vazio primeiro
+        file_metadata = {
+            'name': nome,
+            'mimeType': 'application/vnd.google-apps.document'
+        }
+
+        if parent_id:
+            file_metadata['parents'] = [parent_id]
+
+        doc = drive_service.files().create(
+            body=file_metadata,
+            fields='id'
+        ).execute()
+
+        doc_id = doc.get('id')
+
+        # Inserir conteudo
+        if conteudo:
+            requests = [{
+                'insertText': {
+                    'location': {'index': 1},
+                    'text': conteudo
+                }
+            }]
+
+            docs_service.documents().batchUpdate(
+                documentId=doc_id,
+                body={'requests': requests}
+            ).execute()
+
+        logger.info(f"Documento criado: {nome} (ID: {doc_id})")
+        return doc_id
+
+    except Exception as e:
+        logger.error(f"Erro ao criar documento {nome}: {e}")
+        return None
+
+
+async def listar_subpastas(folder_id: str) -> list[dict]:
+    """
+    Lista subpastas de uma pasta.
+
+    Args:
+        folder_id: ID da pasta pai
+
+    Returns:
+        Lista de dicts com id e name das subpastas
+    """
+    try:
+        service = _get_drive_service()
+
+        query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+
+        results = service.files().list(
+            q=query,
+            fields="files(id, name)",
+            pageSize=50,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True
+        ).execute()
+
+        return results.get('files', [])
+
+    except Exception as e:
+        logger.error(f"Erro ao listar subpastas de {folder_id}: {e}")
+        return []
+
+
+# =============================================================================
 # FUNCOES DE LISTAGEM (Drive)
 # =============================================================================
 

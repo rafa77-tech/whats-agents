@@ -15,6 +15,7 @@ from .pre_processors import (
     MediaProcessor,
     LongMessageProcessor,
     HandoffTriggerProcessor,
+    HandoffKeywordProcessor,
     HumanControlProcessor,
 )
 from .post_processors import (
@@ -47,6 +48,7 @@ def criar_pipeline() -> MessageProcessor:
     pipeline.add_pre_processor(MediaProcessor())             # 40
     pipeline.add_pre_processor(LongMessageProcessor())       # 45
     pipeline.add_pre_processor(HandoffTriggerProcessor())    # 50
+    pipeline.add_pre_processor(HandoffKeywordProcessor())   # 55 - Sprint 20: Detector keywords
     pipeline.add_pre_processor(HumanControlProcessor())      # 60
 
     # Core processor

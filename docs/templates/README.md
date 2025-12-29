@@ -80,6 +80,21 @@ Para atualizar um template:
 3. A Julia automaticamente usa o mais recente
 4. Mantenha arquivos antigos para histórico
 
+## Setup Automático
+
+Se você tem as credenciais do Google configuradas, pode criar toda a estrutura automaticamente:
+
+```bash
+# Cria pasta Templates com subpastas e documentos iniciais
+# Substitua PARENT_FOLDER_ID pelo ID da pasta de Briefings
+curl -X POST "http://localhost:8000/jobs/setup-templates?parent_folder_id=PARENT_FOLDER_ID"
+```
+
+Isso vai criar:
+- Pasta `Templates/` dentro da pasta informada
+- Subpastas: Discovery, Oferta, Reativacao, Followup, Feedback
+- Documento inicial em cada subpasta com a data de hoje
+
 ## Sync Manual
 
 ```bash
