@@ -1,7 +1,8 @@
 # Auditoria Técnica - Sistema Julia
 
 Data: 2025-12-29
-Sprint: 18.1 P0 (Guardrails Canary 10%)
+Sprint: 18.1 P0 (Guardrails Canary 25%)
+Última atualização: 2025-12-29 (Gates 25% implementados)
 
 ---
 
@@ -15,9 +16,9 @@ Sprint: 18.1 P0 (Guardrails Canary 10%)
 | Pipeline | **PASS** | 9/10 |
 | Observabilidade | **PASS** | 8/10 |
 | Segurança | **PASS** | 9/10 |
-| Provider (Evolution) | **RISK** | 6/10 |
+| Provider (Evolution) | **PASS** | 8/10 |
 
-**Veredito: GO com restrições para Canary 10%**
+**Veredito: GO para Canary 25%**
 
 ---
 
@@ -97,23 +98,24 @@ def test_no_direct_evolution_calls():
 |---------|--------|-------|
 | Circuit breaker | **OK** | 5 falhas → abre, 60s reset |
 | Rate limiter | **OK** | 20/hora, 100/dia |
-| Retry com backoff | **MISSING** | Falha = circuit direto |
-| Idempotência | **MISSING** | Timeout = duplicata |
+| Retry com backoff | **OK** | 4 tentativas, exponencial + jitter (Sprint 18.1 B2) |
+| Dedupe outbound | **OK** | Nível 1 - unique constraint (Sprint 18.1 C1) |
 | Send receipt | **MISSING** | Não marca "realmente enviado" |
 
-**Código atual (sem retry):**
+**Código atual (com retry - Sprint 18.1 B2):**
 ```python
-# app/services/whatsapp.py:40-63
-async def _fazer_request(self, method, url, payload, timeout):
-    async def _request():
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=payload, ...)
-            response.raise_for_status()
-            return response.json()
-    return await circuit_evolution.executar(_request)  # Direto pro circuit
+# app/services/whatsapp.py
+RETRY_CONFIG = {
+    "max_attempts": 4,
+    "base_delays": [0.5, 1.0, 2.0, 4.0],  # Exponencial
+    "jitter_factor": 0.25,  # ±25%
+    "retryable_status_codes": {408, 425, 429, 500, 502, 503, 504},
+    "non_retryable_status_codes": {400, 401, 403, 404, 422},
+}
+# Request → Retry (se transitório) → Circuit Breaker (se exaurido)
 ```
 
-**Status: RISK - Não bloqueia canary 10%, mas exigido para 25%+**
+**Status: PASS**
 
 ---
 
@@ -321,51 +323,67 @@ resultado = await enviar_resposta(
 | Circuit breaker | ✅ | `circuit_evolution.executar(_request)` |
 | Rate limiter | ✅ | `pode_enviar()`, `registrar_envio()` |
 | Timeout | ✅ | 30s default |
-| Retry com backoff | ❌ | Não implementado |
-| Idempotency key | ❌ | Não enviado |
-| Send receipt/acknowledgment | ❌ | Não implementado |
+| Retry com backoff | ✅ | Sprint 18.1 B2 - 4 tentativas exponenciais |
+| Dedupe outbound | ✅ | Sprint 18.1 C1 - unique constraint |
+| Send receipt/acknowledgment | ❌ | Não implementado (dívida técnica) |
 
-### 7.2 Fluxo de Erro Atual
+### 7.2 Fluxo de Erro Atual (Sprint 18.1)
 
 ```
-Falha HTTP → raise_for_status() → CircuitBreaker conta falha → 5 falhas = OPEN
+Request HTTP
+  → Retry (até 4x para 408/429/5xx)
+  → Backoff exponencial + jitter
+  → Circuit Breaker (apenas se retry exaurir)
+  → 5 falhas finais = OPEN
 ```
 
-**Problema:** Uma falha transitória (timeout, 503) já conta como falha.
+**Melhoria:** Erros transitórios não abrem o circuit imediatamente.
 
-### 7.3 Riscos Identificados
+### 7.3 Riscos Residuais
 
 | Risco | Probabilidade | Impacto | Mitigação |
 |-------|---------------|---------|-----------|
-| Timeout gera duplicata | Média | Alto | Implementar dedupe/outbox |
-| Circuit abre cedo demais | Baixa | Médio | Implementar retry antes |
-| Mensagem perdida sem saber | Baixa | Alto | Implementar acknowledgment |
+| Timeout gera duplicata | Baixa | Médio | ✅ Dedupe nível 1 implementado |
+| Circuit abre cedo demais | Baixa | Baixo | ✅ Retry antes do circuit |
+| Mensagem perdida sem saber | Baixa | Alto | Dívida técnica (acknowledgment) |
 
-**Status: RISK - Bloqueador para 25%+**
+**Status: PASS**
 
 ---
 
 ## 8. Resumo de Gaps e Ações
 
-### Bloqueadores para 25%
+### Gates para 25% ✅ COMPLETO (Sprint 18.1)
 
-| Gap | Esforço | Prioridade | Risco se não fizer |
-|-----|---------|------------|-------------------|
-| B1: Toggle campanhas via Slack | 1h | P0 | Incidente sem botão de emergência |
-| B2: Retry/backoff Evolution | 2h | P0 | Circuit abre cedo, falsos alarmes |
-| B3: Dedupe simples (nível 1) | 2h | P0 | Duplicatas em timeout/retry |
+| Gap | Status | Commit |
+|-----|--------|--------|
+| B1: Toggle campanhas via Slack | ✅ Implementado | `cb9b60f` |
+| B2: Retry/backoff Evolution | ✅ Implementado | `cb9b60f` |
+| C1: Dedupe simples (nível 1) | ✅ Implementado | `cb9b60f` |
 
-**Justificativa B3 em 25%:** Mesmo com guardrails, duplicata ocorre por:
-- Timeout httpx (não sabe se chegou)
-- Retry manual do operador/job
-- Reprocessamento de fila após restart
-- Flakiness Evolution (503/429/latência)
+**Detalhes de implementação:**
+
+- **B1:** Tool `toggle_campanhas` em `app/tools/slack/sistema.py`
+  - Ações: `on`, `off`, `status`
+  - Emite `business_event` para auditoria
+
+- **B2:** Retry em `app/services/whatsapp.py`
+  - 4 tentativas: [0.5s, 1s, 2s, 4s]
+  - Jitter ±25%
+  - Retryable: 408, 425, 429, 5xx
+  - Circuit só após retry exaurir
+
+- **C1:** Dedupe em `app/services/outbound_dedupe.py`
+  - Tabela `outbound_dedupe` com unique constraint
+  - Integrado em `send_outbound_message()`
+  - Fail-open (não bloqueia em erro de DB)
 
 ### Bloqueadores para 50%
 
 | Gap | Esforço | Prioridade |
 |-----|---------|------------|
-| C1: Outbox robusto (nível 2) | 4h | P0 |
+| Outbox robusto (nível 2) | 4h | P0 |
+| Dead-letter queue | 2h | P0 |
 
 ### Bloqueadores para 100%
 
@@ -387,29 +405,38 @@ Falha HTTP → raise_for_status() → CircuitBreaker conta falha → 5 falhas = 
 
 ## 9. Veredito Final
 
-### Canary 10%: **GO**
+### Canary 25%: **GO** ✅
 
 | Critério | Status |
 |----------|--------|
 | Guardrails soberanos | ✅ |
 | CI guard | ✅ |
-| Kill switch funciona | ✅ |
+| Kill switch total (pausar_julia) | ✅ |
+| Kill switch parcial (toggle_campanhas) | ✅ Sprint 18.1 B1 |
+| Retry/backoff Evolution | ✅ Sprint 18.1 B2 |
+| Dedupe outbound nível 1 | ✅ Sprint 18.1 C1 |
 | Observabilidade mínima | ✅ |
 | Sem PII em eventos/logs | ✅ |
 
 ### Restrições Operacionais
 
-1. Volume de campanhas pequeno (janelas 1-2h)
+1. Volume de campanhas moderado
 2. Monitoramento diário obrigatório
-3. Não escalar sem fechar gaps B1 e B2
+3. Não escalar para 50% sem implementar outbox robusto
+
+### Gates Concluídos
+
+| Gate | Status | Data |
+|------|--------|------|
+| 10% | ✅ GO | 2025-12-28 |
+| 25% | ✅ GO | 2025-12-29 |
 
 ### Próximos Gates
 
 | Gate | Critério |
 |------|----------|
-| 25% | Gaps B1 + B2 fechados + 24h estáveis |
-| 50% | Gap C1 fechado + 48h estáveis |
-| 100% | Playbook testado + 7 dias estáveis |
+| 50% | Outbox robusto + DLQ + 48h estáveis em 25% |
+| 100% | Playbook testado + 7 dias estáveis em 50% |
 
 ---
 
@@ -523,14 +550,18 @@ OUTBOUND_FALLBACK
 Slack: "pausa a Julia"
 → julia_status = pausado
 
-# 2. Pausar só campanhas (kill switch parcial)
-Slack: "desativa campanhas"  # Após implementar B1
+# 2. Pausar só campanhas (kill switch parcial) ✅ Sprint 18.1 B1
+Slack: "desativa campanhas"
 → feature_flags.campaigns.enabled = false
 
-# 3. Safe mode (respostas conservadoras)
+# 3. Ver status das campanhas
+Slack: "campanhas status"
+→ Mostra se ativo/inativo + safe_mode
+
+# 4. Safe mode (respostas conservadoras)
 Supabase: UPDATE feature_flags SET value = '{"enabled": true}' WHERE key = 'safe_mode'
 
-# 4. Rollback canary
+# 5. Rollback canary
 Supabase: UPDATE feature_flags SET value = '{"percentage": 0}' WHERE key = 'business_events_canary'
 ```
 
