@@ -117,9 +117,12 @@ async def obter_ou_criar_contato(
 
         updates = {"ultimo_contato": datetime.now(UTC).isoformat()}
 
-        # Atualizar nome se veio novo
+        # Atualizar nome e empresa se veio novo
         if nome:
-            updates["nome"] = nome
+            nome_separado, empresa = separar_nome_empresa(nome)
+            updates["nome"] = nome_separado
+            if empresa:
+                updates["empresa"] = empresa
 
         # Se telefone atual parece ser LID, tentar resolver
         if telefone_atual and "@lid" in jid and grupo_jid:
@@ -137,10 +140,14 @@ async def obter_ou_criar_contato(
         if telefone_real:
             telefone = telefone_real
 
+    # Separar nome e empresa
+    nome_separado, empresa = separar_nome_empresa(nome) if nome else (nome, None)
+
     # Criar novo
     novo_contato = {
         "jid": jid,
-        "nome": nome,
+        "nome": nome_separado,
+        "empresa": empresa,
         "telefone": telefone,
         "tipo": "desconhecido",
         "primeiro_contato": datetime.now(UTC).isoformat(),
@@ -150,7 +157,7 @@ async def obter_ou_criar_contato(
     result = supabase.table("contatos_grupo").insert(novo_contato).execute()
     contato_id = result.data[0]["id"]
 
-    logger.info(f"Novo contato criado: {contato_id} ({jid}) - tel: {telefone or 'não resolvido'}")
+    logger.info(f"Novo contato criado: {contato_id} - {nome_separado} ({empresa or 'sem empresa'})")
     return UUID(contato_id)
 
 
@@ -177,6 +184,62 @@ def extrair_telefone_do_jid(jid: str) -> Optional[str]:
     if not jid or "@" not in jid:
         return None
     return jid.split("@")[0]
+
+
+def separar_nome_empresa(nome_completo: str) -> tuple[str, Optional[str]]:
+    """
+    Separa nome e empresa do pushName do WhatsApp.
+
+    Padrões comuns:
+    - "Eloisa - SMPV" → ("Eloisa", "SMPV")
+    - "Time de Escalas - ACIONAMENTOS" → ("Time de Escalas", "ACIONAMENTOS")
+    - "Andressa Santos Adm Jr Quero Plantão" → ("Andressa Santos", "Quero Plantão")
+    - "João Silva" → ("João Silva", None)
+
+    Args:
+        nome_completo: Nome completo do contato (pushName)
+
+    Returns:
+        Tuple (nome, empresa) - empresa pode ser None
+    """
+    if not nome_completo:
+        return ("", None)
+
+    nome_completo = nome_completo.strip()
+
+    # Padrão 1: Separador " - "
+    if " - " in nome_completo:
+        partes = nome_completo.split(" - ", 1)
+        nome = partes[0].strip()
+        empresa = partes[1].strip() if len(partes) > 1 else None
+        return (nome, empresa)
+
+    # Padrão 2: Separador " | "
+    if " | " in nome_completo:
+        partes = nome_completo.split(" | ", 1)
+        nome = partes[0].strip()
+        empresa = partes[1].strip() if len(partes) > 1 else None
+        return (nome, empresa)
+
+    # Padrão 3: Empresas conhecidas no final
+    empresas_conhecidas = [
+        "Quero Plantão", "SMPV", "SERGES", "Medtrust", "Hapvida",
+        "Medscalle", "Medopen", "mpdoctor", "MP Doctor",
+    ]
+
+    for emp in empresas_conhecidas:
+        if nome_completo.endswith(emp) or f" {emp}" in nome_completo:
+            idx = nome_completo.lower().find(emp.lower())
+            if idx > 0:
+                nome = nome_completo[:idx].strip()
+                # Remover sufixos comuns como "Adm Jr", "Adm", etc
+                for sufixo in [" Adm Jr", " Adm", " Jr", " -"]:
+                    if nome.endswith(sufixo):
+                        nome = nome[:-len(sufixo)].strip()
+                return (nome, emp)
+
+    # Sem empresa identificada
+    return (nome_completo, None)
 
 
 async def salvar_mensagem_grupo(
