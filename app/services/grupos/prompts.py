@@ -80,14 +80,32 @@ CAMPOS A EXTRAIR:
 - data: Data no formato YYYY-MM-DD
 - hora_inicio: Horário de início HH:MM
 - hora_fim: Horário de fim HH:MM
-- valor: Valor em reais (apenas número, sem centavos)
+
+VALOR (IMPORTANTE - campos de valor flexível):
+- valor_tipo: Tipo de valor, DEVE ser um de:
+  * "fixo" - valor exato conhecido (ex: "R$ 1.800")
+  * "a_combinar" - valor não informado ou negociável (ex: "a combinar", "a tratar", sem menção de valor)
+  * "faixa" - valor em faixa (ex: "entre 1.500 e 2.000", "a partir de 1.500")
+- valor: Valor exato em reais (apenas número inteiro, sem centavos). Use APENAS se valor_tipo = "fixo"
+- valor_minimo: Valor mínimo da faixa (apenas número inteiro). Use APENAS se valor_tipo = "faixa"
+- valor_maximo: Valor máximo da faixa (apenas número inteiro). Use APENAS se valor_tipo = "faixa"
+
+REGRAS DE VALOR:
+1. Se a mensagem diz "R$ 1.800" ou "1800 reais" -> valor_tipo: "fixo", valor: 1800
+2. Se a mensagem diz "a combinar", "a tratar", "negociável" -> valor_tipo: "a_combinar", valor: null
+3. Se NÃO menciona valor algum -> valor_tipo: "a_combinar", valor: null
+4. Se a mensagem diz "entre 1.500 e 2.000" -> valor_tipo: "faixa", valor_minimo: 1500, valor_maximo: 2000
+5. Se a mensagem diz "a partir de 1.500" -> valor_tipo: "faixa", valor_minimo: 1500, valor_maximo: null
+6. Se a mensagem diz "até 2.000" -> valor_tipo: "faixa", valor_minimo: null, valor_maximo: 2000
+7. NUNCA retorne string no campo valor - apenas números inteiros ou null
+
 - periodo: Um de [Diurno, Vespertino, Noturno, Cinderela]
 - setor: Um de [Pronto atendimento, RPA, Hospital, C. Cirúrgico, SADT]
 - tipo_vaga: Um de [Cobertura, Fixo, Ambulatorial, Mensal]
 - forma_pagamento: Um de [Pessoa fisica, Pessoa jurídica, CLT, SCP]
 - observacoes: Outras informações relevantes
 
-REGRAS:
+OUTRAS REGRAS:
 1. Se a data for ANTERIOR a hoje, marque "data_valida": false
 2. Se não conseguir identificar hospital OU especialidade, não inclua a vaga
 3. "Amanhã" = {data_amanha}, "hoje" = {data_hoje}
@@ -111,7 +129,10 @@ Responda APENAS com JSON no formato:
         "data": "2024-12-28",
         "hora_inicio": "19:00",
         "hora_fim": "07:00",
+        "valor_tipo": "fixo",
         "valor": 1800,
+        "valor_minimo": null,
+        "valor_maximo": null,
         "periodo": "Noturno",
         "setor": "Pronto atendimento",
         "tipo_vaga": "Cobertura",
@@ -131,4 +152,26 @@ Responda APENAS com JSON no formato:
   ],
   "total_vagas": 1
 }}
+
+EXEMPLOS DE VALOR:
+
+Exemplo 1 - Valor fixo:
+Mensagem: "Plantão CM Hospital ABC dia 28/12 noturno R$ 1.800 PJ"
+Resposta valor: {{"valor_tipo": "fixo", "valor": 1800, "valor_minimo": null, "valor_maximo": null}}
+
+Exemplo 2 - A combinar:
+Mensagem: "Plantão CM Hospital ABC dia 28/12 noturno - valor a combinar"
+Resposta valor: {{"valor_tipo": "a_combinar", "valor": null, "valor_minimo": null, "valor_maximo": null}}
+
+Exemplo 3 - Sem menção de valor:
+Mensagem: "Plantão CM Hospital ABC dia 28/12 noturno"
+Resposta valor: {{"valor_tipo": "a_combinar", "valor": null, "valor_minimo": null, "valor_maximo": null}}
+
+Exemplo 4 - Faixa:
+Mensagem: "Plantão CM Hospital ABC dia 28/12 noturno entre 1.500 e 2.000"
+Resposta valor: {{"valor_tipo": "faixa", "valor": null, "valor_minimo": 1500, "valor_maximo": 2000}}
+
+Exemplo 5 - A partir de:
+Mensagem: "Plantão CM Hospital ABC dia 28/12 noturno a partir de 1.500"
+Resposta valor: {{"valor_tipo": "faixa", "valor": null, "valor_minimo": 1500, "valor_maximo": null}}
 """

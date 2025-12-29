@@ -194,7 +194,7 @@ class TestCamposFaltando:
         assert "hospital" in campos
         assert "especialidade" in campos
         assert "data" in campos
-        assert "valor" in campos
+        # valor não é obrigatório - "a_combinar" é válido (Sprint 19)
 
 
 class TestDadosVagaExtraida:

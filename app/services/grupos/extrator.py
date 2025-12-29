@@ -35,7 +35,11 @@ class DadosVagaExtraida:
     data: Optional[date] = None
     hora_inicio: Optional[str] = None
     hora_fim: Optional[str] = None
-    valor: Optional[int] = None
+    # Campos de valor flexível (Sprint 19)
+    valor: Optional[int] = None           # Valor exato (quando fixo)
+    valor_minimo: Optional[int] = None    # Faixa mínima
+    valor_maximo: Optional[int] = None    # Faixa máxima
+    valor_tipo: str = "a_combinar"        # 'fixo', 'a_combinar', 'faixa'
     periodo: Optional[str] = None
     setor: Optional[str] = None
     tipo_vaga: Optional[str] = None
@@ -97,6 +101,104 @@ class ResultadoExtracao:
 # S05.2 - Cliente LLM para Extração
 # =============================================================================
 
+def _parsear_valor_seguro(valor_raw) -> Optional[int]:
+    """
+    Parseia valor de forma segura, tratando strings.
+
+    Args:
+        valor_raw: Valor bruto do JSON (pode ser int, str, None)
+
+    Returns:
+        int ou None
+    """
+    if valor_raw is None:
+        return None
+
+    if isinstance(valor_raw, int):
+        return valor_raw if valor_raw > 0 else None
+
+    if isinstance(valor_raw, float):
+        return int(valor_raw) if valor_raw > 0 else None
+
+    if isinstance(valor_raw, str):
+        # Tentar extrair número da string
+        # Ex: "1.800", "1800", "R$ 1.800", "1800 reais"
+        numeros = re.sub(r'[^\d]', '', valor_raw)
+        if numeros:
+            try:
+                valor_int = int(numeros)
+                # Validar range razoável (100 a 50000)
+                if 100 <= valor_int <= 50000:
+                    return valor_int
+            except ValueError:
+                pass
+
+    return None
+
+
+def _validar_valor(
+    valor_tipo: str,
+    valor: Optional[int],
+    valor_minimo: Optional[int],
+    valor_maximo: Optional[int]
+) -> tuple:
+    """
+    Valida e corrige consistência dos campos de valor.
+
+    Returns:
+        Tupla (valor_tipo, valor, valor_minimo, valor_maximo) validados
+    """
+    # Normalizar valor_tipo
+    valor_tipo = valor_tipo.lower().strip() if valor_tipo else "a_combinar"
+
+    # Mapear variações comuns
+    if valor_tipo in ("a combinar", "a_combinar", "negociavel", "a tratar", "negociável"):
+        valor_tipo = "a_combinar"
+    elif valor_tipo in ("faixa", "range", "entre"):
+        valor_tipo = "faixa"
+    elif valor_tipo in ("fixo", "exato", "definido"):
+        valor_tipo = "fixo"
+    else:
+        # Tipo desconhecido - inferir do contexto
+        if valor and valor > 0:
+            valor_tipo = "fixo"
+        elif valor_minimo or valor_maximo:
+            valor_tipo = "faixa"
+        else:
+            valor_tipo = "a_combinar"
+
+    # Validar consistência
+    if valor_tipo == "fixo":
+        if not valor or valor <= 0:
+            # Sem valor válido - mudar para a_combinar
+            valor_tipo = "a_combinar"
+            valor = None
+        valor_minimo = None
+        valor_maximo = None
+
+    elif valor_tipo == "a_combinar":
+        # Se tem valor, inferir como fixo (compatibilidade com JSONs antigos)
+        if valor and valor > 0:
+            valor_tipo = "fixo"
+            valor_minimo = None
+            valor_maximo = None
+        else:
+            valor = None
+            valor_minimo = None
+            valor_maximo = None
+
+    elif valor_tipo == "faixa":
+        valor = None  # Faixa não tem valor exato
+        # Validar que pelo menos um limite existe
+        if not valor_minimo and not valor_maximo:
+            valor_tipo = "a_combinar"
+        # Validar ordem
+        if valor_minimo and valor_maximo and valor_minimo > valor_maximo:
+            valor_minimo, valor_maximo = valor_maximo, valor_minimo
+
+    return valor_tipo, valor, valor_minimo, valor_maximo
+
+
 def _parsear_resposta_extracao(texto: str) -> ResultadoExtracao:
     """Parseia resposta do LLM."""
     texto = texto.strip()
@@ -125,6 +227,17 @@ def _parsear_resposta_extracao(texto: str) -> ResultadoExtracao:
             except ValueError:
                 pass
 
+        # Parsear valor com validação (Sprint 19)
+        valor_tipo = dados_vaga.get("valor_tipo", "a_combinar")
+        valor = _parsear_valor_seguro(dados_vaga.get("valor"))
+        valor_minimo = _parsear_valor_seguro(dados_vaga.get("valor_minimo"))
+        valor_maximo = _parsear_valor_seguro(dados_vaga.get("valor_maximo"))
+
+        # Validar consistência
+        valor_tipo, valor, valor_minimo, valor_maximo = _validar_valor(
+            valor_tipo, valor, valor_minimo, valor_maximo
+        )
+
         vaga = VagaExtraida(
             dados=DadosVagaExtraida(
                 hospital=dados_vaga.get("hospital"),
@@ -132,7 +245,10 @@ def _parsear_resposta_extracao(texto: str) -> ResultadoExtracao:
                 data=data_obj,
                 hora_inicio=dados_vaga.get("hora_inicio"),
                 hora_fim=dados_vaga.get("hora_fim"),
-                valor=dados_vaga.get("valor"),
+                valor=valor,
+                valor_minimo=valor_minimo,
+                valor_maximo=valor_maximo,
+                valor_tipo=valor_tipo,
                 periodo=dados_vaga.get("periodo"),
                 setor=dados_vaga.get("setor"),
                 tipo_vaga=dados_vaga.get("tipo_vaga"),
@@ -150,15 +266,13 @@ def _parsear_resposta_extracao(texto: str) -> ResultadoExtracao:
             data_valida=vaga_json.get("data_valida", True),
         )
 
-        # Identificar campos faltando
+        # Identificar campos faltando (valor não é obrigatório - a_combinar é válido)
         if not vaga.dados.hospital:
             vaga.campos_faltando.append("hospital")
         if not vaga.dados.especialidade:
             vaga.campos_faltando.append("especialidade")
         if not vaga.dados.data:
             vaga.campos_faltando.append("data")
-        if not vaga.dados.valor:
-            vaga.campos_faltando.append("valor")
 
         vagas.append(vaga)
 
@@ -316,7 +430,11 @@ async def salvar_vaga_extraida(
         "data": vaga.dados.data.isoformat() if vaga.dados.data else None,
         "hora_inicio": vaga.dados.hora_inicio,
         "hora_fim": vaga.dados.hora_fim,
+        # Campos de valor flexível (Sprint 19)
         "valor": vaga.dados.valor,
+        "valor_minimo": vaga.dados.valor_minimo,
+        "valor_maximo": vaga.dados.valor_maximo,
+        "valor_tipo": vaga.dados.valor_tipo,
         "observacoes": vaga.dados.observacoes,
 
         # Confiança

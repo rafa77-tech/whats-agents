@@ -666,7 +666,7 @@ Regras invioláveis que devem ser garantidas pelo sistema. Quebrar qualquer inva
 | ID | Invariante | Verificação |
 |----|------------|-------------|
 | **I1** | Todo inbound persistido DEVE emitir `DOCTOR_INBOUND` (exatamente uma vez) | Query: inbounds sem evento correspondente |
-| **I2** | Todo outbound DEVE resultar em exatamente um de: `DOCTOR_OUTBOUND`, `OUTBOUND_BLOCKED`, `OUTBOUND_BYPASS`, ou `OUTBOUND_DEDUPED` | Query: outbounds sem desfecho |
+| **I2** | Todo outbound DEVE resultar em exatamente um de: `DOCTOR_OUTBOUND`, `OUTBOUND_BLOCKED`, `OUTBOUND_BYPASS`, ou `OUTBOUND_DEDUPED` | Query: outbounds sem desfecho (15 event_types no total) |
 | **I3** | `method=reply` EXIGE `inbound_interaction_id` + `last_inbound_at` dentro da janela (30min) | Teste: `_has_valid_inbound_proof()` |
 | **I4** | `opted_out` só pode receber outbound se: (a) `method=reply` válido, OU (b) bypass Slack COM `bypass_reason` | Guardrail R0 |
 | **I5** | Nenhum evento pode carregar texto integral/PII em `event_props` | Regra R6 em `_validate_event_integrity()` |
@@ -679,7 +679,7 @@ Regras invioláveis que devem ser garantidas pelo sistema. Quebrar qualquer inva
 | **O1** | TODO envio outbound passa por `send_outbound_message()` | CI gate: `test_architecture_guardrails.py` |
 | **O2** | TODO envio proativo respeita rate limit (20/hora, 100/dia por telefone) | `RateLimitError` em `whatsapp.py` |
 | **O3** | TODO envio proativo respeita horário comercial (08h-20h, seg-sex) | `esta_em_horario_comercial()` |
-| **O4** | Dedupe por `content_hash` dentro de janela de 1 hora | `outbound_messages` table |
+| **O4** | Dedupe por `dedupe_key` dentro de janela variável por método | `outbound_dedupe` table (unique constraint) |
 
 ### 9.3 Contratos por Método (OutboundContext)
 
@@ -692,7 +692,51 @@ Regras invioláveis que devem ser garantidas pelo sistema. Quebrar qualquer inva
 | `COMMAND` (Slack) | `actor_id` | `true` | R0-R4, bypass com `bypass_reason` |
 | `MANUAL` | `actor_id`, `bypass_reason` (se opted_out) | `true` | R0-R4 |
 
-### 9.4 Queries de Validação
+### 9.4 Formato da Dedupe Key (O4)
+
+**Arquivo:** `app/services/outbound_dedupe.py`
+
+**Fórmula:**
+```
+dedupe_key = sha256(cliente_id:method:content_id:window_bucket)[:32]
+```
+
+**Componentes:**
+| Campo | Descrição |
+|-------|-----------|
+| `cliente_id` | UUID do médico destinatário |
+| `method` | Tipo de envio (campaign, reply, followup, etc) |
+| `content_id` | `content_hash` ou `template_ref` ou "none" |
+| `window_bucket` | `YYYYMMDD` + minutos arredondados para janela |
+
+**Janelas por Método:**
+| Método | Janela | Motivo |
+|--------|--------|--------|
+| `campaign` | 60 min | Campanhas são únicas por hora |
+| `followup` | 60 min | Followups programados |
+| `reactivation` | 120 min | Reativação pode demorar |
+| `reply` | 5 min | Replies são rápidos |
+| `button` | 5 min | Ações de botão |
+| `command` | 5 min | Comandos Slack |
+| `manual` | 10 min | Envio manual |
+| _default_ | 30 min | Fallback |
+
+**Fonte de verdade:** `outbound_dedupe` table (unique constraint em `dedupe_key`)
+
+### 9.5 Eventos por Early-Exit Processor (I6)
+
+| Processor | Evento Emitido | `event_props.reason` | Observação |
+|-----------|----------------|----------------------|------------|
+| OptOutProcessor | `doctor_inbound` (persiste) + atualiza `doctor_state` | `opt_out_detected` | Não gera outbound |
+| BotDetectionProcessor | Nenhum evento outbound | `bot_suspected` | Não gera outbound |
+| MediaProcessor | `doctor_inbound` (persiste) | `media_received` | Pode ou não gerar outbound |
+| LongMessageProcessor | `doctor_inbound` (persiste) | `long_message` | Pode ou não gerar outbound |
+| HandoffTriggerProcessor | `handoff_created` | `trigger=<tipo>` | Muda `controlled_by` |
+| HumanControlProcessor | Nenhum evento outbound | `controlled_by_human` | Já está sob humano |
+
+**Regra:** Mesmo que early-exit, `doctor_inbound` SEMPRE é emitido para mensagens recebidas.
+
+### 9.6 Queries de Validação
 
 ```sql
 -- I1: Inbounds sem evento DOCTOR_INBOUND
@@ -708,7 +752,7 @@ WHERE i.tipo = 'entrada'
 SELECT i.id, i.created_at
 FROM interacoes i
 LEFT JOIN business_events be ON be.interaction_id = i.id
-  AND be.event_type IN ('doctor_outbound', 'outbound_blocked', 'outbound_bypass')
+  AND be.event_type IN ('doctor_outbound', 'outbound_blocked', 'outbound_bypass', 'outbound_deduped')
 WHERE i.tipo = 'saida'
   AND i.created_at >= NOW() - INTERVAL '24 hours'
   AND be.id IS NULL;
@@ -843,13 +887,28 @@ Ordem de verificação em check_outbound_guardrails():
 | Rate limit | **Por telefone** | Limite individual |
 | Semáforo pipeline | **Por instância** | In-memory, não compartilhado |
 
-### 11.5 Pontos de Leitura
+### 11.5 Pontos de Leitura (Guardrails)
 
 | Flag | Lido em | Arquivo |
 |------|---------|---------|
 | `safe_mode` | `check_outbound_guardrails()` | `guardrails/check.py:407` |
 | `campaigns` | `check_outbound_guardrails()` | `guardrails/check.py:394` |
 | `policy_engine` | `decidir_proxima_acao()` | `policy/decide.py` |
+
+### 11.6 Leitura de Flags nos Jobs
+
+| Flag | Job | Efeito se desabilitado |
+|------|-----|------------------------|
+| `campaigns.enabled` | `processar_campanhas_agendadas()` | Não cria novos envios |
+| `safe_mode` | `processar_followups()` | Não gera followups |
+| `safe_mode` | `fila_worker` | Guardrail bloqueia na saída |
+
+**Camada dupla de proteção:**
+1. **Job layer:** Verifica flag antes de criar/enfileirar
+2. **Guardrail layer:** Bloqueia mesmo se job criou (defesa em profundidade)
+
+Se job criar envio com flag desabilitada posteriormente, guardrail ainda bloqueia.
+Isso gera "custo de pipeline" (processamento sem envio), mas garante segurança.
 
 ---
 

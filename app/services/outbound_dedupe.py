@@ -7,13 +7,16 @@ Nível 1 (simples):
 - Gera dedupe_key determinística
 - Verifica no banco antes de enviar
 - Marca como sent/failed após envio
+- Emite OUTBOUND_DEDUPED para auditoria
 """
+import asyncio
 import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Optional, Tuple
 
 from app.services.supabase import supabase
+from app.services.business_events import emit_event, BusinessEvent, EventType, EventSource
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +140,22 @@ async def verificar_e_reservar(
                 await _registrar_deduped(dedupe_key)
             except Exception:
                 pass
+
+            # Emitir business_event para auditoria (Sprint 18.1)
+            asyncio.create_task(
+                emit_event(BusinessEvent(
+                    event_type=EventType.OUTBOUND_DEDUPED,
+                    source=EventSource.BACKEND,
+                    cliente_id=cliente_id,
+                    conversation_id=conversation_id,
+                    dedupe_key=f"deduped:{cliente_id}:{dedupe_key[:16]}",
+                    event_props={
+                        "dedupe_key": dedupe_key,
+                        "method": method,
+                        "reason": "duplicate_within_window",
+                    },
+                ))
+            )
 
             return False, dedupe_key, "duplicata"
 
