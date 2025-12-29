@@ -259,6 +259,30 @@ class PipelineGrupos:
         if vaga.dados and vaga.dados.data:
             data_extraida = vaga.dados.data.isoformat() if hasattr(vaga.dados.data, 'isoformat') else str(vaga.dados.data)
 
+        # Extrair valores com validação defensiva (Sprint 19 - fix)
+        valor = vaga.dados.valor if vaga.dados else None
+        valor_minimo = vaga.dados.valor_minimo if vaga.dados else None
+        valor_maximo = vaga.dados.valor_maximo if vaga.dados else None
+        valor_tipo = vaga.dados.valor_tipo if vaga.dados else "a_combinar"
+
+        # Validação defensiva antes do INSERT para evitar erro do trigger
+        # Se valor_tipo='fixo' mas não tem valor válido, mudar para 'a_combinar'
+        if valor_tipo == "fixo" and (valor is None or valor <= 0):
+            logger.warning(
+                f"Corrigindo valor_tipo: fixo->a_combinar (valor={valor}) "
+                f"para mensagem {mensagem_id}"
+            )
+            valor_tipo = "a_combinar"
+            valor = None
+
+        # Se valor_tipo='faixa' mas não tem limites, mudar para 'a_combinar'
+        if valor_tipo == "faixa" and valor_minimo is None and valor_maximo is None:
+            logger.warning(
+                f"Corrigindo valor_tipo: faixa->a_combinar (sem limites) "
+                f"para mensagem {mensagem_id}"
+            )
+            valor_tipo = "a_combinar"
+
         dados = {
             "mensagem_id": str(mensagem_id),
             "grupo_origem_id": msg_data.get("grupo_id"),
@@ -268,10 +292,10 @@ class PipelineGrupos:
             "hora_inicio": vaga.dados.hora_inicio if vaga.dados else None,
             "hora_fim": vaga.dados.hora_fim if vaga.dados else None,
             # Campos de valor flexível (Sprint 19)
-            "valor": vaga.dados.valor if vaga.dados else None,
-            "valor_minimo": vaga.dados.valor_minimo if vaga.dados else None,
-            "valor_maximo": vaga.dados.valor_maximo if vaga.dados else None,
-            "valor_tipo": vaga.dados.valor_tipo if vaga.dados else "a_combinar",
+            "valor": valor,
+            "valor_minimo": valor_minimo,
+            "valor_maximo": valor_maximo,
+            "valor_tipo": valor_tipo,
             "observacoes_raw": vaga.dados.observacoes if vaga.dados else None,
             "confianca_geral": vaga.confianca.media_ponderada() if vaga.confianca else None,
             "status": "extraido",
