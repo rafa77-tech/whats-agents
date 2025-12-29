@@ -38,6 +38,14 @@ class EventType(Enum):
     OUTBOUND_FALLBACK = "outbound_fallback"  # Fallback legado usado (Sprint 18.1)
     OUTBOUND_DEDUPED = "outbound_deduped"    # Envio bloqueado por deduplicação (Sprint 18.1)
 
+    # Fora do horário (Sprint 22)
+    OUT_OF_HOURS_ACK_SENT = "out_of_hours_ack_sent"    # ACK enviado fora do horário
+    OUT_OF_HOURS_ACK_SKIPPED = "out_of_hours_ack_skipped"  # ACK pulado (ceiling ou humano)
+
+    # Atribuição de campanha (Sprint 23 E02)
+    CAMPAIGN_TOUCH_LINKED = "campaign_touch_linked"      # Touch de campanha registrado
+    CAMPAIGN_REPLY_ATTRIBUTED = "campaign_reply_attributed"  # Reply atribuído a campanha
+
 
 class EventSource(Enum):
     """Origens validas de eventos."""
@@ -47,6 +55,8 @@ class EventSource(Enum):
     DB = "db"                # Trigger de banco
     HEURISTIC = "heuristic"  # Detector heuristico
     OPS = "ops"              # Manual por operacoes
+    SYSTEM = "system"        # Sistema automatico (jobs, atribuicao)
+    SLACK = "slack"          # Comando via Slack
 
 
 @dataclass

@@ -225,6 +225,16 @@ async def send_outbound_message(
             key = response.get("key", {})
             provider_message_id = key.get("id") if isinstance(key, dict) else None
 
+        # Sprint 23 E02: Registrar touch de campanha para atribuição
+        if ctx.campaign_id and ctx.conversation_id:
+            from app.services.campaign_attribution import registrar_campaign_touch
+            await registrar_campaign_touch(
+                conversation_id=ctx.conversation_id,
+                campaign_id=int(ctx.campaign_id),
+                touch_type=ctx.method.value if ctx.method else "campaign",
+                cliente_id=ctx.cliente_id,
+            )
+
         return OutboundResult(
             success=True,
             outcome=SendOutcome.BYPASS if guardrail_result.human_bypass else SendOutcome.SENT,

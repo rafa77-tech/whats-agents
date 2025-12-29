@@ -2,13 +2,14 @@
 Pos-processadores do pipeline.
 
 Sprint 16: Integração com policy_events via update_effect_interaction_id.
+Sprint 22: Delay inteligente por contexto via delay_engine.
 """
 import asyncio
 import logging
 import time
 
 from .base import PostProcessor, ProcessorContext, ProcessorResult
-from app.services.timing import calcular_delay_resposta
+from app.services.delay_engine import get_delay_seconds
 from app.services.agente import enviar_resposta
 from app.services.interacao import salvar_interacao
 from app.services.metricas import metricas_service
@@ -73,6 +74,11 @@ class TimingProcessor(PostProcessor):
     """
     Aplica delay humanizado antes de enviar.
 
+    Sprint 22: Usa delay_engine para delay inteligente por contexto.
+    - reply_direta/aceite: 0-3s (urgente)
+    - oferta/followup: 15-120s (proativo)
+    - campanha: 60-180s (frio)
+
     Prioridade: 10 (roda primeiro)
     """
     name = "timing"
@@ -86,14 +92,21 @@ class TimingProcessor(PostProcessor):
         if not response:
             return ProcessorResult(success=True, response=response)
 
-        # Calcular delay
-        delay = calcular_delay_resposta(context.mensagem_texto)
+        # Sprint 22: Calcular delay via delay_engine
         tempo_inicio = context.metadata.get("tempo_inicio", time.time())
         tempo_processamento = time.time() - tempo_inicio
-        delay_restante = max(0, delay - tempo_processamento)
+
+        # Usar novo delay engine
+        delay = await get_delay_seconds(
+            mensagem=context.mensagem_texto or "",
+            outbound_ctx=context.metadata.get("outbound_ctx"),
+            tempo_processamento_s=tempo_processamento,
+        )
+
+        delay_restante = max(0, delay)
 
         logger.debug(
-            f"Delay: {delay:.1f}s, processamento: {tempo_processamento:.1f}s, "
+            f"Delay inteligente: {delay:.1f}s, processamento: {tempo_processamento:.1f}s, "
             f"restante: {delay_restante:.1f}s"
         )
 
@@ -191,10 +204,32 @@ class SendMessageProcessor(PostProcessor):
 
         logger.info(f"Mensagem enviada para {context.telefone[:8]}...")
 
+        # Sprint 22: Marcar ACK como enviado se for mensagem fora do horário
+        if context.metadata.get("fora_horario") and context.metadata.get("registro_id"):
+            await self._marcar_ack_fora_horario(context)
+
         # Sprint 17 - E04: Emitir doctor_outbound
         await self._emitir_outbound_event(context, response)
 
         return ProcessorResult(success=True, response=response)
+
+    async def _marcar_ack_fora_horario(self, context: ProcessorContext) -> None:
+        """Marca ACK como enviado no registro de fora do horário."""
+        from app.services.fora_horario import marcar_ack_enviado
+
+        registro_id = context.metadata.get("registro_id")
+        mensagem_id = context.metadata.get("sent_message_id", "")
+        template_tipo = context.metadata.get("ack_template", "generico")
+
+        try:
+            await marcar_ack_enviado(
+                registro_id=registro_id,
+                mensagem_id=mensagem_id,
+                template_tipo=template_tipo
+            )
+            logger.debug(f"ACK fora do horário marcado como enviado: {registro_id}")
+        except Exception as e:
+            logger.warning(f"Erro ao marcar ACK fora do horário (não crítico): {e}")
 
     async def _emitir_outbound_event(
         self,
@@ -251,8 +286,9 @@ class SaveInteractionProcessor(PostProcessor):
     ) -> ProcessorResult:
         try:
             # Salvar interacao de entrada (se ainda nao salvou)
+            interacao_entrada = None
             if not context.metadata.get("entrada_salva"):
-                await salvar_interacao(
+                interacao_entrada = await salvar_interacao(
                     conversa_id=context.conversa["id"],
                     cliente_id=context.medico["id"],
                     tipo="entrada",
@@ -261,6 +297,14 @@ class SaveInteractionProcessor(PostProcessor):
                     message_id=context.message_id
                 )
                 context.metadata["entrada_salva"] = True
+
+                # Sprint 23 E02: Atribuir reply a campanha
+                if interacao_entrada and context.conversa:
+                    await self._atribuir_reply_campanha(
+                        interaction_id=interacao_entrada.get("id"),
+                        conversation_id=context.conversa["id"],
+                        cliente_id=context.medico["id"],
+                    )
 
             # Salvar interacao de saida (se enviou)
             if response and context.metadata.get("message_sent"):
@@ -292,6 +336,34 @@ class SaveInteractionProcessor(PostProcessor):
             # Nao para o pipeline por isso
 
         return ProcessorResult(success=True, response=response)
+
+    async def _atribuir_reply_campanha(
+        self,
+        interaction_id: int,
+        conversation_id: str,
+        cliente_id: str,
+    ) -> None:
+        """
+        Sprint 23 E02: Atribui reply a campanha que o originou.
+
+        Chamado após salvar interação de entrada (inbound).
+        """
+        try:
+            from app.services.campaign_attribution import atribuir_reply_a_campanha
+
+            result = await atribuir_reply_a_campanha(
+                interaction_id=interaction_id,
+                conversation_id=conversation_id,
+                cliente_id=cliente_id,
+            )
+
+            if result.attributed_campaign_id:
+                logger.debug(
+                    f"Reply {interaction_id} atribuido a campanha {result.attributed_campaign_id}"
+                )
+        except Exception as e:
+            # Erro na atribuicao nao deve parar o pipeline
+            logger.warning(f"Erro ao atribuir reply a campanha (nao critico): {e}")
 
 
 class ChatwootResponseProcessor(PostProcessor):

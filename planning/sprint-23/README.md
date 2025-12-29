@@ -57,7 +57,7 @@ Isso gera **funil por campanha** e permite comparar performance entre tipos.
 | Epico | Titulo | Prioridade | Complexidade | Status |
 |-------|--------|------------|--------------|--------|
 | E01 | Outcome no Send | P0 | Media | ✅ Completo |
-| E02 | Atribuicao First/Last Touch | P0 | Media | 📋 Pendente |
+| E02 | Atribuicao First/Last Touch | P0 | Media | ✅ Completo |
 | E03 | Unificacao de Envios | P1 | Media | 📋 Pendente |
 | E04 | Status Deduped Explicito | P1 | Baixa | ✅ Completo |
 | E05 | Cooldown por Campanha (Guardrail) | P1 | Media | 📋 Pendente |
@@ -222,22 +222,22 @@ ENTAO:
 
 ### Tarefas
 
-- [ ] T02.1: Migracao - adicionar colunas first/last touch em conversations
-- [ ] T02.2: Migracao - adicionar attributed_campaign_id em interacoes
-- [ ] T02.3: Criar servico `CampaignAttributionService`
-- [ ] T02.4: Integrar no pos-processador de outbound (quando SENT)
-- [ ] T02.5: Integrar no pipeline de inbound (pos-LoadEntities)
-- [ ] T02.6: Emitir eventos CAMPAIGN_TOUCH_LINKED e CAMPAIGN_REPLY_ATTRIBUTED
-- [ ] T02.7: Testes - validar invariantes C2 e C3
+- [x] T02.1: Migracao - adicionar colunas first/last touch em conversations ✅
+- [x] T02.2: Migracao - adicionar attributed_campaign_id em interacoes ✅
+- [x] T02.3: Criar servico `CampaignAttributionService` ✅
+- [x] T02.4: Integrar no pos-processador de outbound (quando SENT) ✅
+- [x] T02.5: Integrar no pipeline de inbound (pos-LoadEntities) ✅
+- [x] T02.6: Emitir eventos CAMPAIGN_TOUCH_LINKED e CAMPAIGN_REPLY_ATTRIBUTED ✅
+- [x] T02.7: Testes - validar invariantes C2 e C3 ✅ (13 testes)
 
 ### Criterios de Aceite
 
-- [ ] Conversa nova apos campanha tem `first_touch_*` e `last_touch_*` preenchidos
-- [ ] Reativacao atualiza `last_touch_*` mas mantem `first_touch_*`
-- [ ] Reply dentro de 7 dias tem `attributed_campaign_id` na interacao
-- [ ] Reply organica (sem envio previo) tem `attributed_*` NULL
-- [ ] Eventos emitidos permitem reconstruir trilha completa
-- [ ] Janela de atribuicao configuravel (default 7 dias)
+- [x] Conversa nova apos campanha tem `first_touch_*` e `last_touch_*` preenchidos
+- [x] Reativacao atualiza `last_touch_*` mas mantem `first_touch_*`
+- [x] Reply dentro de 7 dias tem `attributed_campaign_id` na interacao
+- [x] Reply organica (sem envio previo) tem `attributed_*` NULL
+- [x] Eventos emitidos permitem reconstruir trilha completa
+- [x] Janela de atribuicao configuravel (default 7 dias)
 
 ---
 
