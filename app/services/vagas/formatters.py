@@ -41,10 +41,49 @@ def formatar_para_mensagem(vaga: dict) -> str:
         partes.append(periodo.lower())
     if setor:
         partes.append(setor)
-    if valor:
-        partes.append(f"R$ {valor:,.0f}".replace(",", "."))
+
+    # Formatar valor baseado no tipo (Sprint 19)
+    valor_str = formatar_valor_para_mensagem(vaga)
+    if valor_str:
+        partes.append(valor_str)
 
     return ", ".join(partes)
+
+
+def formatar_valor_para_mensagem(vaga: dict) -> str:
+    """
+    Formata valor da vaga para mensagem natural.
+
+    Args:
+        vaga: Dados da vaga
+
+    Returns:
+        String formatada ou vazio
+    """
+    valor_tipo = vaga.get("valor_tipo", "fixo")
+    valor = vaga.get("valor")
+    valor_minimo = vaga.get("valor_minimo")
+    valor_maximo = vaga.get("valor_maximo")
+
+    if valor_tipo == "fixo" and valor:
+        return f"R$ {valor:,.0f}".replace(",", ".")
+
+    elif valor_tipo == "faixa":
+        if valor_minimo and valor_maximo:
+            return f"R$ {valor_minimo:,.0f} a {valor_maximo:,.0f}".replace(",", ".")
+        elif valor_minimo:
+            return f"a partir de R$ {valor_minimo:,.0f}".replace(",", ".")
+        elif valor_maximo:
+            return f"ate R$ {valor_maximo:,.0f}".replace(",", ".")
+
+    elif valor_tipo == "a_combinar":
+        return "valor a combinar"
+
+    # Fallback: valor sem tipo definido
+    if valor:
+        return f"R$ {valor:,.0f}".replace(",", ".")
+
+    return ""
 
 
 def formatar_para_contexto(vagas: list[dict], especialidade: str = None) -> str:
@@ -71,13 +110,53 @@ def formatar_para_contexto(vagas: list[dict], especialidade: str = None) -> str:
         periodo = v.get("periodos", {})
         setor = v.get("setores", {})
 
+        # Formatar valor baseado no tipo (Sprint 19)
+        valor_display = _formatar_valor_contexto(v)
+
         texto += f"""**Vaga {i}:**
 - Hospital: {hospital.get('nome', 'N/A')} ({hospital.get('cidade', 'N/A')})
 - Data: {v.get('data', 'N/A')}
 - Período: {periodo.get('nome', 'N/A')} ({periodo.get('hora_inicio', '')}-{periodo.get('hora_fim', '')})
 - Setor: {setor.get('nome', 'N/A')}
-- Valor: R$ {v.get('valor', 'N/A')}
+- Valor: {valor_display}
 - ID: {v.get('id', 'N/A')}
 """
 
     return texto
+
+
+def _formatar_valor_contexto(vaga: dict) -> str:
+    """
+    Formata valor para contexto do LLM.
+
+    Args:
+        vaga: Dados da vaga
+
+    Returns:
+        String formatada para contexto
+    """
+    valor_tipo = vaga.get("valor_tipo", "fixo")
+    valor = vaga.get("valor")
+    valor_minimo = vaga.get("valor_minimo")
+    valor_maximo = vaga.get("valor_maximo")
+
+    if valor_tipo == "fixo" and valor:
+        return f"R$ {valor} (fixo)"
+
+    elif valor_tipo == "faixa":
+        if valor_minimo and valor_maximo:
+            return f"R$ {valor_minimo} a R$ {valor_maximo} (faixa)"
+        elif valor_minimo:
+            return f"A partir de R$ {valor_minimo}"
+        elif valor_maximo:
+            return f"Ate R$ {valor_maximo}"
+        return "Faixa nao definida"
+
+    elif valor_tipo == "a_combinar":
+        return "A COMBINAR - informar medico que valor sera negociado"
+
+    # Fallback
+    if valor:
+        return f"R$ {valor}"
+
+    return "N/A"

@@ -317,7 +317,12 @@ async def handle_buscar_vagas(
                 "cidade": v.get("hospitais", {}).get("cidade"),
                 "data": v.get("data"),
                 "periodo": v.get("periodos", {}).get("nome"),
+                # Campos de valor expandidos (Sprint 19)
                 "valor": v.get("valor"),
+                "valor_minimo": v.get("valor_minimo"),
+                "valor_maximo": v.get("valor_maximo"),
+                "valor_tipo": v.get("valor_tipo", "fixo"),
+                "valor_display": _formatar_valor_display(v),
                 "setor": v.get("setores", {}).get("nome"),
                 "especialidade": v.get("especialidades", {}).get("nome") or especialidade_nome,
             })
@@ -329,7 +334,9 @@ async def handle_buscar_vagas(
             f"Estas vagas sao de {especialidade_nome}. "
             "Apresente as vagas de forma natural, uma por vez. "
             "SEMPRE mencione a DATA do plantao (dia/mes) pois sera usada para reservar. "
-            "Quando o medico aceitar, use a tool reservar_plantao com a DATA no formato YYYY-MM-DD."
+            "Quando o medico aceitar, use a tool reservar_plantao com a DATA no formato YYYY-MM-DD. "
+            "IMPORTANTE: Para vagas 'a combinar', informe naturalmente que o valor sera negociado. "
+            "Nao invente valores - use apenas o que esta nos dados da vaga."
         )
 
         # Alerta se especialidade diferente da cadastrada
@@ -361,6 +368,74 @@ async def handle_buscar_vagas(
             "vagas": [],
             "mensagem_sugerida": "Tive um probleminha aqui, me da um minuto que ja te mostro as vagas"
         }
+
+
+def _formatar_valor_display(vaga: dict) -> str:
+    """
+    Formata valor para exibicao na resposta da tool.
+
+    Args:
+        vaga: Dados da vaga
+
+    Returns:
+        String formatada para exibicao
+    """
+    valor_tipo = vaga.get("valor_tipo", "fixo")
+    valor = vaga.get("valor")
+    valor_minimo = vaga.get("valor_minimo")
+    valor_maximo = vaga.get("valor_maximo")
+
+    if valor_tipo == "fixo" and valor:
+        return f"R$ {valor:,.0f}".replace(",", ".")
+
+    elif valor_tipo == "faixa":
+        if valor_minimo and valor_maximo:
+            return f"R$ {valor_minimo:,.0f} a R$ {valor_maximo:,.0f}".replace(",", ".")
+        elif valor_minimo:
+            return f"a partir de R$ {valor_minimo:,.0f}".replace(",", ".")
+        elif valor_maximo:
+            return f"ate R$ {valor_maximo:,.0f}".replace(",", ".")
+
+    elif valor_tipo == "a_combinar":
+        return "a combinar"
+
+    if valor:
+        return f"R$ {valor:,.0f}".replace(",", ".")
+
+    return "nao informado"
+
+
+def _construir_instrucao_confirmacao(vaga: dict, hospital_data: dict) -> str:
+    """
+    Constroi instrucao de confirmacao baseada no tipo de valor.
+
+    Args:
+        vaga: Dados da vaga
+        hospital_data: Dados do hospital
+
+    Returns:
+        Instrucao para o LLM
+    """
+    valor_tipo = vaga.get("valor_tipo", "fixo")
+    endereco = hospital_data.get("endereco_formatado") or "endereco nao disponivel"
+
+    instrucao = "Confirme a reserva mencionando o hospital, data e periodo. "
+
+    if valor_tipo == "fixo":
+        valor = vaga.get("valor")
+        if valor:
+            instrucao += f"Mencione o valor de R$ {valor}. "
+    elif valor_tipo == "faixa":
+        instrucao += "Mencione que o valor sera dentro da faixa acordada. "
+    elif valor_tipo == "a_combinar":
+        instrucao += (
+            "Informe que o valor sera combinado diretamente com o hospital/gestor. "
+            "Pergunte se o medico tem alguma expectativa de valor para repassar. "
+        )
+
+    instrucao += f"Se o medico perguntar o endereco, use: {endereco}"
+
+    return instrucao
 
 
 def _filtrar_por_periodo(vagas: list[dict], periodo_desejado: str) -> list[dict]:
@@ -503,7 +578,10 @@ async def _buscar_vaga_por_data(data: str, especialidade_id: str) -> dict | None
 
         if response.data:
             vaga = response.data[0]
-            logger.info(f"_buscar_vaga_por_data: vaga encontrada id={vaga.get('id')}")
+            logger.info(
+                f"_buscar_vaga_por_data: vaga encontrada id={vaga.get('id')}, "
+                f"valor_tipo={vaga.get('valor_tipo')}"
+            )
             return vaga
 
         logger.warning(f"_buscar_vaga_por_data: nenhuma vaga encontrada para data={data}, especialidade_id={especialidade_id}")
@@ -617,13 +695,15 @@ async def handle_reservar_plantao(
                 "cidade": hospital_data.get("cidade"),
                 "data": vaga_atualizada.get("data"),
                 "periodo": vaga.get("periodos", {}).get("nome"),
+                # Campos de valor expandidos (Sprint 19)
                 "valor": vaga.get("valor"),
+                "valor_minimo": vaga.get("valor_minimo"),
+                "valor_maximo": vaga.get("valor_maximo"),
+                "valor_tipo": vaga.get("valor_tipo", "fixo"),
+                "valor_display": _formatar_valor_display(vaga),
                 "status": vaga_atualizada.get("status")
             },
-            "instrucao": (
-                "Confirme a reserva mencionando o hospital, data, periodo e valor. "
-                "Se o medico perguntar o endereco, use: " + (hospital_data.get("endereco_formatado") or "endereco nao disponivel")
-            )
+            "instrucao": _construir_instrucao_confirmacao(vaga, hospital_data)
         }
 
     except ValueError as e:

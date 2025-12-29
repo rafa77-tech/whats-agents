@@ -122,14 +122,18 @@ class TestObterOuCriarContato:
 
     @pytest.mark.asyncio
     async def test_contato_existente_sem_nome(self, mock_supabase, contato_id):
-        """Não deve atualizar se nome não for fornecido."""
+        """Deve atualizar ultimo_contato mas não nome se não fornecido."""
         mock_supabase.execute.return_value.data = [{"id": str(contato_id)}]
 
         result = await obter_ou_criar_contato("5511999@s.whatsapp.net")
 
         assert result == contato_id
-        # Update não deve ter sido chamado
-        mock_supabase.update.assert_not_called()
+        # Update deve ter sido chamado (para ultimo_contato)
+        mock_supabase.update.assert_called_once()
+        # Mas nome não deve estar no update
+        call_args = mock_supabase.update.call_args[0][0]
+        assert "nome" not in call_args
+        assert "ultimo_contato" in call_args
 
 
 class TestSalvarMensagemGrupo:
