@@ -2,12 +2,14 @@
 Tool de processamento de briefings para o agente Slack.
 
 Sprint 11 - Briefing Conversacional
+Sprint 23 E06 - Sync imediato via Slack
 
 Permite que o gestor peça para Julia ler e analisar
-um briefing do Google Docs.
+um briefing do Google Docs, ou sincronizar imediatamente.
 """
 import logging
-from typing import Any
+from datetime import datetime, timezone, timedelta
+from typing import Any, Optional
 
 from app.services.google_docs import (
     listar_documentos,
@@ -15,8 +17,13 @@ from app.services.google_docs import (
     ler_documento,
     DocInfo,
 )
+from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
+
+# Rate limit para sync manual (5 minutos)
+SYNC_RATE_LIMIT_MINUTES = 5
+_ultimo_sync_manual: Optional[datetime] = None
 
 
 # =============================================================================
@@ -244,3 +251,192 @@ async def _iniciar_analise_briefing(doc_info: DocInfo, channel_id: str = "", use
             "error": str(e),
             "mensagem": f"Ops, tive um problema ao analisar o briefing: {e}"
         }
+
+
+# =============================================================================
+# TOOL: SINCRONIZAR BRIEFING (Sprint 23 E06)
+# =============================================================================
+
+TOOL_SINCRONIZAR_BRIEFING = {
+    "name": "sincronizar_briefing",
+    "description": """
+Forca sincronizacao imediata do briefing do Google Docs.
+
+Use quando o gestor pedir para:
+- Sincronizar: "sync briefing", "sincroniza o briefing"
+- Atualizar: "atualiza briefing", "atualiza as diretrizes"
+- Puxar: "puxa briefing", "recarrega briefing"
+- Refresh: "refresh briefing", "recarrega diretrizes"
+
+Rate limit: 1 sync a cada 5 minutos para evitar spam.
+""".strip(),
+    "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+    }
+}
+
+
+async def handle_sincronizar_briefing(params: dict, user_id: str = "") -> dict[str, Any]:
+    """
+    Handler para sincronizacao imediata de briefing.
+
+    Sprint 23 E06 - Permite sync manual via Slack com feedback rico.
+
+    Features:
+    - Rate limit: 1 sync / 5 min
+    - Feedback com hash antes/depois
+    - Evento BRIEFING_SYNC_TRIGGERED
+
+    Args:
+        params: Parametros da tool (nenhum obrigatorio)
+        user_id: ID do usuario Slack
+
+    Returns:
+        dict com resultado da sincronizacao
+    """
+    global _ultimo_sync_manual
+
+    now = datetime.now(timezone.utc)
+
+    # 1. Verificar rate limit
+    if _ultimo_sync_manual:
+        tempo_desde = (now - _ultimo_sync_manual).total_seconds() / 60
+        if tempo_desde < SYNC_RATE_LIMIT_MINUTES:
+            minutos_restantes = SYNC_RATE_LIMIT_MINUTES - tempo_desde
+            return {
+                "success": False,
+                "rate_limited": True,
+                "minutos_restantes": round(minutos_restantes, 1),
+                "mensagem": (
+                    f"Calma! Ultimo sync foi ha {round(tempo_desde, 1)} minutos. "
+                    f"Aguarde mais {round(minutos_restantes, 1)} minutos."
+                )
+            }
+
+    # 2. Buscar hash atual antes do sync
+    hash_antes = await _buscar_hash_atual()
+
+    # 3. Executar sincronizacao
+    try:
+        from app.services.briefing import sincronizar_briefing
+
+        resultado = await sincronizar_briefing()
+
+        if not resultado.get("success"):
+            return {
+                "success": False,
+                "error": resultado.get("error"),
+                "mensagem": f"Erro ao sincronizar: {resultado.get('error')}"
+            }
+
+        # 4. Atualizar rate limit
+        _ultimo_sync_manual = now
+
+        # 5. Emitir evento de auditoria
+        hash_depois = resultado.get("hash", "")
+        atualizado = resultado.get("changed", False)
+
+        await _emitir_evento_sync(
+            user_id=user_id,
+            hash_antes=hash_antes,
+            hash_depois=hash_depois,
+            atualizado=atualizado,
+            secoes=resultado.get("secoes_atualizadas", [])
+        )
+
+        # 6. Formatar resposta
+        if atualizado:
+            secoes = resultado.get("secoes_atualizadas", [])
+            return {
+                "success": True,
+                "atualizado": True,
+                "titulo": resultado.get("titulo", "N/A"),
+                "hash_antes": hash_antes[:8] if hash_antes else "N/A",
+                "hash_depois": hash_depois[:8] if hash_depois else "N/A",
+                "secoes_atualizadas": secoes,
+                "avisos": resultado.get("avisos", []),
+                "mensagem": (
+                    f"Briefing sincronizado!\n\n"
+                    f"*Documento:* {resultado.get('titulo', 'N/A')}\n"
+                    f"*Secoes atualizadas:* {', '.join(secoes) if secoes else 'todas'}\n"
+                    f"*Hash:* `{hash_antes[:8] if hash_antes else 'N/A'}` → `{hash_depois[:8] if hash_depois else 'N/A'}`\n"
+                    f"*Timestamp:* {now.strftime('%H:%M:%S')}"
+                )
+            }
+        else:
+            return {
+                "success": True,
+                "atualizado": False,
+                "hash_atual": hash_depois[:8] if hash_depois else hash_antes[:8] if hash_antes else "N/A",
+                "mensagem": (
+                    f"Briefing ja estava atualizado (sem mudancas detectadas)\n"
+                    f"*Hash atual:* `{hash_depois[:8] if hash_depois else hash_antes[:8] if hash_antes else 'N/A'}`"
+                )
+            }
+
+    except Exception as e:
+        logger.error(f"Erro ao sincronizar briefing: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "mensagem": f"Erro ao sincronizar briefing: {e}"
+        }
+
+
+async def _buscar_hash_atual() -> Optional[str]:
+    """Busca hash do ultimo briefing sincronizado."""
+    try:
+        response = (
+            supabase.table("briefing_sync_log")
+            .select("doc_hash")
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+        if response.data:
+            return response.data[0].get("doc_hash")
+        return None
+
+    except Exception as e:
+        logger.warning(f"Erro ao buscar hash atual: {e}")
+        return None
+
+
+async def _emitir_evento_sync(
+    user_id: str,
+    hash_antes: Optional[str],
+    hash_depois: str,
+    atualizado: bool,
+    secoes: list
+):
+    """Emite evento BRIEFING_SYNC_TRIGGERED."""
+    try:
+        from app.services.business_events import emit_event
+        from app.services.business_events.types import (
+            BusinessEvent,
+            EventType,
+            EventSource,
+        )
+
+        await emit_event(BusinessEvent(
+            event_type=EventType.BRIEFING_SYNC_TRIGGERED,
+            source=EventSource.SLACK,
+            event_props={
+                "actor_id": user_id,
+                "hash_antes": hash_antes,
+                "hash_depois": hash_depois,
+                "atualizado": atualizado,
+                "secoes_atualizadas": secoes,
+            }
+        ))
+
+        logger.info(
+            f"Evento BRIEFING_SYNC_TRIGGERED emitido: "
+            f"user={user_id}, atualizado={atualizado}"
+        )
+
+    except Exception as e:
+        logger.error(f"Erro ao emitir evento de sync: {e}")

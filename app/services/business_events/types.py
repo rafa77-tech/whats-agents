@@ -46,6 +46,9 @@ class EventType(Enum):
     CAMPAIGN_TOUCH_LINKED = "campaign_touch_linked"      # Touch de campanha registrado
     CAMPAIGN_REPLY_ATTRIBUTED = "campaign_reply_attributed"  # Reply atribuído a campanha
 
+    # Briefing (Sprint 23 E06)
+    BRIEFING_SYNC_TRIGGERED = "briefing_sync_triggered"  # Sync manual via Slack
+
 
 class EventSource(Enum):
     """Origens validas de eventos."""

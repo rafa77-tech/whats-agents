@@ -59,7 +59,9 @@ from .sistema import (
 
 from .briefing import (
     TOOL_PROCESSAR_BRIEFING,
+    TOOL_SINCRONIZAR_BRIEFING,
     handle_processar_briefing,
+    handle_sincronizar_briefing,
 )
 
 from .grupos import (
@@ -108,6 +110,7 @@ SLACK_TOOLS = [
     TOOL_TOGGLE_CAMPANHAS,
     TOOL_TOGGLE_PONTE_EXTERNA,  # Sprint 21 - Kill switch ponte externa
     TOOL_PROCESSAR_BRIEFING,
+    TOOL_SINCRONIZAR_BRIEFING,  # Sprint 23 E06 - Sync imediato via Slack
     # Grupos WhatsApp (Sprint 14)
     TOOL_LISTAR_VAGAS_REVISAO,
     TOOL_APROVAR_VAGA_GRUPO,
@@ -172,6 +175,7 @@ async def executar_tool(nome: str, params: dict, user_id: str, channel_id: str =
         "toggle_campanhas": lambda p: handle_toggle_campanhas(p, user_id),
         "toggle_ponte_externa": lambda p: handle_toggle_ponte_externa(p, user_id),
         "processar_briefing": lambda p: handle_processar_briefing(p, channel_id, user_id),
+        "sincronizar_briefing": lambda p: handle_sincronizar_briefing(p, user_id),
         # Grupos WhatsApp (Sprint 14)
         "listar_vagas_revisao": handle_listar_vagas_revisao,
         "aprovar_vaga_grupo": handle_aprovar_vaga_grupo,
@@ -225,8 +229,9 @@ __all__ = [
     "TOOL_RETOMAR_JULIA",
     "TOOL_TOGGLE_CAMPANHAS",
     "TOOL_TOGGLE_PONTE_EXTERNA",
-    # Tools individuais - Briefing (Sprint 11)
+    # Tools individuais - Briefing (Sprint 11, 23)
     "TOOL_PROCESSAR_BRIEFING",
+    "TOOL_SINCRONIZAR_BRIEFING",
     # Tools individuais - Grupos WhatsApp (Sprint 14)
     "TOOL_LISTAR_VAGAS_REVISAO",
     "TOOL_APROVAR_VAGA_GRUPO",
