@@ -14,20 +14,20 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 ## Estado Atual
 
-**Sprint Atual:** 13 - Conhecimento Dinâmico (Completa)
+**Sprint Atual:** 18 - Auditoria e Integridade
 **Início do Projeto:** 05/12/2025
-**Última Atualização:** 17/12/2025
+**Última Atualização:** 29/12/2025
 
 ### Métricas do Projeto
 
 | Recurso | Quantidade |
 |---------|------------|
-| Arquivos Python | 150 |
-| Serviços | 53 |
-| Tabelas no banco | 38 |
-| Migrações | 46 |
-| Testes | 567 |
-| Endpoints API | 59 |
+| Arquivos Python | 200 |
+| Serviços | 118 |
+| Tabelas no banco | 54 |
+| Migrações | 93 |
+| Testes | 1177 |
+| Endpoints API | 97 |
 
 ### Sprints Concluídas
 
@@ -47,8 +47,11 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 11 | Briefing Conversacional | ✅ Completa |
 | 12 | Deploy Produção | 📋 Planejado |
 | 13 | Conhecimento Dinâmico (RAG) | ✅ Completa |
-| 14 | (Em definição) | 🔄 Em Progresso |
-| 15 | Policy Engine (Estado + Decisão) | 📋 Planejado |
+| 14 | Pipeline de Grupos WhatsApp | ✅ Completa |
+| 15 | Policy Engine (Estado + Decisão) | ✅ Completa |
+| 16 | Confirmação de Plantão | ✅ Completa |
+| 17 | Business Events e Funil | ✅ Completa |
+| 18 | Auditoria e Integridade | 🔄 Em Progresso |
 
 ### Funcionalidades Implementadas
 
@@ -374,20 +377,19 @@ Usar exceptions de `app/core/exceptions.py`:
 
 | Documento | Conteúdo |
 |-----------|----------|
-| `docs/SPEC.md` | Funcionalidades, fluxos, critérios de aceite |
-| `docs/TECHNICAL.md` | Arquitetura, componentes, integrações |
-| `docs/DATABASE.md` | Schema completo, queries úteis |
-| `docs/SETUP.md` | Checklist de configuração |
-| `docs/BRIEFING_TEMPLATE.md` | Template do Google Docs para gestor |
-| `docs/CONVERSAS_REFERENCIA.md` | Conversas reais de escalistas para referência |
-| `docs/FLUXOS.md` | Fluxos de negócio detalhados passo-a-passo |
-| `docs/METRICAS_MVP.md` | Critérios de sucesso e métricas do MVP |
-| `docs/ESCOPO_MVP.md` | O que entra e não entra no MVP |
-| `docs/INTEGRACOES.md` | Detalhes de cada integração externa |
-| `docs/DADOS.md` | Fonte e estrutura de dados (médicos, vagas) |
-| `docs/ESTRATEGIA_TESTES.md` | Warm-up, fases de teste, validação de persona |
-| `docs/PREFERENCIAS_MEDICO.md` | Sistema de captura e uso de preferências |
-| `docs/SPRINTS.md` | Planejamento de sprints e tarefas |
+| `docs/arquitetura.md` | Visão geral do sistema, componentes e fluxos |
+| `docs/api-endpoints.md` | Referência completa de todos os endpoints |
+| `docs/servicos.md` | Detalhes dos 118 módulos de serviço |
+| `docs/banco-de-dados.md` | Schema das 54 tabelas e relacionamentos |
+| `docs/configuracao.md` | Como configurar e rodar o projeto |
+| `docs/deploy.md` | Docker, workers e monitoramento |
+| `docs/logica-negocio.md` | Fluxos de negócio e regras |
+| `docs/persona-julia.md` | Identidade, tom e exemplos |
+| `docs/integracoes.md` | WhatsApp, Chatwoot, Slack, etc |
+| `docs/testes-manuais.md` | Guia de testes antes do lançamento |
+| `docs/sistema-prompts.md` | Organização e planejamento dos prompts |
+| `docs/RUNBOOK.md` | Procedimentos operacionais |
+| `docs/julia/` | Base de conhecimento para RAG (objeções, templates, prompts) |
 
 ---
 

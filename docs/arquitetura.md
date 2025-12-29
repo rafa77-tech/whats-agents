@@ -60,7 +60,7 @@
 │   PostgreSQL    │  │   Cache/Filas   │  │   Supervisao    │
 │   + pgvector    │  │                 │  │   Humana        │
 │                 │  │  • Rate limits  │  │                 │
-│  • 32 tabelas   │  │  • Filas msg    │  │  • Handoff      │
+│  • 54 tabelas   │  │  • Filas msg    │  │  • Handoff      │
 │  • RLS ativo    │  │  • Contexto     │  │  • Historico    │
 └─────────────────┘  └─────────────────┘  └─────────────────┘
           │

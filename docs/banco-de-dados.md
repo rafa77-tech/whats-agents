@@ -1,6 +1,6 @@
 # Banco de Dados
 
-> Schema completo das 32 tabelas e relacionamentos
+> Schema completo das 54 tabelas e relacionamentos
 
 ---
 
@@ -9,7 +9,7 @@
 - **Banco:** PostgreSQL via Supabase
 - **Extensoes:** pgvector (embeddings), uuid-ossp
 - **RLS:** Ativo em todas as tabelas
-- **Migracoes:** 30 aplicadas
+- **Migracoes:** 93 aplicadas
 
 ---
 

@@ -1,6 +1,6 @@
 # Servicos e Componentes
 
-> Detalhes dos 46 modulos de servico do sistema
+> Detalhes dos 118 modulos de servico do sistema
 
 ---
 

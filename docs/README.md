@@ -8,19 +8,25 @@ Julia e um agente de IA que prospecta medicos, oferece plantoes, gerencia relaci
 
 ## Indice da Documentacao
 
-| # | Documento | Descricao |
-|---|-----------|-----------|
-| 1 | [Arquitetura](./01-ARQUITETURA.md) | Visao geral do sistema, componentes e fluxos |
-| 2 | [API e Endpoints](./02-API-ENDPOINTS.md) | Referencia completa de todos os endpoints |
-| 3 | [Servicos](./03-SERVICOS.md) | Detalhes dos 46 modulos de servico |
-| 4 | [Banco de Dados](./04-BANCO-DE-DADOS.md) | Schema das 35 tabelas e relacionamentos |
-| 5 | [Configuracao e Setup](./05-CONFIGURACAO.md) | Como configurar e rodar o projeto |
-| 6 | [Deploy e Operacao](./06-DEPLOY.md) | Docker, workers e monitoramento |
-| 7 | [Logica de Negocio](./07-LOGICA-NEGOCIO.md) | Fluxos de negocio e regras |
-| 8 | [Persona Julia](./08-PERSONA-JULIA.md) | Identidade, tom e exemplos |
-| 9 | [Integracoes](./09-INTEGRACOES.md) | WhatsApp, Chatwoot, Slack, etc |
-| 10 | [Testes Manuais](./10-TESTES-MANUAIS.md) | Guia de testes antes do lancamento |
-| 11 | [Sistema de Prompts](./11-SISTEMA-PROMPTS.md) | Organizacao e planejamento dos prompts |
+| Documento | Descricao |
+|-----------|-----------|
+| [Arquitetura](./arquitetura.md) | Visao geral do sistema, componentes e fluxos |
+| [API e Endpoints](./api-endpoints.md) | Referencia completa de todos os endpoints |
+| [Servicos](./servicos.md) | Detalhes dos 118 modulos de servico |
+| [Banco de Dados](./banco-de-dados.md) | Schema das 54 tabelas e relacionamentos |
+| [Configuracao e Setup](./configuracao.md) | Como configurar e rodar o projeto |
+| [Deploy e Operacao](./deploy.md) | Docker, workers e monitoramento |
+| [Logica de Negocio](./logica-negocio.md) | Fluxos de negocio e regras |
+| [Persona Julia](./persona-julia.md) | Identidade, tom e exemplos |
+| [Integracoes](./integracoes.md) | WhatsApp, Chatwoot, Slack, etc |
+| [Testes Manuais](./testes-manuais.md) | Guia de testes antes do lancamento |
+| [Sistema de Prompts](./sistema-prompts.md) | Organizacao e planejamento dos prompts |
+| [Runbook](./runbook.md) | Procedimentos operacionais |
+| [Setup](./setup.md) | Checklist de configuracao com status |
+| [Briefing Template](./briefing-template.md) | Template Google Docs para gestor |
+| [Guardrails Queries](./guardrails-queries.md) | Queries de auditoria Sprint 18 |
+| [Producao Canary](./producao-canary.md) | Governanca de rollout para producao |
+| [Migracao Status](./migracao-status-fechada.md) | Notas sobre migracoes |
 
 ---
 
@@ -54,7 +60,7 @@ Julia e uma **escalista virtual** que:
 whatsapp-api/
 ├── app/
 │   ├── api/routes/       # 10 routers de endpoints
-│   ├── services/         # 49 modulos de servico
+│   ├── services/         # 118 modulos de servico
 │   ├── core/             # Config, prompts, logging
 │   ├── tools/            # Ferramentas do agente (vagas, slack, briefing)
 │   ├── prompts/          # Sistema de prompts dinamicos
@@ -62,12 +68,12 @@ whatsapp-api/
 │   ├── workers/          # Scheduler e fila
 │   ├── schemas/          # Pydantic models
 │   └── main.py           # FastAPI app
-├── tests/                # 492 testes
+├── tests/                # 1177 testes
 │   ├── persona/          # Testes de identidade
 │   ├── resiliencia/      # Testes de circuit breaker
 │   └── optout/           # Testes de opt-out
 ├── docs/                 # Esta documentacao
-├── planning/             # Sprints e epics (0-11)
+├── planning/             # Sprints e epics (0-18)
 └── docker-compose.yml    # Evolution, Chatwoot, Redis
 ```
 
@@ -75,12 +81,12 @@ whatsapp-api/
 
 | Recurso | Quantidade |
 |---------|------------|
-| Arquivos Python | 140 |
-| Endpoints API | 59 |
-| Servicos | 49 |
-| Tabelas no banco | 37 |
-| Migracoes | 45 |
-| Testes | 492 |
+| Arquivos Python | 200 |
+| Endpoints API | 97 |
+| Servicos | 118 |
+| Tabelas no banco | 54 |
+| Migracoes | 93 |
+| Testes | 1177 |
 
 ---
 
@@ -169,8 +175,8 @@ O sistema monitora quando medicos suspeitam que estao falando com IA:
 
 - **Projeto:** Agente Julia - Revoluna
 - **Inicio:** 05/12/2025
-- **Sprint atual:** 11 - Briefing Conversacional (Completa)
+- **Sprint atual:** 18 - Auditoria e Integridade
 
 ---
 
-*Documentacao atualizada em 16/12/2025*
+*Documentacao atualizada em 29/12/2025*

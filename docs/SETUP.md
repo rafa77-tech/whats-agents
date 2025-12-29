@@ -26,8 +26,8 @@ Checklist de configuração com status atual.
 | Projeto criado | ✅ |
 | MCP configurado no Claude Code | ✅ |
 | Extensão pgvector habilitada | ✅ |
-| Schema executado (27 tabelas) | ✅ |
-| 14 migrações aplicadas | ✅ |
+| Schema executado (54 tabelas) | ✅ |
+| 93 migrações aplicadas | ✅ |
 
 ### Variáveis de ambiente
 ```bash

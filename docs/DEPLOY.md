@@ -1,33 +1,173 @@
-# Guia de Deploy - Agente Júlia
+# Deploy e Operacao
 
-## Pré-requisitos
-
-- **Docker** 20.10+
-- **Docker Compose** 2.0+
-- **4GB RAM** mínimo (8GB recomendado)
-- **20GB disco** livre
-- **Portas disponíveis**: 8000, 3000, 8080, 6379, 5432, 4000, 5678
+> Como fazer deploy e operar o sistema em producao
 
 ---
 
-## Deploy Local (Desenvolvimento)
+## Arquitetura de Deploy
 
-### 1. Clonar Repositório
-
-```bash
-git clone <repository-url>
-cd whatsapp-api
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        INTERNET                              │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     LOAD BALANCER                            │
+│                   (Nginx / Traefik)                          │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          │                   │                   │
+          ▼                   ▼                   ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│    API Julia    │ │    API Julia    │ │    API Julia    │
+│   (Container)   │ │   (Container)   │ │   (Container)   │
+│    Port 8000    │ │    Port 8000    │ │    Port 8000    │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+          │                   │                   │
+          └───────────────────┼───────────────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          │                   │                   │
+          ▼                   ▼                   ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│   Supabase      │ │     Redis       │ │   Evolution     │
+│  (Managed)      │ │  (Container)    │ │  (Container)    │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
 ```
 
-### 2. Configurar Variáveis de Ambiente
+---
 
-```bash
-cp .env.example .env
+## Componentes para Deploy
+
+| Componente | Tipo | Replicas |
+|------------|------|----------|
+| API Julia | Container | 1-3 |
+| Scheduler | Container | 1 |
+| Fila Worker | Container | 1-2 |
+| Evolution API | Container | 1 |
+| Redis | Container | 1 |
+| Chatwoot | Container | 1 |
+| Supabase | Managed | - |
+
+---
+
+## Docker Compose Producao
+
+```yaml
+# docker-compose.prod.yml
+
+version: '3.8'
+
+services:
+  julia-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+    env_file:
+      - .env.production
+    restart: always
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  julia-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m app.workers scheduler
+    env_file:
+      - .env.production
+    restart: always
+    depends_on:
+      - julia-api
+
+  julia-fila:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m app.workers fila
+    env_file:
+      - .env.production
+    restart: always
+    depends_on:
+      - julia-api
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: always
+    command: redis-server --appendonly yes
+
+  evolution-api:
+    image: atendai/evolution-api:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - evolution-data:/evolution/instances
+    env_file:
+      - .env.evolution
+    restart: always
+
+volumes:
+  redis-data:
+  evolution-data:
 ```
 
-Edite o arquivo `.env` com suas credenciais:
+---
+
+## Dockerfile
+
+```dockerfile
+# Dockerfile
+
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Instalar uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# Copiar arquivos de dependencias
+COPY pyproject.toml uv.lock ./
+
+# Instalar dependencias
+RUN uv sync --frozen --no-dev
+
+# Copiar codigo
+COPY app/ ./app/
+
+# Expor porta
+EXPOSE 8000
+
+# Comando padrao
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+---
+
+## Variaveis de Producao
 
 ```bash
+# .env.production
+
+# App
+ENVIRONMENT=production
+DEBUG=false
+LOG_LEVEL=WARNING
+
 # Supabase
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_KEY=eyJ...
@@ -35,206 +175,58 @@ SUPABASE_SERVICE_KEY=eyJ...
 # Anthropic
 ANTHROPIC_API_KEY=sk-ant-...
 
-# Evolution API
+# Evolution (usar URL interno do Docker)
 EVOLUTION_API_URL=http://evolution-api:8080
 EVOLUTION_API_KEY=xxx
+EVOLUTION_INSTANCE=julia-prod
 
-# Chatwoot
-CHATWOOT_URL=http://chatwoot:3000
-CHATWOOT_API_KEY=xxx
-
-# Slack
-SLACK_WEBHOOK_URL=https://hooks.slack.com/...
-
-# Redis (já configurado no docker-compose)
+# Redis (usar URL interno do Docker)
 REDIS_URL=redis://redis:6379/0
+
+# Rate Limits (mais restritivos em prod)
+MAX_MSGS_POR_HORA=15
+MAX_MSGS_POR_DIA=80
+
+# Julia API (para scheduler)
+JULIA_API_URL=http://julia-api:8000
 ```
 
-### 3. Subir Serviços
+---
+
+## Deploy Commands
+
+### Build e Push
 
 ```bash
-# Build e iniciar todos os serviços
-docker compose up -d --build
+# Build image
+docker build -t julia-api:latest .
 
-# Verificar status
-docker compose ps
+# Tag para registry
+docker tag julia-api:latest registry.example.com/julia-api:latest
+
+# Push
+docker push registry.example.com/julia-api:latest
+```
+
+### Deploy
+
+```bash
+# Subir em producao
+docker compose -f docker-compose.prod.yml up -d
 
 # Ver logs
-docker compose logs -f julia-api
+docker compose -f docker-compose.prod.yml logs -f julia-api
+
+# Scale (se necessario)
+docker compose -f docker-compose.prod.yml up -d --scale julia-api=3
 ```
 
-### 4. Verificar Saúde
+### Rolling Update
 
 ```bash
-# Health check da API
-curl http://localhost:8000/health
-
-# Verificar todos os serviços
-docker compose ps
-```
-
----
-
-## Deploy Produção
-
-### 1. Preparar Servidor
-
-```bash
-# Atualizar sistema
-sudo apt update && sudo apt upgrade -y
-
-# Instalar Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-
-# Instalar Docker Compose
-sudo apt install docker-compose-plugin
-
-# Adicionar usuário ao grupo docker
-sudo usermod -aG docker $USER
-```
-
-### 2. Configurar Firewall
-
-```bash
-# Permitir portas necessárias
-sudo ufw allow 8000/tcp   # API Júlia
-sudo ufw allow 3000/tcp   # Chatwoot
-sudo ufw allow 8080/tcp   # Evolution API
-sudo ufw enable
-```
-
-### 3. Deploy da Aplicação
-
-```bash
-# Clonar repositório
-git clone <repository-url>
-cd whatsapp-api
-
-# Configurar .env (usar secrets seguros)
-nano .env
-
-# Subir serviços
-docker compose up -d --build
-
-# Verificar logs
-docker compose logs -f
-```
-
-### 4. Configurar Nginx (Recomendado)
-
-```nginx
-# /etc/nginx/sites-available/julia
-server {
-    listen 80;
-    server_name api.julia.com;
-
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-```bash
-sudo ln -s /etc/nginx/sites-available/julia /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-### 5. Configurar SSL (Let's Encrypt)
-
-```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d api.julia.com
-```
-
----
-
-## Estrutura de Serviços
-
-```
-docker-compose.yml
-├── julia-api          (FastAPI - porta 8000)
-├── julia-worker       (Worker de fila)
-├── julia-scheduler    (Jobs agendados)
-├── redis              (Cache - porta 6379)
-├── evolution-api      (WhatsApp - porta 8080)
-├── chatwoot           (Atendimento - porta 3000)
-└── postgres           (Banco - porta 5432, opcional)
-```
-
----
-
-## Comandos Úteis
-
-### Gerenciamento de Containers
-
-```bash
-# Iniciar todos os serviços
-docker compose up -d
-
-# Parar todos os serviços
-docker compose down
-
-# Reiniciar um serviço específico
-docker compose restart julia-api
-
-# Ver logs de um serviço
-docker compose logs -f julia-api
-
-# Ver logs de todos os serviços
-docker compose logs -f
-
-# Ver status
-docker compose ps
-
-# Rebuild após mudanças
-docker compose up -d --build
-```
-
-### Logs
-
-```bash
-# Logs da API
-docker compose logs -f julia-api
-
-# Logs do worker
-docker compose logs -f julia-worker
-
-# Logs do scheduler
-docker compose logs -f julia-scheduler
-
-# Últimas 100 linhas
-docker compose logs --tail=100 julia-api
-```
-
-### Executar Comandos
-
-```bash
-# Entrar no container
-docker compose exec julia-api bash
-
-# Executar script Python
-docker compose exec julia-api python scripts/check_env.py
-
-# Executar testes
-docker compose exec julia-api pytest
-```
-
-### Backup
-
-```bash
-# Backup do Redis
-docker compose exec redis redis-cli SAVE
-docker compose cp redis:/data/dump.rdb ./backup/
-
-# Backup de volumes
-docker run --rm -v whatsapp-api_evolution_redis:/data -v $(pwd):/backup \
-  alpine tar czf /backup/redis-backup.tar.gz /data
+# Atualizar sem downtime
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d --no-deps julia-api
 ```
 
 ---
@@ -243,243 +235,237 @@ docker run --rm -v whatsapp-api_evolution_redis:/data -v $(pwd):/backup \
 
 ### Health Checks
 
-```bash
-# API
-curl http://localhost:8000/health
+Configurar no load balancer:
 
-# Métricas
-curl http://localhost:8000/admin/metricas/health
+```nginx
+# nginx.conf
+upstream julia {
+    server julia-api-1:8000;
+    server julia-api-2:8000;
+}
 
-# Performance
-curl http://localhost:8000/admin/metricas/performance
+server {
+    location /health {
+        proxy_pass http://julia/health;
+    }
+}
 ```
 
-### Verificar Serviços
+### Prometheus Metrics (Futuro)
+
+```python
+# app/core/metrics.py
+from prometheus_client import Counter, Histogram
+
+mensagens_recebidas = Counter(
+    'julia_mensagens_recebidas_total',
+    'Total de mensagens recebidas'
+)
+
+tempo_resposta = Histogram(
+    'julia_tempo_resposta_segundos',
+    'Tempo de resposta do LLM'
+)
+```
+
+### Alertas
+
+Configurar alertas para:
+
+| Metrica | Threshold | Acao |
+|---------|-----------|------|
+| Error rate | > 5% | Notificar Slack |
+| Latencia | > 5s | Notificar Slack |
+| Circuit open | any | Notificar Slack urgente |
+| Rate limit | > 90% | Notificar Slack |
+| Deteccao bot | > 5% | Notificar Slack |
+
+---
+
+## Backup e Recovery
+
+### Supabase
+
+Supabase faz backup automatico. Para restaurar:
 
 ```bash
-# Status dos containers
-docker compose ps
+# Download backup via dashboard
+# Ou usar pg_dump/pg_restore
+```
 
-# Uso de recursos
-docker stats
+### Redis
 
-# Espaço em disco
-docker system df
+```bash
+# Backup manual
+docker exec redis redis-cli BGSAVE
+
+# Copiar arquivo RDB
+docker cp redis:/data/dump.rdb ./backups/
+```
+
+### Evolution (Sessoes WhatsApp)
+
+```bash
+# Backup das sessoes
+docker cp evolution-api:/evolution/instances ./backups/evolution/
+
+# Restaurar
+docker cp ./backups/evolution/ evolution-api:/evolution/instances
 ```
 
 ---
 
-## Troubleshooting
+## Logs
 
-### Container não inicia
+### Estrutura de Logs
 
-```bash
-# Ver logs de erro
-docker compose logs julia-api
-
-# Verificar variáveis de ambiente
-docker compose exec julia-api env | grep SUPABASE
-
-# Verificar conectividade
-docker compose exec julia-api ping redis
+```json
+{
+    "timestamp": "2025-12-07T10:30:00Z",
+    "level": "INFO",
+    "service": "julia-api",
+    "message": "Mensagem processada",
+    "context": {
+        "medico_id": "uuid",
+        "conversa_id": "uuid",
+        "latencia_ms": 1234
+    }
+}
 ```
 
-### API não responde
+### Agregacao de Logs
 
-```bash
-# Verificar se está rodando
-docker compose ps julia-api
-
-# Verificar logs
-docker compose logs -f julia-api
-
-# Testar health check
-curl http://localhost:8000/health
-
-# Reiniciar
-docker compose restart julia-api
-```
-
-### Worker não processa fila
-
-```bash
-# Verificar logs
-docker compose logs -f julia-worker
-
-# Verificar conexão Redis
-docker compose exec julia-worker python -c "import redis; r=redis.Redis.from_url('redis://redis:6379/0'); print(r.ping())"
-
-# Reiniciar worker
-docker compose restart julia-worker
-```
-
-### Scheduler não executa jobs
-
-```bash
-# Verificar logs
-docker compose logs -f julia-scheduler
-
-# Verificar conectividade com API
-docker compose exec julia-scheduler curl http://julia-api:8000/health
-
-# Verificar variável JULIA_API_URL
-docker compose exec julia-scheduler env | grep JULIA_API_URL
-```
-
-### Redis não conecta
-
-```bash
-# Verificar se está rodando
-docker compose ps redis
-
-# Testar conexão
-docker compose exec redis redis-cli ping
-
-# Ver logs
-docker compose logs redis
-```
+Recomendado usar:
+- **ELK Stack** (Elasticsearch, Logstash, Kibana)
+- **Grafana Loki**
+- **Datadog**
 
 ---
 
-## Atualização
-
-### Atualizar Código
-
-```bash
-# Pull do repositório
-git pull
-
-# Rebuild e restart
-docker compose up -d --build
-
-# Verificar logs
-docker compose logs -f
-```
-
-### Atualizar Imagens
-
-```bash
-# Pull de imagens atualizadas
-docker compose pull
-
-# Rebuild aplicação
-docker compose build --no-cache julia-api
-
-# Restart
-docker compose up -d
-```
-
----
-
-## Segurança
+## Seguranca em Producao
 
 ### Checklist
 
-- [ ] `.env` não versionado (no .gitignore)
-- [ ] Secrets em variáveis de ambiente
-- [ ] Firewall configurado
-- [ ] SSL/TLS habilitado
-- [ ] Logs não expõem secrets
-- [ ] Containers rodam como usuário não-root
-- [ ] Volumes com permissões corretas
+- [ ] HTTPS obrigatorio
+- [ ] Secrets em vault (nao .env)
+- [ ] RLS ativo no Supabase
+- [ ] API keys rotacionadas
+- [ ] Rate limiting no load balancer
+- [ ] Logs sem dados sensiveis
+- [ ] Backup automatico
 
-### Boas Práticas
-
-1. **Nunca commitar `.env`**
-2. **Usar secrets management** (Vault, AWS Secrets Manager)
-3. **Rotacionar credenciais** regularmente
-4. **Monitorar logs** para tentativas de acesso
-5. **Manter imagens atualizadas** (security patches)
-
----
-
-## Escalabilidade
-
-### Escalar Workers
-
-```yaml
-# docker-compose.yml
-julia-worker:
-  deploy:
-    replicas: 3
-```
+### Rotacao de Secrets
 
 ```bash
-docker compose up -d --scale julia-worker=3
-```
+# Rotacionar API key Anthropic
+1. Gerar nova key no console
+2. Atualizar .env.production
+3. Restart containers
+4. Revogar key antiga
 
-### Escalar API
-
-```yaml
-# docker-compose.yml
-julia-api:
-  deploy:
-    replicas: 2
-```
-
-```bash
-docker compose up -d --scale julia-api=2
-```
-
-**Nota**: Para escalabilidade avançada, considere Kubernetes.
-
----
-
-## Backup e Recuperação
-
-### Backup Automático
-
-```bash
-# Criar script de backup
-cat > backup.sh << 'EOF'
-#!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="./backups/$DATE"
-mkdir -p $BACKUP_DIR
-
-# Backup Redis
-docker compose exec -T redis redis-cli SAVE
-docker compose cp redis:/data/dump.rdb $BACKUP_DIR/
-
-# Backup volumes
-docker run --rm -v whatsapp-api_evolution_redis:/data \
-  -v $(pwd)/$BACKUP_DIR:/backup alpine \
-  tar czf /backup/redis.tar.gz /data
-
-echo "Backup criado em $BACKUP_DIR"
-EOF
-
-chmod +x backup.sh
-
-# Adicionar ao cron (diário às 2h)
-crontab -e
-# 0 2 * * * /path/to/backup.sh
-```
-
-### Recuperação
-
-```bash
-# Restaurar Redis
-docker compose cp ./backup/dump.rdb redis:/data/
-docker compose restart redis
+# Mesma logica para outras keys
 ```
 
 ---
 
-## Próximos Passos
+## Troubleshooting Producao
 
-1. **CI/CD**: Configurar GitHub Actions
-2. **Monitoring**: Integrar Prometheus/Grafana
-3. **Logging**: Centralizar com ELK/Loki
-4. **Kubernetes**: Migrar para K8s para escalabilidade
-5. **Multi-region**: Deploy em múltiplas regiões
+### Container reiniciando
+
+```bash
+# Ver logs
+docker logs julia-api --tail 100
+
+# Ver eventos
+docker events --filter container=julia-api
+
+# Comum: OOM (Out of Memory)
+# Solucao: aumentar limite de memoria
+```
+
+### Conexao recusada
+
+```bash
+# Verificar rede Docker
+docker network inspect julia-network
+
+# Testar conectividade
+docker exec julia-api ping redis
+```
+
+### Rate limit atingido
+
+```bash
+# Verificar uso atual
+curl http://localhost:8000/health/rate
+
+# Se necessario, resetar contadores
+docker exec redis redis-cli DEL "rate:global:hour"
+docker exec redis redis-cli DEL "rate:global:day"
+```
+
+### Circuit breaker aberto
+
+```bash
+# Verificar status
+curl http://localhost:8000/health/circuit
+
+# Aguardar recovery_timeout ou
+# Restart para resetar estado
+docker restart julia-api
+```
 
 ---
 
-## Suporte
+## Runbook
 
-Para problemas ou dúvidas:
-- Verificar logs: `docker compose logs -f`
-- Consultar runbook: `docs/RUNBOOK.md`
-- Verificar health: `curl http://localhost:8000/admin/metricas/health`
+### Pausar Julia (Emergencia)
 
+```bash
+# 1. Atualizar status no banco
+# Via Supabase dashboard ou SQL:
+INSERT INTO julia_status (status, motivo, alterado_via)
+VALUES ('pausado', 'Emergencia - pausado manualmente', 'manual');
+
+# 2. O webhook verifica este status e para de processar
+```
+
+### Retomar Julia
+
+```bash
+# 1. Atualizar status
+INSERT INTO julia_status (status, motivo, alterado_via)
+VALUES ('ativo', 'Retomando operacao', 'manual');
+```
+
+### Handoff Manual de Conversa
+
+```sql
+-- Marcar conversa para humano assumir
+UPDATE conversations
+SET controlled_by = 'human',
+    escalation_reason = 'Handoff manual'
+WHERE id = 'uuid-da-conversa';
+```
+
+---
+
+## SLA e Disponibilidade
+
+### Metas
+
+| Metrica | Meta |
+|---------|------|
+| Uptime | 99.5% |
+| Tempo resposta | < 5s |
+| Taxa erro | < 1% |
+
+### Calculo de Uptime
+
+```
+Uptime = (Tempo total - Tempo down) / Tempo total * 100
+
+Ex: Mes de 30 dias
+- 99.5% = max 3.6h de downtime
+- 99.9% = max 43min de downtime
+```
