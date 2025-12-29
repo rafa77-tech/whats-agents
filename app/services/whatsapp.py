@@ -215,6 +215,73 @@ class EvolutionClient:
                 return grupo
         return {}
 
+    async def buscar_participantes_grupo(self, grupo_jid: str) -> list:
+        """
+        Busca participantes de um grupo com seus telefones reais.
+
+        Args:
+            grupo_jid: JID do grupo
+
+        Returns:
+            Lista de participantes com id (LID) e phoneNumber
+        """
+        url = f"{self.base_url}/group/fetchAllGroups/{self.instance}"
+
+        async def _request():
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    url,
+                    params={"getParticipants": "true"},
+                    headers=self.headers,
+                    timeout=30.0
+                )
+                response.raise_for_status()
+                return response.json()
+
+        try:
+            grupos = await circuit_evolution.executar(_request)
+            for grupo in grupos:
+                if grupo.get("id") == grupo_jid:
+                    return grupo.get("participants", [])
+            return []
+        except Exception as e:
+            logger.warning(f"Erro ao buscar participantes do grupo {grupo_jid}: {e}")
+            return []
+
+    async def resolver_lid_para_telefone_via_grupo(
+        self,
+        lid: str,
+        grupo_jid: str
+    ) -> str:
+        """
+        Resolve LID para telefone real usando participantes do grupo.
+
+        Args:
+            lid: LID do contato (ex: "123456@lid")
+            grupo_jid: JID do grupo onde o contato está
+
+        Returns:
+            Telefone no formato 5511999999999 ou string vazia
+        """
+        if not lid or not grupo_jid:
+            return ""
+
+        # Normalizar LID (remover @lid se presente)
+        lid_normalizado = lid.split("@")[0] + "@lid"
+
+        participantes = await self.buscar_participantes_grupo(grupo_jid)
+
+        for p in participantes:
+            if p.get("id") == lid_normalizado:
+                phone = p.get("phoneNumber", "")
+                if phone and "@s.whatsapp.net" in phone:
+                    telefone = phone.split("@")[0]
+                    logger.debug(f"LID {lid} resolvido para {telefone}")
+                    return telefone
+
+        logger.debug(f"LID {lid} não encontrado no grupo {grupo_jid}")
+        return ""
+
     async def listar_grupos(self) -> list:
         """
         Lista todos os grupos que a instância participa.

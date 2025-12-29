@@ -93,33 +93,49 @@ async def _buscar_nome_grupo_api(jid: str) -> Optional[str]:
 async def obter_ou_criar_contato(
     jid: str,
     nome: Optional[str] = None,
-    telefone: Optional[str] = None
+    telefone: Optional[str] = None,
+    grupo_jid: Optional[str] = None
 ) -> UUID:
     """
     Obtém ou cria registro de contato.
 
     Args:
-        jid: JID do contato (ex: "5511999999999@s.whatsapp.net")
+        jid: JID do contato (ex: "5511999999999@s.whatsapp.net" ou LID)
         nome: Nome do contato (pushName)
         telefone: Número de telefone extraído
+        grupo_jid: JID do grupo (para resolver LID)
 
     Returns:
         UUID do contato
     """
     # Tentar buscar existente
-    result = supabase.table("contatos_grupo").select("id").eq("jid", jid).execute()
+    result = supabase.table("contatos_grupo").select("id, telefone").eq("jid", jid).execute()
 
     if result.data:
         contato_id = result.data[0]["id"]
+        telefone_atual = result.data[0].get("telefone")
+
+        updates = {"ultimo_contato": datetime.now(UTC).isoformat()}
 
         # Atualizar nome se veio novo
         if nome:
-            supabase.table("contatos_grupo").update({
-                "nome": nome,
-                "ultimo_contato": datetime.now(UTC).isoformat()
-            }).eq("id", contato_id).execute()
+            updates["nome"] = nome
 
+        # Se telefone atual parece ser LID, tentar resolver
+        if telefone_atual and "@lid" in jid and grupo_jid:
+            telefone_real = await _resolver_telefone_real(jid, grupo_jid)
+            if telefone_real and telefone_real != telefone_atual:
+                updates["telefone"] = telefone_real
+                logger.info(f"Telefone atualizado: {telefone_atual} -> {telefone_real}")
+
+        supabase.table("contatos_grupo").update(updates).eq("id", contato_id).execute()
         return UUID(contato_id)
+
+    # Se é LID, tentar resolver telefone real antes de criar
+    if "@lid" in jid and grupo_jid:
+        telefone_real = await _resolver_telefone_real(jid, grupo_jid)
+        if telefone_real:
+            telefone = telefone_real
 
     # Criar novo
     novo_contato = {
@@ -134,8 +150,26 @@ async def obter_ou_criar_contato(
     result = supabase.table("contatos_grupo").insert(novo_contato).execute()
     contato_id = result.data[0]["id"]
 
-    logger.info(f"Novo contato criado: {contato_id} ({jid})")
+    logger.info(f"Novo contato criado: {contato_id} ({jid}) - tel: {telefone or 'não resolvido'}")
     return UUID(contato_id)
+
+
+async def _resolver_telefone_real(lid: str, grupo_jid: str) -> Optional[str]:
+    """
+    Resolve LID para telefone real via participantes do grupo.
+
+    Args:
+        lid: LID do contato
+        grupo_jid: JID do grupo
+
+    Returns:
+        Telefone real ou None
+    """
+    try:
+        return await evolution.resolver_lid_para_telefone_via_grupo(lid, grupo_jid)
+    except Exception as e:
+        logger.warning(f"Erro ao resolver LID {lid}: {e}")
+        return None
 
 
 def extrair_telefone_do_jid(jid: str) -> Optional[str]:
@@ -263,14 +297,15 @@ async def ingerir_mensagem_grupo(
             nome=dados_raw.get("groupName")  # Nem sempre vem
         )
 
-        # Extrair telefone do sender
+        # Extrair telefone do sender (pode ser LID, será resolvido depois)
         telefone = extrair_telefone_do_jid(sender_jid)
 
-        # Obter/criar contato
+        # Obter/criar contato (passa grupo_jid para resolver LID)
         contato_id = await obter_ou_criar_contato(
             jid=sender_jid,
             nome=mensagem.nome_contato,
-            telefone=telefone
+            telefone=telefone,
+            grupo_jid=grupo_jid  # Para resolver LID -> telefone real
         )
 
         # Salvar mensagem
