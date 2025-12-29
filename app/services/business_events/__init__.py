@@ -33,6 +33,21 @@ from .metrics import (
     get_conversion_time,
     FunnelMetrics,
 )
+from .alerts import (
+    Alert,
+    AlertType,
+    AlertSeverity,
+    detect_handoff_spike,
+    detect_decline_spike,
+    detect_conversion_drop,
+    detect_all_anomalies,
+    send_alert_to_slack,
+    is_in_cooldown,
+    set_cooldown,
+    process_and_notify_alerts,
+    persist_alert,
+    get_recent_alerts,
+)
 
 __all__ = [
     # Repository
@@ -67,4 +82,18 @@ __all__ = [
     "get_top_doctors",
     "get_conversion_time",
     "FunnelMetrics",
+    # Alerts
+    "Alert",
+    "AlertType",
+    "AlertSeverity",
+    "detect_handoff_spike",
+    "detect_decline_spike",
+    "detect_conversion_drop",
+    "detect_all_anomalies",
+    "send_alert_to_slack",
+    "is_in_cooldown",
+    "set_cooldown",
+    "process_and_notify_alerts",
+    "persist_alert",
+    "get_recent_alerts",
 ]

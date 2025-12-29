@@ -277,6 +277,32 @@ async def executar_verificacao_alertas():
                 # Tabela pode não existir ainda
                 logger.debug(f"Tabela alertas_enviados não existe ou erro ao salvar: {e}")
 
+        # Sprint 17 - E07: Verificar alertas de Business Events (funil)
+        await _verificar_alertas_business_events()
+
     except Exception as e:
         logger.error(f"Erro ao executar verificação de alertas: {e}")
+
+
+async def _verificar_alertas_business_events():
+    """
+    Verifica alertas de anomalias no funil de negocio.
+
+    Sprint 17 - E07
+    """
+    try:
+        from app.services.business_events.alerts import (
+            detect_all_anomalies,
+            process_and_notify_alerts,
+        )
+
+        alertas = await detect_all_anomalies()
+
+        if alertas:
+            logger.info(f"Detectados {len(alertas)} alertas de business events")
+            enviados = await process_and_notify_alerts(alertas)
+            logger.info(f"Enviados {enviados} alertas ao Slack (com cooldown)")
+
+    except Exception as e:
+        logger.error(f"Erro ao verificar alertas de business events: {e}")
 
