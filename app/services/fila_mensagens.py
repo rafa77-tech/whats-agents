@@ -7,7 +7,7 @@ from typing import Optional
 
 from app.services.supabase import supabase
 from app.services.timing import proximo_horario_comercial
-from app.services.whatsapp import enviar_com_digitacao
+from app.services.outbound import send_outbound_message, criar_contexto_followup
 
 logger = logging.getLogger(__name__)
 
@@ -103,20 +103,32 @@ async def processar_fila_mensagens():
                     logger.warning(f"Telefone não encontrado para mensagem {msg.get('id')}")
                     continue
 
-                # Verificar opt-out antes de enviar
-                if cliente_id and cliente.get("opted_out"):
-                    logger.info(f"🛑 Cliente {cliente_id} fez opt-out, cancelando mensagem {msg.get('id')}")
+                if not cliente_id:
+                    logger.warning(f"Cliente ID não encontrado para mensagem {msg.get('id')}")
+                    continue
+
+                # GUARDRAIL: Verificar ANTES de enviar (substitui check básico de opt-out)
+                ctx = criar_contexto_followup(
+                    cliente_id=cliente_id,
+                    conversation_id=conversa_id,
+                )
+                result = await send_outbound_message(
+                    telefone=telefone,
+                    texto=msg["resposta"],
+                    ctx=ctx,
+                    simular_digitacao=True,
+                )
+
+                if result.blocked:
+                    logger.info(f"Mensagem {msg['id']} bloqueada: {result.block_reason}")
                     supabase.table("fila_mensagens").update({
-                        "status": "cancelada",
-                        "erro": "Cliente fez opt-out"
+                        "status": "bloqueada",
+                        "erro": f"Guardrail: {result.block_reason}"
                     }).eq("id", msg["id"]).execute()
                     continue
 
-                # Enviar resposta
-                await enviar_com_digitacao(
-                    telefone=telefone,
-                    texto=msg["resposta"]
-                )
+                if not result.success:
+                    raise Exception(result.error)
 
                 # Marcar como enviada
                 supabase.table("fila_mensagens").update({

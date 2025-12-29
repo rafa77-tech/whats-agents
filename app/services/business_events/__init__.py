@@ -60,6 +60,27 @@ from .audit import (
     CoverageStatus,
     CoverageSource,
 )
+from .reconciliation import (
+    run_reconciliation,
+    persist_anomalies_with_dedup,
+    notify_anomalies_slack,
+    reconciliation_job,
+    listar_anomalias,
+    listar_anomalias_recorrentes,
+    resolver_anomalia,
+    DataAnomaly,
+)
+from .kpis import (
+    get_conversion_rates,
+    get_time_to_fill_breakdown,
+    get_health_score,
+    get_kpis_summary,
+    ConversionRate,
+    TimeMetric,
+    TimeToFillBreakdown,
+    HealthComponent,
+    HealthScore,
+)
 
 __all__ = [
     # Repository
@@ -119,4 +140,23 @@ __all__ = [
     "InvariantViolation",
     "CoverageStatus",
     "CoverageSource",
+    # Reconciliation
+    "run_reconciliation",
+    "persist_anomalies_with_dedup",
+    "notify_anomalies_slack",
+    "reconciliation_job",
+    "listar_anomalias",
+    "listar_anomalias_recorrentes",
+    "resolver_anomalia",
+    "DataAnomaly",
+    # KPIs
+    "get_conversion_rates",
+    "get_time_to_fill_breakdown",
+    "get_health_score",
+    "get_kpis_summary",
+    "ConversionRate",
+    "TimeMetric",
+    "TimeToFillBreakdown",
+    "HealthComponent",
+    "HealthScore",
 ]

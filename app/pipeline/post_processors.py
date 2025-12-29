@@ -15,6 +15,8 @@ from app.services.metricas import metricas_service
 from app.services.whatsapp import mostrar_digitando
 from app.services.validacao_output import validar_e_corrigir, output_validator
 from app.services.policy.events_repository import update_effect_interaction_id
+from app.services.outbound import criar_contexto_reply
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +117,8 @@ class SendMessageProcessor(PostProcessor):
     """
     Envia mensagem via WhatsApp.
 
+    Sprint 18.1 P0: Usa guardrails wrapper com contexto de REPLY.
+
     Prioridade: 20
     """
     name = "send_message"
@@ -128,24 +132,67 @@ class SendMessageProcessor(PostProcessor):
         if not response:
             return ProcessorResult(success=True, response=response)
 
+        # Sprint 18.1 P0: Salvar interação de entrada ANTES para ter inbound_proof
+        inbound_interaction_id = None
+        if not context.metadata.get("entrada_salva") and context.conversa and context.medico:
+            try:
+                interacao_entrada = await salvar_interacao(
+                    conversa_id=context.conversa["id"],
+                    cliente_id=context.medico["id"],
+                    tipo="entrada",
+                    conteudo=context.mensagem_texto or "[midia]",
+                    autor_tipo="medico",
+                    message_id=context.message_id
+                )
+                context.metadata["entrada_salva"] = True
+                inbound_interaction_id = interacao_entrada.get("id") if interacao_entrada else None
+            except Exception as e:
+                logger.warning(f"Erro ao salvar interação de entrada: {e}")
+
+        # Sprint 18.1 P0: Criar contexto de REPLY com prova de inbound
+        ctx = None
+        if context.medico and context.conversa:
+            ctx = criar_contexto_reply(
+                cliente_id=context.medico["id"],
+                conversation_id=context.conversa["id"],
+                inbound_interaction_id=inbound_interaction_id,
+                last_inbound_at=datetime.now(timezone.utc).isoformat(),
+                policy_decision_id=context.metadata.get("policy_decision_id"),
+            )
+
         resultado = await enviar_resposta(
             telefone=context.telefone,
-            resposta=response
+            resposta=response,
+            ctx=ctx,
         )
 
-        if resultado:
-            context.metadata["message_sent"] = True
-            context.metadata["sent_message_id"] = resultado.get("key", {}).get("id")
-            logger.info(f"Mensagem enviada para {context.telefone[:8]}...")
-
-            # Sprint 17 - E04: Emitir doctor_outbound
-            await self._emitir_outbound_event(context, response)
-        else:
-            logger.error("Falha ao enviar mensagem")
+        # Sprint 18.1: OutboundResult handling
+        if hasattr(resultado, 'blocked') and resultado.blocked:
+            logger.warning(f"Mensagem bloqueada por guardrail: {resultado.block_reason}")
             return ProcessorResult(
                 success=False,
-                error="Falha ao enviar mensagem"
+                error=f"Guardrail bloqueou: {resultado.block_reason}"
             )
+
+        if hasattr(resultado, 'success') and not resultado.success:
+            logger.error(f"Falha ao enviar mensagem: {resultado.error}")
+            return ProcessorResult(
+                success=False,
+                error=resultado.error or "Falha ao enviar mensagem"
+            )
+
+        # Sucesso
+        context.metadata["message_sent"] = True
+        if hasattr(resultado, 'evolution_response') and resultado.evolution_response:
+            context.metadata["sent_message_id"] = resultado.evolution_response.get("key", {}).get("id")
+        elif isinstance(resultado, dict):
+            # Fallback para dict legado
+            context.metadata["sent_message_id"] = resultado.get("key", {}).get("id")
+
+        logger.info(f"Mensagem enviada para {context.telefone[:8]}...")
+
+        # Sprint 17 - E04: Emitir doctor_outbound
+        await self._emitir_outbound_event(context, response)
 
         return ProcessorResult(success=True, response=response)
 

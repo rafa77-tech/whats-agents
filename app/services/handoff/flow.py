@@ -11,9 +11,15 @@ from typing import Optional
 
 from app.services.supabase import supabase
 from app.services.slack import notificar_handoff
-from app.services.whatsapp import evolution
 from app.services.chatwoot import chatwoot_service
 from app.services.interacao import salvar_interacao
+from app.services.outbound import send_outbound_message
+from app.services.guardrails import (
+    OutboundContext,
+    OutboundChannel,
+    OutboundMethod,
+    ActorType,
+)
 from .messages import obter_mensagem_transicao
 
 logger = logging.getLogger(__name__)
@@ -201,11 +207,31 @@ async def _enviar_mensagem_transicao(
     mensagem = obter_mensagem_transicao(trigger_type)
 
     try:
-        await evolution.enviar_mensagem(
+        # Sprint 18.1 P0: Usar wrapper com guardrails
+        # Mensagem de handoff é resposta a conversa ativa, não proativa
+        ctx = OutboundContext(
+            cliente_id=cliente_id,
+            actor_type=ActorType.BOT,
+            channel=OutboundChannel.WHATSAPP,
+            method=OutboundMethod.REPLY,  # É resposta a conversa ativa
+            is_proactive=False,  # Médico está em conversa, não é proativo
+            conversation_id=conversa_id,
+        )
+        result = await send_outbound_message(
             telefone=telefone,
             texto=mensagem,
-            verificar_rate_limit=False
+            ctx=ctx,
+            simular_digitacao=False,  # Handoff é urgente
         )
+
+        if result.blocked:
+            logger.warning(f"Mensagem de transicao bloqueada: {result.block_reason}")
+            return
+
+        if not result.success:
+            logger.error(f"Erro ao enviar mensagem de transicao: {result.error}")
+            return
+
         logger.info(f"Mensagem de transicao enviada para {telefone[:8]}...")
 
         await salvar_interacao(

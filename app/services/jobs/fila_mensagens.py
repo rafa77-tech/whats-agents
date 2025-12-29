@@ -8,8 +8,8 @@ from dataclasses import dataclass, field
 
 from app.services.supabase import supabase
 from app.services.fila import fila_service
-from app.services.whatsapp import enviar_com_digitacao
 from app.services.interacao import salvar_interacao
+from app.services.outbound import send_outbound_message, criar_contexto_followup
 
 logger = logging.getLogger(__name__)
 
@@ -75,18 +75,33 @@ async def _processar_mensagem(mensagem: dict) -> str:
         await fila_service.marcar_erro(mensagem_id, "Telefone nao encontrado")
         return "erro"
 
-    # Verificar opt-out
-    if await _verificar_optout_cliente(cliente_id):
-        logger.info(f"Cliente {cliente_id} fez opt-out, cancelando mensagem {mensagem_id}")
-        await _cancelar_mensagem_optout(mensagem_id)
-        return "optout"
+    if not cliente_id:
+        logger.warning(f"Cliente ID nao encontrado para mensagem {mensagem_id}")
+        await fila_service.marcar_erro(mensagem_id, "Cliente ID nao encontrado")
+        return "erro"
 
-    # Enviar mensagem
+    # Enviar mensagem com GUARDRAIL
     try:
-        await enviar_com_digitacao(
-            telefone=telefone,
-            texto=mensagem["conteudo"]
+        ctx = criar_contexto_followup(
+            cliente_id=cliente_id,
+            conversation_id=mensagem.get("conversa_id"),
         )
+        result = await send_outbound_message(
+            telefone=telefone,
+            texto=mensagem["conteudo"],
+            ctx=ctx,
+            simular_digitacao=True,
+        )
+
+        if result.blocked:
+            logger.info(f"Mensagem {mensagem_id} bloqueada: {result.block_reason}")
+            await fila_service.marcar_erro(mensagem_id, f"Guardrail: {result.block_reason}")
+            return "optout" if result.block_reason == "opted_out" else "erro"
+
+        if not result.success:
+            logger.error(f"Erro ao enviar mensagem {mensagem_id}: {result.error}")
+            await fila_service.marcar_erro(mensagem_id, result.error)
+            return "erro"
 
         await fila_service.marcar_enviada(mensagem_id)
 

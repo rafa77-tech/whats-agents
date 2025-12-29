@@ -15,6 +15,13 @@ from app.services.contexto import montar_contexto_completo
 from app.services.interacao import salvar_interacao
 from app.services.optout import verificar_opted_out
 from app.services.chatwoot import sincronizar_ids_chatwoot
+from app.services.guardrails import (
+    check_outbound_guardrails,
+    OutboundContext,
+    OutboundChannel,
+    OutboundMethod,
+    ActorType,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,15 +54,24 @@ async def enviar_primeira_mensagem(telefone: str) -> ResultadoPrimeiraMensagem:
         cliente = await _obter_ou_criar_cliente(telefone)
         logger.info(f"Cliente: {cliente.get('primeiro_nome', 'N/A')} ({cliente['id']})")
 
-        # 2. Verificar opt-out
-        if await verificar_opted_out(cliente["id"]):
-            logger.info(f"Cliente {cliente['id']} fez opt-out")
+        # 2. GUARDRAIL: Verificar ANTES de gerar texto
+        ctx = OutboundContext(
+            cliente_id=cliente["id"],
+            actor_type=ActorType.SYSTEM,
+            channel=OutboundChannel.SLACK,  # Vem de comando Slack
+            method=OutboundMethod.CAMPAIGN,
+            is_proactive=True,
+        )
+        guardrail_result = await check_outbound_guardrails(ctx)
+
+        if guardrail_result.is_blocked:
+            logger.info(f"Cliente {cliente['id']} bloqueado: {guardrail_result.reason_code}")
             return ResultadoPrimeiraMensagem(
                 sucesso=False,
                 cliente_nome=cliente.get("primeiro_nome"),
                 cliente_id=cliente["id"],
-                erro="Cliente fez opt-out, mensagem nao enviada",
-                opted_out=True
+                erro=f"Guardrail: {guardrail_result.reason_code}",
+                opted_out=guardrail_result.reason_code == "opted_out"
             )
 
         # 3. Criar ou buscar conversa ativa
@@ -77,7 +93,14 @@ async def enviar_primeira_mensagem(telefone: str) -> ResultadoPrimeiraMensagem:
         logger.info(f"Resposta gerada: {resposta[:100]}...")
 
         # 6. Enviar via WhatsApp
-        resultado_envio = await enviar_resposta(telefone, resposta)
+        # Sprint 18.1 P0: Usar wrapper com guardrails (reusar ctx do check)
+        from app.services.outbound import criar_contexto_campanha
+        envio_ctx = criar_contexto_campanha(
+            cliente_id=cliente["id"],
+            campaign_id="primeira_mensagem_slack",
+            conversation_id=conversa["id"],
+        )
+        resultado_envio = await enviar_resposta(telefone, resposta, ctx=envio_ctx)
 
         # 7. Sincronizar com Chatwoot
         await _sincronizar_chatwoot(cliente["id"], telefone)

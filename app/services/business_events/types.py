@@ -27,6 +27,7 @@ class EventType(Enum):
     # Guardrails de outbound (Sprint 17)
     OUTBOUND_BLOCKED = "outbound_blocked"    # Envio bloqueado por guardrail
     OUTBOUND_BYPASS = "outbound_bypass"      # Envio permitido por bypass humano
+    OUTBOUND_FALLBACK = "outbound_fallback"  # Fallback legado usado (Sprint 18.1)
 
 
 class EventSource(Enum):

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from app.services.supabase import supabase
-from app.services.whatsapp import enviar_com_digitacao
+from app.services.outbound import send_outbound_message, criar_contexto_campanha
 from app.core.piloto_config import piloto_config
 from app.templates.mensagens import formatar_primeiro_contato
 from app.services.abertura import obter_abertura
@@ -186,12 +186,31 @@ async def executar_campanha(campanha_id: str):
             continue
 
         try:
-            # Formatar e enviar mensagem
+            # Formatar mensagem
             mensagem = formatar_primeiro_contato(medico)
-            await enviar_com_digitacao(
-                telefone=medico["telefone"],
-                texto=mensagem
+
+            # GUARDRAIL: Verificar antes de enviar
+            ctx = criar_contexto_campanha(
+                cliente_id=medico["id"],
+                campaign_id=campanha_id,
             )
+            result = await send_outbound_message(
+                telefone=medico["telefone"],
+                texto=mensagem,
+                ctx=ctx,
+                simular_digitacao=True,
+            )
+
+            if result.blocked:
+                logger.info(f"Envio bloqueado para {medico.get('primeiro_nome', 'N/A')}: {result.block_reason}")
+                supabase.table("envios_campanha").update({
+                    "status": "bloqueado",
+                    "erro": f"Guardrail: {result.block_reason}"
+                }).eq("id", envio["id"]).execute()
+                continue
+
+            if not result.success:
+                raise Exception(result.error)
 
             # Atualizar envio
             supabase.table("envios_campanha").update({
@@ -299,6 +318,29 @@ async def enviar_mensagem_prospeccao(
         Resultado do envio
     """
     from app.services.agente import enviar_mensagens_sequencia
+    from app.services.guardrails import check_outbound_guardrails, OutboundContext, OutboundChannel, OutboundMethod, ActorType
+
+    # GUARDRAIL: Verificar ANTES de gerar texto ou qualquer operacao
+    ctx = OutboundContext(
+        cliente_id=cliente_id,
+        actor_type=ActorType.SYSTEM,
+        channel=OutboundChannel.JOB,
+        method=OutboundMethod.CAMPAIGN,
+        is_proactive=True,
+        campaign_id=campanha_id,
+    )
+    guardrail_result = await check_outbound_guardrails(ctx)
+
+    if guardrail_result.is_blocked:
+        logger.warning(
+            f"Prospeccao bloqueada para {cliente_id}: {guardrail_result.reason_code}"
+        )
+        return {
+            "success": False,
+            "blocked": True,
+            "block_reason": guardrail_result.reason_code,
+            "block_details": guardrail_result.details,
+        }
 
     try:
         if usar_aberturas_variadas:
@@ -319,9 +361,16 @@ async def enviar_mensagem_prospeccao(
             mensagens = [texto]
 
         # Enviar em sequencia com timing natural
+        # Sprint 18.1 P0: Reusar ctx do check para garantir soberania guardrail
+        from app.services.outbound import criar_contexto_campanha
+        envio_ctx = criar_contexto_campanha(
+            cliente_id=cliente_id,
+            campaign_id=campanha_id or "prospeccao_manual",
+        )
         resultados = await enviar_mensagens_sequencia(
             telefone=telefone,
-            mensagens=mensagens
+            mensagens=mensagens,
+            ctx=envio_ctx,
         )
 
         # Registrar envio se tem campanha

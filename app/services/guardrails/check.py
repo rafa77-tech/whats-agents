@@ -98,6 +98,63 @@ def _is_human_slack_bypass(ctx: OutboundContext) -> bool:
     )
 
 
+def _validate_event_integrity(
+    ctx: OutboundContext,
+    result: GuardrailResult,
+    is_bypass: bool,
+) -> list[str]:
+    """
+    Valida as 6 regras de integridade do evento.
+
+    Retorna lista de warnings (não bloqueia emissão, mas loga).
+
+    Regras:
+    1. bypassed=false ⇒ bypass_reason deve ser null
+    2. bypassed=true ⇒ actor_type=human, channel in (slack,api), bypass_reason obrigatório
+    3. method=reply ⇒ conversation_id e inbound_interaction_id obrigatórios
+    4. Se veio do policy engine, policy_decision_id deve estar preenchido
+    5. is_proactive=true ⇒ method != reply
+    6. details nunca pode carregar PII
+    """
+    warnings = []
+
+    # R1: bypassed=false ⇒ bypass_reason null
+    if not is_bypass and ctx.bypass_reason:
+        warnings.append(f"R1: bypassed=false mas bypass_reason='{ctx.bypass_reason}'")
+
+    # R2: bypassed=true ⇒ human + slack/api + bypass_reason
+    if is_bypass:
+        if ctx.actor_type != ActorType.HUMAN:
+            warnings.append(f"R2: bypassed=true mas actor_type={ctx.actor_type.value}")
+        if ctx.channel not in (OutboundChannel.SLACK, OutboundChannel.API):
+            warnings.append(f"R2: bypassed=true mas channel={ctx.channel.value}")
+        if not ctx.bypass_reason:
+            warnings.append("R2: bypassed=true mas bypass_reason vazio")
+
+    # R3: method=reply ⇒ conversation_id + inbound_interaction_id
+    if ctx.method == OutboundMethod.REPLY:
+        if not ctx.conversation_id:
+            warnings.append("R3: method=reply mas conversation_id null")
+        if not ctx.inbound_interaction_id:
+            warnings.append("R3: method=reply mas inbound_interaction_id null")
+
+    # R4: Se tem decision_id no contexto, deve estar preenchido (não validamos aqui, só log)
+    # (Esta regra é mais para auditoria posterior)
+
+    # R5: is_proactive=true ⇒ method != reply
+    if ctx.is_proactive and ctx.method == OutboundMethod.REPLY:
+        warnings.append("R5: is_proactive=true mas method=reply (contraditório)")
+
+    # R6: details sem PII (validamos no details do result)
+    if result.details:
+        pii_keys = {"telefone", "texto", "mensagem", "conteudo", "phone", "message"}
+        found_pii = set(result.details.keys()) & pii_keys
+        if found_pii:
+            warnings.append(f"R6: details contém possível PII: {found_pii}")
+
+    return warnings
+
+
 async def _emit_guardrail_event(
     ctx: OutboundContext,
     result: GuardrailResult,
@@ -106,36 +163,47 @@ async def _emit_guardrail_event(
     """
     Emite business_event para bloqueio ou bypass.
 
-    Campos obrigatórios:
-    - provider: sempre "evolution"
-    - bypass_reason: obrigatório para bypass
+    Contrato inviolável - campos top-level:
+    - event_type, ts, cliente_id, conversation_id, policy_decision_id, event_props
+
+    event_props sempre contém:
+    - provider, channel, method, actor_type, actor_id, is_proactive
+    - campaign_id, inbound_interaction_id
+    - block_reason, bypassed, bypass_reason, details
     """
+    is_bypass = event_type == "outbound_bypass"
+
+    # Validar integridade (log warnings, não bloqueia)
+    warnings = _validate_event_integrity(ctx, result, is_bypass)
+    for w in warnings:
+        logger.warning(f"INTEGRITY_WARNING: {w} cliente={ctx.cliente_id}")
+
     # Construir dedupe_key: cliente + reason + janela 5min
-    ts_bucket = datetime.now(timezone.utc).strftime('%Y%m%d%H%M')[:11]  # YYYYMMDDHHMM -> YYYYMMDDHH + primeiro dígito min
+    ts_bucket = datetime.now(timezone.utc).strftime('%Y%m%d%H%M')[:11]
     dedupe = f"{event_type}:{ctx.cliente_id}:{result.reason_code}:{ts_bucket}"
 
     event = BusinessEvent(
-        event_type=EventType.OUTBOUND_BLOCKED if event_type == "outbound_blocked" else EventType.OUTBOUND_BYPASS,
+        event_type=EventType.OUTBOUND_BYPASS if is_bypass else EventType.OUTBOUND_BLOCKED,
         source=EventSource.BACKEND,
         cliente_id=ctx.cliente_id,
         conversation_id=ctx.conversation_id,
+        policy_decision_id=ctx.policy_decision_id,
         dedupe_key=dedupe,
         event_props={
-            # Rastreio
+            # Rastreio de origem
             "provider": PROVIDER,
             "channel": ctx.channel.value,
             "method": ctx.method.value,
             "actor_type": ctx.actor_type.value,
             "actor_id": ctx.actor_id,
             "is_proactive": ctx.is_proactive,
-            # Contexto
+            # Contexto adicional
             "campaign_id": ctx.campaign_id,
-            "policy_decision_id": ctx.policy_decision_id,
             "inbound_interaction_id": ctx.inbound_interaction_id,
-            # Resultado
+            # Resultado padronizado
             "block_reason": result.reason_code,
-            "human_bypass": result.human_bypass,
-            "bypass_reason": ctx.bypass_reason,  # Obrigatório para bypass
+            "bypassed": is_bypass,
+            "bypass_reason": ctx.bypass_reason if is_bypass else None,
             "details": result.details or {},
         },
     )
