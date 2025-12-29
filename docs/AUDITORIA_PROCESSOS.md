@@ -3,7 +3,7 @@
 Mapeamento completo de todos os processos, tools e fluxos do agente.
 
 **Data:** 2025-12-29
-**Versão:** 1.0
+**Versão:** 2.0 (Produção)
 
 ---
 
@@ -17,6 +17,11 @@ Mapeamento completo de todos os processos, tools e fluxos do agente.
 6. [Jobs Agendados](#6-jobs-agendados)
 7. [Integrações Externas](#7-integrações-externas)
 8. [Fluxo Completo](#8-fluxo-completo-mensagem-recebida-até-resposta)
+9. [Contratos e Invariantes](#9-contratos-e-invariantes)
+10. [Matriz de Risco - Tools Write](#10-matriz-de-risco---tools-write)
+11. [Governança de Flags](#11-governança-de-flags)
+12. [Source of Truth - Tabelas](#12-source-of-truth---tabelas)
+13. [Apêndice: Decisões Arquiteturais](#13-apêndice-decisões-arquiteturais)
 
 ---
 
@@ -262,12 +267,23 @@ WEBHOOK (Evolution API)
 │ PÓS-PROCESSADORES (5)                                       │
 ├─────────────────────────────────────────────────────────────┤
 │  5  ValidateOutputProcessor   → Valida resposta             │
-│ 10  TimingProcessor           → Aplica delay (45-180s)      │
-│ 20  SendMessageProcessor      → Envia via Evolution         │
+│ 10  TimingProcessor           → Aplica delay (5-30s)        │
+│ 20  SendMessageProcessor      → ⚠️ VIA WRAPPER (ver abaixo) │
 │ 30  SaveInteractionProcessor  → Salva no banco              │
 │ 40  MetricsProcessor          → Calcula métricas            │
 └─────────────────────────────────────────────────────────────┘
+
+⚠️ **CRÍTICO - SendMessageProcessor NÃO envia direto para Evolution!**
 ```
+SendMessageProcessor
+    → criar_contexto_reply(ctx)
+    → enviar_resposta(telefone, texto, ctx)
+        → send_outbound_message(telefone, texto, ctx)
+            → check_outbound_guardrails(ctx)    [GUARDRAILS]
+            → verificar_e_reservar(dedupe_key)  [DEDUPE]
+            → evolution.enviar_mensagem()       [PROVIDER]
+```
+Este é o "one way out" - TODA mensagem passa pelo wrapper em `app/services/outbound.py`.
 
 ⛔ = Pode interromper pipeline e retornar resposta direta
 
@@ -297,10 +313,43 @@ WEBHOOK (Evolution API)
 | Processor | Prioridade | Função | Sempre Executa |
 |-----------|-----------|--------|----------------|
 | ValidateOutputProcessor | 5 | Valida resposta gerada | Sim |
-| TimingProcessor | 10 | Aplica delay antes de envio | Não (early exit salta) |
-| SendMessageProcessor | 20 | Envia via Evolution API | Sim |
+| TimingProcessor | 10 | Aplica delay humanizado | Não (early exit salta) |
+| SendMessageProcessor | 20 | **Via wrapper** (guardrails + dedupe) | Sim |
 | SaveInteractionProcessor | 30 | Salva em interacoes table | Sim |
 | MetricsProcessor | 40 | Calcula métricas | Não (early exit salta) |
+
+#### 3.3.1 TimingProcessor - Detalhes
+
+**Arquivo:** `app/services/timing.py`
+
+| Aspecto | Valor | Nota |
+|---------|-------|------|
+| Delay base | 5s | Mínimo garantido |
+| Delay máximo | 30s | Limite superior |
+| Aplica a | **Todos os tipos** | Reply E proativo (sem diferenciação) |
+| Fórmula | base + leitura + complexidade × fator_hora × variação | |
+| Variação | ±30% aleatório | Humanização |
+| Fator hora | 1.0-1.4 | Mais lento almoço/início/fim do dia |
+
+**Risco:** Delay de reply pode parecer lento para médico que espera resposta rápida. Considerar override para reply urgente.
+
+#### 3.3.2 Semáforo de Concorrência
+
+**Arquivo:** `app/api/routes/webhook.py:21`
+
+```python
+_semaforo_processamento = asyncio.Semaphore(2)  # Por instância
+```
+
+| Aspecto | Valor |
+|---------|-------|
+| Tipo | `asyncio.Semaphore` (in-memory) |
+| Limite | 2 mensagens simultâneas |
+| Escopo | **Por instância** (não global) |
+| Comportamento overflow | Aguarda (enfileira) |
+| Persistência | Não (reinício = reset) |
+
+**Risco:** Em deploy multi-instância, cada instância tem seu próprio semáforo (total = 2 × N instâncias).
 
 ---
 
@@ -381,11 +430,15 @@ Sistema de conhecimento contextual implementado na Sprint 13.
 **Fluxo:**
 1. Recebe webhook Evolution (event: messages.upsert)
 2. Responde 200 imediatamente (não bloqueia Evolution)
-3. Agenda processamento em background via `processar_mensagem_pipeline()`
-4. Pipeline executa pré → core → pós processadores
-5. Mensagem é enviada em background
+3. Aguarda semáforo (`asyncio.Semaphore(2)`)
+4. Agenda processamento em background via `processar_mensagem_pipeline()`
+5. Pipeline executa pré → core → pós processadores
+6. Mensagem é enviada em background
 
-**Semáforo:** Máximo 2 mensagens simultâneas (evita overload)
+**Semáforo:** `asyncio.Semaphore(2)` - máximo 2 mensagens simultâneas **por instância**.
+- Tipo: in-memory (não distribuído)
+- Overflow: aguarda na fila
+- Multi-instância: cada instância tem seu próprio limite
 
 ### 5.2 Geração de Resposta (LLM)
 
@@ -563,11 +616,14 @@ Sistema de conhecimento contextual implementado na Sprint 13.
    ValidateOutput → Quebra em múltiplas mensagens se necessário
 
 6. TIMING
-   Aplica delay aleatório (45-180s)
-   Respeita rate limiting
+   Aplica delay humanizado (5-30s)
+   Fórmula: base + leitura + complexidade × fator_hora
 
-7. ENVIO
-   SendMessage → Evolution API
+7. ENVIO (VIA WRAPPER - CRÍTICO)
+   SendMessage → criar_contexto_reply() → send_outbound_message()
+       → check_outbound_guardrails() [Verifica regras R-1 a R4]
+       → verificar_e_reservar()      [Dedupe por content_hash]
+       → evolution.enviar_mensagem() [Provider]
 
 8. SALVAR
    SaveInteraction → Insere em interacoes table
@@ -601,8 +657,320 @@ Sistema de conhecimento contextual implementado na Sprint 13.
 
 ---
 
+## 9. Contratos e Invariantes
+
+Regras invioláveis que devem ser garantidas pelo sistema. Quebrar qualquer invariante é bug crítico.
+
+### 9.1 Invariantes de Eventos
+
+| ID | Invariante | Verificação |
+|----|------------|-------------|
+| **I1** | Todo inbound persistido DEVE emitir `DOCTOR_INBOUND` (exatamente uma vez) | Query: inbounds sem evento correspondente |
+| **I2** | Todo outbound DEVE resultar em exatamente um de: `DOCTOR_OUTBOUND`, `OUTBOUND_BLOCKED`, `OUTBOUND_BYPASS`, ou `OUTBOUND_DEDUPED` | Query: outbounds sem desfecho |
+| **I3** | `method=reply` EXIGE `inbound_interaction_id` + `last_inbound_at` dentro da janela (30min) | Teste: `_has_valid_inbound_proof()` |
+| **I4** | `opted_out` só pode receber outbound se: (a) `method=reply` válido, OU (b) bypass Slack COM `bypass_reason` | Guardrail R0 |
+| **I5** | Nenhum evento pode carregar texto integral/PII em `event_props` | Regra R6 em `_validate_event_integrity()` |
+| **I6** | Early-exit processors DEVEM emitir evento correspondente antes de retornar | Audit: opt-out emite evento antes de parar |
+
+### 9.2 Invariantes de Outbound
+
+| ID | Invariante | Implementação |
+|----|------------|---------------|
+| **O1** | TODO envio outbound passa por `send_outbound_message()` | CI gate: `test_architecture_guardrails.py` |
+| **O2** | TODO envio proativo respeita rate limit (20/hora, 100/dia por telefone) | `RateLimitError` em `whatsapp.py` |
+| **O3** | TODO envio proativo respeita horário comercial (08h-20h, seg-sex) | `esta_em_horario_comercial()` |
+| **O4** | Dedupe por `content_hash` dentro de janela de 1 hora | `outbound_messages` table |
+
+### 9.3 Contratos por Método (OutboundContext)
+
+| Método | Campos Obrigatórios | is_proactive | Regras Aplicáveis |
+|--------|---------------------|--------------|-------------------|
+| `REPLY` | `inbound_interaction_id`, `last_inbound_at`, `conversation_id` | `false` | R-1 (proof) |
+| `CAMPAIGN` | `campaign_id` | `true` | R0-R4 + campaigns.enabled |
+| `FOLLOWUP` | `conversation_id` | `true` | R0-R4 |
+| `REACTIVATION` | - | `true` | R0-R4 |
+| `COMMAND` (Slack) | `actor_id` | `true` | R0-R4, bypass com `bypass_reason` |
+| `MANUAL` | `actor_id`, `bypass_reason` (se opted_out) | `true` | R0-R4 |
+
+### 9.4 Queries de Validação
+
+```sql
+-- I1: Inbounds sem evento DOCTOR_INBOUND
+SELECT i.id, i.created_at
+FROM interacoes i
+LEFT JOIN business_events be ON be.interaction_id = i.id
+  AND be.event_type = 'doctor_inbound'
+WHERE i.tipo = 'entrada'
+  AND i.created_at >= NOW() - INTERVAL '24 hours'
+  AND be.id IS NULL;
+
+-- I2: Outbounds sem desfecho (deve ser vazio)
+SELECT i.id, i.created_at
+FROM interacoes i
+LEFT JOIN business_events be ON be.interaction_id = i.id
+  AND be.event_type IN ('doctor_outbound', 'outbound_blocked', 'outbound_bypass')
+WHERE i.tipo = 'saida'
+  AND i.created_at >= NOW() - INTERVAL '24 hours'
+  AND be.id IS NULL;
+```
+
+---
+
+## 10. Matriz de Risco - Tools Write
+
+Tools que modificam estado (write paths) e suas proteções.
+
+### 10.1 Matriz Completa
+
+| Tool | Read/Write | Dedupe Key | Concurrency Guard | Rate Limit | Failure Mode | Eventos Emitidos |
+|------|------------|------------|-------------------|------------|--------------|------------------|
+| `buscar_vagas` | Read | N/A | N/A | N/A | fail-open | Nenhum |
+| `buscar_info_hospital` | Read | N/A | N/A | N/A | fail-open | Nenhum |
+| `reservar_plantao` | **Write** | `vaga_id` | Optimistic lock (status=aberta) | N/A | fail-closed | `offer_accepted` |
+| `salvar_memoria` | **Write** | `cliente_id + tipo + hash(info)` | Upsert | N/A | fail-open | Nenhum |
+| `agendar_lembrete` | **Write** | `conversa_id + data_hora` | Unique constraint | N/A | fail-closed | Nenhum |
+| `enviar_mensagem` (Slack) | **Write** | `cliente_id + content_hash` | Dedupe table | 20/hora | fail-closed | `doctor_outbound` ou `outbound_*` |
+| `bloquear_medico` | **Write** | `cliente_id` | Idempotente | N/A | fail-closed | `permission_changed` |
+
+### 10.2 Detalhes - reservar_plantao (Write Crítico)
+
+**Arquivo:** `app/services/vagas/repository.py:88`
+
+```python
+# Optimistic locking - só reserva se ainda está aberta
+.eq("id", vaga_id)
+.eq("status", "aberta")  # ← Guard de concorrência
+```
+
+| Risco | Mitigação | Status |
+|-------|-----------|--------|
+| Concorrência (2 médicos reservam mesmo plantão) | `.eq("status", "aberta")` no UPDATE | ✅ Implementado |
+| Tool chamada 2x pelo LLM | Vaga já muda para "reservada" no 1º call | ✅ Idempotente |
+| Rollback após falha | Não implementado (reserva persiste) | ⚠️ Risco aceito |
+
+### 10.3 Detalhes - salvar_memoria (Write)
+
+| Risco | Mitigação | Status |
+|-------|-----------|--------|
+| Duplicação de memória | Embedding similarity check (>0.95 = mesmo) | ✅ Implementado |
+| PII em memória | Não há sanitização automática | ⚠️ Risco aceito |
+
+### 10.4 Dedupe de Inbound
+
+**Risco identificado:** Dedupe de inbound depende do Evolution não duplicar.
+
+| Situação | Mitigação Atual | Risco Residual |
+|----------|-----------------|----------------|
+| Evolution envia webhook 2x | `message_id` único por mensagem | Baixo (Evolution confiável) |
+| Timeout + retry do lado Júlia | Não aplicável (Júlia não faz retry de recebimento) | N/A |
+
+**Decisão:** Risco aceito. Se Evolution duplicar, processaremos 2x.
+
+---
+
+## 11. Governança de Flags
+
+Sistema de feature flags para controle operacional.
+
+### 11.1 Fonte de Verdade
+
+```
+┌─────────────────────────────────────────────────────┐
+│                  SUPABASE                           │
+│            feature_flags table                      │
+│  ┌─────────────────────────────────────────────┐   │
+│  │ key          │ value              │ updated │   │
+│  │──────────────│────────────────────│─────────│   │
+│  │ safe_mode    │ {enabled: false}   │ user_x  │   │
+│  │ campaigns    │ {enabled: true}    │ system  │   │
+│  │ policy_engine│ {enabled: true}    │ system  │   │
+│  │ disabled_rules│{rules: []}        │ system  │   │
+│  └─────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│                    REDIS                            │
+│               Cache (TTL: 30s)                      │
+│         feature_flag:{key} → value                  │
+└─────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│                  APLICAÇÃO                          │
+│          get_*_flags() → dataclass                  │
+│                                                     │
+│  Fallback chain:                                    │
+│  1. Redis cache (30s TTL)                          │
+│  2. Supabase query                                 │
+│  3. Safe defaults (código)                         │
+└─────────────────────────────────────────────────────┘
+```
+
+### 11.2 Flags Disponíveis
+
+| Flag | Tipo | Default | Escopo | Quem Altera |
+|------|------|---------|--------|-------------|
+| `safe_mode` | `{enabled, mode}` | `{false, "wait"}` | Global | Slack: `pausar_julia` |
+| `campaigns` | `{enabled}` | `{true}` | Global | Slack: `toggle_campanhas` |
+| `policy_engine` | `{enabled}` | `{true}` | Global | Deploy/manual |
+| `disabled_rules` | `{rules: []}` | `{rules: []}` | Global | Deploy/manual |
+
+### 11.3 Precedência de Flags (Guardrails)
+
+```
+Ordem de verificação em check_outbound_guardrails():
+
+1. R-1: inbound_proof (reply sem prova → vira proativo)
+2. R0:  opted_out (absoluto, exceto reply válido ou bypass)
+3. R1:  cooling_off
+4. R2:  next_allowed_at
+5. R3:  contact_cap_7d
+6. R4a: campaigns.enabled (só para method=CAMPAIGN)
+7. R4b: safe_mode (bloqueia TODO proativo)
+```
+
+**Regra de ouro:** `safe_mode` ganha de `campaigns.enabled`.
+- `safe_mode=true` → bloqueia tudo proativo (incluindo campaigns)
+- `campaigns.enabled=false` → bloqueia só campaigns (followup/reactivation continuam)
+
+### 11.4 Escopo: Global vs Por Instância
+
+| Flag | Escopo | Motivo |
+|------|--------|--------|
+| `safe_mode` | **Global** | Emergência afeta toda operação |
+| `campaigns` | **Global** | Campanhas são centralizadas |
+| Rate limit | **Por telefone** | Limite individual |
+| Semáforo pipeline | **Por instância** | In-memory, não compartilhado |
+
+### 11.5 Pontos de Leitura
+
+| Flag | Lido em | Arquivo |
+|------|---------|---------|
+| `safe_mode` | `check_outbound_guardrails()` | `guardrails/check.py:407` |
+| `campaigns` | `check_outbound_guardrails()` | `guardrails/check.py:394` |
+| `policy_engine` | `decidir_proxima_acao()` | `policy/decide.py` |
+
+---
+
+## 12. Source of Truth - Tabelas
+
+Definição de qual tabela é a fonte oficial para cada tipo de dado.
+
+### 12.1 Mapa de Autoridade
+
+| Domínio | Source of Truth | Tabela | Observação |
+|---------|-----------------|--------|------------|
+| **Status da conversa** | `conversations.controlled_by` | `conversations` | `julia` ou `human` |
+| **Permissão do médico** | `doctor_state.permission_state` | `doctor_state` | `opted_in`, `opted_out`, `cooling_off` |
+| **Histórico factual** | `interacoes` | `interacoes` | Imutável após criação |
+| **Auditoria de eventos** | `business_events` | `business_events` | Append-only |
+| **Decisões de policy** | `policy_events` | `policy_events` | Link com `doctor_state` |
+| **Vagas disponíveis** | `vagas.status` | `vagas` | `aberta`, `reservada`, `fechada` |
+| **Memória do médico** | `doctor_context` | `doctor_context` | RAG com embeddings |
+| **Flags operacionais** | `feature_flags.value` | `feature_flags` | JSONB |
+| **Campanhas** | `campanhas` | `campanhas` | Status + envios |
+
+### 12.2 Relações Críticas
+
+```
+clientes (médico)
+    │
+    ├── conversations (1:N) ─── controlled_by: julia|human
+    │       │
+    │       └── interacoes (1:N) ─── tipo: entrada|saida
+    │
+    ├── doctor_state (1:1) ─── permission_state, cooling_off
+    │
+    ├── doctor_context (1:N) ─── memórias com embeddings
+    │
+    └── business_events (1:N) ─── auditoria
+            │
+            └── policy_events (0:1) ─── link opcional
+```
+
+### 12.3 Consistência
+
+| Cenário | Fonte Primária | Secundária | Sync |
+|---------|----------------|------------|------|
+| Médico deu opt-out | `doctor_state` | `clientes.status`? | Manual (legado) |
+| Conversa em handoff | `conversations.controlled_by` | Chatwoot label | Automático |
+| Vaga reservada | `vagas.status` | Cache invalidado | Imediato |
+
+---
+
+## 13. Apêndice: Decisões Arquiteturais
+
+Registro das decisões técnicas e seus motivos.
+
+### 13.1 LLM: Haiku/Sonnet 80/20
+
+| Decisão | Usar Claude Haiku para 80% das interações |
+|---------|------------------------------------------|
+| **Motivo** | Custo ($0.25/1M vs $3/1M) com qualidade suficiente |
+| **Quando Sonnet** | Negociação complexa, policy decisions |
+| **Economia** | ~73% vs Sonnet-only |
+| **Risco** | Qualidade inferior em edge cases |
+
+### 13.2 RAG: Similarity Threshold 0.65
+
+| Decisão | Threshold de similaridade 0.65 |
+|---------|-------------------------------|
+| **Motivo** | Balanceia recall vs precisão |
+| **Muito alto (0.8+)** | Perde conhecimento relevante |
+| **Muito baixo (0.5-)** | Retorna muito ruído |
+| **Ajuste** | Pode subir para 0.7 se muitos false positives |
+
+### 13.3 Cache: 5 minutos para conhecimento
+
+| Decisão | TTL de 5 minutos para buscas RAG |
+|---------|----------------------------------|
+| **Motivo** | Conhecimento muda raramente |
+| **Trade-off** | Atualização de docs demora até 5min para refletir |
+| **Alternativa** | Cache invalidation manual (não implementado) |
+
+### 13.4 Timing: 5-30s (reduzido de 20-120s)
+
+| Decisão | Delay de resposta 5-30 segundos |
+|---------|--------------------------------|
+| **Original** | 20-120s (muito lento para testes) |
+| **Atual** | 5-30s (humanizado mas responsivo) |
+| **Risco** | Pode parecer "bot" se muito rápido |
+| **TODO** | Diferenciar reply (rápido) vs proativo (lento) |
+
+### 13.5 Rate Limit: 20/hora, 100/dia
+
+| Decisão | Limite de mensagens proativas |
+|---------|------------------------------|
+| **Por hora** | 20 mensagens |
+| **Por dia** | 100 mensagens |
+| **Escopo** | Por telefone (não global) |
+| **Motivo** | Evitar ban do WhatsApp |
+| **Base** | Políticas conhecidas do WhatsApp Business |
+
+### 13.6 Semáforo: 2 mensagens simultâneas
+
+| Decisão | Limite de 2 processamentos paralelos |
+|---------|-------------------------------------|
+| **Motivo** | Evitar sobrecarga do LLM/banco |
+| **Tipo** | `asyncio.Semaphore` (in-memory) |
+| **Risco** | Multi-instância = 2 × N total |
+| **Alternativa** | Redis distributed lock (não implementado) |
+
+### 13.7 Dedupe: Content hash + janela 1h
+
+| Decisão | Deduplicação por hash de conteúdo |
+|---------|----------------------------------|
+| **Chave** | `sha256(texto)[:16]` |
+| **Janela** | 1 hora |
+| **Motivo** | Timeout + retry = duplicata |
+| **Tabela** | `outbound_messages` |
+
+---
+
 ## Histórico
 
 | Data | Versão | Mudança |
 |------|--------|---------|
 | 2025-12-29 | 1.0 | Documento inicial com mapeamento completo |
+| 2025-12-29 | 2.0 | Versão produção: contratos, matriz de risco, governança de flags, source of truth, decisões arquiteturais |
