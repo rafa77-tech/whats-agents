@@ -46,6 +46,15 @@ class OutboundContext:
     Este objeto deve ser criado antes de qualquer tentativa de envio
     e passado para check_outbound_guardrails().
 
+    IMPORTANTE sobre REPLY:
+    - method=REPLY só é válido com inbound_proof preenchido
+    - inbound_proof = (inbound_interaction_id, last_inbound_at recente)
+    - Sem prova de inbound, cai nas regras R0-R4 como proativo
+
+    IMPORTANTE sobre BYPASS:
+    - Bypass só funciona para channel=SLACK
+    - bypass_reason é obrigatório para opted_out
+
     Attributes:
         cliente_id: UUID do médico destinatário (obrigatório)
         actor_type: Quem está tentando enviar (human/bot/system)
@@ -56,6 +65,9 @@ class OutboundContext:
         actor_id: Identificador do ator (ex: "rafael", "julia")
         campaign_id: UUID da campanha (se aplicável)
         policy_decision_id: Link com decisão do policy engine
+        inbound_interaction_id: ID da interação inbound (prova de reply)
+        last_inbound_at: Timestamp da última msg inbound (prova de reply)
+        bypass_reason: Motivo do bypass humano (obrigatório para opted_out)
         extra: Dados extras para auditoria
     """
     # Obrigatórios
@@ -70,6 +82,13 @@ class OutboundContext:
     actor_id: Optional[str] = None
     campaign_id: Optional[str] = None
     policy_decision_id: Optional[str] = None
+
+    # Prova de inbound (obrigatório para method=REPLY)
+    inbound_interaction_id: Optional[int] = None
+    last_inbound_at: Optional[str] = None  # ISO timestamp
+
+    # Bypass humano
+    bypass_reason: Optional[str] = None
 
     # Extras para auditoria
     extra: Optional[Dict[str, Any]] = None

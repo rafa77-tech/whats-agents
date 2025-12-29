@@ -204,9 +204,18 @@ def criar_contexto_reativacao(
 def criar_contexto_reply(
     cliente_id: str,
     conversation_id: str,
+    inbound_interaction_id: int,
+    last_inbound_at: str,
     policy_decision_id: Optional[str] = None,
 ) -> OutboundContext:
-    """Cria contexto para resposta a mensagem inbound."""
+    """
+    Cria contexto para resposta a mensagem inbound.
+
+    IMPORTANTE: Reply requer prova de inbound!
+    - inbound_interaction_id: ID da interação que originou a resposta
+    - last_inbound_at: Timestamp ISO da última mensagem do médico
+    - Sem esses campos, guardrail trata como proativo
+    """
     return OutboundContext(
         cliente_id=cliente_id,
         actor_type=ActorType.BOT,
@@ -215,15 +224,24 @@ def criar_contexto_reply(
         is_proactive=False,  # Reply não é proativo
         conversation_id=conversation_id,
         policy_decision_id=policy_decision_id,
+        inbound_interaction_id=inbound_interaction_id,
+        last_inbound_at=last_inbound_at,
     )
 
 
 def criar_contexto_manual_slack(
     cliente_id: str,
     actor_id: str,
+    bypass_reason: Optional[str] = None,
     conversation_id: Optional[str] = None,
 ) -> OutboundContext:
-    """Cria contexto para envio manual via Slack."""
+    """
+    Cria contexto para envio manual via Slack.
+
+    IMPORTANTE para opted_out:
+    - bypass_reason é OBRIGATÓRIO para contactar médico opted_out
+    - Sem bypass_reason, guardrail bloqueia mesmo com humano
+    """
     return OutboundContext(
         cliente_id=cliente_id,
         actor_type=ActorType.HUMAN,
@@ -232,4 +250,5 @@ def criar_contexto_manual_slack(
         is_proactive=True,
         actor_id=actor_id,
         conversation_id=conversation_id,
+        bypass_reason=bypass_reason,
     )

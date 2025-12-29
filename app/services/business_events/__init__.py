@@ -48,6 +48,18 @@ from .alerts import (
     persist_alert,
     get_recent_alerts,
 )
+from .audit import (
+    run_full_audit,
+    audit_pipeline_inbound,
+    audit_outbound_coverage,
+    audit_status_transitions,
+    get_invariant_violations,
+    AuditResult,
+    SourceCoverage,
+    InvariantViolation,
+    CoverageStatus,
+    CoverageSource,
+)
 
 __all__ = [
     # Repository
@@ -96,4 +108,15 @@ __all__ = [
     "process_and_notify_alerts",
     "persist_alert",
     "get_recent_alerts",
+    # Audit
+    "run_full_audit",
+    "audit_pipeline_inbound",
+    "audit_outbound_coverage",
+    "audit_status_transitions",
+    "get_invariant_violations",
+    "AuditResult",
+    "SourceCoverage",
+    "InvariantViolation",
+    "CoverageStatus",
+    "CoverageSource",
 ]
