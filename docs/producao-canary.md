@@ -30,6 +30,9 @@ Sprint 18.1 P0 - Documento de governança para rollout de guardrails.
 | Circuit breaker | ✅ | 5 falhas → abre, 60s reset |
 | Rate limiter | ✅ | 20/hora, 100/dia por telefone |
 | Monitoramento | ✅ | Queries SQL + ritual diário |
+| RLS habilitado (54 tabelas) | ✅ | Migration `enable_rls_critical_tables` |
+| Grants anon/authenticated revogados | ✅ | Migration `revoke_anon_authenticated_grants_p0` |
+| search_path hardened | ✅ | 40+ funções com `SET search_path` |
 
 ### Restrições Operacionais (OBRIGATÓRIAS)
 
@@ -44,6 +47,34 @@ OUTBOUND_FALLBACK = 0          # Fallback legado não usado
 invalid_reply_attempts = 0     # Reply sem inbound_proof
 outbound_to_opted_out = 0      # Vazamento de guardrail
 provider_error_rate < 1%       # Estabilidade Evolution
+```
+
+### Security Hardening (2025-12-29)
+
+**Migrações aplicadas:**
+
+1. **`enable_rls_critical_tables_and_fix_search_path`**
+   - RLS habilitado em 13 tabelas críticas que estavam sem
+   - `search_path = public, pg_catalog` em 40+ funções
+   - Proteção contra SQL injection via schema poisoning
+
+2. **`revoke_anon_authenticated_grants_p0`**
+   - Todos os grants de `anon`/`authenticated` revogados
+   - Backend usa apenas `service_role` (bypassa RLS by design)
+   - Default privileges configurados para novos objetos
+
+**Verificação:**
+```sql
+-- Tabelas com grant para anon (deve ser 0)
+SELECT COUNT(*) FROM information_schema.table_privileges
+WHERE grantee = 'anon' AND table_schema = 'public';
+
+-- Funções SECURITY DEFINER expostas (deve ser 0)
+SELECT COUNT(*) FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.prosecdef = true
+  AND has_function_privilege('anon', p.oid, 'EXECUTE');
 ```
 
 ---
@@ -481,6 +512,9 @@ async def check_daily_health() -> dict:
 | Data | Canary | Mudança | Responsável |
 |------|--------|---------|-------------|
 | 2025-12-29 | 10% | GO inicial - guardrails provados | - |
+| 2025-12-29 | 10% | Security hardening: RLS em 54 tabelas | - |
+| 2025-12-29 | 10% | Security hardening: Grants revogados de anon/authenticated | - |
+| 2025-12-29 | 10% | Security hardening: search_path em 40+ funções | - |
 | - | 25% | Pendente: B1 + B2 | - |
 | - | 50% | Pendente: C1 | - |
 | - | 100% | Pendente: D1 + D2 + D3 | - |
