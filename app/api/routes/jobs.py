@@ -718,3 +718,36 @@ async def job_setup_templates(parent_folder_id: str):
     except Exception as e:
         logger.error(f"Erro ao criar estrutura de templates: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# =============================================================================
+# Jobs de External Handoff (Sprint 20)
+# =============================================================================
+
+
+@router.post("/processar-handoffs")
+async def job_processar_handoffs():
+    """
+    Job para processar handoffs pendentes (follow-up e expiracao).
+
+    Executa a cada 10 minutos:
+    - Envia follow-ups (2h, 24h, 36h)
+    - Expira handoffs vencidos (48h)
+    - Libera vagas expiradas
+    - Notifica medicos
+
+    Sprint 20 - E07.
+    """
+    try:
+        from app.workers.handoff_processor import processar_handoffs_pendentes
+
+        stats = await processar_handoffs_pendentes()
+
+        return JSONResponse({
+            "status": "ok",
+            "message": f"Processados {stats['total_processados']} handoffs",
+            **stats
+        })
+    except Exception as e:
+        logger.error(f"Erro ao processar handoffs: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)

@@ -140,6 +140,12 @@ JOBS = [
         "endpoint": "/jobs/processar-confirmacao-plantao",
         "schedule": "0 * * * *",  # A cada hora, minuto 0
     },
+    # External Handoff - Follow-up e Expiracao (Sprint 20)
+    {
+        "name": "processar_handoffs",
+        "endpoint": "/jobs/processar-handoffs",
+        "schedule": "*/10 * * * *",  # A cada 10 minutos
+    },
 ]
 
 

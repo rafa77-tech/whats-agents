@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 
 from app.services.outbound import send_outbound_message
-from app.services.whatsapp import enviar_mensagem_whatsapp
+from app.services.whatsapp import enviar_whatsapp
 
 logger = logging.getLogger(__name__)
 
@@ -144,9 +144,28 @@ async def enviar_mensagem_divulgador(
 
     # Enviar via WhatsApp
     # Nota: Usar instancia default da Julia
-    await enviar_mensagem_whatsapp(
-        telefone=telefone,
+    await enviar_whatsapp(
+        numero=telefone,
         mensagem=mensagem,
     )
 
     logger.info(f"Mensagem de ponte enviada ao divulgador {telefone[-4:]}")
+
+
+async def enviar_followup_divulgador(
+    telefone: str,
+    mensagem: str,
+) -> None:
+    """
+    Envia mensagem de follow-up ao divulgador.
+
+    Args:
+        telefone: Telefone do divulgador
+        mensagem: Mensagem de follow-up
+    """
+    await enviar_whatsapp(
+        numero=telefone,
+        mensagem=mensagem,
+    )
+
+    logger.info(f"Follow-up enviado ao divulgador {telefone[-4:]}")
