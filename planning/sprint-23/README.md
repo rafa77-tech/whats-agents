@@ -58,7 +58,7 @@ Isso gera **funil por campanha** e permite comparar performance entre tipos.
 |-------|--------|------------|--------------|--------|
 | E01 | Outcome no Send | P0 | Media | ✅ Completo |
 | E02 | Atribuicao First/Last Touch | P0 | Media | ✅ Completo |
-| E03 | Unificacao de Envios | P1 | Media | 📋 Pendente |
+| E03 | Unificacao de Envios | P1 | Media | ✅ Completo |
 | E04 | Status Deduped Explicito | P1 | Baixa | ✅ Completo |
 | E05 | Cooldown por Campanha (Guardrail) | P1 | Media | 📋 Pendente |
 | E06 | Briefing Tatico (Slack) | P2 | Baixa | 📋 Pendente |
@@ -319,20 +319,20 @@ GROUP BY campaign_id;
 
 ### Tarefas
 
-- [ ] T03.1: Criar view `campaign_sends` com schema estavel
-- [ ] T03.2: Criar view `campaign_metrics` para dashboard
-- [ ] T03.3: Atualizar `criar_envios_campanha` para usar apenas `fila_mensagens`
-- [ ] T03.4: Criar `CampaignSendsRepository` que usa as views
-- [ ] T03.5: Deprecar uso direto de `envios_campanha` em novos codigos
-- [ ] T03.6: Documentar que `envios_campanha` e legado
+- [x] T03.1: Criar view `campaign_sends` com schema estavel ✅
+- [x] T03.2: Criar view `campaign_metrics` para dashboard ✅
+- [x] T03.3: Atualizar `criar_envios_campanha` para usar apenas `fila_mensagens` ✅ (ja usava)
+- [x] T03.4: Criar `CampaignSendsRepository` que usa as views ✅
+- [x] T03.5: Deprecar uso direto de `envios_campanha` em novos codigos ✅
+- [x] T03.6: Documentar que `envios_campanha` e legado ✅
 
 ### Criterios de Aceite
 
-- [ ] Todos os relatorios de campanha usam `campaign_sends`
-- [ ] Novos envios vao para `fila_mensagens` com `metadata.campanha_id`
-- [ ] Dados historicos de `envios_campanha` continuam visiveis
-- [ ] Coluna `source_table` permite identificar origem
-- [ ] View `campaign_metrics` funciona para dashboard
+- [x] Todos os relatorios de campanha usam `campaign_sends`
+- [x] Novos envios vao para `fila_mensagens` com `metadata.campanha_id`
+- [x] Dados historicos de `envios` continuam visiveis via view
+- [x] Coluna `source_table` permite identificar origem
+- [x] View `campaign_metrics` funciona para dashboard
 
 ---
 

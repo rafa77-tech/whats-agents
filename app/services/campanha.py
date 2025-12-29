@@ -1,8 +1,14 @@
 """
 Serviço para gerenciamento de campanhas de primeiro contato.
+
+DEPRECATION WARNING (Sprint 23 E03):
+- A tabela `envios_campanha` está deprecated
+- Novos envios devem usar `fila_mensagens` via `fila_service.enfileirar`
+- Para queries, use a view `campaign_sends` via `campaign_sends_repo`
 """
 import asyncio
 import logging
+import warnings
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -19,7 +25,17 @@ class ControladorEnvio:
     """Controla rate limiting de envios."""
 
     async def pode_enviar_primeiro_contato(self) -> bool:
-        """Verifica se pode enviar primeiro contato agora."""
+        """
+        Verifica se pode enviar primeiro contato agora.
+
+        DEPRECATED: Esta funcao usa a tabela legada envios_campanha.
+        Use campaign_sends_repo para queries unificadas.
+        """
+        warnings.warn(
+            "pode_enviar_primeiro_contato usa tabela legada envios_campanha",
+            DeprecationWarning,
+            stacklevel=2
+        )
         agora = datetime.now()
 
         # Verificar horário
@@ -30,7 +46,7 @@ class ControladorEnvio:
         if agora.weekday() >= 5:
             return False
 
-        # Contar envios do dia
+        # Contar envios do dia - DEPRECATED: usar campaign_sends
         inicio_dia = agora.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
         envios_resp = (
             supabase.table("envios_campanha")
@@ -45,7 +61,7 @@ class ControladorEnvio:
         if envios_hoje >= piloto_config.MAX_PRIMEIROS_CONTATOS_DIA:
             return False
 
-        # Verificar último envio
+        # Verificar último envio - DEPRECATED: usar campaign_sends
         ultimo_resp = (
             supabase.table("envios_campanha")
             .select("created_at")
