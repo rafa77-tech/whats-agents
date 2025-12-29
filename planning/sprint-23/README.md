@@ -54,14 +54,14 @@ Isso gera **funil por campanha** e permite comparar performance entre tipos.
 
 ## Epicos
 
-| Epico | Titulo | Prioridade | Complexidade |
-|-------|--------|------------|--------------|
-| E01 | Outcome no Send | P0 | Media |
-| E02 | Atribuicao First/Last Touch | P0 | Media |
-| E03 | Unificacao de Envios | P1 | Media |
-| E04 | Status Deduped Explicito | P1 | Baixa |
-| E05 | Cooldown por Campanha (Guardrail) | P1 | Media |
-| E06 | Briefing Tatico (Slack) | P2 | Baixa |
+| Epico | Titulo | Prioridade | Complexidade | Status |
+|-------|--------|------------|--------------|--------|
+| E01 | Outcome no Send | P0 | Media | ✅ Completo |
+| E02 | Atribuicao First/Last Touch | P0 | Media | 📋 Pendente |
+| E03 | Unificacao de Envios | P1 | Media | 📋 Pendente |
+| E04 | Status Deduped Explicito | P1 | Baixa | ✅ Completo |
+| E05 | Cooldown por Campanha (Guardrail) | P1 | Media | 📋 Pendente |
+| E06 | Briefing Tatico (Slack) | P2 | Baixa | 📋 Pendente |
 
 **Ordem ajustada:** E01 antes de E02 porque `outcome=SENT` e gatilho para setar `last_touch`.
 
@@ -139,21 +139,21 @@ class OutboundResult:
 
 ### Tarefas
 
-- [ ] T01.1: Criar enum `send_outcome` no banco
-- [ ] T01.2: Migracao - adicionar colunas de outcome em fila_mensagens
-- [ ] T01.3: Criar `OutcomeMapper` para traduzir guardrail → outcome
-- [ ] T01.4: Atualizar `OutboundResult` com campos novos
-- [ ] T01.5: Atualizar `send_outbound_message` para retornar outcome detalhado
-- [ ] T01.6: Atualizar `fila_worker` para registrar outcome completo
-- [ ] T01.7: Testes unitarios e integracao
+- [x] T01.1: Criar enum `send_outcome` no banco ✅
+- [x] T01.2: Migracao - adicionar colunas de outcome em fila_mensagens ✅
+- [x] T01.3: Criar `OutcomeMapper` para traduzir guardrail → outcome ✅
+- [x] T01.4: Atualizar `OutboundResult` com campos novos ✅
+- [x] T01.5: Atualizar `send_outbound_message` para retornar outcome detalhado ✅
+- [x] T01.6: Atualizar `fila_worker` para registrar outcome completo ✅
+- [x] T01.7: Testes unitarios e integracao ✅ (20 testes)
 
 ### Criterios de Aceite
 
-- [ ] Todo envio processado tem `outcome` preenchido (enum)
-- [ ] Bloqueios por guardrail tem `outcome_reason_code` com detalhes
-- [ ] Deduplicacao tem outcome `DEDUPED` (nao `BLOCKED_*`)
-- [ ] `provider_message_id` gravado quando `outcome=SENT`
-- [ ] Invariante C1 validado: campaign_id nunca nulo em sends de campanha
+- [x] Todo envio processado tem `outcome` preenchido (enum)
+- [x] Bloqueios por guardrail tem `outcome_reason_code` com detalhes
+- [x] Deduplicacao tem outcome `DEDUPED` (nao `BLOCKED_*`)
+- [x] `provider_message_id` gravado quando `outcome=SENT`
+- [ ] Invariante C1 validado: campaign_id nunca nulo em sends de campanha (validado em E02)
 
 ---
 
@@ -386,18 +386,18 @@ async def send_outbound_message(...) -> OutboundResult:
 
 ### Tarefas
 
-- [ ] T04.1: Adicionar `deduped` ao `OutboundResult`
-- [ ] T04.2: Verificar deduplicacao ANTES de guardrails
-- [ ] T04.3: Emitir evento `OUTBOUND_DEDUPED` (separado de `OUTBOUND_BLOCKED`)
-- [ ] T04.4: Mapear para outcome `DEDUPED` no fila_worker
-- [ ] T04.5: Testes - garantir que deduped != blocked
+- [x] T04.1: Adicionar `deduped` ao `OutboundResult` ✅ (Sprint 23 E01)
+- [x] T04.2: Verificar deduplicacao ANTES de guardrails ✅ (Sprint 23 E01)
+- [x] T04.3: Emitir evento `OUTBOUND_DEDUPED` (separado de `OUTBOUND_BLOCKED`) ✅ (Sprint 18.1)
+- [x] T04.4: Mapear para outcome `DEDUPED` no fila_worker ✅ (Sprint 23 E01)
+- [x] T04.5: Testes - garantir que deduped != blocked ✅ (20 testes em test_send_outcome.py)
 
 ### Criterios de Aceite
 
-- [ ] Mensagem duplicada retorna `deduped=True`, `blocked=False`
-- [ ] Outcome e `DEDUPED` com `reason_code=content_hash_window`
-- [ ] Evento `OUTBOUND_DEDUPED` emitido (nao `OUTBOUND_BLOCKED`)
-- [ ] Metricas de "bloqueios" nao incluem dedupe
+- [x] Mensagem duplicada retorna `deduped=True`, `blocked=False`
+- [x] Outcome e `DEDUPED` com `reason_code=content_hash_window`
+- [x] Evento `OUTBOUND_DEDUPED` emitido (nao `OUTBOUND_BLOCKED`)
+- [x] Metricas de "bloqueios" nao incluem dedupe
 
 ---
 
