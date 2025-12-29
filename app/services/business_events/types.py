@@ -53,6 +53,11 @@ class BusinessEvent:
     # Link com policy
     policy_decision_id: Optional[str] = None
 
+    # Idempotência: chave para deduplicação
+    # Padrão: {event_type}:{entity_id}:{ref}
+    # Se None, permite duplicatas (eventos sem necessidade de dedupe)
+    dedupe_key: Optional[str] = None
+
     def to_dict(self) -> dict:
         """Serializa para insercao no banco."""
         return {
@@ -65,4 +70,5 @@ class BusinessEvent:
             "conversation_id": self.conversation_id,
             "interaction_id": self.interaction_id,
             "policy_decision_id": self.policy_decision_id,
+            "dedupe_key": self.dedupe_key,
         }

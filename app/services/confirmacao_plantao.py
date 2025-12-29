@@ -7,12 +7,18 @@ Responsabilidades:
 - Job horario: transiciona vagas reservadas apos fim do plantao
 - Confirmacao: processa acoes do Slack (realizado/nao ocorreu)
 - Emissao de business_events em cada transicao
+
+IMPORTANTE: Timezone
+- Dados no banco (data, hora_inicio, hora_fim) sao em horario local (America/Sao_Paulo)
+- Conversao para UTC so acontece APOS combinar data + hora em SP
+- Nunca usar .replace(tzinfo=UTC) diretamente em horarios locais
 """
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from app.services.supabase import supabase
 from app.services.business_events.types import BusinessEvent, EventType, EventSource
@@ -23,18 +29,24 @@ logger = logging.getLogger(__name__)
 # Buffer apos fim do plantao para considerar "vencido" (2 horas)
 BUFFER_HORAS = 2
 
+# Timezone do Brasil (hospitais operam em horario local)
+TZ_SP = ZoneInfo("America/Sao_Paulo")
+
 
 def calcular_fim_plantao(data: str, hora_inicio: str, hora_fim: str) -> datetime:
     """
     Calcula o datetime real do fim do plantão.
 
+    IMPORTANTE: data/hora no banco são em horário local (America/Sao_Paulo).
+    Esta função primeiro cria o datetime em SP, depois converte para UTC.
+
     Trata plantões noturnos onde hora_fim < hora_inicio
     (ex: 19:00-07:00 significa que termina no dia seguinte).
 
     Args:
-        data: Data do plantão (YYYY-MM-DD)
-        hora_inicio: Hora de início (HH:MM:SS)
-        hora_fim: Hora de fim (HH:MM:SS)
+        data: Data do plantão (YYYY-MM-DD) - horário local SP
+        hora_inicio: Hora de início (HH:MM:SS) - horário local SP
+        hora_fim: Hora de fim (HH:MM:SS) - horário local SP
 
     Returns:
         datetime com timezone UTC do fim real do plantão
@@ -43,15 +55,16 @@ def calcular_fim_plantao(data: str, hora_inicio: str, hora_fim: str) -> datetime
     inicio = datetime.strptime(hora_inicio, "%H:%M:%S").time()
     fim = datetime.strptime(hora_fim, "%H:%M:%S").time()
 
-    # Combinar data + hora_fim
-    fim_plantao = datetime.combine(data_plantao, fim)
+    # Combinar data + hora_fim em horário local (SP)
+    fim_local = datetime.combine(data_plantao, fim).replace(tzinfo=TZ_SP)
 
     # Se hora_fim <= hora_inicio, é plantão noturno (termina no dia seguinte)
     # Ex: 19:00-07:00 ou 22:00-06:00
     if fim <= inicio:
-        fim_plantao += timedelta(days=1)
+        fim_local += timedelta(days=1)
 
-    return fim_plantao.replace(tzinfo=timezone.utc)
+    # Converter para UTC antes de retornar
+    return fim_local.astimezone(timezone.utc)
 
 
 @dataclass
@@ -182,17 +195,21 @@ async def transicionar_para_pendente_confirmacao(
             "updated_at": agora.isoformat()
         }).eq("id", vaga_id).eq("status", "reservada").execute()
 
-        # 2. Emitir business_event
+        # 2. Emitir business_event (com dedupe_key para idempotência)
+        dedupe = f"shift_confirmation_due:{vaga_id}"
         event = BusinessEvent(
             event_type=EventType.SHIFT_CONFIRMATION_DUE,
             source=EventSource.BACKEND if not is_backfill else EventSource.OPS,
             cliente_id=cliente_id,
             vaga_id=vaga_id,
             hospital_id=hospital_id,
+            dedupe_key=dedupe,
             event_props={
                 "scheduled_end_at": fim_plantao.isoformat(),
                 "transitioned_at": agora.isoformat(),
-                "is_backfill": is_backfill
+                "is_backfill": is_backfill,
+                "channel": "job",
+                "method": "hourly_cron"
             }
         )
 
@@ -272,16 +289,20 @@ async def confirmar_plantao_realizado(
             .eq("id", vaga_id) \
             .execute()
 
-        # 3. Emitir business_event
+        # 3. Emitir business_event (com dedupe_key para idempotência)
+        dedupe = f"shift_completed:{vaga_id}"
         event = BusinessEvent(
             event_type=EventType.SHIFT_COMPLETED,
             source=EventSource.OPS,
             cliente_id=result.data.get("cliente_id"),
             vaga_id=vaga_id,
             hospital_id=result.data.get("hospital_id"),
+            dedupe_key=dedupe,
             event_props={
                 "confirmed_by": confirmado_por,
-                "confirmed_at": agora.isoformat()
+                "confirmed_at": agora.isoformat(),
+                "channel": "slack",
+                "method": "button"
             }
         )
 
@@ -347,17 +368,21 @@ async def confirmar_plantao_nao_ocorreu(
             .eq("id", vaga_id) \
             .execute()
 
-        # 3. Emitir business_event
+        # 3. Emitir business_event (com dedupe_key para idempotência)
+        dedupe = f"shift_not_completed:{vaga_id}"
         event = BusinessEvent(
             event_type=EventType.SHIFT_NOT_COMPLETED,
             source=EventSource.OPS,
             cliente_id=result.data.get("cliente_id"),
             vaga_id=vaga_id,
             hospital_id=result.data.get("hospital_id"),
+            dedupe_key=dedupe,
             event_props={
                 "confirmed_by": confirmado_por,
                 "confirmed_at": agora.isoformat(),
-                "motivo": motivo
+                "motivo": motivo,
+                "channel": "slack",
+                "method": "button"
             }
         )
 

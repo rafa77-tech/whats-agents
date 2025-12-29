@@ -17,16 +17,42 @@ async def emit_event(event: BusinessEvent) -> str:
     """
     Emite um evento de negocio.
 
+    Idempotência:
+    - Se event.dedupe_key for definido, usa upsert para evitar duplicatas
+    - Duplicata detectada retorna ID existente (não erro)
+
     Args:
         event: Evento a emitir
 
     Returns:
-        id do evento criado (UUID) ou string vazia se falhou
+        id do evento criado/existente (UUID) ou string vazia se falhou
     """
     try:
+        data = event.to_dict()
+
+        # Se tem dedupe_key, usar upsert para idempotência
+        if event.dedupe_key:
+            # Primeiro tenta buscar existente
+            existing = (
+                supabase.table("business_events")
+                .select("id")
+                .eq("dedupe_key", event.dedupe_key)
+                .limit(1)
+                .execute()
+            )
+
+            if existing.data:
+                event_id = existing.data[0]["id"]
+                logger.info(
+                    f"BusinessEvent duplicado ignorado: {event.event_type.value} "
+                    f"[{event_id[:8]}] dedupe_key={event.dedupe_key}"
+                )
+                return event_id
+
+        # Inserir novo evento
         response = (
             supabase.table("business_events")
-            .insert(event.to_dict())
+            .insert(data)
             .execute()
         )
 
@@ -42,6 +68,24 @@ async def emit_event(event: BusinessEvent) -> str:
         return ""
 
     except Exception as e:
+        # Se for erro de unique constraint, é duplicata (race condition)
+        if "duplicate key" in str(e).lower() or "unique constraint" in str(e).lower():
+            logger.info(f"BusinessEvent duplicado (race): {event.event_type.value}")
+            # Tentar buscar o existente
+            try:
+                existing = (
+                    supabase.table("business_events")
+                    .select("id")
+                    .eq("dedupe_key", event.dedupe_key)
+                    .limit(1)
+                    .execute()
+                )
+                if existing.data:
+                    return existing.data[0]["id"]
+            except Exception:
+                pass
+            return ""
+
         logger.error(f"Erro ao emitir business_event: {e}")
         return ""
 
