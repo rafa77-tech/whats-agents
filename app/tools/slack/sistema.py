@@ -2,10 +2,15 @@
 Tools de sistema para o agente Slack.
 
 Sprint 10 - S10.E2.3
+Sprint 18.1 - B1: Toggle campanhas via Slack
 """
+import logging
 from datetime import datetime, timezone
 
 from app.services.supabase import supabase
+from app.services.policy.flags import get_campaigns_flags, set_flag, is_safe_mode_active
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -97,6 +102,41 @@ ACAO CRITICA: Peca confirmacao antes de retomar.""",
         "type": "object",
         "properties": {},
         "required": []
+    }
+}
+
+TOOL_TOGGLE_CAMPANHAS = {
+    "name": "toggle_campanhas",
+    "description": """Ativa ou desativa campanhas proativas.
+
+QUANDO USAR:
+- Gestor quer parar/iniciar campanhas
+- Gestor quer desativar envios proativos
+- Gestor pergunta status das campanhas
+
+EXEMPLOS:
+- "desativa campanhas"
+- "para as campanhas"
+- "liga campanhas"
+- "ativa campanhas"
+- "campanhas status"
+- "campanhas estao ativas?"
+
+DIFERENCA DE pausar_julia:
+- pausar_julia: para TUDO (inclusive replies)
+- toggle_campanhas: para so proativos (campanhas, followups)
+
+ACAO CRITICA para on/off: Peca confirmacao antes de mudar.""",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "acao": {
+                "type": "string",
+                "enum": ["on", "off", "status"],
+                "description": "Acao: 'on' para ativar, 'off' para desativar, 'status' para ver estado atual"
+            }
+        },
+        "required": ["acao"]
     }
 }
 
@@ -213,3 +253,96 @@ async def handle_retomar_julia(params: dict, user_id: str) -> dict:
 
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+async def handle_toggle_campanhas(params: dict, user_id: str) -> dict:
+    """
+    Toggle campanhas on/off ou retorna status.
+
+    Sprint 18.1 - B1: Kill switch granular para campanhas.
+    """
+    acao = params.get("acao", "status")
+
+    try:
+        # Status atual
+        campaigns_flags = await get_campaigns_flags()
+        safe_mode = await is_safe_mode_active()
+
+        if acao == "status":
+            return {
+                "success": True,
+                "campanhas_ativas": campaigns_flags.enabled,
+                "safe_mode": safe_mode,
+                "mensagem": (
+                    f"Campanhas: {'ativadas' if campaigns_flags.enabled else 'desativadas'}\n"
+                    f"Safe mode: {'ativo' if safe_mode else 'inativo'}"
+                )
+            }
+
+        # Toggle on/off
+        new_enabled = acao == "on"
+
+        # Atualizar flag
+        success = await set_flag(
+            key="campaigns",
+            value={"enabled": new_enabled},
+            updated_by=user_id
+        )
+
+        if not success:
+            return {"success": False, "error": "Falha ao atualizar flag"}
+
+        # Emitir evento de auditoria
+        await _emitir_evento_toggle_campanhas(
+            enabled=new_enabled,
+            actor_id=user_id,
+        )
+
+        acao_realizada = "ativadas" if new_enabled else "desativadas"
+        logger.info(
+            f"Campanhas {acao_realizada} por {user_id}",
+            extra={
+                "event": "campaigns_toggled",
+                "enabled": new_enabled,
+                "actor_id": user_id,
+                "channel": "slack",
+            }
+        )
+
+        return {
+            "success": True,
+            "campanhas_ativas": new_enabled,
+            "mensagem": f"Campanhas {acao_realizada} com sucesso!"
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao toggle campanhas: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def _emitir_evento_toggle_campanhas(enabled: bool, actor_id: str) -> None:
+    """Emite business_event para auditoria de toggle."""
+    from app.services.business_events import (
+        emit_event,
+        BusinessEvent,
+        EventType,
+        EventSource,
+    )
+
+    # Usar OUTBOUND_BYPASS como carrier (ou criar tipo específico)
+    # Por enquanto, logamos estruturado e usamos dedupe_key para auditoria
+    dedupe_key = f"campaigns_toggle:{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}"
+
+    await emit_event(BusinessEvent(
+        event_type=EventType.OUTBOUND_BYPASS,  # Reusa tipo existente
+        source=EventSource.OPS,
+        cliente_id=None,
+        dedupe_key=dedupe_key,
+        event_props={
+            "action": "campaigns_toggled",
+            "enabled": enabled,
+            "actor_id": actor_id,
+            "channel": "slack",
+            "method": "command",
+        },
+    ))

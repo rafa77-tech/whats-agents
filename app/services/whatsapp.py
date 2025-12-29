@@ -1,6 +1,10 @@
 """
 Cliente Evolution API para WhatsApp.
+
+Sprint 18.1 - B2: Retry/backoff antes do circuit breaker.
 """
+import asyncio
+import random
 import httpx
 from typing import Literal, Tuple
 import logging
@@ -10,6 +14,19 @@ from app.services.circuit_breaker import circuit_evolution, CircuitOpenError
 from app.services.rate_limiter import pode_enviar, registrar_envio, calcular_delay_humanizado
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# RETRY CONFIG (Sprint 18.1 - B2)
+# =============================================================================
+
+RETRY_CONFIG = {
+    "max_attempts": 4,
+    "base_delays": [0.5, 1.0, 2.0, 4.0],  # Exponencial
+    "jitter_factor": 0.25,  # ±25%
+    "retryable_status_codes": {408, 425, 429, 500, 502, 503, 504},
+    "non_retryable_status_codes": {400, 401, 403, 404, 422},
+}
 
 
 class RateLimitError(Exception):
@@ -45,22 +62,104 @@ class EvolutionClient:
         timeout: float = 30.0
     ) -> dict:
         """
-        Faz request HTTP com proteção do circuit breaker.
-        """
-        async def _request():
-            async with httpx.AsyncClient() as client:
-                if method == "POST":
-                    response = await client.post(
-                        url, json=payload, headers=self.headers, timeout=timeout
-                    )
-                else:
-                    response = await client.get(
-                        url, headers=self.headers, timeout=timeout
-                    )
-                response.raise_for_status()
-                return response.json()
+        Faz request HTTP com retry/backoff + circuit breaker.
 
-        return await circuit_evolution.executar(_request)
+        Sprint 18.1 - B2: Retry antes de contar falha no circuit.
+        Fluxo: Request → Retry (se transitório) → Circuit Breaker
+        """
+        async def _request_com_retry():
+            last_error = None
+            last_status_code = None
+
+            for attempt in range(RETRY_CONFIG["max_attempts"]):
+                try:
+                    async with httpx.AsyncClient() as client:
+                        if method == "POST":
+                            response = await client.post(
+                                url, json=payload, headers=self.headers, timeout=timeout
+                            )
+                        else:
+                            response = await client.get(
+                                url, headers=self.headers, timeout=timeout
+                            )
+                        response.raise_for_status()
+                        return response.json()
+
+                except httpx.HTTPStatusError as e:
+                    last_error = e
+                    last_status_code = e.response.status_code
+
+                    # Não retryable: propaga imediatamente
+                    if last_status_code in RETRY_CONFIG["non_retryable_status_codes"]:
+                        logger.warning(
+                            f"Erro não-retryable {last_status_code} em {url}",
+                            extra={"status_code": last_status_code, "attempt": attempt + 1}
+                        )
+                        raise
+
+                    # Retryable: espera e tenta de novo
+                    if last_status_code in RETRY_CONFIG["retryable_status_codes"]:
+                        if attempt < RETRY_CONFIG["max_attempts"] - 1:
+                            delay = self._calcular_delay_retry(attempt)
+                            logger.warning(
+                                f"Retry {attempt + 1}/{RETRY_CONFIG['max_attempts']} "
+                                f"após {last_status_code}, aguardando {delay:.2f}s",
+                                extra={
+                                    "status_code": last_status_code,
+                                    "attempt": attempt + 1,
+                                    "delay": delay,
+                                }
+                            )
+                            await asyncio.sleep(delay)
+                            continue
+
+                    # Status code não mapeado: propaga
+                    raise
+
+                except (httpx.TimeoutException, httpx.NetworkError) as e:
+                    last_error = e
+
+                    # Erros de rede/timeout são retryable
+                    if attempt < RETRY_CONFIG["max_attempts"] - 1:
+                        delay = self._calcular_delay_retry(attempt)
+                        error_type = type(e).__name__
+                        logger.warning(
+                            f"Retry {attempt + 1}/{RETRY_CONFIG['max_attempts']} "
+                            f"após {error_type}, aguardando {delay:.2f}s",
+                            extra={
+                                "error_type": error_type,
+                                "attempt": attempt + 1,
+                                "delay": delay,
+                            }
+                        )
+                        await asyncio.sleep(delay)
+                        continue
+
+                    # Última tentativa falhou
+                    raise
+
+            # Não deveria chegar aqui, mas por segurança
+            if last_error:
+                raise last_error
+            raise RuntimeError("Retry loop exauriu sem resultado")
+
+        return await circuit_evolution.executar(_request_com_retry)
+
+    def _calcular_delay_retry(self, attempt: int) -> float:
+        """
+        Calcula delay com exponential backoff + jitter.
+
+        Args:
+            attempt: Número da tentativa (0-indexed)
+
+        Returns:
+            Delay em segundos
+        """
+        base_delay = RETRY_CONFIG["base_delays"][
+            min(attempt, len(RETRY_CONFIG["base_delays"]) - 1)
+        ]
+        jitter = base_delay * RETRY_CONFIG["jitter_factor"] * (2 * random.random() - 1)
+        return max(0.1, base_delay + jitter)
 
     async def enviar_mensagem(
         self,

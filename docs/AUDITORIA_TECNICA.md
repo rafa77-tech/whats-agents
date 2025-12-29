@@ -349,16 +349,23 @@ Falha HTTP → raise_for_status() → CircuitBreaker conta falha → 5 falhas = 
 
 ### Bloqueadores para 25%
 
-| Gap | Esforço | Prioridade |
-|-----|---------|------------|
-| Toggle campanhas via Slack | 2h | P0 |
-| Retry/backoff Evolution | 3h | P0 |
+| Gap | Esforço | Prioridade | Risco se não fizer |
+|-----|---------|------------|-------------------|
+| B1: Toggle campanhas via Slack | 1h | P0 | Incidente sem botão de emergência |
+| B2: Retry/backoff Evolution | 2h | P0 | Circuit abre cedo, falsos alarmes |
+| B3: Dedupe simples (nível 1) | 2h | P0 | Duplicatas em timeout/retry |
+
+**Justificativa B3 em 25%:** Mesmo com guardrails, duplicata ocorre por:
+- Timeout httpx (não sabe se chegou)
+- Retry manual do operador/job
+- Reprocessamento de fila após restart
+- Flakiness Evolution (503/429/latência)
 
 ### Bloqueadores para 50%
 
 | Gap | Esforço | Prioridade |
 |-----|---------|------------|
-| Dedupe/Outbox | 4h | P0 |
+| C1: Outbox robusto (nível 2) | 4h | P0 |
 
 ### Bloqueadores para 100%
 
@@ -373,7 +380,7 @@ Falha HTTP → raise_for_status() → CircuitBreaker conta falha → 5 falhas = 
 |------|---------|------------|
 | Dedupe em tools (reservar_plantao) | 2h | P1 |
 | Lock explícito em jobs | 2h | P1 |
-| Send acknowledgment | 3h | P2 |
+| Send acknowledgment (nível 3) | 3h | P2 |
 | Rotação de secrets documentada | 1h | P2 |
 
 ---
@@ -475,3 +482,72 @@ OUTBOUND_FALLBACK
 | `feature_flags` | Flags de rollout (canary) |
 | `interacoes` | Histórico de mensagens |
 | `conversations` | Conversas ativas |
+
+---
+
+## 11. Operação (Runbook)
+
+### 11.1 Monitoramento Diário
+
+| Horário | Responsável | Ação |
+|---------|-------------|------|
+| 09:00 | Ops | Executar queries Q1-Q5, verificar thresholds |
+| 17:00 | Ops | Verificar métricas do dia, preparar resumo |
+| Ad-hoc | Qualquer | Se alerta disparar, seguir protocolo |
+
+### 11.2 Queries de Monitoramento
+
+| Query | Onde | Threshold |
+|-------|------|-----------|
+| Q1: Volume por evento | Supabase SQL | Sanity check |
+| Q3: Replies inválidos | Supabase SQL | **= 0** |
+| Q4: Provider errors | Supabase SQL | **< 1%** |
+| Q5: Fallback legado | Supabase SQL | **= 0** |
+
+**Endpoint interno:** `GET /integridade/daily-health` (se implementado)
+
+### 11.3 Alarmes Vermelhos (Ação Imediata)
+
+| Condição | Severidade | Ação |
+|----------|------------|------|
+| `outbound_fallback > 0` | 🔴 P0 | Investigar call-site não migrado |
+| `reply_invalido > 0` | 🔴 P0 | Investigar race condition |
+| `outbound_to_opted_out > 0` | 🔴 P0 | **ROLLBACK IMEDIATO** + pausar_julia |
+| `provider_error_rate > 5%` | 🟠 P1 | Verificar Evolution, considerar safe_mode |
+| `duplicatas_detectadas > 0` | 🟠 P1 | Pausar campanhas, investigar |
+
+### 11.4 Ações de Emergência
+
+```
+# 1. Pausar tudo (kill switch total)
+Slack: "pausa a Julia"
+→ julia_status = pausado
+
+# 2. Pausar só campanhas (kill switch parcial)
+Slack: "desativa campanhas"  # Após implementar B1
+→ feature_flags.campaigns.enabled = false
+
+# 3. Safe mode (respostas conservadoras)
+Supabase: UPDATE feature_flags SET value = '{"enabled": true}' WHERE key = 'safe_mode'
+
+# 4. Rollback canary
+Supabase: UPDATE feature_flags SET value = '{"percentage": 0}' WHERE key = 'business_events_canary'
+```
+
+### 11.5 Contatos de Escalação
+
+| Situação | Quem acionar |
+|----------|--------------|
+| Vazamento opted_out | Product + Tech Lead |
+| Provider fora | Tech Lead |
+| Duplicatas em massa | Tech Lead |
+| Dúvida operacional | Consultar este documento |
+
+### 11.6 Checklist Pós-Incidente
+
+- [ ] Incidente documentado em issue
+- [ ] Root cause identificado
+- [ ] Fix implementado ou mitigação aplicada
+- [ ] Queries de validação executadas
+- [ ] Comunicação para stakeholders
+- [ ] Atualizar este runbook se necessário

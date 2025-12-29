@@ -2,15 +2,18 @@
 Ponto único de envio de mensagens outbound.
 
 Sprint 17 - Todas as mensagens outbound DEVEM passar por aqui.
+Sprint 18.1 - C1: Deduplicação de mensagens outbound.
 
 Este módulo é o wrapper que:
 1. Verifica guardrails antes de enviar
-2. Chama Evolution API se permitido
-3. Emite eventos de auditoria
+2. Verifica deduplicação (evita duplicatas em retry/timeout)
+3. Chama Evolution API se permitido
+4. Emite eventos de auditoria
 
 IMPORTANTE: Nenhum outro código deve chamar evolution.enviar_mensagem() diretamente.
 Use sempre send_outbound_message() deste módulo.
 """
+import hashlib
 import logging
 from dataclasses import dataclass
 from typing import Optional
@@ -29,8 +32,18 @@ from app.services.whatsapp import (
     enviar_com_digitacao,
 )
 from app.services.circuit_breaker import CircuitOpenError
+from app.services.outbound_dedupe import (
+    verificar_e_reservar,
+    marcar_enviado,
+    marcar_falha,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _gerar_content_hash(texto: str) -> str:
+    """Gera hash do conteúdo para deduplicação."""
+    return hashlib.sha256(texto.encode()).hexdigest()[:16]
 
 
 @dataclass
@@ -40,6 +53,8 @@ class OutboundResult:
     blocked: bool = False
     block_reason: Optional[str] = None
     human_bypass: bool = False
+    deduped: bool = False  # Sprint 18.1 - C1
+    dedupe_key: Optional[str] = None  # Sprint 18.1 - C1
     error: Optional[str] = None
     evolution_response: Optional[dict] = None
 
@@ -103,7 +118,34 @@ async def send_outbound_message(
             f"{guardrail_result.reason_code} por {ctx.actor_id}"
         )
 
-    # 2. Enviar via Evolution API
+    # 2. Verificar deduplicação (Sprint 18.1 - C1)
+    content_hash = _gerar_content_hash(texto)
+    pode_enviar, dedupe_key, motivo = await verificar_e_reservar(
+        cliente_id=ctx.cliente_id,
+        method=ctx.method.value if ctx.method else "manual",
+        conversation_id=ctx.conversation_id,
+        content_hash=content_hash,
+    )
+
+    if not pode_enviar:
+        logger.info(
+            f"Outbound deduped para {telefone[:8]}...: {motivo}",
+            extra={
+                "event": "outbound_deduped",
+                "dedupe_key": dedupe_key,
+                "cliente_id": ctx.cliente_id,
+                "method": ctx.method.value if ctx.method else "manual",
+            }
+        )
+        return OutboundResult(
+            success=False,
+            blocked=True,
+            block_reason="duplicata",
+            deduped=True,
+            dedupe_key=dedupe_key,
+        )
+
+    # 3. Enviar via Evolution API
     try:
         if simular_digitacao:
             response = await enviar_com_digitacao(
@@ -119,33 +161,43 @@ async def send_outbound_message(
                 verificar_rate_limit=ctx.is_proactive,
             )
 
+        # Marcar dedupe como enviado com sucesso
+        await marcar_enviado(dedupe_key)
+
         return OutboundResult(
             success=True,
             blocked=False,
             human_bypass=guardrail_result.human_bypass,
+            dedupe_key=dedupe_key,
             evolution_response=response,
         )
 
     except RateLimitError as e:
         logger.warning(f"Rate limit ao enviar para {telefone[:8]}...: {e}")
+        await marcar_falha(dedupe_key, f"rate_limit: {e}")
         return OutboundResult(
             success=False,
             blocked=True,
             block_reason="rate_limit",
+            dedupe_key=dedupe_key,
             error=str(e),
         )
 
     except CircuitOpenError as e:
         logger.error(f"Circuit open ao enviar para {telefone[:8]}...: {e}")
+        await marcar_falha(dedupe_key, f"circuit_open: {e}")
         return OutboundResult(
             success=False,
+            dedupe_key=dedupe_key,
             error=f"Evolution API indisponível: {e}",
         )
 
     except Exception as e:
         logger.error(f"Erro ao enviar para {telefone[:8]}...: {e}")
+        await marcar_falha(dedupe_key, str(e)[:200])
         return OutboundResult(
             success=False,
+            dedupe_key=dedupe_key,
             error=str(e),
         )
 
