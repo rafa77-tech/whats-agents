@@ -382,6 +382,23 @@ async def ingerir_mensagem_grupo(
         # Atualizar contadores
         await atualizar_contadores(grupo_id, contato_id)
 
+        # Enfileirar para processamento (apenas mensagens válidas)
+        # Mensagens ignoradas (mídia, curtas) não vão para o pipeline
+        from app.services.grupos.fila import enfileirar_mensagem
+        try:
+            # Verificar se mensagem foi salva como pendente
+            msg_status = supabase.table("mensagens_grupo") \
+                .select("status") \
+                .eq("id", str(mensagem_id)) \
+                .single() \
+                .execute()
+
+            if msg_status.data and msg_status.data.get("status") == "pendente":
+                await enfileirar_mensagem(mensagem_id)
+                logger.debug(f"Mensagem {mensagem_id} enfileirada para processamento")
+        except Exception as e:
+            logger.warning(f"Erro ao enfileirar mensagem {mensagem_id}: {e}")
+
         logger.info(f"Mensagem de grupo ingerida: {mensagem_id}")
         return mensagem_id
 
