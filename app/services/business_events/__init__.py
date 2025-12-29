@@ -25,6 +25,14 @@ from .recusa_detector import (
     buscar_ultima_oferta,
     RecusaResult,
 )
+from .metrics import (
+    get_funnel_metrics,
+    get_funnel_by_hospital,
+    get_funnel_trend,
+    get_top_doctors,
+    get_conversion_time,
+    FunnelMetrics,
+)
 
 __all__ = [
     # Repository
@@ -52,4 +60,11 @@ __all__ = [
     "processar_possivel_recusa",
     "buscar_ultima_oferta",
     "RecusaResult",
+    # Metrics
+    "get_funnel_metrics",
+    "get_funnel_by_hospital",
+    "get_funnel_trend",
+    "get_top_doctors",
+    "get_conversion_time",
+    "FunnelMetrics",
 ]

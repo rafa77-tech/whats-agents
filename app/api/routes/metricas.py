@@ -1,12 +1,21 @@
 """
 Endpoints para métricas e dashboard.
+
+Sprint 17 - E06: Endpoints de funil
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from datetime import datetime, timedelta
 from typing import Optional
 import logging
 
 from app.services.supabase import supabase
+from app.services.business_events.metrics import (
+    get_funnel_metrics,
+    get_funnel_by_hospital,
+    get_funnel_trend,
+    get_top_doctors,
+    get_conversion_time,
+)
 
 router = APIRouter(prefix="/metricas", tags=["Métricas"])
 logger = logging.getLogger(__name__)
@@ -94,4 +103,89 @@ async def obter_resumo(dias: int = 7):
             "taxas": {"resposta": 0, "handoff": 0},
             "erro": str(e)
         }
+
+
+# =============================================================================
+# Sprint 17 - E06: Endpoints de Funil de Negócio
+# =============================================================================
+
+
+@router.get("/funil")
+async def funil_geral(
+    hours: int = Query(24, ge=1, le=720, description="Janela de tempo em horas"),
+    hospital_id: Optional[str] = Query(None, description="Filtrar por hospital"),
+):
+    """
+    Retorna métricas de funil de conversão.
+
+    O funil mostra a jornada:
+    outbound → inbound → offer → accepted → completed
+
+    - **hours**: Janela de tempo em horas (default 24, max 720 = 30 dias)
+    - **hospital_id**: Filtrar por hospital específico (opcional)
+    """
+    metrics = await get_funnel_metrics(hours=hours, hospital_id=hospital_id)
+    return metrics.to_dict()
+
+
+@router.get("/funil/hospitais")
+async def funil_por_hospital(
+    hours: int = Query(24, ge=1, le=720, description="Janela de tempo em horas"),
+):
+    """
+    Retorna métricas de funil segmentadas por hospital.
+
+    Útil para identificar quais hospitais têm melhor conversão.
+
+    - **hours**: Janela de tempo em horas (default 24)
+    """
+    return await get_funnel_by_hospital(hours=hours)
+
+
+@router.get("/funil/tendencia")
+async def funil_tendencia(
+    days: int = Query(7, ge=1, le=30, description="Número de dias"),
+    hospital_id: Optional[str] = Query(None, description="Filtrar por hospital"),
+):
+    """
+    Retorna tendência do funil nos últimos dias.
+
+    Mostra contagens diárias de cada evento para análise de tendência.
+
+    - **days**: Número de dias (default 7, max 30)
+    - **hospital_id**: Filtrar por hospital específico (opcional)
+    """
+    return await get_funnel_trend(days=days, hospital_id=hospital_id)
+
+
+@router.get("/funil/top-medicos")
+async def top_medicos(
+    hours: int = Query(168, ge=1, le=720, description="Janela de tempo em horas"),
+    limit: int = Query(50, ge=1, le=200, description="Número máximo de resultados"),
+):
+    """
+    Retorna médicos mais ativos (temperatura operacional).
+
+    Proxy para identificar a "base quente" de médicos engajados.
+
+    - **hours**: Janela de tempo (default 168 = 7 dias)
+    - **limit**: Número máximo de resultados (default 50)
+    """
+    return await get_top_doctors(hours=hours, limit=limit)
+
+
+@router.get("/funil/tempo-conversao")
+async def tempo_conversao(
+    hours: int = Query(720, ge=1, le=2160, description="Janela de tempo em horas"),
+    hospital_id: Optional[str] = Query(None, description="Filtrar por hospital"),
+):
+    """
+    Retorna tempo médio de conversão entre etapas do funil.
+
+    Mede quanto tempo demora para uma oferta ser aceita e o plantão ser realizado.
+
+    - **hours**: Janela de tempo (default 720 = 30 dias, max 2160 = 90 dias)
+    - **hospital_id**: Filtrar por hospital específico (opcional)
+    """
+    return await get_conversion_time(hours=hours, hospital_id=hospital_id)
 
