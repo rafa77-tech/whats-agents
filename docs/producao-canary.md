@@ -507,6 +507,43 @@ async def check_daily_health() -> dict:
 
 ---
 
+## Ponte Externa (Sprint 21)
+
+Sistema de canary separado para a ponte médico-divulgador.
+
+### Status: PRONTO (flag desativada)
+
+| Controle | Status | Descrição |
+|----------|--------|-----------|
+| Canary Flag | ✅ | `external_handoff.enabled` + `canary_pct` |
+| Kill Switch | ✅ | `toggle_ponte_externa` via Slack |
+| Rate Limit | ✅ | 30/min + 200/h por IP em `/handoff/confirm` |
+| Guardrails | ✅ | Opt-out + horário comercial (08-20h seg-sex) |
+| Unique Constraint | ✅ | Apenas 1 handoff ativo por vaga |
+| Playbook | ✅ | `docs/playbook-handoff.md` |
+
+### Ativação Gradual
+
+```bash
+# Via Slack
+toggle_ponte_externa status      # Ver estado atual
+toggle_ponte_externa on 10       # 10% dos clientes
+toggle_ponte_externa on 50       # 50% dos clientes
+toggle_ponte_externa on          # 100% (produção)
+toggle_ponte_externa off         # Kill switch
+```
+
+### Canary Logic
+
+```python
+# Hash determinístico: mesmo cliente sempre no mesmo bucket
+hash_bytes = hashlib.md5(cliente_id.encode()).digest()
+cliente_hash = int.from_bytes(hash_bytes[:4], "big") % 100
+return cliente_hash < canary_pct
+```
+
+---
+
 ## Histórico de Mudanças
 
 | Data | Canary | Mudança | Responsável |
@@ -515,6 +552,7 @@ async def check_daily_health() -> dict:
 | 2025-12-29 | 10% | Security hardening: RLS em 54 tabelas | - |
 | 2025-12-29 | 10% | Security hardening: Grants revogados de anon/authenticated | - |
 | 2025-12-29 | 10% | Security hardening: search_path em 40+ funções | - |
+| 2025-12-29 | - | Sprint 21: Ponte Externa pronta (flag desativada) | - |
 | - | 25% | Pendente: B1 + B2 | - |
 | - | 50% | Pendente: C1 | - |
 | - | 100% | Pendente: D1 + D2 + D3 | - |
