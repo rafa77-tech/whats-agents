@@ -2,11 +2,14 @@
 Servico principal do agente Julia.
 
 Sprint 15: Integração com Policy Engine para decisões determinísticas.
+Sprint 16: Retorna policy_decision_id para fechamento do ciclo.
+Sprint 17: Emissão de eventos offer_made, offer_teaser_sent (E04).
 """
 import asyncio
 import random
 import logging
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Optional, List
 
 from app.core.prompts import montar_prompt_julia
 from app.services.llm import gerar_resposta, gerar_resposta_com_tools, continuar_apos_tool
@@ -252,12 +255,87 @@ async def gerar_resposta_julia(
     return resposta
 
 
+@dataclass
+class ProcessamentoResult:
+    """Resultado do processamento de mensagem (Sprint 16)."""
+    resposta: Optional[str] = None
+    policy_decision_id: Optional[str] = None
+    rule_matched: Optional[str] = None
+
+
+async def _emitir_offer_events(
+    cliente_id: str,
+    conversa_id: str,
+    resposta: str,
+    vagas_oferecidas: List[str] = None,
+    policy_decision_id: Optional[str] = None,
+) -> None:
+    """
+    Emite eventos de oferta (Sprint 17 - E04).
+
+    Args:
+        cliente_id: ID do cliente
+        conversa_id: ID da conversa
+        resposta: Texto da resposta gerada
+        vagas_oferecidas: Lista de vaga_ids oferecidos (se houver)
+        policy_decision_id: ID da decisão de policy
+    """
+    from app.services.business_events import (
+        emit_event,
+        should_emit_event,
+        BusinessEvent,
+        EventType,
+        EventSource,
+    )
+    from app.services.business_events.context import tem_mencao_oportunidade
+    from app.services.business_events.validators import vaga_pode_receber_oferta
+
+    # Verificar rollout
+    should_emit = await should_emit_event(cliente_id, "offer_events")
+    if not should_emit:
+        return
+
+    # Se tem vagas específicas oferecidas, emitir offer_made para cada
+    if vagas_oferecidas:
+        for vaga_id in vagas_oferecidas:
+            # Trava de segurança: só emite se vaga estiver aberta/anunciada
+            if await vaga_pode_receber_oferta(vaga_id):
+                asyncio.create_task(
+                    emit_event(BusinessEvent(
+                        event_type=EventType.OFFER_MADE,
+                        source=EventSource.BACKEND,
+                        cliente_id=cliente_id,
+                        conversation_id=conversa_id,
+                        vaga_id=vaga_id,
+                        policy_decision_id=policy_decision_id,
+                        event_props={},
+                    ))
+                )
+                logger.debug(f"offer_made emitido para vaga {vaga_id[:8]}")
+
+    # Se não tem vaga específica mas menciona oportunidades, emitir teaser
+    elif resposta and tem_mencao_oportunidade(resposta):
+        asyncio.create_task(
+            emit_event(BusinessEvent(
+                event_type=EventType.OFFER_TEASER_SENT,
+                source=EventSource.BACKEND,
+                cliente_id=cliente_id,
+                conversation_id=conversa_id,
+                policy_decision_id=policy_decision_id,
+                event_props={
+                    "resposta_length": len(resposta),
+                },
+            ))
+        )
+        logger.debug(f"offer_teaser_sent emitido para cliente {cliente_id[:8]}")
+
+
 async def processar_mensagem_completo(
     mensagem_texto: str,
     medico: dict,
     conversa: dict,
     vagas: list[dict] = None
-) -> Optional[str]:
+) -> ProcessamentoResult:
     """
     Processa mensagem completa com Policy Engine.
 
@@ -272,6 +350,8 @@ async def processar_mensagem_completo(
     8. Gerar resposta com constraints
     9. StateUpdate pós-envio
 
+    Sprint 16 - E08: Retorna ProcessamentoResult com policy_decision_id.
+
     Args:
         mensagem_texto: Texto da mensagem do medico
         medico: Dados do medico
@@ -279,7 +359,7 @@ async def processar_mensagem_completo(
         vagas: Vagas disponiveis (opcional)
 
     Returns:
-        Texto da resposta ou None se erro/não deve responder
+        ProcessamentoResult com resposta e policy_decision_id
     """
     from app.services.contexto import montar_contexto_completo
     from app.services.handoff import criar_handoff
@@ -288,7 +368,7 @@ async def processar_mensagem_completo(
         # 1. Verificar se conversa esta sob controle da IA
         if conversa.get("controlled_by") != "ai":
             logger.info("Conversa sob controle humano, nao processando")
-            return None
+            return ProcessamentoResult()
 
         # 2. Montar contexto (passa mensagem para busca RAG de memorias)
         contexto = await montar_contexto_completo(
@@ -340,11 +420,11 @@ async def processar_mensagem_completo(
         # Recarregar state atualizado
         state = await load_doctor_state(medico["id"])
 
-        # 5. PolicyDecide: decidir ação
+        # 5. PolicyDecide: decidir ação (Sprint 16: agora é async)
         policy = PolicyDecide()
         is_first_msg = contexto.get("primeira_msg", False)
         conversa_status = conversa.get("status", "active")
-        decision = policy.decide(
+        decision = await policy.decide(
             state,
             is_first_message=is_first_msg,
             conversa_status=conversa_status,
@@ -392,7 +472,11 @@ async def processar_mensagem_completo(
                     details={"error": str(e), "action": "handoff"},
                 )
             # Resposta padrão de transferência
-            return "Entendi. Vou pedir pra minha supervisora te ajudar aqui, um momento."
+            return ProcessamentoResult(
+                resposta="Entendi. Vou pedir pra minha supervisora te ajudar aqui, um momento.",
+                policy_decision_id=policy_decision_id,
+                rule_matched=decision.rule_id,
+            )
 
         # 7. Se ação é WAIT → não responder
         if decision.primary_action == PrimaryAction.WAIT:
@@ -406,7 +490,10 @@ async def processar_mensagem_completo(
                 effect="wait_applied",
                 details={"reasoning": decision.reasoning},
             )
-            return None
+            return ProcessamentoResult(
+                policy_decision_id=policy_decision_id,
+                rule_matched=decision.rule_id,
+            )
 
         # 8. Gerar resposta com constraints
         resposta = await gerar_resposta_julia(
@@ -416,6 +503,20 @@ async def processar_mensagem_completo(
             conversa=conversa,
             policy_decision=decision,
         )
+
+        # 8b. Emitir eventos de oferta se aplicável (Sprint 17 - E04)
+        # Por ora, detectamos offers via menção no texto da resposta
+        # TODO: Rastrear tool calls para offer_made com vaga_id específico
+        if resposta:
+            asyncio.create_task(
+                _emitir_offer_events(
+                    cliente_id=medico["id"],
+                    conversa_id=conversa.get("id"),
+                    resposta=resposta,
+                    vagas_oferecidas=None,  # Será implementado quando rastrearmos tool calls
+                    policy_decision_id=policy_decision_id,
+                )
+            )
 
         # 9. StateUpdate pós-envio + log effect
         if resposta:
@@ -437,11 +538,15 @@ async def processar_mensagem_completo(
                 },
             )
 
-        return resposta
+        return ProcessamentoResult(
+            resposta=resposta,
+            policy_decision_id=policy_decision_id,
+            rule_matched=decision.rule_id,
+        )
 
     except Exception as e:
         logger.error(f"Erro ao processar mensagem: {e}")
-        return None
+        return ProcessamentoResult()
 
 
 async def enviar_mensagens_sequencia(

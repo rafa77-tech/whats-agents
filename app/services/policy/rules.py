@@ -27,7 +27,8 @@ def rule_opted_out(state: DoctorState, **kwargs) -> Optional[PolicyDecision]:
         return PolicyDecision(
             primary_action=PrimaryAction.WAIT,
             allowed_actions=[],
-            forbidden_actions=["*"],
+            forbidden_actions=[],
+            forbid_all=True,  # Sprint 16 Fix: usar forbid_all ao invés de ["*"]
             tone=Tone.LEVE,  # Não vai responder, mas precisa de um valor
             requires_human=False,
             constraints_text="MÉDICO FEZ OPT-OUT. NÃO RESPONDER.",

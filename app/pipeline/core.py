@@ -1,5 +1,7 @@
 """
 Core processor - geracao de resposta via LLM.
+
+Sprint 16: Propaga policy_decision_id para post-processors.
 """
 import logging
 
@@ -12,6 +14,8 @@ logger = logging.getLogger(__name__)
 class LLMCoreProcessor:
     """
     Processador core que chama o LLM para gerar resposta.
+
+    Sprint 16: Agora propaga policy_decision_id via context.metadata.
     """
 
     name = "llm_core"
@@ -21,14 +25,19 @@ class LLMCoreProcessor:
         Gera resposta usando o agente Julia.
         """
         try:
-            resposta = await processar_mensagem_completo(
+            resultado = await processar_mensagem_completo(
                 mensagem_texto=context.mensagem_texto,
                 medico=context.medico,
                 conversa=context.conversa,
                 vagas=None  # TODO: buscar vagas relevantes
             )
 
-            if not resposta:
+            # Sprint 16: Propagar policy_decision_id para post-processors
+            if resultado and resultado.policy_decision_id:
+                context.metadata["policy_decision_id"] = resultado.policy_decision_id
+                context.metadata["rule_matched"] = resultado.rule_matched
+
+            if not resultado or not resultado.resposta:
                 logger.warning("Julia nao gerou resposta")
                 return ProcessorResult(
                     success=True,
@@ -38,7 +47,7 @@ class LLMCoreProcessor:
 
             return ProcessorResult(
                 success=True,
-                response=resposta
+                response=resultado.resposta
             )
 
         except Exception as e:

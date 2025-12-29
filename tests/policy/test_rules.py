@@ -43,7 +43,7 @@ class TestRuleOptedOut:
 
         assert decision is not None
         assert decision.primary_action == PrimaryAction.WAIT
-        assert decision.forbidden_actions == ["*"]
+        assert decision.forbid_all is True
         assert decision.requires_human is False
 
     def test_active_not_blocked(self):

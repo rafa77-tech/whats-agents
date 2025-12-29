@@ -2,14 +2,22 @@
 Service principal de vagas.
 
 Sprint 10 - S10.E3.2
+Sprint 17 - E01: Adicao de status 'realizada'
 """
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.config.regioes import detectar_regiao_por_telefone
+from app.services.supabase import supabase
 from . import repository, cache, preferencias
 
 logger = logging.getLogger(__name__)
+
+
+# Status validos para transicao para 'realizada'
+# Inclui 'fechada' por compatibilidade com registros legados
+STATUS_VALIDOS_PARA_REALIZADA = ("reservada", "fechada")
 
 
 async def buscar_vagas_compativeis(
@@ -173,3 +181,60 @@ async def cancelar_reserva(vaga_id: str, cliente_id: str) -> dict:
     logger.info(f"Reserva da vaga {vaga_id} cancelada pelo medico {cliente_id}")
 
     return resultado
+
+
+async def marcar_vaga_realizada(
+    vaga_id: str,
+    realizada_por: str = "ops",
+) -> bool:
+    """
+    Marca uma vaga como realizada (plantao executado).
+
+    Aceita vagas com status 'reservada' ou 'fechada' (legado).
+
+    Sprint 17 - E01.3
+
+    Args:
+        vaga_id: UUID da vaga
+        realizada_por: Quem esta marcando (user_id ou "ops")
+
+    Returns:
+        True se sucesso
+
+    Raises:
+        ValueError: Se vaga nao existe ou status invalido
+    """
+    # Buscar vaga atual
+    response = (
+        supabase.table("vagas")
+        .select("id, status")
+        .eq("id", vaga_id)
+        .maybe_single()
+        .execute()
+    )
+
+    if not response.data:
+        raise ValueError(f"Vaga nao encontrada: {vaga_id}")
+
+    status_atual = response.data["status"]
+
+    # Aceita 'reservada' (novo) ou 'fechada' (legado)
+    if status_atual not in STATUS_VALIDOS_PARA_REALIZADA:
+        raise ValueError(
+            f"Vaga deve estar reservada ou fechada para ser realizada. "
+            f"Status atual: {status_atual}"
+        )
+
+    # Atualizar para 'realizada'
+    supabase.table("vagas").update({
+        "status": "realizada",
+        "realizada_em": datetime.now(timezone.utc).isoformat(),
+        "realizada_por": realizada_por,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("id", vaga_id).execute()
+
+    logger.info(
+        f"Vaga {vaga_id} marcada como realizada por {realizada_por} "
+        f"(status anterior: {status_atual})"
+    )
+    return True

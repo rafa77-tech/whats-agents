@@ -2,7 +2,9 @@
 Fluxo de transicao IA <-> Humano.
 
 Sprint 10 - S10.E3.4
+Sprint 17 - E04: handoff_created event
 """
+import asyncio
 from datetime import datetime
 import logging
 from typing import Optional
@@ -97,7 +99,19 @@ async def iniciar_handoff(
         handoff = response.data[0]
         logger.info(f"Handoff criado: {handoff['id']}")
 
-        # 4. Notificar gestor no Slack
+        # 4. Emitir evento handoff_created (Sprint 17 - E04)
+        asyncio.create_task(
+            _emitir_handoff_created(
+                cliente_id=cliente_id,
+                conversa_id=conversa_id,
+                handoff_id=handoff["id"],
+                motivo=motivo,
+                trigger_type=trigger_type,
+                policy_decision_id=policy_decision_id,
+            )
+        )
+
+        # 5. Notificar gestor no Slack
         try:
             await notificar_handoff(conversa, handoff)
         except Exception as e:
@@ -132,6 +146,48 @@ async def _calcular_metadata(conversa_id: str) -> dict:
         metadata["duracao_conversa_minutos"] = int((ultima - primeira).total_seconds() / 60)
 
     return metadata
+
+
+async def _emitir_handoff_created(
+    cliente_id: str,
+    conversa_id: str,
+    handoff_id: str,
+    motivo: str,
+    trigger_type: str,
+    policy_decision_id: Optional[str] = None,
+) -> None:
+    """Emite evento handoff_created se no rollout (Sprint 17 - E04)."""
+    try:
+        from app.services.business_events import (
+            emit_event,
+            should_emit_event,
+            BusinessEvent,
+            EventType,
+            EventSource,
+        )
+
+        # Verificar rollout
+        should_emit = await should_emit_event(cliente_id, "handoff_created")
+        if not should_emit:
+            return
+
+        await emit_event(BusinessEvent(
+            event_type=EventType.HANDOFF_CREATED,
+            source=EventSource.BACKEND,
+            cliente_id=cliente_id,
+            conversation_id=conversa_id,
+            policy_decision_id=policy_decision_id,
+            event_props={
+                "handoff_id": handoff_id,
+                "motivo": motivo,
+                "trigger_type": trigger_type,
+            },
+        ))
+
+        logger.debug(f"handoff_created emitido para cliente {cliente_id[:8]}")
+
+    except Exception as e:
+        logger.warning(f"Erro ao emitir handoff_created (nao critico): {e}")
 
 
 async def _enviar_mensagem_transicao(

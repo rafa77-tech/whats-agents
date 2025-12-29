@@ -25,6 +25,7 @@ from .service import (
     buscar_vagas_por_regiao,
     reservar_vaga,
     cancelar_reserva,
+    marcar_vaga_realizada,
 )
 
 
@@ -41,6 +42,7 @@ __all__ = [
     "buscar_vagas_por_regiao",
     "reservar_vaga",
     "cancelar_reserva",
+    "marcar_vaga_realizada",
     # Repository
     "buscar_vaga_por_id",
     "verificar_conflito",

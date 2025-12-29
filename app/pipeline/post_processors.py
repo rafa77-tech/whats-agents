@@ -1,5 +1,7 @@
 """
 Pos-processadores do pipeline.
+
+Sprint 16: Integração com policy_events via update_effect_interaction_id.
 """
 import asyncio
 import logging
@@ -12,6 +14,7 @@ from app.services.interacao import salvar_interacao
 from app.services.metricas import metricas_service
 from app.services.whatsapp import mostrar_digitando
 from app.services.validacao_output import validar_e_corrigir, output_validator
+from app.services.policy.events_repository import update_effect_interaction_id
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +137,9 @@ class SendMessageProcessor(PostProcessor):
             context.metadata["message_sent"] = True
             context.metadata["sent_message_id"] = resultado.get("key", {}).get("id")
             logger.info(f"Mensagem enviada para {context.telefone[:8]}...")
+
+            # Sprint 17 - E04: Emitir doctor_outbound
+            await self._emitir_outbound_event(context, response)
         else:
             logger.error("Falha ao enviar mensagem")
             return ProcessorResult(
@@ -142,6 +148,44 @@ class SendMessageProcessor(PostProcessor):
             )
 
         return ProcessorResult(success=True, response=response)
+
+    async def _emitir_outbound_event(
+        self,
+        context: ProcessorContext,
+        response: str
+    ) -> None:
+        """Emite evento doctor_outbound se no rollout."""
+        from app.services.business_events import (
+            emit_event,
+            should_emit_event,
+            BusinessEvent,
+            EventType,
+            EventSource,
+        )
+
+        cliente_id = context.medico.get("id") if context.medico else None
+        if not cliente_id:
+            return
+
+        # Verificar rollout
+        should_emit = await should_emit_event(cliente_id, "doctor_outbound")
+        if not should_emit:
+            return
+
+        # Emitir evento em background
+        asyncio.create_task(
+            emit_event(BusinessEvent(
+                event_type=EventType.DOCTOR_OUTBOUND,
+                source=EventSource.PIPELINE,
+                cliente_id=cliente_id,
+                conversation_id=context.conversa.get("id") if context.conversa else None,
+                event_props={
+                    "message_length": len(response),
+                },
+            ))
+        )
+
+        logger.debug(f"doctor_outbound emitido para cliente {cliente_id[:8]}")
 
 
 class SaveInteractionProcessor(PostProcessor):
@@ -173,7 +217,7 @@ class SaveInteractionProcessor(PostProcessor):
 
             # Salvar interacao de saida (se enviou)
             if response and context.metadata.get("message_sent"):
-                await salvar_interacao(
+                interacao = await salvar_interacao(
                     conversa_id=context.conversa["id"],
                     cliente_id=context.medico["id"],
                     tipo="saida",
@@ -181,6 +225,18 @@ class SaveInteractionProcessor(PostProcessor):
                     autor_tipo="julia",
                     message_id=context.metadata.get("sent_message_id")
                 )
+
+                # Sprint 16 - E08: Atualizar policy_event com interaction_id
+                policy_decision_id = context.metadata.get("policy_decision_id")
+                if interacao and policy_decision_id:
+                    interaction_id = interacao.get("id")
+                    if interaction_id:
+                        await update_effect_interaction_id(
+                            policy_decision_id=policy_decision_id,
+                            effect_type="message_sent",
+                            interaction_id=interaction_id,
+                        )
+                        logger.debug(f"Policy effect atualizado com interaction_id: {interaction_id}")
 
             logger.debug("Interacoes salvas")
 

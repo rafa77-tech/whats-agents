@@ -210,12 +210,14 @@ class TestLogPolicyDecision:
 
     @patch("app.services.policy.logger.logger")
     def test_forbid_all_separates_from_list(self, mock_logger):
-        """forbid_all é separado de forbidden_actions."""
+        """forbid_all é separado de forbidden_actions (Sprint 16 Fix)."""
         state = DoctorState(cliente_id="test-123")
+        # Sprint 16 Fix: usar forbid_all=True em vez de "*" na lista
         decision = PolicyDecision(
             primary_action=PrimaryAction.HANDOFF,
             allowed_actions=[],
-            forbidden_actions=["pressure", "negotiate", "*"],
+            forbidden_actions=["pressure", "negotiate"],
+            forbid_all=True,
             tone=Tone.CRISE,
             requires_human=True,
             constraints_text="",
@@ -270,7 +272,8 @@ class TestLogPolicyDecision:
         decision = PolicyDecision(
             primary_action=PrimaryAction.HANDOFF,
             allowed_actions=[],
-            forbidden_actions=["*"],
+            forbidden_actions=[],
+            forbid_all=True,
             tone=Tone.CRISE,
             requires_human=True,
             constraints_text="",

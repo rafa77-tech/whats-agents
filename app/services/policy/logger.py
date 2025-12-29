@@ -10,7 +10,12 @@ Requisitos:
 - event_id sempre presente (nunca null)
 - policy_decision_id para rastreabilidade
 - snapshot_hash para replay/auditoria
+
+Sprint 16 - Observability
+- Persiste eventos na tabela policy_events
+- Permite métricas e replay offline
 """
+import asyncio
 import hashlib
 import json
 import logging
@@ -22,6 +27,9 @@ from .types import DoctorState, PolicyDecision
 from .version import POLICY_VERSION
 
 logger = logging.getLogger(__name__)
+
+# Flag para controlar persistência (evita import circular durante testes)
+_persist_enabled = True
 
 
 def _serialize_doctor_state_input(state: DoctorState) -> dict:
@@ -65,7 +73,7 @@ def log_policy_decision(
     state: DoctorState,
     decision: PolicyDecision,
     conversation_id: Optional[str] = None,
-    interaction_id: Optional[str] = None,
+    interaction_id: Optional[int] = None,
     is_first_message: bool = False,
     conversa_status: str = "active",
 ) -> str:
@@ -79,11 +87,13 @@ def log_policy_decision(
     - Versionar mudanças na policy
     - Debugar comportamentos inesperados
 
+    Sprint 16: Também persiste no banco para métricas/replay.
+
     Args:
         state: Estado do médico usado na decisão
         decision: Decisão tomada pelo PolicyDecide
         conversation_id: ID da conversa (opcional)
-        interaction_id: ID da interação/mensagem no banco (opcional)
+        interaction_id: ID da interação/mensagem no banco (opcional, BIGINT)
         is_first_message: Se é primeira mensagem da conversa
         conversa_status: Status da conversa
 
@@ -98,9 +108,9 @@ def log_policy_decision(
     state_input = _serialize_doctor_state_input(state)
     snapshot_hash = _compute_snapshot_hash(state_input)
 
-    # Processar forbidden_actions (separar forbid_all de lista)
-    forbid_all = "*" in decision.forbidden_actions
-    forbidden_actions = [a for a in decision.forbidden_actions if a != "*"]
+    # Sprint 16 Fix: usar forbid_all do decision (não mais "*" em forbidden_actions)
+    forbid_all = decision.forbid_all
+    forbidden_actions = decision.forbidden_actions
 
     log_event = {
         "event": "policy_decision",
@@ -149,6 +159,35 @@ def log_policy_decision(
             f"rule={decision.rule_id} decision_id={policy_decision_id}"
         )
 
+    # Sprint 16: Persistir no banco (fire-and-forget, não bloqueia)
+    if _persist_enabled:
+        try:
+            from .events_repository import persist_decision
+
+            # Verificar se há event loop rodando
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(
+                    persist_decision(
+                        event_id=event_id,
+                        policy_decision_id=policy_decision_id,
+                        state=state,
+                        decision=decision,
+                        doctor_state_input=state_input,
+                        snapshot_hash=snapshot_hash,
+                        conversation_id=conversation_id,
+                        interaction_id=interaction_id,
+                        is_first_message=is_first_message,
+                        conversa_status=conversa_status,
+                    )
+                )
+            except RuntimeError:
+                # Sem event loop (ex: testes síncronos) - ignorar
+                pass
+        except Exception as e:
+            # Nunca quebrar o fluxo por erro de persistência
+            logger.warning(f"Erro ao persistir decision: {e}")
+
     return policy_decision_id
 
 
@@ -158,7 +197,7 @@ def log_policy_effect(
     policy_decision_id: str,
     rule_matched: str,
     effect: str,
-    interaction_id: Optional[str] = None,
+    interaction_id: Optional[int] = None,
     details: Optional[dict] = None,
 ) -> None:
     """
@@ -168,15 +207,18 @@ def log_policy_effect(
     - message_sent: mensagem enviada com sucesso
     - handoff_triggered: handoff iniciado
     - wait_applied: decisão de esperar
+    - safe_mode_applied: safe mode ativo (Sprint 16)
     - error: erro no envio
+
+    Sprint 16: Também persiste no banco para métricas.
 
     Args:
         cliente_id: ID do cliente
         conversation_id: ID da conversa
         policy_decision_id: ID da decisão que gerou este efeito
         rule_matched: Regra que gerou a decisão original
-        effect: Tipo de efeito (message_sent, handoff_triggered, wait_applied, error)
-        interaction_id: ID da interação/mensagem (opcional)
+        effect: Tipo de efeito (message_sent, handoff_triggered, wait_applied, safe_mode_applied, error)
+        interaction_id: ID da interação/mensagem (opcional, BIGINT)
         details: Detalhes adicionais (opcional)
     """
     event_id = str(uuid.uuid4())
@@ -200,3 +242,29 @@ def log_policy_effect(
     logger.info(
         f"POLICY_EFFECT: {json.dumps(log_event, ensure_ascii=False)}"
     )
+
+    # Sprint 16: Persistir no banco (fire-and-forget, não bloqueia)
+    if _persist_enabled:
+        try:
+            from .events_repository import persist_effect
+
+            # Verificar se há event loop rodando
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(
+                    persist_effect(
+                        event_id=event_id,
+                        policy_decision_id=policy_decision_id,
+                        cliente_id=cliente_id,
+                        conversation_id=conversation_id,
+                        effect_type=effect,
+                        interaction_id=interaction_id,
+                        details=details,
+                    )
+                )
+            except RuntimeError:
+                # Sem event loop (ex: testes síncronos) - ignorar
+                pass
+        except Exception as e:
+            # Nunca quebrar o fluxo por erro de persistência
+            logger.warning(f"Erro ao persistir effect: {e}")

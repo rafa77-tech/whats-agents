@@ -161,6 +161,7 @@ class PolicyDecision:
     constraints_text: str  # Bloco para injetar no prompt
     reasoning: str  # Para logs/debug
     rule_id: str = ""  # Nome da função da regra que disparou (para rastreabilidade)
+    forbid_all: bool = False  # Sprint 16: True = proíbe tudo (substitui "*" em forbidden_actions)
 
     def to_dict(self) -> dict:
         """Serializa para logging."""
@@ -169,6 +170,7 @@ class PolicyDecision:
             "primary_action": self.primary_action.value,
             "allowed_actions": self.allowed_actions,
             "forbidden_actions": self.forbidden_actions,
+            "forbid_all": self.forbid_all,
             "tone": self.tone.value,
             "requires_human": self.requires_human,
             "reasoning": self.reasoning,
