@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade
+from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff
 from fastapi.staticfiles import StaticFiles
 
 # Configurar logging
@@ -31,11 +31,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS
+# CORS - configurável via CORS_ORIGINS no .env
+# Desenvolvimento: CORS_ORIGINS="*" (padrão)
+# Produção: CORS_ORIGINS="https://app.revoluna.com,https://admin.revoluna.com"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Ajustar em produção
-    allow_credentials=True,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True if settings.CORS_ORIGINS != "*" else False,  # Credentials só com origens específicas
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -54,6 +56,7 @@ app.include_router(admin.router)
 app.include_router(piloto.router)
 app.include_router(campanhas.router)
 app.include_router(integridade.router)
+app.include_router(handoff.router)  # Sprint 20 - External Handoff
 
 # Arquivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")

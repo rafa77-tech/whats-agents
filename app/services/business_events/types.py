@@ -19,6 +19,14 @@ class EventType(Enum):
     OFFER_DECLINED = "offer_declined"
     HANDOFF_CREATED = "handoff_created"
 
+    # External Handoff - Ponte Automatica (Sprint 20)
+    HANDOFF_CONTACTED = "handoff_contacted"          # Msg enviada ao divulgador
+    HANDOFF_CONFIRM_CLICKED = "handoff_confirm_clicked"  # Link clicado
+    HANDOFF_CONFIRMED = "handoff_confirmed"          # Plantao confirmado pelo divulgador
+    HANDOFF_NOT_CONFIRMED = "handoff_not_confirmed"  # Plantao nao fechou
+    HANDOFF_EXPIRED = "handoff_expired"              # Expirou sem resposta
+    HANDOFF_FOLLOWUP_SENT = "handoff_followup_sent"  # Follow-up enviado
+
     # Confirmação de plantão (Sprint 17)
     SHIFT_CONFIRMATION_DUE = "shift_confirmation_due"  # Plantão terminou, aguarda confirmação
     SHIFT_COMPLETED = "shift_completed"                 # Confirmado: plantão realizado

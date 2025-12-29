@@ -438,6 +438,63 @@ def _construir_instrucao_confirmacao(vaga: dict, hospital_data: dict) -> str:
     return instrucao
 
 
+def _construir_instrucao_ponte_externa(
+    vaga: dict,
+    hospital_data: dict,
+    ponte_externa: dict,
+    medico: dict,
+) -> str:
+    """
+    Constroi instrucao de confirmacao para vaga com ponte externa.
+
+    Sprint 20 - Marketplace assistido.
+
+    Args:
+        vaga: Dados da vaga
+        hospital_data: Dados do hospital
+        ponte_externa: Resultado da criacao da ponte
+        medico: Dados do medico
+
+    Returns:
+        Instrucao para o LLM
+    """
+    divulgador = ponte_externa.get("divulgador", {})
+    divulgador_nome = divulgador.get("nome", "o responsavel")
+    divulgador_tel = divulgador.get("telefone", "")
+    divulgador_empresa = divulgador.get("empresa", "")
+
+    # Montar info do divulgador
+    info_divulgador = divulgador_nome
+    if divulgador_empresa:
+        info_divulgador += f" ({divulgador_empresa})"
+
+    instrucao = (
+        f"IMPORTANTE: Esta vaga e de um divulgador externo ({info_divulgador}). "
+        f"Voce JA ENTROU EM CONTATO com ele e passou os dados do medico.\n\n"
+        f"Informe ao medico que:\n"
+        f"1. Voce reservou a vaga\n"
+        f"2. Ja contatou o responsavel ({divulgador_nome})"
+    )
+
+    if divulgador_tel:
+        instrucao += f"\n3. Passe o contato: {divulgador_tel}"
+
+    instrucao += (
+        "\n\nPeca para o medico confirmar aqui quando fechar o plantao. "
+        "Fale de forma natural, como se voce tivesse acabado de fazer a ponte entre eles."
+    )
+
+    # Adicionar info de valor se aplicavel
+    valor_tipo = vaga.get("valor_tipo", "fixo")
+    if valor_tipo == "a_combinar":
+        instrucao += (
+            "\n\nComo o valor e 'a combinar', mencione que o medico deve "
+            "negociar diretamente com o divulgador."
+        )
+
+    return instrucao
+
+
 def _filtrar_por_periodo(vagas: list[dict], periodo_desejado: str) -> list[dict]:
     """
     Filtra vagas por tipo de período.
@@ -566,7 +623,7 @@ async def _buscar_vaga_por_data(data: str, especialidade_id: str) -> dict | None
     try:
         response = (
             supabase.table("vagas")
-            .select("*, hospitais(*), periodos(*), setores(*)")
+            .select("*, hospitais(*), periodos(*), setores(*), source, source_id")
             .eq("data", data)
             .eq("especialidade_id", especialidade_id)
             .eq("status", "aberta")
@@ -684,7 +741,26 @@ async def handle_reservar_plantao(
         # Extrair dados completos do hospital
         hospital_data = vaga.get("hospitais", {})
 
-        return {
+        # Sprint 20: Verificar se vaga tem origem externa (grupo)
+        ponte_externa = None
+        if vaga.get("source") == "grupo" and vaga.get("source_id"):
+            logger.info(f"Vaga {vaga_id} tem origem de grupo, iniciando ponte externa")
+
+            from app.services.external_handoff.service import criar_ponte_externa
+
+            try:
+                ponte_externa = await criar_ponte_externa(
+                    vaga_id=vaga_id,
+                    cliente_id=medico["id"],
+                    medico=medico,
+                    vaga=vaga,
+                )
+            except Exception as e:
+                logger.error(f"Erro ao criar ponte externa: {e}")
+                ponte_externa = {"success": False, "error": str(e)}
+
+        # Construir resposta
+        resultado = {
             "success": True,
             "message": f"Plantao reservado com sucesso: {vaga_formatada}",
             "vaga": {
@@ -703,8 +779,25 @@ async def handle_reservar_plantao(
                 "valor_display": _formatar_valor_display(vaga),
                 "status": vaga_atualizada.get("status")
             },
-            "instrucao": _construir_instrucao_confirmacao(vaga, hospital_data)
         }
+
+        # Sprint 20: Se teve ponte externa, adaptar instrucoes
+        if ponte_externa and ponte_externa.get("success"):
+            divulgador = ponte_externa.get("divulgador", {})
+            resultado["ponte_externa"] = {
+                "handoff_id": ponte_externa.get("handoff_id"),
+                "divulgador_nome": divulgador.get("nome"),
+                "divulgador_telefone": divulgador.get("telefone"),
+                "divulgador_empresa": divulgador.get("empresa"),
+                "msg_enviada": ponte_externa.get("msg_divulgador_enviada", False),
+            }
+            resultado["instrucao"] = _construir_instrucao_ponte_externa(
+                vaga, hospital_data, ponte_externa, medico
+            )
+        else:
+            resultado["instrucao"] = _construir_instrucao_confirmacao(vaga, hospital_data)
+
+        return resultado
 
     except ValueError as e:
         logger.warning(f"Erro ao reservar plantao: {e}")

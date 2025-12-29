@@ -50,6 +50,47 @@ class Settings(BaseSettings):
     # Julia API (para scheduler)
     JULIA_API_URL: str = "http://localhost:8000"
 
+    # JWT para External Handoff (Sprint 20)
+    JWT_SECRET_KEY: str = ""  # Obrigatório em produção
+    APP_BASE_URL: str = "https://api.revoluna.com"  # URL base para links de confirmacao
+
+    # CORS - origens permitidas (separadas por vírgula)
+    # Em produção, definir explicitamente: "https://app.revoluna.com,https://admin.revoluna.com"
+    CORS_ORIGINS: str = "*"  # "*" apenas para desenvolvimento
+
+    @property
+    def jwt_secret(self) -> str:
+        """
+        Retorna JWT secret.
+
+        Em produção, JWT_SECRET_KEY é obrigatório.
+        Em desenvolvimento, usa ANTHROPIC_API_KEY como fallback (não recomendado).
+        """
+        if self.ENVIRONMENT == "production" and not self.JWT_SECRET_KEY:
+            raise ValueError(
+                "JWT_SECRET_KEY é obrigatório em produção. "
+                "Gere um secret seguro com: openssl rand -hex 32"
+            )
+        return self.JWT_SECRET_KEY or self.ANTHROPIC_API_KEY
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """
+        Retorna lista de origens CORS permitidas.
+
+        Em produção, deve ser configurado explicitamente.
+        """
+        if self.CORS_ORIGINS == "*":
+            if self.ENVIRONMENT == "production":
+                # Log warning mas permite (para não quebrar deploy)
+                import logging
+                logging.warning(
+                    "⚠️ CORS_ORIGINS='*' em produção. "
+                    "Configure origens específicas para maior segurança."
+                )
+            return ["*"]
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+
     # Rate Limiting
     MAX_MSGS_POR_HORA: int = 20
     MAX_MSGS_POR_DIA: int = 100
