@@ -853,3 +853,61 @@ async def job_limpar_logs_reconciliacao(dias: int = 30):
     except Exception as e:
         logger.error(f"Erro ao limpar logs de reconciliação: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/reclamar-processing-travado")
+async def job_reclamar_processing_travado(minutos_timeout: int = 15):
+    """
+    P1.2: Reclama entries travadas em status='processing'.
+
+    Se um worker crashar entre claim e atualização final,
+    a entry fica em 'processing' eternamente. Este job
+    marca essas entries como 'abandoned'.
+
+    Args:
+        minutos_timeout: Minutos após os quais 'processing' é considerado travado (default 15)
+    """
+    try:
+        from app.services.touch_reconciliation import reclamar_processing_travado
+
+        result = await reclamar_processing_travado(minutos_timeout=minutos_timeout)
+
+        return JSONResponse({
+            "status": "ok",
+            "message": f"found={result.found}, reclaimed={result.reclaimed}",
+            "stats": {
+                "found": result.found,
+                "reclaimed": result.reclaimed,
+            },
+            "errors": result.errors[:10] if result.errors else [],
+        })
+    except Exception as e:
+        logger.error(f"Erro ao reclamar processing travado: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.get("/reconciliacao-status")
+async def job_reconciliacao_status(minutos_timeout: int = 15):
+    """
+    Retorna status de saúde do job de reconciliação.
+
+    Útil para monitoramento/alertas.
+
+    Returns:
+        - processing_stuck: Entries travadas em 'processing'
+    """
+    try:
+        from app.services.touch_reconciliation import contar_processing_stuck
+
+        stuck_count = await contar_processing_stuck(minutos_timeout=minutos_timeout)
+
+        status = "healthy" if stuck_count == 0 else "warning" if stuck_count < 10 else "critical"
+
+        return JSONResponse({
+            "status": status,
+            "processing_stuck": stuck_count,
+            "timeout_minutes": minutos_timeout,
+        })
+    except Exception as e:
+        logger.error(f"Erro ao verificar status de reconciliação: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)

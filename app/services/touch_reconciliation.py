@@ -349,3 +349,113 @@ async def limpar_logs_antigos(dias: int = 30) -> int:
     except Exception as e:
         logger.error(f"Erro ao limpar logs: {e}")
         return 0
+
+
+@dataclass
+class ReclaimResult:
+    """Resultado de reclaim de processing travado."""
+    found: int = 0
+    reclaimed: int = 0
+    errors: List[str] = None
+
+    def __post_init__(self):
+        if self.errors is None:
+            self.errors = []
+
+
+async def reclamar_processing_travado(
+    minutos_timeout: int = 15,
+) -> ReclaimResult:
+    """
+    P1.2: Reclama entries travadas em status='processing'.
+
+    Se um worker crashar entre claim e atualização final,
+    a entry fica em 'processing' eternamente. Esta função
+    marca essas entries como 'abandoned' para permitir
+    reprocessamento ou auditoria.
+
+    Args:
+        minutos_timeout: Minutos após os quais 'processing' é considerado travado
+
+    Returns:
+        ReclaimResult com estatísticas
+    """
+    result = ReclaimResult()
+    timeout_threshold = (
+        datetime.now(timezone.utc) - timedelta(minutes=minutos_timeout)
+    ).isoformat()
+
+    try:
+        # Buscar processing travados
+        response = (
+            supabase.table("touch_reconciliation_log")
+            .select("provider_message_id, processed_at")
+            .eq("status", "processing")
+            .lt("processed_at", timeout_threshold)
+            .execute()
+        )
+
+        stuck = response.data or []
+        result.found = len(stuck)
+
+        if not stuck:
+            logger.info("Nenhum processing travado encontrado")
+            return result
+
+        logger.warning(f"Encontrados {len(stuck)} processing travados")
+
+        # Marcar como abandoned
+        for entry in stuck:
+            try:
+                supabase.table("touch_reconciliation_log").update({
+                    "status": "abandoned",
+                    "error": f"Timeout após {minutos_timeout}min sem finalização",
+                }).eq(
+                    "provider_message_id", entry["provider_message_id"]
+                ).execute()
+                result.reclaimed += 1
+            except Exception as e:
+                result.errors.append(
+                    f"{entry['provider_message_id']}: {str(e)[:100]}"
+                )
+                logger.error(f"Erro ao reclamar {entry['provider_message_id']}: {e}")
+
+        logger.info(
+            f"Reclaim concluído: found={result.found}, "
+            f"reclaimed={result.reclaimed}, errors={len(result.errors)}"
+        )
+
+    except Exception as e:
+        logger.error(f"Erro no reclaim: {e}", exc_info=True)
+        result.errors.append(f"Erro geral: {str(e)}")
+
+    return result
+
+
+async def contar_processing_stuck(minutos_timeout: int = 15) -> int:
+    """
+    Conta entries em status='processing' que passaram do timeout.
+
+    Útil para métricas/alertas sem fazer reclaim.
+
+    Args:
+        minutos_timeout: Minutos após os quais considerar stuck
+
+    Returns:
+        Contagem de entries stuck
+    """
+    timeout_threshold = (
+        datetime.now(timezone.utc) - timedelta(minutes=minutos_timeout)
+    ).isoformat()
+
+    try:
+        response = (
+            supabase.table("touch_reconciliation_log")
+            .select("provider_message_id", count="exact")
+            .eq("status", "processing")
+            .lt("processed_at", timeout_threshold)
+            .execute()
+        )
+        return response.count or 0
+    except Exception:
+        return -1  # Indica erro
