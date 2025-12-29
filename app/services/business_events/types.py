@@ -18,7 +18,11 @@ class EventType(Enum):
     OFFER_ACCEPTED = "offer_accepted"
     OFFER_DECLINED = "offer_declined"
     HANDOFF_CREATED = "handoff_created"
-    SHIFT_COMPLETED = "shift_completed"
+
+    # Confirmação de plantão (Sprint 17)
+    SHIFT_CONFIRMATION_DUE = "shift_confirmation_due"  # Plantão terminou, aguarda confirmação
+    SHIFT_COMPLETED = "shift_completed"                 # Confirmado: plantão realizado
+    SHIFT_NOT_COMPLETED = "shift_not_completed"         # Confirmado: não ocorreu
 
 
 class EventSource(Enum):

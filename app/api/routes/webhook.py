@@ -211,3 +211,113 @@ async def _processar_comando_slack(event: dict):
 
     except Exception as e:
         logger.error(f"Erro ao processar comando Slack: {e}", exc_info=True)
+
+
+# =============================================================================
+# Slack Interactivity (Botões)
+# =============================================================================
+
+@router.post("/slack/interactivity")
+async def slack_interactivity(request: Request):
+    """
+    Recebe interações do Slack (cliques em botões).
+
+    Usado para confirmação de plantões.
+    """
+    import json
+    from urllib.parse import parse_qs
+
+    body = await request.body()
+
+    # Verificar assinatura
+    timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
+    signature = request.headers.get("X-Slack-Signature", "")
+
+    if not _verificar_assinatura_slack(body, timestamp, signature):
+        logger.warning("Assinatura Slack invalida em interactivity")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    # Slack envia como form-urlencoded com payload JSON
+    try:
+        parsed = parse_qs(body.decode("utf-8"))
+        payload_str = parsed.get("payload", ["{}"])[0]
+        payload = json.loads(payload_str)
+    except Exception as e:
+        logger.error(f"Erro ao parsear payload de interactivity: {e}")
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    # Processar ação
+    action_type = payload.get("type")
+
+    if action_type == "block_actions":
+        actions = payload.get("actions", [])
+        user = payload.get("user", {})
+        response_url = payload.get("response_url", "")
+
+        for action in actions:
+            action_id = action.get("action_id")
+            vaga_id = action.get("value")
+            user_name = user.get("name", user.get("id", "unknown"))
+
+            logger.info(f"Slack action: {action_id} para vaga {vaga_id} por {user_name}")
+
+            if action_id == "confirmar_realizado":
+                await _processar_confirmacao_plantao(
+                    vaga_id=vaga_id,
+                    realizado=True,
+                    confirmado_por=user_name,
+                    response_url=response_url
+                )
+            elif action_id == "confirmar_nao_ocorreu":
+                await _processar_confirmacao_plantao(
+                    vaga_id=vaga_id,
+                    realizado=False,
+                    confirmado_por=user_name,
+                    response_url=response_url
+                )
+
+    # Responder imediatamente (Slack espera resposta em 3s)
+    return JSONResponse({"status": "ok"})
+
+
+async def _processar_confirmacao_plantao(
+    vaga_id: str,
+    realizado: bool,
+    confirmado_por: str,
+    response_url: str
+):
+    """
+    Processa confirmação de plantão via Slack.
+
+    1. Valida status da vaga (idempotência)
+    2. Atualiza status + emite business_event
+    3. Atualiza mensagem no Slack (remove botões)
+    """
+    from app.services.confirmacao_plantao import (
+        confirmar_plantao_realizado,
+        confirmar_plantao_nao_ocorreu
+    )
+    from app.services.slack import atualizar_mensagem_confirmada
+
+    try:
+        # Confirmar no banco + emitir evento
+        if realizado:
+            resultado = await confirmar_plantao_realizado(vaga_id, confirmado_por)
+        else:
+            resultado = await confirmar_plantao_nao_ocorreu(vaga_id, confirmado_por)
+
+        if resultado.sucesso:
+            logger.info(f"Plantão {vaga_id} confirmado como {'realizado' if realizado else 'não ocorreu'}")
+
+            # Atualizar mensagem no Slack
+            await atualizar_mensagem_confirmada(
+                response_url=response_url,
+                vaga_id=vaga_id,
+                confirmado_por=confirmado_por,
+                realizado=realizado
+            )
+        else:
+            logger.warning(f"Erro ao confirmar plantão {vaga_id}: {resultado.erro}")
+
+    except Exception as e:
+        logger.error(f"Erro ao processar confirmação de plantão: {e}", exc_info=True)

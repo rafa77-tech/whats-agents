@@ -128,6 +128,12 @@ JOBS = [
         "endpoint": "/jobs/consolidar-metricas-grupos",
         "schedule": "0 1 * * *",  # Diário à 1h (consolida dia anterior)
     },
+    # Confirmação de plantão (Sprint 17)
+    {
+        "name": "processar_confirmacao_plantao",
+        "endpoint": "/jobs/processar-confirmacao-plantao",
+        "schedule": "0 * * * *",  # A cada hora, minuto 0
+    },
 ]
 
 

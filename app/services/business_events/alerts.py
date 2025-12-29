@@ -29,6 +29,9 @@ class AlertType(Enum):
     HANDOFF_SPIKE = "handoff_spike"
     RECUSA_SPIKE = "recusa_spike"
     CONVERSION_DROP = "conversion_drop"
+    # Alertas P0 de confirmação de plantão (Sprint 17)
+    CONFIRMATION_OVERDUE = "confirmation_overdue"     # pendentes > 24h
+    SHIFT_TRANSITION_FAILED = "shift_transition_failed"  # reservadas vencidas não transicionaram
 
 
 class AlertSeverity(Enum):
@@ -289,6 +292,105 @@ async def detect_conversion_drop(
     return alerts
 
 
+async def detect_confirmation_overdue(
+    max_hours: int = 24,
+) -> List[Alert]:
+    """
+    Detecta vagas pendentes de confirmação há mais de N horas.
+
+    Regra P0: pendente_confirmacao_em < now() - 24h = alerta
+
+    Args:
+        max_hours: Máximo de horas para confirmar (default 24h)
+
+    Returns:
+        Lista de alertas detectados
+    """
+    alerts = []
+
+    try:
+        limite = (datetime.now(timezone.utc) - timedelta(hours=max_hours)).isoformat()
+
+        result = supabase.table("vagas").select(
+            "id", count="exact"
+        ).eq(
+            "status", "pendente_confirmacao"
+        ).lt(
+            "pendente_confirmacao_em", limite
+        ).execute()
+
+        count = result.count or 0
+
+        if count > 0:
+            alerts.append(Alert(
+                alert_type=AlertType.CONFIRMATION_OVERDUE,
+                severity=AlertSeverity.CRITICAL if count >= 5 else AlertSeverity.WARNING,
+                title="Confirmações de Plantão Atrasadas",
+                description=(
+                    f"{count} plantão(ões) aguardando confirmação há mais de {max_hours}h. "
+                    f"Acesse /jobs/pendentes-confirmacao para revisar."
+                ),
+                current_value=float(count),
+                baseline_value=0,
+                threshold_pct=0,
+            ))
+
+    except Exception as e:
+        logger.error(f"Erro ao detectar confirmações atrasadas: {e}")
+
+    return alerts
+
+
+async def detect_shift_transition_failed(
+    buffer_hours: int = 2,
+) -> List[Alert]:
+    """
+    Detecta vagas reservadas que deveriam ter transicionado mas não transitaram.
+
+    Regra P0: Se existem reservadas com fim_plantao < now() - buffer,
+    significa que o job de transição falhou.
+
+    Args:
+        buffer_hours: Buffer após fim do plantão (default 2h)
+
+    Returns:
+        Lista de alertas detectados
+    """
+    alerts = []
+
+    try:
+        from app.services.confirmacao_plantao import BUFFER_HORAS
+
+        # Usar RPC para contar (calcula data+hora corretamente)
+        limite = (datetime.now(timezone.utc) - timedelta(hours=buffer_hours)).isoformat()
+
+        result = supabase.rpc("contar_reservadas_vencidas", {
+            "limite_ts": limite
+        }).execute()
+
+        count = result.data if isinstance(result.data, int) else 0
+
+        if count > 0:
+            alerts.append(Alert(
+                alert_type=AlertType.SHIFT_TRANSITION_FAILED,
+                severity=AlertSeverity.CRITICAL,
+                title="Job de Transição de Plantões Falhou",
+                description=(
+                    f"{count} plantão(ões) reservado(s) com data vencida não foram "
+                    f"transicionados para pendente_confirmacao. "
+                    f"Verifique se o job processar_confirmacao_plantao está rodando."
+                ),
+                current_value=float(count),
+                baseline_value=0,
+                threshold_pct=0,
+            ))
+
+    except Exception as e:
+        logger.error(f"Erro ao detectar falha de transição: {e}")
+
+    return alerts
+
+
 async def detect_all_anomalies() -> List[Alert]:
     """Executa todos os detectores de anomalia."""
     all_alerts = []
@@ -296,6 +398,9 @@ async def detect_all_anomalies() -> List[Alert]:
     all_alerts.extend(await detect_handoff_spike())
     all_alerts.extend(await detect_decline_spike())
     all_alerts.extend(await detect_conversion_drop())
+    # Alertas P0 de confirmação de plantão
+    all_alerts.extend(await detect_confirmation_overdue())
+    all_alerts.extend(await detect_shift_transition_failed())
 
     return all_alerts
 
@@ -329,6 +434,22 @@ def _get_action_text(alert: Alert) -> str:
             "- Revisar qualidade das ofertas recentes\n"
             "- Verificar se valores estao competitivos\n"
             "- Analisar feedback de medicos"
+        )
+
+    elif alert.alert_type == AlertType.CONFIRMATION_OVERDUE:
+        return (
+            "*Acoes sugeridas:*\n"
+            "- Revisar plantoes pendentes no Slack\n"
+            "- Confirmar se plantoes ocorreram\n"
+            "- GET /jobs/pendentes-confirmacao"
+        )
+
+    elif alert.alert_type == AlertType.SHIFT_TRANSITION_FAILED:
+        return (
+            "*Acoes sugeridas:*\n"
+            "- Verificar se scheduler esta rodando\n"
+            "- POST /jobs/processar-confirmacao-plantao\n"
+            "- Verificar logs do julia-scheduler"
         )
 
     return "*Acao:* Investigar causa"

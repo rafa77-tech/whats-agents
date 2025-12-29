@@ -260,6 +260,157 @@ async def notificar_handoff_resolvido(
     return await enviar_slack(mensagem)
 
 
+async def notificar_confirmacao_plantao(
+    vaga_id: str,
+    data: str,
+    horario: str,
+    valor: int,
+    hospital: str,
+    especialidade: str,
+    medico_nome: Optional[str],
+    medico_telefone: Optional[str]
+) -> bool:
+    """
+    Notifica equipe para confirmar se plantão ocorreu.
+
+    Envia mensagem com botões interativos:
+    - ✅ Realizado
+    - ❌ Não ocorreu
+
+    Args:
+        vaga_id: UUID da vaga
+        data: Data do plantão (YYYY-MM-DD)
+        horario: Horário (ex: "07:00 - 19:00")
+        valor: Valor do plantão
+        hospital: Nome do hospital
+        especialidade: Nome da especialidade
+        medico_nome: Nome do médico
+        medico_telefone: Telefone do médico
+
+    Returns:
+        True se enviou com sucesso
+    """
+    # Formatar data
+    data_formatada = data
+    try:
+        data_obj = datetime.strptime(data, "%Y-%m-%d")
+        data_formatada = data_obj.strftime("%d/%m/%Y")
+    except ValueError:
+        pass
+
+    # Formatar valor
+    valor_fmt = f"R$ {valor:,.0f}".replace(",", ".")
+
+    # Montar Block Kit message
+    blocks = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "📋 Confirmação de Plantão",
+                "emoji": True
+            }
+        },
+        {
+            "type": "section",
+            "fields": [
+                {"type": "mrkdwn", "text": f"*Hospital:*\n{hospital}"},
+                {"type": "mrkdwn", "text": f"*Especialidade:*\n{especialidade}"},
+                {"type": "mrkdwn", "text": f"*Data:*\n{data_formatada}"},
+                {"type": "mrkdwn", "text": f"*Horário:*\n{horario}"},
+                {"type": "mrkdwn", "text": f"*Valor:*\n{valor_fmt}"},
+                {"type": "mrkdwn", "text": f"*Médico:*\n{medico_nome or 'N/A'}"}
+            ]
+        },
+        {
+            "type": "context",
+            "elements": [
+                {"type": "mrkdwn", "text": f"📱 {medico_telefone}" if medico_telefone else "📱 Telefone não informado"}
+            ]
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "actions",
+            "block_id": f"confirmacao_{vaga_id}",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "✅ Realizado", "emoji": True},
+                    "style": "primary",
+                    "action_id": "confirmar_realizado",
+                    "value": vaga_id
+                },
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "❌ Não ocorreu", "emoji": True},
+                    "style": "danger",
+                    "action_id": "confirmar_nao_ocorreu",
+                    "value": vaga_id
+                }
+            ]
+        }
+    ]
+
+    mensagem = {
+        "text": f"Confirmação: plantão {data_formatada} - {hospital}",
+        "blocks": blocks
+    }
+
+    return await enviar_slack(mensagem)
+
+
+async def atualizar_mensagem_confirmada(
+    response_url: str,
+    vaga_id: str,
+    confirmado_por: str,
+    realizado: bool
+) -> bool:
+    """
+    Atualiza mensagem do Slack após confirmação (remove botões).
+
+    Args:
+        response_url: URL de resposta do Slack
+        vaga_id: UUID da vaga
+        confirmado_por: Quem confirmou
+        realizado: Se foi realizado ou não
+    """
+    status = "✅ REALIZADO" if realizado else "❌ NÃO OCORREU"
+    cor = "#2e7d32" if realizado else "#c62828"
+
+    blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*{status}*\n\nConfirmado por: {confirmado_por}"
+            }
+        },
+        {
+            "type": "context",
+            "elements": [
+                {"type": "mrkdwn", "text": f"Vaga ID: `{vaga_id[:8]}...`"}
+            ]
+        }
+    ]
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                response_url,
+                json={
+                    "replace_original": True,
+                    "blocks": blocks
+                },
+                timeout=10.0
+            )
+            return response.status_code == 200
+    except Exception as e:
+        logger.error(f"Erro ao atualizar mensagem Slack: {e}")
+        return False
+
+
 async def notificar_erro(
     titulo: str,
     detalhes: str,
