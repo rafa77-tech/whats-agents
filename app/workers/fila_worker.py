@@ -1,5 +1,7 @@
 """
 Worker para processar fila de mensagens.
+
+Sprint 23 E01 - Registra outcome detalhado para cada envio.
 """
 import asyncio
 import logging
@@ -7,7 +9,8 @@ from typing import Optional
 
 from app.services.fila import fila_service
 from app.services.rate_limiter import pode_enviar
-from app.services.outbound import send_outbound_message, criar_contexto_followup
+from app.services.outbound import send_outbound_message, criar_contexto_followup, criar_contexto_campanha
+from app.services.guardrails import SendOutcome
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +21,8 @@ async def processar_fila():
 
     Roda continuamente, processando uma mensagem por vez
     respeitando rate limiting.
+
+    Sprint 23 E01: Registra outcome detalhado em fila_mensagens.
     """
     logger.info("Worker de fila iniciado")
 
@@ -49,14 +54,33 @@ async def processar_fila():
 
             if not telefone:
                 logger.error(f"Mensagem {mensagem['id']} sem telefone")
-                await fila_service.marcar_erro(mensagem["id"], "Telefone não encontrado")
+                # Registrar outcome de validacao
+                await fila_service.registrar_outcome(
+                    mensagem_id=mensagem["id"],
+                    outcome=SendOutcome.FAILED_VALIDATION,
+                    outcome_reason_code="telefone_nao_encontrado",
+                )
                 continue
 
-            # GUARDRAIL: Verificar antes de enviar
-            ctx = criar_contexto_followup(
-                cliente_id=cliente_id,
-                conversation_id=mensagem.get("conversa_id"),
-            )
+            # Criar contexto apropriado baseado no tipo e metadata
+            metadata = mensagem.get("metadata", {})
+            campaign_id = metadata.get("campanha_id")
+
+            if campaign_id:
+                # Envio de campanha
+                ctx = criar_contexto_campanha(
+                    cliente_id=cliente_id,
+                    campaign_id=campaign_id,
+                    conversation_id=mensagem.get("conversa_id"),
+                )
+            else:
+                # Followup ou outro tipo
+                ctx = criar_contexto_followup(
+                    cliente_id=cliente_id,
+                    conversation_id=mensagem.get("conversa_id"),
+                )
+
+            # Enviar mensagem (inclui guardrails e deduplicacao)
             result = await send_outbound_message(
                 telefone=telefone,
                 texto=mensagem["conteudo"],
@@ -64,17 +88,34 @@ async def processar_fila():
                 simular_digitacao=True,
             )
 
-            if result.blocked:
-                logger.info(f"Mensagem {mensagem['id']} bloqueada: {result.block_reason}")
-                await fila_service.marcar_erro(mensagem["id"], f"Guardrail: {result.block_reason}")
-                continue
+            # Registrar outcome detalhado (Sprint 23 E01)
+            await fila_service.registrar_outcome(
+                mensagem_id=mensagem["id"],
+                outcome=result.outcome,
+                outcome_reason_code=result.outcome_reason_code,
+                provider_message_id=result.provider_message_id,
+            )
 
-            if not result.success:
-                await fila_service.marcar_erro(mensagem["id"], result.error)
-                continue
-
-            await fila_service.marcar_enviada(mensagem["id"])
-            logger.info(f"Mensagem enviada: {mensagem['id']}")
+            if result.outcome.is_success:
+                logger.info(
+                    f"Mensagem enviada: {mensagem['id']} "
+                    f"(provider_id={result.provider_message_id})"
+                )
+            elif result.outcome.is_blocked:
+                logger.info(
+                    f"Mensagem {mensagem['id']} bloqueada: "
+                    f"{result.outcome.value} - {result.outcome_reason_code}"
+                )
+            elif result.outcome.is_deduped:
+                logger.info(
+                    f"Mensagem {mensagem['id']} deduplicada: "
+                    f"{result.outcome_reason_code}"
+                )
+            else:
+                logger.warning(
+                    f"Mensagem {mensagem['id']} falhou: "
+                    f"{result.outcome.value} - {result.error}"
+                )
 
             # Delay entre envios
             await asyncio.sleep(5)
@@ -82,6 +123,11 @@ async def processar_fila():
         except Exception as e:
             logger.error(f"Erro no worker: {e}", exc_info=True)
             if mensagem:
-                await fila_service.marcar_erro(mensagem["id"], str(e))
+                # Registrar outcome de erro generico
+                await fila_service.registrar_outcome(
+                    mensagem_id=mensagem["id"],
+                    outcome=SendOutcome.FAILED_PROVIDER,
+                    outcome_reason_code=f"worker_exception:{str(e)[:100]}",
+                )
             await asyncio.sleep(10)
 

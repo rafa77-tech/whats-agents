@@ -3,12 +3,14 @@ Ponto único de envio de mensagens outbound.
 
 Sprint 17 - Todas as mensagens outbound DEVEM passar por aqui.
 Sprint 18.1 - C1: Deduplicação de mensagens outbound.
+Sprint 23 E01 - Outcome detalhado com enum padronizado.
 
 Este módulo é o wrapper que:
-1. Verifica guardrails antes de enviar
-2. Verifica deduplicação (evita duplicatas em retry/timeout)
+1. Verifica deduplicação (evita duplicatas em retry/timeout)
+2. Verifica guardrails antes de enviar
 3. Chama Evolution API se permitido
 4. Emite eventos de auditoria
+5. Retorna outcome detalhado para rastreamento
 
 IMPORTANTE: Nenhum outro código deve chamar evolution.enviar_mensagem() diretamente.
 Use sempre send_outbound_message() deste módulo.
@@ -16,6 +18,7 @@ Use sempre send_outbound_message() deste módulo.
 import hashlib
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.services.guardrails import (
@@ -24,6 +27,8 @@ from app.services.guardrails import (
     OutboundMethod,
     ActorType,
     GuardrailResult,
+    SendOutcome,
+    map_guardrail_to_outcome,
     check_outbound_guardrails,
 )
 from app.services.whatsapp import (
@@ -48,15 +53,41 @@ def _gerar_content_hash(texto: str) -> str:
 
 @dataclass
 class OutboundResult:
-    """Resultado do envio outbound."""
+    """
+    Resultado do envio outbound.
+
+    Sprint 23 E01 - Campos padronizados para rastreamento completo.
+
+    Attributes:
+        success: True se mensagem foi enviada com sucesso
+        outcome: Enum com resultado detalhado (SENT, BLOCKED_*, DEDUPED, FAILED_*)
+        outcome_reason_code: Codigo detalhado do motivo
+        outcome_at: Timestamp de quando o outcome foi determinado
+        blocked: True APENAS para guardrails (BLOCKED_*)
+        deduped: True para deduplicacao (DEDUPED)
+        human_bypass: True quando liberou por override humano
+        provider_message_id: ID da mensagem no Evolution API quando SENT
+        dedupe_key: Chave de deduplicacao usada
+        error: Mensagem de erro quando FAILED_*
+        evolution_response: Resposta completa do Evolution API
+    """
     success: bool
-    blocked: bool = False
-    block_reason: Optional[str] = None
+    outcome: SendOutcome
+    outcome_reason_code: Optional[str] = None
+    outcome_at: Optional[datetime] = None
+    blocked: bool = False  # True APENAS para guardrails
+    deduped: bool = False  # True para deduplicacao (NAO e blocked)
     human_bypass: bool = False
-    deduped: bool = False  # Sprint 18.1 - C1
-    dedupe_key: Optional[str] = None  # Sprint 18.1 - C1
+    provider_message_id: Optional[str] = None
+    dedupe_key: Optional[str] = None
     error: Optional[str] = None
     evolution_response: Optional[dict] = None
+
+    # Alias para compatibilidade (deprecated)
+    @property
+    def block_reason(self) -> Optional[str]:
+        """Alias para outcome_reason_code (deprecated)."""
+        return self.outcome_reason_code
 
 
 async def send_outbound_message(
@@ -72,6 +103,12 @@ async def send_outbound_message(
     Este é o ÚNICO ponto de entrada para enviar mensagens via WhatsApp.
     Todas as campanhas, followups, reativações e respostas devem usar esta função.
 
+    Sprint 23 E01: Ordem de verificacao alterada:
+    1. Deduplicacao ANTES de guardrails (DEDUPED != BLOCKED)
+    2. Guardrails
+    3. Envio via Evolution API
+    4. Retorno de outcome detalhado
+
     Args:
         telefone: Número do destinatário (5511999999999)
         texto: Texto da mensagem
@@ -80,7 +117,7 @@ async def send_outbound_message(
         tempo_digitacao: Tempo de digitação em segundos (opcional)
 
     Returns:
-        OutboundResult com status do envio
+        OutboundResult com outcome detalhado (SENT, BLOCKED_*, DEDUPED, FAILED_*)
 
     Exemplo de uso:
         ```python
@@ -93,32 +130,16 @@ async def send_outbound_message(
             campaign_id=campanha_id,
         )
         result = await send_outbound_message(telefone, texto, ctx)
-        if result.blocked:
-            logger.info(f"Bloqueado: {result.block_reason}")
+        if result.outcome.is_blocked:
+            logger.info(f"Bloqueado: {result.outcome_reason_code}")
+        elif result.outcome.is_deduped:
+            logger.info(f"Deduplicado: {result.outcome_reason_code}")
         ```
     """
-    # 1. Verificar guardrails
-    guardrail_result = await check_outbound_guardrails(ctx)
+    now = datetime.now(timezone.utc)
 
-    if guardrail_result.is_blocked:
-        logger.info(
-            f"Outbound bloqueado para {telefone[:8]}...: "
-            f"{guardrail_result.reason_code}"
-        )
-        return OutboundResult(
-            success=False,
-            blocked=True,
-            block_reason=guardrail_result.reason_code,
-        )
-
-    # Log de bypass (se houver)
-    if guardrail_result.human_bypass:
-        logger.warning(
-            f"Outbound com bypass humano para {telefone[:8]}...: "
-            f"{guardrail_result.reason_code} por {ctx.actor_id}"
-        )
-
-    # 2. Verificar deduplicação (Sprint 18.1 - C1)
+    # 1. Verificar deduplicação ANTES de guardrails (Sprint 23 E01)
+    # Deduplicacao NAO e bloqueio por permissao - e protecao anti-spam
     content_hash = _gerar_content_hash(texto)
     pode_enviar, dedupe_key, motivo = await verificar_e_reservar(
         cliente_id=ctx.cliente_id,
@@ -139,10 +160,43 @@ async def send_outbound_message(
         )
         return OutboundResult(
             success=False,
-            blocked=True,
-            block_reason="duplicata",
-            deduped=True,
+            outcome=SendOutcome.DEDUPED,
+            outcome_reason_code=f"content_hash_window:{motivo}",
+            outcome_at=now,
+            blocked=False,  # NAO e bloqueio
+            deduped=True,   # E deduplicacao
             dedupe_key=dedupe_key,
+        )
+
+    # 2. Verificar guardrails
+    guardrail_result = await check_outbound_guardrails(ctx)
+
+    if guardrail_result.is_blocked:
+        logger.info(
+            f"Outbound bloqueado para {telefone[:8]}...: "
+            f"{guardrail_result.reason_code}"
+        )
+        try:
+            outcome = map_guardrail_to_outcome(guardrail_result.reason_code)
+        except ValueError:
+            outcome = SendOutcome.BLOCKED_OPTED_OUT  # fallback seguro
+            logger.warning(f"reason_code nao mapeado: {guardrail_result.reason_code}")
+
+        return OutboundResult(
+            success=False,
+            outcome=outcome,
+            outcome_reason_code=guardrail_result.reason_code,
+            outcome_at=now,
+            blocked=True,
+            deduped=False,
+            dedupe_key=dedupe_key,
+        )
+
+    # Log de bypass (se houver)
+    if guardrail_result.human_bypass:
+        logger.warning(
+            f"Outbound com bypass humano para {telefone[:8]}...: "
+            f"{guardrail_result.reason_code} por {ctx.actor_id}"
         )
 
     # 3. Enviar via Evolution API
@@ -164,10 +218,22 @@ async def send_outbound_message(
         # Marcar dedupe como enviado com sucesso
         await marcar_enviado(dedupe_key)
 
+        # Extrair provider_message_id da resposta
+        provider_message_id = None
+        if response and isinstance(response, dict):
+            # Evolution API retorna key.id como message id
+            key = response.get("key", {})
+            provider_message_id = key.get("id") if isinstance(key, dict) else None
+
         return OutboundResult(
             success=True,
+            outcome=SendOutcome.BYPASS if guardrail_result.human_bypass else SendOutcome.SENT,
+            outcome_reason_code="ok" if not guardrail_result.human_bypass else guardrail_result.reason_code,
+            outcome_at=now,
             blocked=False,
+            deduped=False,
             human_bypass=guardrail_result.human_bypass,
+            provider_message_id=provider_message_id,
             dedupe_key=dedupe_key,
             evolution_response=response,
         )
@@ -177,8 +243,11 @@ async def send_outbound_message(
         await marcar_falha(dedupe_key, f"rate_limit: {e}")
         return OutboundResult(
             success=False,
-            blocked=True,
-            block_reason="rate_limit",
+            outcome=SendOutcome.FAILED_RATE_LIMIT,
+            outcome_reason_code=f"rate_limit:{str(e)[:100]}",
+            outcome_at=now,
+            blocked=False,
+            deduped=False,
             dedupe_key=dedupe_key,
             error=str(e),
         )
@@ -188,6 +257,11 @@ async def send_outbound_message(
         await marcar_falha(dedupe_key, f"circuit_open: {e}")
         return OutboundResult(
             success=False,
+            outcome=SendOutcome.FAILED_CIRCUIT_OPEN,
+            outcome_reason_code=f"circuit_open:{str(e)[:100]}",
+            outcome_at=now,
+            blocked=False,
+            deduped=False,
             dedupe_key=dedupe_key,
             error=f"Evolution API indisponível: {e}",
         )
@@ -197,6 +271,11 @@ async def send_outbound_message(
         await marcar_falha(dedupe_key, str(e)[:200])
         return OutboundResult(
             success=False,
+            outcome=SendOutcome.FAILED_PROVIDER,
+            outcome_reason_code=f"provider_error:{str(e)[:100]}",
+            outcome_at=now,
+            blocked=False,
+            deduped=False,
             dedupe_key=dedupe_key,
             error=str(e),
         )

@@ -1,11 +1,16 @@
 """
 Servico de fila de mensagens agendadas.
+
+Sprint 23 E01 - Adiciona suporte a outcome detalhado.
 """
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import logging
 
 from app.services.supabase import supabase
+
+if TYPE_CHECKING:
+    from app.services.guardrails import SendOutcome
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +102,71 @@ class FilaService:
         )
 
         return len(response.data) > 0
+
+    async def registrar_outcome(
+        self,
+        mensagem_id: str,
+        outcome: "SendOutcome",
+        outcome_reason_code: Optional[str] = None,
+        provider_message_id: Optional[str] = None,
+    ) -> bool:
+        """
+        Registra outcome detalhado de um envio.
+
+        Sprint 23 E01 - Rastreamento completo de resultados.
+
+        Args:
+            mensagem_id: ID da mensagem na fila
+            outcome: Enum com resultado (SENT, BLOCKED_*, DEDUPED, FAILED_*)
+            outcome_reason_code: Codigo detalhado do motivo
+            provider_message_id: ID da mensagem no Evolution API (quando SENT)
+
+        Returns:
+            True se registrou com sucesso
+        """
+        now = datetime.now(timezone.utc).isoformat()
+
+        # Determinar status baseado no outcome
+        if outcome.value == "SENT" or outcome.value == "BYPASS":
+            status = "enviada"
+        elif outcome.value.startswith("BLOCKED_") or outcome.value == "DEDUPED":
+            status = "bloqueada"
+        else:
+            status = "erro"
+
+        update_data = {
+            "status": status,
+            "outcome": outcome.value,
+            "outcome_reason_code": outcome_reason_code,
+            "outcome_at": now,
+        }
+
+        if provider_message_id:
+            update_data["provider_message_id"] = provider_message_id
+
+        if status == "enviada":
+            update_data["enviada_em"] = now
+
+        response = (
+            supabase.table("fila_mensagens")
+            .update(update_data)
+            .eq("id", mensagem_id)
+            .execute()
+        )
+
+        if response.data:
+            logger.info(
+                f"Outcome registrado para {mensagem_id}: {outcome.value}",
+                extra={
+                    "mensagem_id": mensagem_id,
+                    "outcome": outcome.value,
+                    "outcome_reason_code": outcome_reason_code,
+                }
+            )
+            return True
+
+        logger.warning(f"Falha ao registrar outcome para {mensagem_id}")
+        return False
 
     async def marcar_erro(self, mensagem_id: str, erro: str) -> bool:
         """Marca erro e agenda retry se possível."""

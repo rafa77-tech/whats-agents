@@ -2,6 +2,7 @@
 Tipos para o sistema de guardrails de outbound.
 
 Sprint 17 - Contrato único para todo envio outbound.
+Sprint 23 E01 - SendOutcome enum para rastreamento detalhado.
 
 Este módulo define o OutboundContext que TODO envio outbound deve passar.
 O guardrail decide ALLOW/BLOCK e sempre emite business_event quando
@@ -10,6 +11,99 @@ bloquear (e quando permitir por bypass humano).
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, Dict, Any
+
+
+class SendOutcome(str, Enum):
+    """
+    Outcome padronizado para envios outbound.
+
+    Sprint 23 E01 - Semantica clara para cada resultado.
+
+    Categorias:
+    - SENT: Sucesso
+    - BLOCKED_*: Guardrail impediu (permissao/regra)
+    - DEDUPED: Protecao anti-spam (nao e bloqueio por permissao)
+    - FAILED_*: Erro tecnico
+    - BYPASS: Override manual via Slack
+    """
+    # Sucesso
+    SENT = "SENT"
+
+    # Bloqueios por guardrail
+    BLOCKED_OPTED_OUT = "BLOCKED_OPTED_OUT"
+    BLOCKED_COOLING_OFF = "BLOCKED_COOLING_OFF"
+    BLOCKED_NEXT_ALLOWED = "BLOCKED_NEXT_ALLOWED"
+    BLOCKED_CONTACT_CAP = "BLOCKED_CONTACT_CAP"
+    BLOCKED_CAMPAIGNS_DISABLED = "BLOCKED_CAMPAIGNS_DISABLED"
+    BLOCKED_SAFE_MODE = "BLOCKED_SAFE_MODE"
+    BLOCKED_CAMPAIGN_COOLDOWN = "BLOCKED_CAMPAIGN_COOLDOWN"
+
+    # Deduplicacao (NAO e bloqueio por permissao)
+    DEDUPED = "DEDUPED"
+
+    # Erros tecnicos
+    FAILED_PROVIDER = "FAILED_PROVIDER"
+    FAILED_VALIDATION = "FAILED_VALIDATION"
+    FAILED_RATE_LIMIT = "FAILED_RATE_LIMIT"
+    FAILED_CIRCUIT_OPEN = "FAILED_CIRCUIT_OPEN"
+
+    # Override manual
+    BYPASS = "BYPASS"
+
+    @property
+    def is_success(self) -> bool:
+        """Retorna True se o envio foi bem sucedido."""
+        return self == SendOutcome.SENT
+
+    @property
+    def is_blocked(self) -> bool:
+        """Retorna True se foi bloqueado por guardrail."""
+        return self.value.startswith("BLOCKED_")
+
+    @property
+    def is_deduped(self) -> bool:
+        """Retorna True se foi deduplicado."""
+        return self == SendOutcome.DEDUPED
+
+    @property
+    def is_failed(self) -> bool:
+        """Retorna True se houve erro tecnico."""
+        return self.value.startswith("FAILED_")
+
+
+# Mapeamento de reason_code do guardrail para SendOutcome
+_GUARDRAIL_TO_OUTCOME: Dict[str, SendOutcome] = {
+    "opted_out": SendOutcome.BLOCKED_OPTED_OUT,
+    "opted_out_bypass_no_reason": SendOutcome.BLOCKED_OPTED_OUT,
+    "cooling_off": SendOutcome.BLOCKED_COOLING_OFF,
+    "next_allowed_at": SendOutcome.BLOCKED_NEXT_ALLOWED,
+    "contact_cap": SendOutcome.BLOCKED_CONTACT_CAP,
+    "campaigns_disabled": SendOutcome.BLOCKED_CAMPAIGNS_DISABLED,
+    "safe_mode": SendOutcome.BLOCKED_SAFE_MODE,
+    "campaign_cooldown": SendOutcome.BLOCKED_CAMPAIGN_COOLDOWN,
+}
+
+
+def map_guardrail_to_outcome(reason_code: str) -> SendOutcome:
+    """
+    Mapeia reason_code do guardrail para SendOutcome.
+
+    Args:
+        reason_code: Codigo retornado pelo guardrail (ex: "opted_out", "cooling_off")
+
+    Returns:
+        SendOutcome correspondente
+
+    Raises:
+        ValueError: Se reason_code nao for reconhecido
+    """
+    outcome = _GUARDRAIL_TO_OUTCOME.get(reason_code)
+    if outcome is None:
+        # Fallback generico para bloqueios nao mapeados
+        if reason_code.startswith("blocked"):
+            return SendOutcome.BLOCKED_OPTED_OUT  # fallback seguro
+        raise ValueError(f"reason_code nao mapeado: {reason_code}")
+    return outcome
 
 
 class OutboundChannel(str, Enum):
