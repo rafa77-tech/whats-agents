@@ -37,9 +37,10 @@ COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
 COPY app/ ./app/
 COPY static/ ./static/
 COPY migrations/ ./migrations/
+COPY scripts/entrypoint.sh ./entrypoint.sh
 
-# Criar diretório de logs
-RUN mkdir -p /app/logs
+# Criar diretório de logs e dar permissão ao entrypoint
+RUN mkdir -p /app/logs && chmod +x /app/entrypoint.sh
 
 # Variáveis de ambiente
 ENV PATH="/app/.venv/bin:$PATH"
@@ -53,6 +54,10 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD python -c "import httpx; httpx.get('http://localhost:8000/health', timeout=5)" || exit 1
 
-# Comando padrão (pode ser sobrescrito)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Entrypoint valida RUN_MODE e executa serviço apropriado
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# CMD padrão (pode ser sobrescrito, mas entrypoint usa RUN_MODE)
+# Para manter compatibilidade, se RUN_MODE não for setado, falha com erro claro
+CMD []
 

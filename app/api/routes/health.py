@@ -4,11 +4,12 @@ Rotas de health check.
 Sprint 24 - Produção Ready:
 - /health: Liveness básico (sempre 200 se app rodando)
 - /health/ready: Readiness (Redis conectado)
-- /health/deep: Deep check para CI/CD (Redis + Supabase + schema + views)
+- /health/deep: Deep check para CI/CD (Redis + Supabase + schema + views + env marker)
 """
 from fastapi import APIRouter, Response
 from datetime import datetime
 import logging
+import os
 
 from app.services.redis import verificar_conexao_redis
 from app.services.rate_limiter import obter_estatisticas
@@ -18,6 +19,10 @@ from app.services.supabase import supabase
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# Hard guards de ambiente - CRÍTICO para evitar staging↔prod mix
+APP_ENV = os.getenv("APP_ENV", "development")
+SUPABASE_PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF", "")
 
 # Views críticas que DEVEM existir para o app funcionar
 CRITICAL_VIEWS = [
@@ -33,10 +38,11 @@ CRITICAL_TABLES = [
     "doctor_state",
     "intent_log",
     "touch_reconciliation_log",
+    "app_settings",  # Nova tabela crítica para markers
 ]
 
 # Última migration conhecida (atualizar quando adicionar migrations críticas)
-EXPECTED_SCHEMA_VERSION = "20251230125837"  # add_failed_breakdown_to_campaign_metrics
+EXPECTED_SCHEMA_VERSION = "20251230140000"  # create_app_settings_environment_marker
 
 
 @router.get("/health")
@@ -182,6 +188,8 @@ async def deep_health_check(response: Response):
     Deep health check para CI/CD.
 
     Verifica TUDO que precisa estar funcionando para o app operar:
+    - Environment: APP_ENV bate com marker no banco
+    - Project Ref: SUPABASE_PROJECT_REF bate com marker no banco
     - Redis: conexão ativa
     - Supabase: conexão ativa
     - Schema: tabelas críticas existem
@@ -190,8 +198,13 @@ async def deep_health_check(response: Response):
 
     Retorna 200 se TUDO ok, 503 se qualquer check falhar.
     CI/CD deve usar este endpoint para validar deploy.
+
+    HARD GUARDS: Environment e Project Ref são verificados PRIMEIRO.
+    Se não baterem, o deploy é considerado CRÍTICO e deve ser revertido.
     """
     checks = {
+        "environment": {"status": "pending", "app_env": APP_ENV, "db_env": None},
+        "project_ref": {"status": "pending", "app_ref": SUPABASE_PROJECT_REF, "db_ref": None},
         "redis": {"status": "pending", "message": None},
         "supabase": {"status": "pending", "message": None},
         "tables": {"status": "pending", "missing": []},
@@ -200,6 +213,63 @@ async def deep_health_check(response: Response):
     }
 
     all_ok = True
+    critical_mismatch = False  # Hard guard: env ou project_ref errado
+
+    # 0. HARD GUARD: Check environment marker
+    try:
+        result = supabase.table("app_settings").select("value").eq("key", "environment").single().execute()
+        db_env = result.data.get("value") if result.data else None
+        checks["environment"]["db_env"] = db_env
+
+        if db_env == APP_ENV:
+            checks["environment"]["status"] = "ok"
+        else:
+            checks["environment"]["status"] = "CRITICAL"
+            checks["environment"]["message"] = f"ENVIRONMENT MISMATCH! APP_ENV={APP_ENV}, DB={db_env}"
+            all_ok = False
+            critical_mismatch = True
+            logger.critical(f"[health/deep] CRITICAL: Environment mismatch! APP_ENV={APP_ENV}, DB={db_env}")
+    except Exception as e:
+        checks["environment"]["status"] = "error"
+        checks["environment"]["message"] = str(e)
+        all_ok = False
+        logger.error(f"[health/deep] Environment check failed: {e}")
+
+    # 0b. HARD GUARD: Check Supabase project ref
+    if SUPABASE_PROJECT_REF:  # Só verifica se configurado
+        try:
+            result = supabase.table("app_settings").select("value").eq("key", "supabase_project_ref").single().execute()
+            db_ref = result.data.get("value") if result.data else None
+            checks["project_ref"]["db_ref"] = db_ref
+
+            if db_ref == SUPABASE_PROJECT_REF:
+                checks["project_ref"]["status"] = "ok"
+            else:
+                checks["project_ref"]["status"] = "CRITICAL"
+                checks["project_ref"]["message"] = f"PROJECT REF MISMATCH! Expected={SUPABASE_PROJECT_REF}, DB={db_ref}"
+                all_ok = False
+                critical_mismatch = True
+                logger.critical(f"[health/deep] CRITICAL: Project ref mismatch! Expected={SUPABASE_PROJECT_REF}, DB={db_ref}")
+        except Exception as e:
+            checks["project_ref"]["status"] = "error"
+            checks["project_ref"]["message"] = str(e)
+            all_ok = False
+            logger.error(f"[health/deep] Project ref check failed: {e}")
+    else:
+        checks["project_ref"]["status"] = "skipped"
+        checks["project_ref"]["message"] = "SUPABASE_PROJECT_REF not configured"
+
+    # Se hard guard falhou, não faz sentido continuar - é deploy errado
+    if critical_mismatch:
+        response.status_code = 503
+        logger.critical(f"[health/deep] CRITICAL MISMATCH - DEPLOY TO WRONG ENVIRONMENT DETECTED!")
+        return {
+            "status": "CRITICAL",
+            "message": "DEPLOY TO WRONG ENVIRONMENT DETECTED! ROLLBACK IMMEDIATELY!",
+            "checks": checks,
+            "timestamp": datetime.utcnow().isoformat(),
+            "deploy_safe": False,
+        }
 
     # 1. Check Redis
     try:
