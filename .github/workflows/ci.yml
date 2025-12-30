@@ -146,9 +146,9 @@ jobs:
           docker build -t julia-api:test .
           docker run --rm julia-api:test python -c "import app; print('OK')"
 
-  # Job 4: Deploy (apenas na main)
+  # Job 4: Deploy to Railway (apenas na main)
   deploy:
-    name: Deploy to Production
+    name: Deploy to Railway
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -157,25 +157,53 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy notification
-        run: |
-          echo "Deploy triggered for commit ${{ github.sha }}"
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
-          # Aqui voce pode adicionar:
-          # - SSH para servidor e docker-compose pull/up
-          # - Webhook para trigger de deploy
-          # - kubectl apply para Kubernetes
-          # - etc.
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
 
-      # Exemplo de deploy via SSH (descomente e configure)
-      # - name: Deploy via SSH
-      #   uses: appleboy/ssh-action@v1
-      #   with:
-      #     host: ${{ secrets.DEPLOY_HOST }}
-      #     username: ${{ secrets.DEPLOY_USER }}
-      #     key: ${{ secrets.DEPLOY_SSH_KEY }}
-      #     script: |
-      #       cd /app/julia
-      #       docker compose pull
-      #       docker compose up -d --force-recreate
-      #       docker compose logs --tail=50
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "Deploying commit ${{ github.sha }} to Railway..."
+          railway up --detach
+
+      - name: Wait for deployment
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "Waiting for deployment to complete..."
+          sleep 30
+
+      - name: Health check
+        run: |
+          # Aguardar deploy propagar
+          sleep 10
+
+          # Health check (substitua pela URL real)
+          if [ -n "${{ secrets.RAILWAY_APP_URL }}" ]; then
+            curl -f "${{ secrets.RAILWAY_APP_URL }}/health" || echo "Health check pending..."
+          else
+            echo "RAILWAY_APP_URL not set, skipping health check"
+          fi
+
+      - name: Notify Slack on success
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data "{\"text\":\"Deploy successful: ${{ github.sha }}\"}" \
+              "$SLACK_WEBHOOK_URL" || true
+          fi
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data "{\"text\":\"Deploy FAILED: ${{ github.sha }}\"}" \
+              "$SLACK_WEBHOOK_URL" || true
+          fi

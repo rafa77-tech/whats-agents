@@ -469,3 +469,187 @@ Ex: Mes de 30 dias
 - 99.5% = max 3.6h de downtime
 - 99.9% = max 43min de downtime
 ```
+
+---
+
+## Deploy Railway (Recomendado)
+
+Railway oferece deploy simplificado com CI/CD integrado.
+
+### Setup Inicial
+
+1. **Criar Projeto**
+   - https://railway.app → "New Project" → "Deploy from GitHub repo"
+   - Selecionar repositório
+   - Railway detecta Dockerfile automaticamente
+
+2. **Adicionar Redis**
+   - "New" → "Database" → "Redis"
+   - Railway injeta `REDIS_URL` automaticamente
+
+3. **Configurar Variáveis**
+
+```bash
+# No painel Variables do Railway:
+
+# App
+ENVIRONMENT=production
+DEBUG=false
+LOG_LEVEL=INFO
+
+# Segurança
+JWT_SECRET_KEY=<openssl rand -hex 32>
+CORS_ORIGINS=https://app.revoluna.com
+
+# Supabase (projeto de produção)
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_SERVICE_KEY=eyJhbG...
+
+# Anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+LLM_MODEL=claude-3-5-haiku-20241022
+LLM_MODEL_COMPLEX=claude-sonnet-4-20250514
+
+# Voyage AI
+VOYAGE_API_KEY=pa-...
+VOYAGE_MODEL=voyage-3.5-lite
+
+# Evolution API
+EVOLUTION_API_URL=https://evolution.seudominio.com
+EVOLUTION_API_KEY=xxx
+EVOLUTION_INSTANCE=Revoluna
+
+# Chatwoot
+CHATWOOT_URL=https://chatwoot.seudominio.com
+CHATWOOT_API_KEY=xxx
+CHATWOOT_ACCOUNT_ID=1
+CHATWOOT_INBOX_ID=1
+
+# Slack
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx
+SLACK_CHANNEL=#julia-gestao
+SLACK_BOT_TOKEN=xoxb-xxx
+SLACK_SIGNING_SECRET=xxx
+
+# Rate Limiting
+MAX_MSGS_POR_HORA=20
+MAX_MSGS_POR_DIA=100
+HORARIO_INICIO=08:00
+HORARIO_FIM=20:00
+
+# Empresa
+NOME_EMPRESA=Revoluna
+GESTOR_WHATSAPP=5511999999999
+```
+
+### Gerar Token de Deploy
+
+1. Railway → Account Settings → Tokens
+2. "Create Token" → Nome: `github-deploy`
+3. Copiar token (formato: `rlw_xxxx`)
+4. Adicionar como GitHub Secret: `RAILWAY_TOKEN`
+
+### CI/CD Automático
+
+O workflow `.github/workflows/ci.yml` faz deploy automático na main.
+
+Para deploy manual:
+
+```bash
+# Via Railway CLI
+npm install -g @railway/cli
+railway login
+railway up
+
+# Via GitHub Actions
+gh workflow run ci.yml --ref main
+```
+
+### Verificação
+
+```bash
+# Health check
+curl https://seu-app.railway.app/health
+
+# Resposta esperada
+{"status": "healthy", "version": "1.0.0", "environment": "production"}
+```
+
+### Rollback
+
+1. Railway → Deployments
+2. Encontrar deploy estável anterior
+3. Clicar "Redeploy"
+
+---
+
+## Supabase Produção
+
+### Criar Projeto Separado
+
+1. https://supabase.com/dashboard → "New Project"
+2. Nome: `julia-prod`
+3. Região: `South America (São Paulo)`
+4. Salvar password
+
+### Aplicar Schema
+
+**Opção A: Supabase CLI**
+
+```bash
+# Instalar
+brew install supabase/tap/supabase
+
+# Login e link staging
+supabase login
+supabase link --project-ref SEU_REF_STAGING
+
+# Exportar schema
+supabase db dump -f schema.sql
+
+# Link prod e aplicar
+supabase link --project-ref SEU_REF_PROD
+supabase db push
+```
+
+**Opção B: Dashboard**
+
+1. Staging: Database → Backups → Download
+2. Prod: SQL Editor → Colar e executar
+
+### Habilitar Extensões
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS unaccent;
+```
+
+---
+
+## GitHub Secrets
+
+Repository → Settings → Secrets and variables → Actions
+
+| Secret | Descrição |
+|--------|-----------|
+| `SUPABASE_URL` | URL projeto staging (testes CI) |
+| `SUPABASE_SERVICE_KEY` | Service key staging |
+| `ANTHROPIC_API_KEY` | API key Anthropic |
+| `RAILWAY_TOKEN` | Token de deploy Railway |
+
+---
+
+## Checklist Deploy
+
+- [ ] Supabase prod criado com schema aplicado
+- [ ] Extensões habilitadas (vector, pg_trgm, unaccent)
+- [ ] Railway projeto configurado
+- [ ] Redis adicionado no Railway
+- [ ] Todas variáveis de ambiente no Railway
+- [ ] GitHub Secrets configurados
+- [ ] CI/CD workflow testado
+- [ ] Health check respondendo
+- [ ] Evolution API apontando para URL Railway
+- [ ] Webhook Evolution configurado
+- [ ] Slack notificações funcionando
