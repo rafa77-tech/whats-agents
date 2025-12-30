@@ -84,31 +84,20 @@ class ParseMessageProcessor(PreProcessor):
 
         # Verificar se deve processar
         if not deve_processar(mensagem):
+            motivo = "mensagem ignorada (propria/grupo/status)"
+            # Se é LID sem telefone resolvido, informar motivo específico
+            if mensagem.is_lid and not mensagem.telefone:
+                motivo = "LID sem remoteJidAlt - sem numero real"
+                logger.warning(f"LID detectado sem telefone: jid={mensagem.remote_jid}, pushName={mensagem.nome_contato}")
             return ProcessorResult(
                 success=True,
                 should_continue=False,  # Para silenciosamente
-                metadata={"motivo": "mensagem ignorada (propria/grupo/status)"}
+                metadata={"motivo": motivo}
             )
 
-        # Se é LID, tentar resolver para número real
-        telefone = mensagem.telefone
-        if mensagem.is_lid and mensagem.nome_contato:
-            logger.info(f"Tentando resolver LID para '{mensagem.nome_contato}'")
-            telefone_resolvido = await evolution.resolver_lid_para_telefone(mensagem.nome_contato)
-            if telefone_resolvido:
-                telefone = telefone_resolvido
-                logger.info(f"LID resolvido com sucesso: {telefone}")
-            else:
-                logger.warning(f"Nao foi possivel resolver LID para '{mensagem.nome_contato}'")
-                return ProcessorResult(
-                    success=True,
-                    should_continue=False,
-                    metadata={"motivo": "LID nao resolvido - sem numero real"}
-                )
-
-        # Popular contexto
+        # Popular contexto (telefone já foi resolvido pelo parser via remoteJidAlt se necessário)
         context.mensagem_texto = mensagem.texto or ""
-        context.telefone = telefone
+        context.telefone = mensagem.telefone
         context.message_id = mensagem.message_id
         context.tipo_mensagem = mensagem.tipo
         context.metadata["nome_contato"] = mensagem.nome_contato
@@ -134,13 +123,14 @@ class PresenceProcessor(PreProcessor):
 
     async def process(self, context: ProcessorContext) -> ProcessorResult:
         try:
-            # Marcar como lida
+            # Usar remote_jid original para marcar como lida (pode ser LID ou JID normal)
+            remote_jid = context.metadata.get("remote_jid") or context.telefone
             await evolution.marcar_como_lida(
-                context.telefone,
+                remote_jid,
                 context.message_id
             )
 
-            # Mostrar online
+            # Mostrar online usando telefone
             await mostrar_online(context.telefone)
 
         except Exception as e:

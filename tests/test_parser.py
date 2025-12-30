@@ -6,6 +6,7 @@ from app.services.parser import (
     extrair_telefone,
     is_grupo,
     is_status,
+    is_lid_format,
     extrair_texto,
     identificar_tipo,
     parsear_mensagem,
@@ -23,6 +24,27 @@ class TestExtrairTelefone:
     def test_vazio(self):
         assert extrair_telefone("") == ""
         assert extrair_telefone(None) == ""
+
+    def test_lid_format_retorna_vazio(self):
+        """LID format não contém telefone real, deve retornar vazio."""
+        assert extrair_telefone("211484206436558@lid") == ""
+        assert extrair_telefone("154417159582282@lid") == ""
+
+
+class TestIsLidFormat:
+    def test_lid_verdadeiro(self):
+        assert is_lid_format("211484206436558@lid") == True
+        assert is_lid_format("154417159582282@lid") == True
+
+    def test_lid_falso_whatsapp_normal(self):
+        assert is_lid_format("5511999999999@s.whatsapp.net") == False
+
+    def test_lid_falso_grupo(self):
+        assert is_lid_format("5511999999999-123456@g.us") == False
+
+    def test_lid_vazio(self):
+        assert is_lid_format("") == False
+        assert is_lid_format(None) == False
 
 
 class TestIsGrupo:
@@ -191,6 +213,50 @@ class TestParsearMensagem:
         msg = parsear_mensagem(data)
         assert msg is None
 
+    def test_mensagem_lid_com_remote_jid_alt(self):
+        """LID com remoteJidAlt deve extrair telefone do alt."""
+        data = {
+            "key": {
+                "remoteJid": "211484206436558@lid",
+                "remoteJidAlt": "5511981677736@s.whatsapp.net",
+                "fromMe": False,
+                "id": "3A287F9E01CFA289E153"
+            },
+            "message": {"conversation": "Oi, tenho interesse"},
+            "messageTimestamp": 1701888000,
+            "pushName": "Rafael Pivovar"
+        }
+
+        msg = parsear_mensagem(data)
+
+        assert msg is not None
+        assert msg.telefone == "5511981677736"  # Extraído do remoteJidAlt
+        assert msg.is_lid == True
+        assert msg.remote_jid == "211484206436558@lid"
+        assert msg.remote_jid_alt == "5511981677736@s.whatsapp.net"
+        assert msg.nome_contato == "Rafael Pivovar"
+
+    def test_mensagem_lid_sem_remote_jid_alt(self):
+        """LID sem remoteJidAlt não tem telefone."""
+        data = {
+            "key": {
+                "remoteJid": "211484206436558@lid",
+                "fromMe": False,
+                "id": "ABC123"
+            },
+            "message": {"conversation": "Oi"},
+            "messageTimestamp": 1701888000,
+            "pushName": "Usuario"
+        }
+
+        msg = parsear_mensagem(data)
+
+        assert msg is not None
+        assert msg.telefone == ""  # Não tem telefone
+        assert msg.is_lid == True
+        assert msg.remote_jid == "211484206436558@lid"
+        assert msg.remote_jid_alt is None
+
 
 class TestDeveProcessar:
     def test_mensagem_valida(self):
@@ -241,6 +307,37 @@ class TestDeveProcessar:
             },
             "message": {},
             "messageTimestamp": 1701888000,
+        }
+        msg = parsear_mensagem(data)
+        assert deve_processar(msg) == False
+
+    def test_mensagem_lid_com_telefone_deve_processar(self):
+        """LID com telefone (via remoteJidAlt) deve ser processada."""
+        data = {
+            "key": {
+                "remoteJid": "211484206436558@lid",
+                "remoteJidAlt": "5511981677736@s.whatsapp.net",
+                "fromMe": False,
+                "id": "ABC123"
+            },
+            "message": {"conversation": "Oi"},
+            "messageTimestamp": 1701888000,
+            "pushName": "Usuario"
+        }
+        msg = parsear_mensagem(data)
+        assert deve_processar(msg) == True
+
+    def test_mensagem_lid_sem_telefone_nao_processa(self):
+        """LID sem telefone (sem remoteJidAlt) não deve ser processada."""
+        data = {
+            "key": {
+                "remoteJid": "211484206436558@lid",
+                "fromMe": False,
+                "id": "ABC123"
+            },
+            "message": {"conversation": "Oi"},
+            "messageTimestamp": 1701888000,
+            "pushName": "Usuario"
         }
         msg = parsear_mensagem(data)
         assert deve_processar(msg) == False

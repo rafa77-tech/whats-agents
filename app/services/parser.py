@@ -125,6 +125,7 @@ def parsear_mensagem(data: dict) -> Optional[MensagemRecebida]:
         message = data.get("message", {})
 
         jid = key.get("remoteJid", "")
+        jid_alt = key.get("remoteJidAlt", "")  # JID alternativo com telefone real (quando LID)
         from_me = key.get("fromMe", False)
         message_id = key.get("id", "")
 
@@ -160,7 +161,14 @@ def parsear_mensagem(data: dict) -> Optional[MensagemRecebida]:
 
         # Verificar se é formato LID
         is_lid = is_lid_format(jid)
-        telefone = extrair_telefone(jid)
+
+        # Extrair telefone: usar remoteJidAlt se disponível e remoteJid for LID
+        if is_lid and jid_alt:
+            # LID com alternativa: usar remoteJidAlt para telefone
+            telefone = extrair_telefone(jid_alt)
+            logger.info(f"LID detectado. Usando remoteJidAlt: {jid_alt} -> {telefone}")
+        else:
+            telefone = extrair_telefone(jid)
 
         # Extrair dados do Chatwoot do payload (Evolution envia quando integrado)
         chatwoot_conversation_id = data.get("chatwootConversationId")
@@ -178,7 +186,8 @@ def parsear_mensagem(data: dict) -> Optional[MensagemRecebida]:
             is_lid=is_lid,
             chatwoot_conversation_id=chatwoot_conversation_id,
             chatwoot_inbox_id=chatwoot_inbox_id,
-            remote_jid=jid if is_lid else None,
+            remote_jid=jid,  # Sempre guardar o remoteJid original para enviar resposta
+            remote_jid_alt=jid_alt if jid_alt else None,
         )
 
     except Exception as e:

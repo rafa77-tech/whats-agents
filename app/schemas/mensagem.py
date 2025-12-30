@@ -30,7 +30,8 @@ class MensagemRecebida(BaseModel):
     # Dados do Chatwoot (para resolver LID)
     chatwoot_conversation_id: Optional[int] = None
     chatwoot_inbox_id: Optional[int] = None
-    remote_jid: Optional[str] = None  # JID original (para resolver LID)
+    remote_jid: Optional[str] = None  # JID original (para enviar resposta)
+    remote_jid_alt: Optional[str] = None  # JID alternativo com telefone real (quando remoteJid é LID)
 
 
 class MensagemParaEnviar(BaseModel):
