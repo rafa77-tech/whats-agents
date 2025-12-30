@@ -30,7 +30,46 @@ ATTRIBUTION_WINDOW_DAYS = 7
 # Attribution Lock: Não sobrescrever last_touch se há inbound recente
 # Se médico respondeu há menos de X minutos, o touch que gerou a resposta
 # "possui" a atribuição - campanhas novas não podem roubar crédito
-ATTRIBUTION_LOCK_MINUTES = 60
+LOCK_DEFAULT_MINUTES = 30
+LOCK_EXTENDED_MINUTES = 60
+
+# Padrões de continuidade - médico indicou que vai responder depois
+# Compilados uma vez no import para performance
+import re
+
+_CONTINUITY_PATTERNS = [
+    re.compile(r"\bme\s+liga.*?(depois|amanh[aã]|mais\s+tarde)\b", re.IGNORECASE),
+    re.compile(r"\bmais\s+tarde\b", re.IGNORECASE),
+    re.compile(r"\bagora\s+n[aã]o\b", re.IGNORECASE),
+    re.compile(r"\bestou\s+(em|no|na)\s+\w*\s*(procedimento|cirurgia|cc|centro\s+cir[úu]rgico|plant[aã]o)\b", re.IGNORECASE),
+    re.compile(r"\bj[aá]\s+te\s+respondo\b", re.IGNORECASE),
+    re.compile(r"\baguarde\b", re.IGNORECASE),
+    re.compile(r"\bdaqui\s+a\s+pouco\b", re.IGNORECASE),
+    re.compile(r"\bem\s+reuni[aã]o\b", re.IGNORECASE),
+    re.compile(r"\bt[oô]\s+ocupad[oa]\b", re.IGNORECASE),
+    re.compile(r"\bto\s+no\s+(cc|centro|bloco)\b", re.IGNORECASE),
+    re.compile(r"\bdepois\s+(te\s+)?falo\b", re.IGNORECASE),
+    re.compile(r"\bvou\s+ver\s+e\s+te\s+(falo|respondo)\b", re.IGNORECASE),
+]
+
+
+def _has_continuity_signal(texto: str) -> tuple[bool, Optional[str]]:
+    """
+    Detecta sinais de 'vou responder depois' no texto.
+
+    Returns:
+        Tuple de (has_signal, pattern_matched)
+    """
+    if not texto:
+        return False, None
+
+    for pattern in _CONTINUITY_PATTERNS:
+        if pattern.search(texto):
+            # Retorna uma versão curta do pattern para logging
+            pattern_str = pattern.pattern[:30]
+            return True, pattern_str
+
+    return False, None
 
 
 @dataclass
@@ -42,6 +81,16 @@ class TouchInfo:
 
 
 @dataclass
+class LockInfo:
+    """Informações sobre o attribution lock aplicado."""
+    is_locked: bool
+    lock_minutes: int  # 0, 30 ou 60
+    lock_reason: str   # "none", "default", "continuity_signal"
+    pattern_matched: Optional[str] = None  # Pattern que deu match (se continuity)
+    delta_minutes: float = 0  # Minutos desde último inbound
+
+
+@dataclass
 class AttributionResult:
     """Resultado de uma operacao de atribuicao."""
     success: bool
@@ -50,20 +99,59 @@ class AttributionResult:
     attribution_locked: bool = False  # True se lock impediu atualização de last_touch
     attributed_campaign_id: Optional[int] = None
     error: Optional[str] = None
+    # Observabilidade do lock (para calibração)
+    lock_info: Optional[LockInfo] = None
 
 
-async def _check_attribution_lock(cliente_id: str) -> bool:
+async def _buscar_ultimo_inbound_texto(cliente_id: str) -> Optional[str]:
+    """
+    Busca o texto do último inbound do médico.
+
+    Só chamada quando necessário (gate: delta < 30 min).
+    """
+    try:
+        response = (
+            supabase.table("interacoes")
+            .select("conteudo")
+            .eq("cliente_id", cliente_id)
+            .eq("origem", "medico")
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+        if response.data:
+            return response.data[0].get("conteudo", "")
+        return None
+
+    except Exception as e:
+        logger.warning(f"Erro ao buscar último inbound: {e}")
+        return None
+
+
+async def _check_attribution_lock(cliente_id: str) -> LockInfo:
     """
     Verifica se há inbound recente que impede atualização de last_touch.
 
-    Attribution Lock: Se médico respondeu há menos de ATTRIBUTION_LOCK_MINUTES,
-    o touch que gerou a resposta "possui" a atribuição.
+    Lógica dinâmica:
+    1. Se não há inbound → sem lock
+    2. Se inbound >= 30 min → sem lock (não busca texto)
+    3. Se inbound < 30 min:
+       - Busca texto do último inbound
+       - Se tem sinal de continuidade → lock 60 min
+       - Senão → lock 30 min
 
     Returns:
-        True se deve bloquear atualização de last_touch
+        LockInfo com detalhes do lock aplicado
     """
+    no_lock = LockInfo(
+        is_locked=False,
+        lock_minutes=0,
+        lock_reason="none",
+    )
+
     try:
-        # Buscar last_inbound_at do doctor_state
+        # 1. Buscar last_inbound_at do doctor_state
         response = (
             supabase.table("doctor_state")
             .select("last_inbound_at")
@@ -73,32 +161,65 @@ async def _check_attribution_lock(cliente_id: str) -> bool:
         )
 
         if not response.data:
-            return False  # Sem state = sem lock
+            return no_lock  # Sem state = sem lock
 
         last_inbound_at_str = response.data.get("last_inbound_at")
         if not last_inbound_at_str:
-            return False  # Sem inbound = sem lock
+            return no_lock  # Sem inbound = sem lock
 
-        # Parsear e verificar janela
+        # 2. Calcular delta
         last_inbound_at = datetime.fromisoformat(
             last_inbound_at_str.replace("Z", "+00:00")
         )
-
         now = datetime.now(timezone.utc)
-        minutos_desde_inbound = (now - last_inbound_at).total_seconds() / 60
+        delta_minutes = (now - last_inbound_at).total_seconds() / 60
 
-        if minutos_desde_inbound < ATTRIBUTION_LOCK_MINUTES:
+        # 3. Gate: se já passou de 30 min, não precisa buscar texto
+        if delta_minutes >= LOCK_DEFAULT_MINUTES:
+            return LockInfo(
+                is_locked=False,
+                lock_minutes=0,
+                lock_reason="none",
+                delta_minutes=delta_minutes,
+            )
+
+        # 4. Buscar texto do último inbound (só quando delta < 30 min)
+        texto = await _buscar_ultimo_inbound_texto(cliente_id)
+        has_continuity, pattern_matched = _has_continuity_signal(texto or "")
+
+        # 5. Determinar lock baseado em continuidade
+        if has_continuity:
+            # Lock estendido (60 min) - médico indicou que vai responder depois
+            is_locked = delta_minutes < LOCK_EXTENDED_MINUTES
+            lock_info = LockInfo(
+                is_locked=is_locked,
+                lock_minutes=LOCK_EXTENDED_MINUTES if is_locked else 0,
+                lock_reason="continuity_signal" if is_locked else "none",
+                pattern_matched=pattern_matched,
+                delta_minutes=delta_minutes,
+            )
+        else:
+            # Lock padrão (30 min)
+            is_locked = delta_minutes < LOCK_DEFAULT_MINUTES
+            lock_info = LockInfo(
+                is_locked=is_locked,
+                lock_minutes=LOCK_DEFAULT_MINUTES if is_locked else 0,
+                lock_reason="default" if is_locked else "none",
+                delta_minutes=delta_minutes,
+            )
+
+        if lock_info.is_locked:
             logger.debug(
                 f"Attribution lock ativo: cliente={cliente_id[:8]}, "
-                f"inbound ha {minutos_desde_inbound:.0f} min (lock={ATTRIBUTION_LOCK_MINUTES} min)"
+                f"delta={delta_minutes:.0f}min, lock={lock_info.lock_minutes}min, "
+                f"reason={lock_info.lock_reason}"
             )
-            return True
 
-        return False
+        return lock_info
 
     except Exception as e:
         logger.warning(f"Erro ao verificar attribution lock: {e}")
-        return False  # Em caso de erro, não bloquear
+        return no_lock  # Em caso de erro, não bloquear
 
 
 async def registrar_campaign_touch(
@@ -130,8 +251,8 @@ async def registrar_campaign_touch(
     now = datetime.now(timezone.utc)
 
     try:
-        # Verificar attribution lock
-        is_locked = await _check_attribution_lock(cliente_id)
+        # Verificar attribution lock (retorna LockInfo com detalhes)
+        lock_info = await _check_attribution_lock(cliente_id)
 
         # Buscar estado atual da conversa
         response = (
@@ -157,7 +278,7 @@ async def registrar_campaign_touch(
         update_data = {}
 
         # last_touch: só atualiza se NÃO está locked
-        if not is_locked:
+        if not lock_info.is_locked:
             update_data["last_touch_campaign_id"] = campaign_id
             update_data["last_touch_type"] = touch_type
             update_data["last_touch_at"] = now.isoformat()
@@ -165,7 +286,8 @@ async def registrar_campaign_touch(
         else:
             logger.info(
                 f"Attribution locked: campanha {campaign_id} NAO sobrescreveu "
-                f"last_touch de conversa {conversation_id[:8]} (inbound recente)"
+                f"last_touch de conversa {conversation_id[:8]} "
+                f"(reason={lock_info.lock_reason}, delta={lock_info.delta_minutes:.0f}min)"
             )
 
         # first_touch: sempre seta se ainda não existe (independente do lock)
@@ -181,20 +303,28 @@ async def registrar_campaign_touch(
                 "id", conversation_id
             ).execute()
 
-        # Emitir evento de auditoria
+        # Emitir evento de auditoria com observabilidade do lock
+        event_props = {
+            "campaign_id": campaign_id,
+            "touch_type": touch_type,
+            "first_touch_set": first_touch_set,
+            "last_touch_updated": last_touch_updated,
+            "attribution_locked": lock_info.is_locked,
+            "touched_at": now.isoformat(),
+            # Campos de observabilidade para calibração
+            "lock_minutes": lock_info.lock_minutes,
+            "lock_reason": lock_info.lock_reason,
+            "lock_delta_minutes": round(lock_info.delta_minutes, 1),
+        }
+        if lock_info.pattern_matched:
+            event_props["lock_pattern_matched"] = lock_info.pattern_matched
+
         await emit_event(BusinessEvent(
             event_type=EventType.CAMPAIGN_TOUCH_LINKED,
             source=EventSource.SYSTEM,
             cliente_id=cliente_id,
             conversation_id=conversation_id,
-            event_props={
-                "campaign_id": campaign_id,
-                "touch_type": touch_type,
-                "first_touch_set": first_touch_set,
-                "last_touch_updated": last_touch_updated,
-                "attribution_locked": is_locked,
-                "touched_at": now.isoformat(),
-            }
+            event_props=event_props,
         ))
 
         logger.info(
@@ -202,14 +332,15 @@ async def registrar_campaign_touch(
             f"campanha={campaign_id}, tipo={touch_type}, "
             f"first_touch_set={first_touch_set}, "
             f"last_touch_updated={last_touch_updated}, "
-            f"locked={is_locked}"
+            f"lock={lock_info.lock_reason}"
         )
 
         return AttributionResult(
             success=True,
             first_touch_set=first_touch_set,
             last_touch_updated=last_touch_updated,
-            attribution_locked=is_locked,
+            attribution_locked=lock_info.is_locked,
+            lock_info=lock_info,
         )
 
     except Exception as e:
