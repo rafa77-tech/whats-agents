@@ -1,334 +1,218 @@
-# Runbook Operacional - Júlia
+# Runbook - Operações de Produção
 
-## Arquitetura
+## Branch Protection (Obrigatório)
+
+### Configurar no GitHub
+
+Repository → Settings → Branches → Add rule
+
+**Branch name pattern:** `main`
+
+**Proteções obrigatórias:**
+
+| Setting | Valor |
+|---------|-------|
+| Require a pull request before merging | ✅ |
+| Require approvals | 1 (opcional, mas recomendado) |
+| Require status checks to pass | ✅ |
+| Required status checks | `Lint & Type Check`, `Run Tests`, `Build Docker Image` |
+| Require branches to be up to date | ✅ |
+| Do not allow bypassing | ✅ |
+
+**Resultado:**
+- Ninguém (nem admin) pode push direto na main
+- Todo código passa pelo CI antes de mergear
+- PRs são o único caminho para produção
+
+---
+
+## Migrations
+
+### Processo (Manual com Runbook)
+
+**ANTES de qualquer deploy:**
+
+1. **Verificar migrations pendentes**
+   ```bash
+   # Lista migrations aplicadas
+   curl https://SEU-APP.railway.app/health/schema | jq .
+   ```
+
+2. **Se houver migration nova no código:**
+   - Aplicar migration no Supabase PROD via Dashboard ou CLI
+   - Aguardar confirmação
+   - Só então fazer merge do PR
+
+3. **Verificar após deploy:**
+   ```bash
+   curl https://SEU-APP.railway.app/health/deep | jq .
+   ```
+
+### Checklist de Migration
 
 ```
-[WhatsApp] → [Evolution API] → [FastAPI] → [Claude API]
-                                    ↓
-                              [Supabase]
-                                    ↓
-                              [Chatwoot]
-                                    ↓
-                              [Redis Cache]
+[ ] Migration testada em staging/dev
+[ ] Migration aplicada no Supabase PROD
+[ ] /health/schema mostra versão correta
+[ ] PR mergeado
+[ ] /health/deep retorna 200
 ```
 
-## Serviços
+### Em caso de erro
 
-| Serviço | URL | Health Check |
-|---------|-----|--------------|
-| API | http://localhost:8000 | `/health` |
-| Evolution | http://localhost:8080 | `/status` |
-| Chatwoot | http://localhost:3000 | `/api/v1/profile` |
-| Redis | localhost:6379 | `redis-cli PING` |
+Se o deploy subir com migration faltando:
 
-## Comandos Úteis
+1. **NÃO entre em pânico** - o health check vai falhar
+2. Aplique a migration manualmente no Supabase
+3. O próximo health check deve passar
+4. Se não passar, verifique logs do Railway
 
-### Docker
+---
+
+## Deploy
+
+### Fluxo Normal
+
+```
+Feature Branch → PR → CI passa → Merge → Deploy automático → Health Check
+```
+
+### Deploy Manual (emergência)
 
 ```bash
-# Ver status
-docker compose ps
+# Via Railway CLI
+railway login
+railway up
 
-# Logs
-docker compose logs -f api
-
-# Reiniciar serviço
-docker compose restart api
-
-# Ver logs de erro
-docker compose logs api | grep ERROR
+# Via GitHub Actions
+gh workflow run ci.yml --ref main
 ```
 
-### Banco de Dados
+### Rollback
+
+1. Railway Dashboard → Deployments
+2. Encontrar último deploy estável
+3. Clicar "Redeploy"
+
+---
+
+## Health Checks
+
+### Endpoints
+
+| Endpoint | Uso | Retorno |
+|----------|-----|---------|
+| `/health` | Liveness | Sempre 200 se app rodando |
+| `/health/ready` | Readiness | 200 se Redis conectado |
+| `/health/deep` | CI/CD | 200 se TUDO ok, 503 se algo falhar |
+| `/health/schema` | Debug | Info de migrations |
+
+### Deep Health Check
+
+O `/health/deep` verifica:
+
+1. **Redis** - ping
+2. **Supabase** - conexão
+3. **Tabelas críticas** - existem e respondem
+4. **Views críticas** - existem e respondem
+5. **Schema version** - última migration >= esperada
+
+Se qualquer check falhar → HTTP 503 → Deploy marcado como falho.
+
+---
+
+## Incidentes
+
+### App não responde
+
+```bash
+# 1. Verificar status Railway
+railway status
+
+# 2. Ver logs
+railway logs --tail 100
+
+# 3. Se necessário, restart
+railway restart
+```
+
+### Health check falhando
+
+```bash
+# 1. Identificar o que está falhando
+curl https://SEU-APP.railway.app/health/deep | jq .
+
+# 2. Comum: Migration faltando
+# Solução: Aplicar migration no Supabase
+
+# 3. Comum: Redis desconectado
+# Solução: Verificar serviço Redis no Railway
+
+# 4. Comum: View não existe
+# Solução: Criar view via SQL no Supabase
+```
+
+### Pausar Julia (emergência)
 
 ```sql
--- Conversas ativas
-SELECT COUNT(*) FROM conversations WHERE status = 'active';
-
--- Fila pendente
-SELECT COUNT(*) FROM fila_mensagens WHERE status = 'pendente';
-
--- Handoffs pendentes
-SELECT * FROM handoffs WHERE status = 'pendente' ORDER BY created_at DESC;
-
--- Últimas mensagens
-SELECT * FROM interacoes ORDER BY created_at DESC LIMIT 10;
-
--- Performance de queries
-SELECT * FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 10;
+-- No Supabase SQL Editor
+INSERT INTO julia_status (status, motivo, alterado_via)
+VALUES ('pausado', 'Emergência - pausado manualmente', 'manual');
 ```
 
-### Redis
+### Retomar Julia
 
-```bash
-# Conectar ao Redis
-redis-cli
-
-# Ver todas as chaves
-KEYS *
-
-# Ver chaves de cache
-KEYS medico:*
-KEYS vagas:*
-KEYS contexto:*
-
-# Limpar cache
-FLUSHDB
-
-# Ver TTL de uma chave
-TTL medico:telefone:5511999999999
+```sql
+INSERT INTO julia_status (status, motivo, alterado_via)
+VALUES ('ativo', 'Retomando operação', 'manual');
 ```
 
-## Procedimentos
+---
 
-### 1. Alta taxa de erros
+## Secrets Management
 
-**Sintomas:**
-- Logs mostram muitos erros
-- Usuários reportam problemas
+### GitHub Secrets necessários
 
-**Diagnóstico:**
-1. Verificar logs: `docker compose logs -f api | grep ERROR`
-2. Verificar métricas: `GET /admin/metricas/performance`
-3. Verificar saúde: `GET /admin/metricas/health`
-4. Verificar Redis: `redis-cli PING`
-5. Verificar conexão Supabase: testar query simples
+| Secret | Obrigatório | Ambiente |
+|--------|-------------|----------|
+| `SUPABASE_URL` | ✅ | Staging (para testes) |
+| `SUPABASE_SERVICE_KEY` | ✅ | Staging (para testes) |
+| `ANTHROPIC_API_KEY` | ✅ | Produção |
+| `RAILWAY_TOKEN` | ✅ | Deploy |
+| `RAILWAY_APP_URL` | ✅ | Health check |
+| `SLACK_WEBHOOK_URL` | ❌ | Notificações |
 
-**Solução:**
-- Se Redis offline: `docker compose restart redis`
-- Se banco lento: verificar índices, conexões
-- Se API key inválida: verificar variáveis de ambiente
+### Railway Variables (produção)
 
-### 2. WhatsApp desconectado
+Todas as variáveis do `.env.example` devem estar configuradas no Railway.
 
-**Sintomas:**
-- Mensagens não são enviadas
-- Erro "WhatsApp not connected"
+**Críticas:**
+- `SUPABASE_URL` → Projeto PROD
+- `SUPABASE_SERVICE_KEY` → Service key PROD
+- `REDIS_URL` → Injetada automaticamente pelo Railway
 
-**Diagnóstico:**
-1. Acessar Evolution: http://localhost:8080
-2. Verificar status da instância
-3. Verificar logs: `docker compose logs evolution`
-
-**Solução:**
-- Se desconectado, escanear QR novamente
-- Se instância não existe, criar nova
-- Testar envio manual via Evolution API
-
-### 3. Fila congestionada
-
-**Sintomas:**
-- Fila cresce mas não processa
-- Mensagens não são enviadas
-
-**Diagnóstico:**
-1. Verificar quantidade: `SELECT COUNT(*) FROM fila_mensagens WHERE status = 'pendente'`
-2. Verificar worker: `docker compose logs -f worker`
-3. Verificar rate limiting
-
-**Solução:**
-- Se worker travado: `docker compose restart worker`
-- Se rate limit: aguardar ou ajustar limites
-- Se muitos erros: verificar logs e corrigir causa raiz
-
-### 4. Handoff não notificado
-
-**Sintomas:**
-- Label adicionada mas Júlia continua respondendo
-- Gestor não recebe notificação
-
-**Diagnóstico:**
-1. Verificar webhook Slack configurado
-2. Verificar campo `controlled_by` na conversa
-3. Verificar logs de handoff: `docker compose logs api | grep handoff`
-
-**Solução:**
-- Se webhook não configurado: configurar em Chatwoot
-- Se campo não atualiza: verificar integração
-- Se Slack não notifica: verificar webhook URL
-
-### 5. Performance degradada
-
-**Sintomas:**
-- Respostas muito lentas (> 30s)
-- Queries demorando muito
-
-**Diagnóstico:**
-1. `GET /admin/metricas/performance`
-2. Identificar operação lenta
-3. Verificar uso de recursos: `docker stats`
-4. Verificar cache hit rate
-
-**Solução:**
-- Se banco lento: verificar índices, executar `ANALYZE`
-- Se LLM lento: verificar status Anthropic
-- Se cache miss alto: verificar Redis
-- Se CPU alto: escalar recursos
-
-### 6. Cache não funciona
-
-**Sintomas:**
-- Queries sempre vão ao banco
-- Performance ruim
-
-**Diagnóstico:**
-1. Verificar Redis: `redis-cli PING`
-2. Verificar chaves: `redis-cli KEYS "*"`
-3. Verificar TTL: `redis-cli TTL medico:telefone:...`
-
-**Solução:**
-- Se Redis offline: `docker compose restart redis`
-- Se chaves expiram rápido: aumentar TTL
-- Se cache não invalida: verificar lógica de invalidação
-
-## Variáveis de Ambiente
-
-### Obrigatórias
-
-| Variável | Descrição | Exemplo |
-|----------|-----------|---------|
-| `SUPABASE_URL` | URL do projeto Supabase | `https://xxx.supabase.co` |
-| `SUPABASE_KEY` | Chave de serviço | `eyJ...` |
-| `ANTHROPIC_API_KEY` | Chave da API Anthropic | `sk-ant-...` |
-| `EVOLUTION_URL` | URL da Evolution API | `http://localhost:8080` |
-| `EVOLUTION_API_KEY` | Chave da Evolution | `xxx` |
-| `REDIS_URL` | URL do Redis | `redis://localhost:6379` |
-
-### Opcionais
-
-| Variável | Descrição | Default |
-|----------|-----------|---------|
-| `LOG_LEVEL` | Nível de log | `INFO` |
-| `MAX_WORKERS` | Workers paralelos | `4` |
-| `CACHE_TTL` | TTL do cache em segundos | `300` |
-
-### Chatwoot
-
-| Variável | Descrição |
-|----------|-----------|
-| `CHATWOOT_URL` | URL do Chatwoot |
-| `CHATWOOT_API_TOKEN` | Token de API |
-| `CHATWOOT_ACCOUNT_ID` | ID da conta |
-| `CHATWOOT_INBOX_ID` | ID do inbox |
-
-### Slack
-
-| Variável | Descrição |
-|----------|-----------|
-| `SLACK_WEBHOOK_URL` | URL do webhook |
-
-## Troubleshooting
-
-### Mensagens não estão sendo enviadas
-
-**Sintomas:**
-- Fila cresce mas não processa
-- Logs mostram erros de envio
-
-**Diagnóstico:**
-1. Verificar status Evolution API
-2. Verificar conexão WhatsApp
-3. Verificar rate limiting
-4. Verificar logs: `docker compose logs api | grep "enviar"`
-
-**Solução:**
-- Se Evolution offline: reiniciar container
-- Se WhatsApp desconectado: reconectar via QR
-- Se rate limit: aguardar ou ajustar limites
-- Se erro de autenticação: verificar API key
-
-### Respostas muito lentas
-
-**Sintomas:**
-- Tempo de resposta > 30s
-- Usuários reclamando
-
-**Diagnóstico:**
-1. `GET /admin/metricas/performance`
-2. Identificar operação lenta
-3. Verificar uso de recursos
-4. Verificar cache hit rate
-
-**Solução:**
-- Se banco lento: verificar índices, conexões
-- Se LLM lento: verificar status Anthropic
-- Se cache miss alto: verificar Redis
-- Se CPU alto: escalar recursos
-
-### Handoff não funciona
-
-**Sintomas:**
-- Label adicionada mas Júlia continua respondendo
-- Gestor não notificado
-
-**Diagnóstico:**
-1. Verificar webhook Chatwoot configurado
-2. Verificar campo `controlled_by` na conversa
-3. Verificar logs de handoff
-
-**Solução:**
-- Se webhook não configurado: configurar em Chatwoot
-- Se campo não atualiza: verificar integração
-- Se Slack não notifica: verificar webhook URL
+---
 
 ## Monitoramento
 
-### Métricas Principais
+### Logs
 
-- **Tempo de resposta**: < 5s (ideal), < 10s (aceitável)
-- **Taxa de handoff**: < 20%
-- **Score de qualidade**: > 7/10
-- **Cache hit rate**: > 80%
-- **Taxa de erro**: < 1%
+```bash
+# Railway logs
+railway logs -f
+
+# Filtrar por erro
+railway logs | grep -i error
+```
+
+### Métricas
+
+- Railway Dashboard → métricas de CPU/Memory
+- `/health/rate-limit` → uso de rate limit
+- `/health/circuits` → status circuit breakers
 
 ### Alertas
 
-- Performance crítica: tempo > 2s
-- Performance warning: tempo > 1s
-- Taxa de handoff alta: > 20%
-- Score baixo: < 5/10
-- Sem respostas: 0 mensagens em 30min
-
-### Dashboards
-
-- Métricas em tempo real: `/admin/metricas/performance`
-- Health check: `/admin/metricas/health`
-- Dashboard de métricas: `/static/dashboard.html`
-
-## Manutenção
-
-### Backup
-
-```bash
-# Backup do banco (Supabase)
-# Fazer via interface do Supabase
-
-# Backup do Redis
-redis-cli --rdb /backup/redis.rdb
-```
-
-### Limpeza
-
-```sql
--- Limpar conversas antigas (> 90 dias)
-DELETE FROM conversations WHERE created_at < NOW() - INTERVAL '90 days';
-
--- Limpar interações antigas
-DELETE FROM interacoes WHERE created_at < NOW() - INTERVAL '90 days';
-
--- Limpar fila antiga
-DELETE FROM fila_mensagens WHERE status = 'enviada' AND enviada_em < NOW() - INTERVAL '30 days';
-```
-
-### Atualização
-
-```bash
-# Atualizar código
-git pull
-docker compose build
-docker compose up -d
-
-# Verificar logs
-docker compose logs -f api
-```
-
+Configurados via Slack:
+- Deploy success/failure
+- Health check failures (manual verificar)

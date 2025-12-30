@@ -172,19 +172,56 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Waiting for deployment to complete..."
-          sleep 30
+          sleep 60  # Railway precisa de tempo para build + deploy
 
-      - name: Health check
+      - name: Deep health check
+        id: health_check
         run: |
-          # Aguardar deploy propagar
-          sleep 10
-
-          # Health check (substitua pela URL real)
-          if [ -n "${{ secrets.RAILWAY_APP_URL }}" ]; then
-            curl -f "${{ secrets.RAILWAY_APP_URL }}/health" || echo "Health check pending..."
-          else
+          if [ -z "${{ secrets.RAILWAY_APP_URL }}" ]; then
             echo "RAILWAY_APP_URL not set, skipping health check"
+            echo "health_ok=skip" >> $GITHUB_OUTPUT
+            exit 0
           fi
+
+          APP_URL="${{ secrets.RAILWAY_APP_URL }}"
+          MAX_RETRIES=5
+          RETRY_DELAY=15
+
+          echo "Running deep health check on $APP_URL/health/deep"
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i of $MAX_RETRIES..."
+
+            # Fazer request e capturar status code
+            HTTP_STATUS=$(curl -s -o /tmp/health_response.json -w "%{http_code}" "$APP_URL/health/deep" || echo "000")
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "Health check passed!"
+              cat /tmp/health_response.json | jq .
+              echo "health_ok=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            echo "Health check returned $HTTP_STATUS"
+            if [ -f /tmp/health_response.json ]; then
+              cat /tmp/health_response.json | jq . 2>/dev/null || cat /tmp/health_response.json
+            fi
+
+            if [ $i -lt $MAX_RETRIES ]; then
+              echo "Retrying in $RETRY_DELAY seconds..."
+              sleep $RETRY_DELAY
+            fi
+          done
+
+          echo "Health check failed after $MAX_RETRIES attempts"
+          echo "health_ok=false" >> $GITHUB_OUTPUT
+          exit 1
+
+      - name: Mark deploy as failed if health check failed
+        if: steps.health_check.outputs.health_ok == 'false'
+        run: |
+          echo "::error::Deploy health check failed! Rolling back recommended."
+          exit 1
 
       - name: Notify Slack on success
         if: success()
@@ -193,7 +230,17 @@ jobs:
         run: |
           if [ -n "$SLACK_WEBHOOK_URL" ]; then
             curl -X POST -H 'Content-type: application/json' \
-              --data "{\"text\":\"Deploy successful: ${{ github.sha }}\"}" \
+              --data "{
+                \"blocks\": [
+                  {
+                    \"type\": \"section\",
+                    \"text\": {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \":white_check_mark: *Deploy Successful*\n\nCommit: \`${{ github.sha }}\`\nBranch: \`${{ github.ref_name }}\`\nHealth: All checks passed\"
+                    }
+                  }
+                ]
+              }" \
               "$SLACK_WEBHOOK_URL" || true
           fi
 
@@ -204,6 +251,16 @@ jobs:
         run: |
           if [ -n "$SLACK_WEBHOOK_URL" ]; then
             curl -X POST -H 'Content-type: application/json' \
-              --data "{\"text\":\"Deploy FAILED: ${{ github.sha }}\"}" \
+              --data "{
+                \"blocks\": [
+                  {
+                    \"type\": \"section\",
+                    \"text\": {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \":x: *Deploy FAILED*\n\nCommit: \`${{ github.sha }}\`\nBranch: \`${{ github.ref_name }}\`\n\n:warning: *Action Required*: Check health check logs and consider rollback.\"
+                    }
+                  }
+                ]
+              }" \
               "$SLACK_WEBHOOK_URL" || true
           fi
