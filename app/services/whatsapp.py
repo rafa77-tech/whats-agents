@@ -316,7 +316,7 @@ class EvolutionClient:
 
     async def buscar_participantes_grupo(self, grupo_jid: str) -> list:
         """
-        Busca participantes de um grupo com seus telefones reais.
+        Busca participantes de um grupo específico.
 
         Args:
             grupo_jid: JID do grupo
@@ -324,25 +324,24 @@ class EvolutionClient:
         Returns:
             Lista de participantes com id (LID) e phoneNumber
         """
-        url = f"{self.base_url}/group/fetchAllGroups/{self.instance}"
+        # Usar endpoint específico para participantes (mais eficiente que fetchAllGroups)
+        url = f"{self.base_url}/group/participants/{self.instance}"
 
         async def _request():
             async with httpx.AsyncClient() as client:
                 response = await client.get(
                     url,
-                    params={"getParticipants": "true"},
+                    params={"groupJid": grupo_jid},
                     headers=self.headers,
-                    timeout=30.0
+                    timeout=15.0
                 )
                 response.raise_for_status()
                 return response.json()
 
         try:
-            grupos = await circuit_evolution.executar(_request)
-            for grupo in grupos:
-                if grupo.get("id") == grupo_jid:
-                    return grupo.get("participants", [])
-            return []
+            result = await circuit_evolution.executar(_request)
+            # Retorna lista de participantes diretamente
+            return result.get("participants", []) if isinstance(result, dict) else result if isinstance(result, list) else []
         except Exception as e:
             logger.warning(f"Erro ao buscar participantes do grupo {grupo_jid}: {e}")
             return []

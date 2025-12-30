@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 
 from app.services.supabase import supabase
-from app.services.redis import cache_get_json, cache_set_json
+from app.services.redis import cache_get_json, cache_set_json, cache_delete
 from .types import (
     DoctorState, PermissionState, TemperatureTrend,
     TemperatureBand, ObjectionSeverity, RiskTolerance, LifecycleStage
@@ -182,7 +182,7 @@ async def save_doctor_state_updates(cliente_id: str, updates: dict) -> bool:
         # Invalidar cache
         cache_key = f"{CACHE_PREFIX}:{cliente_id}"
         try:
-            await cache_set_json(cache_key, None, 0)
+            await cache_delete(cache_key)
         except Exception as e:
             logger.warning(f"Erro ao invalidar cache: {e}")
 
