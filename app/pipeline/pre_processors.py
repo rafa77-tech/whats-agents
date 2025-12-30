@@ -99,29 +99,12 @@ class ParseMessageProcessor(PreProcessor):
                 telefone = telefone_resolvido
                 logger.info(f"LID resolvido com sucesso: {telefone}")
             else:
-                # Fallback: buscar no banco de dados pelo nome
-                logger.info(f"Tentando fallback: buscar cliente por nome '{mensagem.nome_contato}'")
-                from app.services.supabase import supabase
-                primeiro_nome = mensagem.nome_contato.split()[0] if mensagem.nome_contato else ""
-                if primeiro_nome:
-                    result = supabase.table("clientes").select("telefone").ilike("primeiro_nome", primeiro_nome).limit(1).execute()
-                    if result.data and result.data[0].get("telefone"):
-                        telefone = result.data[0]["telefone"].replace("+", "")
-                        logger.info(f"LID resolvido via banco de dados: {telefone}")
-                    else:
-                        logger.warning(f"Nao foi possivel resolver LID para '{mensagem.nome_contato}'")
-                        return ProcessorResult(
-                            success=True,
-                            should_continue=False,
-                            metadata={"motivo": "LID nao resolvido - sem numero real"}
-                        )
-                else:
-                    logger.warning(f"Nao foi possivel resolver LID para '{mensagem.nome_contato}'")
-                    return ProcessorResult(
-                        success=True,
-                        should_continue=False,
-                        metadata={"motivo": "LID nao resolvido - sem numero real"}
-                    )
+                logger.warning(f"Nao foi possivel resolver LID para '{mensagem.nome_contato}'")
+                return ProcessorResult(
+                    success=True,
+                    should_continue=False,
+                    metadata={"motivo": "LID nao resolvido - sem numero real"}
+                )
 
         # Popular contexto
         context.mensagem_texto = mensagem.texto or ""
