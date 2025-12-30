@@ -42,8 +42,9 @@ class SendOutcome(str, Enum):
     DEDUPED = "DEDUPED"
 
     # Erros tecnicos
-    FAILED_PROVIDER = "FAILED_PROVIDER"
-    FAILED_VALIDATION = "FAILED_VALIDATION"
+    FAILED_PROVIDER = "FAILED_PROVIDER"        # Erro de infra (timeout, 5xx, rede)
+    FAILED_VALIDATION = "FAILED_VALIDATION"    # Número inválido/inexistente
+    FAILED_BANNED = "FAILED_BANNED"            # Número banido/bloqueado pelo WhatsApp
     FAILED_RATE_LIMIT = "FAILED_RATE_LIMIT"
     FAILED_CIRCUIT_OPEN = "FAILED_CIRCUIT_OPEN"
 
