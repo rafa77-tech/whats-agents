@@ -17,8 +17,8 @@
 INSERT INTO public.app_settings (key, value, description)
 VALUES
     ('environment', 'production', 'Environment marker - CRÍTICO para hard guard'),
-    ('supabase_project_ref', 'TROCAR_PELO_REF_DO_PROD', 'Project reference - CRÍTICO para hard guard')
-ON CONFLICT (key) DO UPDATE SET 
+    ('supabase_project_ref', 'jyqgbzhqavgpxqacduoi', 'Project reference - CRÍTICO para hard guard')
+ON CONFLICT (key) DO UPDATE SET
     value = EXCLUDED.value,
     description = EXCLUDED.description,
     updated_at = now();
@@ -27,15 +27,16 @@ ON CONFLICT (key) DO UPDATE SET
 -- 2. FEATURE FLAGS ESSENCIAIS
 -- -----------------------------------------------------------------------------
 -- Flags que o sistema espera existir
+-- Estrutura: key, value (JSONB), description
 
-INSERT INTO public.feature_flags (key, enabled, description)
+INSERT INTO public.feature_flags (key, value, description)
 VALUES
-    ('external_handoff', true, 'Habilita handoff externo via link'),
-    ('campaign_attribution', true, 'Habilita atribuição de campanhas'),
-    ('dynamic_lock', true, 'Habilita lock dinâmico 30/60 min'),
-    ('error_classifier', true, 'Habilita classificador de erros')
-ON CONFLICT (key) DO UPDATE SET 
-    enabled = EXCLUDED.enabled,
+    ('external_handoff', '{"enabled": true}'::jsonb, 'Habilita handoff externo via link'),
+    ('campaign_attribution', '{"enabled": true}'::jsonb, 'Habilita atribuição de campanhas'),
+    ('dynamic_lock', '{"enabled": true}'::jsonb, 'Habilita lock dinâmico 30/60 min'),
+    ('error_classifier', '{"enabled": true}'::jsonb, 'Habilita classificador de erros')
+ON CONFLICT (key) DO UPDATE SET
+    value = EXCLUDED.value,
     description = EXCLUDED.description,
     updated_at = now();
 
@@ -43,10 +44,10 @@ ON CONFLICT (key) DO UPDATE SET
 -- 3. JULIA STATUS (Estado inicial)
 -- -----------------------------------------------------------------------------
 -- Julia começa PAUSADA para validação manual antes de ativar
+-- alterado_via aceita: 'slack', 'sistema', 'api', 'manual'
 
 INSERT INTO public.julia_status (status, motivo, alterado_via)
-VALUES ('pausado', 'Deploy inicial - aguardando validação', 'bootstrap')
-ON CONFLICT DO NOTHING;
+VALUES ('pausado', 'Deploy inicial - aguardando validação', 'manual');
 
 -- -----------------------------------------------------------------------------
 -- VERIFICAÇÃO
