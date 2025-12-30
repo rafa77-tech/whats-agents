@@ -44,6 +44,7 @@ from app.services.outbound_dedupe import (
     marcar_enviado,
     marcar_falha,
 )
+from app.services.guardrails.error_classifier import classify_provider_error
 
 logger = logging.getLogger(__name__)
 
@@ -383,12 +384,20 @@ async def send_outbound_message(
         )
 
     except Exception as e:
-        logger.error(f"Erro ao enviar para {telefone[:8]}...: {e}")
-        await marcar_falha(dedupe_key, str(e)[:200])
+        # Classificar erro para diagnóstico operacional
+        classified = classify_provider_error(e)
+        logger.error(
+            f"Erro ao enviar para {telefone[:8]}...: {classified.provider_error_code} - {e}",
+            extra={
+                "outcome": classified.outcome.value,
+                "provider_error_code": classified.provider_error_code,
+            }
+        )
+        await marcar_falha(dedupe_key, f"{classified.provider_error_code}:{str(e)[:150]}")
         result = OutboundResult(
             success=False,
-            outcome=SendOutcome.FAILED_PROVIDER,
-            outcome_reason_code=f"provider_error:{str(e)[:100]}",
+            outcome=classified.outcome,
+            outcome_reason_code=f"{classified.provider_error_code}:{classified.provider_error_raw[:80]}",
             outcome_at=now,
             blocked=False,
             deduped=False,

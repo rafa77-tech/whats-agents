@@ -53,6 +53,7 @@ class CampaignMetrics:
     Metricas agregadas de uma campanha.
 
     Sprint 24 E07: Adicionado bypassed, delivered_total, e breakdown por origem.
+    Sprint 23 Prod: Adicionado breakdown de falhas para diagnóstico.
     """
     campaign_id: int
     total_sends: int
@@ -71,10 +72,16 @@ class CampaignMetrics:
     # Breakdown por origem (monitorar migração legado → novo)
     from_fila_mensagens: int = 0
     from_envios_legado: int = 0
+    # Breakdown de falhas para diagnóstico operacional
+    failed_validation: int = 0   # Número inválido/inexistente
+    failed_banned: int = 0       # Número banido/bloqueado
+    failed_provider: int = 0     # Erro de infra (timeout, 5xx)
+    validation_fail_rate: float = 0.0  # % de validação falha
+    banned_rate: float = 0.0           # % de banidos (risco reputacional)
 
     @property
     def fail_rate(self) -> float:
-        """Taxa de falha."""
+        """Taxa de falha total."""
         if self.total_sends == 0:
             return 0.0
         return round(self.failed / self.total_sends * 100, 2)
@@ -85,6 +92,17 @@ class CampaignMetrics:
         if self.total_sends == 0:
             return 0.0
         return round(self.from_envios_legado / self.total_sends * 100, 2)
+
+    @property
+    def target_quality_score(self) -> float:
+        """
+        Score de qualidade do target set (0-100).
+        100 = nenhum número inválido ou banido.
+        """
+        if self.total_sends == 0:
+            return 100.0
+        bad_targets = self.failed_validation + self.failed_banned
+        return round((1 - bad_targets / self.total_sends) * 100, 2)
 
 
 class CampaignSendsRepository:
@@ -305,6 +323,12 @@ class CampaignSendsRepository:
             last_send_at=self._parse_datetime(row.get("last_send_at")),
             from_fila_mensagens=row.get("from_fila_mensagens", 0),
             from_envios_legado=row.get("from_envios_legado", 0),
+            # Breakdown de falhas para diagnóstico
+            failed_validation=row.get("failed_validation", 0),
+            failed_banned=row.get("failed_banned", 0),
+            failed_provider=row.get("failed_provider", 0),
+            validation_fail_rate=float(row.get("validation_fail_rate") or 0),
+            banned_rate=float(row.get("banned_rate") or 0),
         )
 
     def _parse_datetime(self, value) -> Optional[datetime]:
