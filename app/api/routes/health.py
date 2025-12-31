@@ -27,24 +27,22 @@ SUPABASE_PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF", "")
 
 # Versioning info (injected by CI/CD build or Railway runtime)
 # Railway fornece RAILWAY_GIT_COMMIT_SHA automaticamente em runtime
-_git_sha_explicit = os.getenv("GIT_SHA")
-_git_sha_railway = os.getenv("RAILWAY_GIT_COMMIT_SHA")
-GIT_SHA = _git_sha_explicit or _git_sha_railway or "unknown"
+# Nota: Dockerfile seta GIT_SHA="unknown" como default, então precisamos ignorar esse valor
+def _get_version_var(explicit_name: str, railway_name: str) -> str:
+    """Busca variável de versão, ignorando 'unknown' do Dockerfile."""
+    explicit = os.getenv(explicit_name)
+    railway = os.getenv(railway_name)
+    # Ignora se for "unknown" (default do Dockerfile)
+    if explicit and explicit != "unknown":
+        return explicit
+    if railway:
+        return railway
+    return "unknown"
 
-_build_time_explicit = os.getenv("BUILD_TIME")
-_deployment_id = os.getenv("RAILWAY_DEPLOYMENT_ID")
-BUILD_TIME = _build_time_explicit or _deployment_id or "unknown"
-
+GIT_SHA = _get_version_var("GIT_SHA", "RAILWAY_GIT_COMMIT_SHA")
+BUILD_TIME = _get_version_var("BUILD_TIME", "RAILWAY_DEPLOYMENT_ID")
 RAILWAY_ENVIRONMENT = os.getenv("RAILWAY_ENVIRONMENT", "unknown")
 RUN_MODE = os.getenv("RUN_MODE", "unknown")
-
-# Debug: valores brutos para diagnóstico
-_VERSION_DEBUG = {
-    "GIT_SHA_explicit": _git_sha_explicit,
-    "RAILWAY_GIT_COMMIT_SHA": _git_sha_railway,
-    "BUILD_TIME_explicit": _build_time_explicit,
-    "RAILWAY_DEPLOYMENT_ID": _deployment_id,
-}
 
 # Views críticas que DEVEM existir para o app funcionar
 CRITICAL_VIEWS = [
@@ -649,7 +647,6 @@ async def deep_health_check(response: Response):
             "build_time": BUILD_TIME,
             "railway_environment": RAILWAY_ENVIRONMENT,
             "run_mode": RUN_MODE,
-            "_debug": _VERSION_DEBUG,  # TODO: remover após diagnóstico
         },
         "schema": schema_fp,
         "checks": checks,
