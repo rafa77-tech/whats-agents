@@ -47,11 +47,13 @@ async def set_notifications_enabled(enabled: bool, user_id: str = None) -> dict:
     """
     from app.services.redis import cache_set_json
     try:
+        # TTL de 7 dias - configuração operacional deve persistir
+        # (default de 300s causava expiração prematura)
         await cache_set_json(NOTIFICATIONS_KEY, {
             "enabled": enabled,
             "changed_by": user_id,
             "changed_at": datetime.now(timezone.utc).isoformat(),
-        })
+        }, ttl=604800)  # 7 dias
 
         status = "habilitadas" if enabled else "desabilitadas"
         logger.info(f"Notificações Slack {status} por {user_id}")
