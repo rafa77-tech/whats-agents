@@ -14,6 +14,14 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
+    # DEV Guardrails - Proteção contra envio acidental em ambiente de desenvolvimento
+    # APP_ENV: "production" | "dev" (padronizado para auditoria)
+    # OUTBOUND_ALLOWLIST: lista de números permitidos em DEV (separados por vírgula)
+    # Exemplo: "5511999999999,5511888888888"
+    # IMPORTANTE: Se APP_ENV != "production" e OUTBOUND_ALLOWLIST vazia → bloqueia TUDO
+    APP_ENV: str = "dev"  # Sempre "dev" por padrão, PROD deve setar "production"
+    OUTBOUND_ALLOWLIST: str = ""  # Vazio = fail-closed em DEV
+
     # Supabase
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_KEY: str = ""
@@ -72,6 +80,27 @@ class Settings(BaseSettings):
                 "Gere um secret seguro com: openssl rand -hex 32"
             )
         return self.JWT_SECRET_KEY or self.ANTHROPIC_API_KEY
+
+    @property
+    def outbound_allowlist_numbers(self) -> set[str]:
+        """
+        Retorna set de números permitidos para outbound em DEV.
+
+        Números são normalizados (só dígitos).
+        Set vazio significa que NENHUM outbound é permitido em DEV (fail-closed).
+        """
+        if not self.OUTBOUND_ALLOWLIST:
+            return set()
+        return {
+            "".join(filter(str.isdigit, num.strip()))
+            for num in self.OUTBOUND_ALLOWLIST.split(",")
+            if num.strip()
+        }
+
+    @property
+    def is_production(self) -> bool:
+        """Retorna True se está em produção (APP_ENV == 'production')."""
+        return self.APP_ENV.lower() == "production"
 
     @property
     def cors_origins_list(self) -> list[str]:

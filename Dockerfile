@@ -22,6 +22,10 @@ RUN uv sync --frozen --no-dev
 # Stage final
 FROM python:3.13-slim
 
+# Build args for versioning (injected by CI/CD)
+ARG GIT_SHA="unknown"
+ARG BUILD_TIME="unknown"
+
 WORKDIR /app
 
 # Instalar dependências mínimas do sistema
@@ -46,6 +50,10 @@ RUN mkdir -p /app/logs && chmod +x /app/entrypoint.sh
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+
+# Versioning info (from build args)
+ENV GIT_SHA=${GIT_SHA}
+ENV BUILD_TIME=${BUILD_TIME}
 
 # Expor porta
 EXPOSE 8000

@@ -240,6 +240,7 @@ class TestSendOutboundMessageTryFinally:
         )
 
     @pytest.mark.asyncio
+    @patch("app.services.outbound._verificar_dev_allowlist")
     @patch("app.services.outbound._finalizar_envio")
     @patch("app.services.outbound.verificar_e_reservar")
     @patch("app.services.outbound.check_outbound_guardrails")
@@ -252,9 +253,11 @@ class TestSendOutboundMessageTryFinally:
         mock_guardrails,
         mock_dedupe,
         mock_finalizar,
+        mock_dev_allowlist,
         ctx,
     ):
         """Envio bem-sucedido deve chamar _finalizar_envio."""
+        mock_dev_allowlist.return_value = (True, None)  # Bypass DEV guardrail
         mock_dedupe.return_value = (True, "key-123", None)
         mock_guardrails.return_value = MagicMock(is_blocked=False, human_bypass=False)
         mock_evolution.enviar_mensagem = AsyncMock(return_value={"key": {"id": "msg-1"}})
@@ -267,6 +270,7 @@ class TestSendOutboundMessageTryFinally:
         assert result.outcome == SendOutcome.SENT
 
     @pytest.mark.asyncio
+    @patch("app.services.outbound._verificar_dev_allowlist")
     @patch("app.services.outbound._finalizar_envio")
     @patch("app.services.outbound.verificar_e_reservar")
     @patch("app.services.outbound.check_outbound_guardrails")
@@ -279,9 +283,11 @@ class TestSendOutboundMessageTryFinally:
         mock_guardrails,
         mock_dedupe,
         mock_finalizar,
+        mock_dev_allowlist,
         ctx,
     ):
         """Falha no provider deve chamar _finalizar_envio."""
+        mock_dev_allowlist.return_value = (True, None)  # Bypass DEV guardrail
         mock_dedupe.return_value = (True, "key-123", None)
         mock_guardrails.return_value = MagicMock(is_blocked=False, human_bypass=False)
         mock_evolution.enviar_mensagem = AsyncMock(side_effect=Exception("API Error"))
@@ -294,15 +300,18 @@ class TestSendOutboundMessageTryFinally:
         assert result.outcome == SendOutcome.FAILED_PROVIDER
 
     @pytest.mark.asyncio
+    @patch("app.services.outbound._verificar_dev_allowlist")
     @patch("app.services.outbound._finalizar_envio")
     @patch("app.services.outbound.verificar_e_reservar")
     async def test_dedupe_nao_chama_finalizacao(
         self,
         mock_dedupe,
         mock_finalizar,
+        mock_dev_allowlist,
         ctx,
     ):
         """Deduplicação não deve chamar _finalizar_envio (retorno antecipado)."""
+        mock_dev_allowlist.return_value = (True, None)  # Bypass DEV guardrail
         mock_dedupe.return_value = (False, "key-123", "duplicado")
 
         result = await send_outbound_message("5511999999999", "Oi", ctx)
@@ -311,6 +320,7 @@ class TestSendOutboundMessageTryFinally:
         assert result.outcome == SendOutcome.DEDUPED
 
     @pytest.mark.asyncio
+    @patch("app.services.outbound._verificar_dev_allowlist")
     @patch("app.services.outbound._finalizar_envio")
     @patch("app.services.outbound.verificar_e_reservar")
     @patch("app.services.outbound.check_outbound_guardrails")
@@ -319,9 +329,11 @@ class TestSendOutboundMessageTryFinally:
         mock_guardrails,
         mock_dedupe,
         mock_finalizar,
+        mock_dev_allowlist,
         ctx,
     ):
         """Bloqueio por guardrail não deve chamar _finalizar_envio."""
+        mock_dev_allowlist.return_value = (True, None)  # Bypass DEV guardrail
         mock_dedupe.return_value = (True, "key-123", None)
         mock_guardrails.return_value = MagicMock(
             is_blocked=True,
@@ -335,6 +347,7 @@ class TestSendOutboundMessageTryFinally:
         assert result.outcome.is_blocked
 
     @pytest.mark.asyncio
+    @patch("app.services.outbound._verificar_dev_allowlist")
     @patch("app.services.outbound._finalizar_envio")
     @patch("app.services.outbound.verificar_e_reservar")
     @patch("app.services.outbound.check_outbound_guardrails")
@@ -347,9 +360,11 @@ class TestSendOutboundMessageTryFinally:
         mock_guardrails,
         mock_dedupe,
         mock_finalizar,
+        mock_dev_allowlist,
         ctx,
     ):
         """_finalizar_envio deve receber outcome correto."""
+        mock_dev_allowlist.return_value = (True, None)  # Bypass DEV guardrail
         mock_dedupe.return_value = (True, "key-123", None)
         mock_guardrails.return_value = MagicMock(is_blocked=False, human_bypass=False)
         mock_evolution.enviar_mensagem = AsyncMock(return_value={"key": {"id": "msg-1"}})
@@ -361,3 +376,103 @@ class TestSendOutboundMessageTryFinally:
         call_args = mock_finalizar.call_args[1]
         assert call_args["outcome"] == SendOutcome.SENT
         assert call_args["ctx"] == ctx
+
+
+class TestDevAllowlistGuardrail:
+    """Testes para o guardrail DEV allowlist (R-2: fail-closed)."""
+
+    @pytest.fixture
+    def ctx(self):
+        """Contexto de teste para envio de campanha."""
+        return OutboundContext(
+            cliente_id="123",
+            actor_type=ActorType.SYSTEM,
+            channel=OutboundChannel.JOB,
+            method=OutboundMethod.CAMPAIGN,
+            is_proactive=True,
+            campaign_id="456",
+        )
+
+    @pytest.mark.asyncio
+    async def test_dev_allowlist_empty_blocks_all(self, ctx):
+        """Allowlist vazia em DEV deve bloquear TODOS os envios (fail-closed)."""
+        # Não mockar _verificar_dev_allowlist para testar comportamento real
+        # O teste roda em DEV com allowlist vazia por padrão
+        result = await send_outbound_message("5511999999999", "Oi", ctx)
+
+        assert result.outcome == SendOutcome.BLOCKED_DEV_ALLOWLIST
+        assert result.blocked is True
+        assert "dev_allowlist" in result.outcome_reason_code
+
+    @pytest.mark.asyncio
+    @patch("app.services.outbound.settings")
+    async def test_dev_allowlist_blocks_number_not_in_list(
+        self,
+        mock_settings,
+        ctx,
+    ):
+        """Número fora da allowlist deve ser bloqueado em DEV."""
+        mock_settings.is_production = False
+        mock_settings.APP_ENV = "dev"
+        mock_settings.outbound_allowlist_numbers = {"5511888888888"}
+
+        result = await send_outbound_message("5511999999999", "Oi", ctx)
+
+        assert result.outcome == SendOutcome.BLOCKED_DEV_ALLOWLIST
+        assert result.blocked is True
+
+    @pytest.mark.asyncio
+    @patch("app.services.outbound._verificar_dev_allowlist")
+    @patch("app.services.outbound.verificar_e_reservar")
+    @patch("app.services.outbound.check_outbound_guardrails")
+    @patch("app.services.outbound.evolution")
+    @patch("app.services.outbound.marcar_enviado")
+    async def test_dev_allowlist_allows_number_in_list(
+        self,
+        mock_marcar,
+        mock_evolution,
+        mock_guardrails,
+        mock_dedupe,
+        mock_dev_allowlist,
+        ctx,
+    ):
+        """Número na allowlist deve passar em DEV."""
+        mock_dev_allowlist.return_value = (True, None)  # Simula número na allowlist
+        mock_dedupe.return_value = (True, "key-123", None)
+        mock_guardrails.return_value = MagicMock(is_blocked=False, human_bypass=False)
+        mock_evolution.enviar_mensagem = AsyncMock(return_value={"key": {"id": "msg-1"}})
+        mock_marcar.return_value = None
+
+        result = await send_outbound_message("5511999999999", "Oi", ctx)
+
+        assert result.outcome == SendOutcome.SENT
+        assert result.blocked is False
+
+    @pytest.mark.asyncio
+    @patch("app.services.outbound.settings")
+    @patch("app.services.outbound.verificar_e_reservar")
+    @patch("app.services.outbound.check_outbound_guardrails")
+    @patch("app.services.outbound.evolution")
+    @patch("app.services.outbound.marcar_enviado")
+    async def test_production_bypasses_dev_allowlist(
+        self,
+        mock_marcar,
+        mock_evolution,
+        mock_guardrails,
+        mock_dedupe,
+        mock_settings,
+        ctx,
+    ):
+        """Em produção, DEV allowlist não é verificada."""
+        mock_settings.is_production = True
+        mock_settings.APP_ENV = "production"
+        mock_settings.outbound_allowlist_numbers = set()  # Vazio, mas não importa em PROD
+        mock_dedupe.return_value = (True, "key-123", None)
+        mock_guardrails.return_value = MagicMock(is_blocked=False, human_bypass=False)
+        mock_evolution.enviar_mensagem = AsyncMock(return_value={"key": {"id": "msg-1"}})
+        mock_marcar.return_value = None
+
+        result = await send_outbound_message("5511999999999", "Oi", ctx)
+
+        assert result.outcome == SendOutcome.SENT
+        assert result.blocked is False

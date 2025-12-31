@@ -30,6 +30,7 @@ class SendOutcome(str, Enum):
     SENT = "SENT"
 
     # Bloqueios por guardrail
+    BLOCKED_DEV_ALLOWLIST = "BLOCKED_DEV_ALLOWLIST"  # DEV: número não está na allowlist
     BLOCKED_OPTED_OUT = "BLOCKED_OPTED_OUT"
     BLOCKED_COOLING_OFF = "BLOCKED_COOLING_OFF"
     BLOCKED_NEXT_ALLOWED = "BLOCKED_NEXT_ALLOWED"
@@ -75,6 +76,8 @@ class SendOutcome(str, Enum):
 
 # Mapeamento de reason_code do guardrail para SendOutcome
 _GUARDRAIL_TO_OUTCOME: Dict[str, SendOutcome] = {
+    "dev_allowlist": SendOutcome.BLOCKED_DEV_ALLOWLIST,
+    "dev_allowlist_empty": SendOutcome.BLOCKED_DEV_ALLOWLIST,
     "opted_out": SendOutcome.BLOCKED_OPTED_OUT,
     "opted_out_bypass_no_reason": SendOutcome.BLOCKED_OPTED_OUT,
     "cooling_off": SendOutcome.BLOCKED_COOLING_OFF,

@@ -5,14 +5,16 @@ Sprint 17 - Todas as mensagens outbound DEVEM passar por aqui.
 Sprint 18.1 - C1: Deduplicação de mensagens outbound.
 Sprint 23 E01 - Outcome detalhado com enum padronizado.
 Sprint 24 E03 - Centralização da finalização (try/finally).
+Sprint 18 Auditoria - R-2: DEV allowlist (fail-closed).
 
 Este módulo é o wrapper que:
-1. Verifica deduplicação (evita duplicatas em retry/timeout)
-2. Verifica guardrails antes de enviar
-3. Chama Evolution API se permitido
-4. Emite eventos de auditoria
-5. Finalização centralizada (last_touch, atribuição)
-6. Retorna outcome detalhado para rastreamento
+1. Verifica DEV allowlist (R-2) - PRIMEIRO, antes de tudo
+2. Verifica deduplicação (evita duplicatas em retry/timeout)
+3. Verifica guardrails antes de enviar
+4. Chama Evolution API se permitido
+5. Emite eventos de auditoria
+6. Finalização centralizada (last_touch, atribuição)
+7. Retorna outcome detalhado para rastreamento
 
 IMPORTANTE: Nenhum outro código deve chamar evolution.enviar_mensagem() diretamente.
 Use sempre send_outbound_message() deste módulo.
@@ -21,8 +23,9 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Tuple
 
+from app.core.config import settings
 from app.services.guardrails import (
     OutboundContext,
     OutboundChannel,
@@ -47,6 +50,59 @@ from app.services.outbound_dedupe import (
 from app.services.guardrails.error_classifier import classify_provider_error
 
 logger = logging.getLogger(__name__)
+
+
+def _verificar_dev_allowlist(telefone: str) -> Tuple[bool, Optional[str]]:
+    """
+    Verifica se o número está na allowlist de DEV.
+
+    R-2: DEV allowlist (fail-closed)
+
+    Esta verificação é INESCAPÁVEL e roda ANTES de qualquer outro guardrail.
+    NÃO tem bypass humano - DEV nunca pode enviar para fora da allowlist.
+
+    Comportamento:
+    - PROD (APP_ENV=production): sempre permitido, retorna (True, None)
+    - DEV com allowlist VAZIA: bloqueia TUDO, retorna (False, "dev_allowlist_empty")
+    - DEV com número NA allowlist: permitido, retorna (True, None)
+    - DEV com número FORA da allowlist: bloqueia, retorna (False, "dev_allowlist")
+
+    Args:
+        telefone: Número de destino (5511999999999)
+
+    Returns:
+        Tuple (pode_enviar, reason_code)
+    """
+    # Em produção, não verifica
+    if settings.is_production:
+        return (True, None)
+
+    # Normalizar telefone (só dígitos)
+    telefone_normalizado = "".join(filter(str.isdigit, telefone))
+
+    # Obter allowlist
+    allowlist = settings.outbound_allowlist_numbers
+
+    # Allowlist vazia em DEV = fail-closed (bloqueia TUDO)
+    if not allowlist:
+        logger.warning(
+            f"[DEV GUARDRAIL] BLOCKED: OUTBOUND_ALLOWLIST vazia em DEV. "
+            f"Destino: {telefone_normalizado[:8]}... bloqueado."
+        )
+        return (False, "dev_allowlist_empty")
+
+    # Verificar se número está na allowlist
+    if telefone_normalizado not in allowlist:
+        logger.warning(
+            f"[DEV GUARDRAIL] BLOCKED: {telefone_normalizado[:8]}... "
+            f"não está na allowlist. Permitidos: {len(allowlist)} números."
+        )
+        return (False, "dev_allowlist")
+
+    logger.debug(
+        f"[DEV GUARDRAIL] ALLOWED: {telefone_normalizado[:8]}... está na allowlist."
+    )
+    return (True, None)
 
 
 def _gerar_content_hash(texto: str) -> str:
@@ -251,6 +307,28 @@ async def send_outbound_message(
         ```
     """
     now = datetime.now(timezone.utc)
+
+    # 0. Verificar DEV allowlist PRIMEIRO (R-2: fail-closed)
+    # Esta verificação é INESCAPÁVEL - DEV nunca pode enviar para fora da allowlist
+    pode_enviar_dev, reason_dev = _verificar_dev_allowlist(telefone)
+    if not pode_enviar_dev:
+        logger.warning(
+            f"[DEV GUARDRAIL] Outbound bloqueado para {telefone[:8]}...: {reason_dev}",
+            extra={
+                "event": "outbound_blocked_dev_allowlist",
+                "reason_code": reason_dev,
+                "cliente_id": ctx.cliente_id,
+                "app_env": settings.APP_ENV,
+            }
+        )
+        return OutboundResult(
+            success=False,
+            outcome=SendOutcome.BLOCKED_DEV_ALLOWLIST,
+            outcome_reason_code=reason_dev,
+            outcome_at=now,
+            blocked=True,
+            deduped=False,
+        )
 
     # 1. Verificar deduplicação ANTES de guardrails (Sprint 23 E01)
     # Deduplicacao NAO e bloqueio por permissao - e protecao anti-spam

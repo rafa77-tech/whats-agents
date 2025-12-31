@@ -16,6 +16,7 @@ from app.services.rate_limiter import obter_estatisticas
 from app.services.circuit_breaker import obter_status_circuits
 from app.services.whatsapp import evolution
 from app.services.supabase import supabase
+from app.core.config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -23,6 +24,12 @@ logger = logging.getLogger(__name__)
 # Hard guards de ambiente - CRÍTICO para evitar staging↔prod mix
 APP_ENV = os.getenv("APP_ENV", "development")
 SUPABASE_PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF", "")
+
+# Versioning info (injected by CI/CD build)
+GIT_SHA = os.getenv("GIT_SHA", "unknown")
+BUILD_TIME = os.getenv("BUILD_TIME", "unknown")
+RAILWAY_ENVIRONMENT = os.getenv("RAILWAY_ENVIRONMENT", "unknown")
+RUN_MODE = os.getenv("RUN_MODE", "unknown")
 
 # Views críticas que DEVEM existir para o app funcionar
 CRITICAL_VIEWS = [
@@ -73,6 +80,79 @@ REQUIRED_PROMPTS = {
         "warning_sentinels": [],
     },
 }
+
+
+def _generate_schema_fingerprint() -> dict:
+    """
+    Gera fingerprint do schema para detecção de drift.
+
+    Contrato:
+    - hash(sorted(table_names) + sorted(column_definitions))
+    - Inclui apenas tabelas críticas
+    - Mudança no fingerprint indica possível drift
+
+    Returns:
+        dict com fingerprint e detalhes
+    """
+    import hashlib
+
+    try:
+        # Buscar estrutura das tabelas críticas
+        result = supabase.rpc(
+            "get_table_columns_for_fingerprint",
+            {"table_names": CRITICAL_TABLES}
+        ).execute()
+
+        if not result.data:
+            # Fallback: usar query direta
+            columns_query = supabase.table("information_schema.columns").select(
+                "table_name, column_name, data_type, is_nullable"
+            ).in_("table_name", CRITICAL_TABLES).execute()
+
+            if columns_query.data:
+                columns = columns_query.data
+            else:
+                return {
+                    "fingerprint": "error",
+                    "error": "Could not fetch schema info",
+                    "tables_checked": CRITICAL_TABLES,
+                }
+        else:
+            columns = result.data
+
+        # Ordenar por tabela e coluna para consistência
+        sorted_columns = sorted(
+            columns,
+            key=lambda c: (c.get("table_name", ""), c.get("column_name", ""))
+        )
+
+        # Criar string para hash
+        fingerprint_str = ""
+        for col in sorted_columns:
+            fingerprint_str += f"{col.get('table_name', '')}:{col.get('column_name', '')}:{col.get('data_type', '')}:{col.get('is_nullable', '')}|"
+
+        # Gerar hash SHA256 truncado (primeiros 16 chars)
+        fingerprint = hashlib.sha256(fingerprint_str.encode()).hexdigest()[:16]
+
+        return {
+            "fingerprint": fingerprint,
+            "tables_checked": CRITICAL_TABLES,
+            "columns_count": len(sorted_columns),
+        }
+
+    except Exception as e:
+        logger.warning(f"[health] Schema fingerprint generation failed: {e}")
+        # Fallback simples: hash da lista de tabelas
+        import hashlib
+        simple_fp = hashlib.sha256(
+            "|".join(sorted(CRITICAL_TABLES)).encode()
+        ).hexdigest()[:16]
+
+        return {
+            "fingerprint": f"fallback-{simple_fp}",
+            "tables_checked": CRITICAL_TABLES,
+            "error": str(e),
+        }
 
 
 @router.get("/health")
@@ -332,6 +412,7 @@ async def deep_health_check(response: Response):
     checks = {
         "environment": {"status": "pending", "app_env": APP_ENV, "db_env": None},
         "project_ref": {"status": "pending", "app_ref": SUPABASE_PROJECT_REF, "db_ref": None},
+        "dev_guardrails": {"status": "pending"},  # DEV allowlist validation
         "redis": {"status": "pending", "message": None},
         "supabase": {"status": "pending", "message": None},
         "tables": {"status": "pending", "missing": []},
@@ -397,6 +478,45 @@ async def deep_health_check(response: Response):
             "checks": checks,
             "timestamp": datetime.utcnow().isoformat(),
             "deploy_safe": False,
+        }
+
+    # 0c. DEV GUARDRAILS: Validar que ambiente DEV tem proteções configuradas
+    # Em DEV (APP_ENV != production), OUTBOUND_ALLOWLIST não pode estar vazia
+    # Isso garante fail-closed: DEV sem allowlist = não envia para ninguém
+    if not settings.is_production:
+        allowlist = settings.outbound_allowlist_numbers
+        checks["dev_guardrails"] = {
+            "status": "pending",
+            "app_env": settings.APP_ENV,
+            "is_production": False,
+            "allowlist_configured": len(allowlist) > 0,
+            "allowlist_count": len(allowlist),
+        }
+
+        if not allowlist:
+            checks["dev_guardrails"]["status"] = "CRITICAL"
+            checks["dev_guardrails"]["message"] = (
+                "DEV environment has EMPTY OUTBOUND_ALLOWLIST! "
+                "All outbound messages will be BLOCKED (fail-closed). "
+                "Configure OUTBOUND_ALLOWLIST with test phone numbers."
+            )
+            all_ok = False
+            logger.critical(
+                f"[health/deep] CRITICAL: DEV environment without OUTBOUND_ALLOWLIST! "
+                f"APP_ENV={settings.APP_ENV}"
+            )
+        else:
+            checks["dev_guardrails"]["status"] = "ok"
+            logger.info(
+                f"[health/deep] DEV guardrails OK: allowlist has {len(allowlist)} numbers"
+            )
+    else:
+        # Em PROD, este check é skipped
+        checks["dev_guardrails"] = {
+            "status": "skipped",
+            "message": "Production environment - DEV guardrails not applicable",
+            "app_env": settings.APP_ENV,
+            "is_production": True,
         }
 
     # 1. Check Redis
@@ -504,8 +624,18 @@ async def deep_health_check(response: Response):
         response.status_code = 503
         logger.error(f"[health/deep] FAILED: {checks}")
 
+    # Gerar schema fingerprint para detecção de drift
+    schema_fp = _generate_schema_fingerprint()
+
     return {
         "status": overall_status,
+        "version": {
+            "git_sha": GIT_SHA,
+            "build_time": BUILD_TIME,
+            "railway_environment": RAILWAY_ENVIRONMENT,
+            "run_mode": RUN_MODE,
+        },
+        "schema": schema_fp,
         "checks": checks,
         "timestamp": datetime.utcnow().isoformat(),
         "deploy_safe": all_ok,
