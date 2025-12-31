@@ -36,7 +36,7 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --extra dev
 
       - name: Run Ruff linter
         run: uv run ruff check app/
@@ -74,9 +74,20 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --extra dev
+
+      - name: Check secrets available
+        id: check_secrets
+        run: |
+          if [ -z "${{ secrets.SUPABASE_URL }}" ] || [ -z "${{ secrets.SUPABASE_SERVICE_KEY }}" ]; then
+            echo "secrets_available=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Secrets not configured - tests will be skipped"
+          else
+            echo "secrets_available=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Run tests
+        if: steps.check_secrets.outputs.secrets_available == 'true'
         env:
           ENVIRONMENT: test
           REDIS_URL: redis://localhost:6379/0
@@ -88,6 +99,10 @@ jobs:
           EVOLUTION_INSTANCE: test
         run: uv run pytest -v --tb=short
         continue-on-error: true
+
+      - name: Skip tests notice
+        if: steps.check_secrets.outputs.secrets_available == 'false'
+        run: echo "⚠️ Tests skipped - configure SUPABASE_URL and SUPABASE_SERVICE_KEY in GitHub Secrets"
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -158,17 +173,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check Railway token
+        id: check_railway
+        run: |
+          if [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then
+            echo "token_available=false" >> $GITHUB_OUTPUT
+            echo "⚠️ RAILWAY_TOKEN not configured - deploy will be skipped"
+          else
+            echo "token_available=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install Railway CLI
+        if: steps.check_railway.outputs.token_available == 'true'
         run: npm install -g @railway/cli
 
       - name: Deploy to Railway
+        if: steps.check_railway.outputs.token_available == 'true'
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Deploying commit ${{ github.sha }} to Railway..."
           railway up --detach
 
+      - name: Skip deploy notice
+        if: steps.check_railway.outputs.token_available == 'false'
+        run: |
+          echo "⚠️ Deploy skipped - configure RAILWAY_TOKEN in GitHub Secrets"
+          echo "To configure: Repository Settings → Secrets → Actions → New secret"
+
       - name: Wait for deployment
+        if: steps.check_railway.outputs.token_available == 'true'
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
@@ -176,6 +210,7 @@ jobs:
           sleep 60  # Railway precisa de tempo para build + deploy
 
       - name: Deep health check
+        if: steps.check_railway.outputs.token_available == 'true'
         id: health_check
         run: |
           if [ -z "${{ secrets.RAILWAY_APP_URL }}" ]; then
@@ -219,13 +254,13 @@ jobs:
           exit 1
 
       - name: Mark deploy as failed if health check failed
-        if: steps.health_check.outputs.health_ok == 'false'
+        if: steps.check_railway.outputs.token_available == 'true' && steps.health_check.outputs.health_ok == 'false'
         run: |
           echo "::error::Deploy health check failed! Rolling back recommended."
           exit 1
 
       - name: Notify Slack on success
-        if: success()
+        if: steps.check_railway.outputs.token_available == 'true' && success()
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
@@ -246,7 +281,7 @@ jobs:
           fi
 
       - name: Notify Slack on failure
-        if: failure()
+        if: steps.check_railway.outputs.token_available == 'true' && failure()
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
