@@ -194,7 +194,13 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Deploying commit ${{ github.sha }} to Railway..."
-          railway up --detach
+          echo "Deploying julia-api..."
+          railway up --detach --service julia-api
+          echo "Deploying julia-worker..."
+          railway up --detach --service julia-worker
+          echo "Deploying julia-scheduler..."
+          railway up --detach --service julia-scheduler
+          echo "All services deployment initiated!"
 
       - name: Skip deploy notice
         if: steps.check_railway.outputs.token_available == 'false'
@@ -208,7 +214,7 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Waiting for deployment to complete..."
-          sleep 60  # Railway precisa de tempo para build + deploy
+          sleep 120  # Railway precisa de tempo para build + deploy dos 3 serviços
 
       - name: Deep health check
         if: steps.check_railway.outputs.token_available == 'true'
