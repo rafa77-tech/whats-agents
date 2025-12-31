@@ -38,37 +38,25 @@ JOBS = [
         "endpoint": "/jobs/processar-pausas-expiradas",
         "schedule": "0 6 * * *",  # Diário às 6h
     },
-    {
-        "name": "followup_diario",
-        "endpoint": "/jobs/followup-diario",
-        "schedule": "0 10 * * *",  # Diário às 10h (legado)
-    },
+    # REMOVIDO: followup_diario (duplicado de processar_followups)
+    # Ref: Slack V2 - SRE Review 31/12/2025
     {
         "name": "avaliar_conversas_pendentes",
         "endpoint": "/jobs/avaliar-conversas-pendentes",
         "schedule": "0 2 * * *",  # Diário às 2h
     },
-    {
-        "name": "relatorio_diario",
-        "endpoint": "/jobs/relatorio-diario",
-        "schedule": "0 8 * * *",  # Diário às 8h (legado)
-    },
-    # Reports periódicos (4x por dia + semanal)
+    # REMOVIDO: relatorio_diario (legado, substituido por reports periodicos)
+    # Ref: Slack V2 - SRE Review 31/12/2025
+    # Reports periódicos (V2 - reduzido para 2x por dia + semanal)
+    # Ref: Slack V2 - SRE Review 31/12/2025
+    # Removidos: report_almoco e report_tarde (ruido excessivo)
     {
         "name": "report_manha",
         "endpoint": "/jobs/report-periodo?tipo=manha",
         "schedule": "0 10 * * *",  # 10h todos os dias
     },
-    {
-        "name": "report_almoco",
-        "endpoint": "/jobs/report-periodo?tipo=almoco",
-        "schedule": "0 13 * * *",  # 13h todos os dias
-    },
-    {
-        "name": "report_tarde",
-        "endpoint": "/jobs/report-periodo?tipo=tarde",
-        "schedule": "0 17 * * *",  # 17h todos os dias
-    },
+    # REMOVIDO: report_almoco (13h) - ruido excessivo
+    # REMOVIDO: report_tarde (17h) - ruido excessivo
     {
         "name": "report_fim_dia",
         "endpoint": "/jobs/report-periodo?tipo=fim_dia",
@@ -107,11 +95,11 @@ JOBS = [
         "endpoint": "/jobs/sync-templates",
         "schedule": "0 6 * * *",  # Diário às 6h
     },
-    # Monitor de conexao WhatsApp
+    # Monitor de conexao WhatsApp (V2 - baixo ruido)
     {
         "name": "verificar_whatsapp",
         "endpoint": "/jobs/verificar-whatsapp",
-        "schedule": "* * * * *",  # A cada minuto
+        "schedule": "*/5 * * * *",  # A cada 5 minutos (era 1 min)
     },
     # Processamento de grupos WhatsApp (Sprint 14)
     {

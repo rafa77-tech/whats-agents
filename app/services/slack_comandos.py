@@ -8,6 +8,10 @@ O gestor pode conversar com a Julia como se fosse uma colega de trabalho:
 - "Julia, manda msg pro 11999..."
 - "Quantos responderam hoje?"
 - "Bloqueia o 11988..."
+
+V2 - Slack baixo ruido (31/12/2025):
+- Rate limiting por usuario para evitar spam
+- Deduplicacao de respostas
 """
 import re
 import logging
@@ -18,8 +22,12 @@ import httpx
 
 from app.core.config import settings
 from app.services.supabase import supabase
+from app.services.redis import cache_get_json, cache_set_json
 
 logger = logging.getLogger(__name__)
+
+# V2: Rate limiting por usuario (max 1 resposta a cada 3 segundos)
+RATE_LIMIT_SEGUNDOS = 3
 
 
 async def processar_comando(texto: str, channel: str, user: str):
@@ -30,12 +38,22 @@ async def processar_comando(texto: str, channel: str, user: str):
         texto: Texto da mensagem (inclui mencao ao bot)
         channel: ID do canal
         user: ID do usuario que enviou
+
+    V2: Inclui rate limiting para evitar spam de respostas.
     """
+    # V2: Verificar rate limit antes de processar
+    if await _usuario_em_rate_limit(user, channel):
+        logger.debug(f"Usuario {user} em rate limit, ignorando")
+        return
+
     # Remover mencao ao bot do texto
     # Formato: <@U123ABC> mensagem
     texto_limpo = re.sub(r'<@[A-Z0-9]+>', '', texto).strip()
 
     logger.info(f"Mensagem recebida: '{texto_limpo}' de {user} em {channel}")
+
+    # V2: Marcar processamento para rate limit
+    await _marcar_processamento(user, channel)
 
     # Salvar comando no banco
     comando_id = await _salvar_comando(texto, texto_limpo, user, channel)
@@ -136,3 +154,43 @@ async def _atualizar_comando(comando_id: Optional[str], resposta: str, sucesso: 
 
     except Exception as e:
         logger.error(f"Erro ao atualizar comando: {e}")
+
+
+# =============================================================================
+# V2: RATE LIMITING
+# =============================================================================
+
+async def _usuario_em_rate_limit(user: str, channel: str) -> bool:
+    """
+    V2: Verifica se usuario esta em rate limit (evita spam de respostas).
+
+    Returns:
+        True se deve ignorar mensagem, False se pode processar
+    """
+    cache_key = f"slack:ratelimit:{user}:{channel}"
+
+    try:
+        ultimo = await cache_get_json(cache_key)
+        if not ultimo:
+            return False
+
+        ultimo_timestamp = datetime.fromisoformat(ultimo.get("timestamp", "2000-01-01"))
+        diferenca = (datetime.now(timezone.utc) - ultimo_timestamp).total_seconds()
+
+        return diferenca < RATE_LIMIT_SEGUNDOS
+    except Exception as e:
+        logger.debug(f"Erro ao verificar rate limit: {e}")
+        return False
+
+
+async def _marcar_processamento(user: str, channel: str):
+    """V2: Marca inicio de processamento para rate limit."""
+    cache_key = f"slack:ratelimit:{user}:{channel}"
+
+    try:
+        await cache_set_json(cache_key, {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "user": user
+        }, ttl=30)  # 30 segundos
+    except Exception as e:
+        logger.debug(f"Erro ao marcar processamento: {e}")

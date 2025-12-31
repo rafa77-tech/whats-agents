@@ -2,12 +2,17 @@
 Executor de tools do agente Slack.
 
 Sprint 10 - S10.E2.2
+V2 - Governanca (31/12/2025):
+- Audit log para comandos criticos
+- Broadcast de status em toggles
 """
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from app.tools.slack import TOOLS_CRITICAS, executar_tool
+from app.services.supabase import supabase
 from app.services.slack.formatter import (
     formatar_telefone,
     formatar_data,
@@ -58,9 +63,99 @@ class ToolExecutor:
 
         Returns:
             Resultado da execucao
+
+        V2: Adiciona audit log para comandos criticos.
         """
         logger.info(f"Executando tool: {tool_name} com params {tool_input}")
-        return await executar_tool(tool_name, tool_input, self.user_id, self.channel_id)
+
+        result = await executar_tool(tool_name, tool_input, self.user_id, self.channel_id)
+
+        # V2: Audit log para comandos criticos
+        if self.is_tool_critica(tool_name):
+            await self._registrar_audit_log(tool_name, tool_input, result)
+
+            # V2: Broadcast para toggles de modo
+            if tool_name in ["pausar_julia", "retomar_julia", "toggle_campanhas", "toggle_ponte_externa"]:
+                await self._broadcast_status_change(tool_name, tool_input, result)
+
+        return result
+
+    async def _registrar_audit_log(self, tool_name: str, tool_input: dict, result: dict):
+        """
+        V2: Registra audit log para comandos criticos.
+
+        Requisitos de governanca:
+        - Quem executou (user_id)
+        - O que executou (tool_name + params)
+        - Quando executou (timestamp)
+        - Resultado (sucesso/erro)
+        """
+        try:
+            supabase.table("slack_comandos").insert({
+                "texto_original": f"[AUDIT] {tool_name}",
+                "comando": tool_name,
+                "argumentos": tool_input,
+                "user_id": self.user_id,
+                "channel_id": self.channel_id,
+                "resposta": json.dumps(result, ensure_ascii=False)[:1000],
+                "respondido": True,
+                "respondido_em": datetime.now(timezone.utc).isoformat(),
+                "erro": None if result.get("success") else result.get("error"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }).execute()
+
+            logger.info(
+                f"[AUDIT] {tool_name} executado por {self.user_id}",
+                extra={
+                    "event": "audit_log",
+                    "tool": tool_name,
+                    "user_id": self.user_id,
+                    "success": result.get("success", False),
+                    "params": tool_input
+                }
+            )
+        except Exception as e:
+            logger.error(f"Erro ao registrar audit log: {e}")
+
+    async def _broadcast_status_change(self, tool_name: str, tool_input: dict, result: dict):
+        """
+        V2: Broadcast de mudanca de status no canal.
+
+        Quando alguem muda o modo do sistema (pausar, retomar, toggle),
+        todos no canal veem a notificacao.
+        """
+        from app.services.slack import enviar_slack
+
+        if not result.get("success"):
+            return
+
+        # Mapear tool para mensagem de broadcast
+        broadcasts = {
+            "pausar_julia": "⏸️ *Julia pausada* por <@{user}>",
+            "retomar_julia": "▶️ *Julia retomada* por <@{user}>",
+            "toggle_campanhas": "🔄 *Campanhas {status}* por <@{user}>",
+            "toggle_ponte_externa": "🌉 *Ponte externa {status}* por <@{user}>",
+        }
+
+        template = broadcasts.get(tool_name)
+        if not template:
+            return
+
+        # Determinar status para toggles
+        if tool_name == "toggle_campanhas":
+            status = "ativadas" if result.get("campanhas_ativas") else "desativadas"
+            msg = template.format(user=self.user_id, status=status)
+        elif tool_name == "toggle_ponte_externa":
+            status = "ativada" if result.get("enabled") else "desativada"
+            msg = template.format(user=self.user_id, status=status)
+        else:
+            msg = template.format(user=self.user_id)
+
+        try:
+            await enviar_slack({"text": msg})
+            logger.info(f"[BROADCAST] {msg}")
+        except Exception as e:
+            logger.error(f"Erro ao enviar broadcast: {e}")
 
     def gerar_preview(self, tool_name: str, tool_input: dict) -> str:
         """

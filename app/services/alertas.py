@@ -1,14 +1,40 @@
 """
 Serviço para detecção e notificação de alertas/anomalias.
+
+V2 - Slack baixo ruido (31/12/2025):
+- Janela operacional 08-20h para alertas nao-criticos
+- Cooldown global por severidade
+- Condicao "houve envios" para alerta "sem_respostas"
 """
 from datetime import datetime, timedelta
 from typing import List, Dict
 import logging
+from zoneinfo import ZoneInfo
 
 from app.services.supabase import supabase
 from app.services.slack import enviar_slack
+from app.services.redis import cache_get_json, cache_set_json
 
 logger = logging.getLogger(__name__)
+
+# Timezone do Brasil
+TZ_SP = ZoneInfo("America/Sao_Paulo")
+
+# V2: Configuracao de janela operacional e cooldown
+ALERTAS_CONFIG = {
+    "janela_operacional": {
+        "inicio": 8,   # 08:00
+        "fim": 20,     # 20:00
+    },
+    "cooldown_por_severidade": {
+        "info": 60,      # 60 min
+        "warning": 30,   # 30 min
+        "error": 30,     # 30 min
+        "critical": 45,  # 45 min
+    },
+    # Alertas que IGNORAM janela operacional (infra critica)
+    "alertas_24h": {"performance_critica"},
+}
 
 ALERTAS = {
     "taxa_handoff_alta": {
@@ -151,28 +177,57 @@ async def verificar_score_qualidade() -> List[Dict]:
 
 
 async def verificar_atividade() -> List[Dict]:
-    """Verifica se há atividade (mensagens enviadas)."""
+    """
+    Verifica se há atividade (mensagens enviadas).
+
+    V2: So alerta se:
+    1. Estamos dentro da janela operacional (08-20h)
+    2. Houve mensagens de ENTRADA (medicos mandaram msg) mas nenhuma SAIDA (Julia nao respondeu)
+
+    Isso evita falsos positivos fora do horario ou quando ninguem mandou msg.
+    """
     config = ALERTAS["sem_respostas"]
     desde = (datetime.now() - timedelta(minutes=config["janela_minutos"])).isoformat()
 
     try:
-        # Buscar mensagens enviadas
-        interacoes_response = (
+        # V2: Verificar janela operacional primeiro
+        agora_sp = datetime.now(TZ_SP)
+        hora_atual = agora_sp.hour
+        janela = ALERTAS_CONFIG["janela_operacional"]
+
+        if hora_atual < janela["inicio"] or hora_atual >= janela["fim"]:
+            # Fora do horario operacional - nao alertar
+            return []
+
+        # Buscar mensagens de SAIDA (Julia respondendo)
+        saidas_response = (
             supabase.table("interacoes")
-            .select("id")
+            .select("id", count="exact")
             .eq("direcao", "saida")
             .gte("created_at", desde)
             .execute()
         )
-        interacoes = interacoes_response.data or []
+        total_saidas = saidas_response.count or 0
 
-        if len(interacoes) == 0:
-            return [{
-                "tipo": "sem_respostas",
-                "mensagem": f"Nenhuma resposta enviada nos últimos {config['janela_minutos']} minutos",
-                "severidade": config["severidade"],
-                "valor": 0
-            }]
+        # V2: So alertar se nao houve saidas E houve entradas (medicos esperando)
+        if total_saidas == 0:
+            entradas_response = (
+                supabase.table("interacoes")
+                .select("id", count="exact")
+                .eq("direcao", "entrada")
+                .gte("created_at", desde)
+                .execute()
+            )
+            total_entradas = entradas_response.count or 0
+
+            # So alertar se medicos mandaram msg mas Julia nao respondeu
+            if total_entradas > 0:
+                return [{
+                    "tipo": "sem_respostas",
+                    "mensagem": f"{total_entradas} mensagens recebidas sem resposta nos ultimos {config['janela_minutos']} minutos",
+                    "severidade": config["severidade"],
+                    "valor": total_entradas
+                }]
 
         return []
     except Exception as e:
@@ -255,22 +310,72 @@ async def enviar_alerta_slack(alerta: Dict):
     await enviar_slack(mensagem)
 
 
+async def _verificar_cooldown_alerta(tipo: str, severidade: str) -> bool:
+    """
+    V2: Verifica se alerta esta em cooldown.
+
+    Returns:
+        True se pode enviar, False se em cooldown
+    """
+    cache_key = f"alerta:cooldown:{tipo}"
+
+    try:
+        ultimo = await cache_get_json(cache_key)
+        if not ultimo:
+            return True  # Nunca enviado, pode enviar
+
+        ultimo_envio = datetime.fromisoformat(ultimo.get("timestamp", "2000-01-01"))
+        cooldown_min = ALERTAS_CONFIG["cooldown_por_severidade"].get(severidade, 30)
+        cooldown = timedelta(minutes=cooldown_min)
+
+        if datetime.now() - ultimo_envio < cooldown:
+            logger.debug(f"Alerta {tipo} em cooldown ({cooldown_min}min)")
+            return False
+
+        return True
+    except Exception as e:
+        logger.error(f"Erro ao verificar cooldown: {e}")
+        return True  # Em caso de erro, permite envio
+
+
+async def _registrar_envio_alerta(tipo: str):
+    """V2: Registra envio de alerta para cooldown."""
+    cache_key = f"alerta:cooldown:{tipo}"
+    try:
+        await cache_set_json(cache_key, {
+            "timestamp": datetime.now().isoformat(),
+            "tipo": tipo
+        }, ttl=7200)  # 2 horas
+    except Exception as e:
+        logger.error(f"Erro ao registrar envio alerta: {e}")
+
+
 async def executar_verificacao_alertas():
-    """Job para verificar alertas periodicamente."""
+    """
+    Job para verificar alertas periodicamente.
+
+    V2: Implementa cooldown por severidade e janela operacional.
+    """
     try:
         alertas = await verificar_alertas()
 
         for alerta in alertas:
-            # Verificar se já foi enviado recentemente (evitar spam)
-            # Por simplicidade, sempre envia. Em produção, adicionar lógica de deduplicação
+            tipo = alerta["tipo"]
+            severidade = alerta["severidade"]
+
+            # V2: Verificar cooldown antes de enviar
+            if not await _verificar_cooldown_alerta(tipo, severidade):
+                continue
+
             await enviar_alerta_slack(alerta)
+            await _registrar_envio_alerta(tipo)
 
             # Salvar no banco para histórico (se tabela existir)
             try:
                 supabase.table("alertas_enviados").insert({
-                    "tipo": alerta["tipo"],
+                    "tipo": tipo,
                     "mensagem": alerta["mensagem"],
-                    "severidade": alerta["severidade"],
+                    "severidade": severidade,
                     "valor": alerta.get("valor")
                 }).execute()
             except Exception as e:

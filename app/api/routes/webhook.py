@@ -137,6 +137,8 @@ async def slack_webhook(
     Eventos suportados:
     - url_verification: Verificacao inicial do Slack
     - event_callback: Eventos de mensagens/mencoes
+
+    V2: Deduplicacao de eventos para evitar processamento duplicado.
     """
     body = await request.body()
 
@@ -167,20 +169,49 @@ async def slack_webhook(
     if event_type == "event_callback":
         event = payload.get("event", {})
         event_subtype = event.get("type")
+        event_id = payload.get("event_id", "")
 
-        logger.info(f"Evento Slack recebido: {event_subtype}")
+        logger.info(f"Evento Slack recebido: {event_subtype} (event_id: {event_id})")
 
         # Ignorar mensagens do proprio bot
         if event.get("bot_id"):
             return JSONResponse({"status": "ignored", "reason": "bot_message"})
 
+        # V2: Deduplicacao de eventos - evita reprocessamento em retries do Slack
+        if event_id and await _evento_ja_processado(event_id):
+            logger.debug(f"Evento {event_id} ja processado, ignorando")
+            return JSONResponse({"status": "ignored", "reason": "duplicate"})
+
         # Mencao ao bot (app_mention) ou mensagem direta
         if event_subtype in ["app_mention", "message"]:
+            # V2: Marcar evento como processado ANTES de iniciar
+            if event_id:
+                await _marcar_evento_processado(event_id)
+
             # Processar em background para responder rapido
             background_tasks.add_task(_processar_comando_slack, event)
             return JSONResponse({"status": "processing"})
 
     return JSONResponse({"status": "ok"})
+
+
+async def _evento_ja_processado(event_id: str) -> bool:
+    """V2: Verifica se evento Slack ja foi processado."""
+    from app.services.redis import cache_get_json
+    try:
+        result = await cache_get_json(f"slack:event:{event_id}")
+        return result is not None
+    except Exception:
+        return False
+
+
+async def _marcar_evento_processado(event_id: str):
+    """V2: Marca evento como processado (TTL 5 min)."""
+    from app.services.redis import cache_set_json
+    try:
+        await cache_set_json(f"slack:event:{event_id}", {"processed": True}, ttl=300)
+    except Exception as e:
+        logger.warning(f"Erro ao marcar evento processado: {e}")
 
 
 async def _processar_comando_slack(event: dict):

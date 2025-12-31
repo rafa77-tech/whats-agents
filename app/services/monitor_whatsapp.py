@@ -15,18 +15,21 @@ from app.services.redis import cache_get_json, cache_set_json
 
 logger = logging.getLogger(__name__)
 
-# Configuracoes do monitor
+# Configuracoes do monitor (V2 - baixo ruido)
+# Ref: Slack V2 - SRE Review 31/12/2025
 MONITOR_CONFIG = {
-    "intervalo_verificacao_segundos": 60,  # Verificar a cada 60s
+    "intervalo_verificacao_segundos": 300,  # Verificar a cada 5 min (era 60s)
     "threshold_erros_criptografia": 3,  # Alertar apos 3 erros
     "janela_erros_minutos": 5,  # Janela de tempo para contar erros
-    "cooldown_alerta_minutos": 15,  # Nao enviar alerta repetido em menos de 15min
-    "auto_restart_evolution": True,  # Reiniciar Evolution automaticamente
+    "cooldown_alerta_minutos": 45,  # Cooldown aumentado (era 15min)
+    "checks_consecutivos_para_alerta": 2,  # Alertar so apos 2 checks falhos
+    "auto_restart_evolution": False,  # Desativado em prod Railway (nao tem docker local)
 }
 
 # Cache keys
 CACHE_ULTIMO_ALERTA = "monitor:whatsapp:ultimo_alerta"
 CACHE_CONTADOR_ERROS = "monitor:whatsapp:contador_erros"
+CACHE_CHECKS_FALHOS = "monitor:whatsapp:checks_falhos_consecutivos"
 
 
 async def verificar_conexao_whatsapp() -> Tuple[bool, str, dict]:
@@ -163,6 +166,32 @@ async def enviar_alerta_conexao(tipo: str, mensagem: str, detalhes: dict = None)
         logger.error(f"Erro ao enviar alerta Slack: {e}")
 
 
+async def _incrementar_checks_falhos() -> int:
+    """
+    Incrementa contador de checks falhos consecutivos.
+
+    Returns:
+        Numero de checks falhos consecutivos
+    """
+    try:
+        dados = await cache_get_json(CACHE_CHECKS_FALHOS) or {"count": 0}
+        dados["count"] = dados.get("count", 0) + 1
+        dados["last_check"] = datetime.now().isoformat()
+        await cache_set_json(CACHE_CHECKS_FALHOS, dados, ttl=3600)  # 1 hora
+        return dados["count"]
+    except Exception as e:
+        logger.error(f"Erro ao incrementar checks falhos: {e}")
+        return 1
+
+
+async def _resetar_checks_falhos():
+    """Reseta contador de checks falhos (conexao OK)."""
+    try:
+        await cache_set_json(CACHE_CHECKS_FALHOS, {"count": 0}, ttl=3600)
+    except Exception as e:
+        logger.error(f"Erro ao resetar checks falhos: {e}")
+
+
 async def reiniciar_evolution_api():
     """
     Reinicia o container da Evolution API.
@@ -201,6 +230,9 @@ async def executar_verificacao_whatsapp():
     """
     Job principal de verificacao do WhatsApp.
     Executa todas as verificacoes e toma acoes necessarias.
+
+    V2: Alerta so dispara apos N checks consecutivos falhos.
+    Isso evita alertas por oscilacoes momentaneas.
     """
     logger.debug("Executando verificacao de conexao WhatsApp...")
 
@@ -208,12 +240,31 @@ async def executar_verificacao_whatsapp():
     conectado, status_msg, detalhes = await verificar_conexao_whatsapp()
 
     if not conectado:
-        await enviar_alerta_conexao("desconectado", status_msg, detalhes)
-        return {
-            "status": "desconectado",
-            "mensagem": status_msg,
-            "acao_tomada": "alerta_enviado"
-        }
+        # V2: Incrementar contador de checks falhos
+        checks_falhos = await _incrementar_checks_falhos()
+        threshold = MONITOR_CONFIG["checks_consecutivos_para_alerta"]
+
+        if checks_falhos >= threshold:
+            await enviar_alerta_conexao("desconectado", status_msg, detalhes)
+            return {
+                "status": "desconectado",
+                "mensagem": status_msg,
+                "acao_tomada": "alerta_enviado",
+                "checks_falhos": checks_falhos
+            }
+        else:
+            logger.warning(
+                f"WhatsApp desconectado (check {checks_falhos}/{threshold}), "
+                f"aguardando confirmacao antes de alertar"
+            )
+            return {
+                "status": "desconectado_aguardando",
+                "mensagem": f"Check {checks_falhos}/{threshold} - aguardando confirmacao",
+                "acao_tomada": None
+            }
+    else:
+        # Conexao OK - resetar contador de checks falhos
+        await _resetar_checks_falhos()
 
     # 2. Verificar erros de criptografia nos logs
     tem_erros, qtd_erros = await verificar_erros_criptografia_logs()
