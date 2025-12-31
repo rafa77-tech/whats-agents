@@ -167,6 +167,7 @@ async def salvar_interacao(
                 "conteudo": conteudo,
                 "canal": "whatsapp",
                 "autor_tipo": autor_tipo,
+                "direcao": direcao,
             })
             .execute()
         )

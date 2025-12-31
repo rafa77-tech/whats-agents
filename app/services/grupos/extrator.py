@@ -199,11 +199,71 @@ def _validar_valor(
     return valor_tipo, valor, valor_minimo, valor_maximo
 
 
+def _reparar_json(texto: str) -> str:
+    """Tenta reparar JSON malformado comum de LLMs."""
+    # Remover texto antes/depois do JSON
+    texto = texto.strip()
+
+    # Encontrar o início e fim do JSON de forma mais precisa
+    inicio = texto.find('{')
+    if inicio == -1:
+        return texto
+
+    # Contar chaves para encontrar o fim correto
+    nivel = 0
+    fim = -1
+    em_string = False
+    escape = False
+
+    for i, char in enumerate(texto[inicio:], inicio):
+        if escape:
+            escape = False
+            continue
+        if char == '\\':
+            escape = True
+            continue
+        if char == '"' and not escape:
+            em_string = not em_string
+            continue
+        if em_string:
+            continue
+        if char == '{':
+            nivel += 1
+        elif char == '}':
+            nivel -= 1
+            if nivel == 0:
+                fim = i + 1
+                break
+
+    if fim > inicio:
+        texto = texto[inicio:fim]
+    else:
+        # JSON truncado - tentar fechar
+        texto = texto[inicio:]
+        # Fechar strings abertas
+        if texto.count('"') % 2 == 1:
+            texto += '"'
+        # Fechar arrays abertos
+        texto += ']' * (texto.count('[') - texto.count(']'))
+        # Fechar objetos abertos
+        texto += '}' * (texto.count('{') - texto.count('}'))
+
+    # Corrigir trailing commas antes de } ou ]
+    texto = re.sub(r',(\s*[}\]])', r'\1', texto)
+
+    # Corrigir aspas simples para duplas (cuidado com apóstrofos)
+    # Apenas se parecer ser um problema sistemático
+    if texto.count("'") > texto.count('"') and "{'" in texto:
+        texto = texto.replace("'", '"')
+
+    return texto
+
+
 def _parsear_resposta_extracao(texto: str) -> ResultadoExtracao:
     """Parseia resposta do LLM."""
     texto = texto.strip()
 
-    # Extrair JSON
+    # Extrair e reparar JSON
     if not texto.startswith("{"):
         match = re.search(r'\{[\s\S]+\}', texto)
         if match:
@@ -211,7 +271,23 @@ def _parsear_resposta_extracao(texto: str) -> ResultadoExtracao:
         else:
             raise json.JSONDecodeError("JSON não encontrado", texto, 0)
 
-    dados = json.loads(texto)
+    # Tentar parsear diretamente primeiro
+    try:
+        dados = json.loads(texto)
+    except json.JSONDecodeError:
+        # Tentar reparar
+        texto_reparado = _reparar_json(texto)
+        try:
+            dados = json.loads(texto_reparado)
+            logger.info("JSON reparado com sucesso")
+        except json.JSONDecodeError:
+            # Última tentativa: retornar resultado vazio em vez de falhar
+            logger.warning(f"JSON irreparável, retornando vazio. Preview: {texto[:200]}...")
+            return ResultadoExtracao(
+                vagas=[],
+                total_vagas=0,
+                erro="json_irreparavel"
+            )
 
     vagas = []
     for vaga_json in dados.get("vagas", []):
@@ -322,7 +398,7 @@ async def extrair_dados_mensagem(
     try:
         response = await client.messages.create(
             model="claude-3-haiku-20240307",
-            max_tokens=2000,  # Maior para múltiplas vagas
+            max_tokens=4096,  # Máximo para evitar truncamento
             temperature=0,
             messages=[
                 {"role": "user", "content": prompt}
