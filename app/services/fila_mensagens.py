@@ -112,9 +112,15 @@ async def processar_fila_mensagens():
                     cliente_id=cliente_id,
                     conversation_id=conversa_id,
                 )
+                # Usar 'conteudo' (schema atual) ou 'resposta' (legacy)
+                texto = msg.get("conteudo") or msg.get("resposta")
+                if not texto:
+                    logger.warning(f"Conteúdo não encontrado para mensagem {msg.get('id')}")
+                    continue
+
                 result = await send_outbound_message(
                     telefone=telefone,
-                    texto=msg["resposta"],
+                    texto=texto,
                     ctx=ctx,
                     simular_digitacao=True,
                 )
