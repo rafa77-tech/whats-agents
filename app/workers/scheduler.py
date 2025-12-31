@@ -4,9 +4,18 @@ Scheduler para executar jobs agendados.
 import asyncio
 import httpx
 import logging
+import sys
 from datetime import datetime
 from app.core.config import settings
 
+# Configurar logging para stdout (Railway captura stdout)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    stream=sys.stdout,
+    force=True
+)
 logger = logging.getLogger(__name__)
 
 # URL da API
@@ -219,21 +228,39 @@ async def execute_job(job: dict):
     try:
         url = f"{JULIA_API_URL}{job['endpoint']}"
         logger.info(f"🔄 Executando job: {job['name']} -> {url}")
-        
+
         async with httpx.AsyncClient(timeout=300.0) as client:
             response = await client.post(url)
             if response.status_code == 200:
+                # Tentar extrair info do response para log
+                try:
+                    data = response.json()
+                    count = data.get("processados", data.get("count", data.get("total", "?")))
+                    print(f"   ✅ {job['name']} OK (processados: {count})", flush=True)
+                except Exception:
+                    print(f"   ✅ {job['name']} OK", flush=True)
                 logger.info(f"✅ Job {job['name']} executado com sucesso")
             else:
+                print(f"   ❌ {job['name']} FAIL: {response.status_code}", flush=True)
                 logger.error(f"❌ Job {job['name']} falhou: {response.status_code} - {response.text}")
     except httpx.TimeoutException:
+        print(f"   ⏱️ {job['name']} TIMEOUT", flush=True)
         logger.error(f"⏱️  Timeout ao executar job {job['name']}")
     except Exception as e:
+        print(f"   ❌ {job['name']} ERROR: {e}", flush=True)
         logger.error(f"❌ Erro ao executar job {job['name']}: {e}", exc_info=True)
 
 
 async def scheduler_loop():
     """Loop principal do scheduler."""
+    print("=" * 60, flush=True)
+    print("🕐 SCHEDULER INICIADO", flush=True)
+    print(f"📡 API URL: {JULIA_API_URL}", flush=True)
+    print(f"📋 {len(JOBS)} jobs configurados:", flush=True)
+    for job in JOBS:
+        print(f"   - {job['name']} ({job['schedule']})", flush=True)
+    print("=" * 60, flush=True)
+
     logger.info("🕐 Scheduler iniciado")
     logger.info(f"📡 API URL: {JULIA_API_URL}")
     logger.info(f"📋 {len(JOBS)} jobs configurados")
@@ -250,6 +277,7 @@ async def scheduler_loop():
                 
                 for job in JOBS:
                     if should_run(job["schedule"], now):
+                        print(f"⏰ [{now.strftime('%H:%M:%S')}] Trigger: {job['name']}", flush=True)
                         logger.info(f"⏰ Trigger: {job['name']} (schedule: {job['schedule']})")
                         await execute_job(job)
             
