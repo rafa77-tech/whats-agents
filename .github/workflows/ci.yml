@@ -144,7 +144,8 @@ jobs:
       - name: Test image
         run: |
           docker build -t julia-api:test .
-          docker run --rm julia-api:test python -c "import app; print('OK')"
+          # Bypass entrypoint.sh (que exige RUN_MODE) para testar apenas imports
+          docker run --rm --entrypoint python julia-api:test -c "import app; print('OK')"
 
   # Job 4: Deploy to Railway (apenas na main)
   deploy:
