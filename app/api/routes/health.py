@@ -44,6 +44,35 @@ CRITICAL_TABLES = [
 # Última migration conhecida (atualizar quando adicionar migrations críticas)
 EXPECTED_SCHEMA_VERSION = "20251230140000"  # create_app_settings_environment_marker
 
+# Contrato de prompts - sentinelas obrigatórias para deploy seguro
+REQUIRED_PROMPTS = {
+    "julia_base": {
+        "min_len": 2000,
+        "required_sentinels": [
+            "[INVARIANT:INBOUND_ALWAYS_REPLY]",
+            "[INVARIANT:OPTOUT_ABSOLUTE]",
+            "[INVARIANT:KILL_SWITCHES_PRIORITY]",
+            "[INVARIANT:NO_CONFIRM_WITHOUT_RESERVATION]",
+            "[INVARIANT:NO_IDENTITY_DEBATE]",
+            "[FALLBACK:DIRETRIZES_EMPTY_OK]",
+        ],
+        "warning_sentinels": [
+            "[CAPABILITY:HANDOFF]",
+            "[INVARIANT:OUTBOUND_QUIET_HOURS]",
+        ],
+    },
+    "julia_primeira_msg": {
+        "min_len": 100,
+        "required_sentinels": [],
+        "warning_sentinels": [],
+    },
+    "julia_tools": {
+        "min_len": 300,
+        "required_sentinels": [],
+        "warning_sentinels": [],
+    },
+}
+
 
 @router.get("/health")
 async def health_check():
@@ -182,6 +211,102 @@ async def grupos_worker_health():
         }
 
 
+async def _check_prompt_contract() -> dict:
+    """
+    Valida contrato de prompts.
+
+    Retorna dict com:
+    - status: ok | error | warning
+    - missing: prompts que não existem
+    - inactive: prompts que existem mas não estão ativos
+    - too_short: prompts com tamanho abaixo do mínimo
+    - missing_sentinels: sentinelas obrigatórias ausentes
+    - missing_warnings: sentinelas de warning ausentes
+    - versions: versão de cada prompt
+    """
+    result = {
+        "status": "pending",
+        "missing": [],
+        "inactive": [],
+        "too_short": [],
+        "missing_sentinels": [],
+        "missing_warnings": [],
+        "versions": {},
+    }
+
+    has_error = False
+    has_warning = False
+
+    try:
+        # Buscar todos os prompts necessários
+        response = supabase.table("prompts").select(
+            "nome, versao, ativo, conteudo"
+        ).in_("nome", list(REQUIRED_PROMPTS.keys())).execute()
+
+        found = {r["nome"]: r for r in (response.data or [])}
+
+        for nome, req in REQUIRED_PROMPTS.items():
+            prompt = found.get(nome)
+
+            # Check existência
+            if not prompt:
+                result["missing"].append(nome)
+                has_error = True
+                continue
+
+            # Check ativo
+            if not prompt.get("ativo"):
+                result["inactive"].append(nome)
+                has_error = True
+                continue
+
+            # Registrar versão
+            result["versions"][nome] = prompt.get("versao")
+
+            conteudo = prompt.get("conteudo") or ""
+
+            # Check tamanho mínimo
+            if len(conteudo) < req["min_len"]:
+                result["too_short"].append({
+                    "nome": nome,
+                    "len": len(conteudo),
+                    "min": req["min_len"]
+                })
+                has_error = True
+
+            # Check sentinelas obrigatórias (BLOQUEADOR)
+            for sentinel in req.get("required_sentinels", []):
+                if sentinel not in conteudo:
+                    result["missing_sentinels"].append({
+                        "prompt": nome,
+                        "sentinel": sentinel
+                    })
+                    has_error = True
+
+            # Check sentinelas de warning
+            for sentinel in req.get("warning_sentinels", []):
+                if sentinel not in conteudo:
+                    result["missing_warnings"].append({
+                        "prompt": nome,
+                        "sentinel": sentinel
+                    })
+                    has_warning = True
+
+        if has_error:
+            result["status"] = "error"
+        elif has_warning:
+            result["status"] = "warning"
+        else:
+            result["status"] = "ok"
+
+    except Exception as e:
+        result["status"] = "error"
+        result["message"] = str(e)
+        logger.error(f"[health/deep] Prompt contract check failed: {e}")
+
+    return result
+
+
 @router.get("/health/deep")
 async def deep_health_check(response: Response):
     """
@@ -195,6 +320,7 @@ async def deep_health_check(response: Response):
     - Schema: tabelas críticas existem
     - Views: views críticas existem e respondem
     - Migration: última migration aplicada >= esperada
+    - Prompts: prompts core existem, ativos, com sentinelas obrigatórias
 
     Retorna 200 se TUDO ok, 503 se qualquer check falhar.
     CI/CD deve usar este endpoint para validar deploy.
@@ -210,6 +336,7 @@ async def deep_health_check(response: Response):
         "tables": {"status": "pending", "missing": []},
         "views": {"status": "pending", "missing": []},
         "schema_version": {"status": "pending", "current": None, "expected": EXPECTED_SCHEMA_VERSION},
+        "prompts": {"status": "pending"},
     }
 
     all_ok = True
@@ -358,6 +485,16 @@ async def deep_health_check(response: Response):
         checks["schema_version"]["message"] = str(e)
         # Não falha se não conseguir verificar versão (tabela pode não existir)
         logger.warning(f"[health/deep] Schema version check failed: {e}")
+
+    # 6. Check prompt contract (sentinelas obrigatórias)
+    prompt_result = await _check_prompt_contract()
+    checks["prompts"] = prompt_result
+
+    if prompt_result["status"] == "error":
+        all_ok = False
+        logger.error(f"[health/deep] Prompt contract FAILED: {prompt_result}")
+    elif prompt_result["status"] == "warning":
+        logger.warning(f"[health/deep] Prompt contract warnings: {prompt_result.get('missing_warnings', [])}")
 
     # Resultado final
     overall_status = "healthy" if all_ok else "unhealthy"
