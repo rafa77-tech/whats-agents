@@ -541,6 +541,50 @@ async def schema_info():
         }
 
 
+# SLA por job: max_age_seconds baseado na frequência do cron
+# Se job não roda há mais tempo que o SLA, é considerado "stale" (crítico)
+JOB_SLA_SECONDS = {
+    # Jobs de 1 minuto: SLA = 3 minutos (3x a frequência)
+    "processar_mensagens_agendadas": 180,
+    "processar_campanhas_agendadas": 180,
+    # Jobs de 5 minutos: SLA = 15 minutos
+    "verificar_whatsapp": 900,
+    "processar_grupos": 900,
+    # Jobs de 10 minutos: SLA = 30 minutos
+    "processar_handoffs": 1800,
+    # Jobs de 15 minutos: SLA = 45 minutos
+    "verificar_alertas": 2700,
+    "verificar_alertas_grupos": 2700,
+    # Jobs horários: SLA = 2 horas
+    "sincronizar_briefing": 7200,
+    "processar_confirmacao_plantao": 7200,
+    # Jobs diários: SLA = 25 horas (margem para variação)
+    "processar_followups": 90000,
+    "processar_pausas_expiradas": 90000,
+    "avaliar_conversas_pendentes": 90000,
+    "report_manha": 90000,
+    "report_fim_dia": 90000,
+    "sincronizar_templates": 90000,
+    "limpar_grupos_finalizados": 90000,
+    "consolidar_metricas_grupos": 90000,
+    "doctor_state_manutencao_diaria": 90000,
+    # Jobs semanais: SLA = 8 dias
+    "report_semanal": 691200,
+    "atualizar_prompt_feedback": 691200,
+    "doctor_state_manutencao_semanal": 691200,
+    # Jobs seg-sex: SLA = 3 dias (pode pular fim de semana)
+    "processar_retomadas": 259200,
+}
+
+# Jobs críticos que DEVEM estar rodando para o sistema funcionar
+CRITICAL_JOBS = [
+    "processar_mensagens_agendadas",
+    "processar_campanhas_agendadas",
+    "verificar_whatsapp",
+    "processar_grupos",
+]
+
+
 @router.get("/health/jobs")
 async def job_executions_status():
     """
@@ -553,12 +597,20 @@ async def job_executions_status():
     - Status (success/error/timeout)
     - Duração média
     - Erros nas últimas 24h
+    - **Stale jobs** (não rodaram dentro do SLA)
+
+    Status:
+    - healthy: Todos jobs OK
+    - degraded: Erros ou timeouts, mas jobs rodando
+    - critical: Jobs críticos stale (scheduler pode estar morto)
     """
     try:
         from datetime import timedelta
 
+        now = datetime.utcnow()
+
         # Últimas 24h
-        since = (datetime.utcnow() - timedelta(hours=24)).isoformat()
+        since = (now - timedelta(hours=24)).isoformat()
 
         # Buscar todas execuções das últimas 24h
         result = supabase.table("job_executions").select(
@@ -583,6 +635,9 @@ async def job_executions_status():
                     "total_items_processed": 0,
                     "last_error": None,
                     "durations": [],
+                    "sla_seconds": JOB_SLA_SECONDS.get(name),
+                    "is_stale": False,
+                    "seconds_since_last_run": None,
                 }
 
             summary = jobs_summary[name]
@@ -592,6 +647,19 @@ async def job_executions_status():
             if summary["last_run"] is None:
                 summary["last_run"] = ex["started_at"]
                 summary["last_status"] = ex["status"]
+
+                # Calcular idade da última execução
+                try:
+                    last_run_dt = datetime.fromisoformat(ex["started_at"].replace("+00:00", "").replace("Z", ""))
+                    age_seconds = (now - last_run_dt).total_seconds()
+                    summary["seconds_since_last_run"] = int(age_seconds)
+
+                    # Verificar se está stale
+                    sla = JOB_SLA_SECONDS.get(name)
+                    if sla and age_seconds > sla:
+                        summary["is_stale"] = True
+                except Exception:
+                    pass
 
             # Contadores por status
             if ex["status"] == "success":
@@ -617,22 +685,26 @@ async def job_executions_status():
                 summary["avg_duration_ms"] = int(sum(summary["durations"]) / len(summary["durations"]))
             del summary["durations"]
 
-        # Determinar status geral
-        status = "healthy"
+        # Coletar alertas
         jobs_with_errors = [n for n, s in jobs_summary.items() if s["errors_24h"] > 0]
         jobs_with_timeouts = [n for n, s in jobs_summary.items() if s["timeouts_24h"] > 0]
+        stale_jobs = [n for n, s in jobs_summary.items() if s["is_stale"]]
+
+        # Jobs críticos que não aparecem (nunca rodaram ou não rodaram nas últimas 24h)
+        missing_critical = [j for j in CRITICAL_JOBS if j not in jobs_summary]
+
+        # Jobs críticos que estão stale
+        critical_stale = [j for j in stale_jobs if j in CRITICAL_JOBS]
+
+        # Determinar status geral
+        status = "healthy"
 
         if jobs_with_errors or jobs_with_timeouts:
             status = "degraded"
 
-        # Jobs que não rodaram nas últimas 24h (podem estar com problema)
-        expected_jobs = [
-            "processar_mensagens_agendadas",
-            "processar_campanhas_agendadas",
-            "verificar_whatsapp",
-            "processar_grupos",
-        ]
-        missing_jobs = [j for j in expected_jobs if j not in jobs_summary]
+        # CRITICAL: scheduler pode estar morto
+        if critical_stale or missing_critical:
+            status = "critical"
 
         return {
             "status": status,
@@ -640,11 +712,17 @@ async def job_executions_status():
             "alerts": {
                 "jobs_with_errors": jobs_with_errors,
                 "jobs_with_timeouts": jobs_with_timeouts,
-                "missing_jobs_24h": missing_jobs,
+                "stale_jobs": stale_jobs,
+                "critical_stale": critical_stale,
+                "missing_critical": missing_critical,
+            },
+            "sla_config": {
+                "critical_jobs": CRITICAL_JOBS,
+                "sla_definitions": JOB_SLA_SECONDS,
             },
             "period": "24h",
             "total_executions": len(executions),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": now.isoformat(),
         }
 
     except Exception as e:
