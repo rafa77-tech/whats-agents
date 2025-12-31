@@ -149,6 +149,47 @@ ACAO CRITICA para on/off: Peca confirmacao antes de mudar.""",
     }
 }
 
+TOOL_TOGGLE_NOTIFICACOES = {
+    "name": "toggle_notificacoes",
+    "description": """Controla notificações automáticas do Slack.
+
+QUANDO USAR:
+- Gestor quer silenciar notificações
+- Gestor quer reativar notificações
+- Gestor quer ver status das notificações
+- Durante manutenção ou debug
+
+EXEMPLOS:
+- "silencia notificações"
+- "mute"
+- "para de notificar"
+- "ativa notificações"
+- "unmute"
+- "status notificações"
+
+DIFERENCA DE pausar_julia:
+- toggle_notificacoes: para APENAS as notificações no Slack
+- pausar_julia: para os envios de WhatsApp
+
+NAO afeta:
+- Respostas da Julia no Slack (comandos funcionam normal)
+- Envios de WhatsApp
+- Jobs do scheduler
+
+ACAO CRITICA para on/off: Peca confirmacao antes de mudar.""",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "acao": {
+                "type": "string",
+                "enum": ["on", "off", "status"],
+                "description": "Acao: 'on' para ativar, 'off' para desativar (silenciar), 'status' para ver estado atual"
+            }
+        },
+        "required": ["acao"]
+    }
+}
+
 TOOL_TOGGLE_PONTE_EXTERNA = {
     "name": "toggle_ponte_externa",
     "description": """Controla a ponte externa (handoff medico-divulgador).
@@ -517,6 +558,89 @@ async def handle_toggle_ponte_externa(params: dict, user_id: str) -> dict:
 
     except Exception as e:
         logger.error(f"Erro ao toggle ponte externa: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def handle_toggle_notificacoes(params: dict, user_id: str) -> dict:
+    """
+    Toggle notificações Slack on/off ou retorna status.
+
+    Sprint 18 - Controle de notificações via Slack.
+
+    Args:
+        params: {acao: on|off|status}
+        user_id: ID do usuario Slack
+
+    Returns:
+        Dict com resultado da operacao
+    """
+    from app.services.slack import (
+        is_notifications_enabled,
+        set_notifications_enabled,
+        get_notifications_status,
+    )
+
+    acao = params.get("acao", "status")
+
+    try:
+        if acao == "status":
+            status = await get_notifications_status()
+            emoji = "🔔" if status.get("enabled", True) else "🔕"
+
+            mensagem = f"{emoji} *Notificações Slack*\n"
+            mensagem += f"• Status: {status.get('status', 'desconhecido')}\n"
+
+            if status.get("changed_by"):
+                mensagem += f"• Alterado por: {status.get('changed_by')}\n"
+            if status.get("changed_at"):
+                mensagem += f"• Em: {status.get('changed_at')[:19]}\n"
+
+            return {
+                "success": True,
+                "enabled": status.get("enabled", True),
+                "mensagem": mensagem
+            }
+
+        # Toggle on (ativar notificações)
+        if acao == "on":
+            result = await set_notifications_enabled(True, user_id)
+
+            if not result.get("success"):
+                return {"success": False, "error": result.get("error", "Erro desconhecido")}
+
+            logger.info(f"Notificações ativadas por {user_id}")
+
+            return {
+                "success": True,
+                "enabled": True,
+                "mensagem": "🔔 Notificações Slack *ativadas*!\n\nVocê voltará a receber alertas de handoff, plantões e erros."
+            }
+
+        # Toggle off (silenciar notificações)
+        if acao == "off":
+            result = await set_notifications_enabled(False, user_id)
+
+            if not result.get("success"):
+                return {"success": False, "error": result.get("error", "Erro desconhecido")}
+
+            logger.info(f"Notificações silenciadas por {user_id}")
+
+            return {
+                "success": True,
+                "enabled": False,
+                "mensagem": (
+                    "🔕 Notificações Slack *silenciadas*!\n\n"
+                    "• Alertas automáticos: pausados\n"
+                    "• Comandos da Julia: funcionando normal\n"
+                    "• WhatsApp: não afetado\n\n"
+                    "_Para reativar: 'ativa notificações'_"
+                )
+            }
+
+        return {"success": False, "error": f"Ação desconhecida: {acao}"}
+
+    except Exception as e:
+        logger.error(f"Erro ao toggle notificações: {e}")
         return {"success": False, "error": str(e)}
 
 

@@ -22,6 +22,10 @@ notificar_plantao_reservado = _slack_notifications.notificar_plantao_reservado
 notificar_handoff = _slack_notifications.notificar_handoff
 notificar_handoff_resolvido = _slack_notifications.notificar_handoff_resolvido
 notificar_erro = _slack_notifications.notificar_erro
+# Sprint 18 - Controle de notificações
+is_notifications_enabled = _slack_notifications.is_notifications_enabled
+set_notifications_enabled = _slack_notifications.set_notifications_enabled
+get_notifications_status = _slack_notifications.get_notifications_status
 
 from .agent import AgenteSlack, processar_mensagem_slack
 from .session import SessionManager
@@ -66,6 +70,10 @@ __all__ = [
     "notificar_handoff",
     "notificar_handoff_resolvido",
     "notificar_erro",
+    # Sprint 18 - Controle de notificações
+    "is_notifications_enabled",
+    "set_notifications_enabled",
+    "get_notifications_status",
     # Agent components
     "AgenteSlack",
     "processar_mensagem_slack",
