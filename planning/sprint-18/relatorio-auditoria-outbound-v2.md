@@ -387,6 +387,38 @@ PYTHONPATH=. uv run pytest tests/services/guardrails/test_outbound_guardrails.py
 
 ---
 
+---
+
+## Backlog: GAP 2 - E2E com WhatsApp Real
+
+**Status:** Pendente
+**Prioridade:** Baixa (nice-to-have)
+**Dependência:** Número de telefone de teste disponível
+
+### Descrição
+
+O teste E2E atual valida o fluxo até o ponto de envio, mas não evidencia que a mensagem realmente chegou no WhatsApp do destinatário.
+
+### Critério de Aceite
+
+- [ ] Número de teste definido (celular do Rafael ou número Revoluna)
+- [ ] Mensagem enviada via fila_mensagens
+- [ ] Screenshot ou log do WhatsApp mostrando mensagem recebida
+- [ ] provider_message_id rastreável
+
+### Evidência Atual (Parcial)
+
+O teste atual já prova:
+1. Mensagem entra na fila (fila_mensagens.id rastreável)
+2. Scheduler processa a fila
+3. Guardrails verificam permissão
+4. send_outbound_message() é chamado
+
+O que falta:
+1. Confirmação de entrega no WhatsApp (ACK do provider)
+
+---
+
 **Assinatura Digital:**
 Relatório V2 gerado durante sessão de auditoria.
 Claude Code + Rafael Pivovar
