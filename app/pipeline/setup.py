@@ -11,7 +11,8 @@ from .pre_processors import (
     BusinessEventInboundProcessor,
     ChatwootSyncProcessor,
     OptOutProcessor,
-    ForaHorarioProcessor,
+    # ForaHorarioProcessor removido - inbound deve ser 24/7 (31/12/2025)
+    # Quiet hours só se aplicam a OUTBOUND proativo (campanhas, nudges)
     BotDetectionProcessor,
     MediaProcessor,
     LongMessageProcessor,
@@ -45,7 +46,10 @@ def criar_pipeline() -> MessageProcessor:
     pipeline.add_pre_processor(BusinessEventInboundProcessor())  # 22 - Sprint 17 E04
     pipeline.add_pre_processor(ChatwootSyncProcessor())      # 25
     pipeline.add_pre_processor(OptOutProcessor())            # 30
-    pipeline.add_pre_processor(ForaHorarioProcessor())       # 32 - Sprint 22: ACK fora do horário
+    # ForaHorarioProcessor REMOVIDO (31/12/2025):
+    # - Bug: bloqueava TODAS as respostas fora do horário
+    # - Fix: Julia responde 24/7 a inbound (médico mandou msg = responde)
+    # - Quiet hours aplicam APENAS a outbound proativo (campanhas, nudges, followups)
     pipeline.add_pre_processor(BotDetectionProcessor())      # 35
     pipeline.add_pre_processor(MediaProcessor())             # 40
     pipeline.add_pre_processor(LongMessageProcessor())       # 45
