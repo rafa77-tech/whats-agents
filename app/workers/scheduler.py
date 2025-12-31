@@ -5,7 +5,9 @@ import asyncio
 import httpx
 import logging
 import sys
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
+from typing import Optional
 from app.core.config import settings
 
 # Configurar logging para stdout (Railway captura stdout)
@@ -20,6 +22,77 @@ logger = logging.getLogger(__name__)
 
 # URL da API
 JULIA_API_URL = settings.JULIA_API_URL
+
+# Supabase para persistência de execuções
+SUPABASE_URL = settings.SUPABASE_URL
+SUPABASE_KEY = settings.SUPABASE_SERVICE_KEY
+
+
+async def _registrar_inicio_job(job_name: str) -> str:
+    """Registra início de execução de job. Retorna execution_id."""
+    execution_id = str(uuid.uuid4())
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/job_executions",
+                headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                json={
+                    "id": execution_id,
+                    "job_name": job_name,
+                    "started_at": datetime.now(timezone.utc).isoformat(),
+                    "status": "running",
+                },
+            )
+            if response.status_code not in (200, 201):
+                logger.warning(f"Erro ao registrar início do job: {response.status_code}")
+    except Exception as e:
+        logger.warning(f"Erro ao registrar início do job: {e}")
+    return execution_id
+
+
+async def _registrar_fim_job(
+    execution_id: str,
+    status: str,
+    duration_ms: int,
+    response_code: Optional[int] = None,
+    error: Optional[str] = None,
+    items_processed: Optional[int] = None,
+):
+    """Registra fim de execução de job."""
+    try:
+        data = {
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+            "status": status,
+            "duration_ms": duration_ms,
+        }
+        if response_code is not None:
+            data["response_code"] = response_code
+        if error is not None:
+            data["error"] = error[:500]  # Limitar tamanho do erro
+        if items_processed is not None:
+            data["items_processed"] = items_processed
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/job_executions?id=eq.{execution_id}",
+                headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                json=data,
+            )
+            if response.status_code not in (200, 204):
+                logger.warning(f"Erro ao registrar fim do job: {response.status_code}")
+    except Exception as e:
+        logger.warning(f"Erro ao registrar fim do job: {e}")
+
 
 JOBS = [
     {
@@ -224,31 +297,78 @@ def should_run(schedule: str, now: datetime) -> bool:
 
 
 async def execute_job(job: dict):
-    """Executa um job."""
+    """Executa um job com persistência de histórico."""
+    import time
+    start_time = time.time()
+    execution_id = await _registrar_inicio_job(job["name"])
+
     try:
         url = f"{JULIA_API_URL}{job['endpoint']}"
         logger.info(f"🔄 Executando job: {job['name']} -> {url}")
 
         async with httpx.AsyncClient(timeout=300.0) as client:
             response = await client.post(url)
+            duration_ms = int((time.time() - start_time) * 1000)
+
             if response.status_code == 200:
                 # Tentar extrair info do response para log
+                items_processed = None
                 try:
                     data = response.json()
-                    count = data.get("processados", data.get("count", data.get("total", "?")))
-                    print(f"   ✅ {job['name']} OK (processados: {count})", flush=True)
+                    items_processed = data.get("processados", data.get("count", data.get("total")))
+                    count_str = items_processed if items_processed is not None else "?"
+                    print(f"   ✅ {job['name']} OK (processados: {count_str})", flush=True)
                 except Exception:
                     print(f"   ✅ {job['name']} OK", flush=True)
+
                 logger.info(f"✅ Job {job['name']} executado com sucesso")
+
+                # Persistir sucesso
+                await _registrar_fim_job(
+                    execution_id=execution_id,
+                    status="success",
+                    duration_ms=duration_ms,
+                    response_code=response.status_code,
+                    items_processed=items_processed,
+                )
             else:
                 print(f"   ❌ {job['name']} FAIL: {response.status_code}", flush=True)
                 logger.error(f"❌ Job {job['name']} falhou: {response.status_code} - {response.text}")
+
+                # Persistir erro
+                await _registrar_fim_job(
+                    execution_id=execution_id,
+                    status="error",
+                    duration_ms=duration_ms,
+                    response_code=response.status_code,
+                    error=response.text[:500] if response.text else None,
+                )
+
     except httpx.TimeoutException:
+        duration_ms = int((time.time() - start_time) * 1000)
         print(f"   ⏱️ {job['name']} TIMEOUT", flush=True)
         logger.error(f"⏱️  Timeout ao executar job {job['name']}")
+
+        # Persistir timeout
+        await _registrar_fim_job(
+            execution_id=execution_id,
+            status="timeout",
+            duration_ms=duration_ms,
+            error="Timeout após 300s",
+        )
+
     except Exception as e:
+        duration_ms = int((time.time() - start_time) * 1000)
         print(f"   ❌ {job['name']} ERROR: {e}", flush=True)
         logger.error(f"❌ Erro ao executar job {job['name']}: {e}", exc_info=True)
+
+        # Persistir erro
+        await _registrar_fim_job(
+            execution_id=execution_id,
+            status="error",
+            duration_ms=duration_ms,
+            error=str(e),
+        )
 
 
 async def scheduler_loop():

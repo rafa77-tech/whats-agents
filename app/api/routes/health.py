@@ -539,3 +539,118 @@ async def schema_info():
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat(),
         }
+
+
+@router.get("/health/jobs")
+async def job_executions_status():
+    """
+    Retorna status das execuções dos jobs do scheduler.
+
+    Sprint 18 - GAP 1: Observabilidade de jobs.
+
+    Mostra:
+    - Última execução de cada job
+    - Status (success/error/timeout)
+    - Duração média
+    - Erros nas últimas 24h
+    """
+    try:
+        from datetime import timedelta
+
+        # Últimas 24h
+        since = (datetime.utcnow() - timedelta(hours=24)).isoformat()
+
+        # Buscar todas execuções das últimas 24h
+        result = supabase.table("job_executions").select(
+            "job_name, started_at, finished_at, status, duration_ms, items_processed, error"
+        ).gte("started_at", since).order("started_at", desc=True).execute()
+
+        executions = result.data or []
+
+        # Agrupar por job
+        jobs_summary = {}
+        for ex in executions:
+            name = ex["job_name"]
+            if name not in jobs_summary:
+                jobs_summary[name] = {
+                    "last_run": None,
+                    "last_status": None,
+                    "runs_24h": 0,
+                    "success_24h": 0,
+                    "errors_24h": 0,
+                    "timeouts_24h": 0,
+                    "avg_duration_ms": 0,
+                    "total_items_processed": 0,
+                    "last_error": None,
+                    "durations": [],
+                }
+
+            summary = jobs_summary[name]
+            summary["runs_24h"] += 1
+
+            # Primeira execução encontrada = mais recente
+            if summary["last_run"] is None:
+                summary["last_run"] = ex["started_at"]
+                summary["last_status"] = ex["status"]
+
+            # Contadores por status
+            if ex["status"] == "success":
+                summary["success_24h"] += 1
+            elif ex["status"] == "error":
+                summary["errors_24h"] += 1
+                if summary["last_error"] is None:
+                    summary["last_error"] = ex.get("error")
+            elif ex["status"] == "timeout":
+                summary["timeouts_24h"] += 1
+
+            # Duração
+            if ex.get("duration_ms"):
+                summary["durations"].append(ex["duration_ms"])
+
+            # Items processados
+            if ex.get("items_processed"):
+                summary["total_items_processed"] += ex["items_processed"]
+
+        # Calcular médias e limpar
+        for name, summary in jobs_summary.items():
+            if summary["durations"]:
+                summary["avg_duration_ms"] = int(sum(summary["durations"]) / len(summary["durations"]))
+            del summary["durations"]
+
+        # Determinar status geral
+        status = "healthy"
+        jobs_with_errors = [n for n, s in jobs_summary.items() if s["errors_24h"] > 0]
+        jobs_with_timeouts = [n for n, s in jobs_summary.items() if s["timeouts_24h"] > 0]
+
+        if jobs_with_errors or jobs_with_timeouts:
+            status = "degraded"
+
+        # Jobs que não rodaram nas últimas 24h (podem estar com problema)
+        expected_jobs = [
+            "processar_mensagens_agendadas",
+            "processar_campanhas_agendadas",
+            "verificar_whatsapp",
+            "processar_grupos",
+        ]
+        missing_jobs = [j for j in expected_jobs if j not in jobs_summary]
+
+        return {
+            "status": status,
+            "jobs": jobs_summary,
+            "alerts": {
+                "jobs_with_errors": jobs_with_errors,
+                "jobs_with_timeouts": jobs_with_timeouts,
+                "missing_jobs_24h": missing_jobs,
+            },
+            "period": "24h",
+            "total_executions": len(executions),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"[health/jobs] Error: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
