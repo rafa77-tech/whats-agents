@@ -8,27 +8,75 @@ Julia e um agente de IA que prospecta medicos, oferece plantoes, gerencia relaci
 
 ## Indice da Documentacao
 
+### Arquitetura
+
 | Documento | Descricao |
 |-----------|-----------|
-| [Arquitetura](./arquitetura.md) | Visao geral do sistema, componentes e fluxos |
-| [API e Endpoints](./api-endpoints.md) | Referencia completa de todos os endpoints |
-| [Servicos](./servicos.md) | Detalhes dos 118 modulos de servico |
-| [Banco de Dados](./banco-de-dados.md) | Schema das 54 tabelas e relacionamentos |
-| [Configuracao e Setup](./configuracao.md) | Como configurar e rodar o projeto |
-| [Deploy e Operacao](./deploy.md) | Docker, workers e monitoramento |
-| [Logica de Negocio](./logica-negocio.md) | Fluxos de negocio e regras |
-| [Persona Julia](./persona-julia.md) | Identidade, tom e exemplos |
-| [Integracoes](./integracoes.md) | WhatsApp, Chatwoot, Slack, etc |
-| [Testes Manuais](./testes-manuais.md) | Guia de testes antes do lancamento |
-| [Sistema de Prompts](./sistema-prompts.md) | Organizacao e planejamento dos prompts |
-| [Runbook](./runbook.md) | Procedimentos operacionais |
-| [Setup](./setup.md) | Checklist de configuracao com status |
-| [Briefing Template](./briefing-template.md) | Template Google Docs para gestor |
-| [Campaign Templates](./campaign-templates.md) | Templates de campanha no Google Drive |
-| [Guardrails Queries](./guardrails-queries.md) | Queries de auditoria Sprint 18 |
-| [Producao Canary](./producao-canary.md) | Governanca de rollout para producao |
-| [Playbook Handoff](./playbook-handoff.md) | Operacao da ponte medico-divulgador |
-| [Migracao Status](./migracao-status-fechada.md) | Notas sobre migracoes |
+| [Visao Geral](./arquitetura/visao-geral.md) | Arquitetura do sistema, componentes e fluxos |
+| [API e Endpoints](./arquitetura/api-endpoints.md) | Referencia completa de todos os endpoints |
+| [Servicos](./arquitetura/servicos.md) | Detalhes dos modulos de servico |
+| [Banco de Dados](./arquitetura/banco-de-dados.md) | Schema das tabelas e relacionamentos |
+| [Logica de Negocio](./arquitetura/logica-negocio.md) | Fluxos de negocio e regras |
+
+### Setup e Deploy
+
+| Documento | Descricao |
+|-----------|-----------|
+| [Configuracao](./setup/configuracao.md) | Como configurar o projeto |
+| [Setup](./setup/setup.md) | Checklist de configuracao com status |
+| [Deploy](./setup/deploy.md) | Docker, Railway e monitoramento |
+| [Producao Canary](./setup/producao-canary.md) | Governanca de rollout para producao |
+
+### Operacao
+
+| Documento | Descricao |
+|-----------|-----------|
+| [Runbook](./operacao/runbook.md) | Procedimentos operacionais |
+| [Deploy Prod Report](./operacao/deploy-prod-report.md) | Relatorio de deploy em producao |
+| [Playbook Handoff](./operacao/playbook-handoff.md) | Operacao da ponte medico-divulgador |
+| [Testes Manuais](./operacao/testes-manuais.md) | Guia de testes antes do lancamento |
+| [Guardrails Queries](./operacao/guardrails-queries.md) | Queries de auditoria |
+
+### Integracoes Externas
+
+| Documento | Descricao |
+|-----------|-----------|
+| [Visao Geral](./integracoes/README.md) | Overview de todas as integracoes |
+| [Evolution API - Quick Reference](./integracoes/evolution-api-quickref.md) | Endpoints, autenticacao, exemplos |
+| [Evolution API - Webhooks](./integracoes/evolution-api-webhooks.md) | Payloads de webhook e eventos |
+| [Chatwoot API - Quick Reference](./integracoes/chatwoot-api-quickref.md) | Endpoints, autenticacao, exemplos |
+| [Chatwoot - Webhooks](./integracoes/chatwoot-webhooks.md) | Payloads de webhook e eventos |
+| [Railway - Quick Reference](./integracoes/railway-quickref.md) | CLI, auto-deploy, variaveis |
+| [Railway - Deploy](./integracoes/railway-deploy.md) | Troubleshooting, logs, rollback |
+| [Slack - Logica de Negocio](./integracoes/slack-logica-negocio.md) | Regras, fluxos e arquitetura Slack |
+
+### Julia (Persona e Prompts)
+
+| Documento | Descricao |
+|-----------|-----------|
+| [Persona Julia](./julia/persona-julia.md) | Identidade, tom e exemplos |
+| [Sistema de Prompts](./julia/sistema-prompts.md) | Organizacao e planejamento dos prompts |
+| [Prompt Coverage](./julia/prompt-coverage.md) | Cobertura de cenarios nos prompts |
+| [Briefings](./julia/briefings.md) | Briefings do gestor |
+| [Briefing Template](./julia/briefing-template.md) | Template Google Docs para gestor |
+
+### Templates
+
+| Documento | Descricao |
+|-----------|-----------|
+| [Campaign Templates](./templates/campaign-templates.md) | Templates de campanha no Google Drive |
+
+### Auditorias
+
+| Documento | Descricao |
+|-----------|-----------|
+| [Auditoria Processos](./auditorias/auditoria-processos.md) | Auditoria de processos de negocio |
+| [Auditoria Tecnica](./auditorias/auditoria-tecnica.md) | Auditoria tecnica do sistema |
+| [Migracao Status](./auditorias/migracao-status-fechada.md) | Notas sobre migracoes |
+
+### Arquivo
+
+Documentos obsoletos estao em [archive/](./archive/)
 
 ---
 
@@ -61,34 +109,35 @@ Julia e uma **escalista virtual** que:
 ```
 whatsapp-api/
 ├── app/
-│   ├── api/routes/       # 10 routers de endpoints
-│   ├── services/         # 118 modulos de servico
+│   ├── api/routes/       # Routers de endpoints
+│   ├── services/         # Modulos de servico
 │   ├── core/             # Config, prompts, logging
-│   ├── tools/            # Ferramentas do agente (vagas, slack, briefing)
+│   ├── tools/            # Ferramentas do agente
 │   ├── prompts/          # Sistema de prompts dinamicos
 │   ├── pipeline/         # Pipeline de processamento
 │   ├── workers/          # Scheduler e fila
-│   ├── schemas/          # Pydantic models
 │   └── main.py           # FastAPI app
-├── tests/                # 1177 testes
-│   ├── persona/          # Testes de identidade
-│   ├── resiliencia/      # Testes de circuit breaker
-│   └── optout/           # Testes de opt-out
+├── tests/                # Testes unitarios e integracao
 ├── docs/                 # Esta documentacao
-├── planning/             # Sprints e epics (0-18)
-└── docker-compose.yml    # Evolution, Chatwoot, Redis
+│   ├── arquitetura/      # Docs de arquitetura
+│   ├── setup/            # Docs de configuracao
+│   ├── operacao/         # Runbooks e procedimentos
+│   ├── integracoes/      # APIs externas
+│   ├── julia/            # Persona e prompts
+│   ├── templates/        # Templates de campanha
+│   ├── auditorias/       # Relatorios de auditoria
+│   └── archive/          # Docs obsoletos
+└── planning/             # Sprints e epics
 ```
 
 ### Metricas Atuais
 
-| Recurso | Quantidade |
-|---------|------------|
-| Arquivos Python | 200 |
-| Endpoints API | 97 |
-| Servicos | 118 |
-| Tabelas no banco | 54 |
-| Migracoes | 93 |
-| Testes | 1177 |
+Para metricas atualizadas, verificar CLAUDE.md ou rodar:
+```bash
+find app -name "*.py" | wc -l          # Arquivos Python
+ls app/services/*.py | wc -l           # Servicos
+uv run pytest --collect-only -q | tail -1  # Testes
+```
 
 ---
 
@@ -177,8 +226,8 @@ O sistema monitora quando medicos suspeitam que estao falando com IA:
 
 - **Projeto:** Agente Julia - Revoluna
 - **Inicio:** 05/12/2025
-- **Sprint atual:** 18 - Auditoria e Integridade
+- **Sprint atual:** Ver CLAUDE.md para status atualizado
 
 ---
 
-*Documentacao atualizada em 29/12/2025*
+*Documentacao atualizada em 31/12/2025*

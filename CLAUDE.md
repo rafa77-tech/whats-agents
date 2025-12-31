@@ -16,18 +16,19 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 **Sprint Atual:** 18 - Auditoria e Integridade
 **Início do Projeto:** 05/12/2025
-**Última Atualização:** 29/12/2025
+**Última Atualização:** 31/12/2025
 
 ### Métricas do Projeto
 
-| Recurso | Quantidade |
-|---------|------------|
-| Arquivos Python | 200 |
-| Serviços | 118 |
-| Tabelas no banco | 54 |
-| Migrações | 93 |
-| Testes | 1177 |
-| Endpoints API | 97 |
+| Recurso | Quantidade | Como verificar |
+|---------|------------|----------------|
+| Arquivos Python | ~220 | `find app -name "*.py" \| wc -l` |
+| Módulos de serviço | ~150 | `find app/services -name "*.py" \| wc -l` |
+| Tabelas no banco | ~55 | `mcp__supabase__list_tables` |
+| Testes | ~1500 | `grep -r "def test_" tests/ \| wc -l` |
+| Routers API | ~15 | `find app/api/routes -name "*.py" \| wc -l` |
+
+> **Nota:** Métricas aproximadas. Rodar comandos para valores exatos.
 
 ### Sprints Concluídas
 
@@ -52,6 +53,8 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 16 | Confirmação de Plantão | ✅ Completa |
 | 17 | Business Events e Funil | ✅ Completa |
 | 18 | Auditoria e Integridade | 🔄 Em Progresso |
+| 25 | Julia Warmer (Foundation) | 📋 Planejado |
+| 26 | Multi-Julia Orchestration | 📋 Planejado |
 
 ### Funcionalidades Implementadas
 
@@ -204,30 +207,34 @@ CRM, RG e dados bancários, blz?
 
 ```
 /whatsapp-api
-├── CLAUDE.md                    # Este arquivo (fonte única)
+├── CLAUDE.md                    # Este arquivo (fonte única de verdade)
 ├── app/
-│   ├── api/routes/             # 10 routers de endpoints
-│   ├── services/               # 46 módulos de serviço
+│   ├── api/routes/             # Routers de endpoints
+│   ├── services/               # Módulos de serviço
 │   ├── tools/                  # Tools do agente (vagas, memoria, slack)
 │   ├── pipeline/               # Pipeline de processamento
 │   ├── prompts/                # Sistema de prompts dinâmicos
 │   ├── templates/              # Templates de mensagens
 │   ├── workers/                # Scheduler e workers
-│   ├── core/                   # Config, logging, prompts
+│   ├── core/                   # Config, logging, exceptions
+│   ├── CONVENTIONS.md          # Convenções de código
 │   └── main.py                 # FastAPI app
 │
-├── tests/                      # 443 testes
+├── tests/                      # Testes (ver métricas acima)
 │
 ├── docs/                       # Documentação técnica
-│   ├── README.md               # Índice da documentação
-│   ├── 01-ARQUITETURA.md       # Visão geral do sistema
-│   ├── 02-API-ENDPOINTS.md     # Referência de endpoints
-│   ├── 03-SERVICOS.md          # Detalhes dos serviços
-│   └── ...                     # Outros docs
+│   ├── arquitetura/            # Docs de arquitetura
+│   ├── setup/                  # Docs de configuração
+│   ├── operacao/               # Runbooks e procedimentos
+│   ├── integracoes/            # APIs externas (Evolution, Chatwoot, Railway)
+│   ├── julia/                  # Persona, prompts, conhecimento RAG
+│   ├── templates/              # Templates de campanha
+│   ├── auditorias/             # Relatórios de auditoria
+│   └── archive/                # Docs obsoletos
 │
 ├── planning/                   # Sprints e épicos
-│   ├── sprint-0/ a sprint-10/  # Planejamento de cada sprint
-│   └── README.md               # Visão geral do roadmap
+│   ├── sprint-*/               # Planejamento por sprint
+│   └── README.md               # Roadmap
 │
 ├── docker-compose.yml          # Evolution, Chatwoot, Redis
 ├── .env.example                # Template de variáveis
@@ -256,11 +263,72 @@ docker compose logs -f <serviço> # Logs
 # PgAdmin:       http://localhost:4000
 ```
 
+### Railway CLI (Resumo)
+
+```bash
+railway login                    # Auth
+railway logs -n 50               # Últimas 50 linhas
+railway logs                     # Streaming
+railway status                   # Projeto atual
+```
+
+**Docs completos:** `docs/integracoes/railway-quickref.md` e `docs/integracoes/railway-deploy.md`
+
+**Projeto:** `remarkable-communication` | **Serviço:** `whats-agents` | **Ambiente:** `production`
+
+---
+
+## Ambientes Supabase (MCP)
+
+O projeto possui dois ambientes Supabase configurados via MCP:
+
+| Ambiente | Project Ref | URL | Uso |
+|----------|-------------|-----|-----|
+| **PROD** | `jyqgbzhqavgpxqacduoi` | https://jyqgbzhqavgpxqacduoi.supabase.co | Julia em produção |
+| **DEV** | `ofpnronthwcsybfxnxgj` | https://ofpnronthwcsybfxnxgj.supabase.co | Desenvolvimento/testes |
+
+### Ferramentas MCP
+
+```
+# PROD (julia-prod)
+mcp__supabase-prod__execute_sql
+mcp__supabase-prod__apply_migration
+mcp__supabase-prod__list_tables
+mcp__supabase-prod__get_project_url
+
+# DEV (banco_medicos)
+mcp__supabase-dev__execute_sql
+mcp__supabase-dev__apply_migration
+mcp__supabase-dev__list_tables
+mcp__supabase-dev__get_project_url
+```
+
+### Regras Importantes
+
+1. **Migrations em PROD**: Sempre usar `mcp__supabase-prod__apply_migration` para produção
+2. **Testes em DEV**: Testar queries complexas primeiro no DEV
+3. **Nunca confundir**: Verificar o ambiente antes de executar DDL
+
+### Configuração (se precisar reconfigurar)
+
+```bash
+# Listar MCPs configurados
+claude mcp list
+
+# Adicionar PROD
+claude mcp add supabase-prod --transport http "https://mcp.supabase.com/mcp?project_ref=jyqgbzhqavgpxqacduoi"
+
+# Adicionar DEV
+claude mcp add supabase-dev --transport http "https://mcp.supabase.com/mcp?project_ref=ofpnronthwcsybfxnxgj"
+
+# Autenticação acontece automaticamente via OAuth ao usar /mcp
+```
+
 ---
 
 ## Banco de Dados
 
-**35 tabelas** organizadas em categorias:
+Tabelas organizadas em categorias (ver métricas acima para contagem atual):
 
 | Categoria | Tabelas | Principais |
 |-----------|---------|------------|
@@ -271,7 +339,7 @@ docker compose logs -f <serviço> # Logs
 | Analytics | 4 | metricas_conversa, avaliacoes_qualidade, metricas_deteccao_bot, sugestoes_prompt |
 | Infraestrutura | 4 | whatsapp_instances, notificacoes_gestor, slack_comandos, briefing_sync_log |
 
-**Detalhes completos:** `docs/04-BANCO-DE-DADOS.md`
+**Detalhes completos:** `docs/arquitetura/banco-de-dados.md`
 
 ---
 
@@ -376,22 +444,89 @@ Usar exceptions de `app/core/exceptions.py`:
 
 ## Documentação Detalhada
 
+### Docs por Categoria
+
+| Categoria | Diretório | Conteúdo |
+|-----------|-----------|----------|
+| Arquitetura | `docs/arquitetura/` | Visão geral, endpoints, banco, serviços |
+| Setup | `docs/setup/` | Configuração, deploy, produção |
+| Operação | `docs/operacao/` | Runbook, playbooks, testes manuais |
+| Integrações | `docs/integracoes/` | Evolution, Chatwoot, Railway, Slack |
+| Julia | `docs/julia/` | Persona, prompts, conhecimento RAG |
+| Auditorias | `docs/auditorias/` | Relatórios técnicos e de processos |
+
+### Docs de Integrações (Quick Reference)
+
 | Documento | Conteúdo |
 |-----------|----------|
-| `docs/arquitetura.md` | Visão geral do sistema, componentes e fluxos |
-| `docs/api-endpoints.md` | Referência completa de todos os endpoints |
-| `docs/servicos.md` | Detalhes dos 118 módulos de serviço |
-| `docs/banco-de-dados.md` | Schema das 54 tabelas e relacionamentos |
-| `docs/configuracao.md` | Como configurar e rodar o projeto |
-| `docs/deploy.md` | Docker, workers e monitoramento |
-| `docs/logica-negocio.md` | Fluxos de negócio e regras |
-| `docs/persona-julia.md` | Identidade, tom e exemplos |
-| `docs/integracoes.md` | WhatsApp, Chatwoot, Slack, etc |
-| `docs/testes-manuais.md` | Guia de testes antes do lançamento |
-| `docs/sistema-prompts.md` | Organização e planejamento dos prompts |
-| `docs/RUNBOOK.md` | Procedimentos operacionais |
-| `docs/campaign-templates.md` | Templates de campanha no Google Drive |
-| `docs/julia/` | Base de conhecimento para RAG (objeções, templates, prompts) |
+| `docs/integracoes/evolution-api-quickref.md` | Endpoints, auth, envio de mensagens |
+| `docs/integracoes/evolution-api-webhooks.md` | Eventos, payloads, configuração |
+| `docs/integracoes/chatwoot-api-quickref.md` | Endpoints, auth, conversas, contatos |
+| `docs/integracoes/chatwoot-webhooks.md` | Eventos, payloads, handoff |
+| `docs/integracoes/railway-quickref.md` | CLI, comandos, variáveis |
+| `docs/integracoes/railway-deploy.md` | Deploy, troubleshooting, logs |
+| `planning/sprint-25/docs-salvy-*.md` | Salvy API (números virtuais) |
+
+---
+
+## Documentação de Integrações Externas
+
+Ao trabalhar com serviços externos, **sempre consultar a documentação local primeiro**. Na dúvida, fazer pesquisa online com `WebFetch` ou `WebSearch`.
+
+### Salvy (Números Virtuais)
+
+**Serviço:** Provisionamento de números virtuais para WhatsApp
+
+**Documentação local (consultar primeiro):**
+- `planning/sprint-25/docs-salvy-quickref.md` - Endpoints, auth, exemplos rápidos
+- `planning/sprint-25/docs-salvy-webhooks.md` - Webhook SMS, verificação Svix
+
+**Documentação oficial (na dúvida):**
+- https://docs.salvy.com.br/api-reference/virtual-phone-accounts/introduction
+
+**Epic de implementação:** `planning/sprint-25/epic-02-salvy-integration.md`
+
+### Evolution API (WhatsApp)
+
+**Serviço:** API para controle do WhatsApp via Baileys
+
+**Documentação local (consultar primeiro):**
+- `docs/integracoes/evolution-api-quickref.md` - Endpoints, auth, envio de mensagens
+- `docs/integracoes/evolution-api-webhooks.md` - Eventos, payloads, configuração
+
+**Documentação oficial (na dúvida):**
+- https://doc.evolution-api.com/v2/
+
+### Chatwoot (Supervisão)
+
+**Serviço:** Plataforma de atendimento e supervisão
+
+**Documentação local (consultar primeiro):**
+- `docs/integracoes/chatwoot-api-quickref.md` - Endpoints, auth, conversas, contatos
+- `docs/integracoes/chatwoot-webhooks.md` - Eventos, payloads, handoff
+
+**Documentação oficial (na dúvida):**
+- https://developers.chatwoot.com/
+
+### Railway (Deploy)
+
+**Serviço:** Plataforma de deploy via GitHub
+
+**Documentação local (consultar primeiro):**
+- `docs/integracoes/railway-quickref.md` - CLI, comandos, variaveis, healthcheck
+- `docs/integracoes/railway-deploy.md` - Deploy, troubleshooting, logs, rollback
+
+**Documentação oficial (na dúvida):**
+- https://docs.railway.com/
+
+**Projeto:** `remarkable-communication` | **Serviço:** `whats-agents`
+
+### Outras Integrações
+
+| Serviço | Docs |
+|---------|------|
+| Slack | https://api.slack.com/methods |
+| Google Docs | https://developers.google.com/docs/api |
 
 ---
 
@@ -403,4 +538,13 @@ Usar exceptions de `app/core/exceptions.py`:
 | Latência de resposta | < 30s |
 | Taxa detecção como bot | < 1% |
 | Uptime | > 99% |
-- Quando for executar uma tarefa tenha certeza que está seguindo as orientacoes da sprint em que estamos. Caso tenha dúvida, pergunte.
+
+---
+
+## Regras para o Claude
+
+1. **Seguir a sprint atual** - Verificar qual sprint está em andamento antes de implementar
+2. **Consultar docs locais primeiro** - Para integrações, sempre ler docs em `docs/` antes de buscar online
+3. **Perguntar na dúvida** - Se não tiver certeza do escopo ou abordagem, perguntar ao usuário
+4. **Convenções de código** - Seguir `app/CONVENTIONS.md` rigorosamente
+5. **Testes** - Rodar `uv run pytest` antes de considerar tarefa completa
