@@ -423,3 +423,27 @@ O que falta:
 Relatório V2 gerado durante sessão de auditoria.
 Claude Code + Rafael Pivovar
 31/12/2025 19:30 UTC
+
+---
+
+## ENCERRAMENTO
+
+**Data de Encerramento:** 31/12/2025 21:15 UTC
+**Status Final:** Todas as acoes corretivas implementadas
+
+### Acoes Tomadas Pos-Auditoria
+
+| Acao | Status |
+|------|--------|
+| Versionamento operacional (GIT_SHA, BUILD_TIME) | Implementado |
+| DEV guardrails (OUTBOUND_ALLOWLIST fail-closed) | Implementado |
+| Marcadores de ambiente em app_settings | Implementado |
+| Validacao cruzada APP_ENV vs DB | Implementado |
+| Documentacao ENV-CONTRACT.md | Criada |
+| Documentacao TEST-PLAYBOOK.md | Criada |
+
+### Evidencias de Encerramento
+
+Todos os artefatos salvos em: `docs/auditorias/sprint-18/`
+
+**Sprint 18 encerrada com sucesso.**

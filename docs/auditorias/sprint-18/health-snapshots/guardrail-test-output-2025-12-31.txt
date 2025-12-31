@@ -1,0 +1,125 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.9, pytest-9.0.1, pluggy-1.6.0 -- /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/rafaelpivovar/Documents/Projetos/whatsapp-api
+configfile: pyproject.toml
+plugins: langsmith-0.4.58, anyio-4.12.0, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 4 items
+
+tests/unit/test_outbound_finalizacao.py::TestDevAllowlistGuardrail::test_dev_allowlist_empty_blocks_all PASSED [ 25%]
+tests/unit/test_outbound_finalizacao.py::TestDevAllowlistGuardrail::test_dev_allowlist_blocks_number_not_in_list PASSED [ 50%]
+tests/unit/test_outbound_finalizacao.py::TestDevAllowlistGuardrail::test_dev_allowlist_allows_number_in_list PASSED [ 75%]
+tests/unit/test_outbound_finalizacao.py::TestDevAllowlistGuardrail::test_production_bypasses_dev_allowlist PASSED [100%]
+
+=============================== warnings summary ===============================
+app/core/config.py:9
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/app/core/config.py:9: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class Settings(BaseSettings):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:20
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:20: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class BaseBucket(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:130
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:130: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SignedUrlJsonResponse(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:134
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:134: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SignedUrlsJsonItem(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:143
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:143: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class CreateSignedUploadUrlOptions(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:161
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:161: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class MetadataConfiguration(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:167
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:167: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ListIndexesOptions(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:173
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:173: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ListIndexesResponseItem(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:177
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:177: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ListVectorIndexesResponse(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:182
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:182: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VectorIndex(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:194
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:194: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class GetVectorIndexResponse(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:201
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:201: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VectorData(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:205
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:205: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VectorObject(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:211
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:211: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VectorMatch(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:218
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:218: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class GetVectorsResponse(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:222
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:222: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ListVectorsResponse(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:227
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:227: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class QueryVectorsResponse(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:231
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:231: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AnalyticsBucket(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:245
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:245: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AnalyticsBucketDeleteResponse(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:249
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:249: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VectorBucketEncryptionConfiguration(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:254
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:254: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class VectorBucket(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:260
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:260: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class GetVectorBucketResponse(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:264
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:264: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ListVectorBucketsItem(BaseModel, extra=Extra.ignore):
+
+.venv/lib/python3.13/site-packages/storage3/types.py:268
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/storage3/types.py:268: PydanticDeprecatedSince20: `pydantic.config.Extra` is deprecated, use literal values instead (e.g. `extra='allow'`). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ListVectorBucketsResponse(BaseModel, extra=Extra.ignore):
+
+app/tools/vagas.py:7
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/app/tools/vagas.py:7: DeprecationWarning: vaga.py is deprecated. Use app.services.vagas instead.
+    from app.services.vaga import (
+
+tests/unit/test_outbound_finalizacao.py::TestDevAllowlistGuardrail::test_dev_allowlist_allows_number_in_list
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/supabase/_sync/client.py:302: DeprecationWarning: The 'timeout' parameter is deprecated. Please configure it in the http client instead.
+    return SyncPostgrestClient(
+
+tests/unit/test_outbound_finalizacao.py::TestDevAllowlistGuardrail::test_dev_allowlist_allows_number_in_list
+  /Users/rafaelpivovar/Documents/Projetos/whatsapp-api/.venv/lib/python3.13/site-packages/supabase/_sync/client.py:302: DeprecationWarning: The 'verify' parameter is deprecated. Please configure it in the http client instead.
+    return SyncPostgrestClient(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 4 passed, 27 warnings in 0.66s ========================

@@ -14,7 +14,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 ## Estado Atual
 
-**Sprint Atual:** 18 - Auditoria e Integridade
+**Sprint Atual:** Entre sprints (18 encerrada, 25 planejada)
 **Início do Projeto:** 05/12/2025
 **Última Atualização:** 31/12/2025
 
@@ -52,7 +52,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 15 | Policy Engine (Estado + Decisão) | ✅ Completa |
 | 16 | Confirmação de Plantão | ✅ Completa |
 | 17 | Business Events e Funil | ✅ Completa |
-| 18 | Auditoria e Integridade | 🔄 Em Progresso |
+| 18 | Auditoria e Integridade | ✅ Completa |
 | 25 | Julia Warmer (Foundation) | 📋 Planejado |
 | 26 | Multi-Julia Orchestration | 📋 Planejado |
 

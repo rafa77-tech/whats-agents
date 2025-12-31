@@ -1,0 +1,77 @@
+{
+    "status": "healthy",
+    "version": {
+        "git_sha": "unknown",
+        "build_time": "unknown",
+        "railway_environment": "production",
+        "run_mode": "api"
+    },
+    "schema": {
+        "fingerprint": "fallback-186a95216dccc6b7",
+        "tables_checked": [
+            "clientes",
+            "conversations",
+            "fila_mensagens",
+            "doctor_state",
+            "intent_log",
+            "touch_reconciliation_log",
+            "app_settings"
+        ],
+        "error": "{'message': 'Could not find the function public.get_table_columns_for_fingerprint(table_names) in the schema cache', 'code': 'PGRST202', 'hint': 'Perhaps you meant to call the function public.get_time_to_fill_breakdown', 'details': 'Searched for the function public.get_table_columns_for_fingerprint with parameter table_names or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.'}"
+    },
+    "checks": {
+        "environment": {
+            "status": "ok",
+            "app_env": "production",
+            "db_env": "production"
+        },
+        "project_ref": {
+            "status": "ok",
+            "app_ref": "jyqgbzhqavgpxqacduoi",
+            "db_ref": "jyqgbzhqavgpxqacduoi"
+        },
+        "dev_guardrails": {
+            "status": "skipped",
+            "message": "Production environment - DEV guardrails not applicable",
+            "app_env": "production",
+            "is_production": true
+        },
+        "redis": {
+            "status": "ok",
+            "message": null
+        },
+        "supabase": {
+            "status": "ok",
+            "message": null
+        },
+        "tables": {
+            "status": "ok",
+            "missing": []
+        },
+        "views": {
+            "status": "ok",
+            "missing": []
+        },
+        "schema_version": {
+            "status": "error",
+            "current": null,
+            "expected": "20251230140000",
+            "message": "{'message': \"Could not find the table 'public.schema_migrations' in the schema cache\", 'code': 'PGRST205', 'hint': \"Perhaps you meant the table 'public.conversations'\", 'details': None}"
+        },
+        "prompts": {
+            "status": "ok",
+            "missing": [],
+            "inactive": [],
+            "too_short": [],
+            "missing_sentinels": [],
+            "missing_warnings": [],
+            "versions": {
+                "julia_base": "v2",
+                "julia_primeira_msg": "v1",
+                "julia_tools": "v1"
+            }
+        }
+    },
+    "timestamp": "2025-12-31T21:11:51.305065",
+    "deploy_safe": true
+}

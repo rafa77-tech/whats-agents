@@ -1,8 +1,14 @@
-# Sprint 18 - Data Integrity, Funil Real e Guardrails de Campanha
+# Sprint 18 - Auditoria e Integridade
 
-**Inicio:** A definir
-**Duracao estimada:** 1-2 semanas
+**Status:** ENCERRADA
+**Inicio:** 2025-12-29
+**Fim:** 2025-12-31
+**Duracao:** 3 dias
 **Dependencias:** Sprint 17 (Business Events Layer) completa
+
+> **Nota:** Sprint re-escopada durante execucao com base em auditoria de seguranca.
+> Escopo original (E10-E13) movido para sprints futuras.
+> Foco redirecionado para fundamentos de integridade operacional.
 
 ---
 
@@ -183,3 +189,62 @@ Todos emitem `business_event campaign_blocked` para visibilidade.
 - [ ] KPIs mostram valores coerentes
 - [ ] Guardrail bloqueia opted_out em campanha
 - [ ] Evento campaign_blocked registrado
+
+---
+
+## RESULTADO FINAL (Re-escopo)
+
+### Contexto da Mudanca
+
+Durante a Sprint 18, uma auditoria de seguranca identificou riscos criticos no pipeline de outbound.
+O escopo foi redirecionado para enderacar esses riscos antes de prosseguir com features.
+
+**Documento de auditoria:** `planning/sprint-18/relatorio-auditoria-outbound-v2.md`
+
+### Entregas Reais
+
+| Entrega | Status | Evidencia |
+|---------|--------|-----------|
+| Versionamento operacional (GIT_SHA, BUILD_TIME) | DONE | `/health/deep` |
+| Schema version tracking | DONE | `app_settings` |
+| Schema fingerprint | DONE | Fallback mode funcionando |
+| DEV guardrails (OUTBOUND_ALLOWLIST) | DONE | Fail-closed implementado |
+| Marcadores de ambiente | DONE | Validacao cruzada APP_ENV vs DB |
+| Deteccao de environment mismatch | DONE | Status CRITICAL no /health/deep |
+| ENV-CONTRACT.md | DONE | `docs/operacao/` |
+| TEST-PLAYBOOK.md | DONE | `docs/operacao/` |
+
+### Itens Diferidos
+
+| Item | Motivo | Destino |
+|------|--------|---------|
+| E10 - Auditoria de cobertura | Re-escopo | Sprint futura |
+| E11 - Reconciliacao DB vs Eventos | Re-escopo | Sprint futura |
+| E12 - 3 KPIs operacionais | Re-escopo | Sprint futura |
+| E13 - Guardrails de campanha | Parcialmente feito | Sprint futura |
+| Evolution DEV separado | Requer numero virtual | Sprint 25 |
+
+### Evidencias de Encerramento
+
+```
+docs/auditorias/sprint-18/
+├── SPRINT-18-CLOSE.md                    # Declaracao formal
+└── health-snapshots/
+    ├── prod-health-deep-2025-12-31.json
+    ├── dev-health-deep-2025-12-31.json
+    ├── guardrail-test-output-2025-12-31.txt
+    └── version-comparison-2025-12-31.md
+```
+
+### Metricas Finais
+
+| Metrica | Resultado |
+|---------|-----------|
+| DEV /health/deep | `status: healthy`, `deploy_safe: true` |
+| PROD /health/deep | `status: healthy`, `deploy_safe: true` |
+| Testes guardrail | 4/4 passaram |
+| Prompts sincronizados | DEV = PROD (v2) |
+
+---
+
+**Sprint 18 encerrada em 2025-12-31.**

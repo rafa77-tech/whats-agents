@@ -25,9 +25,10 @@ logger = logging.getLogger(__name__)
 APP_ENV = os.getenv("APP_ENV", "development")
 SUPABASE_PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF", "")
 
-# Versioning info (injected by CI/CD build)
-GIT_SHA = os.getenv("GIT_SHA", "unknown")
-BUILD_TIME = os.getenv("BUILD_TIME", "unknown")
+# Versioning info (injected by CI/CD build or Railway runtime)
+# Railway fornece RAILWAY_GIT_COMMIT_SHA automaticamente em runtime
+GIT_SHA = os.getenv("GIT_SHA") or os.getenv("RAILWAY_GIT_COMMIT_SHA") or "unknown"
+BUILD_TIME = os.getenv("BUILD_TIME") or os.getenv("RAILWAY_DEPLOYMENT_ID") or "unknown"
 RAILWAY_ENVIRONMENT = os.getenv("RAILWAY_ENVIRONMENT", "unknown")
 RUN_MODE = os.getenv("RUN_MODE", "unknown")
 
@@ -49,7 +50,7 @@ CRITICAL_TABLES = [
 ]
 
 # Última migration conhecida (atualizar quando adicionar migrations críticas)
-EXPECTED_SCHEMA_VERSION = "20251230140000"  # create_app_settings_environment_marker
+EXPECTED_SCHEMA_VERSION = "20251231211500"  # create_get_table_columns_for_fingerprint
 
 # Contrato de prompts - sentinelas obrigatórias para deploy seguro
 REQUIRED_PROMPTS = {
@@ -583,15 +584,15 @@ async def deep_health_check(response: Response):
         all_ok = False
         logger.error(f"[health/deep] Views check failed: {e}")
 
-    # 5. Check schema version (última migration aplicada)
+    # 5. Check schema version (via app_settings - contrato Sprint 18)
     try:
-        result = supabase.table("schema_migrations").select("version").order("version", desc=True).limit(1).execute()
+        result = supabase.table("app_settings").select("value").eq("key", "schema_version").single().execute()
         if result.data:
-            current_version = result.data[0]["version"]
+            current_version = result.data.get("value")
             checks["schema_version"]["current"] = current_version
 
             # Comparar versões (são strings no formato YYYYMMDDHHMMSS)
-            if current_version >= EXPECTED_SCHEMA_VERSION:
+            if current_version and current_version >= EXPECTED_SCHEMA_VERSION:
                 checks["schema_version"]["status"] = "ok"
             else:
                 checks["schema_version"]["status"] = "warning"
@@ -599,12 +600,12 @@ async def deep_health_check(response: Response):
                 # Warning não falha o deploy, mas avisa
         else:
             checks["schema_version"]["status"] = "error"
-            checks["schema_version"]["message"] = "No migrations found"
+            checks["schema_version"]["message"] = "schema_version not found in app_settings"
             all_ok = False
     except Exception as e:
         checks["schema_version"]["status"] = "error"
         checks["schema_version"]["message"] = str(e)
-        # Não falha se não conseguir verificar versão (tabela pode não existir)
+        # Não falha se não conseguir verificar versão
         logger.warning(f"[health/deep] Schema version check failed: {e}")
 
     # 6. Check prompt contract (sentinelas obrigatórias)
@@ -647,19 +648,28 @@ async def schema_info():
     """
     Retorna informações do schema do banco.
 
-    Útil para debug e verificação manual de migrations.
+    Útil para debug e verificação manual.
+    Usa app_settings como fonte de verdade (contrato Sprint 18).
     """
     try:
-        # Últimas 10 migrations
-        result = supabase.table("schema_migrations").select("*").order("version", desc=True).limit(10).execute()
+        # Buscar schema_version e schema_applied_at de app_settings
+        result = supabase.table("app_settings").select("key, value").in_(
+            "key", ["schema_version", "schema_applied_at"]
+        ).execute()
 
-        migrations = result.data if result.data else []
+        settings_map = {r["key"]: r["value"] for r in (result.data or [])}
+        current_version = settings_map.get("schema_version")
+        applied_at = settings_map.get("schema_applied_at")
+
+        # Gerar fingerprint
+        schema_fp = _generate_schema_fingerprint()
 
         return {
-            "latest_migration": migrations[0]["version"] if migrations else None,
-            "expected_migration": EXPECTED_SCHEMA_VERSION,
-            "schema_up_to_date": migrations[0]["version"] >= EXPECTED_SCHEMA_VERSION if migrations else False,
-            "recent_migrations": [m["version"] for m in migrations],
+            "current_version": current_version,
+            "expected_version": EXPECTED_SCHEMA_VERSION,
+            "schema_up_to_date": current_version >= EXPECTED_SCHEMA_VERSION if current_version else False,
+            "applied_at": applied_at,
+            "fingerprint": schema_fp.get("fingerprint"),
             "critical_tables": CRITICAL_TABLES,
             "critical_views": CRITICAL_VIEWS,
             "timestamp": datetime.utcnow().isoformat(),
