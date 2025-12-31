@@ -49,6 +49,15 @@ ALERTAS_GRUPOS = {
     },
 }
 
+# Títulos amigáveis para exibição ao usuário (Slack, logs)
+TITULOS_ALERTAS = {
+    "fila_travada": "Fila com Muitos Erros",
+    "taxa_conversao_baixa": "Taxa de Conversão Baixa",
+    "custo_alto": "Custo Diário Elevado",
+    "itens_pendentes_antigos": "Itens Pendentes Há Muito Tempo",
+    "duplicacao_alta": "Alta Taxa de Duplicação",
+}
+
 
 # =============================================================================
 # Verificadores de Alertas
@@ -253,8 +262,10 @@ async def enviar_alerta_grupos_slack(alerta: Dict):
         "critical": "🔴",
     }
 
+    titulo = TITULOS_ALERTAS.get(alerta["tipo"], alerta["tipo"])
+
     mensagem = {
-        "text": f"{emoji.get(alerta['severidade'], '⚠️')} Pipeline Grupos: {alerta['tipo']}",
+        "text": f"{emoji.get(alerta['severidade'], '⚠️')} Pipeline Grupos: {titulo}",
         "attachments": [{
             "color": cor,
             "fields": [
@@ -284,7 +295,8 @@ async def executar_verificacao_alertas_grupos():
                 await enviar_alerta_grupos_slack(alerta)
 
                 # Registrar alerta no log
-                logger.warning(f"Alerta grupos: {alerta['tipo']} - {alerta['mensagem']}")
+                titulo = TITULOS_ALERTAS.get(alerta['tipo'], alerta['tipo'])
+                logger.warning(f"Alerta grupos: {titulo} - {alerta['mensagem']}")
 
         return alertas
 
