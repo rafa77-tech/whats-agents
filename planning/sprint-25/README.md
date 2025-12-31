@@ -1,64 +1,124 @@
-# Sprint 25: Julia Warmer - Sistema de Aquecimento de WhatsApp
+# Sprint 25: Warmer + Salvy + Trust Score Foundation
 
 **Status:** Planejado
 **Inicio:** A definir
 **Estimativa:** 3 semanas
-**Dependencias:** Sprint 21 (Production Gate)
+**Dependencias:** Nenhuma
 
 ---
 
 ## Objetivo
 
-Construir sistema proprio de **aquecimento de numeros WhatsApp** para operacao em escala industrial, eliminando dependencia de ferramentas terceiras e integrando nativamente com a plataforma Julia.
+Construir o **sistema de aquecimento de chips WhatsApp** com:
+- Integração Salvy para provisioning automatico
+- Trust Score multiparametrico (não triggers binarios)
+- RAG de politicas Meta constantemente atualizado
+- Foundation para multi-chip em producao
 
-### Contexto
+### Contexto de Negocio
 
-- **87% das contas novas** sofrem restricoes em 72h sem aquecimento
-- Contas aquecidas por 21+ dias alcancam **20-30 msgs/dia para desconhecidos**
-- Meta: ser o **maior comunicador com medicos do Brasil**
-- Escala planejada: **50-100+ chips**, **1000+ grupos**
+| Metrica | Valor |
+|---------|-------|
+| Contas banidas sem warm-up | 87% em 72h |
+| Tempo minimo de aquecimento | 21 dias |
+| Meta Trust Score para producao | ≥ 85 |
+| Escala planejada | 50-100+ chips |
+
+### Mudanca de Paradigma
+
+| Antes (triggers) | Agora (Trust Score) |
+|------------------|---------------------|
+| Ban = pausa | Score continuo 0-100 |
+| Regras fixas | Permissoes dinamicas |
+| Reativo | Proativo e preditivo |
+| 1 chip por vez | N chips com capacidade distribuida |
 
 ---
 
 ## Arquitetura
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                     JULIA PLATFORM                           │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
-│  │   WARMER    │  │   AGENT     │  │  OPERATOR   │          │
-│  │  (warm-up)  │  │ (conversas) │  │  (gestao)   │          │
-│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘          │
-│         │                │                │                  │
-│         └────────────────┼────────────────┘                  │
-│                          │                                   │
-│  ┌───────────────────────▼────────────────────────┐         │
-│  │           Evolution API Pool (N instancias)     │         │
-│  │  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐      │         │
-│  │  │Chip1│ │Chip2│ │Chip3│ │ ... │ │ChipN│      │         │
-│  │  └─────┘ └─────┘ └─────┘ └─────┘ └─────┘      │         │
-│  └────────────────────────────────────────────────┘         │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        SPRINT 25 SCOPE                              │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                     TRUST SCORER                             │   │
+│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐               │   │
+│  │  │  Fatores  │  │  Calculo  │  │ Permissoes│               │   │
+│  │  │  Coleta   │──│  Score    │──│ Dinamicas │               │   │
+│  │  └───────────┘  └───────────┘  └───────────┘               │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                             │                                       │
+│         ┌───────────────────┼───────────────────┐                  │
+│         │                   │                   │                  │
+│         ▼                   ▼                   ▼                  │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐            │
+│  │   SALVY     │    │   WARMER    │    │  META RAG   │            │
+│  │ INTEGRATION │    │   ENGINE    │    │  POLICIES   │            │
+│  │             │    │             │    │             │            │
+│  │ Provisionar │    │ Aquecimento │    │ Embeddings  │            │
+│  │ Cancelar    │    │ 21 dias     │    │ Atualizado  │            │
+│  │ Webhook SMS │    │ Conversas   │    │ Consultas   │            │
+│  └─────────────┘    └─────────────┘    └─────────────┘            │
+│         │                   │                   │                  │
+│         └───────────────────┼───────────────────┘                  │
+│                             ▼                                       │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                    EVOLUTION API POOL                        │   │
+│  │   ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐          │   │
+│  │   │ 001 │ │ 002 │ │ 003 │ │ ... │ │ 049 │ │ 050 │          │   │
+│  │   └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘          │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Ciclo de Vida do Chip
+---
 
-```
-NOVO CHIP
-    │
-    ▼
-┌─────────┐     21 dias      ┌─────────┐    Continuo    ┌─────────┐
-│ WARMER  │ ───────────────► │  AGENT  │ ─────────────► │ MONITOR │
-│(warm-up)│  Health >= 85%   │ (Julia) │   Health ok    │(saude)  │
-└─────────┘                  └─────────┘                └─────────┘
-    ▲                                                        │
-    │                      Health < 50%                      │
-    └────────────────────────────────────────────────────────┘
-                        (volta pro warm-up)
-```
+## Politicas Meta - Resumo para RAG
+
+### Limites de Mensagens (Outubro 2025+)
+
+| Tier | Limite/dia | Como subir |
+|------|------------|------------|
+| Tier 1 | 1.000 destinatarios | Inicial |
+| Tier 2 | 10.000 destinatarios | Qualidade media+ e usar 50% do limite |
+| Tier 3 | 100.000 destinatarios | Qualidade alta e usar 50% do limite |
+| Unlimited | Sem limite | Empresas verificadas |
+
+**IMPORTANTE (Out/2025):** Limite e compartilhado por PORTFOLIO, nao por numero.
+
+### Quality Rating
+
+| Cor | Nivel | Impacto |
+|-----|-------|---------|
+| 🟢 Verde | Alta | Pode subir de tier |
+| 🟡 Amarelo | Media | Mantem tier atual |
+| 🔴 Vermelho | Baixa | Nao sobe de tier (nao desce mais desde Out/2025) |
+
+### Motivos de Ban (Evitar!)
+
+1. **Spam** - Mensagens em massa nao solicitadas
+2. **Automacao nao autorizada** - Bots sem API oficial
+3. **Feedback negativo** - Usuarios bloqueando/denunciando
+4. **Conteudo proibido** - Ver lista completa
+5. **Terceiros nao autorizados** - GB WhatsApp, mods
+6. **Mensagens sem consentimento** - Opt-in obrigatorio
+
+### Boas Praticas
+
+- Consentimento explicito antes de enviar
+- Botao de unsubscribe em templates
+- Mensagens personalizadas e uteis
+- Frequencia moderada (nao bombardear)
+- Responder dentro de 24h
+- Encaminhamento rapido para humano
+
+**Fontes:**
+- [WhatsApp Business Policy](https://business.whatsapp.com/policy)
+- [Quality Rating - 360Dialog](https://docs.360dialog.com/docs/waba-management/capacity-quality-rating-and-messaging-limits)
+- [Messaging Limits - Turn.io](https://learn.turn.io/l/en/article/uvdz8tz40l-quality-ratings-and-messaging-limits)
 
 ---
 
@@ -68,12 +128,12 @@ NOVO CHIP
 |------------|------------|--------|
 | Backend | FastAPI | Ja existe na Julia |
 | Jobs Async | ARQ + Redis | Leve, nativo async |
-| Cache | Redis | Trending topics, estados |
+| Cache | Redis | Trust scores, estados |
 | Scheduler | APScheduler | Ja integrado |
 | Evolution | 1 instancia/chip | Isolamento |
-| Proxies | Residenciais BR | Obrigatorio anti-ban |
-| Alertas | Slack + Telegram | Redundancia |
-| Dashboard | Streamlit | MVP rapido |
+| Salvy | API REST | Provisioning numeros |
+| RAG | pgvector + Voyage | Politicas Meta |
+| Alertas | Slack | Notificacoes |
 
 ---
 
@@ -81,1499 +141,1122 @@ NOVO CHIP
 
 | # | Epico | Descricao | Tempo |
 |---|-------|-----------|-------|
-| E01 | Modelo de Dados | Tabelas warmup_chips, warmup_pairs, warmup_interactions | 3h |
-| E02 | Human Simulator | Delays calibrados + "digitando" + mark as read | 4h |
-| E03 | Conversation Generator | Claude + typos + trending topics | 5h |
-| E04 | Health Score v2 | Algoritmo completo com todos fatores | 4h |
-| E05 | Pairing Engine | Pareamento rotativo entre chips | 4h |
-| E06 | Message Scheduler | Agenda com distribuicao anti-padrao | 4h |
-| E07 | Orchestrator | Coordena fases do warm-up | 6h |
-| E08 | Early Warning System | Detecta problemas e pausa automaticamente | 4h |
-| E09 | API Endpoints | CRUD chips, start/stop, status | 4h |
-| E10 | Dashboard | Visualizacao health, progresso, alertas | 8h |
+| E01 | Modelo Dados Unificado | chips, transitions, meta_policies, affinity, cooldown | 5h |
+| E02 | Salvy Integration | Client API, provisionar, cancelar, webhook | 4h |
+| E03 | Meta Policies RAG | Embeddings, atualizacao, consulta | 4h |
+| E04 | Trust Score Engine | Fatores, calculo, permissoes, quilometragem segura | 6h |
+| E05 | Human Simulator | Delays, digitando, mark as read | 4h |
+| E06 | Conversation Generator | Claude + typos + trending | 4h |
+| E07 | Pairing Engine | Pareamento rotativo | 3h |
+| E08 | Warming Scheduler | Janela anti-padrao, Dia 0 repouso, limites por fase | 5h |
+| E09 | Warming Orchestrator | Ciclo de fases, progressao, teste graduacao | 6h |
+| E10 | Early Warning | Deteccao proativa, pausa gradual | 4h |
+| E11 | Warmer API | Endpoints de gestao | 3h |
+| E12 | Group Entry Engine | Entrada segura em grupos (CSV/Excel, limites, multi-chip) | 8h* |
 
-**Total Estimado:** ~46-50 horas
+**Total Estimado:** ~55h
+
+> *E12: 8h (S12.1-S12.5 Sprint 25) + 3h (S12.6 Discovery na Sprint 26)
 
 ---
 
-## E01: Modelo de Dados
+## Ordenação de Execução
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    DEPENDÊNCIAS ENTRE ÉPICOS                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   E01 (Modelo Dados) ─────────────────────────────────────────┐ │
+│         │                                                      │ │
+│         ├──► E02 (Salvy)                                       │ │
+│         ├──► E03 (Meta RAG)                                    │ │
+│         ├──► E04 (Trust Score)                                 │ │
+│         │         │                                            │ │
+│         │         └──► E08 (Warming Scheduler) ◄───────────┐   │ │
+│         │                      │                           │   │ │
+│         │                      └──► E12 (Group Entry) ─────┘   │ │
+│         │                                                      │ │
+│         ├──► E05 (Human Simulator) ──► E06 (Conversation Gen)  │ │
+│         │                                      │               │ │
+│         │                                      ▼               │ │
+│         ├──► E07 (Pairing Engine) ◄────────────┘               │ │
+│         │                                                      │ │
+│         ├──► E09 (Warming Orchestrator)                        │ │
+│         ├──► E10 (Early Warning)                               │ │
+│         └──► E11 (Warmer API)                                  │ │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Ordem sugerida de execução:**
+
+1. **E01** - Modelo de Dados (base para todos)
+2. **E02, E03, E04** - Foundation (podem rodar em paralelo)
+3. **E05, E06, E07** - Warming core (sequencial)
+4. **E08** - Warming Scheduler (define fases e limites)
+5. **E12** - Group Entry Engine (depende de E08 para limites por fase)
+6. **E09, E10, E11** - Orquestração e API (podem rodar em paralelo)
+
+> **Nota:** E12 consome limites por fase definidos em E08 e Trust Score de E04.
+
+---
+
+## E01: Modelo de Dados Unificado
 
 ### Objetivo
-Criar estrutura de banco para tracking completo do warm-up.
+Criar schema que unifica Salvy + Evolution + Warming + Trust Score + RAG.
 
-### Migrations
+### Migration Principal
 
 ```sql
--- =============================================
--- TABELA: warmup_chips
--- Chips/instancias gerenciadas pelo warmer
--- =============================================
-CREATE TABLE warmup_chips (
+-- =====================================================
+-- TABELA CENTRAL: chips
+-- Unifica todo ciclo de vida do chip
+-- =====================================================
+CREATE TABLE chips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     telefone TEXT UNIQUE NOT NULL,
+
+    -- ══════════════════════════════════════════
+    -- SALVY
+    -- ══════════════════════════════════════════
+    salvy_id TEXT UNIQUE,
+    salvy_status TEXT CHECK (salvy_status IN ('active', 'blocked', 'canceled')),
+    salvy_created_at TIMESTAMPTZ,
+
+    -- ══════════════════════════════════════════
+    -- EVOLUTION
+    -- ══════════════════════════════════════════
     instance_name TEXT UNIQUE NOT NULL,
+    evolution_connected BOOLEAN DEFAULT false,
+    evolution_qr_code TEXT,
 
-    -- Status e fase
-    status TEXT DEFAULT 'pending', -- pending, warming, ready, active, paused, banned
-    fase_warmup TEXT DEFAULT 'setup', -- setup, primeiros_contatos, expansao, pre_operacao, operacao
+    -- ══════════════════════════════════════════
+    -- ESTADO NO SISTEMA
+    -- ══════════════════════════════════════════
+    status TEXT NOT NULL DEFAULT 'provisioned'
+        CHECK (status IN (
+            'provisioned',  -- Comprado na Salvy, aguardando setup
+            'pending',      -- Aguardando conexao Evolution
+            'warming',      -- Em aquecimento (21 dias)
+            'ready',        -- Pronto, aguardando slot producao
+            'active',       -- Em producao na Julia
+            'degraded',     -- Trust baixo, modo restrito
+            'paused',       -- Pausado manualmente
+            'banned',       -- Banido pelo WhatsApp
+            'cancelled'     -- Cancelado na Salvy
+        )),
+
+    -- ══════════════════════════════════════════
+    -- WARMING
+    -- ══════════════════════════════════════════
+    fase_warmup TEXT DEFAULT 'repouso'
+        CHECK (fase_warmup IN (
+            'repouso',            -- Dia 0: 24-48h sem atividade (simula chip novo)
+            'setup',              -- Dias 1-3: apenas config
+            'primeiros_contatos', -- Dias 4-7: max 10 msgs/dia
+            'expansao',           -- Dias 8-14: max 30 msgs/dia
+            'pre_operacao',       -- Dias 15-21: max 50 msgs/dia
+            'teste_graduacao',    -- Dia 22: teste formal antes de ready
+            'operacao'            -- Dia 22+: pronto
+        )),
     fase_iniciada_em TIMESTAMPTZ DEFAULT now(),
-
-    -- Health tracking
-    health_score INT DEFAULT 40,
-    ultimo_calculo_health TIMESTAMPTZ,
-
-    -- Metricas agregadas
-    msgs_enviadas INT DEFAULT 0,
-    msgs_recebidas INT DEFAULT 0,
-    taxa_resposta DECIMAL(5,2) DEFAULT 0,
-    tipos_midia_usados TEXT[] DEFAULT '{}', -- ['text', 'audio', 'image', 'video']
-    status_criados_semana INT DEFAULT 0,
-    teve_chamada BOOLEAN DEFAULT false,
-    dias_inativo INT DEFAULT 0,
-
-    -- Grupos
-    grupos_count INT DEFAULT 0,
-
-    -- Timestamps
     warming_started_at TIMESTAMPTZ,
+    warming_day INT DEFAULT 0,
+
+    -- ══════════════════════════════════════════
+    -- TRUST SCORE (multiparametrico)
+    -- ══════════════════════════════════════════
+    trust_score INT DEFAULT 50 CHECK (trust_score >= 0 AND trust_score <= 100),
+    trust_level TEXT DEFAULT 'amarelo'
+        CHECK (trust_level IN ('verde', 'amarelo', 'laranja', 'vermelho', 'critico')),
+    ultimo_calculo_trust TIMESTAMPTZ,
+
+    -- Fatores do Trust Score (cache)
+    trust_factors JSONB DEFAULT '{}',
+
+    -- ══════════════════════════════════════════
+    -- METRICAS
+    -- ══════════════════════════════════════════
+    msgs_enviadas_total INT DEFAULT 0,
+    msgs_recebidas_total INT DEFAULT 0,
+    msgs_enviadas_hoje INT DEFAULT 0,
+    msgs_recebidas_hoje INT DEFAULT 0,
+
+    taxa_resposta DECIMAL(5,4) DEFAULT 0,      -- 0.0000 a 1.0000
+    taxa_delivery DECIMAL(5,4) DEFAULT 1,
+    taxa_block DECIMAL(5,4) DEFAULT 0,
+
+    conversas_bidirecionais INT DEFAULT 0,
+    grupos_count INT DEFAULT 0,
+    tipos_midia_usados TEXT[] DEFAULT '{}',
+
+    erros_ultimas_24h INT DEFAULT 0,
+    dias_sem_erro INT DEFAULT 0,
+
+    -- ══════════════════════════════════════════
+    -- PERMISSOES (calculadas do Trust Score)
+    -- ══════════════════════════════════════════
+    pode_prospectar BOOLEAN DEFAULT false,
+    pode_followup BOOLEAN DEFAULT false,
+    pode_responder BOOLEAN DEFAULT true,
+    limite_hora INT DEFAULT 5,
+    limite_dia INT DEFAULT 30,
+    delay_minimo_segundos INT DEFAULT 120,
+
+    -- ══════════════════════════════════════════
+    -- COOLDOWN (simula pausas humanas)
+    -- ══════════════════════════════════════════
+    last_activity_start TIMESTAMPTZ,     -- Inicio do periodo de atividade
+    cooldown_until TIMESTAMPTZ,          -- Ate quando esta em cooldown
+    -- em_cooldown = (cooldown_until > now()) - computed
+
+    -- ══════════════════════════════════════════
+    -- PRODUCAO
+    -- ══════════════════════════════════════════
+    promoted_to_active_at TIMESTAMPTZ,
     ready_at TIMESTAMPTZ,
-    last_activity_at TIMESTAMPTZ,
+    dias_em_producao INT DEFAULT 0,      -- "Quilometragem segura"
+
+    -- ══════════════════════════════════════════
+    -- AUDITORIA
+    -- ══════════════════════════════════════════
+    banned_at TIMESTAMPTZ,
+    ban_reason TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_warmup_chips_status ON warmup_chips(status);
-CREATE INDEX idx_warmup_chips_fase ON warmup_chips(fase_warmup);
+-- Indices para queries frequentes
+CREATE INDEX idx_chips_status ON chips(status);
+CREATE INDEX idx_chips_trust ON chips(trust_score DESC) WHERE status IN ('warming', 'ready', 'active');
+CREATE INDEX idx_chips_ready ON chips(trust_score DESC, warming_started_at ASC) WHERE status = 'ready';
 
--- =============================================
--- TABELA: warmup_pairs
--- Pareamentos ativos entre chips
--- =============================================
-CREATE TABLE warmup_pairs (
+
+-- =====================================================
+-- TRANSICOES DE ESTADO (auditoria)
+-- =====================================================
+CREATE TABLE chip_transitions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    chip_a_id UUID REFERENCES warmup_chips(id) ON DELETE CASCADE,
-    chip_b_id UUID REFERENCES warmup_chips(id) ON DELETE CASCADE,
+    chip_id UUID NOT NULL REFERENCES chips(id) ON DELETE CASCADE,
+
+    from_status TEXT,
+    to_status TEXT NOT NULL,
+    from_trust_score INT,
+    to_trust_score INT,
+
+    reason TEXT,
+    triggered_by TEXT NOT NULL, -- 'system', 'api', 'orchestrator', 'early_warning'
+    metadata JSONB DEFAULT '{}',
+
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_chip_transitions_chip ON chip_transitions(chip_id, created_at DESC);
+
+
+-- =====================================================
+-- HISTORICO DE TRUST SCORE
+-- =====================================================
+CREATE TABLE chip_trust_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    chip_id UUID NOT NULL REFERENCES chips(id) ON DELETE CASCADE,
+
+    score INT NOT NULL,
+    level TEXT NOT NULL,
+    factors JSONB NOT NULL,
+    permissoes JSONB NOT NULL,
+
+    recorded_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_chip_trust_history ON chip_trust_history(chip_id, recorded_at DESC);
+
+
+-- =====================================================
+-- ALERTAS DE CHIP
+-- =====================================================
+CREATE TABLE chip_alerts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    chip_id UUID NOT NULL REFERENCES chips(id) ON DELETE CASCADE,
+
+    severity TEXT NOT NULL CHECK (severity IN ('critical', 'warning', 'info')),
+    tipo TEXT NOT NULL,
+    message TEXT NOT NULL,
+
+    acao_tomada TEXT,  -- 'paused', 'reduced_speed', 'none'
+
+    resolved BOOLEAN DEFAULT false,
+    resolved_at TIMESTAMPTZ,
+    resolved_by TEXT,
+
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_chip_alerts_unresolved ON chip_alerts(chip_id, severity) WHERE resolved = false;
+
+
+-- =====================================================
+-- PAREAMENTOS PARA WARM-UP
+-- =====================================================
+CREATE TABLE chip_pairs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    chip_a_id UUID NOT NULL REFERENCES chips(id) ON DELETE CASCADE,
+    chip_b_id UUID NOT NULL REFERENCES chips(id) ON DELETE CASCADE,
 
     active BOOLEAN DEFAULT true,
     messages_exchanged INT DEFAULT 0,
+    conversations_count INT DEFAULT 0,
     last_interaction TIMESTAMPTZ,
 
     created_at TIMESTAMPTZ DEFAULT now(),
 
-    CONSTRAINT unique_pair UNIQUE (chip_a_id, chip_b_id)
+    CONSTRAINT unique_pair UNIQUE (chip_a_id, chip_b_id),
+    CONSTRAINT different_chips CHECK (chip_a_id != chip_b_id)
 );
 
-CREATE INDEX idx_warmup_pairs_active ON warmup_pairs(active) WHERE active = true;
+CREATE INDEX idx_chip_pairs_active ON chip_pairs(active) WHERE active = true;
 
--- =============================================
--- TABELA: warmup_conversations
--- Historico de conversas de warm-up
--- =============================================
+
+-- =====================================================
+-- AFFINITY MEDICO-CHIP
+-- Medico prefere continuar no mesmo chip
+-- =====================================================
+CREATE TABLE medico_chip_affinity (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    medico_id UUID NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+    chip_id UUID NOT NULL REFERENCES chips(id) ON DELETE CASCADE,
+
+    msgs_trocadas INT DEFAULT 1,
+    ultima_interacao TIMESTAMPTZ DEFAULT now(),
+
+    created_at TIMESTAMPTZ DEFAULT now(),
+
+    UNIQUE(medico_id, chip_id)
+);
+
+CREATE INDEX idx_affinity_medico ON medico_chip_affinity(medico_id, ultima_interacao DESC);
+CREATE INDEX idx_affinity_chip ON medico_chip_affinity(chip_id) WHERE msgs_trocadas > 0;
+
+
+-- =====================================================
+-- CONVERSAS DE WARM-UP
+-- =====================================================
 CREATE TABLE warmup_conversations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    pair_id UUID REFERENCES warmup_pairs(id) ON DELETE CASCADE,
+    pair_id UUID NOT NULL REFERENCES chip_pairs(id) ON DELETE CASCADE,
 
     tema TEXT NOT NULL,
-    messages JSONB NOT NULL, -- [{from: 'a', text: '...', sent_at: '...'}, ...]
+    messages JSONB NOT NULL DEFAULT '[]',
     turnos INT DEFAULT 0,
 
     started_at TIMESTAMPTZ DEFAULT now(),
     completed_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_warmup_conversations_pair ON warmup_conversations(pair_id);
+CREATE INDEX idx_warmup_conversations_pair ON warmup_conversations(pair_id, started_at DESC);
 
--- =============================================
--- TABELA: warmup_interactions
--- Tracking granular de todas interacoes
--- =============================================
-CREATE TABLE warmup_interactions (
+
+-- =====================================================
+-- INTERACOES GRANULARES
+-- =====================================================
+CREATE TABLE chip_interactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    chip_id UUID REFERENCES warmup_chips(id) ON DELETE CASCADE,
+    chip_id UUID NOT NULL REFERENCES chips(id) ON DELETE CASCADE,
 
-    tipo TEXT NOT NULL, -- 'msg_enviada', 'msg_recebida', 'chamada', 'status', 'grupo_entrada'
+    tipo TEXT NOT NULL CHECK (tipo IN (
+        'msg_enviada', 'msg_recebida', 'chamada',
+        'status_criado', 'grupo_entrada', 'grupo_saida', 'midia_enviada'
+    )),
+
     destinatario TEXT,
-    midia_tipo TEXT, -- 'text', 'audio', 'image', 'video'
+    midia_tipo TEXT CHECK (midia_tipo IN ('text', 'audio', 'image', 'video', 'document', 'sticker')),
 
-    -- Para mensagens
     obteve_resposta BOOLEAN,
     tempo_resposta_segundos INT,
 
-    -- Metadata
+    erro_codigo TEXT,
+    erro_mensagem TEXT,
+
     metadata JSONB DEFAULT '{}',
-
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_warmup_interactions_chip ON warmup_interactions(chip_id, created_at DESC);
-CREATE INDEX idx_warmup_interactions_tipo ON warmup_interactions(tipo);
+CREATE INDEX idx_chip_interactions_chip_time ON chip_interactions(chip_id, created_at DESC);
+CREATE INDEX idx_chip_interactions_erros ON chip_interactions(chip_id, erro_codigo) WHERE erro_codigo IS NOT NULL;
 
--- =============================================
--- TABELA: warmup_health_log
--- Historico de health scores
--- =============================================
-CREATE TABLE warmup_health_log (
+
+-- =====================================================
+-- RAG: POLITICAS META
+-- =====================================================
+CREATE TABLE meta_policies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    chip_id UUID REFERENCES warmup_chips(id) ON DELETE CASCADE,
 
-    score INT NOT NULL,
-    factors JSONB NOT NULL, -- {age: 10, msgs_sent: 5, response_rate: 0.45, ...}
+    -- Identificacao
+    categoria TEXT NOT NULL,  -- 'limites', 'proibicoes', 'boas_praticas', 'motivos_ban', 'quality_rating'
+    titulo TEXT NOT NULL,
 
-    recorded_at TIMESTAMPTZ DEFAULT now()
+    -- Conteudo
+    conteudo TEXT NOT NULL,
+    fonte_url TEXT,
+    fonte_nome TEXT,
+
+    -- Embedding para RAG
+    embedding vector(1024),  -- Voyage AI
+
+    -- Versionamento
+    versao INT DEFAULT 1,
+    valido_desde DATE DEFAULT CURRENT_DATE,
+    valido_ate DATE,
+
+    -- Auditoria
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_warmup_health_log_chip ON warmup_health_log(chip_id, recorded_at DESC);
+CREATE INDEX idx_meta_policies_categoria ON meta_policies(categoria);
+CREATE INDEX idx_meta_policies_embedding ON meta_policies USING ivfflat (embedding vector_cosine_ops);
 
--- =============================================
--- TABELA: warmup_alerts
--- Alertas e incidentes
--- =============================================
-CREATE TABLE warmup_alerts (
+
+-- =====================================================
+-- CONFIGURACAO DO POOL
+-- =====================================================
+CREATE TABLE pool_config (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    chip_id UUID REFERENCES warmup_chips(id) ON DELETE CASCADE,
 
-    severity TEXT NOT NULL, -- 'critical', 'warning', 'info'
-    tipo TEXT NOT NULL, -- 'health_drop', 'spam_error', 'low_response', 'inactivity'
-    message TEXT NOT NULL,
+    -- Producao
+    producao_min INT DEFAULT 5,
+    producao_max INT DEFAULT 10,
 
-    resolved BOOLEAN DEFAULT false,
-    resolved_at TIMESTAMPTZ,
+    -- Warming buffer
+    warmup_buffer INT DEFAULT 10,
+    warmup_days INT DEFAULT 21,
 
-    created_at TIMESTAMPTZ DEFAULT now()
+    -- Ready (reserva quente)
+    ready_min INT DEFAULT 3,
+
+    -- Trust thresholds
+    trust_min_for_ready INT DEFAULT 85,
+    trust_degraded_threshold INT DEFAULT 60,
+    trust_critical_threshold INT DEFAULT 20,
+
+    -- Auto-provisioning
+    auto_provision BOOLEAN DEFAULT true,
+    default_ddd INT DEFAULT 11,
+
+    -- Limites por tipo de msg
+    limite_prospeccao_hora INT DEFAULT 10,
+    limite_followup_hora INT DEFAULT 20,
+    limite_resposta_hora INT DEFAULT 50,
+
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    updated_by TEXT
 );
 
-CREATE INDEX idx_warmup_alerts_unresolved ON warmup_alerts(chip_id, resolved) WHERE resolved = false;
+-- Inserir config padrao
+INSERT INTO pool_config DEFAULT VALUES;
+
+
+-- =====================================================
+-- TRIGGER: updated_at automatico
+-- =====================================================
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_chips_updated_at
+    BEFORE UPDATE ON chips FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER trigger_pool_config_updated_at
+    BEFORE UPDATE ON pool_config FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER trigger_meta_policies_updated_at
+    BEFORE UPDATE ON meta_policies FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at();
+
+
+-- =====================================================
+-- FUNCAO: Registrar transicao de estado
+-- =====================================================
+CREATE OR REPLACE FUNCTION registrar_transicao()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.status IS DISTINCT FROM NEW.status OR OLD.trust_score IS DISTINCT FROM NEW.trust_score THEN
+        INSERT INTO chip_transitions (
+            chip_id, from_status, to_status,
+            from_trust_score, to_trust_score,
+            triggered_by
+        ) VALUES (
+            NEW.id, OLD.status, NEW.status,
+            OLD.trust_score, NEW.trust_score,
+            COALESCE(current_setting('app.triggered_by', true), 'system')
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_chip_transition
+    AFTER UPDATE ON chips FOR EACH ROW
+    EXECUTE FUNCTION registrar_transicao();
 ```
 
-### Aceite
-- [ ] Migrations aplicadas
-- [ ] Indices criados
-- [ ] Tipos TypeScript gerados
+### DoD
+
+- [ ] Todas as tabelas criadas
+- [ ] Indices otimizados
+- [ ] Triggers funcionando
+- [ ] Transicoes sendo registradas
+- [ ] pgvector habilitado para RAG
 
 ---
 
-## E02: Human Simulator
+## E02: Salvy Integration
 
 ### Objetivo
-Simular comportamento humano ao enviar mensagens (digitando, delays, leitura).
+Integrar com API Salvy para provisioning automatico de numeros.
+
+### Endpoints Salvy
+
+| Metodo | Endpoint | Funcao |
+|--------|----------|--------|
+| POST | `/api/v2/virtual-phone-accounts` | Criar numero |
+| GET | `/api/v2/virtual-phone-accounts/{id}` | Buscar numero |
+| GET | `/api/v2/virtual-phone-accounts` | Listar numeros |
+| DELETE | `/api/v2/virtual-phone-accounts/{id}` | Cancelar numero |
+| GET | `/api/v2/virtual-phone-accounts/area-codes` | DDDs disponiveis |
 
 ### Implementacao
 
-**Arquivo:** `app/services/warmer/human_simulator.py`
+**Arquivo:** `app/services/salvy/client.py`
 
 ```python
 """
-Human Simulator - Simula comportamento humano no WhatsApp.
+Salvy API Client - Provisioning de numeros virtuais.
 
-Baseado no whitepaper da Meta sobre deteccao de automacao.
-O indicador "digitando..." e critico para evitar flags.
+Docs: https://docs.salvy.com.br/api-reference/virtual-phone-accounts/introduction
 """
-import asyncio
-import random
-from typing import Optional
+import httpx
+import logging
+from typing import Optional, List
+from pydantic import BaseModel
+from datetime import datetime
 
-from app.services.evolution import evolution_client
+from app.core.config import settings
 
+logger = logging.getLogger(__name__)
 
-async def enviar_mensagem_humanizada(
-    instance: str,
-    destinatario: str,
-    texto: str,
-    simular_leitura: bool = True,
-) -> bool:
-    """
-    Envia mensagem simulando comportamento humano completo.
-
-    Fluxo:
-    1. Delay de "leitura" (3-15s)
-    2. Marca como lido
-    3. Delay de "pensar" (1-3s)
-    4. Envia evento "digitando"
-    5. Aguarda tempo proporcional ao texto
-    6. Envia mensagem
-
-    Args:
-        instance: Nome da instancia Evolution
-        destinatario: JID do destinatario
-        texto: Texto da mensagem
-        simular_leitura: Se deve simular leitura antes
-
-    Returns:
-        True se enviou com sucesso
-    """
-    try:
-        # 1. Delay antes de "ler" (distribuicao normal, media 8s)
-        if simular_leitura:
-            delay_leitura = random.gauss(8, 3)
-            delay_leitura = max(3, min(15, delay_leitura))
-            await asyncio.sleep(delay_leitura)
-
-            # 2. Marcar como lido
-            await evolution_client.mark_as_read(instance, destinatario)
-
-        # 3. Delay de "pensar" (1-3s)
-        await asyncio.sleep(random.uniform(1, 3))
-
-        # 4. Enviar evento "digitando"
-        # Duracao proporcional ao tamanho da mensagem (~50ms por caractere)
-        tempo_digitacao = len(texto) * 0.05
-        tempo_digitacao = max(1.5, min(5, tempo_digitacao))
-
-        await evolution_client.send_presence(
-            instance,
-            destinatario,
-            "composing"
-        )
-        await asyncio.sleep(tempo_digitacao)
-
-        # 5. Parar de digitar
-        await evolution_client.send_presence(
-            instance,
-            destinatario,
-            "paused"
-        )
-
-        # 6. Delay final antes de enviar (0.5-2s)
-        await asyncio.sleep(random.uniform(0.5, 2))
-
-        # 7. Enviar mensagem
-        await evolution_client.send_text(instance, destinatario, texto)
-
-        return True
-
-    except Exception as e:
-        logger.error(f"Erro ao enviar msg humanizada: {e}")
-        return False
+BASE_URL = "https://api.salvy.com.br/api/v2"
 
 
-def calcular_delay_entre_turnos() -> float:
-    """
-    Calcula delay entre turnos de conversa.
-    Distribuicao exponencial para parecer natural.
-
-    Returns:
-        Delay em segundos (20-90s)
-    """
-    # Exponencial com media 45s
-    delay = random.expovariate(1/45)
-    return max(20, min(90, delay))
+class SalvyNumber(BaseModel):
+    """Numero virtual Salvy."""
+    id: str
+    name: Optional[str]
+    phone_number: str
+    status: str  # active, blocked, canceled
+    created_at: datetime
+    canceled_at: Optional[datetime]
 
 
-def calcular_delay_resposta() -> float:
-    """
-    Calcula delay para responder uma mensagem recebida.
+class SalvyClient:
+    """Cliente para API Salvy."""
 
-    Returns:
-        Delay em segundos (3-15s)
-    """
-    return random.gauss(8, 3)
+    def __init__(self):
+        self.token = settings.SALVY_API_TOKEN
+        self.headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+        }
+
+    async def criar_numero(
+        self,
+        ddd: int = 11,
+        nome: Optional[str] = None
+    ) -> SalvyNumber:
+        """
+        Cria novo numero virtual.
+
+        Args:
+            ddd: Codigo de area (11, 21, etc)
+            nome: Label para identificacao
+
+        Returns:
+            SalvyNumber criado
+        """
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{BASE_URL}/virtual-phone-accounts",
+                headers=self.headers,
+                json={
+                    "areaCode": ddd,
+                    "name": nome or f"julia-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            logger.info(f"[Salvy] Numero criado: {data['phoneNumber']}")
+
+            return SalvyNumber(
+                id=data["id"],
+                name=data.get("name"),
+                phone_number=data["phoneNumber"],
+                status=data["status"],
+                created_at=datetime.fromisoformat(data["createdAt"].replace("Z", "+00:00")),
+                canceled_at=None,
+            )
+
+    async def cancelar_numero(self, salvy_id: str) -> bool:
+        """
+        Cancela numero virtual (para de pagar).
+
+        Args:
+            salvy_id: ID do numero na Salvy
+
+        Returns:
+            True se cancelado com sucesso
+        """
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(
+                f"{BASE_URL}/virtual-phone-accounts/{salvy_id}",
+                headers=self.headers,
+                timeout=30,
+            )
+
+            if response.status_code == 204:
+                logger.info(f"[Salvy] Numero cancelado: {salvy_id}")
+                return True
+
+            logger.error(f"[Salvy] Erro ao cancelar: {response.text}")
+            return False
+
+    async def buscar_numero(self, salvy_id: str) -> Optional[SalvyNumber]:
+        """Busca numero por ID."""
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{BASE_URL}/virtual-phone-accounts/{salvy_id}",
+                headers=self.headers,
+                timeout=30,
+            )
+
+            if response.status_code == 404:
+                return None
+
+            response.raise_for_status()
+            data = response.json()
+
+            return SalvyNumber(
+                id=data["id"],
+                name=data.get("name"),
+                phone_number=data["phoneNumber"],
+                status=data["status"],
+                created_at=datetime.fromisoformat(data["createdAt"].replace("Z", "+00:00")),
+                canceled_at=datetime.fromisoformat(data["canceledAt"].replace("Z", "+00:00")) if data.get("canceledAt") else None,
+            )
+
+    async def listar_numeros(self) -> List[SalvyNumber]:
+        """Lista todos os numeros."""
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{BASE_URL}/virtual-phone-accounts",
+                headers=self.headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+
+            return [
+                SalvyNumber(
+                    id=d["id"],
+                    name=d.get("name"),
+                    phone_number=d["phoneNumber"],
+                    status=d["status"],
+                    created_at=datetime.fromisoformat(d["createdAt"].replace("Z", "+00:00")),
+                    canceled_at=datetime.fromisoformat(d["canceledAt"].replace("Z", "+00:00")) if d.get("canceledAt") else None,
+                )
+                for d in response.json()
+            ]
+
+    async def listar_ddds_disponiveis(self) -> List[int]:
+        """Lista DDDs com numeros disponiveis."""
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{BASE_URL}/virtual-phone-accounts/area-codes",
+                headers=self.headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            return response.json()
+
+
+# Singleton
+salvy_client = SalvyClient()
 ```
 
-### Aceite
-- [ ] Funcao `enviar_mensagem_humanizada` implementada
-- [ ] Delays calibrados conforme pesquisa (20s-90s entre turnos)
-- [ ] Evento "digitando" funcionando via Evolution API
-- [ ] Testes unitarios
+**Arquivo:** `app/services/salvy/webhooks.py`
+
+```python
+"""
+Webhook para receber SMS da Salvy.
+
+Usado para receber codigo de verificacao do WhatsApp.
+"""
+from fastapi import APIRouter, Request
+import logging
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/webhooks/salvy", tags=["salvy"])
+
+
+@router.post("/sms")
+async def webhook_sms(request: Request):
+    """
+    Recebe SMS via Salvy webhook.
+
+    Usado para:
+    - Codigo de verificacao WhatsApp
+    - Alertas de operadora
+    """
+    payload = await request.json()
+
+    logger.info(f"[Salvy Webhook] SMS recebido: {payload}")
+
+    telefone = payload.get("phoneNumber")
+    mensagem = payload.get("message")
+    remetente = payload.get("from")
+
+    # Se for codigo WhatsApp, processar
+    if "whatsapp" in mensagem.lower() or remetente == "WhatsApp":
+        await processar_codigo_whatsapp(telefone, mensagem)
+
+    return {"status": "ok"}
+
+
+async def processar_codigo_whatsapp(telefone: str, mensagem: str):
+    """
+    Extrai codigo de verificacao e atualiza chip.
+    """
+    import re
+
+    # Extrair codigo (geralmente 6 digitos)
+    match = re.search(r'\b(\d{6})\b', mensagem)
+    if match:
+        codigo = match.group(1)
+        logger.info(f"[Salvy] Codigo WhatsApp extraido: {codigo} para {telefone}")
+
+        # TODO: Usar codigo para verificar no Evolution
+        # await evolution_client.verify_code(instance, codigo)
+```
+
+### DoD
+
+- [ ] Client Salvy funcionando
+- [ ] Criar numero
+- [ ] Cancelar numero
+- [ ] Listar numeros
+- [ ] Webhook SMS configurado
+- [ ] Testes de integracao
 
 ---
 
-## E03: Conversation Generator
+## E03: Meta Policies RAG
 
 ### Objetivo
-Gerar dialogos naturais usando Claude com typos intencionais e trending topics.
+Manter base de conhecimento das politicas Meta atualizada para consulta durante decisoes.
 
 ### Implementacao
 
-**Arquivo:** `app/services/warmer/conversation_generator.py`
+**Arquivo:** `app/services/meta_rag/policies.py`
 
 ```python
 """
-Conversation Generator - Gera dialogos naturais para warm-up.
+RAG de Politicas Meta.
 
-Usa Claude para criar conversas com:
-- Linguagem informal brasileira
-- Typos intencionais com correcao
-- Trending topics para contexto atual
+Armazena e consulta politicas do WhatsApp Business
+para informar decisoes do Trust Score.
 """
-import random
-import json
-import feedparser
-from typing import Optional
-
-from app.services.claude import claude_client
-from app.services.redis import redis_client
-
-
-TEMAS_WARMUP = [
-    "cotidiano",
-    "clima e tempo",
-    "futebol brasileiro",
-    "filmes e series",
-    "viagens",
-    "comida e restaurantes",
-    "tecnologia",
-    "noticias leves",
-    "fim de semana",
-    "trabalho generico",
-    "familia",
-    "musica",
-    "series netflix",
-    "compras online",
-]
-
-
-async def buscar_trending_brasil() -> str:
-    """
-    Busca trending topic brasileiro.
-    Usa cache Redis (1 hora) para evitar requests excessivos.
-
-    Returns:
-        String com topico trending ou tema generico
-    """
-    # Checar cache
-    cached = await redis_client.get("warmer:trending_brasil")
-    if cached:
-        return cached.decode() if isinstance(cached, bytes) else cached
-
-    try:
-        # RSS G1 (mais estavel que Google Trends)
-        feed = feedparser.parse('https://g1.globo.com/rss/g1/')
-        if feed.entries:
-            manchetes = [entry.title for entry in feed.entries[:10]]
-            trending = random.choice(manchetes)
-
-            # Cache por 1 hora
-            await redis_client.setex("warmer:trending_brasil", 3600, trending)
-            return trending
-
-    except Exception as e:
-        logger.warning(f"Erro ao buscar trending: {e}")
-
-    # Fallback
-    return random.choice(TEMAS_WARMUP)
-
-
-async def gerar_dialogo(
-    tema: Optional[str] = None,
-    usar_trending: bool = True,
-) -> list[dict]:
-    """
-    Gera dialogo natural entre duas pessoas.
-
-    Args:
-        tema: Tema especifico (opcional)
-        usar_trending: Se deve usar trending topics
-
-    Returns:
-        Lista de mensagens: [{from: 'A', text: '...'}, ...]
-    """
-    # Escolher tema
-    if not tema:
-        if usar_trending and random.random() < 0.3:  # 30% chance trending
-            tema = await buscar_trending_brasil()
-        else:
-            tema = random.choice(TEMAS_WARMUP)
-
-    # Numero de turnos variavel (4-12)
-    turnos = random.randint(4, 12)
-
-    prompt = f"""Gere um dialogo casual de WhatsApp entre duas pessoas (A e B) sobre: {tema}
-
-REGRAS OBRIGATORIAS:
-- Exatamente {turnos} mensagens no total (alternando A e B)
-- Mensagens CURTAS (1-3 linhas maximo cada)
-- Linguagem informal brasileira: vc, pra, ta, blz, tb, msg, tmb, nd, oq
-- Emojis ocasionais (3-5 no dialogo todo, NAO em toda msg)
-- IMPORTANTE: Inclua 1-2 typos com correcao, exemplos:
-  * "voc" seguido de "vc*" na proxima msg
-  * "trbalhando" seguido de "trabalhando*"
-  * "aond" seguido de "onde*"
-- Termine naturalmente (despedida ou combinado)
-- Varie tamanho das msgs (algumas bem curtas "blz", outras medias)
-- Pareca conversa REAL entre amigos
-
-FORMATO JSON (array de objetos):
-[
-  {{"from": "A", "text": "mensagem aqui"}},
-  {{"from": "B", "text": "resposta aqui"}},
-  ...
-]
-
-APENAS O JSON, sem explicacoes."""
-
-    try:
-        response = await claude_client.generate(
-            prompt=prompt,
-            model="haiku",
-            max_tokens=1000,
-        )
-
-        # Parse JSON
-        mensagens = json.loads(response)
-
-        if not isinstance(mensagens, list) or len(mensagens) < 4:
-            raise ValueError("Formato invalido")
-
-        return mensagens
-
-    except Exception as e:
-        logger.error(f"Erro ao gerar dialogo: {e}")
-        # Fallback: dialogo pre-definido
-        return gerar_dialogo_fallback()
-
-
-def gerar_dialogo_fallback() -> list[dict]:
-    """Dialogo fallback caso Claude falhe."""
-    dialogos = [
-        [
-            {"from": "A", "text": "e ai, blz?"},
-            {"from": "B", "text": "tudo bem e vc?"},
-            {"from": "A", "text": "de boa, so trabalhando"},
-            {"from": "B", "text": "sei como e kkk"},
-            {"from": "A", "text": "fds ta chegando pelo menos"},
-            {"from": "B", "text": "ne, ja ta precisando"},
-        ],
-        [
-            {"from": "A", "text": "viu o jogo ontem?"},
-            {"from": "B", "text": "vi, que jogo hein"},
-            {"from": "A", "text": "demais, nao esperava"},
-            {"from": "B", "text": "tb nao, achei q ia perder"},
-            {"from": "A", "text": "sorte q deu certo no final"},
-            {"from": "B", "text": "agr e torcer pro proximo"},
-        ],
-    ]
-    return random.choice(dialogos)
-```
-
-### Aceite
-- [ ] Geracao de dialogos via Claude funcionando
-- [ ] Trending topics com cache Redis
-- [ ] Typos intencionais incluidos
-- [ ] Fallback para dialogos pre-definidos
-- [ ] Testes com diferentes temas
-
----
-
-## E04: Health Score v2
-
-### Objetivo
-Implementar algoritmo completo de health score baseado na pesquisa de mercado.
-
-### Implementacao
-
-**Arquivo:** `app/services/warmer/health_score.py`
-
-```python
-"""
-Health Score v2 - Algoritmo de saude do chip.
-
-Score 0-100 baseado em multiplos fatores identificados na pesquisa:
-- Taxa de resposta (critico)
-- Proporcao enviadas/recebidas
-- Variacao de midia
-- Idade da conta
-- Atividade em grupos
-- Erros e warnings
-"""
-from datetime import datetime, timedelta, timezone
-from dataclasses import dataclass
-from typing import Optional
+import logging
+from typing import List, Optional
+from datetime import date
 
 from app.services.supabase import supabase
+from app.services.embeddings import gerar_embedding
+
+logger = logging.getLogger(__name__)
 
 
-@dataclass
-class HealthFactors:
-    """Fatores que compoem o health score."""
-    idade_dias: int = 0
-    msgs_enviadas: int = 0
-    msgs_recebidas: int = 0
-    conversas_bidirecionais: int = 0
-    grupos_ativos: int = 0
-    tipos_midia: int = 0
-    status_semana: int = 0
-    teve_chamada: bool = False
-    erros_spam: int = 0
-    warnings: int = 0
-    dias_inativo: int = 0
-    taxa_resposta: float = 0.0
+# Politicas iniciais para seed
+POLITICAS_SEED = [
+    # Limites
+    {
+        "categoria": "limites",
+        "titulo": "Tiers de Limite de Mensagens",
+        "conteudo": """
+        Limites de mensagens por dia (desde Outubro 2025):
+        - Tier 1: 1.000 destinatarios/dia (inicial)
+        - Tier 2: 10.000 destinatarios/dia
+        - Tier 3: 100.000 destinatarios/dia
+        - Unlimited: Sem limite (empresas verificadas)
+
+        IMPORTANTE: Desde Outubro 2025, o limite e compartilhado por todo o Portfolio
+        (todos os numeros da empresa), nao mais por numero individual.
+
+        Para subir de tier:
+        - Quality rating media ou alta
+        - Usar pelo menos 50% do limite atual por 7 dias
+        - Enviar mensagens de alta qualidade
+        """,
+        "fonte_url": "https://docs.360dialog.com/docs/waba-management/capacity-quality-rating-and-messaging-limits",
+        "fonte_nome": "360Dialog Docs",
+    },
+    {
+        "categoria": "limites",
+        "titulo": "Mensagens Iniciadas vs Respostas",
+        "conteudo": """
+        Os limites se aplicam apenas a mensagens INICIADAS pelo negocio (outbound).
+
+        Respostas a mensagens de clientes (inbound) NAO contam para o limite.
+        Desde 2024, conversas iniciadas pelo usuario sao gratuitas.
+
+        Implicacao: Priorizar respostas sobre prospeccao quando proximo do limite.
+        """,
+        "fonte_url": "https://learn.turn.io/l/en/article/uvdz8tz40l-quality-ratings-and-messaging-limits",
+        "fonte_nome": "Turn.io Learn",
+    },
+
+    # Quality Rating
+    {
+        "categoria": "quality_rating",
+        "titulo": "Sistema de Quality Rating",
+        "conteudo": """
+        Quality Rating determina se voce pode subir de tier:
+
+        - Verde (Alta): Pode subir de tier
+        - Amarelo (Media): Mantem tier atual
+        - Vermelho (Baixa): Nao sobe de tier
+
+        MUDANCA OUTUBRO 2025: Qualidade baixa NAO causa mais downgrade de tier.
+        Apenas impede subir para o proximo tier.
+
+        Fatores que afetam qualidade:
+        - Bloqueios por usuarios
+        - Denuncias de spam
+        - Taxa de leitura
+        - Feedback negativo nos ultimos 7 dias (peso maior para recentes)
+        """,
+        "fonte_url": "https://docs.360dialog.com/partner/messaging-and-calling/messaging-health-and-troubleshooting/messaging-limits-and-quality-rating",
+        "fonte_nome": "360Dialog Partner Docs",
+    },
+
+    # Motivos de Ban
+    {
+        "categoria": "motivos_ban",
+        "titulo": "Principais Motivos de Ban",
+        "conteudo": """
+        Motivos que levam a ban/restricao:
+
+        1. SPAM: Mensagens em massa nao solicitadas
+        2. AUTOMACAO NAO AUTORIZADA: Bots sem API oficial, mods (GB WhatsApp)
+        3. FEEDBACK NEGATIVO: Muitos usuarios bloqueando/denunciando
+        4. CONTEUDO PROIBIDO: Armas, drogas, adulto, jogos de azar
+        5. TERCEIROS NAO AUTORIZADOS: Apps modificados
+        6. SEM CONSENTIMENTO: Enviar sem opt-in explicito
+        7. VOLUME SUSPEITO: Muitas mensagens em curto periodo
+
+        Estatistica: 6.8 milhoes de contas banidas no 1o semestre de 2025.
+        """,
+        "fonte_url": "https://support.wati.io/en/articles/11463217",
+        "fonte_nome": "Wati.io Help Center",
+    },
+    {
+        "categoria": "motivos_ban",
+        "titulo": "Sinais de Automacao Detectados",
+        "conteudo": """
+        WhatsApp usa machine learning para detectar automacao:
+
+        - Mensagens muito rapidas (sem delay humano)
+        - Padroes repetitivos de texto
+        - Horarios nao humanos (3h da manha)
+        - Ausencia de indicador 'digitando'
+        - Proporcao muito alta de enviadas vs recebidas
+        - Muitos contatos novos em pouco tempo
+
+        Solucao: Simular comportamento humano (delays, digitando, variedade).
+        """,
+        "fonte_url": "https://whautomate.com/top-reasons-why-whatsapp-accounts-get-banned-in-2025-and-how-to-avoid-them/",
+        "fonte_nome": "WhAutomate Blog",
+    },
+
+    # Boas Praticas
+    {
+        "categoria": "boas_praticas",
+        "titulo": "Boas Praticas de Messaging",
+        "conteudo": """
+        Recomendacoes oficiais da Meta:
+
+        1. CONSENTIMENTO: Obter opt-in explicito antes de enviar
+        2. UNSUBSCRIBE: Incluir opcao de descadastro em templates
+        3. PERSONALIZACAO: Mensagens relevantes e personalizadas
+        4. FREQUENCIA: Nao bombardear (max 1-2 msgs/dia por contato)
+        5. HORARIO: Enviar em horario comercial (8h-20h)
+        6. RESPOSTA RAPIDA: Responder dentro de 24h
+        7. HUMANO DISPONIVEL: Oferecer encaminhamento para atendente
+        8. PERFIL COMPLETO: Manter dados de contato atualizados
+        """,
+        "fonte_url": "https://business.whatsapp.com/policy",
+        "fonte_nome": "WhatsApp Business Policy",
+    },
+    {
+        "categoria": "boas_praticas",
+        "titulo": "Broadcast vs Conversa Individual",
+        "conteudo": """
+        Limite de broadcast: 256 contatos por lista.
+
+        Para escalar com seguranca:
+        - Preferir conversas individuais sobre broadcast
+        - Segmentar listas por interesse/engajamento
+        - Variar conteudo entre mensagens
+        - Monitorar taxa de bloqueio por campanha
+
+        Se taxa de bloqueio > 2-3%, pausar e revisar estrategia.
+        """,
+        "fonte_url": "https://gallabox.com/blog/whatsapp-business-account-blocked",
+        "fonte_nome": "Gallabox Blog",
+    },
+
+    # Proibicoes
+    {
+        "categoria": "proibicoes",
+        "titulo": "Conteudo Absolutamente Proibido",
+        "conteudo": """
+        NAO enviar mensagens sobre:
+
+        - Armas de fogo e municao
+        - Drogas e substancias controladas
+        - Produtos medicos restritos
+        - Animais vivos (exceto gado)
+        - Especies ameacadas
+        - Jogos de azar com dinheiro real
+        - Conteudo adulto/sexual
+        - Servicos de encontros
+        - Marketing multinivel
+        - Credito consignado/adiantamento salario
+        - Conteudo discriminatorio
+        - Informacoes falsas/enganosas
+
+        Violacao = ban permanente.
+        """,
+        "fonte_url": "https://business.whatsapp.com/policy",
+        "fonte_nome": "WhatsApp Business Policy",
+    },
+]
 
 
-async def calcular_health_score(chip_id: str) -> tuple[int, HealthFactors]:
+async def seed_politicas():
+    """Popula banco com politicas iniciais."""
+    for politica in POLITICAS_SEED:
+        # Gerar embedding
+        embedding = await gerar_embedding(politica["conteudo"])
+
+        # Inserir no banco
+        supabase.table("meta_policies").upsert({
+            "categoria": politica["categoria"],
+            "titulo": politica["titulo"],
+            "conteudo": politica["conteudo"],
+            "fonte_url": politica.get("fonte_url"),
+            "fonte_nome": politica.get("fonte_nome"),
+            "embedding": embedding,
+        }, on_conflict="titulo").execute()
+
+    logger.info(f"[MetaRAG] {len(POLITICAS_SEED)} politicas inseridas/atualizadas")
+
+
+async def consultar_politicas(
+    pergunta: str,
+    categoria: Optional[str] = None,
+    limite: int = 5,
+) -> List[dict]:
     """
-    Calcula health score completo do chip.
+    Consulta politicas relevantes via RAG.
 
     Args:
-        chip_id: UUID do chip
+        pergunta: Texto da consulta
+        categoria: Filtrar por categoria (opcional)
+        limite: Max resultados
 
     Returns:
-        Tupla (score, factors)
+        Lista de politicas relevantes
     """
-    factors = await coletar_fatores(chip_id)
+    # Gerar embedding da pergunta
+    query_embedding = await gerar_embedding(pergunta)
 
-    # Base reduzida - precisa "ganhar" confianca
-    score = 40
-
-    # ══════════════════════════════════════════
-    # FATORES POSITIVOS
-    # ══════════════════════════════════════════
-
-    # Idade da conta (+2/dia, max +14)
-    score += min(factors.idade_dias * 2, 14)
-
-    # Mensagens ENVIADAS (+1 por 10, max +10)
-    score += min(factors.msgs_enviadas // 10, 10)
-
-    # Mensagens RECEBIDAS (+1 por 10, max +10)
-    score += min(factors.msgs_recebidas // 10, 10)
-
-    # Conversas bidirecionais genuinas (+3 cada, max +12)
-    score += min(factors.conversas_bidirecionais * 3, 12)
-
-    # Grupos ativos onde enviou msg (+3 cada, max +9)
-    score += min(factors.grupos_ativos * 3, 9)
-
-    # Variacao de midia (+2 por tipo, max +8)
-    score += min(factors.tipos_midia * 2, 8)
-
-    # Status criado esta semana (+3 cada, max +6)
-    score += min(factors.status_semana * 3, 6)
-
-    # ══════════════════════════════════════════
-    # FATORES NEGATIVOS
-    # ══════════════════════════════════════════
-
-    # Erros de spam (-15 cada)
-    score -= factors.erros_spam * 15
-
-    # Warnings (-8 cada)
-    score -= factors.warnings * 8
-
-    # Inatividade (-3/dia, max -12)
-    score -= min(factors.dias_inativo * 3, 12)
-
-    # Proporcao enviadas/recebidas ruim
-    if factors.msgs_recebidas > 0:
-        proporcao = factors.msgs_enviadas / factors.msgs_recebidas
-        if proporcao > 3:
-            score -= 10
-        elif proporcao > 2:
-            score -= 5
-
-    # Taxa de resposta
-    if factors.taxa_resposta < 0.20:
-        score -= 10
-    elif factors.taxa_resposta < 0.30:
-        score -= 5
-    elif factors.taxa_resposta > 0.50:
-        score += 5  # Bonus
-
-    # ══════════════════════════════════════════
-    # BONUS
-    # ══════════════════════════════════════════
-
-    # Chamada de voz/video realizada (+5)
-    if factors.teve_chamada:
-        score += 5
-
-    # Garantir range 0-100
-    score = max(0, min(100, score))
-
-    return score, factors
-
-
-async def coletar_fatores(chip_id: str) -> HealthFactors:
-    """Coleta todos os fatores do banco."""
-    # Buscar chip
-    chip = supabase.table("warmup_chips") \
-        .select("*") \
-        .eq("id", chip_id) \
-        .single() \
-        .execute()
-
-    if not chip.data:
-        return HealthFactors()
-
-    c = chip.data
-    now = datetime.now(timezone.utc)
-    created = datetime.fromisoformat(c["created_at"].replace("Z", "+00:00"))
-
-    # Calcular dias inativo
-    last_activity = c.get("last_activity_at")
-    if last_activity:
-        last_dt = datetime.fromisoformat(last_activity.replace("Z", "+00:00"))
-        dias_inativo = (now - last_dt).days
+    # Buscar similares
+    if categoria:
+        result = supabase.rpc(
+            "match_meta_policies",
+            {
+                "query_embedding": query_embedding,
+                "match_threshold": 0.7,
+                "match_count": limite,
+                "filter_categoria": categoria,
+            }
+        ).execute()
     else:
-        dias_inativo = 0
+        result = supabase.rpc(
+            "match_meta_policies",
+            {
+                "query_embedding": query_embedding,
+                "match_threshold": 0.7,
+                "match_count": limite,
+            }
+        ).execute()
 
-    # Contar conversas bidirecionais (ultimos 7 dias)
-    conversas = supabase.table("warmup_interactions") \
-        .select("destinatario, obteve_resposta", count="exact") \
-        .eq("chip_id", chip_id) \
-        .eq("tipo", "msg_enviada") \
-        .eq("obteve_resposta", True) \
-        .gte("created_at", (now - timedelta(days=7)).isoformat()) \
-        .execute()
-
-    # Contar erros recentes
-    erros = supabase.table("warmup_alerts") \
-        .select("*", count="exact") \
-        .eq("chip_id", chip_id) \
-        .eq("tipo", "spam_error") \
-        .gte("created_at", (now - timedelta(days=7)).isoformat()) \
-        .execute()
-
-    warnings = supabase.table("warmup_alerts") \
-        .select("*", count="exact") \
-        .eq("chip_id", chip_id) \
-        .eq("severity", "warning") \
-        .gte("created_at", (now - timedelta(days=7)).isoformat()) \
-        .execute()
-
-    return HealthFactors(
-        idade_dias=(now - created).days,
-        msgs_enviadas=c.get("msgs_enviadas", 0),
-        msgs_recebidas=c.get("msgs_recebidas", 0),
-        conversas_bidirecionais=conversas.count or 0,
-        grupos_ativos=c.get("grupos_count", 0),
-        tipos_midia=len(c.get("tipos_midia_usados", [])),
-        status_semana=c.get("status_criados_semana", 0),
-        teve_chamada=c.get("teve_chamada", False),
-        erros_spam=erros.count or 0,
-        warnings=warnings.count or 0,
-        dias_inativo=dias_inativo,
-        taxa_resposta=float(c.get("taxa_resposta", 0)),
-    )
+    return result.data or []
 
 
-async def registrar_health_score(chip_id: str):
-    """Calcula e registra health score no historico."""
-    score, factors = await calcular_health_score(chip_id)
-
-    # Atualizar chip
-    supabase.table("warmup_chips") \
-        .update({
-            "health_score": score,
-            "ultimo_calculo_health": datetime.now(timezone.utc).isoformat(),
-        }) \
-        .eq("id", chip_id) \
-        .execute()
-
-    # Registrar historico
-    supabase.table("warmup_health_log") \
-        .insert({
-            "chip_id": chip_id,
-            "score": score,
-            "factors": {
-                "idade_dias": factors.idade_dias,
-                "msgs_enviadas": factors.msgs_enviadas,
-                "msgs_recebidas": factors.msgs_recebidas,
-                "conversas_bidi": factors.conversas_bidirecionais,
-                "grupos": factors.grupos_ativos,
-                "tipos_midia": factors.tipos_midia,
-                "taxa_resposta": factors.taxa_resposta,
-                "erros": factors.erros_spam,
-                "warnings": factors.warnings,
-            },
-        }) \
-        .execute()
-
-    return score
-```
-
-### Aceite
-- [ ] Algoritmo implementado com todos os fatores
-- [ ] Taxa de resposta calculada corretamente
-- [ ] Proporcao enviadas/recebidas funcionando
-- [ ] Historico de health registrado
-- [ ] Testes com cenarios diversos
-
----
-
-## E05: Pairing Engine
-
-### Objetivo
-Gerenciar pareamento rotativo entre chips para warm-up cruzado.
-
-### Implementacao
-
-**Arquivo:** `app/services/warmer/pairing_engine.py`
-
-```python
-"""
-Pairing Engine - Gerencia pareamentos entre chips.
-
-Regras:
-- Cada chip pode ter max 15 interacoes/dia com outros chips
-- Pareamentos rotacionam para evitar padrao
-- Chips na mesma fase tem prioridade
-"""
-import random
-from datetime import datetime, timedelta, timezone
-from typing import Optional
-
-from app.services.supabase import supabase
-
-
-MAX_INTERACOES_DIA = 15
-MAX_PARES_ATIVOS = 10
-
-
-async def obter_pareamentos_dia(chip_id: str) -> list[str]:
+async def verificar_conformidade(acao: str) -> dict:
     """
-    Obtem lista de chips pareados para hoje.
-    Cria novos pareamentos se necessario.
+    Verifica se uma acao esta em conformidade com politicas.
 
     Args:
-        chip_id: UUID do chip
+        acao: Descricao da acao a verificar
 
     Returns:
-        Lista de chip_ids para interagir hoje
+        {
+            "permitido": bool,
+            "riscos": ["..."],
+            "recomendacoes": ["..."],
+            "politicas_relacionadas": [...]
+        }
     """
-    # Buscar pares ativos
-    pares = supabase.table("warmup_pairs") \
-        .select("chip_a_id, chip_b_id") \
-        .or_(f"chip_a_id.eq.{chip_id},chip_b_id.eq.{chip_id}") \
-        .eq("active", True) \
-        .execute()
+    # Buscar politicas relacionadas
+    politicas = await consultar_politicas(acao, limite=3)
 
-    parceiros = []
-    for par in pares.data or []:
-        if par["chip_a_id"] == chip_id:
-            parceiros.append(par["chip_b_id"])
-        else:
-            parceiros.append(par["chip_a_id"])
+    # Montar contexto para analise
+    contexto = "\n\n".join([
+        f"## {p['titulo']}\n{p['conteudo']}"
+        for p in politicas
+    ])
 
-    # Se tem poucos pares, criar novos
-    if len(parceiros) < MAX_PARES_ATIVOS:
-        novos = await criar_novos_pareamentos(chip_id, MAX_PARES_ATIVOS - len(parceiros))
-        parceiros.extend(novos)
+    # TODO: Usar Claude para analisar conformidade
+    # Por enquanto, retornar politicas encontradas
 
-    return parceiros[:MAX_PARES_ATIVOS]
-
-
-async def criar_novos_pareamentos(chip_id: str, quantidade: int) -> list[str]:
-    """
-    Cria novos pareamentos com chips disponiveis.
-    Prioriza chips na mesma fase de warm-up.
-    """
-    # Buscar chip atual
-    chip = supabase.table("warmup_chips") \
-        .select("fase_warmup") \
-        .eq("id", chip_id) \
-        .single() \
-        .execute()
-
-    fase_atual = chip.data.get("fase_warmup") if chip.data else "setup"
-
-    # Buscar chips disponiveis (mesma fase primeiro)
-    disponiveis = supabase.table("warmup_chips") \
-        .select("id, fase_warmup") \
-        .eq("status", "warming") \
-        .neq("id", chip_id) \
-        .execute()
-
-    if not disponiveis.data:
-        return []
-
-    # Ordenar: mesma fase primeiro
-    chips = sorted(
-        disponiveis.data,
-        key=lambda c: (0 if c["fase_warmup"] == fase_atual else 1, random.random())
-    )
-
-    # Filtrar chips que ja sao pares
-    pares_existentes = supabase.table("warmup_pairs") \
-        .select("chip_a_id, chip_b_id") \
-        .or_(f"chip_a_id.eq.{chip_id},chip_b_id.eq.{chip_id}") \
-        .execute()
-
-    ja_pareados = set()
-    for par in pares_existentes.data or []:
-        ja_pareados.add(par["chip_a_id"])
-        ja_pareados.add(par["chip_b_id"])
-
-    # Criar novos pares
-    novos = []
-    for c in chips:
-        if c["id"] not in ja_pareados and len(novos) < quantidade:
-            # Criar par
-            supabase.table("warmup_pairs") \
-                .insert({
-                    "chip_a_id": chip_id,
-                    "chip_b_id": c["id"],
-                }) \
-                .execute()
-            novos.append(c["id"])
-
-    return novos
-
-
-async def registrar_interacao(chip_a: str, chip_b: str):
-    """Registra interacao entre par de chips."""
-    # Atualizar par
-    supabase.table("warmup_pairs") \
-        .update({
-            "messages_exchanged": supabase.sql("messages_exchanged + 1"),
-            "last_interaction": datetime.now(timezone.utc).isoformat(),
-        }) \
-        .or_(
-            f"and(chip_a_id.eq.{chip_a},chip_b_id.eq.{chip_b}),"
-            f"and(chip_a_id.eq.{chip_b},chip_b_id.eq.{chip_a})"
-        ) \
-        .execute()
-
-
-async def rotacionar_pareamentos():
-    """
-    Rotaciona pareamentos antigos para evitar padrao.
-    Executar semanalmente.
-    """
-    uma_semana_atras = datetime.now(timezone.utc) - timedelta(days=7)
-
-    # Desativar pares antigos
-    supabase.table("warmup_pairs") \
-        .update({"active": False}) \
-        .lt("created_at", uma_semana_atras.isoformat()) \
-        .eq("active", True) \
-        .execute()
-```
-
-### Aceite
-- [ ] Pareamento automatico funcionando
-- [ ] Priorizacao por fase implementada
-- [ ] Rotacao semanal funcionando
-- [ ] Max 15 interacoes/dia respeitado
-- [ ] Testes de pareamento
-
----
-
-## E06: Message Scheduler
-
-### Objetivo
-Agendar mensagens com distribuicao anti-padrao para evitar deteccao.
-
-### Implementacao
-
-**Arquivo:** `app/services/warmer/scheduler.py`
-
-```python
-"""
-Message Scheduler - Agenda mensagens com distribuicao anti-padrao.
-
-Cada chip tem janela de atividade unica baseada em hash do ID.
-Previne que todos os chips enviem no mesmo horario.
-"""
-import hashlib
-from datetime import datetime, date, time, timedelta, timezone
-from typing import Tuple
-import random
-
-from app.services.redis import redis_client
-
-
-def calcular_janela_atividade(chip_id: str, dia: date) -> Tuple[int, int, int, int]:
-    """
-    Calcula janela de atividade unica para o chip neste dia.
-
-    Baseado em hash deterministico do chip_id + dia.
-    Cada chip tem janela de 6 horas dentro do periodo 8h-22h.
-
-    Args:
-        chip_id: UUID do chip
-        dia: Data
-
-    Returns:
-        Tupla (hora_inicio, minuto_inicio, hora_fim, minuto_fim)
-    """
-    # Hash deterministico
-    seed = f"{chip_id}{dia}".encode()
-    hash_int = int(hashlib.md5(seed).hexdigest(), 16)
-
-    # Janela de 6 horas dentro de 8h-22h (14h disponiveis)
-    inicio_possivel = 8   # 8h da manha
-    fim_possivel = 16     # Ate 16h (pra janela de 6h terminar as 22h)
-
-    hora_inicio = inicio_possivel + (hash_int % (fim_possivel - inicio_possivel))
-    minuto_inicio = hash_int % 30  # Variacao de 0-30 min
-
-    hora_fim = hora_inicio + 6
-    minuto_fim = (hash_int >> 8) % 30
-
-    return (hora_inicio, minuto_inicio, hora_fim, minuto_fim)
-
-
-def esta_na_janela(chip_id: str) -> bool:
-    """Verifica se o chip esta na sua janela de atividade."""
-    agora = datetime.now(timezone.utc)
-    # Ajustar para horario de Brasilia (UTC-3)
-    agora_br = agora - timedelta(hours=3)
-
-    janela = calcular_janela_atividade(chip_id, agora_br.date())
-    hora_inicio, min_inicio, hora_fim, min_fim = janela
-
-    inicio = time(hora_inicio, min_inicio)
-    fim = time(hora_fim, min_fim)
-    atual = agora_br.time()
-
-    return inicio <= atual <= fim
-
-
-async def pode_enviar_mensagem(chip_id: str) -> Tuple[bool, str]:
-    """
-    Verifica se o chip pode enviar mensagem agora.
-
-    Checks:
-    1. Esta na janela de atividade
-    2. Nao excedeu limite diario
-    3. Respeitou delay minimo desde ultima msg
-
-    Returns:
-        Tupla (pode_enviar, motivo)
-    """
-    # Check 1: Janela de atividade
-    if not esta_na_janela(chip_id):
-        return False, "fora_janela"
-
-    # Check 2: Limite diario
-    hoje = date.today().isoformat()
-    key = f"warmer:msgs_dia:{chip_id}:{hoje}"
-    msgs_hoje = await redis_client.get(key)
-    msgs_hoje = int(msgs_hoje or 0)
-
-    # Limite varia por fase
-    chip = await get_chip(chip_id)
-    limites = {
-        "setup": 0,
-        "primeiros_contatos": 10,
-        "expansao": 30,
-        "pre_operacao": 50,
-        "operacao": 100,
+    return {
+        "permitido": True,  # Placeholder
+        "riscos": [],
+        "recomendacoes": [],
+        "politicas_relacionadas": politicas,
     }
-    limite = limites.get(chip.fase_warmup, 10)
-
-    if msgs_hoje >= limite:
-        return False, "limite_diario"
-
-    # Check 3: Delay minimo (2 min entre msgs)
-    key_ultima = f"warmer:ultima_msg:{chip_id}"
-    ultima = await redis_client.get(key_ultima)
-    if ultima:
-        ultima_dt = datetime.fromisoformat(ultima.decode())
-        if (datetime.now(timezone.utc) - ultima_dt).seconds < 120:
-            return False, "delay_minimo"
-
-    return True, "ok"
-
-
-async def registrar_envio(chip_id: str):
-    """Registra que uma mensagem foi enviada."""
-    agora = datetime.now(timezone.utc)
-    hoje = date.today().isoformat()
-
-    # Incrementar contador diario
-    key = f"warmer:msgs_dia:{chip_id}:{hoje}"
-    await redis_client.incr(key)
-    await redis_client.expire(key, 86400 * 2)  # Expira em 2 dias
-
-    # Registrar timestamp
-    key_ultima = f"warmer:ultima_msg:{chip_id}"
-    await redis_client.set(key_ultima, agora.isoformat())
 ```
 
-### Aceite
-- [ ] Janela de atividade calculada por hash
-- [ ] Distribuicao anti-padrao funcionando
-- [ ] Limites diarios por fase respeitados
-- [ ] Delay minimo entre mensagens
-- [ ] Testes de scheduling
+**Migration para funcao de busca:**
+
+```sql
+-- Funcao de busca por similaridade
+CREATE OR REPLACE FUNCTION match_meta_policies(
+    query_embedding vector(1024),
+    match_threshold float DEFAULT 0.7,
+    match_count int DEFAULT 5,
+    filter_categoria text DEFAULT NULL
+)
+RETURNS TABLE (
+    id uuid,
+    categoria text,
+    titulo text,
+    conteudo text,
+    fonte_url text,
+    similarity float
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        mp.id,
+        mp.categoria,
+        mp.titulo,
+        mp.conteudo,
+        mp.fonte_url,
+        1 - (mp.embedding <=> query_embedding) as similarity
+    FROM meta_policies mp
+    WHERE
+        (filter_categoria IS NULL OR mp.categoria = filter_categoria)
+        AND (mp.valido_ate IS NULL OR mp.valido_ate >= CURRENT_DATE)
+        AND 1 - (mp.embedding <=> query_embedding) > match_threshold
+    ORDER BY mp.embedding <=> query_embedding
+    LIMIT match_count;
+END;
+$$;
+```
+
+### DoD
+
+- [ ] Tabela meta_policies criada
+- [ ] Seed de politicas iniciais
+- [ ] Funcao de busca por similaridade
+- [ ] Endpoint de consulta
+- [ ] Job de atualizacao periodica
 
 ---
 
-## E07: Orchestrator
+## E04: Trust Score Engine
 
 ### Objetivo
-Coordenar todo o fluxo de warm-up, gerenciando fases e disparando acoes.
+Implementar calculo multiparametrico de Trust Score com permissoes dinamicas.
 
-### Implementacao
-
-**Arquivo:** `app/services/warmer/orchestrator.py`
-
-```python
-"""
-Orchestrator - Coordena o fluxo de warm-up.
-
-Responsabilidades:
-- Avaliar progressao de fases
-- Disparar conversas entre pares
-- Monitorar saude dos chips
-- Responder a alertas
-"""
-import asyncio
-import logging
-from datetime import datetime, timezone
-from typing import Optional
-
-from app.services.warmer.health_score import calcular_health_score, registrar_health_score
-from app.services.warmer.pairing_engine import obter_pareamentos_dia, registrar_interacao
-from app.services.warmer.conversation_generator import gerar_dialogo
-from app.services.warmer.human_simulator import enviar_mensagem_humanizada, calcular_delay_entre_turnos
-from app.services.warmer.scheduler import pode_enviar_mensagem, registrar_envio
-from app.services.supabase import supabase
-from app.services.slack import enviar_slack
-
-logger = logging.getLogger(__name__)
-
-
-# Criterios de progressao por fase
-CRITERIOS_FASE = {
-    "setup": {
-        "dias_min": 3,
-        "health_min": 45,
-        "proxima": "primeiros_contatos",
-    },
-    "primeiros_contatos": {
-        "dias_min": 4,
-        "health_min": 55,
-        "taxa_resposta_min": 0.5,
-        "proxima": "expansao",
-    },
-    "expansao": {
-        "dias_min": 7,
-        "health_min": 70,
-        "taxa_resposta_min": 0.4,
-        "proxima": "pre_operacao",
-    },
-    "pre_operacao": {
-        "dias_min": 7,
-        "health_min": 85,
-        "taxa_resposta_min": 0.35,
-        "proxima": "operacao",
-    },
-}
-
-
-async def executar_ciclo_warmup():
-    """
-    Executa um ciclo de warm-up para todos os chips ativos.
-    Deve ser chamado a cada 5 minutos via scheduler.
-    """
-    # Buscar chips em warm-up
-    chips = supabase.table("warmup_chips") \
-        .select("*") \
-        .eq("status", "warming") \
-        .execute()
-
-    for chip in chips.data or []:
-        try:
-            await processar_chip(chip)
-        except Exception as e:
-            logger.error(f"Erro processando chip {chip['id']}: {e}")
-
-
-async def processar_chip(chip: dict):
-    """Processa um chip individual."""
-    chip_id = chip["id"]
-
-    # 1. Verificar se pode enviar
-    pode, motivo = await pode_enviar_mensagem(chip_id)
-    if not pode:
-        logger.debug(f"Chip {chip_id[:8]} nao pode enviar: {motivo}")
-        return
-
-    # 2. Avaliar progressao de fase
-    await avaliar_progressao_fase(chip_id)
-
-    # 3. Se nao esta em setup, executar conversa
-    if chip["fase_warmup"] != "setup":
-        await executar_conversa_warmup(chip_id)
-
-    # 4. Atualizar health score
-    await registrar_health_score(chip_id)
-
-
-async def avaliar_progressao_fase(chip_id: str):
-    """Avalia se o chip pode avancar para proxima fase."""
-    chip = supabase.table("warmup_chips") \
-        .select("*") \
-        .eq("id", chip_id) \
-        .single() \
-        .execute()
-
-    if not chip.data:
-        return
-
-    c = chip.data
-    fase_atual = c["fase_warmup"]
-
-    criterio = CRITERIOS_FASE.get(fase_atual)
-    if not criterio:
-        return  # Ja em operacao
-
-    # Calcular metricas
-    fase_iniciada = datetime.fromisoformat(c["fase_iniciada_em"].replace("Z", "+00:00"))
-    dias_fase = (datetime.now(timezone.utc) - fase_iniciada).days
-    health = c["health_score"]
-    taxa_resposta = float(c.get("taxa_resposta", 0))
-
-    # Verificar criterios
-    criterios_ok = (
-        dias_fase >= criterio["dias_min"] and
-        health >= criterio["health_min"] and
-        taxa_resposta >= criterio.get("taxa_resposta_min", 0)
-    )
-
-    if criterios_ok:
-        nova_fase = criterio["proxima"]
-
-        # Atualizar fase
-        supabase.table("warmup_chips") \
-            .update({
-                "fase_warmup": nova_fase,
-                "fase_iniciada_em": datetime.now(timezone.utc).isoformat(),
-            }) \
-            .eq("id", chip_id) \
-            .execute()
-
-        # Notificar
-        await enviar_slack({
-            "text": f":rocket: Chip {c['telefone'][-4:]} avancou para fase: {nova_fase}",
-            "attachments": [{
-                "color": "#22C55E",
-                "fields": [
-                    {"title": "Health", "value": str(health), "short": True},
-                    {"title": "Taxa Resposta", "value": f"{taxa_resposta:.0%}", "short": True},
-                ],
-            }]
-        })
-
-        # Se chegou em operacao, marcar como ready
-        if nova_fase == "operacao":
-            supabase.table("warmup_chips") \
-                .update({
-                    "status": "ready",
-                    "ready_at": datetime.now(timezone.utc).isoformat(),
-                }) \
-                .eq("id", chip_id) \
-                .execute()
-
-
-async def executar_conversa_warmup(chip_id: str):
-    """Executa uma conversa de warm-up com um par."""
-    # Obter parceiros
-    parceiros = await obter_pareamentos_dia(chip_id)
-    if not parceiros:
-        return
-
-    # Escolher parceiro aleatorio
-    parceiro_id = random.choice(parceiros)
-
-    # Buscar dados dos chips
-    chip = await get_chip_com_instance(chip_id)
-    parceiro = await get_chip_com_instance(parceiro_id)
-
-    if not chip or not parceiro:
-        return
-
-    # Gerar dialogo
-    mensagens = await gerar_dialogo()
-
-    # Executar conversa
-    for i, msg in enumerate(mensagens):
-        # Determinar quem envia
-        if msg["from"] == "A":
-            remetente = chip
-            destinatario = parceiro
-        else:
-            remetente = parceiro
-            destinatario = chip
-
-        # Enviar com simulacao humana
-        await enviar_mensagem_humanizada(
-            instance=remetente["instance_name"],
-            destinatario=destinatario["telefone"],
-            texto=msg["text"],
-        )
-
-        # Registrar envio
-        await registrar_envio(remetente["id"])
-
-        # Delay entre turnos
-        if i < len(mensagens) - 1:
-            delay = calcular_delay_entre_turnos()
-            await asyncio.sleep(delay)
-
-    # Registrar interacao
-    await registrar_interacao(chip_id, parceiro_id)
-
-    logger.info(f"Conversa warmup: {chip['telefone'][-4:]} <-> {parceiro['telefone'][-4:]}")
-```
-
-### Aceite
-- [ ] Ciclo de warm-up executando corretamente
-- [ ] Progressao de fases automatica
-- [ ] Conversas entre pares funcionando
-- [ ] Notificacoes Slack de progressao
-- [ ] Testes de orquestracao
+### Detalhes em arquivo separado
+Ver `epic-04-trust-score.md`
 
 ---
 
-## E08: Early Warning System
+## Cronograma Sprint 25
 
-### Objetivo
-Detectar problemas precocemente e pausar chips automaticamente.
-
-### Implementacao
-
-**Arquivo:** `app/services/warmer/early_warning.py`
-
-```python
-"""
-Early Warning System - Detecta problemas e pausa chips.
-
-Thresholds:
-- Critico: pausa imediata
-- Warning: reduz velocidade e alerta
-"""
-import logging
-from datetime import datetime, timedelta, timezone
-from typing import Tuple
-
-from app.services.supabase import supabase
-from app.services.slack import enviar_slack
-
-logger = logging.getLogger(__name__)
-
-
-# Thresholds de alerta
-THRESHOLDS = {
-    "critico": {
-        "taxa_erro_1h": 0.5,      # 50% de erros em 1h
-        "health_drop_1h": 20,      # Health caiu 20 pontos em 1h
-        "spam_error": 1,           # Qualquer erro 131048
-    },
-    "warning": {
-        "taxa_resposta_24h": 0.2,  # Taxa resposta < 20%
-        "health_drop_24h": 10,     # Health caiu 10 pontos em 24h
-        "msgs_sem_resposta": 5,    # 5 msgs consecutivas sem resposta
-    },
-}
-
-
-async def monitorar_chip(chip_id: str) -> Tuple[str, str]:
-    """
-    Monitora saude do chip em tempo real.
-
-    Returns:
-        Tupla (status, motivo) - status: 'ok', 'warning', 'critico'
-    """
-    chip = supabase.table("warmup_chips") \
-        .select("*") \
-        .eq("id", chip_id) \
-        .single() \
-        .execute()
-
-    if not chip.data:
-        return "ok", ""
-
-    c = chip.data
-    now = datetime.now(timezone.utc)
-
-    # ══════════════════════════════════════════
-    # CHECKS CRITICOS
-    # ══════════════════════════════════════════
-
-    # Check: Erro de spam
-    erros_spam = supabase.table("warmup_alerts") \
-        .select("*", count="exact") \
-        .eq("chip_id", chip_id) \
-        .eq("tipo", "spam_error") \
-        .gte("created_at", (now - timedelta(hours=1)).isoformat()) \
-        .execute()
-
-    if (erros_spam.count or 0) >= THRESHOLDS["critico"]["spam_error"]:
-        await pausar_chip(chip_id, "CRITICO: Erro de spam detectado")
-        return "critico", "spam_error"
-
-    # Check: Health drop 1h
-    health_1h_atras = await get_health_em(chip_id, now - timedelta(hours=1))
-    if health_1h_atras and (health_1h_atras - c["health_score"]) > THRESHOLDS["critico"]["health_drop_1h"]:
-        await pausar_chip(chip_id, f"CRITICO: Health caiu {health_1h_atras - c['health_score']} pontos em 1h")
-        return "critico", "health_drop"
-
-    # Check: Taxa de erro 1h
-    total_1h = await contar_msgs_periodo(chip_id, 1)
-    erros_1h = await contar_erros_periodo(chip_id, 1)
-    if total_1h > 5 and (erros_1h / total_1h) > THRESHOLDS["critico"]["taxa_erro_1h"]:
-        await pausar_chip(chip_id, f"CRITICO: {erros_1h/total_1h:.0%} de erros em 1h")
-        return "critico", "taxa_erro"
-
-    # ══════════════════════════════════════════
-    # CHECKS WARNING
-    # ══════════════════════════════════════════
-
-    # Check: Taxa resposta 24h
-    taxa_resposta = float(c.get("taxa_resposta", 0))
-    if taxa_resposta < THRESHOLDS["warning"]["taxa_resposta_24h"]:
-        await criar_alerta(chip_id, "warning", "low_response",
-                          f"Taxa resposta baixa: {taxa_resposta:.0%}")
-        await reduzir_velocidade(chip_id, 0.5)
-        return "warning", "low_response"
-
-    # Check: Health drop 24h
-    health_24h_atras = await get_health_em(chip_id, now - timedelta(hours=24))
-    if health_24h_atras and (health_24h_atras - c["health_score"]) > THRESHOLDS["warning"]["health_drop_24h"]:
-        await criar_alerta(chip_id, "warning", "health_drop",
-                          f"Health caiu {health_24h_atras - c['health_score']} pontos em 24h")
-        return "warning", "health_drop"
-
-    # Check: Msgs sem resposta consecutivas
-    sem_resposta = await contar_msgs_sem_resposta_consecutivas(chip_id)
-    if sem_resposta >= THRESHOLDS["warning"]["msgs_sem_resposta"]:
-        await criar_alerta(chip_id, "warning", "no_response",
-                          f"{sem_resposta} msgs sem resposta")
-        return "warning", "no_response"
-
-    return "ok", ""
-
-
-async def pausar_chip(chip_id: str, motivo: str):
-    """Pausa chip imediatamente."""
-    supabase.table("warmup_chips") \
-        .update({"status": "paused"}) \
-        .eq("id", chip_id) \
-        .execute()
-
-    # Criar alerta
-    await criar_alerta(chip_id, "critical", "paused", motivo)
-
-    # Notificar
-    chip = await get_chip(chip_id)
-    await enviar_slack({
-        "text": f":octagonal_sign: CHIP PAUSADO",
-        "attachments": [{
-            "color": "#EF4444",
-            "fields": [
-                {"title": "Telefone", "value": chip["telefone"][-4:], "short": True},
-                {"title": "Motivo", "value": motivo, "short": False},
-            ],
-        }]
-    })
-
-    logger.warning(f"Chip {chip_id} pausado: {motivo}")
-
-
-async def reduzir_velocidade(chip_id: str, fator: float):
-    """Reduz velocidade de envio do chip."""
-    # Implementar via flag no Redis
-    from app.services.redis import redis_client
-    key = f"warmer:velocidade:{chip_id}"
-    await redis_client.set(key, str(fator))
-    await redis_client.expire(key, 86400)  # 24h
-
-
-async def criar_alerta(chip_id: str, severity: str, tipo: str, message: str):
-    """Cria registro de alerta."""
-    supabase.table("warmup_alerts") \
-        .insert({
-            "chip_id": chip_id,
-            "severity": severity,
-            "tipo": tipo,
-            "message": message,
-        }) \
-        .execute()
+### Semana 1: Foundation
+```
+Dia 1-2: E01 Modelo de Dados Unificado
+Dia 2-3: E02 Salvy Integration
+Dia 3-4: E03 Meta Policies RAG
+Dia 4-5: E04 Trust Score Engine
 ```
 
-### Aceite
-- [ ] Deteccao de erros de spam funcionando
-- [ ] Pausa automatica em casos criticos
-- [ ] Reducao de velocidade em warnings
-- [ ] Alertas registrados no banco
-- [ ] Notificacoes Slack de incidentes
-
----
-
-## E09: API Endpoints
-
-### Objetivo
-Expor endpoints REST para gerenciamento dos chips.
-
-### Endpoints
-
-| Metodo | Path | Descricao |
-|--------|------|-----------|
-| GET | /warmer/chips | Lista todos os chips |
-| POST | /warmer/chips | Adiciona novo chip |
-| GET | /warmer/chips/{id} | Detalhes do chip |
-| POST | /warmer/chips/{id}/start | Inicia warm-up |
-| POST | /warmer/chips/{id}/pause | Pausa warm-up |
-| POST | /warmer/chips/{id}/resume | Retoma warm-up |
-| GET | /warmer/chips/{id}/health | Historico de health |
-| GET | /warmer/stats | Estatisticas gerais |
-
-### Aceite
-- [ ] Todos endpoints implementados
-- [ ] Validacao de entrada
-- [ ] Tratamento de erros
-- [ ] Documentacao OpenAPI
-
----
-
-## E10: Dashboard
-
-### Objetivo
-Dashboard Streamlit para visualizacao do status dos chips.
-
-### Features
-
-- Lista de chips com status e health score
-- Grafico de evolucao de health por chip
-- Alertas ativos
-- Acoes rapidas (pausar, retomar)
-- Metricas agregadas
-
-### Aceite
-- [ ] Dashboard funcional
-- [ ] Visualizacao de health em tempo real
-- [ ] Lista de alertas
-- [ ] Acoes de gestao funcionando
-
----
-
-## Cronograma
-
-### Semana 1: Core
+### Semana 2: Warmer Core
 ```
-Dia 1-2: E01 Modelo de Dados
-Dia 2-3: E02 Human Simulator
-Dia 3-4: E03 Conversation Generator
-Dia 4-5: E04 Health Score v2
+Dia 1-2: E05 Human Simulator
+Dia 2-3: E06 Conversation Generator
+Dia 3-4: E07 Pairing Engine
+Dia 4-5: E08 Warming Scheduler
 ```
 
-### Semana 2: Orquestracao
+### Semana 3: Orquestracao
 ```
-Dia 1-2: E05 Pairing Engine
-Dia 2-3: E06 Message Scheduler
-Dia 3-5: E07 Orchestrator
-```
-
-### Semana 3: Operacao
-```
-Dia 1-2: E08 Early Warning System
-Dia 2-3: E09 API Endpoints
-Dia 3-5: E10 Dashboard
+Dia 1-2: E09 Warming Orchestrator
+Dia 2-3: E10 Early Warning
+Dia 3-4: E11 Warmer API
+Dia 5: Testes e ajustes
 ```
 
 ---
 
-## Fase 2 (Futuro): Pool Externo
+## Entregavel
 
-Apos validar o sistema interno:
-
-1. Pool entre clientes Julia (se houver)
-2. Parceria com outros sistemas
-3. Marketplace de warm-up
+Ao final da Sprint 25:
+- [ ] Chips podem ser provisionados via Salvy
+- [ ] Sistema de aquecimento funcionando (21 dias)
+- [ ] Trust Score calculando e atualizando
+- [ ] Permissoes dinamicas por nivel
+- [ ] RAG de politicas consultavel
+- [ ] Early Warning pausando chips problematicos
+- [ ] API de gestao do Warmer
 
 ---
 
-*Sprint criada em 29/12/2025*
+*Sprint criada em 30/12/2025*
