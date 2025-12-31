@@ -40,7 +40,7 @@ def _get_version_var(explicit_name: str, railway_name: str) -> str:
     return "unknown"
 
 GIT_SHA = _get_version_var("GIT_SHA", "RAILWAY_GIT_COMMIT_SHA")
-BUILD_TIME = _get_version_var("BUILD_TIME", "RAILWAY_DEPLOYMENT_ID")
+DEPLOYMENT_ID = _get_version_var("BUILD_TIME", "RAILWAY_DEPLOYMENT_ID")
 RAILWAY_ENVIRONMENT = os.getenv("RAILWAY_ENVIRONMENT", "unknown")
 RUN_MODE = os.getenv("RUN_MODE", "unknown")
 
@@ -644,7 +644,7 @@ async def deep_health_check(response: Response):
         "status": overall_status,
         "version": {
             "git_sha": GIT_SHA,
-            "build_time": BUILD_TIME,
+            "deployment_id": DEPLOYMENT_ID,
             "railway_environment": RAILWAY_ENVIRONMENT,
             "run_mode": RUN_MODE,
         },
