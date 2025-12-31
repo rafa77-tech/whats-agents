@@ -181,7 +181,7 @@ class AgenteSlack:
             tool_id = tool_call.id
 
             # Verificar se eh acao critica que precisa confirmacao
-            if self.executor.is_tool_critica(tool_name):
+            if self.executor.is_tool_critica(tool_name, tool_input):
                 # Guardar acao pendente e pedir confirmacao
                 self.session.set_acao_pendente({
                     "tool_name": tool_name,

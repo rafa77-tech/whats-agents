@@ -49,9 +49,22 @@ class ToolExecutor:
         self.user_id = user_id
         self.channel_id = channel_id
 
-    def is_tool_critica(self, tool_name: str) -> bool:
-        """Verifica se tool requer confirmacao."""
-        return tool_name in TOOLS_CRITICAS
+    def is_tool_critica(self, tool_name: str, tool_input: dict = None) -> bool:
+        """
+        Verifica se tool requer confirmacao.
+
+        Para toggle_campanhas e toggle_ponte_externa, status queries
+        NÃO requerem confirmação (são read-only).
+        """
+        if tool_name not in TOOLS_CRITICAS:
+            return False
+
+        # Toggle tools: só crítico se está MUDANDO estado
+        if tool_name in ["toggle_campanhas", "toggle_ponte_externa"]:
+            acao = (tool_input or {}).get("acao", "status")
+            return acao in ["on", "off"]  # status query não é crítico
+
+        return True
 
     async def executar(self, tool_name: str, tool_input: dict) -> dict:
         """
@@ -71,12 +84,17 @@ class ToolExecutor:
         result = await executar_tool(tool_name, tool_input, self.user_id, self.channel_id)
 
         # V2: Audit log para comandos criticos
-        if self.is_tool_critica(tool_name):
+        if self.is_tool_critica(tool_name, tool_input):
             await self._registrar_audit_log(tool_name, tool_input, result)
 
-            # V2: Broadcast para toggles de modo
-            if tool_name in ["pausar_julia", "retomar_julia", "toggle_campanhas", "toggle_ponte_externa"]:
+            # V2: Broadcast para toggles de modo (NÃO para consultas de status)
+            if tool_name in ["pausar_julia", "retomar_julia"]:
                 await self._broadcast_status_change(tool_name, tool_input, result)
+            elif tool_name in ["toggle_campanhas", "toggle_ponte_externa"]:
+                # Só broadcast quando MUDA estado, não quando consulta status
+                acao = tool_input.get("acao", "status")
+                if acao in ["on", "off"]:
+                    await self._broadcast_status_change(tool_name, tool_input, result)
 
         return result
 
