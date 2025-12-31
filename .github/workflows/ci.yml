@@ -231,8 +231,8 @@ jobs:
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Attempt $i of $MAX_RETRIES..."
 
-            # Fazer request e capturar status code
-            HTTP_STATUS=$(curl -s -o /tmp/health_response.json -w "%{http_code}" "$APP_URL/health/deep" || echo "000")
+            # Fazer request e capturar status code (-L segue redirects)
+            HTTP_STATUS=$(curl -sL -o /tmp/health_response.json -w "%{http_code}" "$APP_URL/health/deep" || echo "000")
 
             if [ "$HTTP_STATUS" = "200" ]; then
               echo "Health check passed!"
