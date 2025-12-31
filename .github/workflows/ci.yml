@@ -188,28 +188,15 @@ jobs:
         if: steps.check_railway.outputs.token_available == 'true'
         run: npm install -g @railway/cli
 
-      - name: List Railway services (debug)
-        if: steps.check_railway.outputs.token_available == 'true'
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-        run: |
-          echo "Project ID: $RAILWAY_PROJECT_ID"
-          echo "Available services:"
-          railway service list || railway status || echo "Could not list services"
-
       - name: Deploy to Railway
         if: steps.check_railway.outputs.token_available == 'true'
-        continue-on-error: true
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
         run: |
           echo "Deploying commit ${{ github.sha }} to Railway..."
-          echo "Attempting deploy (will show available services if it fails)..."
-          railway up --detach 2>&1 || true
-          echo ""
-          echo "If deploy failed, check service names above and update workflow."
+          railway up --detach --service whats-agents
+          echo "Deployment initiated!"
 
       - name: Skip deploy notice
         if: steps.check_railway.outputs.token_available == 'false'
