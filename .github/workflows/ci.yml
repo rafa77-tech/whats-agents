@@ -192,8 +192,10 @@ jobs:
         if: steps.check_railway.outputs.token_available == 'true'
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
         run: |
           echo "Deploying commit ${{ github.sha }} to Railway..."
+          echo "Project ID: $RAILWAY_PROJECT_ID"
           echo "Deploying julia-api..."
           railway up --detach --service julia-api
           echo "Deploying julia-worker..."
