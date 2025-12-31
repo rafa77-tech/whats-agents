@@ -37,6 +37,7 @@ class SendOutcome(str, Enum):
     BLOCKED_CAMPAIGNS_DISABLED = "BLOCKED_CAMPAIGNS_DISABLED"
     BLOCKED_SAFE_MODE = "BLOCKED_SAFE_MODE"
     BLOCKED_CAMPAIGN_COOLDOWN = "BLOCKED_CAMPAIGN_COOLDOWN"
+    BLOCKED_QUIET_HOURS = "BLOCKED_QUIET_HOURS"  # Proativo fora do horário comercial
 
     # Deduplicacao (NAO e bloqueio por permissao)
     DEDUPED = "DEDUPED"
@@ -82,6 +83,7 @@ _GUARDRAIL_TO_OUTCOME: Dict[str, SendOutcome] = {
     "campaigns_disabled": SendOutcome.BLOCKED_CAMPAIGNS_DISABLED,
     "safe_mode": SendOutcome.BLOCKED_SAFE_MODE,
     "campaign_cooldown": SendOutcome.BLOCKED_CAMPAIGN_COOLDOWN,
+    "quiet_hours": SendOutcome.BLOCKED_QUIET_HOURS,
 }
 
 

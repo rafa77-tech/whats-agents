@@ -3,15 +3,17 @@ Verificação de guardrails para outbound.
 
 Sprint 17 - Ponto único de controle para envios proativos.
 Sprint 24 E04 - Cooldown entre campanhas usando doctor_state.last_touch_*.
+31/12/2025 - Quiet hours: guardrail inescapável para proativo fora do horário.
 
 Regras (em ordem de precedência):
-R-1 - Reply só é válido com inbound_proof (interaction_id + last_inbound recente)
-R0  - opted_out é absoluto (exceto bypass humano via Slack COM bypass_reason)
-R1  - cooling_off bloqueia proativo
-R2  - next_allowed_at bloqueia proativo
-R3  - contact_cap_7d bloqueia proativo
-R4  - kill switches (campaigns.enabled, safe_mode)
-R5  - campaign_cooldown: 3 dias entre campanhas diferentes
+R-1  - Reply só é válido com inbound_proof (interaction_id + last_inbound recente)
+R0   - opted_out é absoluto (exceto bypass humano via Slack COM bypass_reason)
+R0.5 - quiet_hours: proativo NUNCA envia fora do horário comercial (08-20h seg-sex)
+R1   - cooling_off bloqueia proativo
+R2   - next_allowed_at bloqueia proativo
+R3   - contact_cap_7d bloqueia proativo
+R4   - kill switches (campaigns.enabled, safe_mode)
+R5   - campaign_cooldown: 3 dias entre campanhas diferentes
 
 Toda decisão BLOCK ou BYPASS gera business_event para auditoria.
 """
@@ -299,13 +301,15 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
         GuardrailResult com decisão ALLOW ou BLOCK
 
     Regras aplicadas (em ordem):
-    R-1: Reply requer inbound_proof válido
-    R0:  opted_out → BLOCK (exceto bypass Slack COM reason)
-    R1:  cooling_off ativo → BLOCK proativo
-    R2:  next_allowed_at futuro → BLOCK proativo
-    R3:  contact_cap_7d excedido → BLOCK proativo
-    R4a: campaigns.enabled=false → BLOCK campaigns
-    R4b: safe_mode ativo → BLOCK proativo
+    R-1:  Reply requer inbound_proof válido
+    R0:   opted_out → BLOCK (exceto bypass Slack COM reason)
+    R0.5: quiet_hours → BLOCK proativo fora do horário comercial (08-20h seg-sex)
+    R1:   cooling_off ativo → BLOCK proativo
+    R2:   next_allowed_at futuro → BLOCK proativo
+    R3:   contact_cap_7d excedido → BLOCK proativo
+    R4a:  campaigns.enabled=false → BLOCK campaigns
+    R4b:  safe_mode ativo → BLOCK proativo
+    R5:   campaign_cooldown → 3 dias entre campanhas diferentes
     """
     state = await load_doctor_state(ctx.cliente_id)
     now = datetime.now(timezone.utc)
@@ -379,13 +383,41 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
         return result
 
     # =========================================================================
-    # Regras R1-R4 só travam proativo
+    # Regras R1-R5 só travam proativo
     # =========================================================================
     if not is_actually_proactive:
         return GuardrailResult(
             decision=GuardrailDecision.ALLOW,
             reason_code="reply_valid" if is_valid_reply else "non_proactive"
         )
+
+    # =========================================================================
+    # R0.5: Quiet hours - proativo NUNCA envia fora do horário comercial
+    # 31/12/2025: Guardrail inescapável para proteger contra scheduler mal configurado
+    # =========================================================================
+    from app.services.timing import esta_em_horario_comercial
+
+    if not esta_em_horario_comercial():
+        # Bypass humano via Slack permitido (emergências)
+        if _is_human_slack_bypass(ctx):
+            result = GuardrailResult(
+                decision=GuardrailDecision.ALLOW,
+                reason_code="quiet_hours",
+                human_bypass=True,
+                details={"hora_atual": now.strftime("%H:%M"), "bypass_por": ctx.actor_id}
+            )
+            await _emit_guardrail_event(ctx, result, "outbound_bypass")
+            logger.warning(f"BYPASS quiet_hours: {ctx.cliente_id} por {ctx.actor_id}")
+            return result
+
+        result = GuardrailResult(
+            decision=GuardrailDecision.BLOCK,
+            reason_code="quiet_hours",
+            details={"hora_atual": now.strftime("%H:%M"), "horario_comercial": "08:00-20:00 seg-sex"}
+        )
+        await _emit_guardrail_event(ctx, result, "outbound_blocked")
+        logger.info(f"BLOCK quiet_hours: {ctx.cliente_id} (fora do horário comercial)")
+        return result
 
     # =========================================================================
     # R1: cooling_off bloqueia proativo
