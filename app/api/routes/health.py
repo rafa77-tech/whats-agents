@@ -54,11 +54,12 @@ REQUIRED_PROMPTS = {
             "[INVARIANT:KILL_SWITCHES_PRIORITY]",
             "[INVARIANT:NO_CONFIRM_WITHOUT_RESERVATION]",
             "[INVARIANT:NO_IDENTITY_DEBATE]",
+            "[CAPABILITY:HANDOFF]",  # Promovido para BLOQUEADOR - handoff é crítico
             "[FALLBACK:DIRETRIZES_EMPTY_OK]",
         ],
         "warning_sentinels": [
-            "[CAPABILITY:HANDOFF]",
             "[INVARIANT:OUTBOUND_QUIET_HOURS]",
+            "[INVARIANT:NO_METACOMMUNICATION]",
         ],
     },
     "julia_primeira_msg": {
