@@ -32,12 +32,14 @@ class Settings(BaseSettings):
     LLM_MODEL_COMPLEX: str = "claude-sonnet-4-20250514"
 
     # Evolution API
-    EVOLUTION_API_URL: str = "http://localhost:8080"
+    # IMPORTANTE: Sem default localhost - deve ser configurado via env var
+    EVOLUTION_API_URL: str = ""
     EVOLUTION_API_KEY: str = ""
     EVOLUTION_INSTANCE: str = "Revoluna"
 
     # Chatwoot
-    CHATWOOT_URL: str = "http://localhost:3000"
+    # IMPORTANTE: Sem default localhost - deve ser configurado via env var
+    CHATWOOT_URL: str = ""
     CHATWOOT_API_KEY: str = ""
     CHATWOOT_ACCOUNT_ID: int = 1
     CHATWOOT_INBOX_ID: int = 1
@@ -53,10 +55,12 @@ class Settings(BaseSettings):
     VOYAGE_MODEL: str = "voyage-3.5-lite"
 
     # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
-    
+    # IMPORTANTE: Sem default localhost - deve ser configurado via env var
+    REDIS_URL: str = ""
+
     # Julia API (para scheduler)
-    JULIA_API_URL: str = "http://localhost:8000"
+    # IMPORTANTE: Sem default localhost - deve ser configurado via env var
+    JULIA_API_URL: str = ""
 
     # JWT para External Handoff (Sprint 20)
     JWT_SECRET_KEY: str = ""  # Obrigatório em produção
@@ -101,6 +105,59 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         """Retorna True se está em produção (APP_ENV == 'production')."""
         return self.APP_ENV.lower() == "production"
+
+    @property
+    def runtime_endpoints(self) -> dict:
+        """
+        Retorna hosts/endpoints sanitizados para auditoria.
+
+        Remove credenciais, expõe apenas hostname/domínio.
+        Usado em /health/deep para validar que não há localhost em prod.
+        """
+        from urllib.parse import urlparse
+
+        def extract_host(url: str) -> str:
+            if not url:
+                return "(not configured)"
+            try:
+                parsed = urlparse(url)
+                return parsed.netloc or parsed.path.split("/")[0] or "(invalid)"
+            except Exception:
+                return "(parse error)"
+
+        return {
+            "evolution_host": extract_host(self.EVOLUTION_API_URL),
+            "chatwoot_host": extract_host(self.CHATWOOT_URL),
+            "redis_host": extract_host(self.REDIS_URL),
+            "julia_api_host": extract_host(self.JULIA_API_URL),
+            "supabase_project": extract_host(self.SUPABASE_URL).split(".")[0] if self.SUPABASE_URL else "(not configured)",
+        }
+
+    @property
+    def has_localhost_urls(self) -> list[str]:
+        """
+        Retorna lista de URLs que apontam para localhost.
+
+        Em produção, esta lista DEVE estar vazia.
+        """
+        localhost_patterns = ["localhost", "127.0.0.1", "0.0.0.0"]
+        violations = []
+
+        urls_to_check = {
+            "EVOLUTION_API_URL": self.EVOLUTION_API_URL,
+            "CHATWOOT_URL": self.CHATWOOT_URL,
+            "REDIS_URL": self.REDIS_URL,
+            "JULIA_API_URL": self.JULIA_API_URL,
+        }
+
+        for name, url in urls_to_check.items():
+            if url:
+                for pattern in localhost_patterns:
+                    if pattern in url.lower():
+                        violations.append(f"{name}={url}")
+                        break
+
+        return violations
 
     @property
     def cors_origins_list(self) -> list[str]:

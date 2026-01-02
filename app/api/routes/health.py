@@ -425,6 +425,7 @@ async def deep_health_check(response: Response):
     checks = {
         "environment": {"status": "pending", "app_env": APP_ENV, "db_env": None},
         "project_ref": {"status": "pending", "app_ref": SUPABASE_PROJECT_REF, "db_ref": None},
+        "localhost_check": {"status": "pending"},  # Zero localhost validation
         "dev_guardrails": {"status": "pending"},  # DEV allowlist validation
         "redis": {"status": "pending", "message": None},
         "supabase": {"status": "pending", "message": None},
@@ -489,11 +490,40 @@ async def deep_health_check(response: Response):
             "status": "CRITICAL",
             "message": "DEPLOY TO WRONG ENVIRONMENT DETECTED! ROLLBACK IMMEDIATELY!",
             "checks": checks,
+            "runtime_endpoints": settings.runtime_endpoints,
             "timestamp": datetime.utcnow().isoformat(),
             "deploy_safe": False,
         }
 
-    # 0c. DEV GUARDRAILS: Validar que ambiente DEV tem proteções configuradas
+    # 0c. LOCALHOST CHECK: Validar que não há URLs apontando para localhost
+    localhost_violations = settings.has_localhost_urls
+    checks["localhost_check"] = {
+        "status": "pending",
+        "violations": localhost_violations,
+        "runtime_endpoints": settings.runtime_endpoints,
+    }
+
+    if localhost_violations:
+        if settings.is_production:
+            # Em PROD, localhost é CRÍTICO
+            checks["localhost_check"]["status"] = "CRITICAL"
+            checks["localhost_check"]["message"] = (
+                f"LOCALHOST DETECTED IN PRODUCTION! Violations: {localhost_violations}"
+            )
+            all_ok = False
+            critical_mismatch = True
+            logger.critical(f"[health/deep] CRITICAL: Localhost URLs in production: {localhost_violations}")
+        else:
+            # Em DEV, é apenas warning (pode ser intencional)
+            checks["localhost_check"]["status"] = "warning"
+            checks["localhost_check"]["message"] = (
+                f"Localhost URLs detected (OK for local dev): {localhost_violations}"
+            )
+            logger.warning(f"[health/deep] Localhost URLs in dev: {localhost_violations}")
+    else:
+        checks["localhost_check"]["status"] = "ok"
+
+    # 0d. DEV GUARDRAILS: Validar que ambiente DEV tem proteções configuradas
     # Em DEV (APP_ENV != production), OUTBOUND_ALLOWLIST não pode estar vazia
     # Isso garante fail-closed: DEV sem allowlist = não envia para ninguém
     if not settings.is_production:
@@ -648,6 +678,7 @@ async def deep_health_check(response: Response):
             "railway_environment": RAILWAY_ENVIRONMENT,
             "run_mode": RUN_MODE,
         },
+        "runtime_endpoints": settings.runtime_endpoints,
         "schema": schema_fp,
         "checks": checks,
         "timestamp": datetime.utcnow().isoformat(),
