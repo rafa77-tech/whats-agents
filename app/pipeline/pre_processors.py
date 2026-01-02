@@ -95,9 +95,23 @@ class ParseMessageProcessor(PreProcessor):
                 metadata={"motivo": motivo}
             )
 
-        # Popular contexto (telefone já foi resolvido pelo parser via remoteJidAlt se necessário)
+        # Resolver telefone via Chatwoot se necessário (LID sem telefone)
+        telefone = mensagem.telefone
+        if mensagem.is_lid and not telefone and mensagem.chatwoot_conversation_id:
+            telefone = await self._resolver_telefone_via_chatwoot(mensagem.chatwoot_conversation_id)
+            if telefone:
+                logger.info(f"Telefone resolvido via Chatwoot para LID: {telefone[:6]}...")
+            else:
+                logger.warning(f"Nao foi possivel resolver telefone para LID via Chatwoot")
+                return ProcessorResult(
+                    success=True,
+                    should_continue=False,
+                    metadata={"motivo": "LID sem telefone - Chatwoot nao retornou phone"}
+                )
+
+        # Popular contexto
         context.mensagem_texto = mensagem.texto or ""
-        context.telefone = mensagem.telefone
+        context.telefone = telefone
         context.message_id = mensagem.message_id
         context.tipo_mensagem = mensagem.tipo
         context.metadata["nome_contato"] = mensagem.nome_contato
@@ -110,6 +124,15 @@ class ParseMessageProcessor(PreProcessor):
             context.metadata["chatwoot_inbox_id"] = mensagem.chatwoot_inbox_id
 
         return ProcessorResult(success=True)
+
+    async def _resolver_telefone_via_chatwoot(self, conversation_id: int) -> Optional[str]:
+        """Resolve telefone usando API do Chatwoot."""
+        try:
+            from app.services.chatwoot import chatwoot_service
+            return await chatwoot_service.buscar_telefone_por_conversation_id(conversation_id)
+        except Exception as e:
+            logger.error(f"Erro ao resolver telefone via Chatwoot: {e}")
+            return None
 
 
 class PresenceProcessor(PreProcessor):

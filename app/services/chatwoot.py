@@ -134,6 +134,38 @@ class ChatwootService:
                 logger.error(f"Erro ao buscar conversa {conversation_id}: {e}")
                 return None
 
+    async def buscar_telefone_por_conversation_id(self, conversation_id: int) -> Optional[str]:
+        """
+        Busca telefone do contato a partir do ID da conversa.
+
+        Usado para resolver telefone quando mensagem vem em formato LID
+        (sem remoteJidAlt) mas temos o chatwoot_conversation_id.
+
+        Args:
+            conversation_id: ID da conversa no Chatwoot
+
+        Returns:
+            Telefone no formato internacional (ex: 5511999999999) ou None
+        """
+        conversa = await self.buscar_conversa_por_id(conversation_id)
+        if not conversa:
+            return None
+
+        # Estrutura: conversa.meta.sender.phone_number
+        meta = conversa.get("meta", {})
+        sender = meta.get("sender", {})
+        phone = sender.get("phone_number")
+
+        if phone:
+            # Remover caracteres não numéricos (ex: +55 11 99999-9999 -> 5511999999999)
+            phone_clean = "".join(c for c in phone if c.isdigit())
+            if len(phone_clean) >= 10:
+                logger.info(f"Telefone resolvido via Chatwoot conversation {conversation_id}: {phone_clean[:6]}...")
+                return phone_clean
+
+        logger.warning(f"Telefone nao encontrado na conversa Chatwoot {conversation_id}")
+        return None
+
     async def enviar_mensagem(
         self,
         conversation_id: int,
