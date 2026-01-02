@@ -75,10 +75,11 @@ async def verificar_fila_travada() -> List[Dict]:
 
         total_erros = result.count or 0
 
-        # Log para debug
-        logger.info(f"verificar_fila_travada: {total_erros} itens com estagio='erro'")
+        # Log SEMPRE para debug
+        logger.warning(f"[ALERTA-DEBUG] verificar_fila_travada: count={total_erros}, threshold={config['threshold']}")
 
         if total_erros > config["threshold"]:
+            logger.warning(f"[ALERTA-DEBUG] DISPARANDO alerta fila_travada: {total_erros} > {config['threshold']}")
             return [{
                 "tipo": "fila_travada",
                 "mensagem": f"Pipeline grupos: {total_erros} itens com erro (threshold: {config['threshold']})",
@@ -86,6 +87,7 @@ async def verificar_fila_travada() -> List[Dict]:
                 "valor": total_erros
             }]
 
+        logger.info(f"[ALERTA-DEBUG] NAO disparando alerta fila_travada: {total_erros} <= {config['threshold']}")
         return []
     except Exception as e:
         logger.error(f"Erro ao verificar fila travada: {e}")
