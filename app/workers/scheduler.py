@@ -187,7 +187,7 @@ JOBS = [
     {
         "name": "processar_grupos",
         "endpoint": "/jobs/processar-grupos",
-        "schedule": "*/5 * * * *",  # A cada 5 minutos
+        "schedule": "* * * * *",  # A cada minuto (batch_size=200, max_workers=20)
     },
     {
         "name": "limpar_grupos_finalizados",

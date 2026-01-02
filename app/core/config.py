@@ -218,9 +218,9 @@ class GruposConfig:
     THRESHOLD_IMPORTAR: float = 0.90
     THRESHOLD_REVISAR: float = 0.70
 
-    # Worker
-    BATCH_SIZE: int = 50
-    MAX_WORKERS: int = 5
+    # Worker (otimizado para velocidade)
+    BATCH_SIZE: int = 200
+    MAX_WORKERS: int = 20
     INTERVALO_CICLO_SEGUNDOS: int = 10
 
     # Alertas
