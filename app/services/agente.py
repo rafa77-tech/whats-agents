@@ -4,6 +4,12 @@ Servico principal do agente Julia.
 Sprint 15: Integração com Policy Engine para decisões determinísticas.
 Sprint 16: Retorna policy_decision_id para fechamento do ciclo.
 Sprint 17: Emissão de eventos offer_made, offer_teaser_sent (E04).
+Sprint 29: Conversation Mode + Capabilities Gate (3 camadas de proteção).
+
+GUARDRAIL CRÍTICO: Julia é INTERMEDIÁRIA
+- Não negocia valores
+- Não confirma reservas
+- Conecta médico com responsável da vaga
 """
 import asyncio
 import random
@@ -27,6 +33,12 @@ from app.tools.vagas import (
 )
 from app.tools.lembrete import TOOL_AGENDAR_LEMBRETE, handle_agendar_lembrete
 from app.tools.memoria import TOOL_SALVAR_MEMORIA, handle_salvar_memoria
+from app.tools.intermediacao import (
+    TOOL_CRIAR_HANDOFF_EXTERNO,
+    TOOL_REGISTRAR_STATUS_INTERMEDIACAO,
+    handle_criar_handoff_externo,
+    handle_registrar_status_intermediacao,
+)
 from app.services.conhecimento import OrquestradorConhecimento
 from app.services.policy import (
     PolicyDecide,
@@ -38,6 +50,15 @@ from app.services.policy import (
     log_policy_decision,
     log_policy_effect,
 )
+# Sprint 29: Conversation Mode
+from app.services.conversation_mode import (
+    get_mode_router,
+    CapabilitiesGate,
+    ConversationMode,
+    ModeInfo,
+    get_conversation_mode,
+)
+from app.services.conversation_mode.prompts import get_micro_confirmation_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +69,9 @@ JULIA_TOOLS = [
     TOOL_BUSCAR_INFO_HOSPITAL,
     TOOL_AGENDAR_LEMBRETE,
     TOOL_SALVAR_MEMORIA,
+    # Sprint 29: Tools de intermediacao
+    TOOL_CRIAR_HANDOFF_EXTERNO,
+    TOOL_REGISTRAR_STATUS_INTERMEDIACAO,
 ]
 
 
@@ -86,6 +110,13 @@ async def processar_tool_call(
     if tool_name == "salvar_memoria":
         return await handle_salvar_memoria(tool_input, medico, conversa)
 
+    # Sprint 29: Tools de intermediacao
+    if tool_name == "criar_handoff_externo":
+        return await handle_criar_handoff_externo(tool_input, medico, conversa)
+
+    if tool_name == "registrar_status_intermediacao":
+        return await handle_registrar_status_intermediacao(tool_input, medico, conversa)
+
     return {"success": False, "error": f"Tool desconhecida: {tool_name}"}
 
 
@@ -97,6 +128,8 @@ async def gerar_resposta_julia(
     incluir_historico: bool = True,
     usar_tools: bool = True,
     policy_decision: PolicyDecision = None,
+    capabilities_gate: CapabilitiesGate = None,
+    mode_info: ModeInfo = None,
 ) -> str:
     """
     Gera resposta da Julia para uma mensagem.
@@ -109,6 +142,8 @@ async def gerar_resposta_julia(
         incluir_historico: Se deve passar historico como messages
         usar_tools: Se deve usar tools
         policy_decision: Decisão da Policy Engine (Sprint 15)
+        capabilities_gate: Gate de capabilities por modo (Sprint 29)
+        mode_info: Info do modo atual (Sprint 29)
 
     Returns:
         Texto da resposta gerada
@@ -136,10 +171,36 @@ async def gerar_resposta_julia(
         logger.warning(f"Erro ao buscar conhecimento dinâmico: {e}")
         # Continua sem conhecimento dinâmico
 
-    # Extrair constraints da policy (Sprint 15)
-    policy_constraints = ""
+    # Montar constraints combinados (Policy Engine + Conversation Mode)
+    constraints_parts = []
+
+    # Constraints da Policy Engine (Sprint 15)
     if policy_decision and policy_decision.constraints_text:
-        policy_constraints = policy_decision.constraints_text
+        constraints_parts.append(policy_decision.constraints_text)
+
+    # Sprint 29: Constraints do Conversation Mode (3 CAMADAS)
+    if capabilities_gate:
+        mode_constraints = capabilities_gate.get_constraints_text()
+        if mode_constraints:
+            constraints_parts.append(mode_constraints)
+        logger.debug(
+            f"Capabilities Gate aplicado: modo={capabilities_gate.mode.value}, "
+            f"claims_proibidos={len(capabilities_gate.get_forbidden_claims())}"
+        )
+
+    # Sprint 29: Prompt de micro-confirmação se há pending_transition
+    if mode_info and mode_info.pending_transition:
+        micro_prompt = get_micro_confirmation_prompt(
+            mode_info.mode, mode_info.pending_transition
+        )
+        if micro_prompt:
+            constraints_parts.append(micro_prompt)
+            logger.debug(
+                f"Micro-confirmação injetada: {mode_info.mode.value} → {mode_info.pending_transition.value}"
+            )
+
+    # Combinar todos os constraints
+    policy_constraints = "\n\n---\n\n".join(constraints_parts) if constraints_parts else ""
 
     # Montar system prompt (async - carrega do banco)
     system_prompt = await montar_prompt_julia(
@@ -167,13 +228,25 @@ async def gerar_resposta_julia(
 
     logger.info(f"Gerando resposta para: {mensagem[:50]}...")
 
+    # Sprint 29: Filtrar tools pelo modo (CAMADA 1)
+    if capabilities_gate:
+        tools_to_use = capabilities_gate.filter_tools(JULIA_TOOLS)
+        removed_count = len(JULIA_TOOLS) - len(tools_to_use)
+        if removed_count > 0:
+            logger.info(
+                f"Tools filtradas pelo modo {capabilities_gate.mode.value}: "
+                f"{removed_count} removidas de {len(JULIA_TOOLS)}"
+            )
+    else:
+        tools_to_use = JULIA_TOOLS
+
     # Gerar resposta com tools
     if usar_tools:
         resultado = await gerar_resposta_com_tools(
             mensagem=mensagem,
             historico=historico_messages,
             system_prompt=system_prompt,
-            tools=JULIA_TOOLS,
+            tools=tools_to_use,
             max_tokens=300,
         )
 
@@ -219,7 +292,7 @@ async def gerar_resposta_julia(
                 historico=historico_com_tool,
                 tool_results=tool_results,
                 system_prompt=system_prompt,
-                tools=JULIA_TOOLS,
+                tools=tools_to_use,  # Sprint 29: usar tools filtradas
                 max_tokens=300,
             )
 
@@ -496,6 +569,24 @@ async def processar_mensagem_completo(
                 rule_matched=decision.rule_id,
             )
 
+        # 7b. Sprint 29: MODE ROUTER
+        # Detecta intent, propõe transição, valida com micro-confirmação
+        mode_router = get_mode_router()
+        mode_info = await mode_router.process(
+            conversa_id=conversa["id"],
+            mensagem=mensagem_texto,
+            last_message_at=conversa.get("last_message_at"),
+            ponte_feita=False,  # TODO: detectar via tool call criar_handoff_externo
+            objecao_resolvida=objecao_dict.get("resolvida", False) if objecao_dict else False,
+        )
+        logger.info(
+            f"Mode Router: modo={mode_info.mode.value}, "
+            f"pending={mode_info.pending_transition.value if mode_info.pending_transition else 'none'}"
+        )
+
+        # 7c. Sprint 29: CAPABILITIES GATE (3 camadas)
+        capabilities_gate = CapabilitiesGate(mode_info.mode)
+
         # 8. Gerar resposta com constraints
         resposta = await gerar_resposta_julia(
             mensagem_texto,
@@ -503,6 +594,8 @@ async def processar_mensagem_completo(
             medico=medico,
             conversa=conversa,
             policy_decision=decision,
+            capabilities_gate=capabilities_gate,  # Sprint 29
+            mode_info=mode_info,  # Sprint 29
         )
 
         # 8b. Emitir eventos de oferta se aplicável (Sprint 17 - E04)
