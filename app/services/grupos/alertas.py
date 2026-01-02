@@ -13,6 +13,9 @@ from app.services.slack import enviar_slack
 
 logger = get_logger(__name__)
 
+# Cooldown de alertas em segundos (evita spam)
+ALERTA_COOLDOWN_SEGUNDOS = 3600  # 1 hora
+
 
 # =============================================================================
 # Configuração de Alertas
@@ -74,6 +77,9 @@ async def verificar_fila_travada() -> List[Dict]:
             .execute()
 
         total_erros = result.count or 0
+
+        # Log para debug
+        logger.info(f"verificar_fila_travada: {total_erros} itens com estagio='erro'")
 
         if total_erros > config["threshold"]:
             return [{
@@ -245,8 +251,34 @@ async def verificar_alertas_grupos() -> List[Dict]:
     return alertas
 
 
+async def _alerta_em_cooldown(tipo_alerta: str) -> bool:
+    """Verifica se alerta está em cooldown (já foi enviado recentemente)."""
+    from app.services.redis import cache_get_json
+    try:
+        cache_key = f"alerta_grupos:{tipo_alerta}"
+        result = await cache_get_json(cache_key)
+        return result is not None
+    except Exception:
+        return False
+
+
+async def _marcar_alerta_enviado(tipo_alerta: str):
+    """Marca alerta como enviado (cooldown)."""
+    from app.services.redis import cache_set_json
+    try:
+        cache_key = f"alerta_grupos:{tipo_alerta}"
+        await cache_set_json(cache_key, {"enviado": True}, ttl=ALERTA_COOLDOWN_SEGUNDOS)
+    except Exception as e:
+        logger.warning(f"Erro ao marcar alerta em cooldown: {e}")
+
+
 async def enviar_alerta_grupos_slack(alerta: Dict):
-    """Envia alerta de grupos para Slack."""
+    """Envia alerta de grupos para Slack com deduplicação."""
+    # Verificar cooldown para evitar spam
+    if await _alerta_em_cooldown(alerta["tipo"]):
+        logger.debug(f"Alerta {alerta['tipo']} em cooldown, ignorando")
+        return
+
     cores = {
         "info": "#2196F3",
         "warning": "#FF9800",
@@ -277,6 +309,9 @@ async def enviar_alerta_grupos_slack(alerta: Dict):
     }
 
     await enviar_slack(mensagem)
+
+    # Marcar alerta como enviado
+    await _marcar_alerta_enviado(alerta["tipo"])
 
 
 async def executar_verificacao_alertas_grupos():
