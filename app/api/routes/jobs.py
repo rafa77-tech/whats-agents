@@ -340,7 +340,7 @@ async def job_doctor_state_expire_cooling():
 # ==========================================
 
 @router.post("/processar-grupos")
-async def job_processar_grupos(batch_size: int = 200, max_workers: int = 20):
+async def job_processar_grupos(batch_size: int = 50, max_workers: int = 20):
     """
     Job para processar mensagens de grupos WhatsApp.
 
