@@ -448,9 +448,11 @@ async def ler_documento(doc_id: str) -> Optional[DocContent]:
 
 async def buscar_documento_briefing() -> dict:
     """
-    Busca conteudo do documento de briefing (LEGADO - doc unico).
+    Busca conteudo do documento de briefing.
 
-    Mantido para compatibilidade com codigo existente.
+    Suporta dois modos:
+    1. DOC_ID (legado): busca documento unico pelo ID
+    2. FOLDER_ID (novo): busca documento mais recente da pasta
 
     Returns:
         dict com:
@@ -461,15 +463,25 @@ async def buscar_documento_briefing() -> dict:
         - doc_id: str
         - error: str (se falha)
     """
-    if not DOC_ID:
-        return {
-            "success": False,
-            "error": "GOOGLE_BRIEFING_DOC_ID nao configurado"
-        }
+    # Modo 1: DOC_ID especifico (legado)
+    if DOC_ID:
+        return await _buscar_briefing_por_id(DOC_ID)
 
+    # Modo 2: FOLDER_ID - buscar documento mais recente
+    if FOLDER_ID:
+        return await _buscar_briefing_mais_recente()
+
+    return {
+        "success": False,
+        "error": "Nem BRIEFING_DOC_ID nem GOOGLE_BRIEFINGS_FOLDER_ID configurados"
+    }
+
+
+async def _buscar_briefing_por_id(doc_id: str) -> dict:
+    """Busca briefing por ID especifico (modo legado)."""
     try:
         service = _get_docs_service()
-        document = service.documents().get(documentId=DOC_ID).execute()
+        document = service.documents().get(documentId=doc_id).execute()
 
         # Extrair texto de todos os elementos
         content = _extrair_texto(document)
@@ -484,7 +496,7 @@ async def buscar_documento_briefing() -> dict:
             "content": content,
             "hash": content_hash,
             "title": document.get('title', 'Briefing'),
-            "doc_id": DOC_ID
+            "doc_id": doc_id
         }
 
     except FileNotFoundError as e:
@@ -503,6 +515,52 @@ async def buscar_documento_briefing() -> dict:
 
     except Exception as e:
         logger.error(f"Erro ao buscar documento Google Docs: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+async def _buscar_briefing_mais_recente() -> dict:
+    """
+    Busca documento de briefing mais recente da pasta.
+
+    Usa GOOGLE_BRIEFINGS_FOLDER_ID para listar documentos
+    e retorna o mais recentemente modificado.
+    """
+    try:
+        # Listar documentos da pasta (ja ordenados por modifiedTime desc)
+        docs = await listar_documentos(FOLDER_ID, force_refresh=True)
+
+        if not docs:
+            return {
+                "success": False,
+                "error": f"Nenhum documento encontrado na pasta de briefings (ID: {FOLDER_ID})"
+            }
+
+        # Pegar o mais recente (primeiro da lista)
+        doc_mais_recente = docs[0]
+        logger.info(f"Briefing mais recente: {doc_mais_recente.nome} (modificado: {doc_mais_recente.ultima_modificacao})")
+
+        # Ler conteudo completo
+        doc_content = await ler_documento(doc_mais_recente.id)
+        if not doc_content:
+            return {
+                "success": False,
+                "error": f"Erro ao ler documento {doc_mais_recente.nome}"
+            }
+
+        return {
+            "success": True,
+            "content": doc_content.conteudo,
+            "hash": doc_content.hash,
+            "title": doc_content.info.nome,
+            "doc_id": doc_mais_recente.id,
+            "url": doc_mais_recente.url
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar briefing mais recente: {e}")
         return {
             "success": False,
             "error": str(e)
