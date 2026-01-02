@@ -22,7 +22,9 @@ logger = get_logger(__name__)
 
 
 # Thresholds de decisão
-THRESHOLD_IMPORTAR = 0.90
+# Sprint 29: Baixado de 0.90 para 0.85 - Julia intermedia ofertas,
+# então vagas com confiança média-alta podem ser importadas
+THRESHOLD_IMPORTAR = 0.85
 THRESHOLD_REVISAR = 0.70
 
 
