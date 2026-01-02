@@ -9,10 +9,25 @@ A decisão final é do TransitionValidator.
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
+from dateutil.parser import parse as parse_datetime
 
 from .types import ConversationMode
+
+
 from .intents import DetectedIntent, IntentResult
+
+
+def _ensure_datetime(value: Optional[Union[datetime, str]]) -> Optional[datetime]:
+    """Converte string ISO para datetime se necessário."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    try:
+        return parse_datetime(value)
+    except Exception:
+        return None
 
 logger = logging.getLogger(__name__)
 
@@ -133,8 +148,9 @@ class TransitionProposer:
         """Verifica regras automáticas de transição."""
 
         # Regra: Silêncio >= 7 dias → REATIVACAO
-        if last_message_at:
-            days_since = (datetime.utcnow() - last_message_at).days
+        last_msg_dt = _ensure_datetime(last_message_at)
+        if last_msg_dt:
+            days_since = (datetime.utcnow() - last_msg_dt.replace(tzinfo=None)).days
             if days_since >= SILENCE_DAYS_FOR_REACTIVATION:
                 if current_mode != ConversationMode.REATIVACAO:
                     return TransitionProposal(

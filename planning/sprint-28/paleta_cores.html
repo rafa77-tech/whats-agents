@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paleta de Cores - Identidade Visual</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f8f8;
+            padding: 40px;
+            color: #333;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #C82D37;
+            font-weight: 300;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 50px;
+            font-size: 1rem;
+        }
+        
+        .palette-section {
+            max-width: 1000px;
+            margin: 0 auto 50px;
+        }
+        
+        .section-title {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            font-weight: 500;
+        }
+        
+        .color-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        
+        .color-card {
+            flex: 1;
+            min-width: 150px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .color-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        
+        .color-swatch {
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .color-info {
+            padding: 15px;
+        }
+        
+        .color-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .color-values {
+            font-size: 0.75rem;
+            color: #888;
+            line-height: 1.6;
+        }
+        
+        .color-values span {
+            display: block;
+        }
+        
+        .primary-badge {
+            display: inline-block;
+            background: #C82D37;
+            color: white;
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+        
+        /* Usage examples */
+        .usage-section {
+            max-width: 1000px;
+            margin: 60px auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        
+        .usage-title {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+        
+        .usage-examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+        
+        .usage-card {
+            padding: 25px;
+            border-radius: 12px;
+        }
+        
+        .usage-card h3 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+        
+        .usage-card p {
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        
+        .btn-example {
+            display: inline-block;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin: 5px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #C82D37;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #A52530;
+        }
+        
+        .btn-secondary {
+            background: #2D3748;
+            color: white;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #C82D37;
+            color: #C82D37;
+        }
+        
+        .buttons-demo {
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        /* Proportions bar */
+        .proportions {
+            max-width: 1000px;
+            margin: 40px auto;
+        }
+        
+        .prop-bar {
+            display: flex;
+            height: 60px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .prop-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .prop-labels {
+            display: flex;
+            margin-top: 15px;
+        }
+        
+        .prop-label {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #666;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            color: #999;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Paleta de Cores</h1>
+    <p class="subtitle">Identidade Visual baseada no vermelho #C82D37</p>
+    
+    <!-- Cores Principais -->
+    <div class="palette-section">
+        <h2 class="section-title">Cores Principais</h2>
+        <div class="color-row">
+            <div class="color-card">
+                <div class="color-swatch" style="background: #C82D37;"></div>
+                <div class="color-info">
+                    <div class="color-name">Vermelho Principal <span class="primary-badge">PRIMARY</span></div>
+                    <div class="color-values">
+                        <span>HEX: #C82D37</span>
+                        <span>RGB: 200, 45, 55</span>
+                        <span>HSL: 355°, 63%, 48%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #2D3748;"></div>
+                <div class="color-info">
+                    <div class="color-name">Cinza Escuro</div>
+                    <div class="color-values">
+                        <span>HEX: #2D3748</span>
+                        <span>RGB: 45, 55, 72</span>
+                        <span>HSL: 218°, 23%, 23%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #F7F7F7;"></div>
+                <div class="color-info">
+                    <div class="color-name">Off-White</div>
+                    <div class="color-values">
+                        <span>HEX: #F7F7F7</span>
+                        <span>RGB: 247, 247, 247</span>
+                        <span>HSL: 0°, 0%, 97%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Variações do Vermelho -->
+    <div class="palette-section">
+        <h2 class="section-title">Variações da Cor Principal</h2>
+        <div class="color-row">
+            <div class="color-card">
+                <div class="color-swatch" style="background: #7A1B22;"></div>
+                <div class="color-info">
+                    <div class="color-name">Vermelho Escuro</div>
+                    <div class="color-values">
+                        <span>HEX: #7A1B22</span>
+                        <span>RGB: 122, 27, 34</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #A52530;"></div>
+                <div class="color-info">
+                    <div class="color-name">Vermelho Médio</div>
+                    <div class="color-values">
+                        <span>HEX: #A52530</span>
+                        <span>RGB: 165, 37, 48</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #C82D37;"></div>
+                <div class="color-info">
+                    <div class="color-name">Vermelho Base</div>
+                    <div class="color-values">
+                        <span>HEX: #C82D37</span>
+                        <span>RGB: 200, 45, 55</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #E85A63;"></div>
+                <div class="color-info">
+                    <div class="color-name">Vermelho Claro</div>
+                    <div class="color-values">
+                        <span>HEX: #E85A63</span>
+                        <span>RGB: 232, 90, 99</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #FADCDE;"></div>
+                <div class="color-info">
+                    <div class="color-name">Rosa Suave</div>
+                    <div class="color-values">
+                        <span>HEX: #FADCDE</span>
+                        <span>RGB: 250, 220, 222</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cores Complementares -->
+    <div class="palette-section">
+        <h2 class="section-title">Cores de Apoio</h2>
+        <div class="color-row">
+            <div class="color-card">
+                <div class="color-swatch" style="background: #D4A853;"></div>
+                <div class="color-info">
+                    <div class="color-name">Dourado</div>
+                    <div class="color-values">
+                        <span>HEX: #D4A853</span>
+                        <span>RGB: 212, 168, 83</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #2D8C7A;"></div>
+                <div class="color-info">
+                    <div class="color-name">Verde Teal</div>
+                    <div class="color-values">
+                        <span>HEX: #2D8C7A</span>
+                        <span>RGB: 45, 140, 122</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #4A5568;"></div>
+                <div class="color-info">
+                    <div class="color-name">Cinza Médio</div>
+                    <div class="color-values">
+                        <span>HEX: #4A5568</span>
+                        <span>RGB: 74, 85, 104</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #E2E8F0;"></div>
+                <div class="color-info">
+                    <div class="color-name">Cinza Claro</div>
+                    <div class="color-values">
+                        <span>HEX: #E2E8F0</span>
+                        <span>RGB: 226, 232, 240</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cores Semânticas -->
+    <div class="palette-section">
+        <h2 class="section-title">Cores Semânticas (UI)</h2>
+        <div class="color-row">
+            <div class="color-card">
+                <div class="color-swatch" style="background: #38A169;"></div>
+                <div class="color-info">
+                    <div class="color-name">Sucesso</div>
+                    <div class="color-values">
+                        <span>HEX: #38A169</span>
+                        <span>RGB: 56, 161, 105</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #D69E2E;"></div>
+                <div class="color-info">
+                    <div class="color-name">Aviso</div>
+                    <div class="color-values">
+                        <span>HEX: #D69E2E</span>
+                        <span>RGB: 214, 158, 46</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #C82D37;"></div>
+                <div class="color-info">
+                    <div class="color-name">Erro</div>
+                    <div class="color-values">
+                        <span>HEX: #C82D37</span>
+                        <span>RGB: 200, 45, 55</span>
+                    </div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #3182CE;"></div>
+                <div class="color-info">
+                    <div class="color-name">Informação</div>
+                    <div class="color-values">
+                        <span>HEX: #3182CE</span>
+                        <span>RGB: 49, 130, 206</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Proporção de uso -->
+    <div class="proportions">
+        <h2 class="section-title">Proporção de Uso Recomendada (60-30-10)</h2>
+        <div class="prop-bar">
+            <div class="prop-segment" style="background: #F7F7F7; color: #333; flex: 6;">60%</div>
+            <div class="prop-segment" style="background: #2D3748; flex: 3;">30%</div>
+            <div class="prop-segment" style="background: #C82D37; flex: 1;">10%</div>
+        </div>
+        <div class="prop-labels" style="margin-top: 10px;">
+            <div class="prop-label" style="flex: 6;">Fundos e espaços</div>
+            <div class="prop-label" style="flex: 3;">Textos e elementos</div>
+            <div class="prop-label" style="flex: 1;">Destaques</div>
+        </div>
+    </div>
+    
+    <!-- Exemplos de uso -->
+    <div class="usage-section">
+        <h2 class="usage-title">Exemplos de Aplicação</h2>
+        <div class="usage-examples">
+            <div class="usage-card" style="background: #FADCDE; color: #7A1B22;">
+                <h3>Card Destaque</h3>
+                <p>Use o rosa suave como fundo para destacar informações importantes sem agredir visualmente.</p>
+            </div>
+            <div class="usage-card" style="background: #2D3748; color: #F7F7F7;">
+                <h3>Seção Escura</h3>
+                <p>O cinza escuro é perfeito para footers, headers ou seções que precisam de contraste.</p>
+            </div>
+            <div class="usage-card" style="background: #F7F7F7; border: 1px solid #E2E8F0;">
+                <h3 style="color: #2D3748;">Card Padrão</h3>
+                <p style="color: #4A5568;">O off-white como fundo principal mantém a leitura confortável e elegante.</p>
+            </div>
+        </div>
+        
+        <div class="buttons-demo">
+            <h3 style="margin-bottom: 20px; color: #4A5568; font-weight: 400;">Botões</h3>
+            <a href="#" class="btn-example btn-primary">Ação Principal</a>
+            <a href="#" class="btn-example btn-secondary">Ação Secundária</a>
+            <a href="#" class="btn-example btn-outline">Ação Terciária</a>
+        </div>
+    </div>
+    
+    <footer>
+        Paleta gerada a partir da cor #C82D37 • Identidade Visual
+    </footer>
+</body>
+</html>
