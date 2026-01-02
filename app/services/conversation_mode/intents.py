@@ -38,11 +38,15 @@ INTERESSE_KEYWORDS = [
     r"\bonde\b.*\bhospital\b",
     r"\bqual\b.*\bplant[aã]o\b",
     r"\bquando\b.*\bvaga\b",
-    r"\bpode me mandar\b",
+    r"\bpode\b.*\bmandar\b",  # "pode mandar", "pode me mandar"
     r"\bquero ver\b",
     r"\bme manda\b.*\bop[cç][oõ]es\b",
     r"\btem algo\b",
     r"\btem plant[aã]o\b",
+    r"\bmanda\s*(a[ií]|pra mim)\b",  # "manda aí", "manda pra mim"
+    r"\bquero\b",  # "quero", "quero sim"
+    r"\btenho\s+interesse\b",  # "tenho interesse"
+    r"\bsim\b.*\binteresse\b",  # "sim, tenho interesse"
 ]
 
 FECHAR_KEYWORDS = [
