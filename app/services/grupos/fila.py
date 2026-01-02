@@ -79,6 +79,48 @@ async def enfileirar_mensagem(mensagem_id: UUID) -> UUID:
     return item_id
 
 
+async def criar_itens_para_vagas(
+    mensagem_id: UUID,
+    vagas_ids: List[str],
+    estagio: EstagioPipeline = EstagioPipeline.NORMALIZACAO
+) -> int:
+    """
+    Cria itens na fila para cada vaga extraída de uma mensagem.
+
+    Quando a extração gera múltiplas vagas, cada uma precisa de
+    seu próprio item na fila para os estágios seguintes.
+
+    Args:
+        mensagem_id: ID da mensagem original
+        vagas_ids: Lista de IDs de vagas_grupo criadas
+        estagio: Estágio inicial (padrão: normalização)
+
+    Returns:
+        Quantidade de itens criados
+    """
+    if not vagas_ids:
+        return 0
+
+    dados = [
+        {
+            "mensagem_id": str(mensagem_id),
+            "vaga_grupo_id": vaga_id,
+            "estagio": estagio.value,
+            "tentativas": 0,
+        }
+        for vaga_id in vagas_ids
+    ]
+
+    result = supabase.table("fila_processamento_grupos") \
+        .insert(dados) \
+        .execute()
+
+    count = len(result.data) if result.data else 0
+    logger.info(f"Criados {count} itens para vagas da mensagem {mensagem_id}")
+
+    return count
+
+
 async def enfileirar_batch(mensagens_ids: List[UUID]) -> int:
     """
     Enfileira várias mensagens de uma vez.

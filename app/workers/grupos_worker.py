@@ -17,6 +17,7 @@ from app.services.grupos.fila import (
     buscar_proximos_pendentes,
     atualizar_estagio,
     obter_estatisticas_fila,
+    criar_itens_para_vagas,
 )
 from app.services.grupos.pipeline_worker import PipelineGrupos, mapear_acao_para_estagio
 
@@ -106,14 +107,25 @@ class GruposWorker:
                         resultado = await handler(item)
                         proximo_estagio = mapear_acao_para_estagio(resultado.acao)
 
-                        # Atualizar estágio na fila
-                        # Passa motivo como erro quando ação é "erro"
-                        await atualizar_estagio(
-                            item_id=UUID(item["id"]),
-                            novo_estagio=EstagioPipeline(proximo_estagio),
-                            vaga_grupo_id=resultado.vaga_grupo_id,
-                            erro=resultado.motivo if resultado.acao == "erro" else None
-                        )
+                        # Se extração criou múltiplas vagas, criar itens separados
+                        if resultado.vagas_criadas and len(resultado.vagas_criadas) > 0:
+                            await criar_itens_para_vagas(
+                                mensagem_id=resultado.mensagem_id,
+                                vagas_ids=resultado.vagas_criadas
+                            )
+                            # Item original marcado como finalizado (vagas já criadas)
+                            await atualizar_estagio(
+                                item_id=UUID(item["id"]),
+                                novo_estagio=EstagioPipeline.FINALIZADO,
+                            )
+                        else:
+                            # Fluxo normal - atualizar estágio
+                            await atualizar_estagio(
+                                item_id=UUID(item["id"]),
+                                novo_estagio=EstagioPipeline(proximo_estagio),
+                                vaga_grupo_id=resultado.vaga_grupo_id,
+                                erro=resultado.motivo if resultado.acao == "erro" else None
+                            )
 
                         stats["processados"] += 1
                         self._stats["processados"] += 1
