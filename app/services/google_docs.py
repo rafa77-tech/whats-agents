@@ -15,6 +15,7 @@ Requer:
 - Pasta/documentos compartilhados com o Service Account (Editor)
 """
 import os
+import json
 import hashlib
 import logging
 import re
@@ -31,7 +32,11 @@ SCOPES = [
     'https://www.googleapis.com/auth/documents',  # Leitura e escrita em Docs
     'https://www.googleapis.com/auth/drive',  # Acesso completo ao Drive (necessário para ver compartilhados)
 ]
+# Suporta duas formas de credenciais:
+# 1. GOOGLE_APPLICATION_CREDENTIALS = caminho para arquivo JSON (dev local)
+# 2. GOOGLE_CREDENTIALS_JSON = JSON inline como string (Railway/cloud)
 CREDENTIALS_PATH = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+CREDENTIALS_JSON = os.getenv('GOOGLE_CREDENTIALS_JSON')
 DOC_ID = os.getenv('BRIEFING_DOC_ID')  # Legado - doc unico
 FOLDER_ID = os.getenv('GOOGLE_BRIEFINGS_FOLDER_ID')  # Novo - pasta de briefings
 
@@ -63,17 +68,42 @@ class DocContent:
 
 
 def _get_credentials():
-    """Carrega credenciais do Service Account."""
-    if not CREDENTIALS_PATH:
-        raise ValueError("GOOGLE_APPLICATION_CREDENTIALS nao configurado")
+    """
+    Carrega credenciais do Service Account.
 
-    if not os.path.exists(CREDENTIALS_PATH):
-        raise FileNotFoundError(f"Arquivo de credenciais nao encontrado: {CREDENTIALS_PATH}")
-
+    Suporta duas formas:
+    1. GOOGLE_CREDENTIALS_JSON - JSON inline (Railway/cloud)
+    2. GOOGLE_APPLICATION_CREDENTIALS - caminho para arquivo (dev local)
+    """
     from google.oauth2 import service_account
-    return service_account.Credentials.from_service_account_file(
-        CREDENTIALS_PATH,
-        scopes=SCOPES
+
+    # Prioridade 1: JSON inline (para Railway/cloud)
+    if CREDENTIALS_JSON:
+        try:
+            credentials_info = json.loads(CREDENTIALS_JSON)
+            logger.debug("Usando credenciais Google via GOOGLE_CREDENTIALS_JSON")
+            return service_account.Credentials.from_service_account_info(
+                credentials_info,
+                scopes=SCOPES
+            )
+        except json.JSONDecodeError as e:
+            raise ValueError(f"GOOGLE_CREDENTIALS_JSON invalido: {e}")
+
+    # Prioridade 2: Arquivo (para dev local)
+    if CREDENTIALS_PATH:
+        if not os.path.exists(CREDENTIALS_PATH):
+            raise FileNotFoundError(f"Arquivo de credenciais nao encontrado: {CREDENTIALS_PATH}")
+
+        logger.debug("Usando credenciais Google via arquivo")
+        return service_account.Credentials.from_service_account_file(
+            CREDENTIALS_PATH,
+            scopes=SCOPES
+        )
+
+    raise ValueError(
+        "Credenciais Google nao configuradas. "
+        "Defina GOOGLE_CREDENTIALS_JSON (JSON inline) ou "
+        "GOOGLE_APPLICATION_CREDENTIALS (caminho do arquivo)"
     )
 
 
@@ -687,18 +717,29 @@ def verificar_configuracao() -> dict:
     status = {
         "configurado": False,
         "credentials_path": CREDENTIALS_PATH,
+        "credentials_json_presente": bool(CREDENTIALS_JSON),
         "doc_id": DOC_ID,
         "folder_id": FOLDER_ID,
         "credentials_existe": False,
         "erros": []
     }
 
-    if not CREDENTIALS_PATH:
-        status["erros"].append("GOOGLE_APPLICATION_CREDENTIALS nao definido")
-    elif os.path.exists(CREDENTIALS_PATH):
-        status["credentials_existe"] = True
+    # Verificar credenciais (aceita JSON inline OU arquivo)
+    if CREDENTIALS_JSON:
+        try:
+            json.loads(CREDENTIALS_JSON)
+            status["credentials_existe"] = True
+        except json.JSONDecodeError:
+            status["erros"].append("GOOGLE_CREDENTIALS_JSON invalido (JSON malformado)")
+    elif CREDENTIALS_PATH:
+        if os.path.exists(CREDENTIALS_PATH):
+            status["credentials_existe"] = True
+        else:
+            status["erros"].append(f"Arquivo nao encontrado: {CREDENTIALS_PATH}")
     else:
-        status["erros"].append(f"Arquivo nao encontrado: {CREDENTIALS_PATH}")
+        status["erros"].append(
+            "Credenciais nao definidas. Use GOOGLE_CREDENTIALS_JSON ou GOOGLE_APPLICATION_CREDENTIALS"
+        )
 
     if not DOC_ID and not FOLDER_ID:
         status["erros"].append("Nem BRIEFING_DOC_ID nem GOOGLE_BRIEFINGS_FOLDER_ID definidos")
