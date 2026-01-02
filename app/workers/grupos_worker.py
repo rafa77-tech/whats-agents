@@ -107,10 +107,12 @@ class GruposWorker:
                         proximo_estagio = mapear_acao_para_estagio(resultado.acao)
 
                         # Atualizar estágio na fila
+                        # Passa motivo como erro quando ação é "erro"
                         await atualizar_estagio(
                             item_id=UUID(item["id"]),
                             novo_estagio=EstagioPipeline(proximo_estagio),
-                            vaga_grupo_id=resultado.vaga_grupo_id
+                            vaga_grupo_id=resultado.vaga_grupo_id,
+                            erro=resultado.motivo if resultado.acao == "erro" else None
                         )
 
                         stats["processados"] += 1
