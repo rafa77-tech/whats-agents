@@ -31,6 +31,9 @@ async def evolution_webhook(
 
     Responde imediatamente com 200 e processa em background
     para nao bloquear a Evolution.
+
+    Inclui deduplicação para evitar processamento duplicado
+    quando a Evolution envia o mesmo webhook múltiplas vezes.
     """
     try:
         payload = await request.json()
@@ -45,6 +48,18 @@ async def evolution_webhook(
             return JSONResponse({"status": "invalid_payload"}, status_code=400)
 
         if event == "messages.upsert":
+            # Extrair message_id para deduplicação
+            message_id = _extrair_message_id(data)
+
+            if message_id:
+                # Verificar se já foi processado
+                if await _mensagem_ja_processada(message_id):
+                    logger.debug(f"Mensagem {message_id} já processada, ignorando duplicata")
+                    return JSONResponse({"status": "ignored", "reason": "duplicate"})
+
+                # Marcar como processada ANTES de iniciar (evita race condition)
+                await _marcar_mensagem_processada(message_id)
+
             background_tasks.add_task(processar_mensagem_pipeline, data)
             logger.info("Mensagem agendada para processamento")
 
@@ -59,6 +74,34 @@ async def evolution_webhook(
     except Exception as e:
         logger.error(f"Erro no webhook: {str(e)}")
         return JSONResponse({"status": "error", "message": str(e)})
+
+
+def _extrair_message_id(data: dict) -> str | None:
+    """Extrai message_id do payload da Evolution."""
+    try:
+        key = data.get("key", {})
+        return key.get("id")
+    except Exception:
+        return None
+
+
+async def _mensagem_ja_processada(message_id: str) -> bool:
+    """Verifica se mensagem já foi processada (cache Redis)."""
+    from app.services.redis import cache_get_json
+    try:
+        result = await cache_get_json(f"evolution:msg:{message_id}")
+        return result is not None
+    except Exception:
+        return False
+
+
+async def _marcar_mensagem_processada(message_id: str):
+    """Marca mensagem como processada (TTL 5 min)."""
+    from app.services.redis import cache_set_json
+    try:
+        await cache_set_json(f"evolution:msg:{message_id}", {"processed": True}, ttl=300)
+    except Exception as e:
+        logger.warning(f"Erro ao marcar mensagem processada: {e}")
 
 
 async def processar_mensagem_pipeline(data: dict):
