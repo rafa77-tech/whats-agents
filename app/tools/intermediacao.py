@@ -40,7 +40,7 @@ QUANDO USAR:
 - Medico demonstra interesse em uma vaga especifica
 - Medico quer saber mais detalhes sobre uma vaga
 - Medico pergunta sobre valor/condicoes (Julia DEVE conectar, nao responder)
-- Medico pede para reservar/fechar vaga
+- Medico pede para reservar/fechar vaga ('fechou', 'quero essa', 'pode ser')
 
 O QUE FAZ:
 1. Identifica o divulgador/responsavel pela vaga
@@ -53,15 +53,21 @@ IMPORTANTE:
 - Julia NAO confirma reservas - repassa o interesse
 - O fechamento e feito entre medico e responsavel
 
+CRITICO - VAGA_ID:
+- O vaga_id DEVE ser o UUID EXATO retornado por buscar_vagas
+- Formato: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" (UUID)
+- NAO invente IDs como "vaga_hospital_data" - use o ID real!
+- Se nao tiver o ID, chame buscar_vagas primeiro
+
 PARAMETROS:
-- vaga_id: ID da vaga que o medico tem interesse
+- vaga_id: UUID da vaga (copie EXATAMENTE do resultado de buscar_vagas)
 - motivo: Breve descricao do interesse do medico""",
     "input_schema": {
         "type": "object",
         "properties": {
             "vaga_id": {
                 "type": "string",
-                "description": "UUID da vaga que o medico demonstrou interesse"
+                "description": "UUID da vaga - DEVE ser o ID exato retornado por buscar_vagas (formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). NAO invente IDs!"
             },
             "motivo": {
                 "type": "string",

@@ -378,9 +378,10 @@ async def handle_buscar_vagas(
         instrucao_base = (
             f"Estas vagas sao de {especialidade_nome}. "
             "Apresente as vagas de forma natural, uma por vez. "
-            "SEMPRE mencione a DATA do plantao (dia/mes) pois sera usada para reservar. "
-            "Quando o medico aceitar, use a tool reservar_plantao com a DATA no formato YYYY-MM-DD. "
-            "IMPORTANTE: Para vagas 'a combinar', informe naturalmente que o valor sera negociado. "
+            "SEMPRE mencione a DATA do plantao (dia/mes). "
+            "GUARDE O ID (UUID) de cada vaga - voce vai precisar para criar_handoff_externo. "
+            "Quando o medico aceitar ('fechou', 'quero essa'), use criar_handoff_externo com o UUID EXATO da vaga. "
+            "IMPORTANTE: Para vagas 'a combinar', informe que o valor sera negociado com o responsavel. "
             "Nao invente valores - use apenas o que esta nos dados da vaga."
         )
 
