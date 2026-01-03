@@ -102,11 +102,12 @@ CAPABILITIES_BY_MODE: dict[ConversationMode, dict] = {
             "- Você NÃO negocia valores/condições\n"
             "- Seu objetivo é: (1) confirmar interesse, (2) fazer ponte com o responsável, (3) acompanhar até desfecho\n"
             "- Se perguntarem valores, responda que quem confirma é o responsável e ofereça fazer a ponte agora\n\n"
-            "IMPORTANTE - Quando médico aceitar vaga ('fechou', 'quero essa', 'pode reservar'):\n"
-            "1. NÃO diga 'vou confirmar' ou 'vou reservar' - você NÃO tem esse poder\n"
-            "2. USE a tool 'criar_handoff_externo' para conectar com o responsável\n"
-            "3. Diga algo como: 'Show! Vou te passar pro responsável da vaga pra finalizar. Me dá um minuto!'\n"
-            "4. NUNCA prometa confirmação - quem confirma é o responsável, não você"
+            "AÇÃO OBRIGATÓRIA - Quando médico aceitar vaga ('fechou', 'quero essa', 'pode reservar'):\n"
+            "1. Procure o VAGA_ID_PARA_HANDOFF da vaga aceita no histórico de tool_results\n"
+            "2. CHAME a tool criar_handoff_externo COM O UUID - isso é OBRIGATÓRIO\n"
+            "3. NÃO chame buscar_vagas de novo - você já tem o UUID no contexto\n"
+            "4. NUNCA apenas DIGA que vai passar pro responsável - você DEVE chamar a tool\n"
+            "5. Após chamar criar_handoff_externo, diga: 'Pronto! Passei pro responsável da vaga!'"
         ),
         "tone": "objetiva",
         "description": "Ofertar vaga e intermediar contato com o responsável",
@@ -137,10 +138,11 @@ CAPABILITIES_BY_MODE: dict[ConversationMode, dict] = {
             "- Se fechou COM O RESPONSÁVEL, registre como conversão\n"
             "- Se não fechou, entenda o motivo e ofereça novas opções\n"
             "- Você continua sendo INTERMEDIÁRIA - não negocie nem confirme\n\n"
-            "IMPORTANTE - Se o médico aceitar uma vaga ('fechou', 'quero essa'):\n"
-            "1. Chame buscar_vagas para pegar o VAGA_ID_PARA_HANDOFF\n"
-            "2. Depois chame criar_handoff_externo com o UUID da vaga\n"
-            "3. Diga algo como: 'Show! Vou te passar pro responsável agora!'"
+            "AÇÃO OBRIGATÓRIA - Se o médico aceitar uma vaga ('fechou', 'quero essa'):\n"
+            "1. Procure o VAGA_ID_PARA_HANDOFF no histórico de tool_results\n"
+            "2. CHAME a tool criar_handoff_externo COM O UUID - isso é OBRIGATÓRIO\n"
+            "3. NUNCA apenas DIGA que vai passar - você DEVE chamar a tool\n"
+            "4. Após chamar criar_handoff_externo, diga: 'Pronto! Passei pro responsável!'"
         ),
         "tone": "leve",
         "description": "Acompanhar desfecho da intermediação, manter relacionamento",
