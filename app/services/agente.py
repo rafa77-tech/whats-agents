@@ -712,13 +712,13 @@ async def enviar_mensagens_sequencia(
     resultados = []
 
     for i, msg in enumerate(mensagens):
-        # Calcular delay entre mensagens
+        # Calcular delay entre mensagens (Sprint 29: reduzido para agilidade)
         if i > 0:
             # Se começa com minúscula, é continuação (delay curto)
             if msg and msg[0].islower():
-                delay = random.uniform(1, 3)
+                delay = random.uniform(0.5, 1.5)  # Reduzido de 1-3s
             else:
-                delay = random.uniform(3, 5)
+                delay = random.uniform(1, 2)  # Reduzido de 3-5s
 
             await asyncio.sleep(delay)
 

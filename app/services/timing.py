@@ -40,7 +40,7 @@ def calcular_delay_resposta(
         Delay em segundos (20-120s tipicamente)
     """
     hora_atual = hora_atual or datetime.now()
-    base_delay = 5  # Mínimo 5 segundos (era 20, reduzido para testes)
+    base_delay = 1  # Mínimo 1 segundo (Sprint 29: agilidade máxima)
 
     # Fator: tamanho da mensagem
     palavras = len(mensagem.split())
@@ -77,8 +77,8 @@ def calcular_delay_resposta(
     variacao = random.uniform(0.7, 1.3)
     delay *= variacao
 
-    # Limitar entre 5s e 30s (era 20-120s, reduzido para testes)
-    return max(5, min(30, delay))
+    # Limitar entre 1s e 8s (Sprint 29: agilidade máxima)
+    return max(1, min(8, delay))
 
 
 def calcular_tempo_digitacao(texto: str) -> float:
