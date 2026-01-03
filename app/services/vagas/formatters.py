@@ -18,11 +18,16 @@ def formatar_para_mensagem(vaga: dict) -> str:
     Returns:
         String formatada para mensagem
     """
-    hospital = vaga.get("hospitais", {}).get("nome", "Hospital")
+    # Tratamento seguro de objetos relacionados que podem ser None
+    hospitais = vaga.get("hospitais") or {}
+    periodos = vaga.get("periodos") or {}
+    setores = vaga.get("setores") or {}
+
+    hospital = hospitais.get("nome", "Hospital") if isinstance(hospitais, dict) else "Hospital"
     data = vaga.get("data", "")
-    periodo = vaga.get("periodos", {}).get("nome", "")
+    periodo = periodos.get("nome", "") if isinstance(periodos, dict) else ""
     valor = vaga.get("valor") or 0
-    setor = vaga.get("setores", {}).get("nome", "")
+    setor = setores.get("nome", "") if isinstance(setores, dict) else ""
 
     # Formatar data para PT-BR
     if data:
@@ -106,18 +111,27 @@ def formatar_para_contexto(vagas: list[dict], especialidade: str = None) -> str:
     texto = f"## Vagas Disponíveis para {nome_display}:\n\n"
 
     for i, v in enumerate(vagas[:5], 1):
-        hospital = v.get("hospitais", {})
-        periodo = v.get("periodos", {})
-        setor = v.get("setores", {})
+        # Tratamento seguro de objetos relacionados que podem ser None
+        hospital = v.get("hospitais") or {}
+        periodo = v.get("periodos") or {}
+        setor = v.get("setores") or {}
+
+        # Extrair valores com segurança
+        hospital_nome = hospital.get('nome', 'N/A') if isinstance(hospital, dict) else 'N/A'
+        hospital_cidade = hospital.get('cidade', 'N/A') if isinstance(hospital, dict) else 'N/A'
+        periodo_nome = periodo.get('nome', 'N/A') if isinstance(periodo, dict) else 'N/A'
+        periodo_inicio = periodo.get('hora_inicio', '') if isinstance(periodo, dict) else ''
+        periodo_fim = periodo.get('hora_fim', '') if isinstance(periodo, dict) else ''
+        setor_nome = setor.get('nome', 'N/A') if isinstance(setor, dict) else 'N/A'
 
         # Formatar valor baseado no tipo (Sprint 19)
         valor_display = _formatar_valor_contexto(v)
 
         texto += f"""**Vaga {i}:**
-- Hospital: {hospital.get('nome', 'N/A')} ({hospital.get('cidade', 'N/A')})
+- Hospital: {hospital_nome} ({hospital_cidade})
 - Data: {v.get('data', 'N/A')}
-- Período: {periodo.get('nome', 'N/A')} ({periodo.get('hora_inicio', '')}-{periodo.get('hora_fim', '')})
-- Setor: {setor.get('nome', 'N/A')}
+- Período: {periodo_nome} ({periodo_inicio}-{periodo_fim})
+- Setor: {setor_nome}
 - Valor: {valor_display}
 - ID: {v.get('id', 'N/A')}
 """

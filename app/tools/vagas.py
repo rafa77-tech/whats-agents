@@ -315,29 +315,36 @@ async def handle_buscar_vagas(
 
         # Formatar para contexto do LLM
         # Prioridade: objeto relacionado > campo texto
+        # Nota: medico.get("especialidades") pode retornar None, não {}
+        medico_especialidades = medico.get("especialidades") or {}
         especialidade_nome = (
-            medico.get("especialidades", {}).get("nome")
-            or medico.get("especialidade")
-        )
+            medico_especialidades.get("nome") if isinstance(medico_especialidades, dict) else None
+        ) or medico.get("especialidade")
         contexto_formatado = formatar_vagas_contexto(vagas_final, especialidade_nome)
 
         # Preparar lista simplificada para resposta
+        # Nota: objetos relacionados podem ser None, tratar com cuidado
         vagas_resumo = []
         for v in vagas_final:
+            hospitais = v.get("hospitais") or {}
+            periodos = v.get("periodos") or {}
+            setores = v.get("setores") or {}
+            especialidades = v.get("especialidades") or {}
+
             vagas_resumo.append({
                 "id": v.get("id"),
-                "hospital": v.get("hospitais", {}).get("nome"),
-                "cidade": v.get("hospitais", {}).get("cidade"),
+                "hospital": hospitais.get("nome") if isinstance(hospitais, dict) else None,
+                "cidade": hospitais.get("cidade") if isinstance(hospitais, dict) else None,
                 "data": v.get("data"),
-                "periodo": v.get("periodos", {}).get("nome"),
+                "periodo": periodos.get("nome") if isinstance(periodos, dict) else None,
                 # Campos de valor expandidos (Sprint 19)
                 "valor": v.get("valor"),
                 "valor_minimo": v.get("valor_minimo"),
                 "valor_maximo": v.get("valor_maximo"),
                 "valor_tipo": v.get("valor_tipo", "fixo"),
                 "valor_display": _formatar_valor_display(v),
-                "setor": v.get("setores", {}).get("nome"),
-                "especialidade": v.get("especialidades", {}).get("nome") or especialidade_nome,
+                "setor": setores.get("nome") if isinstance(setores, dict) else None,
+                "especialidade": (especialidades.get("nome") if isinstance(especialidades, dict) else None) or especialidade_nome,
             })
 
         logger.info(f"Encontradas {len(vagas_final)} vagas para medico {medico.get('id')}")
@@ -530,7 +537,7 @@ def _filtrar_por_periodo(vagas: list[dict], periodo_desejado: str) -> list[dict]
 
     resultado = []
     for v in vagas:
-        periodo_nome = v.get("periodos", {}).get("nome", "").lower()
+        periodo_nome = ((v.get("periodos") or {}).get("nome") or "").lower()
         if any(termo in periodo_nome for termo in termos):
             resultado.append(v)
 
@@ -783,7 +790,7 @@ async def handle_reservar_plantao(
                 "bairro": hospital_data.get("bairro"),
                 "cidade": hospital_data.get("cidade"),
                 "data": vaga_atualizada.get("data"),
-                "periodo": vaga.get("periodos", {}).get("nome"),
+                "periodo": (vaga.get("periodos") or {}).get("nome"),
                 # Campos de valor expandidos (Sprint 19)
                 "valor": vaga.get("valor"),
                 "valor_minimo": vaga.get("valor_minimo"),
