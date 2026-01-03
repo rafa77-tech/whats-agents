@@ -317,17 +317,29 @@ async def normalizar_especialidade(texto: str) -> Optional[ResultadoMatch]:
 
 # Mapas de normalização
 MAPA_PERIODOS = {
+    # Termos diretos
     "noturno": "Noturno",
     "diurno": "Diurno",
     "vespertino": "Vespertino",
     "cinderela": "Cinderela",
+    # Partes do dia
     "manha": "Diurno",
+    "manhã": "Diurno",
     "tarde": "Vespertino",
     "noite": "Noturno",
+    "dia": "Diurno",
+    "madrugada": "Noturno",
+    # Combinações comuns
+    "plantao diurno": "Diurno",
+    "plantao noturno": "Noturno",
+    "turno diurno": "Diurno",
+    "turno noturno": "Noturno",
+    # Durações
     "12h": "Diurno",
     "12 horas": "Diurno",
     "24h": "Diurno",  # Plantão 24h geralmente começa de dia
     "24 horas": "Diurno",
+    # Abreviações
     "sd": "Diurno",  # SD = Serviço Diurno
     "sn": "Noturno",  # SN = Serviço Noturno
 }
@@ -370,6 +382,41 @@ MAPA_FORMAS_PAGAMENTO = {
     "scp": "SCP",
     "rpa": "Pessoa fisica",  # RPA geralmente é PF
 }
+
+
+def inferir_periodo_por_horario(hora_inicio: str, hora_fim: str = None) -> Optional[str]:
+    """
+    Infere período baseado nos horários quando não extraído explicitamente.
+
+    Args:
+        hora_inicio: Horário de início (ex: "19:00", "07:00:00")
+        hora_fim: Horário de fim (opcional)
+
+    Returns:
+        Nome do período inferido ou None
+    """
+    if not hora_inicio:
+        return None
+
+    try:
+        # Extrair hora (suporta HH:MM e HH:MM:SS)
+        hora_str = str(hora_inicio).split(":")[0]
+        h_inicio = int(hora_str)
+
+        # Regras de inferência baseadas no horário de início:
+        # 19:00-06:00 = Noturno (começa de noite)
+        if h_inicio >= 19 or h_inicio < 6:
+            return "Noturno"
+        # 06:00-13:00 = Diurno (começa de manhã)
+        elif 6 <= h_inicio < 13:
+            return "Diurno"
+        # 13:00-19:00 = Vespertino (começa de tarde)
+        else:
+            return "Vespertino"
+
+    except (ValueError, AttributeError, IndexError) as e:
+        logger.debug(f"Não foi possível inferir período de hora_inicio={hora_inicio}: {e}")
+        return None
 
 
 async def normalizar_periodo(texto: str) -> Optional[UUID]:
@@ -574,11 +621,28 @@ async def normalizar_vaga(vaga_id: UUID) -> ResultadoNormalizacao:
                 resultado.especialidade_score = match.score
 
         # Normalizar período
+        periodo_id = None
         if dados.get("periodo_raw"):
             periodo_id = await normalizar_periodo(dados["periodo_raw"])
             if periodo_id:
                 updates["periodo_id"] = str(periodo_id)
                 resultado.periodo_id = periodo_id
+
+        # Se não tem periodo_raw mas tem horário, inferir período
+        if not periodo_id and dados.get("hora_inicio"):
+            periodo_inferido = inferir_periodo_por_horario(
+                str(dados.get("hora_inicio")),
+                str(dados.get("hora_fim")) if dados.get("hora_fim") else None
+            )
+            if periodo_inferido:
+                periodo_id = await normalizar_periodo(periodo_inferido)
+                if periodo_id:
+                    updates["periodo_id"] = str(periodo_id)
+                    resultado.periodo_id = periodo_id
+                    logger.info(
+                        f"Período inferido por horário: {periodo_inferido} "
+                        f"(hora_inicio={dados.get('hora_inicio')})"
+                    )
 
         # Normalizar setor
         if dados.get("setor_raw"):

@@ -62,6 +62,51 @@ from app.services.conversation_mode.prompts import get_micro_confirmation_prompt
 
 logger = logging.getLogger(__name__)
 
+# Padrões que indicam resposta incompleta (mesma lógica do Slack)
+PADROES_RESPOSTA_INCOMPLETA = [
+    ":",           # "Vou verificar o que temos:"
+    "...",         # Reticências no final
+    "vou verificar",
+    "deixa eu ver",
+    "um momento",
+    "vou buscar",
+    "vou checar",
+    "deixa eu buscar",
+]
+MAX_RETRIES_INCOMPLETO = 2
+
+
+def _resposta_parece_incompleta(texto: str, stop_reason: str = None) -> bool:
+    """
+    Detecta se resposta parece incompleta e deveria ter chamado uma tool.
+
+    Args:
+        texto: Texto da resposta
+        stop_reason: Motivo de parada do LLM (tool_use, end_turn, etc)
+
+    Returns:
+        True se resposta parece incompleta
+    """
+    if not texto:
+        return False
+
+    # Se parou por tool_use, não é incompleta (a tool vai ser executada)
+    if stop_reason == "tool_use":
+        return False
+
+    texto_lower = texto.lower().strip()
+
+    for padrao in PADROES_RESPOSTA_INCOMPLETA:
+        if texto_lower.endswith(padrao):
+            logger.warning(
+                f"Resposta parece incompleta: termina com '{padrao}' "
+                f"(stop_reason={stop_reason})"
+            )
+            return True
+
+    return False
+
+
 # Tools disponiveis para o agente
 JULIA_TOOLS = [
     TOOL_BUSCAR_VAGAS,
@@ -325,6 +370,92 @@ async def gerar_resposta_julia(
         )
 
     logger.info(f"Resposta gerada: {resposta[:50]}...")
+
+    # Detectar resposta incompleta e forçar uso de tool
+    # Só aplica quando usar_tools=True e não houve tool_use
+    houve_tool_use = usar_tools and "resultado" in locals() and resultado.get("tool_use")
+    stop_reason = resultado.get("stop_reason") if usar_tools and "resultado" in locals() else None
+    if (
+        usar_tools
+        and not houve_tool_use
+        and _resposta_parece_incompleta(resposta, stop_reason)
+    ):
+        logger.warning(
+            f"Resposta incompleta detectada, forçando uso de tool. "
+            f"Resposta: '{resposta[-50:]}'"
+        )
+
+        # Forçar continuação com prompt de uso de tool
+        historico_retry = historico_messages + [
+            {"role": "user", "content": mensagem},
+            {"role": "assistant", "content": resposta},
+            {
+                "role": "user",
+                "content": (
+                    "Use a ferramenta buscar_vagas para encontrar as vagas disponíveis "
+                    "e depois responda ao médico com as opções."
+                )
+            },
+        ]
+
+        resultado_retry = await gerar_resposta_com_tools(
+            mensagem="",
+            historico=historico_retry,
+            system_prompt=system_prompt,
+            tools=tools_to_use,
+            max_tokens=300,
+        )
+
+        # Processar tool call do retry
+        if resultado_retry.get("tool_use"):
+            logger.info(f"Retry com tool call: {resultado_retry['tool_use']}")
+            tool_results_retry = []
+            for tool_call in resultado_retry["tool_use"]:
+                tool_result = await processar_tool_call(
+                    tool_name=tool_call["name"],
+                    tool_input=tool_call["input"],
+                    medico=medico,
+                    conversa=conversa
+                )
+                tool_results_retry.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_call["id"],
+                    "content": str(tool_result)
+                })
+
+            # Montar histórico com tool call
+            assistant_content_retry = []
+            if resultado_retry["text"]:
+                assistant_content_retry.append({
+                    "type": "text", "text": resultado_retry["text"]
+                })
+            for tool_call in resultado_retry["tool_use"]:
+                assistant_content_retry.append({
+                    "type": "tool_use",
+                    "id": tool_call["id"],
+                    "name": tool_call["name"],
+                    "input": tool_call["input"]
+                })
+
+            historico_com_tool_retry = historico_retry + [
+                {"role": "assistant", "content": assistant_content_retry}
+            ]
+
+            resultado_final_retry = await continuar_apos_tool(
+                historico=historico_com_tool_retry,
+                tool_results=tool_results_retry,
+                system_prompt=system_prompt,
+                tools=tools_to_use,
+                max_tokens=300,
+            )
+
+            if resultado_final_retry.get("text"):
+                resposta = resultado_final_retry["text"]
+                logger.info(f"Resposta após retry: {resposta[:50]}...")
+        elif resultado_retry.get("text"):
+            # Retry gerou texto sem tool, usar mesmo assim
+            resposta = resultado_retry["text"]
+            logger.info(f"Retry sem tool, texto: {resposta[:50]}...")
 
     return resposta
 

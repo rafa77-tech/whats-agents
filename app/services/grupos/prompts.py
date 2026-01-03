@@ -99,7 +99,19 @@ REGRAS DE VALOR:
 6. Se a mensagem diz "até 2.000" -> valor_tipo: "faixa", valor_minimo: null, valor_maximo: 2000
 7. NUNCA retorne string no campo valor - apenas números inteiros ou null
 
+PERÍODO (IMPORTANTE - extraia mesmo quando implícito):
 - periodo: Um de [Diurno, Vespertino, Noturno, Cinderela]
+- SEMPRE tente extrair o período, mesmo que não seja explícito:
+  * Se horário inicia às 19h ou depois, ou termina às 7h ou antes -> "Noturno"
+  * Se horário inicia entre 6h-12h -> "Diurno"
+  * Se horário inicia entre 12h-18h -> "Vespertino"
+  * Se mencionar "diurno", "dia", "manhã", "SD" -> "Diurno"
+  * Se mencionar "noturno", "noite", "SN", "madrugada" -> "Noturno"
+  * Se mencionar "cinderela" (geralmente 19h-1h) -> "Cinderela"
+  * Se mencionar "plantão diurno" ou "apenas diurno" -> "Diurno"
+  * Se mencionar "plantão noturno" ou "apenas noturno" -> "Noturno"
+- NÃO deixe período como null se houver qualquer indicação de horário na mensagem
+
 - setor: Um de [Pronto atendimento, RPA, Hospital, C. Cirúrgico, SADT]
 - tipo_vaga: Um de [Cobertura, Fixo, Ambulatorial, Mensal]
 - forma_pagamento: Um de [Pessoa fisica, Pessoa jurídica, CLT, SCP]
