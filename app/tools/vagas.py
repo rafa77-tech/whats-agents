@@ -165,6 +165,19 @@ async def handle_buscar_vagas(
         Dict com vagas encontradas e contexto formatado
     """
     especialidade_solicitada = tool_input.get("especialidade")
+
+    # Limpar especialidade se veio como JSON array string (bug do LLM)
+    if especialidade_solicitada and especialidade_solicitada.startswith("["):
+        import json
+        try:
+            parsed = json.loads(especialidade_solicitada)
+            if isinstance(parsed, list) and parsed:
+                especialidade_solicitada = parsed[0]
+                logger.debug(f"Especialidade limpa de array: {especialidade_solicitada}")
+        except json.JSONDecodeError:
+            # Remove colchetes manualmente se não for JSON válido
+            especialidade_solicitada = especialidade_solicitada.strip("[]\"'")
+
     regiao = tool_input.get("regiao")
     periodo = tool_input.get("periodo", "qualquer")
     valor_minimo = tool_input.get("valor_minimo", 0)
