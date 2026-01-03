@@ -25,6 +25,7 @@ def normalizar_para_busca(texto: str) -> str:
     Normaliza texto para busca.
 
     - Lowercase
+    - Remove parênteses e seu conteúdo (ex: "(USG)" -> "")
     - Remove acentos
     - Remove caracteres especiais
     - Remove espaços extras
@@ -34,6 +35,10 @@ def normalizar_para_busca(texto: str) -> str:
 
     # Lowercase
     texto = texto.lower()
+
+    # Remover parênteses e seu conteúdo ANTES de remover caracteres especiais
+    # Ex: "ultrassonografista (usg)" -> "ultrassonografista"
+    texto = re.sub(r'\s*\([^)]*\)', '', texto)
 
     # Remover acentos
     texto = unicodedata.normalize('NFKD', texto)

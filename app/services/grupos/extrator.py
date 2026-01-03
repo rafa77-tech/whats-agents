@@ -199,6 +199,47 @@ def _validar_valor(
     return valor_tipo, valor, valor_minimo, valor_maximo
 
 
+def _normalizar_especialidade_raw(texto: Optional[str]) -> Optional[str]:
+    """
+    Normaliza texto de especialidade para melhor matching.
+
+    - Remove parênteses e seu conteúdo (ex: "(USG)" -> "")
+    - Se for lista com vírgulas, pega apenas a primeira especialidade
+    - Remove hífens soltos e espaços extras
+
+    Args:
+        texto: Texto bruto de especialidade
+
+    Returns:
+        Texto normalizado ou None
+
+    Examples:
+        "Médico Ultrassonografista (USG)" -> "Médico Ultrassonografista"
+        "Clínica Médica, Cardiologia, Pneumo" -> "Clínica Médica"
+        "Enfermaria- visitador/hospitalista" -> "Enfermaria visitador hospitalista"
+    """
+    if not texto:
+        return None
+
+    resultado = texto.strip()
+
+    # 1. Remover parênteses e seu conteúdo
+    resultado = re.sub(r'\s*\([^)]*\)', '', resultado)
+
+    # 2. Se for lista com vírgulas, pegar apenas a primeira
+    if ',' in resultado:
+        partes = [p.strip() for p in resultado.split(',')]
+        resultado = partes[0] if partes else resultado
+
+    # 3. Substituir hífens e barras por espaços
+    resultado = resultado.replace('-', ' ').replace('/', ' ')
+
+    # 4. Remover espaços extras
+    resultado = ' '.join(resultado.split())
+
+    return resultado if resultado else None
+
+
 def _reparar_json(texto: str) -> str:
     """Tenta reparar JSON malformado comum de LLMs."""
     # Remover texto antes/depois do JSON
@@ -317,7 +358,7 @@ def _parsear_resposta_extracao(texto: str) -> ResultadoExtracao:
         vaga = VagaExtraida(
             dados=DadosVagaExtraida(
                 hospital=dados_vaga.get("hospital"),
-                especialidade=dados_vaga.get("especialidade"),
+                especialidade=_normalizar_especialidade_raw(dados_vaga.get("especialidade")),
                 data=data_obj,
                 hora_inicio=dados_vaga.get("hora_inicio"),
                 hora_fim=dados_vaga.get("hora_fim"),
