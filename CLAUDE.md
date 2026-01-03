@@ -582,6 +582,86 @@ npm run build
 
 ---
 
+## Dashboard CI/CD (Next.js/TypeScript)
+
+O dashboard tem seu próprio pipeline de CI/CD em `.github/workflows/dashboard-ci.yml`.
+
+### Pipeline de CI
+
+| Job | Descrição | Bloqueia Build? |
+|-----|-----------|-----------------|
+| install | Instala dependências com cache | Não |
+| typecheck | `tsc --noEmit` + verificação de `any` | Sim |
+| lint | ESLint com regras strict | Sim |
+| format | Prettier check | Sim |
+| unit-tests | Vitest + React Testing Library | Sim |
+| e2e-tests | Playwright (Chromium) | Sim |
+| build | `next build` | Sim |
+| security | `npm audit` + verificação de secrets | Não |
+| deploy | Railway (apenas main) | N/A |
+
+### Comandos Locais
+
+```bash
+cd dashboard
+
+# Validação completa (type-check + lint + format + tests)
+npm run validate
+
+# Testes unitários
+npm run test              # Watch mode
+npm run test:ci           # CI mode com coverage
+
+# Testes E2E
+npm run test:e2e          # Headless
+npm run test:e2e:ui       # UI mode
+npm run test:e2e:report   # Ver relatório
+
+# Linting e formatação
+npm run lint              # Verificar
+npm run lint:fix          # Corrigir
+npm run format            # Formatar
+npm run format:check      # Verificar formatação
+
+# Type check
+npm run type-check
+
+# Build com análise de bundle
+ANALYZE=true npm run build
+```
+
+### Estrutura de Testes
+
+```
+dashboard/
+├── __tests__/           # Testes unitários (Vitest + RTL)
+│   └── *.test.tsx
+├── e2e/                  # Testes E2E (Playwright)
+│   └── *.e2e.ts
+├── vitest.config.ts      # Configuração Vitest
+├── vitest.setup.ts       # Setup (mocks, globals)
+└── playwright.config.ts  # Configuração Playwright
+```
+
+### Cobertura de Código
+
+**Thresholds mínimos (falha se abaixo):**
+- Statements: 70%
+- Branches: 70%
+- Functions: 70%
+- Lines: 70%
+
+### Secrets Necessários (GitHub Actions)
+
+| Secret | Descrição | Obrigatório |
+|--------|-----------|-------------|
+| `RAILWAY_TOKEN` | Token para deploy | Sim (para deploy) |
+| `DASHBOARD_URL` | URL do dashboard em prod | Não (health check) |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL do Supabase | Não (usa fallback) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key do Supabase | Não (usa fallback) |
+
+---
+
 ## Métricas de Sucesso
 
 | Métrica | Meta |

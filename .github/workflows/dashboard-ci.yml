@@ -1,0 +1,438 @@
+# GitHub Actions CI/CD - Julia Dashboard (Next.js/TypeScript)
+#
+# Pipeline:
+# 1. Install & Cache Dependencies
+# 2. Type Check (tsc --noEmit) - BLOCKS on failure
+# 3. Lint (ESLint strict) - BLOCKS on failure
+# 4. Format Check (Prettier) - BLOCKS on failure
+# 5. Unit Tests (Vitest + RTL) - BLOCKS on failure
+# 6. E2E Tests (Playwright) - BLOCKS on failure
+# 7. Build (next build) - BLOCKS on failure
+# 8. Security Audit (npm audit)
+# 9. Bundle Analysis (optional)
+#
+# Best Practices:
+# - Parallel jobs where possible
+# - Fail fast to save CI minutes
+# - Cache node_modules and .next
+# - Upload test reports as artifacts
+
+name: Dashboard CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'dashboard/**'
+      - '.github/workflows/dashboard-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'dashboard/**'
+      - '.github/workflows/dashboard-ci.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: dashboard
+
+env:
+  NODE_VERSION: '20'
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  # ============================================
+  # Job 1: Install dependencies (shared cache)
+  # ============================================
+  install:
+    name: Install Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Generate cache key
+        id: cache-key
+        run: echo "key=node-modules-${{ hashFiles('dashboard/package-lock.json') }}" >> $GITHUB_OUTPUT
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: dashboard/node_modules
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            node-modules-
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+  # ============================================
+  # Job 2: Type Check (CRITICAL - blocks all)
+  # ============================================
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: dashboard/node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Run TypeScript compiler
+        run: npm run type-check
+
+      - name: Check for 'any' usage
+        run: |
+          echo "Checking for prohibited 'any' types..."
+
+          # Search for any usage (excluding node_modules and .next)
+          ANY_COUNT=$(grep -r ": any\|<any>\|as any" --include="*.ts" --include="*.tsx" \
+            --exclude-dir=node_modules --exclude-dir=.next . 2>/dev/null | wc -l || echo "0")
+
+          if [ "$ANY_COUNT" -gt "0" ]; then
+            echo "::warning::Found $ANY_COUNT instances of 'any' type usage"
+            grep -rn ": any\|<any>\|as any" --include="*.ts" --include="*.tsx" \
+              --exclude-dir=node_modules --exclude-dir=.next . || true
+            echo ""
+            echo "Consider replacing 'any' with proper types or 'unknown' + type guards"
+          else
+            echo "No 'any' types found - type safety verified!"
+          fi
+
+  # ============================================
+  # Job 3: Lint (CRITICAL - blocks all)
+  # ============================================
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: dashboard/node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Run ESLint
+        run: npm run lint -- --max-warnings 0
+
+  # ============================================
+  # Job 4: Format Check
+  # ============================================
+  format:
+    name: Format Check
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: dashboard/node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Check Prettier formatting
+        run: npm run format:check
+
+  # ============================================
+  # Job 5: Unit Tests (Vitest + RTL)
+  # ============================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: dashboard/node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Run Vitest
+        run: npm run test:ci
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: dashboard/coverage/
+          retention-days: 7
+
+  # ============================================
+  # Job 6: E2E Tests (Playwright)
+  # ============================================
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: dashboard/node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build for E2E
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-key' }}
+
+      - name: Run Playwright tests
+        run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-key' }}
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: dashboard/playwright-report/
+          retention-days: 7
+
+      - name: Upload Playwright traces
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: dashboard/test-results/
+          retention-days: 7
+
+  # ============================================
+  # Job 7: Build
+  # ============================================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests, format]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: dashboard/node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: dashboard/.next/cache
+          key: nextjs-${{ hashFiles('dashboard/package-lock.json') }}-${{ hashFiles('dashboard/**/*.ts', 'dashboard/**/*.tsx') }}
+          restore-keys: |
+            nextjs-${{ hashFiles('dashboard/package-lock.json') }}-
+
+      - name: Build Next.js
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-key' }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: |
+            dashboard/.next/
+            dashboard/public/
+          retention-days: 1
+
+  # ============================================
+  # Job 8: Security Audit
+  # ============================================
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: dashboard/node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Check for known vulnerabilities
+        run: |
+          echo "Running security checks..."
+
+          # Check for sensitive files
+          if grep -r "SUPABASE_SERVICE_KEY\|ANTHROPIC_API_KEY" --include="*.ts" --include="*.tsx" \
+            --exclude-dir=node_modules . 2>/dev/null; then
+            echo "::error::Potential secrets found in source code!"
+            exit 1
+          fi
+
+          echo "Security checks passed!"
+
+  # ============================================
+  # Job 9: Deploy to Railway (main only)
+  # ============================================
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Railway token
+        id: check_railway
+        run: |
+          if [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then
+            echo "token_available=false" >> $GITHUB_OUTPUT
+          else
+            echo "token_available=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Railway CLI
+        if: steps.check_railway.outputs.token_available == 'true'
+        run: npm install -g @railway/cli
+
+      - name: Deploy Dashboard to Railway
+        if: steps.check_railway.outputs.token_available == 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        working-directory: dashboard
+        run: |
+          echo "Deploying dashboard to Railway..."
+          railway up --detach --service julia-dashboard
+          echo "Dashboard deployment initiated!"
+
+      - name: Skip deploy notice
+        if: steps.check_railway.outputs.token_available == 'false'
+        run: |
+          echo "::warning::Deploy skipped - RAILWAY_TOKEN not configured"
+
+      - name: Wait for deployment
+        if: steps.check_railway.outputs.token_available == 'true'
+        run: |
+          echo "Waiting for Railway deployment..."
+          sleep 90
+
+      - name: Health check
+        if: steps.check_railway.outputs.token_available == 'true'
+        run: |
+          DASHBOARD_URL="${{ secrets.DASHBOARD_URL }}"
+          if [ -z "$DASHBOARD_URL" ]; then
+            echo "::warning::DASHBOARD_URL not set, skipping health check"
+            exit 0
+          fi
+
+          echo "Checking $DASHBOARD_URL/api/health..."
+
+          for i in 1 2 3 4 5; do
+            HTTP_STATUS=$(curl -sL -o /dev/null -w "%{http_code}" "$DASHBOARD_URL/api/health" || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "Health check passed!"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $HTTP_STATUS, retrying in 15s..."
+            sleep 15
+          done
+
+          echo "::error::Health check failed!"
+          exit 1
+
+  # ============================================
+  # Job 10: Bundle Analysis (optional, on demand)
+  # ============================================
+  bundle-analysis:
+    name: Bundle Analysis
+    runs-on: ubuntu-latest
+    needs: install
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: dashboard/node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Build with bundle analyzer
+        run: ANALYZE=true npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-key' }}
+        continue-on-error: true
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bundle-analysis
+          path: dashboard/.next/analyze/
+          retention-days: 7

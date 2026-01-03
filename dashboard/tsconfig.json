@@ -3,8 +3,6 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -12,6 +10,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "noEmit": true,
     "plugins": [
       {
         "name": "next"
@@ -19,8 +18,35 @@
     ],
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    "forceConsistentCasingInFileNames": true,
+
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "vitest.config.ts",
+    "vitest.setup.ts"
+  ],
+  "exclude": ["node_modules", "playwright-report", "test-results"]
 }
