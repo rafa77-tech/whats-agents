@@ -91,10 +91,41 @@ ACAO CRITICA: Peca confirmacao antes de reservar.""",
 # HANDLERS
 # =============================================================================
 
+def _limpar_param_json_array(valor: str | None) -> str | None:
+    """
+    Limpa parâmetro que pode vir como JSON array string do LLM.
+
+    O LLM às vezes envia ["ortopedia"] em vez de "ortopedia".
+
+    Args:
+        valor: Valor do parâmetro
+
+    Returns:
+        Valor limpo ou None
+    """
+    if not valor:
+        return None
+
+    valor = valor.strip()
+
+    # Se vier como JSON array string, extrair primeiro elemento
+    if valor.startswith("["):
+        import json
+        try:
+            parsed = json.loads(valor)
+            if isinstance(parsed, list) and parsed:
+                return str(parsed[0]).strip()
+        except json.JSONDecodeError:
+            # Remove colchetes manualmente se não for JSON válido
+            return valor.strip("[]\"'").strip()
+
+    return valor
+
+
 async def handle_buscar_vagas(params: dict) -> dict:
     """Busca vagas disponiveis."""
-    hospital = params.get("hospital")
-    especialidade = params.get("especialidade")
+    hospital = _limpar_param_json_array(params.get("hospital"))
+    especialidade = _limpar_param_json_array(params.get("especialidade"))
     status = params.get("status", "aberta")
     limite = min(params.get("limite", 10), 20)
 
@@ -146,8 +177,8 @@ async def handle_buscar_vagas(params: dict) -> dict:
 
 async def handle_reservar_vaga(params: dict) -> dict:
     """Reserva uma vaga para um medico."""
-    telefone = params.get("telefone_medico", "").strip()
-    data_vaga = params.get("data_vaga", "").strip()
+    telefone = _limpar_param_json_array(params.get("telefone_medico")) or ""
+    data_vaga = _limpar_param_json_array(params.get("data_vaga")) or ""
 
     if not telefone or not data_vaga:
         return {"success": False, "error": "Telefone e data sao obrigatorios"}
