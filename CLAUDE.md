@@ -530,6 +530,58 @@ Ao trabalhar com serviços externos, **sempre consultar a documentação local p
 
 ---
 
+## Boas Práticas - Projetos Frontend (Next.js/TypeScript)
+
+> **ATENÇÃO:** Para projetos Next.js/TypeScript, existe documentação específica obrigatória.
+
+**Arquivo:** `docs/best-practices/nextjs-typescript-rules.md`
+
+### Quando Consultar (OBRIGATÓRIO)
+
+| Momento | Ação |
+|---------|------|
+| ANTES de escrever código | Ler regras de Client/Server Components e TypeScript strict |
+| APÓS terminar código | Verificar conformidade com checklist |
+| ANTES de commitar | Garantir todos os testes passam |
+
+### Problemas Críticos que o Arquivo Previne
+
+1. **Webpack Build Errors** - Importação de Node.js em Client Components
+2. **Hydration Errors** - Diferença server/client render
+3. **Uso de `any`** - Tolerância ZERO para `any` em TypeScript
+4. **Testes não executados** - Validação obrigatória antes de commit
+
+### Workflow Resumido
+
+```bash
+# 1. Antes de codificar
+cat docs/best-practices/nextjs-typescript-rules.md
+
+# 2. Após codificar - Validação obrigatória
+npm run tsc -- --noEmit    # Type check
+npm run lint               # Linting
+npm run format             # Formatting
+npm test                   # Testes
+
+# 3. Verificar any (deve retornar vazio)
+grep -r ": any" src/
+grep -r "as any" src/
+
+# 4. Build final
+npm run build
+```
+
+### Regras Principais (Resumo)
+
+- **NUNCA** usar `any` - usar `unknown` + type guards
+- **NUNCA** importar Node.js (`fs`, `path`, `crypto`) em Client Components
+- **NUNCA** usar `Math.random()`, `Date.now()`, `window` no render inicial
+- **SEMPRE** tipar retornos de função explicitamente
+- **SEMPRE** validar dados externos com Zod ou type guards
+- **SEMPRE** rodar testes antes de commitar
+
+---
+
 ## Métricas de Sucesso
 
 | Métrica | Meta |
@@ -549,3 +601,7 @@ Ao trabalhar com serviços externos, **sempre consultar a documentação local p
 4. **Convenções de código** - Seguir `app/CONVENTIONS.md` rigorosamente
 5. **Testes** - Rodar `uv run pytest` antes de considerar tarefa completa
 6. **Verificar branch antes de commit** - SEMPRE executar `git branch --show-current` antes de fazer commit/push para garantir que está no branch correto
+7. **Projetos Next.js/TypeScript** - OBRIGATÓRIO consultar `docs/best-practices/nextjs-typescript-rules.md`:
+   - ANTES de escrever código (ler regras)
+   - APÓS terminar (verificar conformidade)
+   - ANTES de commitar (todos os testes devem passar)
