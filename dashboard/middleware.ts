@@ -58,6 +58,11 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
+  const hasAuthParams =
+    request.nextUrl.searchParams.has("code") ||
+    request.nextUrl.searchParams.has("error") ||
+    request.nextUrl.searchParams.has("error_description");
+
   // Rotas públicas
   const publicRoutes = ["/login", "/callback", "/api/health"];
   const isPublicRoute = publicRoutes.some((route) =>
@@ -65,7 +70,7 @@ export async function middleware(request: NextRequest) {
   );
 
   // Redirecionar para login se não autenticado
-  if (!session && !isPublicRoute) {
+  if (!session && !isPublicRoute && !hasAuthParams) {
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(redirectUrl);

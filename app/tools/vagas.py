@@ -357,7 +357,8 @@ async def handle_buscar_vagas(
             especialidades = v.get("especialidades") or {}
 
             vagas_resumo.append({
-                "id": v.get("id"),
+                # UUID PARA USO INTERNO - use este ID ao chamar criar_handoff_externo
+                "VAGA_ID_PARA_HANDOFF": v.get("id"),
                 "hospital": hospitais.get("nome") if isinstance(hospitais, dict) else None,
                 "cidade": hospitais.get("cidade") if isinstance(hospitais, dict) else None,
                 "data": v.get("data"),
@@ -379,8 +380,14 @@ async def handle_buscar_vagas(
             f"Estas vagas sao de {especialidade_nome}. "
             "Apresente as vagas de forma natural, uma por vez. "
             "SEMPRE mencione a DATA do plantao (dia/mes). "
-            "GUARDE O ID (UUID) de cada vaga - voce vai precisar para criar_handoff_externo. "
-            "Quando o medico aceitar ('fechou', 'quero essa'), use criar_handoff_externo com o UUID EXATO da vaga. "
+            "\n\n"
+            "CRITICO - HANDOFF:\n"
+            "- Cada vaga tem um campo 'VAGA_ID_PARA_HANDOFF' (UUID)\n"
+            "- Quando o medico aceitar ('fechou', 'quero essa'), use criar_handoff_externo\n"
+            "- O parametro vaga_id DEVE ser o valor de VAGA_ID_PARA_HANDOFF\n"
+            "- NUNCA pergunte o ID ao medico - voce ja tem nos dados acima\n"
+            "- NUNCA invente IDs - use EXATAMENTE o UUID que esta em VAGA_ID_PARA_HANDOFF\n"
+            "\n"
             "IMPORTANTE: Para vagas 'a combinar', informe que o valor sera negociado com o responsavel. "
             "Nao invente valores - use apenas o que esta nos dados da vaga."
         )
