@@ -18,7 +18,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#0ea5e9",
+  themeColor: "#C82D37", // Revoluna primary
 };
 
 export default function RootLayout({
