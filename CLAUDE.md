@@ -598,6 +598,7 @@ O dashboard tem seu próprio pipeline de CI/CD em `.github/workflows/dashboard-c
 | e2e-tests | Playwright (Chromium) | Sim |
 | build | `next build` | Sim |
 | security | `npm audit` + verificação de secrets | Não |
+| lighthouse | Performance, A11y, SEO, Best Practices | Sim |
 | deploy | Railway (apenas main) | N/A |
 
 ### Comandos Locais
@@ -651,6 +652,33 @@ dashboard/
 - Functions: 70%
 - Lines: 70%
 
+### Lighthouse CI (Performance)
+
+**Thresholds configurados em `lighthouserc.js`:**
+
+| Métrica | Mínimo | Tipo |
+|---------|--------|------|
+| Performance | 70% | warn |
+| Accessibility | 90% | error |
+| Best Practices | 80% | warn |
+| SEO | 80% | warn |
+
+**Core Web Vitals:**
+| Métrica | Máximo |
+|---------|--------|
+| First Contentful Paint | 2000ms |
+| Largest Contentful Paint | 2500ms |
+| Cumulative Layout Shift | 0.1 |
+| Total Blocking Time | 300ms |
+| Time to Interactive | 3500ms |
+
+**Rodar localmente:**
+```bash
+npm install -g @lhci/cli
+cd dashboard
+npm run build && lhci autorun
+```
+
 ### Secrets Necessários (GitHub Actions)
 
 | Secret | Descrição | Obrigatório |
@@ -659,6 +687,9 @@ dashboard/
 | `DASHBOARD_URL` | URL do dashboard em prod | Não (health check) |
 | `NEXT_PUBLIC_SUPABASE_URL` | URL do Supabase | Não (usa fallback) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key do Supabase | Não (usa fallback) |
+| `LHCI_GITHUB_APP_TOKEN` | Token para Lighthouse status checks | Não (opcional) |
+
+> **Nota:** Para habilitar status checks do Lighthouse em PRs, instale o [Lighthouse CI GitHub App](https://github.com/apps/lighthouse-ci) e configure o token.
 
 ---
 
