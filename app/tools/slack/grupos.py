@@ -143,18 +143,24 @@ NAO requer confirmacao - e apenas leitura de dados.""",
 
 TOOL_ESTATISTICAS_GRUPOS = {
     "name": "estatisticas_grupos",
-    "description": """Mostra estatísticas de captura de vagas de grupos WhatsApp.
+    "description": """Mostra estatísticas de captura e importação de vagas de grupos WhatsApp.
 
 QUANDO USAR:
+- Gestor pergunta quantas vagas foram adicionadas/importadas/capturadas
 - Gestor quer ver métricas de grupos
 - Gestor pergunta "como tá a captura?", "quantas vagas dos grupos?"
 - Gestor quer relatório de performance
+- Gestor pergunta sobre vagas recentes no sistema
 
 EXEMPLOS:
+- "quantas vagas foram adicionadas ao sistema?"
+- "quantas vagas importamos recentemente?"
 - "como tão as estatísticas dos grupos?"
-- "quantas vagas capturamos hoje?"
+- "quantas vagas capturamos hoje/essa semana?"
 - "qual o resumo da semana?"
 
+IMPORTANTE: Use esta tool para responder sobre quantidade de vagas.
+NAO responda "vou verificar" - USE A TOOL DIRETAMENTE.
 NAO requer confirmacao - e apenas leitura de dados.""",
     "input_schema": {
         "type": "object",
