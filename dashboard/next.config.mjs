@@ -9,6 +9,7 @@ const nextConfig = {
       },
     ],
   },
+
   // Headers de segurança
   async headers() {
     return [
@@ -31,6 +32,23 @@ const nextConfig = {
       },
     ];
   },
+
+  // TypeScript strict mode
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
+  // ESLint strict mode
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+
+  // Output standalone for Docker/Railway
+  output: "standalone",
+
+  // Optimize for production
+  poweredByHeader: false,
+  reactStrictMode: true,
 };
 
 export default nextConfig;

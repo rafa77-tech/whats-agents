@@ -50,6 +50,7 @@ export default function LoginPage() {
             Enviamos um link de acesso para <strong>{email}</strong>
           </p>
           <button
+            type="button"
             onClick={() => {
               setSent(false);
               setEmail("");
