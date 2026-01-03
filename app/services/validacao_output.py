@@ -150,8 +150,9 @@ PADROES_INSTRUCAO_INTERNA = [
     (r'obs:\s', 'obs_explicita', 'alta'),
 
     # Pensamento em voz alta
-    (r'preciso\s+(agora\s+)?(verificar|checar|confirmar)', 'pensamento_voz_alta', 'alta'),
-    (r'vou\s+(agora\s+)?(verificar|checar|confirmar)', 'pensamento_voz_alta', 'media'),
+    # Nota: "confirmar" removido pois "vou confirmar sua vaga" é frase válida da Julia
+    (r'preciso\s+(agora\s+)?(verificar|checar)', 'pensamento_voz_alta', 'alta'),
+    (r'vou\s+(agora\s+)?(verificar|checar)', 'pensamento_voz_alta', 'media'),
     (r'deixa\s+eu\s+(verificar|checar|ver)', 'pensamento_voz_alta', 'media'),
 
     # Referencias a tools/sistema
