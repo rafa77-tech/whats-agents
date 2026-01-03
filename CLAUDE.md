@@ -548,3 +548,4 @@ Ao trabalhar com serviços externos, **sempre consultar a documentação local p
 3. **Perguntar na dúvida** - Se não tiver certeza do escopo ou abordagem, perguntar ao usuário
 4. **Convenções de código** - Seguir `app/CONVENTIONS.md` rigorosamente
 5. **Testes** - Rodar `uv run pytest` antes de considerar tarefa completa
+6. **Verificar branch antes de commit** - SEMPRE executar `git branch --show-current` antes de fazer commit/push para garantir que está no branch correto
