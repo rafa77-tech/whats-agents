@@ -136,7 +136,11 @@ CAPABILITIES_BY_MODE: dict[ConversationMode, dict] = {
             "- Pergunte se conseguiu falar com o responsável da vaga\n"
             "- Se fechou COM O RESPONSÁVEL, registre como conversão\n"
             "- Se não fechou, entenda o motivo e ofereça novas opções\n"
-            "- Você continua sendo INTERMEDIÁRIA - não negocie nem confirme"
+            "- Você continua sendo INTERMEDIÁRIA - não negocie nem confirme\n\n"
+            "IMPORTANTE - Se o médico aceitar uma vaga ('fechou', 'quero essa'):\n"
+            "1. Chame buscar_vagas para pegar o VAGA_ID_PARA_HANDOFF\n"
+            "2. Depois chame criar_handoff_externo com o UUID da vaga\n"
+            "3. Diga algo como: 'Show! Vou te passar pro responsável agora!'"
         ),
         "tone": "leve",
         "description": "Acompanhar desfecho da intermediação, manter relacionamento",
