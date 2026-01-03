@@ -43,40 +43,43 @@ class DelayConfig:
 
 
 # Configuracao de delays por tipo de contexto
+# Sprint 29: Delays reduzidos para agilidade máxima
+# - REPLY e ACEITE: resposta imediata (0-1s)
+# - Outros: delays mínimos para parecer humano
 DELAY_CONFIG = {
     ContextType.REPLY_DIRETA: DelayConfig(
         min_ms=0,
-        max_ms=3000,
+        max_ms=1000,  # Reduzido de 3000 para 1000 (máx 1s)
         prioridade=1,
         descricao="Resposta a pergunta direta"
     ),
     ContextType.ACEITE_VAGA: DelayConfig(
         min_ms=0,
-        max_ms=2000,
+        max_ms=500,  # Reduzido de 2000 para 500 (máx 0.5s)
         prioridade=1,
         descricao="Aceite/confirmacao de vaga"
     ),
     ContextType.CONFIRMACAO: DelayConfig(
-        min_ms=2000,
-        max_ms=5000,
+        min_ms=500,  # Reduzido de 2000
+        max_ms=2000,  # Reduzido de 5000
         prioridade=2,
         descricao="Confirmacao de dados/detalhes"
     ),
     ContextType.OFERTA_ATIVA: DelayConfig(
-        min_ms=15000,
-        max_ms=45000,
+        min_ms=3000,  # Reduzido de 15000
+        max_ms=8000,  # Reduzido de 45000
         prioridade=3,
         descricao="Oferta proativa de vaga"
     ),
     ContextType.FOLLOWUP: DelayConfig(
-        min_ms=30000,
-        max_ms=120000,
+        min_ms=5000,  # Reduzido de 30000
+        max_ms=15000,  # Reduzido de 120000
         prioridade=4,
         descricao="Follow-up de conversa"
     ),
     ContextType.CAMPANHA_FRIA: DelayConfig(
-        min_ms=60000,
-        max_ms=180000,
+        min_ms=10000,  # Reduzido de 60000
+        max_ms=30000,  # Reduzido de 180000
         prioridade=5,
         descricao="Prospeccao fria/campanha"
     ),
