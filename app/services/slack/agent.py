@@ -21,6 +21,21 @@ from app.services.slack.formatter import formatar_erro
 logger = logging.getLogger(__name__)
 
 
+# Padrões que indicam resposta incompleta (LLM ia continuar mas parou)
+PADROES_INCOMPLETO = [
+    ":",  # "Vou verificar o que temos na semana:"
+    "...",  # Reticências
+    "vou verificar",
+    "deixa eu ver",
+    "um momento",
+    "vou buscar",
+    "vou checar",
+]
+
+# Máximo de retries para respostas incompletas
+MAX_RETRIES_INCOMPLETO = 1
+
+
 class AgenteSlack:
     """Agente conversacional da Julia para Slack."""
 
@@ -122,8 +137,13 @@ class AgenteSlack:
 
         return resposta
 
-    async def _chamar_llm(self) -> str:
-        """Chama o LLM com as tools disponiveis."""
+    async def _chamar_llm(self, retry_count: int = 0) -> str:
+        """
+        Chama o LLM com as tools disponiveis.
+
+        Args:
+            retry_count: Número de retries já realizados (para respostas incompletas)
+        """
         # Preparar contexto
         contexto = self._preparar_contexto()
 
@@ -141,18 +161,50 @@ class AgenteSlack:
             )
 
             # Processar resposta (pode ter tool_use)
-            return await self._processar_resposta(response)
+            return await self._processar_resposta(response, retry_count)
 
         except anthropic.APIError as e:
             logger.error(f"Erro na API Anthropic: {e}")
             return "Ops, tive um problema aqui. Tenta de novo?"
 
-    async def _processar_resposta(self, response) -> str:
+    def _resposta_parece_incompleta(self, texto: str, stop_reason: str) -> bool:
+        """
+        Detecta se a resposta do LLM parece incompleta.
+
+        Isso acontece quando o LLM gera texto que parece indicar
+        que vai continuar (ex: "Vou verificar:") mas para sem
+        emitir tool_use.
+
+        Args:
+            texto: Texto da resposta
+            stop_reason: Razão da parada (end_turn, tool_use, etc)
+
+        Returns:
+            True se parece incompleta
+        """
+        if not texto or stop_reason == "tool_use":
+            return False
+
+        texto_lower = texto.lower().strip()
+
+        # Verificar padrões que indicam resposta incompleta
+        for padrao in PADROES_INCOMPLETO:
+            if texto_lower.endswith(padrao):
+                logger.warning(
+                    f"Resposta parece incompleta: termina com '{padrao}' "
+                    f"(stop_reason={stop_reason})"
+                )
+                return True
+
+        return False
+
+    async def _processar_resposta(self, response, retry_count: int = 0) -> str:
         """
         Processa resposta do LLM, executando tools se necessario.
 
         Args:
             response: Resposta da API Anthropic
+            retry_count: Número de retries já realizados
 
         Returns:
             Texto final para o usuario
@@ -167,8 +219,32 @@ class AgenteSlack:
             elif block.type == "tool_use":
                 tool_calls.append(block)
 
-        # Se nao tem tool calls, retornar texto
+        # Verificar stop_reason
+        stop_reason = getattr(response, 'stop_reason', 'unknown')
+
+        # Se nao tem tool calls, verificar se resposta está incompleta
         if not tool_calls:
+            # Detectar resposta incompleta e fazer retry
+            if (
+                retry_count < MAX_RETRIES_INCOMPLETO
+                and self._resposta_parece_incompleta(texto_resposta, stop_reason)
+            ):
+                logger.info(
+                    f"Resposta incompleta detectada, fazendo retry "
+                    f"({retry_count + 1}/{MAX_RETRIES_INCOMPLETO})"
+                )
+
+                # Adicionar resposta parcial e pedir continuação
+                self.session.adicionar_mensagem("assistant", texto_resposta)
+                self.session.adicionar_mensagem(
+                    "user",
+                    "Continue. Complete a resposta com os dados."
+                )
+
+                # Retry
+                return await self._chamar_llm(retry_count + 1)
+
+            # Resposta normal ou já tentamos retry
             self.session.adicionar_mensagem("assistant", texto_resposta)
             return texto_resposta
 
