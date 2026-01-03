@@ -341,14 +341,67 @@ async def gerar_resposta_julia(
                 max_tokens=300,
             )
 
-            resposta = resultado_final["text"] or ""
+            # Sprint 29: Suporte a múltiplas tool calls sequenciais
+            # Limite de 3 iterações para evitar loops infinitos
+            max_tool_iterations = 3
+            current_iteration = 0
+            current_historico = historico_com_tool
+            current_tool_results = tool_results
+
+            while resultado_final.get("tool_use") and current_iteration < max_tool_iterations:
+                current_iteration += 1
+                logger.info(f"Tool call sequencial {current_iteration}: {resultado_final['tool_use']}")
+
+                # Processar nova tool call
+                new_tool_results = []
+                for tool_call in resultado_final["tool_use"]:
+                    tool_result = await processar_tool_call(
+                        tool_name=tool_call["name"],
+                        tool_input=tool_call["input"],
+                        medico=medico,
+                        conversa=conversa
+                    )
+                    new_tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_call["id"],
+                        "content": str(tool_result)
+                    })
+
+                # Montar novo histórico
+                new_assistant_content = []
+                if resultado_final.get("text"):
+                    new_assistant_content.append({"type": "text", "text": resultado_final["text"]})
+                for tool_call in resultado_final["tool_use"]:
+                    new_assistant_content.append({
+                        "type": "tool_use",
+                        "id": tool_call["id"],
+                        "name": tool_call["name"],
+                        "input": tool_call["input"]
+                    })
+
+                current_historico = current_historico + [
+                    {"role": "user", "content": current_tool_results},
+                    {"role": "assistant", "content": new_assistant_content}
+                ]
+                current_tool_results = new_tool_results
+
+                # Continuar após nova tool
+                resultado_final = await continuar_apos_tool(
+                    historico=current_historico,
+                    tool_results=new_tool_results,
+                    system_prompt=system_prompt,
+                    tools=tools_to_use,
+                    max_tokens=300,
+                )
+
+            resposta = resultado_final.get("text") or ""
 
             # Failsafe: se chamou tool mas não gerou resposta, forçar
-            if not resposta and tool_results:
+            if not resposta and (tool_results or current_tool_results):
                 logger.warning("Tool executada mas sem resposta, forçando geração")
                 # Adicionar tool_result e pedir resposta
-                historico_forcar = historico_com_tool + [
-                    {"role": "user", "content": tool_results},
+                historico_forcar = current_historico + [
+                    {"role": "user", "content": current_tool_results},
                     {"role": "user", "content": "Agora responda ao médico de forma natural e curta."}
                 ]
                 resultado_forcado = await gerar_resposta(
