@@ -43,20 +43,51 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Cores customizadas Julia
-        julia: {
-          50: "#f0f9ff",
-          100: "#e0f2fe",
-          200: "#bae6fd",
-          300: "#7dd3fc",
-          400: "#38bdf8",
-          500: "#0ea5e9",
-          600: "#0284c7",
-          700: "#0369a1",
-          800: "#075985",
-          900: "#0c4a6e",
-          950: "#082f49",
+        // Paleta Revoluna - baseada em #C82D37
+        revoluna: {
+          50: "#FADCDE",   // Rosa Suave
+          100: "#F5B8BC",
+          200: "#E85A63",  // Vermelho Claro
+          300: "#D64550",
+          400: "#C82D37",  // Vermelho Principal (PRIMARY)
+          500: "#C82D37",  // Base
+          600: "#A52530",  // Vermelho Médio
+          700: "#7A1B22",  // Vermelho Escuro
+          800: "#5A1419",
+          900: "#3A0D10",
         },
+        // Cores de apoio
+        gray: {
+          50: "#F7F7F7",   // Off-White
+          100: "#E2E8F0",  // Cinza Claro
+          200: "#CBD5E0",
+          300: "#A0AEC0",
+          400: "#718096",
+          500: "#4A5568",  // Cinza Médio
+          600: "#2D3748",  // Cinza Escuro
+          700: "#1A202C",
+          800: "#171923",
+          900: "#0D1117",
+        },
+        // Cores semânticas
+        success: {
+          DEFAULT: "#38A169",
+          light: "#C6F6D5",
+          dark: "#276749",
+        },
+        warning: {
+          DEFAULT: "#D69E2E",
+          light: "#FEFCBF",
+          dark: "#975A16",
+        },
+        info: {
+          DEFAULT: "#3182CE",
+          light: "#BEE3F8",
+          dark: "#2C5282",
+        },
+        // Cores de apoio extras
+        gold: "#D4A853",
+        teal: "#2D8C7A",
       },
       borderRadius: {
         lg: "var(--radius)",

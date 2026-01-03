@@ -26,7 +26,7 @@ export function Header() {
               <input
                 type="search"
                 placeholder="Buscar medicos, conversas..."
-                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-julia-500 focus:border-transparent outline-none"
+                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-revoluna-400 focus:border-transparent outline-none"
               />
             </div>
           </div>
@@ -40,8 +40,8 @@ export function Header() {
             </button>
 
             {/* User avatar */}
-            <div className="w-9 h-9 rounded-full bg-julia-100 flex items-center justify-center">
-              <span className="text-sm font-medium text-julia-700">R</span>
+            <div className="w-9 h-9 rounded-full bg-revoluna-50 flex items-center justify-center">
+              <span className="text-sm font-medium text-revoluna-700">R</span>
             </div>
           </div>
         </div>

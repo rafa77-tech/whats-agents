@@ -39,6 +39,67 @@ Construir o **Dashboard completo da Julia** com:
 
 ---
 
+## Paleta de Cores (Revoluna)
+
+O dashboard utiliza a identidade visual da Revoluna, baseada no vermelho principal **#C82D37**.
+
+### Cores Principais
+
+| Nome | Hex | HSL | Uso |
+|------|-----|-----|-----|
+| Primary | `#C82D37` | `355 63% 48%` | Botões, links, destaques |
+| Background | `#F7F7F7` | `0 0% 97%` | Fundo off-white |
+| Foreground | `#2D3748` | `218 23% 23%` | Texto principal cinza escuro |
+| Accent | `#FADCDE` | `355 63% 92%` | Highlights, badges suaves |
+
+### Escala Revoluna (Tailwind)
+
+```
+revoluna-50:  #FADCDE  Rosa Suave
+revoluna-100: #F5B8BC
+revoluna-200: #E85A63  Vermelho Claro
+revoluna-300: #D64550
+revoluna-400: #C82D37  Vermelho Principal (PRIMARY)
+revoluna-500: #C82D37  Base
+revoluna-600: #A52530  Vermelho Médio
+revoluna-700: #7A1B22  Vermelho Escuro
+revoluna-800: #5A1419
+revoluna-900: #3A0D10
+```
+
+### Cores Semânticas
+
+| Tipo | Cor | Uso |
+|------|-----|-----|
+| Success | `#38A169` | Sucesso, online, confirmado |
+| Warning | `#D69E2E` | Atenção, pendente |
+| Info | `#3182CE` | Informativo |
+| Gold | `#D4A853` | Destaques especiais |
+| Teal | `#2D8C7A` | Secundário |
+
+### Uso nos Componentes
+
+```tsx
+// Botão primário
+<button className="bg-revoluna-400 hover:bg-revoluna-600 text-white">
+
+// Background suave
+<div className="bg-revoluna-50">
+
+// Texto destaque
+<span className="text-revoluna-700">
+
+// Focus ring
+<input className="focus:ring-revoluna-400">
+```
+
+### Arquivos de Configuração
+
+- `dashboard/tailwind.config.js` - Definição das cores Tailwind
+- `dashboard/app/globals.css` - CSS variables para shadcn/ui
+
+---
+
 ## Stack Técnico
 
 ### Frontend

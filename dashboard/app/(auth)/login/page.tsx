@@ -17,10 +17,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-julia-50 to-julia-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-revoluna-50 to-revoluna-100">
       <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-julia-900">Julia Dashboard</h1>
+          <h1 className="text-3xl font-bold text-revoluna-700">Julia Dashboard</h1>
           <p className="text-gray-500 mt-2">Entre com seu email para acessar</p>
         </div>
 
@@ -39,14 +39,14 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="seu@email.com"
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-julia-500 focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-revoluna-400 focus:border-transparent outline-none transition-all"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 bg-julia-600 hover:bg-julia-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 bg-revoluna-400 hover:bg-revoluna-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Entrando..." : "Entrar com Magic Link"}
           </button>

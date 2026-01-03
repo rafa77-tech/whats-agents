@@ -33,7 +33,7 @@ export function Sidebar() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200">
-        <div className="w-10 h-10 rounded-xl bg-julia-600 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-xl bg-revoluna-400 flex items-center justify-center">
           <span className="text-white font-bold text-lg">J</span>
         </div>
         <div>
@@ -53,13 +53,13 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-julia-50 text-julia-700"
+                  ? "bg-revoluna-50 text-revoluna-700"
                   : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               )}
             >
               <item.icon className={cn(
                 "w-5 h-5",
-                isActive ? "text-julia-600" : "text-gray-400"
+                isActive ? "text-revoluna-400" : "text-gray-400"
               )} />
               {item.name}
             </Link>
