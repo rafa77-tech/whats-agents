@@ -33,7 +33,7 @@ PADROES_INCOMPLETO = [
 ]
 
 # Máximo de retries para respostas incompletas
-MAX_RETRIES_INCOMPLETO = 1
+MAX_RETRIES_INCOMPLETO = 2
 
 
 class AgenteSlack:
@@ -225,26 +225,37 @@ class AgenteSlack:
         # Se nao tem tool calls, verificar se resposta está incompleta
         if not tool_calls:
             # Detectar resposta incompleta e fazer retry
-            if (
-                retry_count < MAX_RETRIES_INCOMPLETO
-                and self._resposta_parece_incompleta(texto_resposta, stop_reason)
-            ):
-                logger.info(
-                    f"Resposta incompleta detectada, fazendo retry "
-                    f"({retry_count + 1}/{MAX_RETRIES_INCOMPLETO})"
-                )
+            if self._resposta_parece_incompleta(texto_resposta, stop_reason):
+                if retry_count < MAX_RETRIES_INCOMPLETO:
+                    logger.info(
+                        f"Resposta incompleta detectada, fazendo retry "
+                        f"({retry_count + 1}/{MAX_RETRIES_INCOMPLETO})"
+                    )
 
-                # Adicionar resposta parcial e pedir continuação
-                self.session.adicionar_mensagem("assistant", texto_resposta)
-                self.session.adicionar_mensagem(
-                    "user",
-                    "Continue. Complete a resposta com os dados."
-                )
+                    # Adicionar resposta parcial e pedir continuação
+                    self.session.adicionar_mensagem("assistant", texto_resposta)
+                    self.session.adicionar_mensagem(
+                        "user",
+                        "Use a tool apropriada para buscar os dados e me responda com os números."
+                    )
 
-                # Retry
-                return await self._chamar_llm(retry_count + 1)
+                    # Retry
+                    return await self._chamar_llm(retry_count + 1)
+                else:
+                    # Retry já foi feito mas ainda está incompleto
+                    # Retornar mensagem de fallback
+                    logger.warning(
+                        f"Resposta ainda incompleta após {retry_count} retry(s), "
+                        f"usando fallback"
+                    )
+                    fallback = (
+                        "Desculpa, tive um probleminha pra buscar esses dados. "
+                        "Tenta perguntar de novo de forma mais específica?"
+                    )
+                    self.session.adicionar_mensagem("assistant", fallback)
+                    return fallback
 
-            # Resposta normal ou já tentamos retry
+            # Resposta normal
             self.session.adicionar_mensagem("assistant", texto_resposta)
             return texto_resposta
 
