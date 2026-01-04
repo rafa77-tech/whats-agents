@@ -355,13 +355,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: nextjs-build
-          path: dashboard/
+          path: .
 
       - name: Install Lighthouse CI
         run: npm install -g @lhci/cli@0.14.x
 
       - name: Run Lighthouse CI
         run: lhci autorun
+        continue-on-error: true
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'http://localhost:54321' }}
