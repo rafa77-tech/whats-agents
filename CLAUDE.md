@@ -716,3 +716,9 @@ npm run build && lhci autorun
    - ANTES de escrever código (ler regras)
    - APÓS terminar (verificar conformidade)
    - ANTES de commitar (todos os testes devem passar)
+8. **Nunca fazer fix rápidos ou hardcoded** - Ao corrigir bugs ou fazer debug:
+   - NUNCA usar soluções temporárias ou gambiarras
+   - NUNCA hardcodar valores que deveriam ser configuráveis
+   - SEMPRE entender a causa raiz antes de corrigir
+   - SEMPRE implementar a solução correta, mesmo que demore mais
+   - Se precisar de fix temporário, perguntar ao usuário primeiro
