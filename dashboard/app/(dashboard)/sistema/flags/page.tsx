@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Flag, Search } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -39,7 +39,7 @@ export default function FeatureFlagsPage() {
 
   const canEdit = user?.role && ['manager', 'admin'].includes(user.role)
 
-  const fetchFlags = async () => {
+  const fetchFlags = useCallback(async () => {
     if (!session?.access_token) return
 
     try {
@@ -59,11 +59,11 @@ export default function FeatureFlagsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.access_token])
 
   useEffect(() => {
     fetchFlags()
-  }, [session?.access_token])
+  }, [fetchFlags])
 
   const handleToggle = async (name: string, enabled: boolean) => {
     if (!session?.access_token) return

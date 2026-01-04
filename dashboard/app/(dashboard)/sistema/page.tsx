@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Settings, Flag, Shield } from 'lucide-react'
 import { JuliaToggle } from './components/julia-toggle'
@@ -52,7 +52,7 @@ export default function SistemaPage() {
   const [data, setData] = useState<DashboardStatus | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     if (!session?.access_token) return
 
     try {
@@ -72,13 +72,13 @@ export default function SistemaPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.access_token])
 
   useEffect(() => {
     fetchStatus()
     const interval = setInterval(fetchStatus, 30000)
     return () => clearInterval(interval)
-  }, [session?.access_token])
+  }, [fetchStatus])
 
   const handleToggle = async (active: boolean, reason?: string) => {
     if (!session?.access_token) return
