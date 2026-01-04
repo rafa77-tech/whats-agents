@@ -157,19 +157,17 @@ async def get_dashboard_status(user: CurrentUser):
         week_ago = (datetime.now() - timedelta(days=7)).isoformat()
 
         conv_result = supabase.table("conversations").select(
-            "status, controlled_by, created_at, aguardando_resposta"
+            "status, controlled_by, created_at"
         ).gte("updated_at", week_ago).execute()
 
         active_count = 0
-        waiting_count = 0
+        waiting_count = 0  # TODO: calculate from last_message origin
         handoff_count = 0
         today_new = 0
 
         for c in conv_result.data:
             if c.get("status") == "active":
                 active_count += 1
-            if c.get("aguardando_resposta"):
-                waiting_count += 1
             if c.get("controlled_by") == "human":
                 handoff_count += 1
             if c.get("created_at", "")[:10] == str(today):
@@ -187,19 +185,19 @@ async def get_dashboard_status(user: CurrentUser):
             active=0, waiting_response=0, handoff=0, today_new=0
         )
 
-    # Funil
+    # Funil (usando stage_jornada)
     try:
-        funnel_result = supabase.table("clientes").select("status_funil").execute()
+        funnel_result = supabase.table("clientes").select("stage_jornada").execute()
         status_counts: Dict[str, int] = {}
         for c in funnel_result.data:
-            status = c.get("status_funil", "unknown")
+            status = c.get("stage_jornada", "unknown")
             status_counts[status] = status_counts.get(status, 0) + 1
 
         funnel = FunnelStats(
-            prospecting=status_counts.get("prospecting", 0),
-            engaged=status_counts.get("engaged", 0),
-            negotiating=status_counts.get("negotiating", 0),
-            converted=status_counts.get("converted", 0),
+            prospecting=status_counts.get("prospecting", 0) + status_counts.get("novo", 0),
+            engaged=status_counts.get("engaged", 0) + status_counts.get("respondeu", 0),
+            negotiating=status_counts.get("negotiating", 0) + status_counts.get("negociando", 0),
+            converted=status_counts.get("converted", 0) + status_counts.get("convertido", 0),
             total=len(funnel_result.data)
         )
     except Exception as e:

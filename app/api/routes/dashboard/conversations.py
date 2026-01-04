@@ -77,7 +77,7 @@ async def list_conversations(
     try:
         # Build query
         query = supabase.table("conversations").select(
-            "*, clientes(nome, telefone)"
+            "*, clientes(primeiro_nome, sobrenome, telefone)"
         )
 
         if status:
@@ -94,7 +94,8 @@ async def list_conversations(
             search_lower = search.lower()
             filtered_data = [
                 c for c in filtered_data
-                if (c.get("clientes", {}).get("nome", "").lower().find(search_lower) >= 0 or
+                if (c.get("clientes", {}).get("primeiro_nome", "").lower().find(search_lower) >= 0 or
+                    c.get("clientes", {}).get("sobrenome", "").lower().find(search_lower) >= 0 or
                     c.get("clientes", {}).get("telefone", "").find(search) >= 0)
             ]
 
@@ -111,10 +112,15 @@ async def list_conversations(
         conversations = []
         for conv in paginated_data:
             cliente = conv.get("clientes") or {}
+            # Concatenate primeiro_nome + sobrenome
+            primeiro = cliente.get("primeiro_nome", "")
+            sobrenome = cliente.get("sobrenome", "")
+            nome_completo = f"{primeiro} {sobrenome}".strip() or "Desconhecido"
+
             conversations.append(ConversationSummary(
                 id=conv["id"],
                 cliente_id=conv["cliente_id"],
-                cliente_nome=cliente.get("nome", "Desconhecido"),
+                cliente_nome=nome_completo,
                 cliente_telefone=cliente.get("telefone", ""),
                 status=conv.get("status", "unknown"),
                 controlled_by=conv.get("controlled_by", "julia"),
@@ -144,7 +150,7 @@ async def get_conversation(conversation_id: str, user: CurrentUser):
     try:
         # Conversa
         conv_result = supabase.table("conversations").select(
-            "*, clientes(*)"
+            "*, clientes(id, primeiro_nome, sobrenome, telefone, crm, especialidade)"
         ).eq("id", conversation_id).single().execute()
 
         if not conv_result.data:
@@ -152,15 +158,39 @@ async def get_conversation(conversation_id: str, user: CurrentUser):
 
         conv = conv_result.data
 
+        # Build cliente with nome field
+        cliente_raw = conv.get("clientes") or {}
+        primeiro = cliente_raw.get("primeiro_nome", "")
+        sobrenome = cliente_raw.get("sobrenome", "")
+        cliente = {
+            **cliente_raw,
+            "nome": f"{primeiro} {sobrenome}".strip() or "Desconhecido"
+        }
+
         # Mensagens (ultimas 100)
         msgs_result = supabase.table("interacoes").select("*").eq(
-            "conversa_id", conversation_id
+            "conversation_id", conversation_id
         ).order("created_at", desc=True).limit(100).execute()
+
+        # Map messages to frontend format
+        messages = []
+        for msg in reversed(msgs_result.data):
+            # Map origem to tipo (entrada/saida)
+            origem = msg.get("origem", "")
+            tipo = "entrada" if origem == "medico" else "saida"
+
+            messages.append({
+                "id": str(msg.get("id", "")),
+                "tipo": tipo,
+                "conteudo": msg.get("conteudo", ""),
+                "created_at": msg.get("created_at", ""),
+                "metadata": msg.get("metadata") or {}
+            })
 
         return ConversationDetail(
             id=conv["id"],
-            cliente=conv.get("clientes") or {},
-            messages=list(reversed(msgs_result.data)),  # Ordem cronologica
+            cliente=cliente,
+            messages=messages,
             status=conv.get("status", "unknown"),
             controlled_by=conv.get("controlled_by", "julia"),
             handoff_reason=conv.get("handoff_reason"),
