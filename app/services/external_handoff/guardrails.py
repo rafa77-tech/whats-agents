@@ -221,12 +221,15 @@ def calcular_proximo_horario_comercial(agora: Optional[datetime] = None) -> date
 
 async def pode_contatar_divulgador(
     telefone: str,
+    iniciativa_medico: bool = False,
 ) -> Tuple[bool, str, Optional[datetime]]:
     """
     Verifica se um divulgador pode ser contatado.
 
     Args:
         telefone: Número de telefone do divulgador
+        iniciativa_medico: Se True, médico pediu ativamente para fechar vaga.
+                          Nesse caso, horário comercial não bloqueia.
 
     Returns:
         Tuple de (pode_contatar: bool, motivo: str, agendar_para: Optional[datetime])
@@ -234,17 +237,23 @@ async def pode_contatar_divulgador(
         - motivo: Motivo do bloqueio se não pode
         - agendar_para: Se fora do horário, quando agendar
     """
-    # 1. Verificar opt-out
+    # 1. Verificar opt-out (sempre bloqueia, independente de quem iniciou)
     if await esta_opted_out(telefone):
         logger.info(f"Divulgador {telefone[-4:]} está opted-out")
         return False, "opted_out", None
 
-    # 2. Verificar horário comercial
-    if not esta_em_horario_comercial():
+    # 2. Verificar horário comercial (só bloqueia se NÃO foi iniciativa do médico)
+    if not iniciativa_medico and not esta_em_horario_comercial():
         proximo_horario = calcular_proximo_horario_comercial()
         logger.info(
             f"Fora do horário comercial, agendar para {proximo_horario}"
         )
         return False, "outside_business_hours", proximo_horario
+
+    if iniciativa_medico:
+        logger.info(
+            f"Iniciativa do médico - bypass horário comercial "
+            f"(em_horario={esta_em_horario_comercial()})"
+        )
 
     return True, "", None

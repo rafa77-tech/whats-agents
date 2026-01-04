@@ -158,8 +158,10 @@ async def criar_ponte_externa(
         return {"success": False, "error": "Divulgador nao encontrado"}
 
     # 1.5 Verificar guardrails (opt-out + horario comercial)
+    # iniciativa_medico=True porque tool foi chamada = medico pediu para fechar
     pode_contatar, motivo, agendar_para = await pode_contatar_divulgador(
-        telefone=divulgador["telefone"]
+        telefone=divulgador["telefone"],
+        iniciativa_medico=True,
     )
 
     if not pode_contatar:
