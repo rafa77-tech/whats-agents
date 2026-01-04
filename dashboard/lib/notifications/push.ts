@@ -22,9 +22,10 @@ export async function registerPushNotifications(): Promise<PushSubscription | nu
     let subscription = await registration.pushManager.getSubscription()
 
     if (!subscription && VAPID_PUBLIC_KEY) {
+      const vapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: vapidKey.buffer as ArrayBuffer,
       })
     }
 

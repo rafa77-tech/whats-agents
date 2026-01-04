@@ -11,6 +11,7 @@ from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, ch
 from app.api.routes.dashboard import status as dashboard_status
 from app.api.routes.dashboard import controls as dashboard_controls
 from app.api.routes.dashboard import conversations as dashboard_conversations
+from app.api.routes.dashboard import notifications as dashboard_notifications
 from fastapi.staticfiles import StaticFiles
 
 # Configurar logging
@@ -65,6 +66,7 @@ app.include_router(handoff.router)  # Sprint 20 - External Handoff
 app.include_router(dashboard_status.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(dashboard_controls.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(dashboard_conversations.router, prefix="/dashboard", tags=["Dashboard"])
+app.include_router(dashboard_notifications.router, prefix="/dashboard", tags=["Dashboard"])
 
 # Arquivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")
