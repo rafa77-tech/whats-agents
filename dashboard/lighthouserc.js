@@ -42,7 +42,7 @@ module.exports = {
         'largest-contentful-paint': ['warn', { maxNumericValue: 2500 }],
         'cumulative-layout-shift': ['warn', { maxNumericValue: 0.1 }],
         'total-blocking-time': ['warn', { maxNumericValue: 300 }],
-        'interactive': ['warn', { maxNumericValue: 3500 }],
+        interactive: ['warn', { maxNumericValue: 3500 }],
         'speed-index': ['warn', { maxNumericValue: 3000 }],
 
         // Accessibility
@@ -53,7 +53,7 @@ module.exports = {
         'image-alt': 'error',
         'link-name': 'error',
         'button-name': 'error',
-        'label': 'error',
+        label: 'error',
 
         // Best Practices
         'errors-in-console': 'warn',
@@ -62,7 +62,7 @@ module.exports = {
         'inspector-issues': 'warn',
 
         // SEO
-        'viewport': 'error',
+        viewport: 'error',
         'meta-description': 'warn',
         'crawlable-anchors': 'warn',
         'robots-txt': 'off', // Not applicable for SPA

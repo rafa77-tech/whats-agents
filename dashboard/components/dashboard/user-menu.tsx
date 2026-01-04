@@ -35,9 +35,7 @@ export function UserMenu() {
   }
 
   if (loading || !dashboardUser) {
-    return (
-      <div className="h-9 w-9 rounded-full bg-gray-200 animate-pulse" />
-    )
+    return <div className="h-9 w-9 animate-pulse rounded-full bg-gray-200" />
   }
 
   const initials = dashboardUser.nome
@@ -51,27 +49,25 @@ export function UserMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+        className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-gray-100"
       >
-        <div className="h-9 w-9 rounded-full bg-revoluna-100 flex items-center justify-center">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-revoluna-100">
           <span className="text-sm font-medium text-revoluna-700">{initials}</span>
         </div>
         <ChevronDown
-          className={`hidden sm:block h-4 w-4 text-gray-500 transition-transform ${
+          className={`hidden h-4 w-4 text-gray-500 transition-transform sm:block ${
             isOpen ? 'rotate-180' : ''
           }`}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 rounded-lg bg-white shadow-lg border border-gray-200 py-1 z-50">
+        <div className="absolute right-0 z-50 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
           {/* User info */}
-          <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {dashboardUser.nome}
-            </p>
+          <div className="border-b border-gray-100 px-4 py-3">
+            <p className="truncate text-sm font-medium text-gray-900">{dashboardUser.nome}</p>
             <p className="text-xs text-gray-500">{dashboardUser.email}</p>
-            <span className="inline-block mt-1 px-2 py-0.5 text-xs rounded-full bg-revoluna-100 text-revoluna-700">
+            <span className="mt-1 inline-block rounded-full bg-revoluna-100 px-2 py-0.5 text-xs text-revoluna-700">
               {ROLE_LABELS[dashboardUser.role] || dashboardUser.role}
             </span>
           </div>
@@ -100,7 +96,7 @@ export function UserMenu() {
           <div className="border-t border-gray-100 py-1">
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+              className="flex w-full items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
             >
               <LogOut className="h-4 w-4" />
               Sair

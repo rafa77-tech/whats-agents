@@ -74,9 +74,7 @@ export function NotificationBell() {
   }, [])
 
   const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    )
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
   }
 
   const markAllAsRead = () => {
@@ -87,20 +85,20 @@ export function NotificationBell() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        className="relative rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 h-4 w-4 flex items-center justify-center text-[10px] font-bold text-white bg-red-500 rounded-full">
+          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-lg bg-white shadow-lg border border-gray-200 z-50">
+        <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg sm:w-96">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
             <h3 className="font-semibold text-gray-900">Notificacoes</h3>
             {unreadCount > 0 && (
               <button
@@ -116,7 +114,7 @@ export function NotificationBell() {
           <div className="max-h-96 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="px-4 py-8 text-center text-gray-500">
-                <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <Bell className="mx-auto mb-2 h-8 w-8 opacity-50" />
                 <p className="text-sm">Nenhuma notificacao</p>
               </div>
             ) : (
@@ -127,25 +125,19 @@ export function NotificationBell() {
                 return (
                   <div
                     key={notification.id}
-                    className={`flex gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0 ${
+                    className={`flex gap-3 border-b border-gray-50 px-4 py-3 last:border-0 hover:bg-gray-50 ${
                       !notification.read ? 'bg-blue-50/50' : ''
                     }`}
                   >
                     <div
-                      className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${colorClass}`}
+                      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${colorClass}`}
                     >
                       <Icon className="h-4 w-4" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
-                        {notification.title}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {notification.time}
-                      </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+                      <p className="truncate text-xs text-gray-500">{notification.message}</p>
+                      <p className="mt-1 text-xs text-gray-400">{notification.time}</p>
                     </div>
                     {!notification.read && (
                       <button
@@ -162,10 +154,10 @@ export function NotificationBell() {
           </div>
 
           {/* Footer */}
-          <div className="px-4 py-3 border-t border-gray-100 text-center">
+          <div className="border-t border-gray-100 px-4 py-3 text-center">
             <button
               onClick={() => setIsOpen(false)}
-              className="text-sm text-revoluna-600 hover:text-revoluna-700 font-medium"
+              className="text-sm font-medium text-revoluna-600 hover:text-revoluna-700"
             >
               Ver todas as notificacoes
             </button>

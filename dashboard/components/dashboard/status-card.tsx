@@ -1,41 +1,43 @@
-import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface StatusCardProps {
-  title: string;
-  value: string;
-  icon: LucideIcon;
+  title: string
+  value: string
+  icon: LucideIcon
   trend?: {
-    value: number;
-    positive: boolean;
-  };
+    value: number
+    positive: boolean
+  }
 }
 
 export function StatusCard({ title, value, icon: Icon, trend }: StatusCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 lg:p-6">
       <div className="flex items-start justify-between">
-        <div className="p-2 bg-revoluna-50 rounded-lg">
-          <Icon className="w-5 h-5 text-revoluna-400" />
+        <div className="rounded-lg bg-revoluna-50 p-2">
+          <Icon className="h-5 w-5 text-revoluna-400" />
         </div>
         {trend && (
-          <div className={cn(
-            "flex items-center gap-1 text-sm font-medium",
-            trend.positive ? "text-green-600" : "text-red-600"
-          )}>
+          <div
+            className={cn(
+              'flex items-center gap-1 text-sm font-medium',
+              trend.positive ? 'text-green-600' : 'text-red-600'
+            )}
+          >
             {trend.positive ? (
-              <TrendingUp className="w-4 h-4" />
+              <TrendingUp className="h-4 w-4" />
             ) : (
-              <TrendingDown className="w-4 h-4" />
+              <TrendingDown className="h-4 w-4" />
             )}
             {trend.value}%
           </div>
         )}
       </div>
       <div className="mt-4">
-        <p className="text-2xl lg:text-3xl font-bold text-gray-900">{value}</p>
-        <p className="text-sm text-gray-500 mt-1">{title}</p>
+        <p className="text-2xl font-bold text-gray-900 lg:text-3xl">{value}</p>
+        <p className="mt-1 text-sm text-gray-500">{title}</p>
       </div>
     </div>
-  );
+  )
 }

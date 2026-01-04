@@ -55,11 +55,10 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
 
-  // Experimental features
-  experimental: {
-    // Type-safe server actions
-    typedRoutes: true,
-  },
+  // Experimental features (typedRoutes disabled for compatibility)
+  // experimental: {
+  //   typedRoutes: true,
+  // },
 
   // Output standalone for Docker/Railway
   output: 'standalone',

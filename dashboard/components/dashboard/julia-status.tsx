@@ -38,8 +38,8 @@ export function JuliaStatus() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 text-gray-500 text-xs">
-        <span className="h-2 w-2 rounded-full bg-gray-400 animate-pulse" />
+      <div className="flex items-center gap-1.5 rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500">
+        <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400" />
         Carregando...
       </div>
     )
@@ -50,22 +50,18 @@ export function JuliaStatus() {
 
   return (
     <div
-      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+      className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
         isActive
           ? 'bg-green-100 text-green-700'
           : isPaused
-          ? 'bg-yellow-100 text-yellow-700'
-          : 'bg-red-100 text-red-700'
+            ? 'bg-yellow-100 text-yellow-700'
+            : 'bg-red-100 text-red-700'
       }`}
       title={status?.motivo}
     >
       <span
         className={`h-2 w-2 rounded-full ${
-          isActive
-            ? 'bg-green-500 animate-pulse'
-            : isPaused
-            ? 'bg-yellow-500'
-            : 'bg-red-500'
+          isActive ? 'animate-pulse bg-green-500' : isPaused ? 'bg-yellow-500' : 'bg-red-500'
         }`}
       />
       Julia {isActive ? 'Ativa' : isPaused ? 'Pausada' : 'Erro'}

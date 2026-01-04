@@ -42,8 +42,8 @@ test.describe('Accessibility', () => {
     // Check that buttons have accessible names
     const buttons = await page.locator('button').all()
     for (const button of buttons) {
-      const accessibleName = await button.getAttribute('aria-label') ||
-        await button.textContent()
+      const accessibleName =
+        (await button.getAttribute('aria-label')) || (await button.textContent())
       expect(accessibleName).toBeTruthy()
     }
   })

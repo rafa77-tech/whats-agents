@@ -67,17 +67,17 @@ npm run type-check  # Verificar tipos TypeScript
 
 ### Supabase
 
-| Ambiente | Project Ref | URL |
-|----------|-------------|-----|
-| DEV | `ofpnronthwcsybfxnxgj` | https://ofpnronthwcsybfxnxgj.supabase.co |
-| PROD | `jyqgbzhqavgpxqacduoi` | https://jyqgbzhqavgpxqacduoi.supabase.co |
+| Ambiente | Project Ref            | URL                                      |
+| -------- | ---------------------- | ---------------------------------------- |
+| DEV      | `ofpnronthwcsybfxnxgj` | https://ofpnronthwcsybfxnxgj.supabase.co |
+| PROD     | `jyqgbzhqavgpxqacduoi` | https://jyqgbzhqavgpxqacduoi.supabase.co |
 
 ### Railway
 
-| Ambiente | Branch | URL |
-|----------|--------|-----|
-| DEV | `sprint-28/dashboard` | https://dashboard-production-c25f.up.railway.app |
-| PROD | `main` | (a configurar) |
+| Ambiente | Branch                | URL                                              |
+| -------- | --------------------- | ------------------------------------------------ |
+| DEV      | `sprint-28/dashboard` | https://dashboard-production-c25f.up.railway.app |
+| PROD     | `main`                | (a configurar)                                   |
 
 ---
 
@@ -167,29 +167,28 @@ O dashboard usa **Magic Link** do Supabase Auth:
 
 ### Roles (RBAC)
 
-| Role | Permissões |
-|------|------------|
-| `viewer` | Apenas visualização |
+| Role       | Permissões                              |
+| ---------- | --------------------------------------- |
+| `viewer`   | Apenas visualização                     |
 | `operator` | + Controles básicos (pausar Julia, etc) |
-| `manager` | + CRUD de dados (médicos, vagas) |
-| `admin` | Acesso total + auditoria |
+| `manager`  | + CRUD de dados (médicos, vagas)        |
+| `admin`    | Acesso total + auditoria                |
 
 ### Componentes de Auth
 
 ```tsx
 // Proteger conteúdo por role
-import { RequireRole } from "@/components/auth/require-role";
-
-<RequireRole role="manager">
+import { RequireRole } from '@/components/auth/require-role'
+;<RequireRole role="manager">
   <BotaoEditar />
 </RequireRole>
 
 // Usar hook de auth
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from '@/hooks/use-auth'
 
-const { user, dashboardUser, signOut, hasPermission } = useAuth();
+const { user, dashboardUser, signOut, hasPermission } = useAuth()
 
-if (hasPermission("admin")) {
+if (hasPermission('admin')) {
   // ...
 }
 ```
@@ -202,14 +201,14 @@ Cor principal: **#C82D37** (vermelho Revoluna)
 
 ```tsx
 // Tailwind classes
-bg-revoluna-400    // Vermelho principal
-bg-revoluna-50     // Rosa suave (backgrounds)
-text-revoluna-700  // Vermelho escuro (texto)
+bg - revoluna - 400 // Vermelho principal
+bg - revoluna - 50 // Rosa suave (backgrounds)
+text - revoluna - 700 // Vermelho escuro (texto)
 
 // Semânticas
-bg-primary         // = revoluna-400
-text-foreground    // = cinza escuro
-bg-background      // = off-white
+bg - primary // = revoluna-400
+text - foreground // = cinza escuro
+bg - background // = off-white
 ```
 
 Ver `tailwind.config.js` para escala completa.

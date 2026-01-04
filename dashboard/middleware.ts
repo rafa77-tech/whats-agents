@@ -1,12 +1,12 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
-  });
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,74 +14,72 @@ export async function middleware(request: NextRequest) {
     {
       cookies: {
         get(name: string) {
-          return request.cookies.get(name)?.value;
+          return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({
             name,
             value,
             ...options,
-          });
+          })
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
-          });
+          })
           response.cookies.set({
             name,
             value,
             ...options,
-          });
+          })
         },
         remove(name: string, options: CookieOptions) {
           request.cookies.set({
             name,
-            value: "",
+            value: '',
             ...options,
-          });
+          })
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
-          });
+          })
           response.cookies.set({
             name,
-            value: "",
+            value: '',
             ...options,
-          });
+          })
         },
       },
     }
-  );
+  )
 
   const {
     data: { session },
-  } = await supabase.auth.getSession();
+  } = await supabase.auth.getSession()
 
   const hasAuthParams =
-    request.nextUrl.searchParams.has("code") ||
-    request.nextUrl.searchParams.has("error") ||
-    request.nextUrl.searchParams.has("error_description");
+    request.nextUrl.searchParams.has('code') ||
+    request.nextUrl.searchParams.has('error') ||
+    request.nextUrl.searchParams.has('error_description')
 
   // Rotas públicas
-  const publicRoutes = ["/login", "/callback", "/api/health"];
-  const isPublicRoute = publicRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
+  const publicRoutes = ['/login', '/callback', '/api/health']
+  const isPublicRoute = publicRoutes.some((route) => request.nextUrl.pathname.startsWith(route))
 
   // Redirecionar para login se não autenticado
   if (!session && !isPublicRoute && !hasAuthParams) {
-    const redirectUrl = new URL("/login", request.url);
-    redirectUrl.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
+    const redirectUrl = new URL('/login', request.url)
+    redirectUrl.searchParams.set('next', request.nextUrl.pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
   // Redirecionar para dashboard se já logado tentando acessar login
-  if (session && request.nextUrl.pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
+  if (session && request.nextUrl.pathname === '/login') {
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
-  return response;
+  return response
 }
 
 export const config = {
@@ -93,6 +91,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-};
+}

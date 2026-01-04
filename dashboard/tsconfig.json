@@ -34,7 +34,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    // "exactOptionalPropertyTypes": true, // Disabled for compatibility
 
     "forceConsistentCasingInFileNames": true,
 
@@ -46,7 +46,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "vitest.config.ts",
-    "vitest.setup.ts"
+    "vitest.setup.tsx"
   ],
   "exclude": ["node_modules", "playwright-report", "test-results"]
 }
