@@ -168,10 +168,17 @@ async def enviar_mensagem_divulgador(
     nome_medico = nome_completo or medico.get("nome", "o medico")
     telefone_medico = medico.get("telefone", "")
 
-    # Dados da vaga
-    hospital = vaga.get("hospitais", {}).get("nome", "hospital")
+    # Verificar se vaga é válida
+    if not vaga:
+        logger.error("Dados da vaga nao fornecidos para enviar_mensagem_divulgador")
+        raise ValueError("Dados da vaga nao fornecidos")
+
+    # Dados da vaga (com proteção contra None)
+    hospitais = vaga.get("hospitais") or {}
+    periodos = vaga.get("periodos") or {}
+    hospital = hospitais.get("nome", "hospital") if isinstance(hospitais, dict) else "hospital"
     data = _formatar_data(vaga.get("data", ""))
-    periodo = vaga.get("periodos", {}).get("nome", "")
+    periodo = periodos.get("nome", "") if isinstance(periodos, dict) else ""
     valor = _formatar_valor(vaga)
 
     mensagem = (
