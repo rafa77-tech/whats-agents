@@ -35,7 +35,11 @@ const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
 };
 
-export function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const pathname = usePathname();
   const { dashboardUser, signOut, loading, hasPermission } = useAuth();
 
@@ -69,6 +73,7 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
