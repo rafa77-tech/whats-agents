@@ -52,13 +52,18 @@ INTERESSE_KEYWORDS = [
 FECHAR_KEYWORDS = [
     r"\bquero\b.*\breservar\b",
     r"\bpode reservar\b",
-    r"\bfecha\b",
-    r"\bconfirma\b",
+    r"\bfech[aou]\b",  # fecha, fechou, fecho
+    r"\bfechado\b",
+    r"\bcombinado\b",
+    r"\bconfirm[aeo]\b",  # confirma, confirmo, confirme
     r"\baceito\b",
     r"\bvou pegar\b",
-    r"\bquero esse\b",
-    r"\bpode ser\b.*\besse\b",
+    r"\bquero ess[ae]\b",  # quero esse, quero essa
+    r"\bpode ser\b.*\bess[ae]\b",  # pode ser esse/essa
     r"\bfico com\b",
+    r"\bficou combinado\b",
+    r"\bbora\b",
+    r"\bvamos l[aá]\b",
 ]
 
 DUVIDA_KEYWORDS = [
@@ -87,7 +92,8 @@ VOLTANDO_KEYWORDS = [
 OBJECAO_KEYWORDS = [
     r"\bn[aã]o sei\b",
     r"\bpreciso pensar\b",
-    r"\bdepois\b",
+    r"\bdepois\b.*\b(vejo|ve[jm]os|penso|converso|falo)\b",  # "depois eu vejo", não "vaga para depois de"
+    r"\b(vejo|penso|converso)\b.*\bdepois\b",  # "vou ver depois"
     r"\bagora n[aã]o\b",
     r"\bestou ocupado\b",
     r"\bmuito longe\b",
