@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   Dialog,
@@ -7,18 +7,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title: string;
-  description: string;
-  confirmText?: string;
-  cancelText?: string;
-  variant?: "default" | "destructive";
-  onConfirm: () => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  description: string
+  confirmText?: string
+  cancelText?: string
+  variant?: 'default' | 'destructive'
+  onConfirm: () => void
 }
 
 export function ConfirmationDialog({
@@ -26,9 +26,9 @@ export function ConfirmationDialog({
   onOpenChange,
   title,
   description,
-  confirmText = "Confirmar",
-  cancelText = "Cancelar",
-  variant = "default",
+  confirmText = 'Confirmar',
+  cancelText = 'Cancelar',
+  variant = 'default',
   onConfirm,
 }: Props) {
   return (
@@ -45,8 +45,8 @@ export function ConfirmationDialog({
           <Button
             variant={variant}
             onClick={() => {
-              onConfirm();
-              onOpenChange(false);
+              onConfirm()
+              onOpenChange(false)
             }}
           >
             {confirmText}
@@ -54,5 +54,5 @@ export function ConfirmationDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

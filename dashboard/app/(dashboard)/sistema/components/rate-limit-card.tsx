@@ -1,17 +1,11 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { Gauge, Settings } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react'
+import { Gauge, Settings } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -19,48 +13,48 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { useAuth } from "@/hooks/use-auth";
+} from '@/components/ui/dialog'
+import { useAuth } from '@/hooks/use-auth'
 
 interface RateLimitStatus {
-  messages_hour: number;
-  messages_day: number;
-  limit_hour: number;
-  limit_day: number;
-  percent_hour: number;
-  percent_day: number;
+  messages_hour: number
+  messages_day: number
+  limit_hour: number
+  limit_day: number
+  percent_hour: number
+  percent_day: number
 }
 
 interface Props {
-  status: RateLimitStatus;
-  onUpdate?: (limitHour: number, limitDay: number) => Promise<void>;
+  status: RateLimitStatus
+  onUpdate?: (limitHour: number, limitDay: number) => Promise<void>
 }
 
 export function RateLimitCard({ status, onUpdate }: Props) {
-  const [showSettings, setShowSettings] = useState(false);
-  const [newLimitHour, setNewLimitHour] = useState(status.limit_hour);
-  const [newLimitDay, setNewLimitDay] = useState(status.limit_day);
-  const [loading, setLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false)
+  const [newLimitHour, setNewLimitHour] = useState(status.limit_hour)
+  const [newLimitDay, setNewLimitDay] = useState(status.limit_day)
+  const [loading, setLoading] = useState(false)
 
-  const { user } = useAuth();
-  const canEdit = user?.role === "admin";
+  const { user } = useAuth()
+  const canEdit = user?.role === 'admin'
 
   const handleUpdate = async () => {
-    if (!onUpdate) return;
-    setLoading(true);
+    if (!onUpdate) return
+    setLoading(true)
     try {
-      await onUpdate(newLimitHour, newLimitDay);
-      setShowSettings(false);
+      await onUpdate(newLimitHour, newLimitDay)
+      setShowSettings(false)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const getProgressColor = (percent: number) => {
-    if (percent >= 90) return "bg-red-500";
-    if (percent >= 70) return "bg-yellow-500";
-    return "bg-green-500";
-  };
+    if (percent >= 90) return 'bg-red-500'
+    if (percent >= 70) return 'bg-yellow-500'
+    return 'bg-green-500'
+  }
 
   return (
     <>
@@ -68,7 +62,7 @@ export function RateLimitCard({ status, onUpdate }: Props) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-blue-100">
+              <div className="rounded-full bg-blue-100 p-2">
                 <Gauge className="h-5 w-5 text-blue-600" />
               </div>
               <div>
@@ -77,11 +71,7 @@ export function RateLimitCard({ status, onUpdate }: Props) {
               </div>
             </div>
             {canEdit && onUpdate && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowSettings(true)}
-              >
+              <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)}>
                 <Settings className="h-4 w-4" />
               </Button>
             )}
@@ -97,7 +87,7 @@ export function RateLimitCard({ status, onUpdate }: Props) {
                 {status.messages_hour} / {status.limit_hour}
               </span>
             </div>
-            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+            <div className="h-2 overflow-hidden rounded-full bg-secondary">
               <div
                 className={`h-full transition-all ${getProgressColor(status.percent_hour)}`}
                 style={{ width: `${Math.min(status.percent_hour, 100)}%` }}
@@ -113,7 +103,7 @@ export function RateLimitCard({ status, onUpdate }: Props) {
                 {status.messages_day} / {status.limit_day}
               </span>
             </div>
-            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+            <div className="h-2 overflow-hidden rounded-full bg-secondary">
               <div
                 className={`h-full transition-all ${getProgressColor(status.percent_day)}`}
                 style={{ width: `${Math.min(status.percent_day, 100)}%` }}
@@ -123,12 +113,12 @@ export function RateLimitCard({ status, onUpdate }: Props) {
 
           {/* Alertas */}
           {status.percent_hour >= 90 && (
-            <div className="p-2 bg-red-50 rounded text-sm text-red-600">
+            <div className="rounded bg-red-50 p-2 text-sm text-red-600">
               Limite horario quase atingido!
             </div>
           )}
           {status.percent_day >= 90 && (
-            <div className="p-2 bg-red-50 rounded text-sm text-red-600">
+            <div className="rounded bg-red-50 p-2 text-sm text-red-600">
               Limite diario quase atingido!
             </div>
           )}
@@ -141,8 +131,7 @@ export function RateLimitCard({ status, onUpdate }: Props) {
           <DialogHeader>
             <DialogTitle>Configurar Rate Limit</DialogTitle>
             <DialogDescription>
-              Ajuste os limites de mensagens. Valores muito altos podem causar
-              ban.
+              Ajuste os limites de mensagens. Valores muito altos podem causar ban.
             </DialogDescription>
           </DialogHeader>
 
@@ -157,9 +146,7 @@ export function RateLimitCard({ status, onUpdate }: Props) {
                 value={newLimitHour}
                 onChange={(e) => setNewLimitHour(parseInt(e.target.value) || 20)}
               />
-              <p className="text-xs text-muted-foreground">
-                Recomendado: 20. Maximo seguro: 50
-              </p>
+              <p className="text-xs text-muted-foreground">Recomendado: 20. Maximo seguro: 50</p>
             </div>
 
             <div className="space-y-2">
@@ -172,9 +159,7 @@ export function RateLimitCard({ status, onUpdate }: Props) {
                 value={newLimitDay}
                 onChange={(e) => setNewLimitDay(parseInt(e.target.value) || 100)}
               />
-              <p className="text-xs text-muted-foreground">
-                Recomendado: 100. Maximo seguro: 200
-              </p>
+              <p className="text-xs text-muted-foreground">Recomendado: 100. Maximo seguro: 200</p>
             </div>
           </div>
 
@@ -183,11 +168,11 @@ export function RateLimitCard({ status, onUpdate }: Props) {
               Cancelar
             </Button>
             <Button onClick={handleUpdate} disabled={loading}>
-              {loading ? "Salvando..." : "Salvar"}
+              {loading ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

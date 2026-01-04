@@ -1,7 +1,7 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { Clock } from "lucide-react";
+import { useState } from 'react'
+import { Clock } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -9,40 +9,40 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onPause: (duration: number, reason: string) => Promise<void>;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onPause: (duration: number, reason: string) => Promise<void>
 }
 
 const PRESET_DURATIONS = [
-  { label: "15 min", value: 15 },
-  { label: "30 min", value: 30 },
-  { label: "1 hora", value: 60 },
-  { label: "2 horas", value: 120 },
-];
+  { label: '15 min', value: 15 },
+  { label: '30 min', value: 30 },
+  { label: '1 hora', value: 60 },
+  { label: '2 horas', value: 120 },
+]
 
 export function JuliaPauseDialog({ open, onOpenChange, onPause }: Props) {
-  const [duration, setDuration] = useState(30);
-  const [reason, setReason] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [duration, setDuration] = useState(30)
+  const [reason, setReason] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handlePause = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      await onPause(duration, reason || "Pausa via dashboard");
-      onOpenChange(false);
-      setReason("");
+      await onPause(duration, reason || 'Pausa via dashboard')
+      onOpenChange(false)
+      setReason('')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -52,9 +52,7 @@ export function JuliaPauseDialog({ open, onOpenChange, onPause }: Props) {
             <Clock className="h-5 w-5" />
             Pausar Julia
           </DialogTitle>
-          <DialogDescription>
-            Julia voltara automaticamente apos o tempo definido
-          </DialogDescription>
+          <DialogDescription>Julia voltara automaticamente apos o tempo definido</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -65,7 +63,7 @@ export function JuliaPauseDialog({ open, onOpenChange, onPause }: Props) {
               {PRESET_DURATIONS.map((preset) => (
                 <Button
                   key={preset.value}
-                  variant={duration === preset.value ? "default" : "outline"}
+                  variant={duration === preset.value ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setDuration(preset.value)}
                 >
@@ -111,10 +109,10 @@ export function JuliaPauseDialog({ open, onOpenChange, onPause }: Props) {
             Cancelar
           </Button>
           <Button onClick={handlePause} disabled={loading}>
-            {loading ? "Pausando..." : `Pausar por ${duration} min`}
+            {loading ? 'Pausando...' : `Pausar por ${duration} min`}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

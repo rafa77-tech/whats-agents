@@ -1,23 +1,23 @@
-import { Suspense } from "react";
-import { StatusCards } from "@/components/dashboard/status-cards";
-import { FunnelCard } from "@/components/dashboard/funnel-card";
-import { ActiveConversations } from "@/components/dashboard/active-conversations";
-import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { AlertsList } from "@/components/dashboard/alerts-list";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Suspense } from 'react'
+import { StatusCards } from '@/components/dashboard/status-cards'
+import { FunnelCard } from '@/components/dashboard/funnel-card'
+import { ActiveConversations } from '@/components/dashboard/active-conversations'
+import { ActivityFeed } from '@/components/dashboard/activity-feed'
+import { AlertsList } from '@/components/dashboard/alerts-list'
+import { Skeleton } from '@/components/ui/skeleton'
 
 function StatusCardsSkeleton() {
   return (
-    <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {[...Array(4)].map((_, i) => (
         <Skeleton key={i} className="h-24" />
       ))}
     </div>
-  );
+  )
 }
 
 function CardSkeleton({ className }: { className?: string }) {
-  return <Skeleton className={className} />;
+  return <Skeleton className={className} />
 }
 
 export default function DashboardPage() {
@@ -27,9 +27,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Visao geral das operacoes de hoje
-          </p>
+          <p className="text-muted-foreground">Visao geral das operacoes de hoje</p>
         </div>
       </div>
 
@@ -64,5 +62,5 @@ export default function DashboardPage() {
         </Suspense>
       </div>
     </div>
-  );
+  )
 }
