@@ -1,95 +1,68 @@
-import { StatusCard } from '@/components/dashboard/status-card'
-import {
-  MessageSquare,
-  Users,
-  Briefcase,
-  TrendingUp,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-} from 'lucide-react'
+import { Suspense } from "react";
+import { StatusCards } from "@/components/dashboard/status-cards";
+import { FunnelCard } from "@/components/dashboard/funnel-card";
+import { ActiveConversations } from "@/components/dashboard/active-conversations";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { AlertsList } from "@/components/dashboard/alerts-list";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function StatusCardsSkeleton() {
+  return (
+    <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      {[...Array(4)].map((_, i) => (
+        <Skeleton key={i} className="h-24" />
+      ))}
+    </div>
+  );
+}
+
+function CardSkeleton({ className }: { className?: string }) {
+  return <Skeleton className={className} />;
+}
 
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500">Visao geral do sistema Julia</p>
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Visao geral das operacoes de hoje
+          </p>
+        </div>
       </div>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatusCard
-          title="Conversas Hoje"
-          value="24"
-          icon={MessageSquare}
-          trend={{ value: 12, positive: true }}
-        />
-        <StatusCard
-          title="Medicos Ativos"
-          value="156"
-          icon={Users}
-          trend={{ value: 8, positive: true }}
-        />
-        <StatusCard title="Vagas Abertas" value="12" icon={Briefcase} />
-        <StatusCard
-          title="Taxa Resposta"
-          value="34%"
-          icon={TrendingUp}
-          trend={{ value: 5, positive: true }}
-        />
+      <Suspense fallback={<StatusCardsSkeleton />}>
+        <StatusCards />
+      </Suspense>
+
+      {/* Main Grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Funnel */}
+        <Suspense fallback={<CardSkeleton className="h-[300px]" />}>
+          <FunnelCard />
+        </Suspense>
+
+        {/* Active Conversations */}
+        <Suspense fallback={<CardSkeleton className="h-[300px]" />}>
+          <ActiveConversations />
+        </Suspense>
       </div>
 
-      {/* Status Julia */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Status Julia</h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="flex items-center gap-3 rounded-lg bg-green-50 p-4">
-            <CheckCircle className="h-6 w-6 text-green-600" />
-            <div>
-              <p className="font-medium text-green-900">Online</p>
-              <p className="text-sm text-green-600">Respondendo normalmente</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg bg-blue-50 p-4">
-            <Clock className="h-6 w-6 text-blue-600" />
-            <div>
-              <p className="font-medium text-blue-900">Horario Ativo</p>
-              <p className="text-sm text-blue-600">08:00 - 20:00</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-4">
-            <AlertCircle className="h-6 w-6 text-gray-600" />
-            <div>
-              <p className="font-medium text-gray-900">Rate Limit</p>
-              <p className="text-sm text-gray-600">15/20 msgs esta hora</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Alerts & Activity */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Alerts */}
+        <Suspense fallback={<CardSkeleton className="h-[200px]" />}>
+          <AlertsList />
+        </Suspense>
 
-      {/* Atividade Recente */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Atividade Recente</h2>
-        <div className="space-y-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className="flex items-center gap-4 border-b border-gray-100 py-3 last:border-0"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-revoluna-50">
-                <MessageSquare className="h-5 w-5 text-revoluna-400" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-gray-900">Dr. Carlos Silva respondeu</p>
-                <p className="text-sm text-gray-500">Interesse em plantao cardiologia</p>
-              </div>
-              <span className="text-sm text-gray-400">2min</span>
-            </div>
-          ))}
-        </div>
+        {/* Activity Feed */}
+        <Suspense fallback={<CardSkeleton className="h-[200px]" />}>
+          <ActivityFeed />
+        </Suspense>
       </div>
     </div>
-  )
+  );
 }
