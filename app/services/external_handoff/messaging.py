@@ -151,12 +151,21 @@ async def enviar_mensagem_divulgador(
 
     Args:
         telefone: Telefone do divulgador
-        medico: Dados do medico (nome, telefone)
+        medico: Dados do medico (primeiro_nome, sobrenome, telefone)
         vaga: Dados da vaga
         link_confirmar: Link para confirmar
         link_nao_confirmar: Link para nao confirmar
     """
-    nome_medico = medico.get("nome", "o medico")
+    # Verificar se medico é válido
+    if not medico:
+        logger.error("Dados do medico nao fornecidos para enviar_mensagem_divulgador")
+        raise ValueError("Dados do medico nao fornecidos")
+
+    # Montar nome do medico (pode vir como primeiro_nome+sobrenome ou nome)
+    primeiro_nome = medico.get("primeiro_nome", "")
+    sobrenome = medico.get("sobrenome", "")
+    nome_completo = f"{primeiro_nome} {sobrenome}".strip() if primeiro_nome else ""
+    nome_medico = nome_completo or medico.get("nome", "o medico")
     telefone_medico = medico.get("telefone", "")
 
     # Dados da vaga
