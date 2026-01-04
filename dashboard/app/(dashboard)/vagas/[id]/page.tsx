@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -59,8 +60,9 @@ const STATUS_LABELS: Record<string, string> = {
   fechada: 'Fechada',
 }
 
-export default function ShiftDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function ShiftDetailPage() {
+  const params = useParams()
+  const id = params.id as string
   const router = useRouter()
   const { session } = useAuth()
   const [shift, setShift] = useState<ShiftDetail | null>(null)
