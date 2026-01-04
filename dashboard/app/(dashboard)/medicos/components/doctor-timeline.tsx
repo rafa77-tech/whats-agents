@@ -3,11 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import {
-  MessageCircle,
-  Send,
-  UserCheck,
-} from 'lucide-react'
+import { MessageCircle, Send, UserCheck } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
@@ -80,9 +76,7 @@ export function DoctorTimeline({ doctorId }: Props) {
 
   if (events.length === 0) {
     return (
-      <div className="py-8 text-center text-muted-foreground">
-        Nenhuma interacao registrada
-      </div>
+      <div className="py-8 text-center text-muted-foreground">Nenhuma interacao registrada</div>
     )
   }
 

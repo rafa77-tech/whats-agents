@@ -50,15 +50,17 @@ const STAGE_LABELS: Record<string, string> = {
 export function DoctorCard({ doctor }: Props) {
   const router = useRouter()
 
-  const initials = (doctor.nome || 'XX')
-    .split(' ')
-    .slice(0, 2)
-    .map((n) => n?.[0] || '')
-    .join('')
-    .toUpperCase() || 'XX'
+  const initials =
+    (doctor.nome || 'XX')
+      .split(' ')
+      .slice(0, 2)
+      .map((n) => n?.[0] || '')
+      .join('')
+      .toUpperCase() || 'XX'
 
   const stageColor = STAGE_COLORS[doctor.stage_jornada || ''] || 'bg-gray-100 text-gray-800'
-  const stageLabel = STAGE_LABELS[doctor.stage_jornada || ''] || doctor.stage_jornada || 'Desconhecido'
+  const stageLabel =
+    STAGE_LABELS[doctor.stage_jornada || ''] || doctor.stage_jornada || 'Desconhecido'
 
   return (
     <div
@@ -66,9 +68,7 @@ export function DoctorCard({ doctor }: Props) {
       className="flex cursor-pointer gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50"
     >
       <Avatar className="h-12 w-12 flex-shrink-0">
-        <AvatarFallback className="bg-primary/10 text-primary">
-          {initials}
-        </AvatarFallback>
+        <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
       </Avatar>
 
       <div className="min-w-0 flex-1">

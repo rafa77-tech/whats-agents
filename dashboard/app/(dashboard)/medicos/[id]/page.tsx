@@ -104,15 +104,17 @@ export default function DoctorProfilePage() {
     )
   }
 
-  const initials = (doctor.nome || 'XX')
-    .split(' ')
-    .slice(0, 2)
-    .map((n) => n?.[0] || '')
-    .join('')
-    .toUpperCase() || 'XX'
+  const initials =
+    (doctor.nome || 'XX')
+      .split(' ')
+      .slice(0, 2)
+      .map((n) => n?.[0] || '')
+      .join('')
+      .toUpperCase() || 'XX'
 
   const stageColor = STAGE_COLORS[doctor.stage_jornada || ''] || 'bg-gray-100 text-gray-800'
-  const stageLabel = STAGE_LABELS[doctor.stage_jornada || ''] || doctor.stage_jornada || 'Desconhecido'
+  const stageLabel =
+    STAGE_LABELS[doctor.stage_jornada || ''] || doctor.stage_jornada || 'Desconhecido'
 
   return (
     <div className="flex h-full flex-col overflow-auto">

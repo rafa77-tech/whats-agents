@@ -2,21 +2,21 @@
 
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DoctorCard, type Doctor } from './doctor-card'
+import { ShiftCard, type Shift } from './shift-card'
 
 interface Props {
-  doctors: Doctor[]
+  shifts: Shift[]
   total: number
   page: number
   pages: number
   onPageChange: (page: number) => void
 }
 
-export function DoctorList({ doctors, total, page, pages, onPageChange }: Props) {
-  if (doctors.length === 0) {
+export function ShiftList({ shifts, total, page, pages, onPageChange }: Props) {
+  if (shifts.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Nenhum medico encontrado
+        Nenhuma vaga encontrada
       </div>
     )
   }
@@ -24,8 +24,8 @@ export function DoctorList({ doctors, total, page, pages, onPageChange }: Props)
   return (
     <div className="flex flex-col">
       <div className="space-y-2 p-4">
-        {doctors.map((doctor) => (
-          <DoctorCard key={doctor.id} doctor={doctor} />
+        {shifts.map((shift) => (
+          <ShiftCard key={shift.id} shift={shift} />
         ))}
       </div>
 
@@ -33,7 +33,7 @@ export function DoctorList({ doctors, total, page, pages, onPageChange }: Props)
       {pages > 1 && (
         <div className="flex items-center justify-between border-t p-4">
           <p className="text-sm text-muted-foreground">
-            Pagina {page} de {pages} ({total} medicos)
+            Pagina {page} de {pages} ({total} vagas)
           </p>
           <div className="flex gap-2">
             <Button
