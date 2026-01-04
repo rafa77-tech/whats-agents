@@ -1,17 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { MessageSquare, Filter } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { ConversationList } from './components/conversation-list'
 import { ConversationFilters } from './components/conversation-filters'
 import { useAuth } from '@/hooks/use-auth'
@@ -52,7 +46,7 @@ export default function ConversasPage() {
     pages: number
   } | null>(null)
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     if (!session?.access_token) return
 
     try {
@@ -81,11 +75,11 @@ export default function ConversasPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.access_token, page, filters, search])
 
   useEffect(() => {
     fetchConversations()
-  }, [session?.access_token, page, filters, search])
+  }, [fetchConversations])
 
   const handleSearch = (value: string) => {
     setSearch(value)

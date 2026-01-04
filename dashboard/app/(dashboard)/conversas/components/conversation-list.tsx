@@ -12,13 +12,7 @@ interface Props {
   onPageChange: (page: number) => void
 }
 
-export function ConversationList({
-  conversations,
-  total,
-  page,
-  pages,
-  onPageChange,
-}: Props) {
+export function ConversationList({ conversations, total, page, pages, onPageChange }: Props) {
   if (conversations.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
