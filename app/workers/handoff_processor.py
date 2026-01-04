@@ -285,13 +285,21 @@ async def _expirar_handoff(handoff: dict) -> None:
     # Notificar medico
     if cliente_id:
         try:
-            await send_outbound_message(
-                cliente_id=cliente_id,
-                mensagem=(
-                    "Oi! Infelizmente o divulgador nao retornou sobre o plantao.\n\n"
-                    "Vou liberar a vaga. Quer que eu procure outras opcoes pra voce?"
-                ),
-                campanha="handoff_expired",
-            )
+            from app.services.supabase import buscar_medico_por_id
+            from app.services.external_handoff.messaging import criar_contexto_handoff
+
+            medico = await buscar_medico_por_id(cliente_id)
+            if medico and medico.get("telefone"):
+                ctx = criar_contexto_handoff(cliente_id)
+                await send_outbound_message(
+                    telefone=medico["telefone"],
+                    texto=(
+                        "Oi! Infelizmente o divulgador nao retornou sobre o plantao.\n\n"
+                        "Vou liberar a vaga. Quer que eu procure outras opcoes pra voce?"
+                    ),
+                    ctx=ctx,
+                )
+            else:
+                logger.warning(f"Medico {cliente_id} nao encontrado ou sem telefone")
         except Exception as e:
             logger.error(f"Erro ao notificar medico {cliente_id}: {e}")

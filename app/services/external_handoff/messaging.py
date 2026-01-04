@@ -5,11 +5,34 @@ Sprint 20 - E03 - Templates e envio.
 """
 import logging
 from datetime import datetime
+from typing import Optional
 
 from app.services.outbound import send_outbound_message
 from app.services.whatsapp import enviar_whatsapp
+from app.services.supabase import buscar_medico_por_id
+from app.services.guardrails.types import (
+    OutboundContext,
+    ActorType,
+    OutboundChannel,
+    OutboundMethod,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def criar_contexto_handoff(
+    cliente_id: str,
+    conversation_id: Optional[str] = None,
+) -> OutboundContext:
+    """Cria contexto para mensagem de handoff externo."""
+    return OutboundContext(
+        cliente_id=cliente_id,
+        actor_type=ActorType.BOT,
+        channel=OutboundChannel.WHATSAPP,
+        method=OutboundMethod.FOLLOWUP,  # Tipo mais adequado para handoff
+        is_proactive=False,  # É resposta a interesse do médico
+        conversation_id=conversation_id,
+    )
 
 
 def _formatar_data(data_str: str) -> str:
@@ -70,6 +93,7 @@ async def enviar_mensagem_medico(
     cliente_id: str,
     divulgador: dict,
     vaga: dict,
+    conversation_id: Optional[str] = None,
 ) -> None:
     """
     Envia mensagem ao medico com contato do divulgador.
@@ -78,7 +102,19 @@ async def enviar_mensagem_medico(
         cliente_id: UUID do medico
         divulgador: Dados do divulgador (nome, telefone, empresa)
         vaga: Dados da vaga
+        conversation_id: UUID da conversa (opcional)
     """
+    # Buscar telefone do médico
+    medico = await buscar_medico_por_id(cliente_id)
+    if not medico:
+        logger.error(f"Medico {cliente_id} nao encontrado")
+        raise ValueError(f"Medico {cliente_id} nao encontrado")
+
+    telefone_medico = medico.get("telefone")
+    if not telefone_medico:
+        logger.error(f"Medico {cliente_id} sem telefone")
+        raise ValueError(f"Medico {cliente_id} sem telefone")
+
     nome_divulgador = divulgador.get("nome", "o responsavel")
     telefone_divulgador = divulgador.get("telefone", "")
     empresa = divulgador.get("empresa")
@@ -86,19 +122,18 @@ async def enviar_mensagem_medico(
     # Montar info do divulgador
     info_empresa = f" ({empresa})" if empresa else ""
 
-    # Formatar telefone para link WhatsApp
-    telefone_limpo = telefone_divulgador.replace("+", "").replace(" ", "").replace("-", "")
-
     mensagem = (
         f"Perfeito! Reservei essa vaga pra voce.\n\n"
         f"Pra confirmar na escala, fala direto com {nome_divulgador}{info_empresa}: {telefone_divulgador}\n\n"
         f"Me avisa aqui quando fechar!"
     )
 
+    ctx = criar_contexto_handoff(cliente_id, conversation_id)
+
     await send_outbound_message(
-        cliente_id=cliente_id,
-        mensagem=mensagem,
-        campanha="handoff_ponte",
+        telefone=telefone_medico,
+        texto=mensagem,
+        ctx=ctx,
     )
 
     logger.info(f"Mensagem de ponte enviada ao medico {cliente_id[:8]}")

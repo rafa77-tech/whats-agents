@@ -127,6 +127,19 @@ async def _notificar_medico(
         handoff: Dados do handoff
     """
     from app.services.outbound import send_outbound_message
+    from app.services.supabase import buscar_medico_por_id
+    from app.services.external_handoff.messaging import criar_contexto_handoff
+
+    # Buscar telefone do médico
+    medico = await buscar_medico_por_id(cliente_id)
+    if not medico:
+        logger.error(f"Medico {cliente_id} nao encontrado para notificacao")
+        return
+
+    telefone_medico = medico.get("telefone")
+    if not telefone_medico:
+        logger.error(f"Medico {cliente_id} sem telefone para notificacao")
+        return
 
     divulgador_nome = handoff.get("divulgador_nome", "o divulgador")
 
@@ -142,10 +155,11 @@ async def _notificar_medico(
         )
 
     try:
+        ctx = criar_contexto_handoff(cliente_id)
         await send_outbound_message(
-            cliente_id=cliente_id,
-            mensagem=mensagem,
-            campanha="handoff_resultado",
+            telefone=telefone_medico,
+            texto=mensagem,
+            ctx=ctx,
         )
     except Exception as e:
         logger.error(f"Erro ao notificar medico {cliente_id}: {e}")
