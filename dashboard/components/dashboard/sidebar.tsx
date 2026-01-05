@@ -25,7 +25,7 @@ const navigation = [
   { name: 'Campanhas', href: '/campanhas', icon: Megaphone },
   { name: 'Metricas', href: '/metricas', icon: BarChart3 },
   { name: 'Sistema', href: '/sistema', icon: Settings },
-  { name: 'Auditoria', href: '/auditoria', icon: Shield, requiredRole: 'admin' as const },
+  { name: 'Auditoria', href: '/auditoria', icon: Shield, requiredRole: 'manager' as const },
 ]
 
 const ROLE_LABELS: Record<string, string> = {

@@ -16,6 +16,7 @@ from app.api.routes.dashboard import doctors as dashboard_doctors
 from app.api.routes.dashboard import shifts as dashboard_shifts
 from app.api.routes.dashboard import metrics as dashboard_metrics
 from app.api.routes.dashboard import campaigns as dashboard_campaigns
+from app.api.routes.dashboard import audit as dashboard_audit
 from fastapi.staticfiles import StaticFiles
 
 # Configurar logging
@@ -75,6 +76,7 @@ app.include_router(dashboard_doctors.router, prefix="/dashboard", tags=["Dashboa
 app.include_router(dashboard_shifts.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(dashboard_metrics.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(dashboard_campaigns.router, prefix="/dashboard", tags=["Dashboard"])
+app.include_router(dashboard_audit.router, prefix="/dashboard", tags=["Dashboard"])
 
 # Arquivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")
