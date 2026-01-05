@@ -125,7 +125,7 @@ async def enviar_mensagem_medico(
     mensagem = (
         f"Perfeito! Reservei essa vaga pra voce 🎉\n\n"
         f"Pra confirmar na escala, fala direto com:\n\n"
-        f"👤 *{nome_divulgador}*{info_empresa}\n"
+        f"👤 {nome_divulgador}{info_empresa}\n"
         f"📱 {telefone_divulgador}\n\n"
         f"Me avisa aqui quando fechar!"
     )
