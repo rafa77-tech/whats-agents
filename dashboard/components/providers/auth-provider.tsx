@@ -1,7 +1,6 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
@@ -22,6 +21,7 @@ interface AuthContextType {
   dashboardUser: DashboardUser | null
   session: Session | null
   loading: boolean
+  signingOut: boolean
   signOut: () => Promise<void>
   hasPermission: (requiredRole: UserRole) => boolean
 }
@@ -36,13 +36,13 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
   const supabase = createClient()
 
   const [user, setUser] = useState<User | null>(null)
   const [dashboardUser, setDashboardUser] = useState<DashboardUser | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     // Get initial session
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
 
@@ -70,9 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false)
       }
 
-      if (event === 'SIGNED_OUT') {
-        router.push('/login')
-      }
+      // Note: redirect on SIGNED_OUT is handled by signOut() function
+      // Using window.location.replace instead of router.push for clean state
     })
 
     return () => subscription.unsubscribe()
@@ -103,7 +102,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
+    console.log('[signOut] Starting...')
+
+    try {
+      setSigningOut(true)
+      console.log('[signOut] State set to signingOut')
+
+      // Clear local state
+      setUser(null)
+      setSession(null)
+      setDashboardUser(null)
+      console.log('[signOut] Local state cleared')
+
+      // Try to sign out from Supabase (non-blocking)
+      try {
+        // Don't await - just fire
+        const signOutPromise = supabase.auth.signOut()
+        // Set a short timeout to not wait forever
+        Promise.race([signOutPromise, new Promise((resolve) => setTimeout(resolve, 1000))]).catch(
+          () => {}
+        )
+        console.log('[signOut] Supabase signOut called')
+      } catch (e) {
+        console.log('[signOut] Supabase signOut error (ignored):', e)
+      }
+
+      console.log('[signOut] About to redirect...')
+
+      // Force redirect with logout flag to bypass middleware redirect
+      if (typeof window !== 'undefined') {
+        window.location.replace('/login?logout=true')
+      }
+    } catch (error) {
+      console.error('[signOut] Critical error:', error)
+      // Last resort - force reload
+      if (typeof window !== 'undefined') {
+        window.location.replace('/login?logout=true')
+      }
+    }
   }
 
   function hasPermission(requiredRole: UserRole): boolean {
@@ -118,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         dashboardUser,
         session,
         loading,
+        signingOut,
         signOut,
         hasPermission,
       }}

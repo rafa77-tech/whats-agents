@@ -75,7 +75,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirecionar para dashboard se já logado tentando acessar login
-  if (session && request.nextUrl.pathname === '/login') {
+  // Exceto se estiver fazendo logout (query param ?logout=true)
+  const isLoggingOut = request.nextUrl.searchParams.has('logout')
+  if (session && request.nextUrl.pathname === '/login' && !isLoggingOut) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 

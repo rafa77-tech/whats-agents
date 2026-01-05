@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Mail, Loader2, CheckCircle } from 'lucide-react'
 
@@ -9,8 +10,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
 
   const supabase = createClient()
+
+  // Clear session if coming from logout
+  useEffect(() => {
+    const isLogout = searchParams.get('logout')
+    if (isLogout) {
+      supabase.auth.signOut().then(() => {
+        // Remove logout param from URL without reload
+        window.history.replaceState({}, '', '/login')
+      })
+    }
+  }, [searchParams, supabase.auth])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

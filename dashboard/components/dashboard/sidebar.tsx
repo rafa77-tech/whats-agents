@@ -41,10 +41,11 @@ interface SidebarProps {
 
 export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const pathname = usePathname()
-  const { dashboardUser, signOut, loading, hasPermission } = useAuth()
+  const { dashboardUser, signOut, signingOut, hasPermission } = useAuth()
 
-  const handleSignOut = async () => {
-    await signOut()
+  const handleSignOut = () => {
+    console.log('[Sidebar] Sair clicked!')
+    signOut()
   }
 
   return (
@@ -104,11 +105,12 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
 
         {/* Logout button */}
         <button
+          type="button"
           onClick={handleSignOut}
-          disabled={loading}
+          disabled={signingOut}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
         >
-          {loading ? (
+          {signingOut ? (
             <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
           ) : (
             <Power className="h-5 w-5 text-gray-400" />

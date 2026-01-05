@@ -13,7 +13,7 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export function UserMenu() {
-  const { dashboardUser, signOut, loading } = useAuth()
+  const { dashboardUser, signOut, loading, signingOut } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -29,9 +29,15 @@ export function UserMenu() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     setIsOpen(false)
-    await signOut()
+    signOut() // Fire and forget - redirect happens inside
+  }
+
+  if (signingOut) {
+    return (
+      <div className="h-9 w-9 animate-spin rounded-full border-2 border-gray-300 border-t-primary" />
+    )
   }
 
   if (loading || !dashboardUser) {
@@ -95,7 +101,12 @@ export function UserMenu() {
           {/* Logout */}
           <div className="border-t border-gray-100 py-1">
             <button
-              onClick={handleSignOut}
+              type="button"
+              onClick={() => {
+                console.log('[UserMenu] Sair clicked!')
+                console.log('[UserMenu] signOut is:', typeof signOut)
+                handleSignOut()
+              }}
               className="flex w-full items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
             >
               <LogOut className="h-4 w-4" />

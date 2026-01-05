@@ -1,49 +1,52 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { formatRelativeTime } from '@/lib/utils'
 import { MessageSquare, CheckCircle, AlertTriangle, UserPlus, Send, Megaphone } from 'lucide-react'
 
-// Mock activity data - will be replaced with real API data later
-const mockActivities = [
-  {
-    id: '1',
-    tipo: 'resposta',
-    descricao: 'Dr. Carlos Silva respondeu mensagem',
-    created_at: new Date(Date.now() - 2 * 60000).toISOString(),
-  },
-  {
-    id: '2',
-    tipo: 'plantao_confirmado',
-    descricao: 'Dra. Ana confirmou plantao dia 15/01',
-    created_at: new Date(Date.now() - 15 * 60000).toISOString(),
-  },
-  {
-    id: '3',
-    tipo: 'handoff',
-    descricao: 'Dr. Pedro solicitou atendimento humano',
-    created_at: new Date(Date.now() - 30 * 60000).toISOString(),
-  },
-  {
-    id: '4',
-    tipo: 'mensagem',
-    descricao: 'Julia enviou oferta para Dr. Marcos',
-    created_at: new Date(Date.now() - 45 * 60000).toISOString(),
-  },
-  {
-    id: '5',
-    tipo: 'novo_medico',
-    descricao: 'Novo medico cadastrado: Dr. Felipe Santos',
-    created_at: new Date(Date.now() - 60 * 60000).toISOString(),
-  },
-  {
-    id: '6',
-    tipo: 'campanha',
-    descricao: "Campanha 'Cardiologia SP' iniciada",
-    created_at: new Date(Date.now() - 2 * 60 * 60000).toISOString(),
-  },
-]
+// Mock activity data generator - called only on client
+function generateMockActivities() {
+  return [
+    {
+      id: '1',
+      tipo: 'resposta',
+      descricao: 'Dr. Carlos Silva respondeu mensagem',
+      created_at: new Date(Date.now() - 2 * 60000).toISOString(),
+    },
+    {
+      id: '2',
+      tipo: 'plantao_confirmado',
+      descricao: 'Dra. Ana confirmou plantao dia 15/01',
+      created_at: new Date(Date.now() - 15 * 60000).toISOString(),
+    },
+    {
+      id: '3',
+      tipo: 'handoff',
+      descricao: 'Dr. Pedro solicitou atendimento humano',
+      created_at: new Date(Date.now() - 30 * 60000).toISOString(),
+    },
+    {
+      id: '4',
+      tipo: 'mensagem',
+      descricao: 'Julia enviou oferta para Dr. Marcos',
+      created_at: new Date(Date.now() - 45 * 60000).toISOString(),
+    },
+    {
+      id: '5',
+      tipo: 'novo_medico',
+      descricao: 'Novo medico cadastrado: Dr. Felipe Santos',
+      created_at: new Date(Date.now() - 60 * 60000).toISOString(),
+    },
+    {
+      id: '6',
+      tipo: 'campanha',
+      descricao: "Campanha 'Cardiologia SP' iniciada",
+      created_at: new Date(Date.now() - 2 * 60 * 60000).toISOString(),
+    },
+  ]
+}
 
 interface ActivityItem {
   id: string
@@ -71,8 +74,39 @@ const ACTIVITY_COLORS: Record<string, string> = {
 }
 
 export function ActivityFeed() {
-  // TODO: Replace with real API call
-  const activities: ActivityItem[] = mockActivities
+  // Use state to avoid hydration mismatch with Date.now()
+  const [activities, setActivities] = useState<ActivityItem[]>([])
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    // TODO: Replace with real API call
+    setActivities(generateMockActivities())
+    setMounted(true)
+  }, [])
+
+  // Show skeleton while not mounted to avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Atividade Recente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[200px] animate-pulse space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="h-7 w-7 rounded-full bg-muted" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-3/4 rounded bg-muted" />
+                  <div className="h-3 w-1/4 rounded bg-muted" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>
