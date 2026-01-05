@@ -1,4 +1,11 @@
-# Epic 06: Message Scheduler
+# Epic 08: Warming Scheduler
+
+**Status:** ✅ Completo
+
+**Arquivos criados:**
+- `app/services/warmer/scheduler.py`
+
+---
 
 ## Objetivo
 
@@ -106,10 +113,10 @@ def formatar_janela(janela: Tuple[int, int, int, int]) -> str:
 
 ### DoD
 
-- [ ] Funcao `calcular_janela_atividade` implementada
-- [ ] Hash deterministico funcionando
-- [ ] Janela de 6h dentro de 8h-22h
-- [ ] Funcao `formatar_janela`
+- [x] Funcao `calcular_janela_atividade` implementada
+- [x] Hash deterministico funcionando
+- [x] Janela de 6h dentro de 8h-22h
+- [x] Funcao `formatar_janela`
 
 ---
 
@@ -193,9 +200,9 @@ def proxima_janela(chip_id: str) -> datetime:
 
 ### DoD
 
-- [ ] Funcao `esta_na_janela`
-- [ ] Conversao para horario de Brasilia
-- [ ] Funcao `proxima_janela`
+- [x] Funcao `esta_na_janela`
+- [x] Conversao para horario de Brasilia
+- [x] Funcao `proxima_janela`
 
 ---
 
@@ -295,10 +302,10 @@ async def atingiu_limite_diario(chip_id: str) -> bool:
 
 ### DoD
 
-- [ ] Constantes `LIMITES_FASE` definidas
-- [ ] Funcao `obter_limite_diario`
-- [ ] Funcao `contar_msgs_hoje`
-- [ ] Funcao `atingiu_limite_diario`
+- [x] Constantes `LIMITES_FASE` definidas
+- [x] Funcao `obter_limite_diario`
+- [x] Funcao `contar_msgs_hoje`
+- [x] Funcao `atingiu_limite_diario`
 
 ---
 
@@ -362,10 +369,10 @@ async def registrar_envio(chip_id: str):
 
 ### DoD
 
-- [ ] Funcao `verificar_delay_minimo`
-- [ ] Funcao `registrar_envio`
-- [ ] Delay de 2 minutos respeitado
-- [ ] TTL correto no Redis
+- [x] Funcao `verificar_delay_minimo`
+- [x] Funcao `registrar_envio`
+- [x] Delay de 2 minutos respeitado
+- [x] TTL correto no Redis
 
 ---
 
@@ -466,10 +473,10 @@ async def definir_fator_velocidade(chip_id: str, fator: float):
 
 ### DoD
 
-- [ ] Funcao `pode_enviar_mensagem` com todos os checks
-- [ ] Funcao `obter_fator_velocidade`
-- [ ] Funcao `definir_fator_velocidade`
-- [ ] Logs claros para debug
+- [x] Funcao `pode_enviar_mensagem` com todos os checks
+- [x] Funcao `obter_fator_velocidade`
+- [x] Funcao `definir_fator_velocidade`
+- [x] Logs claros para debug
 
 ---
 
@@ -550,23 +557,23 @@ async def listar_janelas_todos_chips() -> list[dict]:
 
 ### DoD
 
-- [ ] Funcao `obter_status_agendamento`
-- [ ] Funcao `listar_janelas_todos_chips`
-- [ ] Informacoes completas para debug
+- [x] Funcao `obter_status_agendamento`
+- [x] Funcao `listar_janelas_todos_chips`
+- [x] Informacoes completas para debug
 
 ---
 
 ## Checklist do Epico
 
-- [ ] **S25.E06.1** - Calculo de janela de atividade
-- [ ] **S25.E06.2** - Verificacao de janela
-- [ ] **S25.E06.3** - Limites por fase
-- [ ] **S25.E06.4** - Delay minimo
-- [ ] **S25.E06.5** - Verificacao completa
-- [ ] **S25.E06.6** - Utilidades
-- [ ] Hash deterministico funcionando
-- [ ] Distribuicao anti-padrao verificada
-- [ ] Testes completos
+- [x] **S25.E06.1** - Calculo de janela de atividade
+- [x] **S25.E06.2** - Verificacao de janela
+- [x] **S25.E06.3** - Limites por fase
+- [x] **S25.E06.4** - Delay minimo
+- [x] **S25.E06.5** - Verificacao completa
+- [x] **S25.E06.6** - Utilidades
+- [x] Hash deterministico funcionando
+- [x] Distribuicao anti-padrao verificada
+- [x] Testes completos
 
 ---
 

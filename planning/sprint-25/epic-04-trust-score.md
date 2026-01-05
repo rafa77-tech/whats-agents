@@ -1,5 +1,12 @@
 # Epic 04: Trust Score Engine
 
+**Status:** ✅ Completo
+
+**Arquivos criados:**
+- `app/services/warmer/trust_score.py`
+
+---
+
 ## Objetivo
 
 Implementar sistema **Trust Score multiparametrico** que substitui o Health Score binario:
@@ -158,10 +165,10 @@ class TrustResult:
 
 ### DoD
 
-- [ ] TrustLevel enum criado
-- [ ] TrustFactors dataclass
-- [ ] TrustPermissions dataclass
-- [ ] TrustResult dataclass
+- [x] TrustLevel enum criado
+- [x] TrustFactors dataclass
+- [x] TrustPermissions dataclass
+- [x] TrustResult dataclass
 
 ---
 
@@ -322,10 +329,10 @@ async def coletar_fatores(chip_id: str) -> TrustFactors:
 
 ### DoD
 
-- [ ] Coleta de tempo funcionando
-- [ ] Coleta de volume funcionando
-- [ ] Coleta de qualidade funcionando
-- [ ] Coleta de problemas funcionando
+- [x] Coleta de tempo funcionando
+- [x] Coleta de volume funcionando
+- [x] Coleta de qualidade funcionando
+- [x] Coleta de problemas funcionando
 
 ---
 
@@ -609,11 +616,11 @@ async def calcular_trust_score(chip_id: str) -> TrustResult:
 
 ### DoD
 
-- [ ] Pesos definidos
-- [ ] Thresholds por nivel
-- [ ] Calculo de score
-- [ ] Calculo de permissoes
-- [ ] Breakdown detalhado
+- [x] Pesos definidos
+- [x] Thresholds por nivel
+- [x] Calculo de score
+- [x] Calculo de permissoes
+- [x] Breakdown detalhado
 
 ---
 
@@ -835,10 +842,10 @@ from datetime import timedelta
 
 ### DoD
 
-- [ ] Atualizacao funcionando
-- [ ] Historico sendo registrado
-- [ ] Analise de tendencia
-- [ ] Listagem por nivel
+- [x] Atualizacao funcionando
+- [x] Historico sendo registrado
+- [x] Analise de tendencia
+- [x] Listagem por nivel
 
 ---
 
@@ -919,21 +926,21 @@ async def atualizar_todos_trust_scores():
 
 ### DoD
 
-- [ ] Job funcionando
-- [ ] Notificacao de criticos
-- [ ] Logging adequado
+- [x] Job funcionando
+- [x] Notificacao de criticos
+- [x] Logging adequado
 
 ---
 
 ## Checklist do Epico
 
-- [ ] **E04.1** - Data classes criadas
-- [ ] **E04.2** - Coleta de fatores
-- [ ] **E04.3** - Calculo do score
-- [ ] **E04.4** - Persistencia e historico
-- [ ] **E04.5** - Job de atualizacao
-- [ ] Testes unitarios
-- [ ] Integracao com Orchestrator
+- [x] **E04.1** - Data classes criadas
+- [x] **E04.2** - Coleta de fatores
+- [x] **E04.3** - Calculo do score
+- [x] **E04.4** - Persistencia e historico
+- [x] **E04.5** - Job de atualizacao
+- [x] Testes unitarios
+- [x] Integracao com Orchestrator
 
 ---
 

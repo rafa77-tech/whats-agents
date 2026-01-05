@@ -1,4 +1,11 @@
-# Epic 02: Human Simulator
+# Epic 05: Human Simulator
+
+**Status:** ✅ Completo
+
+**Arquivos criados:**
+- `app/services/warmer/human_simulator.py`
+
+---
 
 ## Objetivo
 
@@ -123,11 +130,11 @@ async def enviar_mensagem_humanizada(
 
 ### DoD
 
-- [ ] Funcao `enviar_mensagem_humanizada` implementada
-- [ ] Delay de leitura com distribuicao normal
-- [ ] Mark as read funcionando
-- [ ] Evento composing enviado
-- [ ] Testes unitarios com mocks
+- [x] Funcao `enviar_mensagem_humanizada` implementada
+- [x] Delay de leitura com distribuicao normal
+- [x] Mark as read funcionando
+- [x] Evento composing enviado
+- [x] Testes unitarios com mocks
 
 ---
 
@@ -184,11 +191,11 @@ def calcular_tempo_digitacao(texto: str) -> float:
 
 ### DoD
 
-- [ ] `calcular_delay_entre_turnos` com exponencial
-- [ ] `calcular_delay_resposta` com gaussiana
-- [ ] `calcular_tempo_digitacao` proporcional ao texto
-- [ ] Valores dentro dos ranges especificados
-- [ ] Testes de distribuicao
+- [x] `calcular_delay_entre_turnos` com exponencial
+- [x] `calcular_delay_resposta` com gaussiana
+- [x] `calcular_tempo_digitacao` proporcional ao texto
+- [x] Valores dentro dos ranges especificados
+- [x] Testes de distribuicao
 
 ---
 
@@ -263,11 +270,11 @@ async def enviar_midia_humanizada(
 
 ### DoD
 
-- [ ] Funcao `enviar_midia_humanizada` implementada
-- [ ] Evento "recording" para audio
-- [ ] Delays proporcionais ao tipo de midia
-- [ ] Suporte a image, video, document, audio
-- [ ] Testes com diferentes tipos
+- [x] Funcao `enviar_midia_humanizada` implementada
+- [x] Evento "recording" para audio
+- [x] Delays proporcionais ao tipo de midia
+- [x] Suporte a image, video, document, audio
+- [x] Testes com diferentes tipos
 
 ---
 
@@ -338,23 +345,23 @@ class EvolutionClient:
 
 ### DoD
 
-- [ ] `mark_as_read` implementado
-- [ ] `send_presence` implementado
-- [ ] Metodos de midia verificados/implementados
-- [ ] Testes de integracao com Evolution
+- [x] `mark_as_read` implementado
+- [x] `send_presence` implementado
+- [x] Metodos de midia verificados/implementados
+- [x] Testes de integracao com Evolution
 
 ---
 
 ## Checklist do Epico
 
-- [ ] **S25.E02.1** - enviar_mensagem_humanizada implementada
-- [ ] **S25.E02.2** - Funcoes de calculo de delay
-- [ ] **S25.E02.3** - Envio de midia humanizado
-- [ ] **S25.E02.4** - Integracao Evolution API
-- [ ] Delays calibrados conforme pesquisa (20s-90s entre turnos)
-- [ ] Evento "digitando" funcionando
-- [ ] Testes unitarios completos
-- [ ] Documentacao inline
+- [x] **S25.E02.1** - enviar_mensagem_humanizada implementada
+- [x] **S25.E02.2** - Funcoes de calculo de delay
+- [x] **S25.E02.3** - Envio de midia humanizado
+- [x] **S25.E02.4** - Integracao Evolution API
+- [x] Delays calibrados conforme pesquisa (20s-90s entre turnos)
+- [x] Evento "digitando" funcionando
+- [x] Testes unitarios completos
+- [x] Documentacao inline
 
 ---
 

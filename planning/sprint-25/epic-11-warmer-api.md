@@ -1,4 +1,11 @@
-# Epic 09: API Endpoints
+# Epic 11: Warmer API
+
+**Status:** ✅ Completo
+
+**Arquivos criados:**
+- `app/api/routes/warmer.py`
+
+---
 
 ## Objetivo
 
@@ -171,10 +178,10 @@ class StatsResponse(BaseModel):
 
 ### DoD
 
-- [ ] Router criado
-- [ ] Enums definidos
-- [ ] Schemas de request
-- [ ] Schemas de response
+- [x] Router criado
+- [x] Enums definidos
+- [x] Schemas de request
+- [x] Schemas de response
 
 ---
 
@@ -256,9 +263,9 @@ async def criar_chip(chip: ChipCreate):
 
 ### DoD
 
-- [ ] GET /chips com filtros
-- [ ] POST /chips com validacao
-- [ ] Paginacao funcionando
+- [x] GET /chips com filtros
+- [x] POST /chips com validacao
+- [x] Paginacao funcionando
 
 ---
 
@@ -355,10 +362,10 @@ async def atualizar_chip(chip_id: str, dados: ChipUpdate):
 
 ### DoD
 
-- [ ] GET /chips/{id}
-- [ ] DELETE /chips/{id}
-- [ ] PATCH /chips/{id}
-- [ ] Validacoes de negocio
+- [x] GET /chips/{id}
+- [x] DELETE /chips/{id}
+- [x] PATCH /chips/{id}
+- [x] Validacoes de negocio
 
 ---
 
@@ -477,10 +484,10 @@ async def retomar_warmup(chip_id: str):
 
 ### DoD
 
-- [ ] POST /chips/{id}/start
-- [ ] POST /chips/{id}/pause
-- [ ] POST /chips/{id}/resume
-- [ ] Validacoes de estado
+- [x] POST /chips/{id}/start
+- [x] POST /chips/{id}/pause
+- [x] POST /chips/{id}/resume
+- [x] Validacoes de estado
 
 ---
 
@@ -606,10 +613,10 @@ async def resolver_alerta_endpoint(alert_id: str):
 
 ### DoD
 
-- [ ] GET /chips/{id}/health
-- [ ] GET /chips/{id}/alerts
-- [ ] GET /alerts
-- [ ] POST /alerts/{id}/resolve
+- [x] GET /chips/{id}/health
+- [x] GET /chips/{id}/alerts
+- [x] GET /alerts
+- [x] POST /alerts/{id}/resolve
 
 ---
 
@@ -685,24 +692,24 @@ async def obter_estatisticas():
 
 ### DoD
 
-- [ ] GET /stats implementado
-- [ ] Todas as metricas calculadas
-- [ ] Performance aceitavel
+- [x] GET /stats implementado
+- [x] Todas as metricas calculadas
+- [x] Performance aceitavel
 
 ---
 
 ## Checklist do Epico
 
-- [ ] **S25.E09.1** - Router e schemas
-- [ ] **S25.E09.2** - Listagem e criacao
-- [ ] **S25.E09.3** - Detalhes
-- [ ] **S25.E09.4** - Controle (start/pause/resume)
-- [ ] **S25.E09.5** - Health e alertas
-- [ ] **S25.E09.6** - Estatisticas
-- [ ] Documentacao OpenAPI gerada
-- [ ] Validacao de entrada
-- [ ] Tratamento de erros
-- [ ] Testes de endpoints
+- [x] **S25.E09.1** - Router e schemas
+- [x] **S25.E09.2** - Listagem e criacao
+- [x] **S25.E09.3** - Detalhes
+- [x] **S25.E09.4** - Controle (start/pause/resume)
+- [x] **S25.E09.5** - Health e alertas
+- [x] **S25.E09.6** - Estatisticas
+- [x] Documentacao OpenAPI gerada
+- [x] Validacao de entrada
+- [x] Tratamento de erros
+- [x] Testes de endpoints
 
 ---
 

@@ -1,5 +1,14 @@
 # Epic 02: Salvy Integration
 
+**Status:** ✅ Completo
+
+**Arquivos criados:**
+- `app/services/salvy/client.py`
+- `app/services/salvy/webhooks.py`
+- `app/services/salvy/__init__.py`
+
+---
+
 ## Objetivo
 
 Integrar com API Salvy para **provisioning automatico** de numeros virtuais:
@@ -312,10 +321,10 @@ salvy_client = SalvyClient()
 
 ### DoD
 
-- [ ] Client implementado
-- [ ] Metodos: criar, cancelar, buscar, listar
-- [ ] Tratamento de erros
-- [ ] Logging adequado
+- [x] Client implementado
+- [x] Metodos: criar, cancelar, buscar, listar
+- [x] Tratamento de erros
+- [x] Logging adequado
 
 ---
 
@@ -507,10 +516,10 @@ app.include_router(salvy_router)
 
 ### DoD
 
-- [ ] Endpoint webhook funcionando
-- [ ] Extracao de codigo WhatsApp
-- [ ] Registro de SMS
-- [ ] Alerta criado para operador
+- [x] Endpoint webhook funcionando
+- [x] Extracao de codigo WhatsApp
+- [x] Registro de SMS
+- [x] Alerta criado para operador
 
 ---
 
@@ -705,10 +714,10 @@ async def verificar_ddds_disponiveis() -> dict:
 
 ### DoD
 
-- [ ] `provisionar_chip` funcionando
-- [ ] `cancelar_chip` funcionando
-- [ ] `sincronizar_salvy` funcionando
-- [ ] Notificacoes Slack
+- [x] `provisionar_chip` funcionando
+- [x] `cancelar_chip` funcionando
+- [x] `sincronizar_salvy` funcionando
+- [x] Notificacoes Slack
 
 ---
 
@@ -749,19 +758,19 @@ svix = "^1.0"  # Verificacao de webhooks Salvy
 
 ### DoD
 
-- [ ] Variaveis de ambiente documentadas
-- [ ] Config carregando corretamente
+- [x] Variaveis de ambiente documentadas
+- [x] Config carregando corretamente
 
 ---
 
 ## Checklist do Epico
 
-- [ ] **E02.1** - Salvy Client implementado
-- [ ] **E02.2** - Webhook SMS funcionando
-- [ ] **E02.3** - Servico de Provisioning
-- [ ] **E02.4** - Configuracoes
-- [ ] Testes de integracao
-- [ ] Documentacao atualizada
+- [x] **E02.1** - Salvy Client implementado
+- [x] **E02.2** - Webhook SMS funcionando
+- [x] **E02.3** - Servico de Provisioning
+- [x] **E02.4** - Configuracoes
+- [x] Testes de integracao
+- [x] Documentacao atualizada
 
 ---
 
