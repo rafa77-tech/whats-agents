@@ -115,16 +115,18 @@ async def enviar_mensagem_medico(
         logger.error(f"Medico {cliente_id} sem telefone")
         raise ValueError(f"Medico {cliente_id} sem telefone")
 
-    nome_divulgador = divulgador.get("nome", "o responsavel")
-    telefone_divulgador = divulgador.get("telefone", "")
+    nome_divulgador = divulgador.get("nome") or "o responsavel"
+    telefone_divulgador = divulgador.get("telefone") or ""
     empresa = divulgador.get("empresa")
 
     # Montar info do divulgador
-    info_empresa = f" ({empresa})" if empresa else ""
+    info_empresa = f" da {empresa}" if empresa else ""
 
     mensagem = (
-        f"Perfeito! Reservei essa vaga pra voce.\n\n"
-        f"Pra confirmar na escala, fala direto com {nome_divulgador}{info_empresa}: {telefone_divulgador}\n\n"
+        f"Perfeito! Reservei essa vaga pra voce 🎉\n\n"
+        f"Pra confirmar na escala, fala direto com:\n\n"
+        f"👤 *{nome_divulgador}*{info_empresa}\n"
+        f"📱 {telefone_divulgador}\n\n"
         f"Me avisa aqui quando fechar!"
     )
 
@@ -162,11 +164,12 @@ async def enviar_mensagem_divulgador(
         raise ValueError("Dados do medico nao fornecidos")
 
     # Montar nome do medico (pode vir como primeiro_nome+sobrenome ou nome)
-    primeiro_nome = medico.get("primeiro_nome", "")
-    sobrenome = medico.get("sobrenome", "")
+    # Tratar None explicitamente para evitar "None" literal na string
+    primeiro_nome = medico.get("primeiro_nome") or ""
+    sobrenome = medico.get("sobrenome") or ""
     nome_completo = f"{primeiro_nome} {sobrenome}".strip() if primeiro_nome else ""
-    nome_medico = nome_completo or medico.get("nome", "o medico")
-    telefone_medico = medico.get("telefone", "")
+    nome_medico = nome_completo or medico.get("nome") or "Médico"
+    telefone_medico = medico.get("telefone") or ""
 
     # Verificar se vaga é válida
     if not vaga:
@@ -178,19 +181,26 @@ async def enviar_mensagem_divulgador(
     periodos = vaga.get("periodos") or {}
     hospital = hospitais.get("nome", "hospital") if isinstance(hospitais, dict) else "hospital"
     data = _formatar_data(vaga.get("data", ""))
-    periodo = periodos.get("nome", "") if isinstance(periodos, dict) else ""
+    periodo = periodos.get("nome") if isinstance(periodos, dict) else None
     valor = _formatar_valor(vaga)
+
+    # Montar linha da vaga (omitir período se não existir)
+    if periodo:
+        linha_vaga = f"📅 {data} • {periodo}\n🏥 {hospital}"
+    else:
+        linha_vaga = f"📅 {data}\n🏥 {hospital}"
 
     mensagem = (
         f"Oi! Tudo bem?\n\n"
-        f"Tenho um medico interessado na vaga:\n"
-        f"{data} - {periodo} - {hospital}\n"
-        f"Valor: {valor}\n\n"
-        f"Contato: {nome_medico} - {telefone_medico}\n\n"
-        f"Pra eu registrar certinho, me confirma:\n"
-        f"Fechou: {link_confirmar}\n"
-        f"Nao fechou: {link_nao_confirmar}\n\n"
-        f"Ou responde CONFIRMADO / NAO FECHOU aqui."
+        f"Tenho um medico interessado na sua vaga:\n\n"
+        f"{linha_vaga}\n"
+        f"💰 {valor}\n\n"
+        f"👨‍⚕️ *{nome_medico}*\n"
+        f"📱 {telefone_medico}\n\n"
+        f"Me confirma o status:\n"
+        f"✅ Fechou: {link_confirmar}\n"
+        f"❌ Nao fechou: {link_nao_confirmar}\n\n"
+        f"Ou responde *CONFIRMADO* ou *NAO FECHOU*"
     )
 
     # Enviar via WhatsApp
