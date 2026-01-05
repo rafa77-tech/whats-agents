@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff
+from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer
 from fastapi.staticfiles import StaticFiles
 
 # Configurar logging
@@ -57,6 +57,7 @@ app.include_router(piloto.router)
 app.include_router(campanhas.router)
 app.include_router(integridade.router)
 app.include_router(handoff.router)  # Sprint 20 - External Handoff
+app.include_router(warmer.router)  # Sprint 25 - Julia Warmer
 
 # Arquivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")
