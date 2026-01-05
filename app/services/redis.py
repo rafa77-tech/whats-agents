@@ -9,6 +9,9 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Track if we've already logged Redis connection failure (avoid log spam in dev)
+_redis_connection_logged = False
+
 # Cliente Redis global
 redis_client = redis.from_url(
     settings.REDIS_URL,
@@ -19,12 +22,20 @@ redis_client = redis.from_url(
 
 async def verificar_conexao_redis() -> bool:
     """Verifica se Redis está acessível."""
+    global _redis_connection_logged
     try:
         await redis_client.ping()
         logger.debug("Redis conectado")
+        _redis_connection_logged = False  # Reset on successful connection
         return True
     except Exception as e:
-        logger.error(f"Redis não acessível: {e}")
+        # Only log once in dev to avoid spam
+        if not _redis_connection_logged:
+            if settings.ENVIRONMENT == "development":
+                logger.debug(f"Redis não disponível em dev: {e}")
+            else:
+                logger.error(f"Redis não acessível: {e}")
+            _redis_connection_logged = True
         return False
 
 

@@ -15,8 +15,12 @@ from app.api.routes.dashboard import CurrentUser
 from app.services.supabase import supabase
 from app.services.redis import redis_client, verificar_conexao_redis
 from app.services.circuit_breaker import obter_status_circuits
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Track Redis warning in dev (log once only)
+_redis_rate_limit_warned = False
 
 router = APIRouter(prefix="/status", tags=["dashboard-status"])
 
@@ -119,7 +123,14 @@ async def get_dashboard_status(user: CurrentUser):
         messages_hour = int(await redis_client.get(hour_key) or 0)
         messages_day = int(await redis_client.get(day_key) or 0)
     except Exception as e:
-        logger.warning(f"Erro ao buscar rate limit do Redis: {e}")
+        global _redis_rate_limit_warned
+        # Only log once in dev to avoid spam
+        if not _redis_rate_limit_warned:
+            if settings.ENVIRONMENT == "development":
+                logger.debug(f"Redis indisponível em dev (rate limit): {e}")
+            else:
+                logger.warning(f"Erro ao buscar rate limit do Redis: {e}")
+            _redis_rate_limit_warned = True
         messages_hour = 0
         messages_day = 0
 
