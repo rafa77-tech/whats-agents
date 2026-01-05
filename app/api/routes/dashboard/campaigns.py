@@ -6,6 +6,14 @@ Provides campaign management for the dashboard:
 - Create/update campaigns
 - Start/pause campaigns
 - Audience counting
+
+DB Column Mapping:
+- nome_template -> nome (API)
+- tipo_campanha -> tipo (API)
+- corpo -> mensagem (API)
+- agendar_para -> scheduled_at (API)
+- iniciada_em -> started_at (API)
+- concluida_em -> completed_at (API)
 """
 
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -50,12 +58,12 @@ class CampaignDetail(BaseModel):
     enviados: int
     entregues: int
     respondidos: int
-    audience_filters: Optional[Dict[str, Any]] = None  # Optional - may not exist in DB
+    audience_filters: Optional[Dict[str, Any]] = None
     scheduled_at: Optional[str] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     created_at: str
-    created_by: Optional[str] = None  # Optional - may not exist in DB
+    created_by: Optional[str] = None
 
 
 class PaginatedCampaignsResponse(BaseModel):
@@ -80,6 +88,43 @@ class AudienceFilters(BaseModel):
     ultimo_contato_dias: Optional[int] = None
 
 
+def _map_db_to_summary(c: dict) -> CampaignSummary:
+    """Map DB row to CampaignSummary."""
+    return CampaignSummary(
+        id=c["id"],
+        nome=c.get("nome_template") or "Sem nome",
+        tipo=c.get("tipo_campanha") or "custom",
+        status=c.get("status") or "rascunho",
+        total_destinatarios=c.get("total_destinatarios") or 0,
+        enviados=c.get("enviados") or 0,
+        entregues=c.get("entregues") or 0,
+        respondidos=c.get("respondidos") or 0,
+        scheduled_at=c.get("agendar_para"),
+        created_at=c["created_at"]
+    )
+
+
+def _map_db_to_detail(c: dict) -> CampaignDetail:
+    """Map DB row to CampaignDetail."""
+    return CampaignDetail(
+        id=c["id"],
+        nome=c.get("nome_template") or "Sem nome",
+        tipo=c.get("tipo_campanha") or "custom",
+        mensagem=c.get("corpo") or "",
+        status=c.get("status") or "rascunho",
+        total_destinatarios=c.get("total_destinatarios") or 0,
+        enviados=c.get("enviados") or 0,
+        entregues=c.get("entregues") or 0,
+        respondidos=c.get("respondidos") or 0,
+        audience_filters=c.get("audience_filters") or {},
+        scheduled_at=c.get("agendar_para"),
+        started_at=c.get("iniciada_em"),
+        completed_at=c.get("concluida_em"),
+        created_at=c["created_at"],
+        created_by=c.get("created_by")
+    )
+
+
 @router.get("", response_model=PaginatedCampaignsResponse)
 async def list_campaigns(
     user: CurrentUser,
@@ -102,20 +147,7 @@ async def list_campaigns(
         offset = (page - 1) * per_page
         paginated = all_data[offset:offset + per_page]
 
-        campaigns = []
-        for c in paginated:
-            campaigns.append(CampaignSummary(
-                id=c["id"],
-                nome=c.get("nome", "Sem nome"),
-                tipo=c.get("tipo", "custom"),
-                status=c.get("status", "draft"),
-                total_destinatarios=c.get("total_destinatarios", 0),
-                enviados=c.get("enviados", 0),
-                entregues=c.get("entregues", 0),
-                respondidos=c.get("respondidos", 0),
-                scheduled_at=c.get("scheduled_at"),
-                created_at=c["created_at"]
-            ))
+        campaigns = [_map_db_to_summary(c) for c in paginated]
 
         return PaginatedCampaignsResponse(
             data=campaigns,
@@ -176,9 +208,6 @@ async def get_audience_count(
         if filters.stage_jornada:
             query = query.in_("stage_jornada", filters.stage_jornada)
 
-        # Note: ultimo_contato_dias would need a more complex query
-        # For now, simplified
-
         result = query.execute()
 
         return {"count": result.count or 0}
@@ -200,25 +229,7 @@ async def get_campaign(campaign_id: str, user: CurrentUser):
         if not result.data:
             raise HTTPException(404, "Campanha nao encontrada")
 
-        c = result.data
-
-        return CampaignDetail(
-            id=c["id"],
-            nome=c.get("nome", "Sem nome"),
-            tipo=c.get("tipo", "custom"),
-            mensagem=c.get("mensagem", ""),
-            status=c.get("status", "draft"),
-            total_destinatarios=c.get("total_destinatarios", 0),
-            enviados=c.get("enviados", 0),
-            entregues=c.get("entregues", 0),
-            respondidos=c.get("respondidos", 0),
-            audience_filters=c.get("audience_filters") or {},
-            scheduled_at=c.get("scheduled_at"),
-            started_at=c.get("started_at"),
-            completed_at=c.get("completed_at"),
-            created_at=c["created_at"],
-            created_by=c.get("created_by")
-        )
+        return _map_db_to_detail(result.data)
 
     except HTTPException:
         raise
@@ -244,23 +255,40 @@ async def create_campaign(
         except Exception:
             audience_count = 0
 
-        # Base insert data - only use columns that definitely exist
+        # Base insert - only columns that definitely exist in schema cache
         insert_data = {
-            "nome": data.nome,
-            "tipo": data.tipo,
-            "mensagem": data.mensagem,
-            "status": "draft",
+            "nome_template": data.nome,
+            "tipo_campanha": data.tipo,
+            "corpo": data.mensagem,
+            "status": "rascunho",
+        }
+
+        if data.scheduled_at:
+            insert_data["agendar_para"] = data.scheduled_at
+            insert_data["status"] = "agendada"
+
+        # Try with all columns, progressively fall back
+        new_columns = {
             "total_destinatarios": audience_count,
             "enviados": 0,
             "entregues": 0,
             "respondidos": 0,
+            "audience_filters": data.audience_filters,
+            "created_by": user.email,
         }
 
-        if data.scheduled_at:
-            insert_data["scheduled_at"] = data.scheduled_at
-            insert_data["status"] = "scheduled"
-
-        result = supabase.table("campanhas").insert(insert_data).execute()
+        # Try full insert first
+        try:
+            result = supabase.table("campanhas").insert({
+                **insert_data, **new_columns
+            }).execute()
+        except Exception as e:
+            if "PGRST204" in str(e):
+                # Schema cache issue - try without new columns
+                logger.warning(f"Schema cache issue, using minimal insert: {e}")
+                result = supabase.table("campanhas").insert(insert_data).execute()
+            else:
+                raise
 
         if not result.data:
             raise HTTPException(500, "Erro ao criar campanha")
@@ -281,7 +309,7 @@ async def create_campaign(
 
         logger.info(f"Campanha {campaign_id} criada por {user.email}")
 
-        return await get_campaign(campaign_id, user)
+        return await get_campaign(str(campaign_id), user)
 
     except HTTPException:
         raise
@@ -306,13 +334,14 @@ async def start_campaign(
         if not existing.data:
             raise HTTPException(404, "Campanha nao encontrada")
 
-        if existing.data["status"] not in ["draft", "scheduled", "paused"]:
+        valid_states = ["rascunho", "agendada", "pausada", "draft", "scheduled", "paused"]
+        if existing.data["status"] not in valid_states:
             raise HTTPException(400, "Campanha nao pode ser iniciada")
 
-        # Update status
+        # Update status using DB column names
         supabase.table("campanhas").update({
-            "status": "running",
-            "started_at": datetime.now().isoformat()
+            "status": "executando",
+            "iniciada_em": datetime.now().isoformat()
         }).eq("id", campaign_id).execute()
 
         # Audit log (optional)
@@ -329,7 +358,7 @@ async def start_campaign(
 
         logger.info(f"Campanha {campaign_id} iniciada por {user.email}")
 
-        return {"success": True, "status": "running"}
+        return {"success": True, "status": "executando"}
 
     except HTTPException:
         raise
@@ -354,12 +383,12 @@ async def pause_campaign(
         if not existing.data:
             raise HTTPException(404, "Campanha nao encontrada")
 
-        if existing.data["status"] != "running":
+        if existing.data["status"] not in ["executando", "running"]:
             raise HTTPException(400, "Campanha nao esta em execucao")
 
         # Update status
         supabase.table("campanhas").update({
-            "status": "paused"
+            "status": "pausada"
         }).eq("id", campaign_id).execute()
 
         # Audit log (optional)
@@ -376,7 +405,7 @@ async def pause_campaign(
 
         logger.info(f"Campanha {campaign_id} pausada por {user.email}")
 
-        return {"success": True, "status": "paused"}
+        return {"success": True, "status": "pausada"}
 
     except HTTPException:
         raise
