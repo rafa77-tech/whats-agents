@@ -196,8 +196,8 @@ async def enviar_mensagem_divulgador(
     # Enviar via WhatsApp
     # Nota: Usar instancia default da Julia
     await enviar_whatsapp(
-        numero=telefone,
-        mensagem=mensagem,
+        telefone=telefone,
+        texto=mensagem,
     )
 
     logger.info(f"Mensagem de ponte enviada ao divulgador {telefone[-4:]}")
@@ -215,8 +215,8 @@ async def enviar_followup_divulgador(
         mensagem: Mensagem de follow-up
     """
     await enviar_whatsapp(
-        numero=telefone,
-        mensagem=mensagem,
+        telefone=telefone,
+        texto=mensagem,
     )
 
     logger.info(f"Follow-up enviado ao divulgador {telefone[-4:]}")
