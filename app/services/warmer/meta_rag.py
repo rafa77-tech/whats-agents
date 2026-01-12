@@ -9,7 +9,7 @@ from typing import List, Optional
 from datetime import date
 
 from app.services.supabase import supabase
-from app.services.embeddings import gerar_embedding
+from app.services.embedding import gerar_embedding
 
 logger = logging.getLogger(__name__)
 

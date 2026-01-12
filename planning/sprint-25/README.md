@@ -1256,8 +1256,8 @@ Ao final da Sprint 25:
 - [x] RAG de politicas consultavel (E03)
 - [x] Early Warning pausando chips problematicos (E10)
 - [x] API de gestao do Warmer (E11)
-- [ ] Migrations aplicadas no Supabase (E01 - manual)
-- [ ] Group Entry Engine para listeners (E12)
+- [x] Migrations aplicadas no Supabase (E01)
+- [x] Group Entry Engine para listeners (E12)
 
 ---
 
@@ -1265,7 +1265,7 @@ Ao final da Sprint 25:
 
 | Épico | Descrição | Status |
 |-------|-----------|--------|
-| E01 | Modelo Dados Unificado | ⚠️ Migrations criadas, pendente aplicar |
+| E01 | Modelo Dados Unificado | ✅ Completo |
 | E02 | Salvy Integration | ✅ Completo |
 | E03 | Meta Policies RAG | ✅ Completo |
 | E04 | Trust Score Engine | ✅ Completo |
@@ -1276,7 +1276,7 @@ Ao final da Sprint 25:
 | E09 | Warming Orchestrator | ✅ Completo |
 | E10 | Early Warning | ✅ Completo |
 | E11 | Warmer API | ✅ Completo |
-| E12 | Group Entry Engine | ❌ Pendente |
+| E12 | Group Entry Engine | ✅ Completo |
 
 ---
 
