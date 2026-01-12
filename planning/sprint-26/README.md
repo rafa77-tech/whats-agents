@@ -1,6 +1,6 @@
 # Sprint 26: Orchestrator + Multi-Julia
 
-**Status:** Em Progresso
+**Status:** ✅ Completa
 **Inicio:** 12/01/2026
 **Estimativa:** 2-3 semanas
 **Dependencias:** Sprint 25 (Warmer + Trust Score)
@@ -149,9 +149,9 @@ ESTADOS DE TRANSICAO:
 | E05 | Dashboard Unificado | API Warmer + Producao + Metricas | 6h | ✅ |
 | E06 | Webhook Robustness | DLQ, idempotency, retry | 4h | ✅ |
 | E07 | Migracao Anunciada | Notificar medico antes de trocar chip (degradacao) | 4h | ✅ |
-| S12.6* | Crawler & Source Discovery | Crawler de sites agregadores, discovery Google/Bing | 3h | 📋 |
+| S12.6* | Crawler & Source Discovery | Crawler de sites agregadores, discovery Google/Bing | 3h | ✅ |
 
-**Total Estimado:** ~44h (7/8 implementados)
+**Total Estimado:** ~44h (8/8 implementados)
 
 > *S12.6 é parte do E12 (Group Entry Engine) da Sprint 25. Detalhes em `planning/sprint-25/epic-12-group-entry-engine.md`
 
