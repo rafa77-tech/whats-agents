@@ -1,7 +1,7 @@
 """
 Group Entry Engine - Sistema seguro de entrada em grupos WhatsApp.
 
-Sprint 25 - E12
+Sprint 25/26 - E12
 
 Este módulo gerencia entrada segura em grupos WhatsApp para chips do tipo 'listener'.
 Integra com Trust Score, respeita fases de warmup e distribui carga entre múltiplos chips.
@@ -12,6 +12,8 @@ Componentes:
 - scheduler: Agenda entradas respeitando limites por fase
 - worker: Processa fila de entrada
 - chip_selector: Seleciona chip ideal para cada entrada
+- discovery: Descobre novas fontes de grupos (Sprint 26)
+- crawler: Crawling de fontes conhecidas (Sprint 26)
 """
 
 from app.services.group_entry.importer import (
@@ -37,6 +39,14 @@ from app.services.group_entry.chip_selector import (
     listar_chips_disponiveis,
     buscar_config,
 )
+from app.services.group_entry.discovery import (
+    source_discovery,
+    SourceDiscovery,
+)
+from app.services.group_entry.crawler import (
+    crawler_manager,
+    CrawlerManager,
+)
 
 __all__ = [
     # Importer
@@ -57,4 +67,10 @@ __all__ = [
     "selecionar_chip_para_grupo",
     "listar_chips_disponiveis",
     "buscar_config",
+    # Discovery (Sprint 26)
+    "source_discovery",
+    "SourceDiscovery",
+    # Crawler (Sprint 26)
+    "crawler_manager",
+    "CrawlerManager",
 ]
