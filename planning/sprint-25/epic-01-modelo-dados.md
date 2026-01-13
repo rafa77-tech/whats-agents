@@ -1,5 +1,15 @@
 # Epic 01: Modelo de Dados Unificado
 
+**Status:** ⚠️ Migrations criadas, pendente aplicar no Supabase
+
+**Arquivos criados:**
+- `migrations/sprint-25/001_chips_schema.sql`
+- `migrations/sprint-25/002_chips_triggers.sql`
+
+**Ação necessária:** Executar migrations manualmente via Supabase SQL Editor
+
+---
+
 ## Objetivo
 
 Criar estrutura de banco unificada que suporta **todo o ciclo de vida do chip**:

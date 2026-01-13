@@ -1,7 +1,7 @@
 # Sprint 25: Warmer + Salvy + Trust Score Foundation
 
-**Status:** Planejado
-**Inicio:** A definir
+**Status:** Em Andamento
+**Inicio:** 05/01/2026
 **Estimativa:** 3 semanas
 **Dependencias:** Nenhuma
 
@@ -1249,14 +1249,36 @@ Dia 5: Testes e ajustes
 ## Entregavel
 
 Ao final da Sprint 25:
-- [ ] Chips podem ser provisionados via Salvy
-- [ ] Sistema de aquecimento funcionando (21 dias)
-- [ ] Trust Score calculando e atualizando
-- [ ] Permissoes dinamicas por nivel
-- [ ] RAG de politicas consultavel
-- [ ] Early Warning pausando chips problematicos
-- [ ] API de gestao do Warmer
+- [x] Chips podem ser provisionados via Salvy (E02)
+- [x] Sistema de aquecimento funcionando (E05-E09)
+- [x] Trust Score calculando e atualizando (E04)
+- [x] Permissoes dinamicas por nivel (E04)
+- [x] RAG de politicas consultavel (E03)
+- [x] Early Warning pausando chips problematicos (E10)
+- [x] API de gestao do Warmer (E11)
+- [x] Migrations aplicadas no Supabase (E01)
+- [x] Group Entry Engine para listeners (E12)
+
+---
+
+## Progresso
+
+| Épico | Descrição | Status |
+|-------|-----------|--------|
+| E01 | Modelo Dados Unificado | ✅ Completo |
+| E02 | Salvy Integration | ✅ Completo |
+| E03 | Meta Policies RAG | ✅ Completo |
+| E04 | Trust Score Engine | ✅ Completo |
+| E05 | Human Simulator | ✅ Completo |
+| E06 | Conversation Generator | ✅ Completo |
+| E07 | Pairing Engine | ✅ Completo |
+| E08 | Warming Scheduler | ✅ Completo |
+| E09 | Warming Orchestrator | ✅ Completo |
+| E10 | Early Warning | ✅ Completo |
+| E11 | Warmer API | ✅ Completo |
+| E12 | Group Entry Engine | ✅ Completo |
 
 ---
 
 *Sprint criada em 30/12/2025*
+*Última atualização: 05/01/2026*

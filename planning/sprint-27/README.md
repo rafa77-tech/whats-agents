@@ -1,7 +1,7 @@
 # Sprint 27: Sistema Automatizado de Ativacao de Chips WhatsApp
 
-**Status:** Planejado
-**Inicio:** A definir (paralelo com Sprint 25)
+**Status:** Em Progresso
+**Inicio:** 12/01/2026
 **Estimativa:** 2 semanas
 **Dependencias:** Nenhuma (pode rodar em paralelo com Sprint 25/26)
 **Responsavel:** Dev Junior
@@ -517,8 +517,8 @@ SEMANA 2:
 
 ## Checklist Final
 
-- [ ] **E00** - KVM validado e funcionando
-- [ ] **E01** - Android SDK instalado, AVD criado, emulador liga/desliga
+- [x] **E00** - KVM validado e funcionando (DigitalOcean Droplet)
+- [x] **E01** - Android SDK instalado, AVD criado, emulador liga/desliga
 - [ ] **E02** - Script Appium ativa WhatsApp end-to-end
 - [ ] **E03** - API FastAPI respondendo com autenticacao
 - [ ] **E04** - Systemd rodando, Nginx com SSL, alertas Slack

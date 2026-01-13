@@ -532,12 +532,33 @@ $$;
 
 ## Checklist do Epico
 
-- [ ] **E02.1** - Modelos e tipos
-- [ ] **E02.2** - Selecao por tipo
-- [ ] **E02.3** - Registro de envio
-- [ ] **E02.4** - Migration
-- [ ] Testes unitarios
-- [ ] Integracao com agente Julia
+- [x] **E02.1** - Modelos e tipos
+- [x] **E02.2** - Selecao por tipo
+- [x] **E02.3** - Registro de envio
+- [x] **E02.4** - Migration
+- [x] Testes unitarios
+- [x] Integracao com agente Julia (13/01/2026)
+
+### Integracao com Pipeline Julia
+
+**Implementado em:** `app/services/outbound.py`
+
+A integracao usa a flag `MULTI_CHIP_ENABLED`:
+- Quando `true`: usa ChipSelector para selecionar melhor chip
+- Quando `false`: usa EVOLUTION_INSTANCE fixa (fallback legado)
+
+**Funcoes adicionadas:**
+- `_is_multi_chip_enabled()` - verifica flag
+- `_determinar_tipo_mensagem(ctx)` - mapeia OutboundContext para tipo
+- `_enviar_via_multi_chip()` - envia usando chip selecionado
+
+**Mapeamento de tipos:**
+| OutboundMethod | Tipo Mensagem |
+|----------------|---------------|
+| REPLY | resposta |
+| CAMPAIGN (proativo) | prospeccao |
+| FOLLOWUP/REACTIVATION | followup |
+| outros | resposta (default) |
 
 ---
 

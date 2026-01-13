@@ -1,7 +1,7 @@
 # Sprint 26: Orchestrator + Multi-Julia
 
-**Status:** Planejado
-**Inicio:** Apos Sprint 25
+**Status:** ✅ Completa
+**Inicio:** 12/01/2026
 **Estimativa:** 2-3 semanas
 **Dependencias:** Sprint 25 (Warmer + Trust Score)
 
@@ -140,18 +140,18 @@ ESTADOS DE TRANSICAO:
 
 ## Epicos
 
-| # | Epico | Descricao | Tempo |
-|---|-------|-----------|-------|
-| E01 | Chip Orchestrator | Pool manager, auto-replace, auto-provision, ready pool dinamico | 9h |
-| E02 | Chip Selector | Selecao inteligente, cooldown, affinity medico-chip | 7h |
-| E03 | Webhook Router | Multi-chip routing, continuidade conversa | 6h |
-| E04 | Health Monitor | Monitoramento producao, alertas proativos | 5h |
-| E05 | Dashboard Unificado | UI Warmer + Producao + Metricas | 6h |
-| E06 | Webhook Robustness | DLQ, idempotency, retry | 4h |
-| E07 | Migracao Anunciada | Notificar medico antes de trocar chip (degradacao) | 4h |
-| S12.6* | Crawler & Source Discovery | Crawler de sites agregadores, discovery Google/Bing | 3h |
+| # | Epico | Descricao | Tempo | Status |
+|---|-------|-----------|-------|--------|
+| E01 | Chip Orchestrator | Pool manager, auto-replace, auto-provision, ready pool dinamico | 9h | ✅ |
+| E02 | Chip Selector | Selecao inteligente, cooldown, affinity medico-chip | 7h | ✅ |
+| E03 | Webhook Router | Multi-chip routing, continuidade conversa | 6h | ✅ |
+| E04 | Health Monitor | Monitoramento producao, alertas proativos | 5h | ✅ |
+| E05 | Dashboard Unificado | API Warmer + Producao + Metricas | 6h | ✅ |
+| E06 | Webhook Robustness | DLQ, idempotency, retry | 4h | ✅ |
+| E07 | Migracao Anunciada | Notificar medico antes de trocar chip (degradacao) | 4h | ✅ |
+| S12.6* | Crawler & Source Discovery | Crawler de sites agregadores, discovery Google/Bing | 3h | ✅ |
 
-**Total Estimado:** ~44h
+**Total Estimado:** ~44h (8/8 implementados)
 
 > *S12.6 é parte do E12 (Group Entry Engine) da Sprint 25. Detalhes em `planning/sprint-25/epic-12-group-entry-engine.md`
 

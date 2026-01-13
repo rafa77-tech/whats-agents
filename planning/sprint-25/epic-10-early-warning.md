@@ -1,4 +1,11 @@
-# Epic 08: Early Warning System
+# Epic 10: Early Warning System
+
+**Status:** ✅ Completo
+
+**Arquivos criados:**
+- `app/services/warmer/early_warning.py`
+
+---
 
 ## Objetivo
 
@@ -78,9 +85,9 @@ ERROS_CRITICOS = [
 
 ### DoD
 
-- [ ] Thresholds criticos definidos
-- [ ] Thresholds de warning definidos
-- [ ] Erros criticos listados
+- [x] Thresholds criticos definidos
+- [x] Thresholds de warning definidos
+- [x] Erros criticos listados
 
 ---
 
@@ -174,10 +181,10 @@ async def monitorar_chip(chip_id: str) -> Tuple[str, str]:
 
 ### DoD
 
-- [ ] Funcao `monitorar_chip` implementada
-- [ ] Checks criticos priorizados
-- [ ] Checks warning implementados
-- [ ] Retorno claro de status
+- [x] Funcao `monitorar_chip` implementada
+- [x] Checks criticos priorizados
+- [x] Checks warning implementados
+- [x] Retorno claro de status
 
 ---
 
@@ -275,10 +282,10 @@ async def check_conexao(chip: dict) -> Tuple[str, str]:
 
 ### DoD
 
-- [ ] `check_erro_spam` implementado
-- [ ] `check_health_drop_1h` implementado
-- [ ] `check_taxa_erro_1h` implementado
-- [ ] `check_conexao` implementado
+- [x] `check_erro_spam` implementado
+- [x] `check_health_drop_1h` implementado
+- [x] `check_taxa_erro_1h` implementado
+- [x] `check_conexao` implementado
 
 ---
 
@@ -371,10 +378,10 @@ async def check_inatividade(chip: dict, now: datetime) -> Tuple[str, str]:
 
 ### DoD
 
-- [ ] `check_health_drop_24h` implementado
-- [ ] `check_msgs_sem_resposta` implementado
-- [ ] `check_inatividade` implementado
-- [ ] Reducao de velocidade aplicada
+- [x] `check_health_drop_24h` implementado
+- [x] `check_msgs_sem_resposta` implementado
+- [x] `check_inatividade` implementado
+- [x] Reducao de velocidade aplicada
 
 ---
 
@@ -480,11 +487,11 @@ async def criar_alerta(chip_id: str, severity: str, tipo: str, message: str):
 
 ### DoD
 
-- [ ] `pausar_chip` implementada
-- [ ] `reduzir_velocidade` implementada
-- [ ] `restaurar_velocidade` implementada
-- [ ] `criar_alerta` implementada
-- [ ] Notificacao Slack funcionando
+- [x] `pausar_chip` implementada
+- [x] `reduzir_velocidade` implementada
+- [x] `restaurar_velocidade` implementada
+- [x] `criar_alerta` implementada
+- [x] Notificacao Slack funcionando
 
 ---
 
@@ -605,25 +612,25 @@ async def retomar_chip(chip_id: str, retomado_por: str = "sistema"):
 
 ### DoD
 
-- [ ] `obter_health_em` implementada
-- [ ] `listar_alertas_ativos` implementada
-- [ ] `resolver_alerta` implementada
-- [ ] `retomar_chip` implementada
+- [x] `obter_health_em` implementada
+- [x] `listar_alertas_ativos` implementada
+- [x] `resolver_alerta` implementada
+- [x] `retomar_chip` implementada
 
 ---
 
 ## Checklist do Epico
 
-- [ ] **S25.E08.1** - Thresholds definidos
-- [ ] **S25.E08.2** - Monitoramento de chip
-- [ ] **S25.E08.3** - Checks criticos
-- [ ] **S25.E08.4** - Checks warning
-- [ ] **S25.E08.5** - Acoes de resposta
-- [ ] **S25.E08.6** - Funcoes auxiliares
-- [ ] Pausa automatica funcionando
-- [ ] Reducao de velocidade funcionando
-- [ ] Alertas sendo criados
-- [ ] Notificacoes Slack chegando
+- [x] **S25.E08.1** - Thresholds definidos
+- [x] **S25.E08.2** - Monitoramento de chip
+- [x] **S25.E08.3** - Checks criticos
+- [x] **S25.E08.4** - Checks warning
+- [x] **S25.E08.5** - Acoes de resposta
+- [x] **S25.E08.6** - Funcoes auxiliares
+- [x] Pausa automatica funcionando
+- [x] Reducao de velocidade funcionando
+- [x] Alertas sendo criados
+- [x] Notificacoes Slack chegando
 
 ---
 

@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     EVOLUTION_API_KEY: str = ""
     EVOLUTION_INSTANCE: str = "Revoluna"
 
+    # Multi-Chip (Sprint 26 E02)
+    # Habilita selecao inteligente de chips para envio de mensagens
+    # Quando False, usa EVOLUTION_INSTANCE fixa (fallback legado)
+    MULTI_CHIP_ENABLED: bool = False
+
     # Chatwoot
     # IMPORTANTE: Sem default localhost - deve ser configurado via env var
     CHATWOOT_URL: str = ""
@@ -65,6 +70,10 @@ class Settings(BaseSettings):
     # JWT para External Handoff (Sprint 20)
     JWT_SECRET_KEY: str = ""  # Obrigatório em produção
     APP_BASE_URL: str = "https://api.revoluna.com"  # URL base para links de confirmacao
+
+    # Chip Activator (VPS) - Sprint 27
+    CHIP_ACTIVATOR_URL: str = ""  # URL do VPS (ex: https://165.227.76.85)
+    CHIP_ACTIVATOR_API_KEY: str = ""  # API Key para autenticação
 
     # CORS - origens permitidas (separadas por vírgula)
     # Em produção, definir explicitamente: "https://app.revoluna.com,https://admin.revoluna.com"
@@ -130,6 +139,7 @@ class Settings(BaseSettings):
             "chatwoot_host": extract_host(self.CHATWOOT_URL),
             "redis_host": extract_host(self.REDIS_URL),
             "julia_api_host": extract_host(self.JULIA_API_URL),
+            "chip_activator_host": extract_host(self.CHIP_ACTIVATOR_URL),
             "supabase_project": extract_host(self.SUPABASE_URL).split(".")[0] if self.SUPABASE_URL else "(not configured)",
         }
 

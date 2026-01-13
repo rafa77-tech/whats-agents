@@ -1,4 +1,11 @@
-# Epic 07: Orchestrator
+# Epic 09: Warming Orchestrator
+
+**Status:** ✅ Completo
+
+**Arquivos criados:**
+- `app/services/warmer/orchestrator.py`
+
+---
 
 ## Objetivo
 
@@ -138,10 +145,10 @@ async def processar_chip(chip: dict):
 
 ### DoD
 
-- [ ] Funcao `executar_ciclo_warmup` implementada
-- [ ] Funcao `processar_chip` implementada
-- [ ] Concorrencia limitada (semaforo)
-- [ ] Logging adequado
+- [x] Funcao `executar_ciclo_warmup` implementada
+- [x] Funcao `processar_chip` implementada
+- [x] Concorrencia limitada (semaforo)
+- [x] Logging adequado
 
 ---
 
@@ -233,10 +240,10 @@ def verificar_criterios_fase(
 
 ### DoD
 
-- [ ] Constantes `CRITERIOS_FASE` definidas
-- [ ] Funcao `verificar_criterios_fase`
-- [ ] Todos os criterios considerados
-- [ ] Lista de pendencias retornada
+- [x] Constantes `CRITERIOS_FASE` definidas
+- [x] Funcao `verificar_criterios_fase`
+- [x] Todos os criterios considerados
+- [x] Lista de pendencias retornada
 
 ---
 
@@ -353,10 +360,10 @@ async def marcar_chip_ready(chip_id: str):
 
 ### DoD
 
-- [ ] Funcao `avaliar_progressao_fase`
-- [ ] Funcao `marcar_chip_ready`
-- [ ] Progressao automatica funcionando
-- [ ] Notificacao ao atingir "ready"
+- [x] Funcao `avaliar_progressao_fase`
+- [x] Funcao `marcar_chip_ready`
+- [x] Progressao automatica funcionando
+- [x] Notificacao ao atingir "ready"
 
 ---
 
@@ -508,11 +515,11 @@ async def registrar_interacao_detalhada(chip_id: str, destinatario: str, texto: 
 
 ### DoD
 
-- [ ] Funcao `executar_conversa_warmup`
-- [ ] Funcoes auxiliares implementadas
-- [ ] Registro de conversa no banco
-- [ ] Delays entre turnos
-- [ ] Tratamento de erros
+- [x] Funcao `executar_conversa_warmup`
+- [x] Funcoes auxiliares implementadas
+- [x] Registro de conversa no banco
+- [x] Delays entre turnos
+- [x] Tratamento de erros
 
 ---
 
@@ -610,10 +617,10 @@ async def notificar_resumo_diario():
 
 ### DoD
 
-- [ ] Funcao `notificar_progressao`
-- [ ] Funcao `notificar_resumo_diario`
-- [ ] Mensagens formatadas para Slack
-- [ ] Emojis por fase
+- [x] Funcao `notificar_progressao`
+- [x] Funcao `notificar_resumo_diario`
+- [x] Mensagens formatadas para Slack
+- [x] Emojis por fase
 
 ---
 
@@ -680,25 +687,25 @@ def configurar_jobs_warmer(scheduler: AsyncIOScheduler):
 
 ### DoD
 
-- [ ] Job de ciclo a cada 5 min
-- [ ] Job de resumo diario
-- [ ] Job de rotacao semanal
-- [ ] Integracao com APScheduler
+- [x] Job de ciclo a cada 5 min
+- [x] Job de resumo diario
+- [x] Job de rotacao semanal
+- [x] Integracao com APScheduler
 
 ---
 
 ## Checklist do Epico
 
-- [ ] **S25.E07.1** - Ciclo principal
-- [ ] **S25.E07.2** - Criterios de progressao
-- [ ] **S25.E07.3** - Avaliacao de progressao
-- [ ] **S25.E07.4** - Execucao de conversas
-- [ ] **S25.E07.5** - Notificacoes
-- [ ] **S25.E07.6** - Integracao com scheduler
-- [ ] Progressao automatica funcionando
-- [ ] Conversas executando corretamente
-- [ ] Notificacoes chegando
-- [ ] Jobs configurados
+- [x] **S25.E07.1** - Ciclo principal
+- [x] **S25.E07.2** - Criterios de progressao
+- [x] **S25.E07.3** - Avaliacao de progressao
+- [x] **S25.E07.4** - Execucao de conversas
+- [x] **S25.E07.5** - Notificacoes
+- [x] **S25.E07.6** - Integracao com scheduler
+- [x] Progressao automatica funcionando
+- [x] Conversas executando corretamente
+- [x] Notificacoes chegando
+- [x] Jobs configurados
 
 ---
 

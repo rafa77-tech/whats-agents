@@ -1,4 +1,11 @@
-# Epic 05: Pairing Engine
+# Epic 07: Pairing Engine
+
+**Status:** ✅ Completo
+
+**Arquivos criados:**
+- `app/services/warmer/pairing_engine.py`
+
+---
 
 ## Objetivo
 
@@ -87,9 +94,9 @@ async def buscar_pares_ativos(chip_id: str) -> List[dict]:
 
 ### DoD
 
-- [ ] Constantes definidas
-- [ ] Funcao `buscar_chip`
-- [ ] Funcao `buscar_pares_ativos`
+- [x] Constantes definidas
+- [x] Funcao `buscar_chip`
+- [x] Funcao `buscar_pares_ativos`
 
 ---
 
@@ -190,10 +197,10 @@ async def pode_interagir_hoje(chip_a: str, chip_b: str) -> bool:
 
 ### DoD
 
-- [ ] Funcao `obter_pareamentos_dia`
-- [ ] Funcao `pode_interagir_hoje`
-- [ ] Limite diario respeitado
-- [ ] Criacao automatica de novos pares
+- [x] Funcao `obter_pareamentos_dia`
+- [x] Funcao `pode_interagir_hoje`
+- [x] Limite diario respeitado
+- [x] Criacao automatica de novos pares
 
 ---
 
@@ -305,10 +312,10 @@ async def buscar_pares_existentes(chip_id: str) -> set[str]:
 
 ### DoD
 
-- [ ] Funcao `criar_novos_pareamentos`
-- [ ] Priorizacao por fase implementada
-- [ ] Funcao `buscar_pares_existentes`
-- [ ] Evita duplicacao de pares
+- [x] Funcao `criar_novos_pareamentos`
+- [x] Priorizacao por fase implementada
+- [x] Funcao `buscar_pares_existentes`
+- [x] Evita duplicacao de pares
 
 ---
 
@@ -383,10 +390,10 @@ async def obter_par_id(chip_a: str, chip_b: str) -> Optional[str]:
 
 ### DoD
 
-- [ ] Funcao `registrar_interacao`
-- [ ] Funcao `obter_par_id`
-- [ ] Contador de mensagens atualizado
-- [ ] Timestamp de ultima interacao
+- [x] Funcao `registrar_interacao`
+- [x] Funcao `obter_par_id`
+- [x] Contador de mensagens atualizado
+- [x] Timestamp de ultima interacao
 
 ---
 
@@ -460,10 +467,10 @@ async def listar_pares_inativos(chip_id: str) -> List[dict]:
 
 ### DoD
 
-- [ ] Funcao `rotacionar_pareamentos`
-- [ ] Funcao `reativar_par`
-- [ ] Funcao `listar_pares_inativos`
-- [ ] Rotacao apos 7 dias
+- [x] Funcao `rotacionar_pareamentos`
+- [x] Funcao `reativar_par`
+- [x] Funcao `listar_pares_inativos`
+- [x] Rotacao apos 7 dias
 
 ---
 
@@ -546,24 +553,24 @@ async def obter_estatisticas_globais() -> dict:
 
 ### DoD
 
-- [ ] Funcao `obter_estatisticas_pareamento`
-- [ ] Funcao `obter_estatisticas_globais`
-- [ ] Metricas relevantes calculadas
+- [x] Funcao `obter_estatisticas_pareamento`
+- [x] Funcao `obter_estatisticas_globais`
+- [x] Metricas relevantes calculadas
 
 ---
 
 ## Checklist do Epico
 
-- [ ] **S25.E05.1** - Estrutura base
-- [ ] **S25.E05.2** - Obter pareamentos do dia
-- [ ] **S25.E05.3** - Criar novos pareamentos
-- [ ] **S25.E05.4** - Registrar interacao
-- [ ] **S25.E05.5** - Rotacao semanal
-- [ ] **S25.E05.6** - Estatisticas
-- [ ] Priorizacao por fase funcionando
-- [ ] Max 15 interacoes/dia respeitado
-- [ ] Rotacao semanal funcionando
-- [ ] Testes completos
+- [x] **S25.E05.1** - Estrutura base
+- [x] **S25.E05.2** - Obter pareamentos do dia
+- [x] **S25.E05.3** - Criar novos pareamentos
+- [x] **S25.E05.4** - Registrar interacao
+- [x] **S25.E05.5** - Rotacao semanal
+- [x] **S25.E05.6** - Estatisticas
+- [x] Priorizacao por fase funcionando
+- [x] Max 15 interacoes/dia respeitado
+- [x] Rotacao semanal funcionando
+- [x] Testes completos
 
 ---
 

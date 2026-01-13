@@ -407,6 +407,119 @@ class EvolutionClient:
             logger.warning(f"Erro ao listar grupos: {e}")
             return []
 
+    async def buscar_info_grupo_por_invite(self, invite_code: str) -> dict:
+        """
+        Busca informações de um grupo pelo código de convite.
+
+        Args:
+            invite_code: Código de convite (ex: "ABC123xyz...")
+
+        Returns:
+            Dict com informações do grupo ou None se inválido
+        """
+        url = f"{self.base_url}/group/inviteInfo/{self.instance}"
+
+        async def _request():
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    url,
+                    params={"inviteCode": invite_code},
+                    headers=self.headers,
+                    timeout=15.0
+                )
+                response.raise_for_status()
+                return response.json()
+
+        try:
+            result = await circuit_evolution.executar(_request)
+            return result if isinstance(result, dict) else None
+        except Exception as e:
+            logger.warning(f"Erro ao buscar info do grupo por invite {invite_code}: {e}")
+            return None
+
+    async def entrar_grupo_por_invite(self, invite_code: str) -> dict:
+        """
+        Entra em um grupo usando código de convite.
+
+        Args:
+            invite_code: Código de convite (ex: "ABC123xyz...")
+
+        Returns:
+            {
+                "sucesso": bool,
+                "jid": str (se sucesso),
+                "aguardando_aprovacao": bool,
+                "erro": str (se falha)
+            }
+        """
+        url = f"{self.base_url}/group/acceptInviteCode/{self.instance}"
+
+        async def _request():
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url,
+                    json={"inviteCode": invite_code},
+                    headers=self.headers,
+                    timeout=30.0
+                )
+                response.raise_for_status()
+                return response.json()
+
+        try:
+            result = await circuit_evolution.executar(_request)
+
+            # Processar resposta da Evolution API
+            if isinstance(result, dict):
+                # Sucesso direto
+                if result.get("id") or result.get("groupJid"):
+                    return {
+                        "sucesso": True,
+                        "jid": result.get("id") or result.get("groupJid"),
+                        "aguardando_aprovacao": False,
+                    }
+
+                # Aguardando aprovação do admin
+                if result.get("status") == "pending" or "pending" in str(result).lower():
+                    return {
+                        "sucesso": False,
+                        "aguardando_aprovacao": True,
+                        "jid": None,
+                    }
+
+                # Erro específico
+                if result.get("error") or result.get("message"):
+                    return {
+                        "sucesso": False,
+                        "aguardando_aprovacao": False,
+                        "erro": result.get("error") or result.get("message"),
+                    }
+
+            # Resposta inesperada
+            logger.warning(f"Resposta inesperada ao entrar no grupo: {result}")
+            return {
+                "sucesso": False,
+                "aguardando_aprovacao": False,
+                "erro": f"Resposta inesperada: {result}",
+            }
+
+        except Exception as e:
+            erro = str(e)
+            logger.warning(f"Erro ao entrar no grupo {invite_code}: {erro}")
+
+            # Detectar se é aguardando aprovação pelo erro
+            if "pending" in erro.lower() or "approval" in erro.lower():
+                return {
+                    "sucesso": False,
+                    "aguardando_aprovacao": True,
+                    "erro": erro,
+                }
+
+            return {
+                "sucesso": False,
+                "aguardando_aprovacao": False,
+                "erro": erro,
+            }
+
     async def set_webhook(self, url: str, events: list = None) -> dict:
         """Configura webhook da instancia."""
         if events is None:

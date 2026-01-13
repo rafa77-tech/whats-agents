@@ -1,4 +1,11 @@
-# Epic 03: Conversation Generator
+# Epic 06: Conversation Generator
+
+**Status:** ✅ Completo
+
+**Arquivos criados:**
+- `app/services/warmer/conversation_generator.py`
+
+---
 
 ## Objetivo
 
@@ -106,10 +113,10 @@ def escolher_tema(usar_sazonal: bool = True) -> str:
 
 ### DoD
 
-- [ ] Lista de temas definida
-- [ ] Temas sazonais por mes
-- [ ] Funcao `escolher_tema` implementada
-- [ ] 30% chance de tema sazonal
+- [x] Lista de temas definida
+- [x] Temas sazonais por mes
+- [x] Funcao `escolher_tema` implementada
+- [x] 30% chance de tema sazonal
 
 ---
 
@@ -197,11 +204,11 @@ async def buscar_trending_esportes() -> Optional[str]:
 
 ### DoD
 
-- [ ] Busca RSS G1 funcionando
-- [ ] Cache Redis de 1 hora
-- [ ] Filtro de conteudo negativo
-- [ ] Fallback para temas base
-- [ ] Busca de esportes separada
+- [x] Busca RSS G1 funcionando
+- [x] Cache Redis de 1 hora
+- [x] Filtro de conteudo negativo
+- [x] Fallback para temas base
+- [x] Busca de esportes separada
 
 ---
 
@@ -311,12 +318,12 @@ async def gerar_dialogo(
 
 ### DoD
 
-- [ ] Prompt especializado para dialogo BR
-- [ ] Geracao via Claude Haiku
-- [ ] Parse de JSON robusto
-- [ ] Temperatura alta para variedade
-- [ ] Validacao de estrutura
-- [ ] Testes com diferentes temas
+- [x] Prompt especializado para dialogo BR
+- [x] Geracao via Claude Haiku
+- [x] Parse de JSON robusto
+- [x] Temperatura alta para variedade
+- [x] Validacao de estrutura
+- [x] Testes com diferentes temas
 
 ---
 
@@ -417,11 +424,11 @@ def gerar_dialogo_fallback() -> List[Dict[str, str]]:
 
 ### DoD
 
-- [ ] Minimo 8 dialogos pre-definidos
-- [ ] Variedade de temas
-- [ ] Pelo menos 1 com typo
-- [ ] Dialogos parecem naturais
-- [ ] Funcao retorna aleatorio
+- [x] Minimo 8 dialogos pre-definidos
+- [x] Variedade de temas
+- [x] Pelo menos 1 com typo
+- [x] Dialogos parecem naturais
+- [x] Funcao retorna aleatorio
 
 ---
 
@@ -522,24 +529,24 @@ def adicionar_typos_dialogo(
 
 ### DoD
 
-- [ ] Lista de typos comuns
-- [ ] Funcao `injetar_typo` funcionando
-- [ ] `adicionar_typos_dialogo` com probabilidade
-- [ ] Maximo 2 typos por dialogo
-- [ ] Correcao com asterisco
+- [x] Lista de typos comuns
+- [x] Funcao `injetar_typo` funcionando
+- [x] `adicionar_typos_dialogo` com probabilidade
+- [x] Maximo 2 typos por dialogo
+- [x] Correcao com asterisco
 
 ---
 
 ## Checklist do Epico
 
-- [ ] **S25.E03.1** - Temas de conversa definidos
-- [ ] **S25.E03.2** - Trending topics com cache
-- [ ] **S25.E03.3** - Geracao via Claude
-- [ ] **S25.E03.4** - Dialogos fallback
-- [ ] **S25.E03.5** - Injecao de typos
-- [ ] Conversas parecem naturais
-- [ ] Linguagem informal brasileira
-- [ ] Testes completos
+- [x] **S25.E03.1** - Temas de conversa definidos
+- [x] **S25.E03.2** - Trending topics com cache
+- [x] **S25.E03.3** - Geracao via Claude
+- [x] **S25.E03.4** - Dialogos fallback
+- [x] **S25.E03.5** - Injecao de typos
+- [x] Conversas parecem naturais
+- [x] Linguagem informal brasileira
+- [x] Testes completos
 
 ---
 
