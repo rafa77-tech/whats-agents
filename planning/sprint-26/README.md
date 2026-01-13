@@ -149,6 +149,7 @@ ESTADOS DE TRANSICAO:
 | E05 | Dashboard Unificado | API Warmer + Producao + Metricas | 6h | ✅ |
 | E06 | Webhook Robustness | DLQ, idempotency, retry | 4h | ✅ |
 | E07 | Migracao Anunciada | Notificar medico antes de trocar chip (degradacao) | 4h | ✅ |
+| E08 | Multi-Provider Support | Abstração para Evolution + Z-API + futuros providers | 4h | ✅ |
 | S12.6* | Crawler & Source Discovery | Crawler de sites agregadores, discovery Google/Bing | 3h | ✅ |
 
 **Total Estimado:** ~44h (8/8 implementados)
@@ -1492,49 +1493,92 @@ Dia 4-5: Testes end-to-end e ajustes
 ## Entregavel
 
 Ao final da Sprint 26:
-- [ ] Pool de N chips em producao
-- [ ] Auto-replace funcionando
-- [ ] Ready pool dinamico (ajusta por taxa de degradacao)
-- [ ] Chip Selector distribuindo carga
-- [ ] Chip Affinity (medico fica no mesmo chip)
-- [ ] Cooldown (pausas de 1-2h apos 4h ativo)
-- [ ] Migracao Anunciada (notifica medico antes de trocar)
-- [ ] Continuidade de conversa garantida
-- [ ] Health Monitor alertando proativamente
-- [ ] Dashboard com visao completa
-- [ ] Zero perda de mensagens
+- [x] Pool de N chips em producao (3 chips Evolution ativos)
+- [x] Auto-replace funcionando
+- [x] Ready pool dinamico (ajusta por taxa de degradacao)
+- [x] Chip Selector distribuindo carga
+- [x] Chip Affinity (medico fica no mesmo chip)
+- [x] Cooldown (pausas de 1-2h apos 4h ativo)
+- [x] Migracao Anunciada (notifica medico antes de trocar)
+- [x] Continuidade de conversa garantida (ChipMappingProcessor)
+- [x] Health Monitor alertando proativamente
+- [x] Dashboard com visao completa
+- [x] Zero perda de mensagens
+- [x] Multi-Provider Support (Evolution + Z-API)
 
 ---
 
 ## Integracao com Julia Existente
 
-### Mudancas Necessarias
+### Componentes Implementados
 
-1. **Pipeline**: Adicionar contexto do chip
-2. **Envio de mensagens**: Usar Chip Selector
-3. **Campanhas**: Distribuir entre chips
-4. **Metricas**: Agregar por chip
+| Arquivo | Funcao |
+|---------|--------|
+| `app/api/routes/webhook.py` | Passa `_evolution_instance` para pipeline |
+| `app/pipeline/pre_processors.py` | ChipMappingProcessor (prioridade 21) |
+| `app/pipeline/setup.py` | Registro do ChipMappingProcessor |
+| `app/services/outbound.py` | Integracao com ChipSelector |
+| `app/services/chips/selector.py` | Selecao inteligente de chip |
+| `app/services/chips/sender.py` | Envio via provider abstraction |
+| `app/services/whatsapp_providers/` | Abstracoes Evolution + Z-API |
 
-### Exemplo de Uso
+### Fluxo de Mensagem Recebida
 
-```python
-# Antes (1 chip fixo)
-await enviar_mensagem(telefone, texto)
-
-# Depois (multi-chip)
-chip = await chip_selector.selecionar_chip(
-    tipo_mensagem="prospeccao",
-    telefone_destino=telefone
-)
-await enviar_mensagem(telefone, texto, instance=chip["instance_name"])
-await chip_selector.registrar_envio(
-    chip_id=chip["id"],
-    conversa_id=conversa.id,
-    tipo_mensagem="prospeccao",
-    telefone_destino=telefone
-)
 ```
+1. Evolution envia webhook com payload + instance name
+       │
+       ▼
+2. webhook.py extrai instance, adiciona ao data como _evolution_instance
+       │
+       ▼
+3. Pipeline processa:
+   - ParseMessageProcessor (10)
+   - PresenceProcessor (15)
+   - LoadEntitiesProcessor (20) → carrega/cria conversa
+   - ChipMappingProcessor (21) → mapeia conversa ao chip ← NOVO
+   - ... demais processors
+       │
+       ▼
+4. LLMCoreProcessor gera resposta
+       │
+       ▼
+5. SendMessageProcessor usa outbound.py
+       │
+       ▼
+6. outbound.py verifica MULTI_CHIP_ENABLED:
+   - Se true: ChipSelector busca chip da conversa
+   - Se false: usa EVOLUTION_INSTANCE fixa
+```
+
+### Configuracao Obrigatoria
+
+**1. Webhook em cada instancia Evolution:**
+```bash
+curl -X POST "https://evolution-api/webhook/set/{INSTANCE}" \
+  -H "apikey: API_KEY" \
+  -d '{"webhook":{"url":"https://backend/webhook/evolution","enabled":true,"events":["MESSAGES_UPSERT"]}}'
+```
+
+**2. Chip registrado no banco com instance_name:**
+```sql
+INSERT INTO chips (telefone, instance_name, provider, status, trust_score)
+VALUES ('5511999999999', 'Revoluna-01', 'evolution', 'active', 75);
+```
+
+**3. Variavel de ambiente:**
+```
+MULTI_CHIP_ENABLED=true
+```
+
+### Chips em Producao (13/01/2026)
+
+| Chip | Numero | Provider | Trust | Status |
+|------|--------|----------|-------|--------|
+| Revoluna | 5511916175810 | Evolution | 85 | Ativo |
+| Revoluna-01 | 5511936191522 | Evolution | 75 | Ativo |
+| Revoluna-02 | 5511952137671 | Evolution | 70 | Ativo |
 
 ---
 
 *Sprint criada em 30/12/2025*
+*Integracao completa em 13/01/2026*

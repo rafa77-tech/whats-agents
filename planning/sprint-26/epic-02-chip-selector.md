@@ -541,7 +541,55 @@ $$;
 
 ### Integracao com Pipeline Julia
 
-**Implementado em:** `app/services/outbound.py`
+**Implementado em:**
+- `app/services/outbound.py` - Envio de mensagens
+- `app/pipeline/pre_processors.py` - ChipMappingProcessor
+- `app/api/routes/webhook.py` - Passagem de instance
+
+#### Configuracao Obrigatoria
+
+**Webhook Evolution:** Cada instancia Evolution deve ter webhook configurado:
+
+```bash
+curl -X POST "https://evolution-api/webhook/set/{INSTANCE}" \
+  -H "apikey: API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "webhook": {
+      "url": "https://backend/webhook/evolution",
+      "enabled": true,
+      "events": ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"]
+    }
+  }'
+```
+
+**Chip no Banco:** Cada chip deve ter `instance_name` correspondente:
+
+| instance_name | telefone | provider |
+|---------------|----------|----------|
+| Revoluna | 5511916175810 | evolution |
+| Revoluna-01 | 5511936191522 | evolution |
+| Revoluna-02 | 5511952137671 | evolution |
+
+#### Fluxo Completo
+
+1. **Webhook recebe mensagem** (`webhook.py`)
+   - Extrai `instance` do payload Evolution
+   - Adiciona `_evolution_instance` ao data
+   - Envia para pipeline
+
+2. **ChipMappingProcessor** (`pre_processors.py`, prioridade 21)
+   - Roda apos LoadEntitiesProcessor
+   - Busca chip pelo `instance_name`
+   - Registra mapeamento em `conversation_chips`
+   - Guarda `chip_instance` no metadata
+
+3. **Resposta via Multi-Chip** (`outbound.py`)
+   - ChipSelector busca chip da conversa
+   - Usa mesmo chip que recebeu a mensagem
+   - Fallback para selecao por tipo se necessario
+
+#### Flag de Controle
 
 A integracao usa a flag `MULTI_CHIP_ENABLED`:
 - Quando `true`: usa ChipSelector para selecionar melhor chip
@@ -559,6 +607,25 @@ A integracao usa a flag `MULTI_CHIP_ENABLED`:
 | CAMPAIGN (proativo) | prospeccao |
 | FOLLOWUP/REACTIVATION | followup |
 | outros | resposta (default) |
+
+#### Nota Tecnica: FK Ambigua
+
+A tabela `conversation_chips` tem duas FKs para `chips`:
+- `chip_id` - chip atual da conversa
+- `migrated_from` - chip anterior (historico)
+
+Ao fazer join com `chips(*)`, usar hint explicito:
+```python
+# Correto
+supabase.table("conversation_chips").select(
+    "chip_id, chips!conversation_chips_chip_id_fkey(*)"
+)
+
+# Incorreto (erro PGRST201)
+supabase.table("conversation_chips").select(
+    "chip_id, chips(*)"
+)
+```
 
 ---
 
