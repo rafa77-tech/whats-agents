@@ -6,15 +6,17 @@ Sprint 18.1 - C1: Deduplicação de mensagens outbound.
 Sprint 23 E01 - Outcome detalhado com enum padronizado.
 Sprint 24 E03 - Centralização da finalização (try/finally).
 Sprint 18 Auditoria - R-2: DEV allowlist (fail-closed).
+Sprint 26 E02 - Integracao com ChipSelector para multi-chip.
 
 Este módulo é o wrapper que:
 1. Verifica DEV allowlist (R-2) - PRIMEIRO, antes de tudo
 2. Verifica deduplicação (evita duplicatas em retry/timeout)
 3. Verifica guardrails antes de enviar
-4. Chama Evolution API se permitido
-5. Emite eventos de auditoria
-6. Finalização centralizada (last_touch, atribuição)
-7. Retorna outcome detalhado para rastreamento
+4. Seleciona chip via ChipSelector (se MULTI_CHIP_ENABLED)
+5. Chama provider do chip selecionado
+6. Emite eventos de auditoria
+7. Finalização centralizada (last_touch, atribuição)
+8. Retorna outcome detalhado para rastreamento
 
 IMPORTANTE: Nenhum outro código deve chamar evolution.enviar_mensagem() diretamente.
 Use sempre send_outbound_message() deste módulo.
@@ -50,6 +52,140 @@ from app.services.outbound_dedupe import (
 from app.services.guardrails.error_classifier import classify_provider_error
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# MULTI-CHIP CONFIG (Sprint 26 E02)
+# =============================================================================
+
+def _is_multi_chip_enabled() -> bool:
+    """Verifica se multi-chip esta habilitado."""
+    return getattr(settings, "MULTI_CHIP_ENABLED", False)
+
+
+def _determinar_tipo_mensagem(ctx: "OutboundContext") -> str:
+    """
+    Determina o tipo de mensagem baseado no contexto.
+
+    Returns:
+        'prospeccao', 'followup', ou 'resposta'
+    """
+    # Resposta: quando eh reply a uma mensagem recebida
+    if ctx.method == OutboundMethod.REPLY:
+        return "resposta"
+
+    # Prospeccao: campanha proativa para contato frio
+    if ctx.method == OutboundMethod.CAMPAIGN and ctx.is_proactive:
+        return "prospeccao"
+
+    # Followup: acompanhamento de conversa existente
+    if ctx.method in (OutboundMethod.FOLLOWUP, OutboundMethod.REACTIVATION):
+        return "followup"
+
+    # Default: resposta (mais permissivo)
+    return "resposta"
+
+
+async def _enviar_via_multi_chip(
+    telefone: str,
+    texto: str,
+    ctx: "OutboundContext",
+    simular_digitacao: bool = False,
+    tempo_digitacao: float = None,
+) -> dict:
+    """
+    Envia mensagem usando o sistema multi-chip.
+
+    Sprint 26 E02: Seleciona melhor chip e envia via provider.
+
+    Args:
+        telefone: Numero do destinatario
+        texto: Texto da mensagem
+        ctx: Contexto do envio
+        simular_digitacao: Se deve simular digitacao
+        tempo_digitacao: Tempo de digitacao
+
+    Returns:
+        Dict com resultado do envio
+    """
+    from app.services.chips.selector import chip_selector
+    from app.services.chips.sender import enviar_via_chip
+
+    tipo_mensagem = _determinar_tipo_mensagem(ctx)
+
+    # Selecionar chip
+    chip = await chip_selector.selecionar_chip(
+        tipo_mensagem=tipo_mensagem,
+        conversa_id=ctx.conversation_id,
+        telefone_destino=telefone,
+    )
+
+    if not chip:
+        logger.warning(
+            f"[MultiChip] Nenhum chip disponivel para {tipo_mensagem}, "
+            f"fallback para Evolution"
+        )
+        return {"fallback": True}
+
+    # Simular digitacao se necessario
+    if simular_digitacao:
+        from app.services.whatsapp_providers import get_provider
+        import asyncio
+
+        provider = get_provider(chip)
+        tempo = tempo_digitacao or 1.5
+
+        # Enviar presence "composing"
+        try:
+            # Evolution API: /chat/presence/{instance}
+            if chip.get("provider") == "evolution":
+                import httpx
+                async with httpx.AsyncClient(timeout=5) as client:
+                    await client.post(
+                        f"{provider.base_url}/chat/presence/{provider.instance_name}",
+                        headers=provider.headers,
+                        json={
+                            "number": telefone,
+                            "delay": int(tempo * 1000),
+                            "presence": "composing",
+                        }
+                    )
+        except Exception as e:
+            logger.debug(f"[MultiChip] Erro ao enviar presence: {e}")
+
+        await asyncio.sleep(tempo)
+
+    # Enviar mensagem
+    result = await enviar_via_chip(chip, telefone, texto)
+
+    # Registrar envio para metricas
+    if result.success and ctx.conversation_id:
+        try:
+            await chip_selector.registrar_envio(
+                chip_id=chip["id"],
+                conversa_id=ctx.conversation_id,
+                tipo_mensagem=tipo_mensagem,
+                telefone_destino=telefone,
+            )
+        except Exception as e:
+            logger.warning(f"[MultiChip] Erro ao registrar envio: {e}")
+
+    # Converter para formato esperado pelo outbound
+    response = None
+    if result.success:
+        response = {
+            "key": {"id": result.message_id},
+            "provider": result.provider,
+            "chip_id": chip["id"],
+            "chip_telefone": chip.get("telefone"),
+        }
+
+    return {
+        "success": result.success,
+        "response": response,
+        "error": result.error,
+        "fallback": False,
+    }
 
 
 def _verificar_dev_allowlist(telefone: str) -> Tuple[bool, Optional[str]]:
@@ -391,25 +527,56 @@ async def send_outbound_message(
             f"{guardrail_result.reason_code} por {ctx.actor_id}"
         )
 
-    # 3. Enviar via Evolution API
+    # 3. Enviar via Multi-Chip ou Evolution API (fallback)
     # Sprint 24 E03: Usar try/finally para garantir finalização
+    # Sprint 26 E02: Multi-chip com selecao inteligente
     result: Optional[OutboundResult] = None
     provider_message_id: Optional[str] = None
+    response = None
+    used_multi_chip = False
 
     try:
-        if simular_digitacao:
-            response = await enviar_com_digitacao(
-                telefone=telefone,
-                texto=texto,
-                tempo_digitacao=tempo_digitacao,
-            )
-        else:
-            # Verificar rate limit apenas para proativo
-            response = await evolution.enviar_mensagem(
-                telefone=telefone,
-                texto=texto,
-                verificar_rate_limit=ctx.is_proactive,
-            )
+        # Sprint 26 E02: Tentar multi-chip se habilitado
+        if _is_multi_chip_enabled():
+            try:
+                multi_result = await _enviar_via_multi_chip(
+                    telefone=telefone,
+                    texto=texto,
+                    ctx=ctx,
+                    simular_digitacao=simular_digitacao,
+                    tempo_digitacao=tempo_digitacao,
+                )
+
+                if not multi_result.get("fallback"):
+                    used_multi_chip = True
+                    if multi_result.get("success"):
+                        response = multi_result.get("response")
+                    else:
+                        # Erro no multi-chip, propagar
+                        raise Exception(multi_result.get("error", "Erro no multi-chip"))
+
+            except Exception as e:
+                logger.warning(
+                    f"[MultiChip] Erro, fallback para Evolution: {e}",
+                    extra={"error": str(e), "telefone_prefix": telefone[:8]}
+                )
+                used_multi_chip = False
+
+        # Fallback: Evolution API legado (instancia fixa)
+        if not used_multi_chip:
+            if simular_digitacao:
+                response = await enviar_com_digitacao(
+                    telefone=telefone,
+                    texto=texto,
+                    tempo_digitacao=tempo_digitacao,
+                )
+            else:
+                # Verificar rate limit apenas para proativo
+                response = await evolution.enviar_mensagem(
+                    telefone=telefone,
+                    texto=texto,
+                    verificar_rate_limit=ctx.is_proactive,
+                )
 
         # Marcar dedupe como enviado com sucesso
         await marcar_enviado(dedupe_key)
