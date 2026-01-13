@@ -1,6 +1,6 @@
 # Sprint 25: Warmer + Salvy + Trust Score Foundation
 
-**Status:** Em Andamento
+**Status:** ✅ Completa
 **Inicio:** 05/01/2026
 **Estimativa:** 3 semanas
 **Dependencias:** Nenhuma

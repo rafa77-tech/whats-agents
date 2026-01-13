@@ -14,9 +14,9 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 ## Estado Atual
 
-**Sprint Atual:** Entre sprints (18 encerrada, 25 planejada)
+**Sprint Atual:** Sprint 29 (Conversation Mode) - Planejada
 **Início do Projeto:** 05/12/2025
-**Última Atualização:** 31/12/2025
+**Última Atualização:** 13/01/2026
 
 ### Métricas do Projeto
 
@@ -53,8 +53,11 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 16 | Confirmação de Plantão | ✅ Completa |
 | 17 | Business Events e Funil | ✅ Completa |
 | 18 | Auditoria e Integridade | ✅ Completa |
-| 25 | Julia Warmer (Foundation) | 📋 Planejado |
-| 26 | Multi-Julia Orchestration | 📋 Planejado |
+| 25 | Julia Warmer (Foundation) | ✅ Completa |
+| 26 | Multi-Julia Orchestration | ✅ Completa |
+| 27 | Chip Activator (VPS) | 🔄 Em Andamento |
+| 28 | Dashboard Julia | ✅ Completa |
+| 29 | Conversation Mode | 📋 Planejado |
 
 ### Funcionalidades Implementadas
 
