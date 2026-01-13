@@ -95,8 +95,10 @@ class ChipSelector:
 
     async def _buscar_chip_conversa(self, conversa_id: str) -> Optional[Dict]:
         """Busca chip atualmente associado a conversa."""
+        # Usar relationship hint para evitar ambiguidade
+        # (conversation_chips tem 2 FKs para chips: chip_id e migrated_from)
         result = supabase.table("conversation_chips").select(
-            "chip_id, chips(*)"
+            "chip_id, chips!conversation_chips_chip_id_fkey(*)"
         ).eq(
             "conversa_id", conversa_id
         ).eq(
