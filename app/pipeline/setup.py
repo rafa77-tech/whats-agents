@@ -8,6 +8,7 @@ from .pre_processors import (
     ParseMessageProcessor,
     PresenceProcessor,
     LoadEntitiesProcessor,
+    ChipMappingProcessor,
     BusinessEventInboundProcessor,
     ChatwootSyncProcessor,
     OptOutProcessor,
@@ -43,6 +44,7 @@ def criar_pipeline() -> MessageProcessor:
     pipeline.add_pre_processor(ParseMessageProcessor())      # 10
     pipeline.add_pre_processor(PresenceProcessor())          # 15
     pipeline.add_pre_processor(LoadEntitiesProcessor())      # 20
+    pipeline.add_pre_processor(ChipMappingProcessor())       # 21 - Sprint 26 E02: Multi-chip
     pipeline.add_pre_processor(BusinessEventInboundProcessor())  # 22 - Sprint 17 E04
     pipeline.add_pre_processor(ChatwootSyncProcessor())      # 25
     pipeline.add_pre_processor(OptOutProcessor())            # 30

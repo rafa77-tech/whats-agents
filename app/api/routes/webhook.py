@@ -60,6 +60,9 @@ async def evolution_webhook(
                 # Marcar como processada ANTES de iniciar (evita race condition)
                 await _marcar_mensagem_processada(message_id)
 
+            # Sprint 26 E02: Passar instance para o pipeline (multi-chip)
+            data["_evolution_instance"] = instance
+
             background_tasks.add_task(processar_mensagem_pipeline, data)
             logger.info("Mensagem agendada para processamento")
 
