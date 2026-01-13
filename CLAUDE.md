@@ -14,7 +14,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 ## Estado Atual
 
-**Sprint Atual:** Sprint 29 (Conversation Mode) - Planejada
+**Sprint Atual:** Entre sprints (29 completa, próxima a definir)
 **Início do Projeto:** 05/12/2025
 **Última Atualização:** 13/01/2026
 
@@ -57,7 +57,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 26 | Multi-Julia Orchestration | ✅ Completa |
 | 27 | Chip Activator (VPS) | 🔄 Em Andamento |
 | 28 | Dashboard Julia | ✅ Completa |
-| 29 | Conversation Mode | 📋 Planejado |
+| 29 | Conversation Mode | ✅ Completa |
 
 ### Funcionalidades Implementadas
 

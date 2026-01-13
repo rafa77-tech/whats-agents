@@ -1,7 +1,8 @@
 # Sprint 29: Conversation Mode (Modo de Conversa)
 
-**Status:** Planejado
-**Inicio:** A definir
+**Status:** ✅ Completa
+**Inicio:** 02/01/2026
+**Conclusão:** 13/01/2026
 **Estimativa:** 1-2 semanas
 **Dependencias:** Sprint 15 (Policy Engine) - usa doctor_state como base
 **Responsavel:** Dev
