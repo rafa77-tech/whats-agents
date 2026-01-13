@@ -4,6 +4,7 @@ Chip Management Services - Sprint 26.
 Sistema de orquestracao multi-chip para Julia:
 - Orchestrator: Pool manager, auto-replace, auto-provision
 - Selector: Selecao inteligente de chip por tipo de mensagem
+- Sender: Envio de mensagens via provider abstraction (E08)
 - Health Monitor: Monitoramento proativo
 - Migration: Migracao anunciada de conversas
 """
@@ -15,6 +16,12 @@ from app.services.chips.migration import (
     migrar_conversa_anunciada,
     processar_migracoes_agendadas,
 )
+from app.services.chips.sender import (
+    enviar_via_chip,
+    enviar_mensagem_inteligente,
+    enviar_media_via_chip,
+    verificar_conexao_chip,
+)
 
 __all__ = [
     "chip_orchestrator",
@@ -25,4 +32,9 @@ __all__ = [
     "HealthMonitor",
     "migrar_conversa_anunciada",
     "processar_migracoes_agendadas",
+    # E08 - Multi-Provider
+    "enviar_via_chip",
+    "enviar_mensagem_inteligente",
+    "enviar_media_via_chip",
+    "verificar_conexao_chip",
 ]
