@@ -33,21 +33,6 @@ def get_supabase_client() -> Client:
 supabase = get_supabase_client()
 
 
-def get_supabase() -> Client:
-    """
-    DEPRECATED: Use `from app.services.supabase import supabase` diretamente.
-
-    Esta funcao sera removida em versao futura.
-    """
-    import warnings
-    warnings.warn(
-        "get_supabase() is deprecated. Use 'from app.services.supabase import supabase' directly.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    return supabase
-
-
 async def _executar_com_circuit_breaker(func):
     """
     Executa função síncrona do Supabase com circuit breaker.
@@ -66,65 +51,6 @@ async def _executar_com_circuit_breaker(func):
         return await loop.run_in_executor(None, func)
 
     return await circuit_supabase.executar(_async_wrapper)
-
-
-# =============================================================================
-# FUNCOES DEPRECATED (manter para retrocompatibilidade)
-# =============================================================================
-
-async def get_medico_by_telefone(telefone: str) -> dict | None:
-    """DEPRECATED: Use buscar_medico_por_telefone()."""
-    import warnings
-    warnings.warn(
-        "get_medico_by_telefone is deprecated. Use buscar_medico_por_telefone instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    return await buscar_medico_por_telefone(telefone)
-
-
-async def get_medico_by_id(medico_id: str) -> dict | None:
-    """DEPRECATED: Use buscar_medico_por_id()."""
-    import warnings
-    warnings.warn(
-        "get_medico_by_id is deprecated. Use buscar_medico_por_id instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    return await buscar_medico_por_id(medico_id)
-
-
-async def get_or_create_medico(telefone: str, primeiro_nome: Optional[str] = None) -> dict:
-    """DEPRECATED: Use buscar_ou_criar_medico()."""
-    import warnings
-    warnings.warn(
-        "get_or_create_medico is deprecated. Use buscar_ou_criar_medico instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    return await buscar_ou_criar_medico(telefone, primeiro_nome)
-
-
-async def get_vagas_disponiveis(especialidade_id: str = None, limit: int = 10) -> list:
-    """DEPRECATED: Use buscar_vagas_disponiveis()."""
-    import warnings
-    warnings.warn(
-        "get_vagas_disponiveis is deprecated. Use buscar_vagas_disponiveis instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    return await buscar_vagas_disponiveis(especialidade_id=especialidade_id, limite=limit)
-
-
-async def get_conversa_ativa(cliente_id: str) -> dict | None:
-    """DEPRECATED: Use buscar_conversa_ativa()."""
-    import warnings
-    warnings.warn(
-        "get_conversa_ativa is deprecated. Use buscar_conversa_ativa instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    return await buscar_conversa_ativa(cliente_id)
 
 
 async def criar_conversa(cliente_id: str, origem: str = "prospeccao") -> dict:
@@ -174,17 +100,6 @@ async def salvar_interacao(
 
     response = await _executar_com_circuit_breaker(_insert)
     return response.data[0] if response.data else None
-
-
-async def get_historico(conversa_id: str, limit: int = 20) -> list:
-    """DEPRECATED: Use listar_historico()."""
-    import warnings
-    warnings.warn(
-        "get_historico is deprecated. Use listar_historico instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    return await listar_historico(conversa_id, limite=limit)
 
 
 async def marcar_optout(cliente_id: str) -> dict | None:
