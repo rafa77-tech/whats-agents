@@ -18,7 +18,23 @@ from typing import Optional, List
 
 from app.core.tasks import safe_create_task
 from app.core.prompts import montar_prompt_julia
-from app.services.llm import gerar_resposta, gerar_resposta_com_tools, continuar_apos_tool
+# Sprint 31: LLM Provider abstraction
+from app.services.llm import (
+    # New interface
+    LLMProvider,
+    LLMRequest,
+    LLMResponse,
+    Message,
+    MessageRole,
+    ToolCall,
+    ToolDefinition,
+    ToolResult,
+    get_llm_provider,
+    # Legacy (backward compatibility)
+    gerar_resposta,
+    gerar_resposta_com_tools,
+    continuar_apos_tool,
+)
 from app.services.interacao import converter_historico_para_messages
 from app.services.mensagem import quebrar_mensagem
 from app.services.outbound import send_outbound_message, OutboundResult
@@ -175,6 +191,7 @@ async def gerar_resposta_julia(
     policy_decision: PolicyDecision = None,
     capabilities_gate: CapabilitiesGate = None,
     mode_info: ModeInfo = None,
+    llm_provider: LLMProvider = None,  # Sprint 31: Optional LLM provider
 ) -> str:
     """
     Gera resposta da Julia para uma mensagem.
@@ -189,6 +206,9 @@ async def gerar_resposta_julia(
         policy_decision: Decisão da Policy Engine (Sprint 15)
         capabilities_gate: Gate de capabilities por modo (Sprint 29)
         mode_info: Info do modo atual (Sprint 29)
+        llm_provider: LLM provider para geração (Sprint 31)
+            Se None, usa funções legadas para backward compatibility.
+            Passar provider para usar nova interface (recomendado em testes).
 
     Returns:
         Texto da resposta gerada
