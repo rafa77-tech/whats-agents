@@ -4,6 +4,7 @@ Pre-processadores do pipeline.
 import logging
 from typing import Optional
 
+from app.core.tasks import safe_create_task
 from .base import PreProcessor, ProcessorContext, ProcessorResult
 from app.services.parser import parsear_mensagem, deve_processar, is_grupo
 from app.services.medico import buscar_ou_criar_medico
@@ -232,9 +233,9 @@ class ChipMappingProcessor(PreProcessor):
             return ProcessorResult(success=True)
 
         # Registrar mapeamento em background (nao bloqueia)
-        import asyncio
-        asyncio.create_task(
-            self._registrar_chip_conversa(instance_name, conversa_id, context.telefone)
+        safe_create_task(
+            self._registrar_chip_conversa(instance_name, conversa_id, context.telefone),
+            name="registrar_chip_conversa"
         )
 
         # Guardar no metadata para uso posterior
@@ -323,7 +324,7 @@ class BusinessEventInboundProcessor(PreProcessor):
             return ProcessorResult(success=True)
 
         # Emitir evento em background (nao bloqueia)
-        asyncio.create_task(
+        safe_create_task(
             emit_event(BusinessEvent(
                 event_type=EventType.DOCTOR_INBOUND,
                 source=EventSource.PIPELINE,
@@ -334,17 +335,19 @@ class BusinessEventInboundProcessor(PreProcessor):
                     "has_media": context.tipo_mensagem not in ("texto", "text", None),
                     "message_length": len(context.mensagem_texto or ""),
                 },
-            ))
+            )),
+            name="emit_doctor_inbound"
         )
 
         # E05: Detectar possível recusa de oferta (em background)
         if context.mensagem_texto:
-            asyncio.create_task(
+            safe_create_task(
                 processar_possivel_recusa(
                     cliente_id=cliente_id,
                     mensagem=context.mensagem_texto,
                     conversation_id=context.conversa.get("id"),
-                )
+                ),
+                name="processar_possivel_recusa"
             )
 
         logger.debug(f"doctor_inbound emitido para cliente {cliente_id[:8]}")
@@ -596,7 +599,7 @@ class ForaHorarioProcessor(PreProcessor):
             else EventType.OUT_OF_HOURS_ACK_SKIPPED
         )
 
-        asyncio.create_task(
+        safe_create_task(
             emit_event(BusinessEvent(
                 event_type=event_type,
                 source=EventSource.PIPELINE,
@@ -610,7 +613,8 @@ class ForaHorarioProcessor(PreProcessor):
                     "telefone_hash": context.telefone[-4:] if context.telefone else None,
                 },
                 dedupe_key=f"out_of_hours:{context.message_id}" if context.message_id else None,
-            ))
+            )),
+            name="emit_out_of_hours_event"
         )
 
         logger.debug(f"Evento {event_type.value} emitido para {cliente_id[:8]}")

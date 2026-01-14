@@ -9,12 +9,12 @@ Nível 1 (simples):
 - Marca como sent/failed após envio
 - Emite OUTBOUND_DEDUPED para auditoria
 """
-import asyncio
 import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Optional, Tuple
 
+from app.core.tasks import safe_create_task
 from app.services.supabase import supabase
 from app.services.business_events import emit_event, BusinessEvent, EventType, EventSource
 
@@ -142,7 +142,7 @@ async def verificar_e_reservar(
                 pass
 
             # Emitir business_event para auditoria (Sprint 18.1)
-            asyncio.create_task(
+            safe_create_task(
                 emit_event(BusinessEvent(
                     event_type=EventType.OUTBOUND_DEDUPED,
                     source=EventSource.BACKEND,
@@ -154,7 +154,8 @@ async def verificar_e_reservar(
                         "method": method,
                         "reason": "duplicate_within_window",
                     },
-                ))
+                )),
+                name="emit_outbound_deduped"
             )
 
             return False, dedupe_key, "duplicata"
