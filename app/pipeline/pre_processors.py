@@ -4,11 +4,12 @@ Pre-processadores do pipeline.
 import logging
 from typing import Optional
 
+from app.core.tasks import safe_create_task
 from .base import PreProcessor, ProcessorContext, ProcessorResult
 from app.services.parser import parsear_mensagem, deve_processar, is_grupo
 from app.services.medico import buscar_ou_criar_medico
 from app.services.conversa import buscar_ou_criar_conversa
-from app.services.optout import detectar_optout, processar_optout, MENSAGEM_CONFIRMACAO_OPTOUT
+from app.services.optout import detectar_optout, processar_optout, get_mensagem_optout
 from app.services.handoff_detector import detectar_trigger_handoff
 from app.services.whatsapp import evolution, mostrar_online
 
@@ -232,9 +233,9 @@ class ChipMappingProcessor(PreProcessor):
             return ProcessorResult(success=True)
 
         # Registrar mapeamento em background (nao bloqueia)
-        import asyncio
-        asyncio.create_task(
-            self._registrar_chip_conversa(instance_name, conversa_id, context.telefone)
+        safe_create_task(
+            self._registrar_chip_conversa(instance_name, conversa_id, context.telefone),
+            name="registrar_chip_conversa"
         )
 
         # Guardar no metadata para uso posterior
@@ -323,7 +324,7 @@ class BusinessEventInboundProcessor(PreProcessor):
             return ProcessorResult(success=True)
 
         # Emitir evento em background (nao bloqueia)
-        asyncio.create_task(
+        safe_create_task(
             emit_event(BusinessEvent(
                 event_type=EventType.DOCTOR_INBOUND,
                 source=EventSource.PIPELINE,
@@ -334,17 +335,19 @@ class BusinessEventInboundProcessor(PreProcessor):
                     "has_media": context.tipo_mensagem not in ("texto", "text", None),
                     "message_length": len(context.mensagem_texto or ""),
                 },
-            ))
+            )),
+            name="emit_doctor_inbound"
         )
 
         # E05: Detectar possível recusa de oferta (em background)
         if context.mensagem_texto:
-            asyncio.create_task(
+            safe_create_task(
                 processar_possivel_recusa(
                     cliente_id=cliente_id,
                     mensagem=context.mensagem_texto,
                     conversation_id=context.conversa.get("id"),
-                )
+                ),
+                name="processar_possivel_recusa"
             )
 
         logger.debug(f"doctor_inbound emitido para cliente {cliente_id[:8]}")
@@ -378,10 +381,12 @@ class OptOutProcessor(PreProcessor):
         )
 
         if sucesso:
+            # Usar template dinamico do banco
+            mensagem_optout = await get_mensagem_optout()
             return ProcessorResult(
                 success=True,
                 should_continue=False,  # Para o pipeline
-                response=MENSAGEM_CONFIRMACAO_OPTOUT,
+                response=mensagem_optout,
                 metadata={"optout": True}
             )
 
@@ -596,7 +601,7 @@ class ForaHorarioProcessor(PreProcessor):
             else EventType.OUT_OF_HOURS_ACK_SKIPPED
         )
 
-        asyncio.create_task(
+        safe_create_task(
             emit_event(BusinessEvent(
                 event_type=event_type,
                 source=EventSource.PIPELINE,
@@ -610,7 +615,8 @@ class ForaHorarioProcessor(PreProcessor):
                     "telefone_hash": context.telefone[-4:] if context.telefone else None,
                 },
                 dedupe_key=f"out_of_hours:{context.message_id}" if context.message_id else None,
-            ))
+            )),
+            name="emit_out_of_hours_event"
         )
 
         logger.debug(f"Evento {event_type.value} emitido para {cliente_id[:8]}")
@@ -812,8 +818,8 @@ class HandoffKeywordProcessor(PreProcessor):
             )
             await emit_event(event)
 
-            # Gerar resposta de agradecimento
-            resposta = self._gerar_resposta_agradecimento(action)
+            # Gerar resposta de agradecimento (usa template do banco)
+            resposta = await self._gerar_resposta_agradecimento(action)
 
             logger.info(f"Handoff {handoff['id'][:8]} processado via keyword: {action}")
 
@@ -849,14 +855,26 @@ class HandoffKeywordProcessor(PreProcessor):
 
         return None
 
-    def _gerar_resposta_agradecimento(self, action: str) -> str:
-        """Gera resposta de agradecimento para o divulgador."""
+    async def _gerar_resposta_agradecimento(self, action: str) -> str:
+        """
+        Gera resposta de agradecimento para o divulgador.
+
+        Usa templates do banco de dados com fallback para mensagens legadas.
+        """
+        from app.services.templates import get_template
+
         if action == "confirmed":
+            template = await get_template("confirmacao_aceite")
+            if template:
+                return template
             return (
                 "Anotado! Obrigada pela confirmacao.\n\n"
                 "Ja atualizei aqui no sistema. Qualquer coisa me avisa!"
             )
         else:
+            template = await get_template("confirmacao_recusa")
+            if template:
+                return template
             return (
                 "Entendido! Ja atualizei aqui.\n\n"
                 "Obrigada por avisar. Se surgir outra oportunidade, te procuro!"

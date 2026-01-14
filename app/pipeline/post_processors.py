@@ -4,10 +4,10 @@ Pos-processadores do pipeline.
 Sprint 16: Integração com policy_events via update_effect_interaction_id.
 Sprint 22: Delay inteligente por contexto via delay_engine.
 """
-import asyncio
 import logging
 import time
 
+from app.core.tasks import safe_create_task
 from .base import PostProcessor, ProcessorContext, ProcessorResult
 from app.services.delay_engine import get_delay_seconds
 from app.services.agente import enviar_resposta
@@ -255,7 +255,7 @@ class SendMessageProcessor(PostProcessor):
             return
 
         # Emitir evento em background
-        asyncio.create_task(
+        safe_create_task(
             emit_event(BusinessEvent(
                 event_type=EventType.DOCTOR_OUTBOUND,
                 source=EventSource.PIPELINE,
@@ -264,7 +264,8 @@ class SendMessageProcessor(PostProcessor):
                 event_props={
                     "message_length": len(response),
                 },
-            ))
+            )),
+            name="emit_doctor_outbound"
         )
 
         logger.debug(f"doctor_outbound emitido para cliente {cliente_id[:8]}")

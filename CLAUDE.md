@@ -14,7 +14,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 ## Estado Atual
 
-**Sprint Atual:** Entre sprints (29 completa, próxima a definir)
+**Sprint Atual:** Sprint 30 - Refatoração Arquitetural
 **Início do Projeto:** 05/12/2025
 **Última Atualização:** 13/01/2026
 
@@ -58,6 +58,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 27 | Chip Activator (VPS) | 🔄 Em Andamento |
 | 28 | Dashboard Julia | ✅ Completa |
 | 29 | Conversation Mode | ✅ Completa |
+| 30 | Refatoração Arquitetural | 🔄 Em Andamento |
 
 ### Funcionalidades Implementadas
 

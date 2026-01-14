@@ -11,12 +11,12 @@ GUARDRAIL CRÍTICO: Julia é INTERMEDIÁRIA
 - Não confirma reservas
 - Conecta médico com responsável da vaga
 """
-import asyncio
 import random
 import logging
 from dataclasses import dataclass, field
 from typing import Optional, List
 
+from app.core.tasks import safe_create_task
 from app.core.prompts import montar_prompt_julia
 from app.services.llm import gerar_resposta, gerar_resposta_com_tools, continuar_apos_tool
 from app.services.interacao import converter_historico_para_messages
@@ -558,7 +558,7 @@ async def _emitir_offer_events(
         for vaga_id in vagas_oferecidas:
             # Trava de segurança: só emite se vaga estiver aberta/anunciada
             if await vaga_pode_receber_oferta(vaga_id):
-                asyncio.create_task(
+                safe_create_task(
                     emit_event(BusinessEvent(
                         event_type=EventType.OFFER_MADE,
                         source=EventSource.BACKEND,
@@ -567,13 +567,14 @@ async def _emitir_offer_events(
                         vaga_id=vaga_id,
                         policy_decision_id=policy_decision_id,
                         event_props={},
-                    ))
+                    )),
+                    name="emit_offer_made"
                 )
                 logger.debug(f"offer_made emitido para vaga {vaga_id[:8]}")
 
     # Se não tem vaga específica mas menciona oportunidades, emitir teaser
     elif resposta and tem_mencao_oportunidade(resposta):
-        asyncio.create_task(
+        safe_create_task(
             emit_event(BusinessEvent(
                 event_type=EventType.OFFER_TEASER_SENT,
                 source=EventSource.BACKEND,
@@ -583,7 +584,8 @@ async def _emitir_offer_events(
                 event_props={
                     "resposta_length": len(resposta),
                 },
-            ))
+            )),
+            name="emit_offer_teaser_sent"
         )
         logger.debug(f"offer_teaser_sent emitido para cliente {cliente_id[:8]}")
 
@@ -786,14 +788,15 @@ async def processar_mensagem_completo(
         # Por ora, detectamos offers via menção no texto da resposta
         # TODO: Rastrear tool calls para offer_made com vaga_id específico
         if resposta:
-            asyncio.create_task(
+            safe_create_task(
                 _emitir_offer_events(
                     cliente_id=medico["id"],
                     conversa_id=conversa.get("id"),
                     resposta=resposta,
                     vagas_oferecidas=None,  # Será implementado quando rastrearmos tool calls
                     policy_decision_id=policy_decision_id,
-                )
+                ),
+                name="emitir_offer_events"
             )
 
         # 9. StateUpdate pós-envio + log effect
@@ -891,7 +894,10 @@ async def enviar_mensagens_sequencia(
             }
         )
         # Emitir evento para auditoria
-        asyncio.create_task(_emitir_fallback_event(telefone, "enviar_mensagens_sequencia"))
+        safe_create_task(
+            _emitir_fallback_event(telefone, "enviar_mensagens_sequencia"),
+            name="fallback_event_sequencia"
+        )
 
     resultados = []
 
@@ -960,7 +966,10 @@ async def enviar_resposta(
             }
         )
         # Emitir evento para auditoria
-        asyncio.create_task(_emitir_fallback_event(telefone, "enviar_resposta"))
+        safe_create_task(
+            _emitir_fallback_event(telefone, "enviar_resposta"),
+            name="fallback_event_resposta"
+        )
 
     # Quebrar resposta se necessário
     mensagens = quebrar_mensagem(resposta)

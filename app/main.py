@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer, group_entry, webhook_router, chips_dashboard
+from app.api.error_handlers import register_exception_handlers
 from fastapi.staticfiles import StaticFiles
 
 # Configurar logging
@@ -30,6 +31,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Registrar exception handlers para respostas de erro consistentes
+register_exception_handlers(app)
 
 # CORS - configurável via CORS_ORIGINS no .env
 # Desenvolvimento: CORS_ORIGINS="*" (padrão)

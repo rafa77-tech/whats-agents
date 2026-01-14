@@ -141,11 +141,31 @@ async def verificar_opted_out(cliente_id: str) -> bool:
 
 
 # Mensagem de confirmação de opt-out (tom casual da Júlia)
+# DEPRECATED: Usar get_template("optout_confirmacao") para template dinamico
 MENSAGEM_CONFIRMACAO_OPTOUT = """Entendi! Removido da lista
 
 Nao vou mais te enviar mensagens.
 
 Se mudar de ideia, é so me chamar aqui!"""
+
+
+async def get_mensagem_optout() -> str:
+    """
+    Retorna mensagem de confirmacao de opt-out.
+
+    Usa template do banco de dados com fallback para constante legada.
+
+    Returns:
+        Mensagem de confirmacao
+    """
+    from app.services.templates import get_template
+
+    template = await get_template("optout_confirmacao")
+    if template:
+        return template
+
+    # Fallback para mensagem legada
+    return MENSAGEM_CONFIRMACAO_OPTOUT
 
 
 async def pode_enviar_proativo(cliente_id: str) -> Tuple[bool, str]:

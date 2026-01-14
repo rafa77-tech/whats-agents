@@ -4,11 +4,11 @@ Fluxo de transicao IA <-> Humano.
 Sprint 10 - S10.E3.4
 Sprint 17 - E04: handoff_created event
 """
-import asyncio
 from datetime import datetime
 import logging
 from typing import Optional
 
+from app.core.tasks import safe_create_task
 from app.services.supabase import supabase
 from app.services.slack import notificar_handoff
 from app.services.chatwoot import chatwoot_service
@@ -106,7 +106,7 @@ async def iniciar_handoff(
         logger.info(f"Handoff criado: {handoff['id']}")
 
         # 4. Emitir evento handoff_created (Sprint 17 - E04)
-        asyncio.create_task(
+        safe_create_task(
             _emitir_handoff_created(
                 cliente_id=cliente_id,
                 conversa_id=conversa_id,
@@ -114,7 +114,8 @@ async def iniciar_handoff(
                 motivo=motivo,
                 trigger_type=trigger_type,
                 policy_decision_id=policy_decision_id,
-            )
+            ),
+            name="emit_handoff_created"
         )
 
         # 5. Notificar gestor no Slack
