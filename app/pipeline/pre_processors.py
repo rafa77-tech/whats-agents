@@ -9,7 +9,7 @@ from .base import PreProcessor, ProcessorContext, ProcessorResult
 from app.services.parser import parsear_mensagem, deve_processar, is_grupo
 from app.services.medico import buscar_ou_criar_medico
 from app.services.conversa import buscar_ou_criar_conversa
-from app.services.optout import detectar_optout, processar_optout, MENSAGEM_CONFIRMACAO_OPTOUT
+from app.services.optout import detectar_optout, processar_optout, get_mensagem_optout
 from app.services.handoff_detector import detectar_trigger_handoff
 from app.services.whatsapp import evolution, mostrar_online
 
@@ -381,10 +381,12 @@ class OptOutProcessor(PreProcessor):
         )
 
         if sucesso:
+            # Usar template dinamico do banco
+            mensagem_optout = await get_mensagem_optout()
             return ProcessorResult(
                 success=True,
                 should_continue=False,  # Para o pipeline
-                response=MENSAGEM_CONFIRMACAO_OPTOUT,
+                response=mensagem_optout,
                 metadata={"optout": True}
             )
 
@@ -816,8 +818,8 @@ class HandoffKeywordProcessor(PreProcessor):
             )
             await emit_event(event)
 
-            # Gerar resposta de agradecimento
-            resposta = self._gerar_resposta_agradecimento(action)
+            # Gerar resposta de agradecimento (usa template do banco)
+            resposta = await self._gerar_resposta_agradecimento(action)
 
             logger.info(f"Handoff {handoff['id'][:8]} processado via keyword: {action}")
 
@@ -853,14 +855,26 @@ class HandoffKeywordProcessor(PreProcessor):
 
         return None
 
-    def _gerar_resposta_agradecimento(self, action: str) -> str:
-        """Gera resposta de agradecimento para o divulgador."""
+    async def _gerar_resposta_agradecimento(self, action: str) -> str:
+        """
+        Gera resposta de agradecimento para o divulgador.
+
+        Usa templates do banco de dados com fallback para mensagens legadas.
+        """
+        from app.services.templates import get_template
+
         if action == "confirmed":
+            template = await get_template("confirmacao_aceite")
+            if template:
+                return template
             return (
                 "Anotado! Obrigada pela confirmacao.\n\n"
                 "Ja atualizei aqui no sistema. Qualquer coisa me avisa!"
             )
         else:
+            template = await get_template("confirmacao_recusa")
+            if template:
+                return template
             return (
                 "Entendido! Ja atualizei aqui.\n\n"
                 "Obrigada por avisar. Se surgir outra oportunidade, te procuro!"
