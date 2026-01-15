@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.logging import setup_logging
 from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer, group_entry, webhook_router, chips_dashboard
 from app.api.error_handlers import register_exception_handlers
+from app.api.middleware import TracingMiddleware
 from fastapi.staticfiles import StaticFiles
 
 # Configurar logging
@@ -34,6 +35,9 @@ app = FastAPI(
 
 # Registrar exception handlers para respostas de erro consistentes
 register_exception_handlers(app)
+
+# Sprint 31: Tracing middleware para correlation ID
+app.add_middleware(TracingMiddleware)
 
 # CORS - configurável via CORS_ORIGINS no .env
 # Desenvolvimento: CORS_ORIGINS="*" (padrão)
