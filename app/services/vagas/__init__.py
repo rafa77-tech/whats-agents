@@ -2,6 +2,7 @@
 Services de gestao de vagas.
 
 Sprint 10 - S10.E3.2
+Sprint 31 - S31.E5: Adição de EspecialidadeService e filtros
 """
 from .repository import (
     buscar_por_id as buscar_vaga_por_id,
@@ -26,6 +27,19 @@ from .service import (
     reservar_vaga,
     cancelar_reserva,
     marcar_vaga_realizada,
+)
+
+# Sprint 31 - Novos módulos
+from .especialidade_service import (
+    EspecialidadeService,
+    get_especialidade_service,
+)
+
+from .filtros import (
+    filtrar_por_periodo,
+    filtrar_por_dias_semana,
+    filtrar_por_conflitos,
+    aplicar_filtros,
 )
 
 
@@ -55,4 +69,12 @@ __all__ = [
     # Formatters
     "formatar_vaga_para_mensagem",
     "formatar_vagas_contexto",
+    # Sprint 31 - EspecialidadeService
+    "EspecialidadeService",
+    "get_especialidade_service",
+    # Sprint 31 - Filtros
+    "filtrar_por_periodo",
+    "filtrar_por_dias_semana",
+    "filtrar_por_conflitos",
+    "aplicar_filtros",
 ]

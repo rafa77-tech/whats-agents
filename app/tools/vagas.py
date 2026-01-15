@@ -1,10 +1,12 @@
 """
 Tools relacionadas a vagas e plantoes.
+
+Sprint 31 - S31.E5: Refatorado para usar services
 """
 import logging
 from typing import Any
 
-from app.services.vaga import (
+from app.services.vagas import (
     buscar_vaga_por_id,
     buscar_vagas_compativeis,
     buscar_vagas_por_regiao,
@@ -12,60 +14,33 @@ from app.services.vaga import (
     formatar_vaga_para_mensagem,
     formatar_vagas_contexto,
     verificar_conflito,
+    # Sprint 31 - Novos componentes
+    get_especialidade_service,
+    aplicar_filtros,
+    filtrar_por_conflitos,
 )
 from app.services.supabase import supabase
-from app.services.redis import cache_get_json, cache_set_json
+from app.tools.response_formatter import (
+    get_vagas_formatter,
+    get_reserva_formatter,
+)
 
 logger = logging.getLogger(__name__)
 
-# Cache para especialidade nome -> id
-CACHE_TTL_ESPECIALIDADE = 3600  # 1 hora
 
+# =============================================================================
+# Compatibilidade - função wrapper para código legado
+# =============================================================================
 
 async def _buscar_especialidade_id_por_nome(nome: str) -> str | None:
     """
     Busca ID da especialidade pelo nome (com cache).
 
-    Args:
-        nome: Nome da especialidade (ex: "Anestesiologia")
-
-    Returns:
-        UUID da especialidade ou None se não encontrada
+    DEPRECATED: Use get_especialidade_service().buscar_por_nome() diretamente.
+    Mantido para compatibilidade com código legado.
     """
-    if not nome:
-        return None
-
-    # Normalizar nome para busca
-    nome_normalizado = nome.strip().lower()
-    cache_key = f"especialidade:nome:{nome_normalizado}"
-
-    # Tentar cache
-    cached = await cache_get_json(cache_key)
-    if cached:
-        return cached.get("id")
-
-    # Buscar no banco (case insensitive)
-    try:
-        response = (
-            supabase.table("especialidades")
-            .select("id, nome")
-            .ilike("nome", f"%{nome_normalizado}%")
-            .limit(1)
-            .execute()
-        )
-
-        if response.data:
-            especialidade = response.data[0]
-            # Salvar no cache
-            await cache_set_json(cache_key, especialidade, CACHE_TTL_ESPECIALIDADE)
-            return especialidade["id"]
-
-        logger.warning(f"Especialidade '{nome}' não encontrada no banco")
-        return None
-
-    except Exception as e:
-        logger.error(f"Erro ao buscar especialidade por nome: {e}")
-        return None
+    service = get_especialidade_service()
+    return await service.buscar_por_nome(nome)
 
 
 # =============================================================================
@@ -149,12 +124,14 @@ async def handle_buscar_vagas(
     """
     Processa chamada da tool buscar_vagas.
 
+    Sprint 31 - Refatorado para usar services.
+
     Fluxo:
-    1. Extrai parametros da tool_input
-    2. Determina especialidade (solicitada vs cadastrada)
-    3. Busca vagas compativeis com especialidade
-    4. Filtra por conflitos existentes
-    5. Formata resultado para LLM (com alerta se especialidade diferente)
+    1. Parse e validação de input
+    2. Resolução de especialidade via EspecialidadeService
+    3. Busca de vagas via service existente
+    4. Aplicação de filtros via módulo de filtros
+    5. Formatação de resposta via VagasResponseFormatter
 
     Args:
         tool_input: Input da tool (especialidade, regiao, periodo, valor_minimo, etc)
@@ -164,62 +141,33 @@ async def handle_buscar_vagas(
     Returns:
         Dict com vagas encontradas e contexto formatado
     """
-    especialidade_solicitada = tool_input.get("especialidade")
+    # Services
+    especialidade_service = get_especialidade_service()
+    formatter = get_vagas_formatter()
 
-    # Limpar especialidade se veio como JSON array string (bug do LLM)
-    if especialidade_solicitada and especialidade_solicitada.startswith("["):
-        import json
-        try:
-            parsed = json.loads(especialidade_solicitada)
-            if isinstance(parsed, list) and parsed:
-                especialidade_solicitada = parsed[0]
-                logger.debug(f"Especialidade limpa de array: {especialidade_solicitada}")
-        except json.JSONDecodeError:
-            # Remove colchetes manualmente se não for JSON válido
-            especialidade_solicitada = especialidade_solicitada.strip("[]\"'")
-
+    # 1. Parse input
+    especialidade_solicitada = _limpar_especialidade_input(tool_input.get("especialidade"))
     regiao = tool_input.get("regiao")
     periodo = tool_input.get("periodo", "qualquer")
     valor_minimo = tool_input.get("valor_minimo", 0)
     dias_semana = tool_input.get("dias_semana", [])
-    limite = min(tool_input.get("limite", 5), 10)  # Max 10
+    limite = min(tool_input.get("limite", 5), 10)
 
-    # Especialidade cadastrada do médico
-    especialidade_medico = medico.get("especialidade")
-    especialidade_id = None
-    especialidade_nome = None
-    especialidade_diferente = False
-
-    # Se médico solicitou especialidade específica, usar ela
-    if especialidade_solicitada:
-        especialidade_id = await _buscar_especialidade_id_por_nome(especialidade_solicitada)
-        if especialidade_id:
-            especialidade_nome = especialidade_solicitada.title()
-            # Verificar se é diferente da cadastrada
-            if especialidade_medico and especialidade_medico.lower() != especialidade_solicitada.lower():
-                especialidade_diferente = True
-                logger.info(
-                    f"Medico pediu {especialidade_solicitada} mas cadastro e {especialidade_medico}"
-                )
-        else:
-            logger.warning(f"Especialidade '{especialidade_solicitada}' nao encontrada no banco")
-            return {
-                "success": False,
-                "error": f"Especialidade '{especialidade_solicitada}' nao encontrada",
-                "vagas": [],
-                "mensagem_sugerida": f"Nao conheco a especialidade '{especialidade_solicitada}'. Pode confirmar o nome?"
-            }
-    else:
-        # Usar especialidade cadastrada do médico
-        especialidade_id = medico.get("especialidade_id")
-        if not especialidade_id and especialidade_medico:
-            especialidade_id = await _buscar_especialidade_id_por_nome(especialidade_medico)
-        especialidade_nome = especialidade_medico
-
-    logger.info(
-        f"Buscando vagas para medico {medico.get('id')}: "
-        f"especialidade={especialidade_nome}, regiao={regiao}, periodo={periodo}"
+    # 2. Resolver especialidade
+    especialidade_id, especialidade_nome, especialidade_diferente = (
+        await especialidade_service.resolver_especialidade_medico(
+            especialidade_solicitada, medico
+        )
     )
+
+    # Validar especialidade
+    if especialidade_solicitada and not especialidade_id:
+        return {
+            "success": False,
+            "error": f"Especialidade '{especialidade_solicitada}' nao encontrada",
+            "vagas": [],
+            "mensagem_sugerida": formatter.mensagem_especialidade_nao_encontrada(especialidade_solicitada)
+        }
 
     if not especialidade_id:
         logger.warning(f"Medico {medico.get('id')} sem especialidade definida")
@@ -227,191 +175,40 @@ async def handle_buscar_vagas(
             "success": False,
             "error": "Especialidade nao identificada",
             "vagas": [],
-            "mensagem_sugerida": "Qual especialidade voce quer buscar? Me fala que eu procuro pra voce"
+            "mensagem_sugerida": formatter.mensagem_especialidade_nao_identificada()
         }
 
-    # Atualizar medico dict para usar nas próximas funções
+    logger.info(
+        f"Buscando vagas para medico {medico.get('id')}: "
+        f"especialidade={especialidade_nome}, regiao={regiao}, periodo={periodo}"
+    )
+
+    # Atualizar medico dict
     medico["especialidade_id"] = especialidade_id
-
-    # Aplicar preferencias extras do input da tool
-    preferencias_extras = {}
-    if valor_minimo > 0:
-        preferencias_extras["valor_minimo"] = valor_minimo
-
-    # Merge com preferencias existentes do medico
-    preferencias_medico = medico.get("preferencias_detectadas") or {}
-    preferencias_combinadas = {**preferencias_medico, **preferencias_extras}
-
-    # Atualizar medico dict temporariamente para busca
-    medico_com_prefs = {**medico, "preferencias_detectadas": preferencias_combinadas}
+    medico_com_prefs = _preparar_medico_com_preferencias(medico, valor_minimo)
 
     try:
-        # Buscar vagas (com priorização por região se disponível)
-        if regiao:
-            vagas = await buscar_vagas_por_regiao(
-                medico=medico_com_prefs,
-                limite=limite * 2  # Buscar mais para filtrar
-            )
-        else:
-            vagas = await buscar_vagas_compativeis(
-                medico=medico_com_prefs,
-                limite=limite * 2
-            )
-
-        # Guardar total inicial para mensagens informativas
+        # 3. Buscar vagas
+        vagas = await _buscar_vagas_base(medico_com_prefs, regiao, limite)
         total_inicial = len(vagas)
-        filtros_aplicados = []
 
-        # Filtrar por período se especificado
-        total_antes_periodo = len(vagas)
-        if periodo and periodo != "qualquer":
-            vagas, _ = _filtrar_por_periodo(vagas, periodo)
-            if len(vagas) < total_antes_periodo:
-                filtros_aplicados.append(f"período {periodo}")
+        # 4. Aplicar filtros
+        vagas, filtros_aplicados = aplicar_filtros(vagas, periodo, dias_semana)
+        vagas = await filtrar_por_conflitos(vagas, medico["id"], verificar_conflito)
+        vagas_final = vagas[:limite]
 
-        # Filtrar por dias da semana se especificado
-        total_antes_dias = len(vagas)
-        if dias_semana:
-            vagas, _ = _filtrar_por_dias_semana(vagas, dias_semana)
-            if len(vagas) < total_antes_dias:
-                filtros_aplicados.append(f"dias {', '.join(dias_semana)}")
-
-        # Filtrar conflitos (vagas em dia/período que médico já tem plantão)
-        vagas_sem_conflito = []
-        for vaga in vagas:
-            data = vaga.get("data")
-            periodo_id = vaga.get("periodo_id")
-
-            if data and periodo_id:
-                tem_conflito = await verificar_conflito(
-                    cliente_id=medico["id"],
-                    data=data,
-                    periodo_id=periodo_id
-                )
-                if not tem_conflito:
-                    vagas_sem_conflito.append(vaga)
-                else:
-                    logger.debug(f"Vaga {vaga['id']} filtrada: conflito de horario")
-            else:
-                vagas_sem_conflito.append(vaga)
-
-        # Limitar resultado final
-        vagas_final = vagas_sem_conflito[:limite]
-
+        # 5. Formatar resposta
         if not vagas_final:
-            logger.info(f"Nenhuma vaga encontrada para especialidade {especialidade_nome}")
-
-            # Se havia vagas mas os filtros eliminaram tudo, informar ao médico
-            if total_inicial > 0 and filtros_aplicados:
-                return {
-                    "success": True,
-                    "vagas": [],
-                    "total_encontradas": 0,
-                    "total_sem_filtros": total_inicial,
-                    "filtros_aplicados": filtros_aplicados,
-                    "especialidade_buscada": especialidade_nome,
-                    "mensagem_sugerida": (
-                        f"Nao encontrei vagas de {especialidade_nome} com {' e '.join(filtros_aplicados)}. "
-                        f"Mas tem {total_inicial} vagas de {especialidade_nome} no geral. Quer ver?"
-                    )
-                }
-
-            # Se buscou especialidade diferente da cadastrada e não encontrou, sugerir a cadastrada
-            if especialidade_diferente and especialidade_medico:
-                return {
-                    "success": True,
-                    "vagas": [],
-                    "total_encontradas": 0,
-                    "especialidade_buscada": especialidade_nome,
-                    "especialidade_cadastrada": especialidade_medico,
-                    "mensagem_sugerida": (
-                        f"Nao tenho vaga de {especialidade_nome} no momento. "
-                        f"Mas vi que voce e de {especialidade_medico} - quer que eu veja as vagas dessa especialidade?"
-                    )
-                }
-
-            return {
-                "success": True,
-                "vagas": [],
-                "total_encontradas": 0,
-                "especialidade_buscada": especialidade_nome,
-                "mensagem_sugerida": f"Nao tem vaga de {especialidade_nome} no momento. Mas assim que surgir algo, te aviso!"
-            }
-
-        # Formatar para contexto do LLM
-        # Prioridade: objeto relacionado > campo texto
-        # Nota: medico.get("especialidades") pode retornar None, não {}
-        medico_especialidades = medico.get("especialidades") or {}
-        especialidade_nome = (
-            medico_especialidades.get("nome") if isinstance(medico_especialidades, dict) else None
-        ) or medico.get("especialidade")
-        contexto_formatado = formatar_vagas_contexto(vagas_final, especialidade_nome)
-
-        # Preparar lista simplificada para resposta
-        # Nota: objetos relacionados podem ser None, tratar com cuidado
-        vagas_resumo = []
-        for v in vagas_final:
-            hospitais = v.get("hospitais") or {}
-            periodos = v.get("periodos") or {}
-            setores = v.get("setores") or {}
-            especialidades = v.get("especialidades") or {}
-
-            vagas_resumo.append({
-                # UUID PARA USO INTERNO - use este ID ao chamar criar_handoff_externo
-                "VAGA_ID_PARA_HANDOFF": v.get("id"),
-                "hospital": hospitais.get("nome") if isinstance(hospitais, dict) else None,
-                "cidade": hospitais.get("cidade") if isinstance(hospitais, dict) else None,
-                "data": v.get("data"),
-                "periodo": periodos.get("nome") if isinstance(periodos, dict) else None,
-                # Campos de valor expandidos (Sprint 19)
-                "valor": v.get("valor"),
-                "valor_minimo": v.get("valor_minimo"),
-                "valor_maximo": v.get("valor_maximo"),
-                "valor_tipo": v.get("valor_tipo", "fixo"),
-                "valor_display": _formatar_valor_display(v),
-                "setor": setores.get("nome") if isinstance(setores, dict) else None,
-                "especialidade": (especialidades.get("nome") if isinstance(especialidades, dict) else None) or especialidade_nome,
-            })
-
-        logger.info(f"Encontradas {len(vagas_final)} vagas para medico {medico.get('id')}")
-
-        # Construir instrução baseada no contexto
-        instrucao_base = (
-            f"Estas vagas sao de {especialidade_nome}. "
-            "Apresente as vagas de forma natural, uma por vez. "
-            "SEMPRE mencione a DATA do plantao (dia/mes). "
-            "\n\n"
-            "CRITICO - HANDOFF:\n"
-            "- Cada vaga tem um campo 'VAGA_ID_PARA_HANDOFF' (UUID)\n"
-            "- Quando o medico aceitar ('fechou', 'quero essa'), use criar_handoff_externo\n"
-            "- O parametro vaga_id DEVE ser o valor de VAGA_ID_PARA_HANDOFF\n"
-            "- NUNCA pergunte o ID ao medico - voce ja tem nos dados acima\n"
-            "- NUNCA invente IDs - use EXATAMENTE o UUID que esta em VAGA_ID_PARA_HANDOFF\n"
-            "\n"
-            "IMPORTANTE: Para vagas 'a combinar', informe que o valor sera negociado com o responsavel. "
-            "Nao invente valores - use apenas o que esta nos dados da vaga."
-        )
-
-        # Alerta se especialidade diferente da cadastrada
-        alerta_especialidade = None
-        if especialidade_diferente:
-            alerta_especialidade = (
-                f"ALERTA: O medico pediu vagas de {especialidade_nome}, mas o cadastro dele e {especialidade_medico}. "
-                f"Mencione naturalmente que encontrou vagas de {especialidade_nome} como ele pediu, "
-                f"mas confirme se ele tambem atua nessa area ou se quer ver vagas de {especialidade_medico}."
+            return _construir_resposta_sem_vagas(
+                formatter, especialidade_nome, total_inicial,
+                filtros_aplicados, especialidade_diferente,
+                medico.get("especialidade")
             )
-            instrucao_base = alerta_especialidade + " " + instrucao_base
 
-        return {
-            "success": True,
-            "vagas": vagas_resumo,
-            "total_encontradas": len(vagas_final),
-            "especialidade_buscada": especialidade_nome,
-            "especialidade_cadastrada": especialidade_medico,
-            "especialidade_diferente": especialidade_diferente,
-            "contexto": contexto_formatado,
-            "instrucao": instrucao_base
-        }
+        return _construir_resposta_com_vagas(
+            formatter, vagas_final, especialidade_nome,
+            especialidade_diferente, medico.get("especialidade")
+        )
 
     except Exception as e:
         logger.error(f"Erro ao buscar vagas: {e}")
@@ -419,76 +216,136 @@ async def handle_buscar_vagas(
             "success": False,
             "error": str(e),
             "vagas": [],
-            "mensagem_sugerida": "Tive um probleminha aqui, me da um minuto que ja te mostro as vagas"
+            "mensagem_sugerida": formatter.mensagem_erro_generico()
         }
+
+
+def _limpar_especialidade_input(especialidade: str | None) -> str | None:
+    """Limpa input de especialidade (bug do LLM envia como array)."""
+    if not especialidade:
+        return None
+
+    if especialidade.startswith("["):
+        import json
+        try:
+            parsed = json.loads(especialidade)
+            if isinstance(parsed, list) and parsed:
+                return parsed[0]
+        except json.JSONDecodeError:
+            return especialidade.strip("[]\"'")
+
+    return especialidade
+
+
+def _preparar_medico_com_preferencias(medico: dict, valor_minimo: float) -> dict:
+    """Prepara dict do médico com preferências para busca."""
+    preferencias_extras = {}
+    if valor_minimo > 0:
+        preferencias_extras["valor_minimo"] = valor_minimo
+
+    preferencias_medico = medico.get("preferencias_detectadas") or {}
+    preferencias_combinadas = {**preferencias_medico, **preferencias_extras}
+
+    return {**medico, "preferencias_detectadas": preferencias_combinadas}
+
+
+async def _buscar_vagas_base(medico: dict, regiao: str | None, limite: int) -> list[dict]:
+    """Busca vagas base (com ou sem priorização por região)."""
+    if regiao:
+        return await buscar_vagas_por_regiao(medico=medico, limite=limite * 2)
+    return await buscar_vagas_compativeis(medico=medico, limite=limite * 2)
+
+
+def _construir_resposta_sem_vagas(
+    formatter,
+    especialidade_nome: str,
+    total_inicial: int,
+    filtros_aplicados: list[str],
+    especialidade_diferente: bool,
+    especialidade_cadastrada: str | None
+) -> dict:
+    """Constrói resposta quando não há vagas."""
+    logger.info(f"Nenhuma vaga encontrada para especialidade {especialidade_nome}")
+
+    mensagem = formatter.mensagem_sem_vagas(
+        especialidade_nome=especialidade_nome,
+        total_sem_filtros=total_inicial,
+        filtros_aplicados=filtros_aplicados if filtros_aplicados else None,
+        especialidade_diferente=especialidade_diferente,
+        especialidade_cadastrada=especialidade_cadastrada
+    )
+
+    result = {
+        "success": True,
+        "vagas": [],
+        "total_encontradas": 0,
+        "especialidade_buscada": especialidade_nome,
+        "mensagem_sugerida": mensagem
+    }
+
+    if filtros_aplicados:
+        result["total_sem_filtros"] = total_inicial
+        result["filtros_aplicados"] = filtros_aplicados
+
+    if especialidade_diferente:
+        result["especialidade_cadastrada"] = especialidade_cadastrada
+
+    return result
+
+
+def _construir_resposta_com_vagas(
+    formatter,
+    vagas: list[dict],
+    especialidade_nome: str,
+    especialidade_diferente: bool,
+    especialidade_cadastrada: str | None
+) -> dict:
+    """Constrói resposta com vagas encontradas."""
+    logger.info(f"Encontradas {len(vagas)} vagas")
+
+    # Formatar vagas
+    vagas_resumo = formatter.formatar_vagas_resumo(vagas, especialidade_nome)
+    contexto_formatado = formatar_vagas_contexto(vagas, especialidade_nome)
+
+    # Construir instrução
+    instrucao = formatter.construir_instrucao_vagas(
+        especialidade_nome=especialidade_nome,
+        especialidade_diferente=especialidade_diferente,
+        especialidade_cadastrada=especialidade_cadastrada
+    )
+
+    return {
+        "success": True,
+        "vagas": vagas_resumo,
+        "total_encontradas": len(vagas),
+        "especialidade_buscada": especialidade_nome,
+        "especialidade_cadastrada": especialidade_cadastrada,
+        "especialidade_diferente": especialidade_diferente,
+        "contexto": contexto_formatado,
+        "instrucao": instrucao
+    }
 
 
 def _formatar_valor_display(vaga: dict) -> str:
     """
-    Formata valor para exibicao na resposta da tool.
+    Formata valor para exibição na resposta da tool.
 
-    Args:
-        vaga: Dados da vaga
-
-    Returns:
-        String formatada para exibicao
+    DEPRECATED: Use get_vagas_formatter().formatar_valor_display() diretamente.
+    Mantido para compatibilidade com código legado.
     """
-    valor_tipo = vaga.get("valor_tipo", "fixo")
-    valor = vaga.get("valor")
-    valor_minimo = vaga.get("valor_minimo")
-    valor_maximo = vaga.get("valor_maximo")
-
-    if valor_tipo == "fixo" and valor:
-        return f"R$ {valor:,.0f}".replace(",", ".")
-
-    elif valor_tipo == "faixa":
-        if valor_minimo and valor_maximo:
-            return f"R$ {valor_minimo:,.0f} a R$ {valor_maximo:,.0f}".replace(",", ".")
-        elif valor_minimo:
-            return f"a partir de R$ {valor_minimo:,.0f}".replace(",", ".")
-        elif valor_maximo:
-            return f"ate R$ {valor_maximo:,.0f}".replace(",", ".")
-
-    elif valor_tipo == "a_combinar":
-        return "a combinar"
-
-    if valor:
-        return f"R$ {valor:,.0f}".replace(",", ".")
-
-    return "nao informado"
+    formatter = get_vagas_formatter()
+    return formatter.formatar_valor_display(vaga)
 
 
 def _construir_instrucao_confirmacao(vaga: dict, hospital_data: dict) -> str:
     """
-    Constroi instrucao de confirmacao baseada no tipo de valor.
+    Constrói instrução de confirmação baseada no tipo de valor.
 
-    Args:
-        vaga: Dados da vaga
-        hospital_data: Dados do hospital
-
-    Returns:
-        Instrucao para o LLM
+    DEPRECATED: Use get_reserva_formatter().construir_instrucao_confirmacao() diretamente.
+    Mantido para compatibilidade com código legado.
     """
-    valor_tipo = vaga.get("valor_tipo", "fixo")
-    endereco = hospital_data.get("endereco_formatado") or "endereco nao disponivel"
-
-    instrucao = "Confirme a reserva mencionando o hospital, data e periodo. "
-
-    if valor_tipo == "fixo":
-        valor = vaga.get("valor")
-        if valor:
-            instrucao += f"Mencione o valor de R$ {valor}. "
-    elif valor_tipo == "faixa":
-        instrucao += "Mencione que o valor sera dentro da faixa acordada. "
-    elif valor_tipo == "a_combinar":
-        instrucao += (
-            "Informe que o valor sera combinado diretamente com o hospital/gestor. "
-            "Pergunte se o medico tem alguma expectativa de valor para repassar. "
-        )
-
-    instrucao += f"Se o medico perguntar o endereco, use: {endereco}"
-
-    return instrucao
+    formatter = get_reserva_formatter()
+    return formatter.construir_instrucao_confirmacao(vaga, hospital_data)
 
 
 def _construir_instrucao_ponte_externa(
@@ -498,147 +355,35 @@ def _construir_instrucao_ponte_externa(
     medico: dict,
 ) -> str:
     """
-    Constroi instrucao de confirmacao para vaga com ponte externa.
+    Constrói instrução de confirmação para vaga com ponte externa.
 
-    Sprint 20 - Marketplace assistido.
-
-    Args:
-        vaga: Dados da vaga
-        hospital_data: Dados do hospital
-        ponte_externa: Resultado da criacao da ponte
-        medico: Dados do medico
-
-    Returns:
-        Instrucao para o LLM
+    DEPRECATED: Use get_reserva_formatter().construir_instrucao_ponte_externa() diretamente.
+    Mantido para compatibilidade com código legado.
     """
-    divulgador = ponte_externa.get("divulgador", {})
-    divulgador_nome = divulgador.get("nome", "o responsavel")
-    divulgador_tel = divulgador.get("telefone", "")
-    divulgador_empresa = divulgador.get("empresa", "")
-
-    # Montar info do divulgador
-    info_divulgador = divulgador_nome
-    if divulgador_empresa:
-        info_divulgador += f" ({divulgador_empresa})"
-
-    instrucao = (
-        f"IMPORTANTE: Esta vaga e de um divulgador externo ({info_divulgador}). "
-        f"Voce JA ENTROU EM CONTATO com ele e passou os dados do medico.\n\n"
-        f"Informe ao medico que:\n"
-        f"1. Voce reservou a vaga\n"
-        f"2. Ja contatou o responsavel ({divulgador_nome})"
-    )
-
-    if divulgador_tel:
-        instrucao += f"\n3. Passe o contato: {divulgador_tel}"
-
-    instrucao += (
-        "\n\nPeca para o medico confirmar aqui quando fechar o plantao. "
-        "Fale de forma natural, como se voce tivesse acabado de fazer a ponte entre eles."
-    )
-
-    # Adicionar info de valor se aplicavel
-    valor_tipo = vaga.get("valor_tipo", "fixo")
-    if valor_tipo == "a_combinar":
-        instrucao += (
-            "\n\nComo o valor e 'a combinar', mencione que o medico deve "
-            "negociar diretamente com o divulgador."
-        )
-
-    return instrucao
+    formatter = get_reserva_formatter()
+    return formatter.construir_instrucao_ponte_externa(vaga, hospital_data, ponte_externa, medico)
 
 
 def _filtrar_por_periodo(vagas: list[dict], periodo_desejado: str) -> tuple[list[dict], int]:
     """
     Filtra vagas por tipo de período.
 
-    Args:
-        vagas: Lista de vagas
-        periodo_desejado: 'diurno', 'noturno', '12h', '24h'
-
-    Returns:
-        Tupla (vagas_filtradas, total_antes_filtro)
+    DEPRECATED: Use app.services.vagas.filtrar_por_periodo() diretamente.
+    Mantido para compatibilidade com código legado.
     """
-    mapeamento = {
-        "diurno": ["diurno", "dia", "manha", "tarde", "meio período (manhã)"],
-        "noturno": ["noturno", "noite", "cinderela"],
-        "vespertino": ["vespertino", "tarde", "meio período (tarde)"],
-        "12h": ["12h", "12 horas"],
-        "24h": ["24h", "24 horas"],
-    }
-
-    termos = mapeamento.get(periodo_desejado.lower(), [periodo_desejado.lower()])
-    total_antes = len(vagas)
-
-    resultado = []
-    for v in vagas:
-        periodo_nome = ((v.get("periodos") or {}).get("nome") or "").lower()
-        if any(termo in periodo_nome for termo in termos):
-            resultado.append(v)
-
-    if not resultado and total_antes > 0:
-        logger.info(
-            f"Filtro de período '{periodo_desejado}' não encontrou vagas "
-            f"(havia {total_antes} antes do filtro)"
-        )
-
-    return resultado, total_antes
+    from app.services.vagas.filtros import filtrar_por_periodo
+    return filtrar_por_periodo(vagas, periodo_desejado)
 
 
 def _filtrar_por_dias_semana(vagas: list[dict], dias_desejados: list[str]) -> tuple[list[dict], int]:
     """
     Filtra vagas por dias da semana.
 
-    Args:
-        vagas: Lista de vagas
-        dias_desejados: Lista de dias (ex: ['segunda', 'terca'])
-
-    Returns:
-        Tupla (vagas_filtradas, total_antes_filtro)
+    DEPRECATED: Use app.services.vagas.filtrar_por_dias_semana() diretamente.
+    Mantido para compatibilidade com código legado.
     """
-    from datetime import datetime
-
-    total_antes = len(vagas)
-
-    dias_map = {
-        "segunda": 0, "seg": 0,
-        "terca": 1, "ter": 1,
-        "quarta": 2, "qua": 2,
-        "quinta": 3, "qui": 3,
-        "sexta": 4, "sex": 4,
-        "sabado": 5, "sab": 5,
-        "domingo": 6, "dom": 6,
-    }
-
-    dias_indices = set()
-    for d in dias_desejados:
-        d_lower = d.lower().replace("ç", "c").replace("-feira", "")
-        if d_lower in dias_map:
-            dias_indices.add(dias_map[d_lower])
-
-    if not dias_indices:
-        return vagas, total_antes
-
-    resultado = []
-    for v in vagas:
-        data_str = v.get("data")
-        if data_str:
-            try:
-                data_obj = datetime.strptime(data_str, "%Y-%m-%d")
-                if data_obj.weekday() in dias_indices:
-                    resultado.append(v)
-            except ValueError:
-                # Data inválida - não incluir (antes incluía silenciosamente)
-                logger.debug(f"Vaga com data inválida ignorada: {data_str}")
-        # Vagas sem data não são incluídas
-
-    if not resultado and total_antes > 0:
-        logger.info(
-            f"Filtro de dias '{dias_desejados}' não encontrou vagas "
-            f"(havia {total_antes} antes do filtro)"
-        )
-
-    return resultado, total_antes
+    from app.services.vagas.filtros import filtrar_por_dias_semana
+    return filtrar_por_dias_semana(vagas, dias_desejados)
 
 
 TOOL_RESERVAR_PLANTAO = {
