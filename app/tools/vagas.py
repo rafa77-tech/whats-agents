@@ -364,26 +364,32 @@ def _construir_instrucao_ponte_externa(
     return formatter.construir_instrucao_ponte_externa(vaga, hospital_data, ponte_externa, medico)
 
 
-def _filtrar_por_periodo(vagas: list[dict], periodo_desejado: str) -> tuple[list[dict], int]:
+def _filtrar_por_periodo(vagas: list[dict], periodo_desejado: str) -> list[dict]:
     """
     Filtra vagas por tipo de período.
 
     DEPRECATED: Use app.services.vagas.filtrar_por_periodo() diretamente.
     Mantido para compatibilidade com código legado.
+
+    Note: Retorna lista vazia se não houver match (comportamento original).
     """
     from app.services.vagas.filtros import filtrar_por_periodo
-    return filtrar_por_periodo(vagas, periodo_desejado)
+    resultado, _ = filtrar_por_periodo(vagas, periodo_desejado)
+    return resultado
 
 
-def _filtrar_por_dias_semana(vagas: list[dict], dias_desejados: list[str]) -> tuple[list[dict], int]:
+def _filtrar_por_dias_semana(vagas: list[dict], dias_desejados: list[str]) -> list[dict]:
     """
     Filtra vagas por dias da semana.
 
     DEPRECATED: Use app.services.vagas.filtrar_por_dias_semana() diretamente.
     Mantido para compatibilidade com código legado.
+
+    Note: Retorna lista vazia se não houver match (comportamento original).
     """
     from app.services.vagas.filtros import filtrar_por_dias_semana
-    return filtrar_por_dias_semana(vagas, dias_desejados)
+    resultado, _ = filtrar_por_dias_semana(vagas, dias_desejados)
+    return resultado
 
 
 TOOL_RESERVAR_PLANTAO = {

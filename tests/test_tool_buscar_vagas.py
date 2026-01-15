@@ -93,14 +93,14 @@ class TestFiltrarPorPeriodo:
         assert "1" in ids
         assert "3" in ids
 
-    def test_sem_match_retorna_original(self):
-        """Se nenhuma vaga match, retorna todas."""
+    def test_sem_match_retorna_vazio(self):
+        """Se nenhuma vaga match, retorna lista vazia."""
         vagas = [
             {"id": "1", "periodos": {"nome": "Especial"}},
             {"id": "2", "periodos": {"nome": "Plantao X"}},
         ]
         resultado = _filtrar_por_periodo(vagas, "diurno")
-        assert len(resultado) == 2
+        assert len(resultado) == 0
 
     def test_periodo_none_nao_quebra(self):
         """Periodo None nao causa erro."""
@@ -164,23 +164,24 @@ class TestFiltrarPorDiasSemana:
         assert "2" in ids
         assert "3" in ids
 
-    def test_sem_match_retorna_original(self):
-        """Se nenhuma vaga match, retorna todas."""
+    def test_sem_match_retorna_vazio(self):
+        """Se nenhuma vaga match, retorna lista vazia."""
         vagas = [
             {"id": "1", "data": "2025-12-15"},  # Segunda
             {"id": "2", "data": "2025-12-16"},  # Terca
         ]
         resultado = _filtrar_por_dias_semana(vagas, ["sabado"])
-        assert len(resultado) == 2
+        assert len(resultado) == 0
 
-    def test_data_invalida_inclui_vaga(self):
-        """Data invalida nao causa erro, inclui vaga."""
+    def test_data_invalida_exclui_vaga(self):
+        """Data invalida exclui a vaga do resultado."""
         vagas = [
             {"id": "1", "data": "invalid-date"},
-            {"id": "2", "data": "2025-12-15"},
+            {"id": "2", "data": "2025-12-15"},  # Segunda
         ]
         resultado = _filtrar_por_dias_semana(vagas, ["segunda"])
-        assert len(resultado) == 2
+        assert len(resultado) == 1
+        assert resultado[0]["id"] == "2"
 
     def test_dias_vazios_retorna_todas(self):
         """Lista de dias vazia retorna todas as vagas."""
