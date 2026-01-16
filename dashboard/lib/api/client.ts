@@ -41,14 +41,14 @@ export const api = {
     apiClient<T>(endpoint, {
       ...options,
       method: "POST",
-      body: data ? JSON.stringify(data) : undefined,
+      ...(data !== undefined && { body: JSON.stringify(data) }),
     }),
 
   put: <T>(endpoint: string, data?: unknown, options?: FetchOptions) =>
     apiClient<T>(endpoint, {
       ...options,
       method: "PUT",
-      body: data ? JSON.stringify(data) : undefined,
+      ...(data !== undefined && { body: JSON.stringify(data) }),
     }),
 
   delete: <T>(endpoint: string, options?: FetchOptions) =>
