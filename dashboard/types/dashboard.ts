@@ -128,6 +128,22 @@ export interface ChipSummary {
   lastActive: string | null;
 }
 
+export interface ChipDetail {
+  id: string;
+  name: string;
+  telefone: string;
+  status: ChipStatus;
+  trustScore: number;
+  trustLevel: TrustLevel;
+  messagesToday: number;
+  dailyLimit: number;
+  responseRate: number;
+  errorsLast24h: number;
+  hasActiveAlert: boolean;
+  alertMessage?: string;
+  warmingDay?: number; // se estiver em warming
+}
+
 export interface ChipPoolMetrics {
   totalChips: number;
   activeChips: number;

@@ -14,12 +14,14 @@ import { MetricsSection } from "@/components/dashboard/metrics-section";
 import { QualityMetricsSection } from "@/components/dashboard/quality-metrics-section";
 import { OperationalStatus } from "@/components/dashboard/operational-status";
 import { ChipPoolOverview } from "@/components/dashboard/chip-pool-overview";
+import { ChipListTable } from "@/components/dashboard/chip-list-table";
 import { type DashboardPeriod } from "@/types/dashboard";
 import {
   mockMetricsVsMeta,
   mockQualityMetrics,
   mockOperationalStatus,
   mockChipPoolOverview,
+  mockChipsList,
 } from "@/lib/mock/dashboard-data";
 
 export default function DashboardPage() {
@@ -74,8 +76,12 @@ export default function DashboardPage() {
         </section>
 
         {/* E06 - Pool de Chips - Visao Geral */}
-        <section aria-label="Pool de Chips">
+        <section aria-label="Pool de Chips" className="space-y-6">
           <ChipPoolOverview data={mockChipPoolOverview} />
+          {/* E07 - Lista Detalhada de Chips */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <ChipListTable chips={mockChipsList} />
+          </div>
         </section>
 
         {/* Funil de Conversão - E10, E11 implementarão */}

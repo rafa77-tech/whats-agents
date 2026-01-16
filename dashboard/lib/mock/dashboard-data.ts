@@ -11,6 +11,7 @@ import {
   type QualityMetricData,
   type OperationalStatusData,
   type ChipPoolOverviewData,
+  type ChipDetail,
 } from "@/types/dashboard";
 
 // ============================================================================
@@ -134,3 +135,77 @@ export const mockChipPoolOverview: ChipPoolOverviewData = {
     previousErrors: 16,
   },
 };
+
+// ============================================================================
+// E07 - Chip List Detailed
+// ============================================================================
+
+export const mockChipsList: ChipDetail[] = [
+  {
+    id: "1",
+    name: "Julia-01",
+    telefone: "+5511999990001",
+    status: "active",
+    trustScore: 92,
+    trustLevel: "verde",
+    messagesToday: 47,
+    dailyLimit: 100,
+    responseRate: 96.2,
+    errorsLast24h: 0,
+    hasActiveAlert: false,
+  },
+  {
+    id: "2",
+    name: "Julia-02",
+    telefone: "+5511999990002",
+    status: "active",
+    trustScore: 88,
+    trustLevel: "verde",
+    messagesToday: 52,
+    dailyLimit: 100,
+    responseRate: 94.8,
+    errorsLast24h: 1,
+    hasActiveAlert: false,
+  },
+  {
+    id: "3",
+    name: "Julia-03",
+    telefone: "+5511999990003",
+    status: "ready",
+    trustScore: 85,
+    trustLevel: "verde",
+    messagesToday: 0,
+    dailyLimit: 100,
+    responseRate: 0,
+    errorsLast24h: 0,
+    hasActiveAlert: false,
+  },
+  {
+    id: "4",
+    name: "Julia-04",
+    telefone: "+5511999990004",
+    status: "warming",
+    trustScore: 72,
+    trustLevel: "amarelo",
+    messagesToday: 15,
+    dailyLimit: 30,
+    responseRate: 91.0,
+    errorsLast24h: 0,
+    hasActiveAlert: false,
+    warmingDay: 14,
+  },
+  {
+    id: "5",
+    name: "Julia-05",
+    telefone: "+5511999990005",
+    status: "degraded",
+    trustScore: 48,
+    trustLevel: "laranja",
+    messagesToday: 8,
+    dailyLimit: 30,
+    responseRate: 78.5,
+    errorsLast24h: 3,
+    hasActiveAlert: true,
+    alertMessage: "Trust baixo",
+  },
+];
