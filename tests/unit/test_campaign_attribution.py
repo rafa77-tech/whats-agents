@@ -245,6 +245,7 @@ class TestInvarianteC2:
              patch("app.services.outbound.verificar_e_reservar", new_callable=AsyncMock) as mock_dedupe, \
              patch("app.services.outbound.check_outbound_guardrails", new_callable=AsyncMock) as mock_guardrails, \
              patch("app.services.outbound.marcar_enviado", new_callable=AsyncMock) as mock_marcar, \
+             patch("app.services.outbound._verificar_dev_allowlist", return_value=(True, None)) as mock_dev, \
              patch("app.services.campaign_attribution.supabase") as mock_supabase, \
              patch("app.services.campaign_attribution.emit_event", new_callable=AsyncMock) as mock_emit:
 

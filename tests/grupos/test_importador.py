@@ -522,8 +522,10 @@ class TestThresholds:
     """Testes dos thresholds."""
 
     def test_threshold_importar(self):
-        """Threshold de importação deve ser 90%."""
-        assert THRESHOLD_IMPORTAR == 0.90
+        """Threshold de importação deve ser 85% - Sprint 29."""
+        # Sprint 29: Baixado de 0.90 para 0.85 - Julia intermedia ofertas,
+        # então vagas com confiança média-alta podem ser importadas
+        assert THRESHOLD_IMPORTAR == 0.85
 
     def test_threshold_revisar(self):
         """Threshold de revisão deve ser 70%."""

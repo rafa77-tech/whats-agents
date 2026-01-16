@@ -2,6 +2,7 @@
 Testes unitarios para delay_engine.
 
 Sprint 22 - Responsividade Inteligente
+Sprint 29 - Delays reduzidos para agilidade máxima
 """
 import pytest
 from datetime import datetime, timedelta
@@ -49,10 +50,11 @@ class TestDelayConfig:
         assert config.prioridade == 1
 
     def test_campanha_fria_eh_lenta(self):
-        """Campanha fria deve ter delay longo (60-180s)."""
+        """Campanha fria deve ter delay moderado (10-30s) - Sprint 29."""
         config = DELAY_CONFIG[ContextType.CAMPANHA_FRIA]
-        assert config.min_ms >= 60000
-        assert config.max_ms <= 180000
+        # Sprint 29: Delays reduzidos para agilidade máxima
+        assert config.min_ms >= 10000
+        assert config.max_ms <= 30000
         assert config.prioridade == 5
 
 
@@ -88,7 +90,7 @@ class TestCalcularDelay:
         assert resultado.tipo == ContextType.ACEITE_VAGA
 
     def test_delay_campanha_fria(self):
-        """Delay para campanha fria deve ser 60-180s."""
+        """Delay para campanha fria deve ser 10-30s - Sprint 29."""
         classificacao = ContextClassification(
             tipo=ContextType.CAMPANHA_FRIA,
             prioridade=5,
@@ -97,8 +99,9 @@ class TestCalcularDelay:
         )
         resultado = calcular_delay(classificacao)
 
-        assert resultado.delay_ms >= 50000  # Com variacao pode ser menor
-        assert resultado.delay_ms <= 200000  # Com variacao pode ser maior
+        # Sprint 29: Delays reduzidos para agilidade máxima
+        assert resultado.delay_ms >= 8000  # Com variacao pode ser menor
+        assert resultado.delay_ms <= 40000  # Com variacao pode ser maior
         assert resultado.prioridade == 5
 
     def test_desconta_tempo_processamento(self):
@@ -215,9 +218,9 @@ class TestCalcularDelayParaResposta:
             outbound_ctx=ctx,
         )
 
-        # Campanha deve ter delay longo
+        # Campanha deve ter delay moderado - Sprint 29
         assert resultado.tipo == ContextType.CAMPANHA_FRIA
-        assert resultado.delay_ms >= 50000
+        assert resultado.delay_ms >= 8000  # Reduzido na Sprint 29
 
 
 class TestGetDelaySeconds:

@@ -7,7 +7,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import patch, AsyncMock, MagicMock
 
-from app.templates.aberturas import (
+from app.fragmentos.aberturas import (
     SAUDACOES,
     APRESENTACOES,
     CONTEXTOS,
@@ -19,8 +19,8 @@ from app.templates.aberturas import (
 )
 
 
-class TestTemplatesAberturas:
-    """Testes para os templates de abertura."""
+class TestFragmentosAberturas:
+    """Testes para os fragmentos de abertura."""
 
     def test_tem_saudacoes_suficientes(self):
         """Deve ter pelo menos 15 saudacoes."""

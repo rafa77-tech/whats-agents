@@ -73,6 +73,7 @@ class TestSendOutcomeEnum:
     def test_enum_values_match_db(self):
         """Valores do enum devem corresponder ao banco."""
         # Estes valores devem corresponder ao enum no PostgreSQL
+        # Sprint 29+: Adicionados BLOCKED_DEV_ALLOWLIST, BLOCKED_QUIET_HOURS, FAILED_BANNED
         expected_values = {
             "SENT",
             "BLOCKED_OPTED_OUT",
@@ -82,11 +83,14 @@ class TestSendOutcomeEnum:
             "BLOCKED_CAMPAIGNS_DISABLED",
             "BLOCKED_SAFE_MODE",
             "BLOCKED_CAMPAIGN_COOLDOWN",
+            "BLOCKED_DEV_ALLOWLIST",
+            "BLOCKED_QUIET_HOURS",
             "DEDUPED",
             "FAILED_PROVIDER",
             "FAILED_VALIDATION",
             "FAILED_RATE_LIMIT",
             "FAILED_CIRCUIT_OPEN",
+            "FAILED_BANNED",
             "BYPASS",
         }
 
