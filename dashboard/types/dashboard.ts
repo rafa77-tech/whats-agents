@@ -202,6 +202,20 @@ export interface FunnelData {
   };
 }
 
+// Visual funnel for dashboard component
+export interface FunnelStageVisual {
+  id: string;
+  label: string;
+  count: number;
+  previousCount: number;
+  percentage: number; // em relacao ao total (primeira etapa)
+}
+
+export interface FunnelDataVisual {
+  stages: FunnelStageVisual[];
+  period: string;
+}
+
 // ============================================================================
 // Alert Types
 // ============================================================================

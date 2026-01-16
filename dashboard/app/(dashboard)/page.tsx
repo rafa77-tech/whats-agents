@@ -15,6 +15,7 @@ import { QualityMetricsSection } from "@/components/dashboard/quality-metrics-se
 import { OperationalStatus } from "@/components/dashboard/operational-status";
 import { ChipPoolOverview } from "@/components/dashboard/chip-pool-overview";
 import { ChipListTable } from "@/components/dashboard/chip-list-table";
+import { ConversionFunnel } from "@/components/dashboard/conversion-funnel";
 import { type DashboardPeriod } from "@/types/dashboard";
 import {
   mockMetricsVsMeta,
@@ -22,6 +23,7 @@ import {
   mockOperationalStatus,
   mockChipPoolOverview,
   mockChipsList,
+  mockFunnelData,
 } from "@/lib/mock/dashboard-data";
 
 export default function DashboardPage() {
@@ -42,7 +44,12 @@ export default function DashboardPage() {
 
   const handleExport = (format: "csv" | "pdf") => {
     console.log("Exportando em formato:", format);
-    // Será implementado nos épicos E16/E17
+    // Sera implementado nos epicos E16/E17
+  };
+
+  const handleFunnelStageClick = (stageId: string) => {
+    console.log("Funil stage clicado:", stageId);
+    // Sera implementado no E11 (Modal Drill-Down)
   };
 
   return (
@@ -84,30 +91,12 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Funil de Conversão - E10, E11 implementarão */}
-        <section aria-label="Funil de Conversão">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="h-5 w-40 bg-gray-100 rounded animate-pulse" />
-                <div className="h-4 w-24 bg-gray-100 rounded animate-pulse" />
-              </div>
-              <div className="flex items-center gap-2 h-32">
-                {[100, 85, 60, 35, 15].map((width, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 h-full flex flex-col items-center justify-end"
-                  >
-                    <div
-                      className="w-full bg-blue-100 rounded-t-lg animate-pulse"
-                      style={{ height: `${width}%` }}
-                    />
-                    <div className="h-4 w-16 bg-gray-100 rounded mt-2 animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        {/* E10 - Funil de Conversao */}
+        <section aria-label="Funil de Conversao">
+          <ConversionFunnel
+            data={mockFunnelData}
+            onStageClick={handleFunnelStageClick}
+          />
         </section>
 
         {/* Tendências e Alertas - 2 colunas */}

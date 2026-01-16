@@ -12,6 +12,7 @@ import {
   type OperationalStatusData,
   type ChipPoolOverviewData,
   type ChipDetail,
+  type FunnelDataVisual,
 } from "@/types/dashboard";
 
 // ============================================================================
@@ -209,3 +210,48 @@ export const mockChipsList: ChipDetail[] = [
     alertMessage: "Trust baixo",
   },
 ];
+
+// ============================================================================
+// E10 - Conversion Funnel
+// ============================================================================
+
+export const mockFunnelData: FunnelDataVisual = {
+  stages: [
+    {
+      id: "enviadas",
+      label: "Enviadas",
+      count: 320,
+      previousCount: 286,
+      percentage: 100,
+    },
+    {
+      id: "entregues",
+      label: "Entregues",
+      count: 312,
+      previousCount: 281,
+      percentage: 97.5,
+    },
+    {
+      id: "respostas",
+      label: "Respostas",
+      count: 102,
+      previousCount: 86,
+      percentage: 31.9,
+    },
+    {
+      id: "interesse",
+      label: "Interesse",
+      count: 48,
+      previousCount: 44,
+      percentage: 15,
+    },
+    {
+      id: "fechadas",
+      label: "Fechadas",
+      count: 18,
+      previousCount: 15,
+      percentage: 5.6,
+    },
+  ],
+  period: "7 dias",
+};
