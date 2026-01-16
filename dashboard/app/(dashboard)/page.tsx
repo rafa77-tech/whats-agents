@@ -11,8 +11,9 @@
 import { useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { MetricsSection } from "@/components/dashboard/metrics-section";
+import { QualityMetricsSection } from "@/components/dashboard/quality-metrics-section";
 import { type DashboardPeriod } from "@/types/dashboard";
-import { mockMetricsVsMeta } from "@/lib/mock/dashboard-data";
+import { mockMetricsVsMeta, mockQualityMetrics } from "@/lib/mock/dashboard-data";
 
 export default function DashboardPage() {
   // Estado do período selecionado (default: 7 dias conforme requisito)
@@ -55,27 +56,13 @@ export default function DashboardPage() {
           <MetricsSection metrics={mockMetricsVsMeta} />
         </section>
 
-        {/* E04 e E05 - Cards de Qualidade e Status Operacional */}
-        <section
-          aria-label="Qualidade e Status"
-          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-        >
-          {/* E04 - Cards de Qualidade Persona */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="h-4 w-40 bg-gray-100 rounded animate-pulse" />
-                <div className="h-6 w-16 bg-gray-100 rounded animate-pulse" />
-              </div>
-              <div className="h-12 w-24 bg-gray-100 rounded animate-pulse" />
-              <div className="flex items-center gap-2">
-                <div className="h-4 w-20 bg-gray-100 rounded animate-pulse" />
-                <div className="h-4 w-16 bg-green-100 rounded animate-pulse" />
-              </div>
-            </div>
-          </div>
+        {/* E04 - Cards de Qualidade Persona */}
+        <section aria-label="Qualidade Persona">
+          <QualityMetricsSection metrics={mockQualityMetrics} />
+        </section>
 
-          {/* E05 - Status Operacional e Instâncias */}
+        {/* E05 - Status Operacional e Instâncias */}
+        <section aria-label="Status Operacional">
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">

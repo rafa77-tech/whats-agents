@@ -51,13 +51,22 @@ export interface MetricData {
   metaOperator: MetaOperator;
 }
 
+export type QualityUnit = "percent" | "seconds";
+export type ThresholdOperator = "lt" | "gt"; // less than or greater than for "good"
+
+export interface QualityThreshold {
+  good: number;
+  warning: number;
+}
+
 export interface QualityMetricData {
-  name: string;
-  current: number;
-  previous: number;
-  meta: string; // Can be "<1%" or "30s"
-  unit: string;
-  lesserIsBetter: boolean;
+  label: string;
+  value: number;
+  unit: QualityUnit;
+  threshold: QualityThreshold;
+  operator: ThresholdOperator;
+  previousValue: number;
+  tooltip?: string;
 }
 
 // ============================================================================
