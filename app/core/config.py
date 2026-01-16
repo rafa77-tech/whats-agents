@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     # Quando False, usa EVOLUTION_INSTANCE fixa (fallback legado)
     MULTI_CHIP_ENABLED: bool = False
 
+    # Modo Piloto (Sprint 32 E03)
+    # Quando True, desabilita ações autônomas (Discovery, Oferta, Reativação, Feedback automáticos)
+    # Mantém funcionando: campanhas manuais, respostas inbound, canal de ajuda, comandos Slack
+    # IMPORTANTE: Iniciar em True para testes seguros, mudar para False após validação
+    PILOT_MODE: bool = True
+
     # Chatwoot
     # IMPORTANTE: Sem default localhost - deve ser configurado via env var
     CHATWOOT_URL: str = ""
@@ -114,6 +120,27 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         """Retorna True se está em produção (APP_ENV == 'production')."""
         return self.APP_ENV.lower() == "production"
+
+    @property
+    def is_pilot_mode(self) -> bool:
+        """Retorna True se está em modo piloto (ações autônomas desabilitadas)."""
+        return self.PILOT_MODE
+
+    @property
+    def autonomous_features_status(self) -> dict[str, bool]:
+        """
+        Retorna status das funcionalidades autônomas.
+
+        Em modo piloto, todas retornam False.
+        Fora do piloto, todas retornam True.
+        """
+        enabled = not self.PILOT_MODE
+        return {
+            "discovery_automatico": enabled,
+            "oferta_automatica": enabled,
+            "reativacao_automatica": enabled,
+            "feedback_automatico": enabled,
+        }
 
     @property
     def runtime_endpoints(self) -> dict:
@@ -225,7 +252,8 @@ class GruposConfig:
     CACHE_TTL_CLASSIFICACAO: int = 86400  # 24 horas
 
     # Importação
-    THRESHOLD_IMPORTAR: float = 0.90
+    # Sprint 29: Baixado de 0.90 para 0.85 - Julia intermedia ofertas
+    THRESHOLD_IMPORTAR: float = 0.85
     THRESHOLD_REVISAR: float = 0.70
 
     # Worker (balance entre throughput e latência)
