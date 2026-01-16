@@ -22,6 +22,10 @@ Thumbs.db
 
 # Claude Code / MCP
 .mcp.json
+.claude/
+
+# Binários
+*.apk
 
 # Chat logs (conversas de debug)
 _chat*.txt
