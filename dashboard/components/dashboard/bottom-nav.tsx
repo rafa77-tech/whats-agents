@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -9,9 +10,16 @@ import {
   FileText,
   Settings,
   HelpCircle,
+  type LucideIcon,
 } from "lucide-react";
 
-const navigation = [
+interface NavItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+const navigation: NavItem[] = [
   { name: "Home", href: "/", icon: LayoutDashboard },
   { name: "Campanhas", href: "/campanhas", icon: Megaphone },
   { name: "Instrucoes", href: "/instrucoes", icon: FileText },
@@ -31,7 +39,7 @@ export function BottomNav() {
           return (
             <Link
               key={item.name}
-              href={item.href}
+              href={item.href as Route}
               className={cn(
                 "flex flex-col items-center gap-1 px-3 py-2 rounded-lg min-w-[64px] transition-colors",
                 isActive

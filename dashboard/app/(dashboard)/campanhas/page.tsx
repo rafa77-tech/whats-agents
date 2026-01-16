@@ -297,7 +297,7 @@ interface CampanhaCardProps {
   readOnly?: boolean;
 }
 
-function CampanhaCard({ campanha, onUpdate, readOnly }: CampanhaCardProps) {
+function CampanhaCard({ campanha, onUpdate: _onUpdate, readOnly }: CampanhaCardProps) {
   const status = statusConfig[campanha.status] || statusConfig.rascunho;
   const StatusIcon = status.icon;
 

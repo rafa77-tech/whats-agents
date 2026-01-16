@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -11,9 +12,16 @@ import {
   Settings,
   HelpCircle,
   Power,
+  type LucideIcon,
 } from "lucide-react";
 
-const navigation = [
+interface NavItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+const navigation: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Campanhas", href: "/campanhas", icon: Megaphone },
   { name: "Instrucoes", href: "/instrucoes", icon: FileText },
@@ -46,7 +54,7 @@ export function Sidebar() {
           return (
             <Link
               key={item.name}
-              href={item.href}
+              href={item.href as Route}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
