@@ -12,8 +12,13 @@ import { useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { MetricsSection } from "@/components/dashboard/metrics-section";
 import { QualityMetricsSection } from "@/components/dashboard/quality-metrics-section";
+import { OperationalStatus } from "@/components/dashboard/operational-status";
 import { type DashboardPeriod } from "@/types/dashboard";
-import { mockMetricsVsMeta, mockQualityMetrics } from "@/lib/mock/dashboard-data";
+import {
+  mockMetricsVsMeta,
+  mockQualityMetrics,
+  mockOperationalStatus,
+} from "@/lib/mock/dashboard-data";
 
 export default function DashboardPage() {
   // Estado do período selecionado (default: 7 dias conforme requisito)
@@ -63,19 +68,7 @@ export default function DashboardPage() {
 
         {/* E05 - Status Operacional e Instâncias */}
         <section aria-label="Status Operacional">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="h-4 w-36 bg-gray-100 rounded animate-pulse" />
-                <div className="h-6 w-12 bg-green-100 rounded animate-pulse" />
-              </div>
-              <div className="space-y-2">
-                <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
-                <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
-                <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse" />
-              </div>
-            </div>
-          </div>
+          <OperationalStatus data={mockOperationalStatus} />
         </section>
 
         {/* Pool de Chips - E06, E07 implementarão */}

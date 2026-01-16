@@ -6,7 +6,11 @@
  * Will be replaced by real API calls in E08.
  */
 
-import { type MetricData, type QualityMetricData } from "@/types/dashboard";
+import {
+  type MetricData,
+  type QualityMetricData,
+  type OperationalStatusData,
+} from "@/types/dashboard";
 
 // ============================================================================
 // E03 - Metrics vs Meta
@@ -73,3 +77,30 @@ export const mockQualityMetrics: QualityMetricData[] = [
     tooltip: "Porcentagem de conversas transferidas para atendimento humano",
   },
 ];
+
+// ============================================================================
+// E05 - Operational Status
+// ============================================================================
+
+export const mockOperationalStatus: OperationalStatusData = {
+  rateLimitHour: {
+    current: 8,
+    max: 20,
+    label: "Rate Limit Hora",
+  },
+  rateLimitDay: {
+    current: 78,
+    max: 100,
+    label: "Rate Limit Dia",
+  },
+  queueSize: 3,
+  llmUsage: {
+    haiku: 82,
+    sonnet: 18,
+  },
+  instances: [
+    { name: "Julia-01", status: "online", messagesToday: 47 },
+    { name: "Julia-02", status: "online", messagesToday: 52 },
+    { name: "Julia-03", status: "offline", messagesToday: 0 },
+  ],
+};

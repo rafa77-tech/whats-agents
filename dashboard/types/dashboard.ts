@@ -70,6 +70,35 @@ export interface QualityMetricData {
 }
 
 // ============================================================================
+// Operational Status Types
+// ============================================================================
+
+export interface RateLimitData {
+  current: number;
+  max: number;
+  label: string;
+}
+
+export interface LLMUsageData {
+  haiku: number; // percentage
+  sonnet: number; // percentage
+}
+
+export interface WhatsAppInstance {
+  name: string;
+  status: "online" | "offline";
+  messagesToday: number;
+}
+
+export interface OperationalStatusData {
+  rateLimitHour: RateLimitData;
+  rateLimitDay: RateLimitData;
+  queueSize: number;
+  llmUsage: LLMUsageData;
+  instances: WhatsAppInstance[];
+}
+
+// ============================================================================
 // Chip Types
 // ============================================================================
 
