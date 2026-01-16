@@ -10,6 +10,7 @@ import {
   type MetricData,
   type QualityMetricData,
   type OperationalStatusData,
+  type ChipPoolOverviewData,
 } from "@/types/dashboard";
 
 // ============================================================================
@@ -103,4 +104,33 @@ export const mockOperationalStatus: OperationalStatusData = {
     { name: "Julia-02", status: "online", messagesToday: 52 },
     { name: "Julia-03", status: "offline", messagesToday: 0 },
   ],
+};
+
+// ============================================================================
+// E06 - Chip Pool Overview
+// ============================================================================
+
+export const mockChipPoolOverview: ChipPoolOverviewData = {
+  statusCounts: [
+    { status: "active", count: 5 },
+    { status: "ready", count: 3 },
+    { status: "warming", count: 4 },
+    { status: "degraded", count: 1 },
+  ],
+  trustDistribution: [
+    { level: "verde", count: 6, percentage: 46 },
+    { level: "amarelo", count: 2, percentage: 15 },
+    { level: "laranja", count: 1, percentage: 8 },
+    { level: "vermelho", count: 0, percentage: 0 },
+  ],
+  metrics: {
+    totalMessagesSent: 2847,
+    avgResponseRate: 94.2,
+    avgBlockRate: 1.8,
+    totalErrors: 12,
+    previousMessagesSent: 2475,
+    previousResponseRate: 92.1,
+    previousBlockRate: 2.3,
+    previousErrors: 16,
+  },
 };

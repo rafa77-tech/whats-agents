@@ -138,6 +138,35 @@ export interface ChipPoolMetrics {
   totalDailyCapacity: number;
 }
 
+export interface ChipStatusCount {
+  status: ChipStatus;
+  count: number;
+}
+
+export interface TrustDistribution {
+  level: TrustLevel;
+  count: number;
+  percentage: number;
+}
+
+export interface ChipPoolAggregatedMetrics {
+  totalMessagesSent: number;
+  avgResponseRate: number;
+  avgBlockRate: number;
+  totalErrors: number;
+  // Comparativos
+  previousMessagesSent: number;
+  previousResponseRate: number;
+  previousBlockRate: number;
+  previousErrors: number;
+}
+
+export interface ChipPoolOverviewData {
+  statusCounts: ChipStatusCount[];
+  trustDistribution: TrustDistribution[];
+  metrics: ChipPoolAggregatedMetrics;
+}
+
 // ============================================================================
 // Funnel Types
 // ============================================================================

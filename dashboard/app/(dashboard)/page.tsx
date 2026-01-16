@@ -13,11 +13,13 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { MetricsSection } from "@/components/dashboard/metrics-section";
 import { QualityMetricsSection } from "@/components/dashboard/quality-metrics-section";
 import { OperationalStatus } from "@/components/dashboard/operational-status";
+import { ChipPoolOverview } from "@/components/dashboard/chip-pool-overview";
 import { type DashboardPeriod } from "@/types/dashboard";
 import {
   mockMetricsVsMeta,
   mockQualityMetrics,
   mockOperationalStatus,
+  mockChipPoolOverview,
 } from "@/lib/mock/dashboard-data";
 
 export default function DashboardPage() {
@@ -71,29 +73,9 @@ export default function DashboardPage() {
           <OperationalStatus data={mockOperationalStatus} />
         </section>
 
-        {/* Pool de Chips - E06, E07 implementarão */}
+        {/* E06 - Pool de Chips - Visao Geral */}
         <section aria-label="Pool de Chips">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="h-5 w-32 bg-gray-100 rounded animate-pulse" />
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-20 bg-green-100 rounded animate-pulse" />
-                  <div className="h-6 w-20 bg-yellow-100 rounded animate-pulse" />
-                  <div className="h-6 w-20 bg-red-100 rounded animate-pulse" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="h-24 bg-gray-50 rounded-lg border border-gray-100 animate-pulse"
-                  />
-                ))}
-              </div>
-              <div className="h-48 bg-gray-50 rounded-lg border border-gray-100 animate-pulse" />
-            </div>
-          </div>
+          <ChipPoolOverview data={mockChipPoolOverview} />
         </section>
 
         {/* Funil de Conversão - E10, E11 implementarão */}
