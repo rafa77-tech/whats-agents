@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer, group_entry, webhook_router, chips_dashboard
+from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer, group_entry, webhook_router, chips_dashboard, sistema
 from app.api.error_handlers import register_exception_handlers
 from app.api.middleware import TracingMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -69,6 +69,7 @@ app.include_router(warmer.router)  # Sprint 25 - Julia Warmer
 app.include_router(group_entry.router)  # Sprint 25 - Group Entry Engine
 app.include_router(webhook_router.router)  # Sprint 26 - Multi-chip Webhook Router
 app.include_router(chips_dashboard.router)  # Sprint 26 - Chips Dashboard
+app.include_router(sistema.router)  # Sprint 32 - Sistema Config (Modo Piloto)
 
 # Arquivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")

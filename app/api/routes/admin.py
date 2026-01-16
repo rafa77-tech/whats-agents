@@ -434,9 +434,9 @@ async def gerar_variacao_abertura(medico: DadosMedico):
     """
     Gera uma variação de abertura para o médico.
 
-    Usa templates variados para evitar parecer robótico.
+    Usa fragmentos variados para evitar parecer robótico.
     """
-    from app.templates.aberturas import (
+    from app.fragmentos.aberturas import (
         gerar_abertura_texto_unico,
         SAUDACOES,
         APRESENTACOES,
@@ -468,9 +468,9 @@ async def gerar_variacao_abertura(medico: DadosMedico):
 @router.get("/aberturas/estatisticas")
 async def estatisticas_aberturas():
     """
-    Retorna estatísticas dos templates de abertura.
+    Retorna estatísticas dos fragmentos de abertura.
     """
-    from app.templates.aberturas import contar_variacoes
+    from app.fragmentos.aberturas import contar_variacoes
 
     return contar_variacoes()
 

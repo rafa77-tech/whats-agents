@@ -9,7 +9,7 @@ from datetime import datetime
 from app.services.supabase import supabase
 from app.services.fila import fila_service
 from app.services.segmentacao import segmentacao_service
-from app.templates.mensagens import formatar_primeiro_contato
+from app.fragmentos.mensagens import formatar_primeiro_contato
 
 router = APIRouter(prefix="/campanhas", tags=["campanhas"])
 

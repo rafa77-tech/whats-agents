@@ -76,15 +76,36 @@ Sobre sua mensagem de ontem, ja verifiquei aqui.
             )
 
             if resposta:
-                # Enviar resposta
-                from app.services.whatsapp import enviar_mensagem
+                # Enviar resposta via wrapper de guardrails
+                from app.services.outbound import send_outbound_message
+                from app.services.guardrails import (
+                    OutboundContext,
+                    OutboundMethod,
+                    OutboundChannel,
+                    ActorType,
+                )
 
                 resposta_final = mensagem_retomada + resposta
-                await enviar_mensagem(telefone, resposta_final)
 
-                await marcar_processada(registro["id"], "sucesso")
-                stats["processadas"] += 1
-                logger.info(f"Retomada processada: {registro['id']}")
+                ctx = OutboundContext(
+                    cliente_id=registro["cliente_id"],
+                    actor_type=ActorType.BOT,
+                    channel=OutboundChannel.WHATSAPP,
+                    method=OutboundMethod.REPLY,
+                    is_proactive=False,
+                    conversation_id=registro.get("conversation_id"),
+                )
+
+                result = await send_outbound_message(telefone, resposta_final, ctx)
+
+                if result.success:
+                    await marcar_processada(registro["id"], "sucesso")
+                    stats["processadas"] += 1
+                    logger.info(f"Retomada processada: {registro['id']}")
+                else:
+                    await marcar_processada(registro["id"], f"bloqueado: {result.outcome_reason_code}")
+                    stats["ignoradas"] += 1
+                    logger.warning(f"Retomada bloqueada: {registro['id']} - {result.outcome}")
             else:
                 await marcar_processada(registro["id"], "sem_resposta")
                 stats["ignoradas"] += 1

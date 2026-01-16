@@ -613,7 +613,7 @@ async def job_sync_templates():
     e sincroniza o arquivo mais recente de cada pasta para o banco.
     """
     try:
-        from app.services.campaign_templates import sincronizar_templates
+        from app.services.campaign_behaviors import sincronizar_behaviors as sincronizar_templates
 
         resultado = await sincronizar_templates()
         return JSONResponse(resultado)
@@ -910,4 +910,290 @@ async def job_reconciliacao_status(minutos_timeout: int = 15):
         })
     except Exception as e:
         logger.error(f"Erro ao verificar status de reconciliação: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# =============================================================================
+# Jobs de Validação de Telefones (Sprint 32 E04)
+# =============================================================================
+
+
+@router.post("/validar-telefones")
+async def job_validar_telefones(limite: int = 50):
+    """
+    Job para validar telefones via checkNumberStatus.
+
+    Valida números pendentes usando Evolution API para verificar
+    se o WhatsApp existe no número antes de tentar contato.
+
+    Sprint 32 E04 - Validação prévia evita desperdício de mensagens.
+
+    Args:
+        limite: Máximo de telefones a processar por execução (default: 50)
+
+    Schedule:
+        A cada 5 minutos, das 8h às 20h (*/5 8-19 * * *)
+
+    Rate:
+        50 números/5min = 600/hora = ~14k/dia
+    """
+    try:
+        from datetime import datetime
+
+        # Verificar horário comercial
+        hora_atual = datetime.now().hour
+        if hora_atual < 8 or hora_atual >= 20:
+            return JSONResponse({
+                "status": "skipped",
+                "reason": "fora_horario",
+                "message": "Validação só ocorre das 8h às 20h"
+            })
+
+        from app.services.validacao_telefone import processar_lote_validacao
+
+        stats = await processar_lote_validacao(limit=limite)
+
+        return JSONResponse({
+            "status": "ok",
+            "processados": stats["processados"],
+            "validados": stats["validados"],
+            "invalidos": stats["invalidos"],
+            "erros": stats["erros"],
+            "skips": stats["skips"],
+        })
+    except Exception as e:
+        logger.error(f"Erro ao validar telefones: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/resetar-telefones-travados")
+async def job_resetar_telefones_travados(horas: int = 1):
+    """
+    Reseta telefones travados em status 'validando'.
+
+    Útil quando o processo é interrompido e deixa registros
+    em estado intermediário.
+
+    Args:
+        horas: Considerar travado se em 'validando' há mais de X horas
+    """
+    try:
+        from app.services.validacao_telefone import resetar_telefones_travados
+
+        resetados = await resetar_telefones_travados(horas=horas)
+
+        return JSONResponse({
+            "status": "ok",
+            "message": f"{resetados} telefone(s) resetado(s)",
+            "resetados": resetados,
+        })
+    except Exception as e:
+        logger.error(f"Erro ao resetar telefones travados: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# =============================================================================
+# Jobs de Gatilhos Automáticos Julia (Sprint 32 E05-E07)
+# =============================================================================
+
+
+@router.post("/executar-gatilhos-autonomos")
+async def job_executar_gatilhos_autonomos():
+    """
+    Job para executar todos os gatilhos automáticos da Julia.
+
+    Gatilhos incluídos:
+    - Discovery: Médicos não-enriquecidos
+    - Oferta: Vagas urgentes (< 20 dias)
+    - Reativação: Médicos inativos (> 60 dias)
+    - Feedback: Plantões realizados recentemente
+
+    IMPORTANTE: Só executa se PILOT_MODE=False.
+
+    Sprint 32 E05 - Gatilhos Automáticos.
+
+    Schedule sugerido:
+        - Discovery: 0 9,14 * * 1-5 (9h e 14h, seg-sex)
+        - Oferta: 0 * * * * (a cada hora)
+        - Reativação: 0 10 * * 1 (segundas às 10h)
+        - Feedback: 0 11 * * * (diário às 11h)
+    """
+    try:
+        from app.services.gatilhos_autonomos import executar_todos_gatilhos
+
+        resultados = await executar_todos_gatilhos()
+
+        if resultados.get("pilot_mode"):
+            return JSONResponse({
+                "status": "skipped",
+                "reason": "pilot_mode",
+                "message": "Modo piloto ativo - gatilhos não executados"
+            })
+
+        return JSONResponse({
+            "status": "ok",
+            "discovery": resultados.get("discovery", {}),
+            "oferta": resultados.get("oferta", {}),
+            "reativacao": resultados.get("reativacao", {}),
+            "feedback": resultados.get("feedback", {}),
+        })
+    except Exception as e:
+        logger.error(f"Erro ao executar gatilhos autônomos: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/executar-discovery-autonomo")
+async def job_executar_discovery_autonomo():
+    """
+    Job específico para Discovery automático.
+
+    Busca médicos não-enriquecidos (sem especialidade) e
+    enfileira mensagens de Discovery para conhecê-los.
+
+    Só executa se PILOT_MODE=False.
+
+    Sprint 32 E05.
+    """
+    try:
+        from app.services.gatilhos_autonomos import executar_discovery_automatico
+
+        resultado = await executar_discovery_automatico()
+
+        if resultado is None:
+            return JSONResponse({
+                "status": "skipped",
+                "reason": "pilot_mode",
+                "message": "Modo piloto ativo - discovery não executado"
+            })
+
+        return JSONResponse({
+            "status": "ok",
+            **resultado
+        })
+    except Exception as e:
+        logger.error(f"Erro no discovery autônomo: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/executar-oferta-autonoma")
+async def job_executar_oferta_autonoma():
+    """
+    Job específico para Oferta automática (furo de escala).
+
+    Busca vagas com menos de 20 dias até a data e sem médico
+    confirmado. Seleciona médicos compatíveis e enfileira ofertas.
+
+    Só executa se PILOT_MODE=False.
+
+    Sprint 32 E05/E06.
+    """
+    try:
+        from app.services.gatilhos_autonomos import executar_oferta_automatica
+
+        resultado = await executar_oferta_automatica()
+
+        if resultado is None:
+            return JSONResponse({
+                "status": "skipped",
+                "reason": "pilot_mode",
+                "message": "Modo piloto ativo - oferta não executada"
+            })
+
+        return JSONResponse({
+            "status": "ok",
+            **resultado
+        })
+    except Exception as e:
+        logger.error(f"Erro na oferta autônoma: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/executar-reativacao-autonoma")
+async def job_executar_reativacao_autonoma():
+    """
+    Job específico para Reativação automática.
+
+    Busca médicos inativos há mais de 60 dias e enfileira
+    mensagens de reativação para retomar contato.
+
+    Só executa se PILOT_MODE=False.
+
+    Sprint 32 E05.
+    """
+    try:
+        from app.services.gatilhos_autonomos import executar_reativacao_automatica
+
+        resultado = await executar_reativacao_automatica()
+
+        if resultado is None:
+            return JSONResponse({
+                "status": "skipped",
+                "reason": "pilot_mode",
+                "message": "Modo piloto ativo - reativação não executada"
+            })
+
+        return JSONResponse({
+            "status": "ok",
+            **resultado
+        })
+    except Exception as e:
+        logger.error(f"Erro na reativação autônoma: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/executar-feedback-autonomo")
+async def job_executar_feedback_autonomo():
+    """
+    Job específico para Feedback automático.
+
+    Busca plantões realizados nos últimos 2 dias e enfileira
+    solicitações de feedback para os médicos.
+
+    Só executa se PILOT_MODE=False.
+
+    Sprint 32 E05.
+    """
+    try:
+        from app.services.gatilhos_autonomos import executar_feedback_automatico
+
+        resultado = await executar_feedback_automatico()
+
+        if resultado is None:
+            return JSONResponse({
+                "status": "skipped",
+                "reason": "pilot_mode",
+                "message": "Modo piloto ativo - feedback não executado"
+            })
+
+        return JSONResponse({
+            "status": "ok",
+            **resultado
+        })
+    except Exception as e:
+        logger.error(f"Erro no feedback autônomo: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.get("/estatisticas-gatilhos")
+async def job_estatisticas_gatilhos():
+    """
+    Retorna estatísticas atuais dos gatilhos automáticos.
+
+    Útil para dashboard e monitoramento.
+
+    Sprint 32 E05.
+    """
+    try:
+        from app.services.gatilhos_autonomos import obter_estatisticas_gatilhos
+        from app.workers.pilot_mode import is_pilot_mode
+
+        stats = await obter_estatisticas_gatilhos()
+
+        return JSONResponse({
+            "status": "ok",
+            "pilot_mode": is_pilot_mode(),
+            "gatilhos": stats,
+        })
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas de gatilhos: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)

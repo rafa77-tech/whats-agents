@@ -46,7 +46,7 @@ async def salvar_interacao(
         }
 
         if message_id:
-            dados["twilio_message_sid"] = message_id  # Reusando campo para message_id
+            dados["provider_message_id"] = message_id
 
         response = supabase.table("interacoes").insert(dados).execute()
         logger.debug(f"Interacao salva: {tipo} - {conteudo[:50]}...")

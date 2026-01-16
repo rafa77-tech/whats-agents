@@ -520,6 +520,70 @@ class EvolutionClient:
                 "erro": erro,
             }
 
+    async def check_number_status(self, phone: str) -> dict:
+        """
+        Verifica se número tem WhatsApp via Evolution API.
+
+        Sprint 32 E04 - Validação prévia evita desperdício de mensagens.
+
+        Args:
+            phone: Número no formato 5511999999999 (sem +)
+
+        Returns:
+            {
+                "exists": True/False,
+                "jid": "5511999999999@s.whatsapp.net" (se existe),
+                "number": "5511999999999",
+                "error": "mensagem" (se erro)
+            }
+
+        Docs Evolution API:
+            POST /chat/whatsappNumbers/{instance}
+            Body: {"numbers": ["5511999999999"]}
+        """
+        try:
+            # Normalizar número (remover +, espaços, etc.)
+            numero_limpo = "".join(filter(str.isdigit, phone))
+
+            # Garantir que tem código do país
+            if not numero_limpo.startswith("55"):
+                numero_limpo = f"55{numero_limpo}"
+
+            url = f"{self.base_url}/chat/whatsappNumbers/{self.instance}"
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    url,
+                    headers=self.headers,
+                    json={"numbers": [numero_limpo]}
+                )
+
+                if response.status_code != 200:
+                    logger.warning(f"checkNumberStatus erro HTTP: {response.status_code}")
+                    return {"exists": False, "error": f"HTTP {response.status_code}"}
+
+                data = response.json()
+
+                # Resposta da Evolution API:
+                # [{"exists": true, "jid": "5511999999999@s.whatsapp.net", "number": "5511999999999"}]
+                if data and len(data) > 0:
+                    resultado = data[0]
+                    return {
+                        "exists": resultado.get("exists", False),
+                        "jid": resultado.get("jid"),
+                        "number": resultado.get("number"),
+                    }
+
+                return {"exists": False, "error": "Resposta vazia"}
+
+        except httpx.TimeoutException:
+            logger.warning(f"checkNumberStatus timeout para {phone}")
+            return {"exists": False, "error": "timeout"}
+
+        except Exception as e:
+            logger.error(f"checkNumberStatus erro: {e}")
+            return {"exists": False, "error": str(e)}
+
     async def set_webhook(self, url: str, events: list = None) -> dict:
         """Configura webhook da instancia."""
         if events is None:

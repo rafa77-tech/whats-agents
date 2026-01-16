@@ -915,3 +915,77 @@ async def job_executions_status():
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat(),
         }
+
+
+@router.get("/health/telefones")
+async def telefones_validation_status():
+    """
+    Retorna estatísticas de validação de telefones.
+
+    Sprint 32 E04 - checkNumberStatus Job.
+
+    Útil para monitorar:
+    - Quantos pendentes (backlog)
+    - Taxa de válidos vs inválidos
+    - Erros de validação
+    """
+    from app.services.validacao_telefone import obter_estatisticas_validacao
+
+    stats = await obter_estatisticas_validacao()
+
+    total = sum(stats.values()) if stats else 0
+    validados = stats.get("validado", 0)
+    invalidos = stats.get("invalido", 0)
+    pendentes = stats.get("pendente", 0)
+
+    taxa_validos = round(validados / total * 100, 2) if total > 0 else 0
+    taxa_invalidos = round(invalidos / total * 100, 2) if total > 0 else 0
+
+    # Status baseado no backlog
+    status = "healthy"
+    if pendentes > 10000:
+        status = "degraded"
+    if pendentes > 50000:
+        status = "warning"
+
+    return {
+        "status": status,
+        "stats": stats,
+        "total": total,
+        "taxa_validos_pct": taxa_validos,
+        "taxa_invalidos_pct": taxa_invalidos,
+        "backlog_pendentes": pendentes,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
+@router.get("/health/pilot")
+async def pilot_mode_status():
+    """
+    Retorna status do modo piloto (Sprint 32 E03).
+
+    MODO PILOTO (PILOT_MODE=True):
+        FUNCIONA:
+        - Campanhas manuais (gestor cria)
+        - Respostas a médicos (inbound)
+        - Canal de ajuda Julia → Gestor
+        - Gestor comanda Julia (Slack)
+        - Guardrails (rate limit, horário, etc.)
+        - checkNumberStatus (validação de telefones)
+
+        NÃO FUNCIONA:
+        - Discovery automático
+        - Oferta automática (furo de escala)
+        - Reativação automática
+        - Feedback automático
+
+    Útil para dashboard e debugging.
+    """
+    from app.workers.pilot_mode import get_pilot_status
+
+    status = get_pilot_status()
+
+    return {
+        **status,
+        "timestamp": datetime.utcnow().isoformat(),
+    }

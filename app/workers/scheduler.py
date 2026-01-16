@@ -222,6 +222,34 @@ JOBS = [
         "endpoint": "/jobs/processar-retomadas",
         "schedule": "0 8 * * 1-5",  # 08:00 seg-sex
     },
+    # Validação de telefones via checkNumberStatus (Sprint 32 E04)
+    {
+        "name": "validar_telefones",
+        "endpoint": "/jobs/validar-telefones",
+        "schedule": "*/5 8-19 * * *",  # A cada 5 min, das 8h às 19:59
+    },
+    # Gatilhos Automáticos Julia (Sprint 32 E05-E07)
+    # NOTA: Esses jobs só executam ações se PILOT_MODE=False
+    {
+        "name": "discovery_autonomo",
+        "endpoint": "/jobs/executar-discovery-autonomo",
+        "schedule": "0 9,14 * * 1-5",  # 9h e 14h, seg-sex
+    },
+    {
+        "name": "oferta_autonoma",
+        "endpoint": "/jobs/executar-oferta-autonoma",
+        "schedule": "0 * * * *",  # A cada hora, minuto 0
+    },
+    {
+        "name": "reativacao_autonoma",
+        "endpoint": "/jobs/executar-reativacao-autonoma",
+        "schedule": "0 10 * * 1",  # Segundas às 10h
+    },
+    {
+        "name": "feedback_autonomo",
+        "endpoint": "/jobs/executar-feedback-autonomo",
+        "schedule": "0 11 * * *",  # Diário às 11h
+    },
 ]
 
 
