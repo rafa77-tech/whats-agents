@@ -9,7 +9,7 @@ import random
 from datetime import datetime
 from typing import Optional
 
-from app.templates.aberturas import (
+from app.fragmentos.aberturas import (
     SAUDACOES,
     APRESENTACOES,
     CONTEXTOS,
@@ -269,10 +269,10 @@ async def resetar_abertura_cliente(cliente_id: str) -> bool:
 
 def obter_estatisticas_aberturas() -> dict:
     """
-    Retorna estatisticas dos templates de abertura.
+    Retorna estatisticas dos fragmentos de abertura.
 
     Returns:
         Dicionario com estatisticas
     """
-    from app.templates.aberturas import contar_variacoes
+    from app.fragmentos.aberturas import contar_variacoes
     return contar_variacoes()

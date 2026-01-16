@@ -15,7 +15,7 @@ from typing import Optional
 from app.services.supabase import supabase
 from app.services.outbound import send_outbound_message, criar_contexto_campanha
 from app.core.piloto_config import piloto_config
-from app.templates.mensagens import formatar_primeiro_contato
+from app.fragmentos.mensagens import formatar_primeiro_contato
 from app.services.abertura import obter_abertura
 
 logger = logging.getLogger(__name__)
@@ -105,7 +105,7 @@ controlador_envio = ControladorEnvio()
 
 async def criar_campanha_piloto() -> dict:
     """Cria campanha de primeiro contato para piloto."""
-    from app.templates.mensagens import MENSAGEM_PRIMEIRO_CONTATO
+    from app.fragmentos.mensagens import MENSAGEM_PRIMEIRO_CONTATO
 
     # Buscar médicos do piloto que ainda não foram contactados
     medicos_resp = (

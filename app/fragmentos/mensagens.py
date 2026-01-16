@@ -1,5 +1,7 @@
 """
-Templates de mensagens para campanhas.
+Fragmentos de mensagens para campanhas.
+
+NOTA: Renomeado de templates para fragmentos (Sprint 32).
 """
 from typing import Optional
 from app.config.especialidades import obter_config_especialidade
@@ -26,16 +28,16 @@ SAUDACOES_ESPECIALIDADE = {
 def obter_saudacao_especialidade(especialidade: str) -> str:
     """
     Retorna saudação personalizada para especialidade.
-    
+
     Args:
         especialidade: Nome da especialidade
-    
+
     Returns:
         Saudação personalizada ou padrão
     """
     if not especialidade:
         return "Vi que você é médico, certo? Temos umas vagas interessantes essa semana"
-    
+
     nome_normalizado = especialidade.lower().replace(" ", "_").strip()
     return SAUDACOES_ESPECIALIDADE.get(
         nome_normalizado,
@@ -47,17 +49,16 @@ def formatar_primeiro_contato(medico: dict) -> str:
     """Formata mensagem de primeiro contato."""
     nome = medico.get("primeiro_nome", "")
     especialidade_nome = medico.get("especialidade_nome", "")
-    
+
     # Se não tiver especialidade_nome, buscar da relação
     if not especialidade_nome and medico.get("especialidade_id"):
         # Tentar buscar nome da especialidade
         # Por enquanto, usar valor padrão
         especialidade_nome = "médico"
-    
+
     saudacao = obter_saudacao_especialidade(especialidade_nome)
 
     return MENSAGEM_PRIMEIRO_CONTATO.format(
         nome=nome,
         saudacao_especialidade=saudacao
     )
-

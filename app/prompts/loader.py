@@ -190,6 +190,52 @@ async def listar_prompts() -> list[dict]:
         return []
 
 
+# Tipos de campanha válidos para prompts
+TIPOS_CAMPANHA_VALIDOS = {"discovery", "oferta", "followup", "feedback", "reativacao"}
+
+
+async def buscar_prompt_por_tipo_campanha(tipo_campanha: str) -> Optional[str]:
+    """
+    Busca prompt específico para o tipo de campanha.
+
+    Args:
+        tipo_campanha: discovery | oferta | followup | feedback | reativacao
+
+    Returns:
+        Conteúdo do prompt ou None se não encontrar
+
+    Raises:
+        ValueError: Se tipo_campanha não for válido
+    """
+    if tipo_campanha not in TIPOS_CAMPANHA_VALIDOS:
+        raise ValueError(
+            f"Tipo de campanha inválido: {tipo_campanha}. "
+            f"Válidos: {TIPOS_CAMPANHA_VALIDOS}"
+        )
+
+    nome_prompt = f"julia_{tipo_campanha}"
+
+    try:
+        response = (
+            supabase.table("prompts")
+            .select("conteudo")
+            .eq("nome", nome_prompt)
+            .eq("ativo", True)
+            .limit(1)
+            .execute()
+        )
+
+        if not response.data:
+            logger.warning(f"Prompt {nome_prompt} não encontrado ou inativo")
+            return None
+
+        return response.data[0]["conteudo"]
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar prompt {nome_prompt}: {e}")
+        return None
+
+
 async def ativar_versao(nome: str, versao: str) -> bool:
     """
     Ativa uma versao especifica de um prompt.
