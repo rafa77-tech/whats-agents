@@ -6,22 +6,46 @@
  * substituídos nos épicos subsequentes (E02-E17).
  */
 
+"use client";
+
+import { useState } from "react";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { type DashboardPeriod } from "@/types/dashboard";
+
 export default function DashboardPage() {
+  // Estado do período selecionado (default: 7 dias conforme requisito)
+  const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>("7d");
+
+  // Mock data para o header (será substituído por dados reais no E08)
+  const mockHeaderData = {
+    juliaStatus: "online" as const,
+    lastHeartbeat: new Date(Date.now() - 2 * 60 * 1000), // 2 minutos atrás
+    uptime30d: 99.8,
+  };
+
+  const handlePeriodChange = (period: DashboardPeriod) => {
+    setSelectedPeriod(period);
+    console.log("Período alterado para:", period);
+  };
+
+  const handleExport = (format: "csv" | "pdf") => {
+    console.log("Exportando em formato:", format);
+    // Será implementado nos épicos E16/E17
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-[1600px] mx-auto p-6 space-y-6">
-        {/* Header - E02 implementará */}
+        {/* Header - E02 */}
         <section aria-label="Header do Dashboard">
-          <div className="h-16 bg-white rounded-lg border border-gray-200 flex items-center justify-between px-6">
-            <div className="flex items-center gap-4">
-              <div className="h-8 w-32 bg-gray-100 rounded animate-pulse" />
-              <div className="h-6 w-24 bg-gray-100 rounded animate-pulse" />
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="h-9 w-32 bg-gray-100 rounded animate-pulse" />
-              <div className="h-9 w-24 bg-gray-100 rounded animate-pulse" />
-            </div>
-          </div>
+          <DashboardHeader
+            juliaStatus={mockHeaderData.juliaStatus}
+            lastHeartbeat={mockHeaderData.lastHeartbeat}
+            uptime30d={mockHeaderData.uptime30d}
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={handlePeriodChange}
+            onExport={handleExport}
+          />
         </section>
 
         {/* Cards de Métricas - 3 colunas */}

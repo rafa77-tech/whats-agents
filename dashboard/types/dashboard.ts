@@ -1,0 +1,205 @@
+/**
+ * Dashboard Types - Sprint 33
+ *
+ * Tipos compartilhados entre os componentes do dashboard.
+ */
+
+// ============================================================================
+// Period Types
+// ============================================================================
+
+export type DashboardPeriod = "7d" | "14d" | "30d";
+
+// ============================================================================
+// Header Types
+// ============================================================================
+
+export interface DashboardHeaderProps {
+  juliaStatus: "online" | "offline";
+  lastHeartbeat: Date | null;
+  uptime30d: number; // 0-100
+  selectedPeriod: DashboardPeriod;
+  onPeriodChange: (period: DashboardPeriod) => void;
+  onExport: (format: "csv" | "pdf") => void;
+}
+
+// ============================================================================
+// Status Types
+// ============================================================================
+
+export interface JuliaStatus {
+  status: "online" | "offline";
+  lastHeartbeat: string | null; // ISO timestamp
+  uptime30d: number;
+  activeChips: number;
+  totalChips: number;
+}
+
+// ============================================================================
+// Metric Types
+// ============================================================================
+
+export interface MetricData {
+  name: string;
+  current: number;
+  previous: number;
+  meta: number;
+  unit: string;
+  lesserIsBetter?: boolean;
+}
+
+export interface QualityMetricData {
+  name: string;
+  current: number;
+  previous: number;
+  meta: string; // Can be "<1%" or "30s"
+  unit: string;
+  lesserIsBetter: boolean;
+}
+
+// ============================================================================
+// Chip Types
+// ============================================================================
+
+export type ChipStatus =
+  | "provisioned"
+  | "pending"
+  | "warming"
+  | "ready"
+  | "active"
+  | "degraded"
+  | "paused"
+  | "banned"
+  | "cancelled";
+
+export type TrustLevel = "verde" | "amarelo" | "laranja" | "vermelho";
+
+export interface ChipSummary {
+  id: string;
+  name: string;
+  status: ChipStatus;
+  trustScore: number;
+  trustLevel: TrustLevel;
+  messagesToday: number;
+  dailyLimit: number;
+  responseRate: number;
+  errors24h: number;
+  lastActive: string | null;
+}
+
+export interface ChipPoolMetrics {
+  totalChips: number;
+  activeChips: number;
+  warmingChips: number;
+  degradedChips: number;
+  avgTrustScore: number;
+  totalMessagesToday: number;
+  totalDailyCapacity: number;
+}
+
+// ============================================================================
+// Funnel Types
+// ============================================================================
+
+export interface FunnelStage {
+  stage: string;
+  count: number;
+  percentage: number;
+  change: number; // vs previous period
+}
+
+export interface FunnelData {
+  stages: FunnelStage[];
+  period: {
+    start: string;
+    end: string;
+  };
+}
+
+// ============================================================================
+// Alert Types
+// ============================================================================
+
+export type AlertSeverity = "critical" | "warning" | "info";
+export type AlertCategory = "julia" | "chip" | "operational" | "vaga";
+
+export interface DashboardAlert {
+  id: string;
+  severity: AlertSeverity;
+  category: AlertCategory;
+  title: string;
+  message: string;
+  createdAt: string; // ISO timestamp
+  actionLabel?: string;
+  actionUrl?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AlertsData {
+  alerts: DashboardAlert[];
+  totalCritical: number;
+  totalWarning: number;
+}
+
+// ============================================================================
+// Activity Types
+// ============================================================================
+
+export type ActivityType =
+  | "fechamento"
+  | "handoff"
+  | "campanha"
+  | "resposta"
+  | "chip"
+  | "alerta";
+
+export interface ActivityEvent {
+  id: string;
+  type: ActivityType;
+  message: string;
+  details?: string;
+  chipName?: string;
+  timestamp: string; // ISO timestamp
+  metadata?: Record<string, unknown>;
+}
+
+export interface ActivityFeedData {
+  events: ActivityEvent[];
+  hasMore: boolean;
+}
+
+// ============================================================================
+// Export Types
+// ============================================================================
+
+export interface DashboardExportData {
+  period: { start: string; end: string };
+  metrics: Array<{
+    name: string;
+    current: number;
+    previous: number;
+    meta: number;
+    unit: string;
+  }>;
+  quality: Array<{
+    name: string;
+    current: number;
+    previous: number;
+    meta: string;
+    unit: string;
+  }>;
+  chips: Array<{
+    name: string;
+    status: string;
+    trust: number;
+    messagesToday: number;
+    responseRate: number;
+    errors: number;
+  }>;
+  funnel: Array<{
+    stage: string;
+    count: number;
+    percentage: number;
+    change: number;
+  }>;
+}
