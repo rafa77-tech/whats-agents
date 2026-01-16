@@ -39,13 +39,16 @@ export interface JuliaStatus {
 // Metric Types
 // ============================================================================
 
+export type MetricUnit = "percent" | "number" | "currency";
+export type MetaOperator = "gt" | "lt" | "eq"; // greater than, less than, equal
+
 export interface MetricData {
-  name: string;
-  current: number;
-  previous: number;
+  label: string;
+  value: number;
+  unit: MetricUnit;
   meta: number;
-  unit: string;
-  lesserIsBetter?: boolean;
+  previousValue: number;
+  metaOperator: MetaOperator;
 }
 
 export interface QualityMetricData {
