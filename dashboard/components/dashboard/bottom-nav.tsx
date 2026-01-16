@@ -5,18 +5,18 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  MessageSquare,
-  Users,
-  Briefcase,
-  MoreHorizontal
+  Megaphone,
+  FileText,
+  Settings,
+  HelpCircle,
 } from "lucide-react";
 
 const navigation = [
   { name: "Home", href: "/", icon: LayoutDashboard },
-  { name: "Conversas", href: "/conversas", icon: MessageSquare },
-  { name: "Medicos", href: "/medicos", icon: Users },
-  { name: "Vagas", href: "/vagas", icon: Briefcase },
-  { name: "Mais", href: "/sistema", icon: MoreHorizontal },
+  { name: "Campanhas", href: "/campanhas", icon: Megaphone },
+  { name: "Instrucoes", href: "/instrucoes", icon: FileText },
+  { name: "Sistema", href: "/sistema", icon: Settings },
+  { name: "Ajuda", href: "/ajuda", icon: HelpCircle },
 ];
 
 export function BottomNav() {
@@ -26,7 +26,8 @@ export function BottomNav() {
     <div className="bg-white border-t border-gray-200 px-2 py-2 safe-area-pb">
       <nav className="flex items-center justify-around">
         {navigation.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href ||
+            (item.href !== "/" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.name}

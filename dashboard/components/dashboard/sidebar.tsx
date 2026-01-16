@@ -5,25 +5,21 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  MessageSquare,
-  Users,
-  Briefcase,
   Megaphone,
-  BarChart3,
+  FileText,
+  Building2,
   Settings,
-  Shield,
-  Power
+  HelpCircle,
+  Power,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Conversas", href: "/conversas", icon: MessageSquare },
-  { name: "Medicos", href: "/medicos", icon: Users },
-  { name: "Vagas", href: "/vagas", icon: Briefcase },
   { name: "Campanhas", href: "/campanhas", icon: Megaphone },
-  { name: "Metricas", href: "/metricas", icon: BarChart3 },
+  { name: "Instrucoes", href: "/instrucoes", icon: FileText },
+  { name: "Hospitais Bloqueados", href: "/hospitais/bloqueados", icon: Building2 },
   { name: "Sistema", href: "/sistema", icon: Settings },
-  { name: "Auditoria", href: "/auditoria", icon: Shield },
+  { name: "Ajuda", href: "/ajuda", icon: HelpCircle },
 ];
 
 export function Sidebar() {
@@ -45,7 +41,8 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navigation.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href ||
+            (item.href !== "/" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.name}
