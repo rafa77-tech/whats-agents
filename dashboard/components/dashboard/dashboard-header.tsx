@@ -7,7 +7,7 @@ import { ExportMenu } from "./export-menu";
 import { type DashboardPeriod } from "@/types/dashboard";
 
 interface DashboardHeaderProps {
-  juliaStatus: "online" | "offline";
+  juliaStatus: "online" | "offline" | "degraded";
   lastHeartbeat: Date | null;
   uptime30d: number;
   selectedPeriod: DashboardPeriod;
@@ -24,6 +24,7 @@ export function DashboardHeader({
   onExport,
 }: DashboardHeaderProps) {
   const isOnline = juliaStatus === "online";
+  const isDegraded = juliaStatus === "degraded";
 
   return (
     <div className="flex items-center justify-between bg-white rounded-lg border border-gray-200 px-6 py-4">
@@ -32,11 +33,15 @@ export function DashboardHeader({
         <div className="flex items-center gap-2">
           <span
             className={`h-3 w-3 rounded-full ${
-              isOnline ? "bg-green-500 animate-pulse" : "bg-red-500"
+              isOnline
+                ? "bg-green-500 animate-pulse"
+                : isDegraded
+                  ? "bg-yellow-500 animate-pulse"
+                  : "bg-red-500"
             }`}
           />
           <span className="font-medium text-gray-900">
-            Julia {isOnline ? "Online" : "Offline"}
+            Julia {isOnline ? "Online" : isDegraded ? "Degraded" : "Offline"}
           </span>
         </div>
 
