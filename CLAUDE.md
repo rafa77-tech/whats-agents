@@ -59,6 +59,8 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 28 | Dashboard Julia | ✅ Completa |
 | 29 | Conversation Mode | ✅ Completa |
 | 30 | Refatoração Arquitetural | 🔄 Em Andamento |
+| 33 | Dashboard de Performance | ✅ Completa |
+| 34 | UX Refinements Dashboard | 📋 Planejado |
 
 ### Funcionalidades Implementadas
 
