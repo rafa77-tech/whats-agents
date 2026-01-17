@@ -1,170 +1,163 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+} from '@/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { useToast } from '@/hooks/use-toast'
+import { Loader2 } from 'lucide-react'
 
-type TipoDiretriz = "margem_negociacao" | "regra_especial" | "info_adicional";
-type Escopo = "vaga" | "medico" | "hospital" | "especialidade" | "global";
+type TipoDiretriz = 'margem_negociacao' | 'regra_especial' | 'info_adicional'
+type Escopo = 'vaga' | 'medico' | 'hospital' | 'especialidade' | 'global'
 
 interface NovaInstrucaoDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSuccess: () => void
 }
 
 interface Hospital {
-  id: string;
-  nome: string;
+  id: string
+  nome: string
 }
 
 interface Especialidade {
-  id: string;
-  nome: string;
+  id: string
+  nome: string
 }
 
-export function NovaInstrucaoDialog({
-  open,
-  onOpenChange,
-  onSuccess,
-}: NovaInstrucaoDialogProps) {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [tipo, setTipo] = useState<TipoDiretriz>("margem_negociacao");
-  const [escopo, setEscopo] = useState<Escopo>("global");
+export function NovaInstrucaoDialog({ open, onOpenChange, onSuccess }: NovaInstrucaoDialogProps) {
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+  const [tipo, setTipo] = useState<TipoDiretriz>('margem_negociacao')
+  const [escopo, setEscopo] = useState<Escopo>('global')
 
   // Referencias do escopo
-  const [hospitalId, setHospitalId] = useState<string>("");
-  const [especialidadeId, setEspecialidadeId] = useState<string>("");
+  const [hospitalId, setHospitalId] = useState<string>('')
+  const [especialidadeId, setEspecialidadeId] = useState<string>('')
 
   // Listas para selecao
-  const [hospitais, setHospitais] = useState<Hospital[]>([]);
-  const [especialidades, setEspecialidades] = useState<Especialidade[]>([]);
-  const [loadingListas, setLoadingListas] = useState(false);
+  const [hospitais, setHospitais] = useState<Hospital[]>([])
+  const [especialidades, setEspecialidades] = useState<Especialidade[]>([])
+  const [loadingListas, setLoadingListas] = useState(false)
 
   // Conteudo
-  const [valorMaximo, setValorMaximo] = useState<string>("");
-  const [percentualMaximo, setPercentualMaximo] = useState<string>("");
-  const [regra, setRegra] = useState<string>("");
-  const [info, setInfo] = useState<string>("");
+  const [valorMaximo, setValorMaximo] = useState<string>('')
+  const [percentualMaximo, setPercentualMaximo] = useState<string>('')
+  const [regra, setRegra] = useState<string>('')
+  const [info, setInfo] = useState<string>('')
 
   // Expiracao
-  const [expiraEm, setExpiraEm] = useState<string>("");
+  const [expiraEm, setExpiraEm] = useState<string>('')
 
   useEffect(() => {
     if (open) {
-      setLoadingListas(true);
+      setLoadingListas(true)
       Promise.all([
-        fetch("/api/hospitais").then((r) => r.json()),
-        fetch("/api/especialidades").then((r) => r.json()),
+        fetch('/api/hospitais').then((r) => r.json()),
+        fetch('/api/especialidades').then((r) => r.json()),
       ])
         .then(([h, e]) => {
-          setHospitais(h);
-          setEspecialidades(e);
+          setHospitais(h)
+          setEspecialidades(e)
         })
         .catch(console.error)
-        .finally(() => setLoadingListas(false));
+        .finally(() => setLoadingListas(false))
     }
-  }, [open]);
+  }, [open])
 
   const resetForm = () => {
-    setTipo("margem_negociacao");
-    setEscopo("global");
-    setHospitalId("");
-    setEspecialidadeId("");
-    setValorMaximo("");
-    setPercentualMaximo("");
-    setRegra("");
-    setInfo("");
-    setExpiraEm("");
-  };
+    setTipo('margem_negociacao')
+    setEscopo('global')
+    setHospitalId('')
+    setEspecialidadeId('')
+    setValorMaximo('')
+    setPercentualMaximo('')
+    setRegra('')
+    setInfo('')
+    setExpiraEm('')
+  }
 
   const handleSubmit = async () => {
-    setLoading(true);
+    setLoading(true)
 
     try {
-      const conteudo: Record<string, unknown> = {};
+      const conteudo: Record<string, unknown> = {}
 
-      if (tipo === "margem_negociacao") {
-        if (valorMaximo) conteudo.valor_maximo = Number(valorMaximo);
-        if (percentualMaximo)
-          conteudo.percentual_maximo = Number(percentualMaximo);
-      } else if (tipo === "regra_especial") {
-        conteudo.regra = regra;
-      } else if (tipo === "info_adicional") {
-        conteudo.info = info;
+      if (tipo === 'margem_negociacao') {
+        if (valorMaximo) conteudo.valor_maximo = Number(valorMaximo)
+        if (percentualMaximo) conteudo.percentual_maximo = Number(percentualMaximo)
+      } else if (tipo === 'regra_especial') {
+        conteudo.regra = regra
+      } else if (tipo === 'info_adicional') {
+        conteudo.info = info
       }
 
       const payload: Record<string, unknown> = {
         tipo,
         escopo,
         conteudo,
-      };
+      }
 
-      if (escopo === "hospital" && hospitalId) payload.hospital_id = hospitalId;
-      if (escopo === "especialidade" && especialidadeId)
-        payload.especialidade_id = especialidadeId;
-      if (expiraEm) payload.expira_em = new Date(expiraEm).toISOString();
+      if (escopo === 'hospital' && hospitalId) payload.hospital_id = hospitalId
+      if (escopo === 'especialidade' && especialidadeId) payload.especialidade_id = especialidadeId
+      if (expiraEm) payload.expira_em = new Date(expiraEm).toISOString()
 
-      const res = await fetch("/api/diretrizes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/diretrizes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
+      })
 
-      if (!res.ok) throw new Error("Erro ao criar instrucao");
+      if (!res.ok) throw new Error('Erro ao criar instrucao')
 
       toast({
-        title: "Instrucao criada",
-        description: "Julia seguira esta diretriz a partir de agora.",
-      });
+        title: 'Instrucao criada',
+        description: 'Julia seguira esta diretriz a partir de agora.',
+      })
 
-      resetForm();
-      onOpenChange(false);
-      onSuccess();
+      resetForm()
+      onOpenChange(false)
+      onSuccess()
     } catch {
       toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Nao foi possivel criar a instrucao.",
-      });
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Nao foi possivel criar a instrucao.',
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const canSubmit = (): boolean => {
     // Validar escopo
-    if (escopo === "hospital" && !hospitalId) return false;
-    if (escopo === "especialidade" && !especialidadeId) return false;
+    if (escopo === 'hospital' && !hospitalId) return false
+    if (escopo === 'especialidade' && !especialidadeId) return false
 
     // Validar conteudo
-    if (tipo === "margem_negociacao" && !valorMaximo && !percentualMaximo)
-      return false;
-    if (tipo === "regra_especial" && !regra.trim()) return false;
-    if (tipo === "info_adicional" && !info.trim()) return false;
+    if (tipo === 'margem_negociacao' && !valorMaximo && !percentualMaximo) return false
+    if (tipo === 'regra_especial' && !regra.trim()) return false
+    if (tipo === 'info_adicional' && !info.trim()) return false
 
-    return true;
-  };
+    return true
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -177,10 +170,7 @@ export function NovaInstrucaoDialog({
           {/* Tipo de instrucao */}
           <div className="space-y-2">
             <Label>Tipo de instrucao</Label>
-            <RadioGroup
-              value={tipo}
-              onValueChange={(v) => setTipo(v as TipoDiretriz)}
-            >
+            <RadioGroup value={tipo} onValueChange={(v) => setTipo(v as TipoDiretriz)}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="margem_negociacao" id="margem" />
                 <Label htmlFor="margem" className="font-normal">
@@ -205,10 +195,7 @@ export function NovaInstrucaoDialog({
           {/* Escopo */}
           <div className="space-y-2">
             <Label>Aplica-se a</Label>
-            <Select
-              value={escopo}
-              onValueChange={(v) => setEscopo(v as Escopo)}
-            >
+            <Select value={escopo} onValueChange={(v) => setEscopo(v as Escopo)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -221,15 +208,13 @@ export function NovaInstrucaoDialog({
           </div>
 
           {/* Seletor baseado no escopo */}
-          {escopo === "hospital" && (
+          {escopo === 'hospital' && (
             <div className="space-y-2">
               <Label>Hospital</Label>
               <Select value={hospitalId} onValueChange={setHospitalId}>
                 <SelectTrigger>
                   <SelectValue
-                    placeholder={
-                      loadingListas ? "Carregando..." : "Selecione o hospital"
-                    }
+                    placeholder={loadingListas ? 'Carregando...' : 'Selecione o hospital'}
                   />
                 </SelectTrigger>
                 <SelectContent>
@@ -243,20 +228,13 @@ export function NovaInstrucaoDialog({
             </div>
           )}
 
-          {escopo === "especialidade" && (
+          {escopo === 'especialidade' && (
             <div className="space-y-2">
               <Label>Especialidade</Label>
-              <Select
-                value={especialidadeId}
-                onValueChange={setEspecialidadeId}
-              >
+              <Select value={especialidadeId} onValueChange={setEspecialidadeId}>
                 <SelectTrigger>
                   <SelectValue
-                    placeholder={
-                      loadingListas
-                        ? "Carregando..."
-                        : "Selecione a especialidade"
-                    }
+                    placeholder={loadingListas ? 'Carregando...' : 'Selecione a especialidade'}
                   />
                 </SelectTrigger>
                 <SelectContent>
@@ -271,7 +249,7 @@ export function NovaInstrucaoDialog({
           )}
 
           {/* Conteudo baseado no tipo */}
-          {tipo === "margem_negociacao" && (
+          {tipo === 'margem_negociacao' && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Valor maximo (R$)</Label>
@@ -295,7 +273,7 @@ export function NovaInstrucaoDialog({
             </div>
           )}
 
-          {tipo === "regra_especial" && (
+          {tipo === 'regra_especial' && (
             <div className="space-y-2">
               <Label>Regra</Label>
               <Textarea
@@ -307,7 +285,7 @@ export function NovaInstrucaoDialog({
             </div>
           )}
 
-          {tipo === "info_adicional" && (
+          {tipo === 'info_adicional' && (
             <div className="space-y-2">
               <Label>Informacao</Label>
               <Textarea
@@ -327,9 +305,7 @@ export function NovaInstrucaoDialog({
               value={expiraEm}
               onChange={(e) => setExpiraEm(e.target.value)}
             />
-            <p className="text-xs text-gray-400">
-              Deixe vazio para nao expirar automaticamente
-            </p>
+            <p className="text-xs text-gray-400">Deixe vazio para nao expirar automaticamente</p>
           </div>
         </div>
 
@@ -340,15 +316,15 @@ export function NovaInstrucaoDialog({
           <Button onClick={handleSubmit} disabled={!canSubmit() || loading}>
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Criando...
               </>
             ) : (
-              "Criar Instrucao"
+              'Criar Instrucao'
             )}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

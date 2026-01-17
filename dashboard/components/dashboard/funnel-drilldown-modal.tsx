@@ -4,15 +4,10 @@
  * Modal showing list of doctors at each funnel stage.
  */
 
-"use client";
+'use client'
 
-import { useState, useEffect, useCallback } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useState, useEffect, useCallback } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   Table,
   TableBody,
@@ -20,25 +15,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { type FunnelDrilldownData } from "@/types/dashboard";
-import {
-  Search,
-  ExternalLink,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+} from '@/components/ui/table'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { type FunnelDrilldownData } from '@/types/dashboard'
+import { Search, ExternalLink, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 interface FunnelDrilldownModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  stage: string | null;
-  period: string;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  stage: string | null
+  period: string
 }
 
 export function FunnelDrilldownModal({
@@ -47,71 +36,71 @@ export function FunnelDrilldownModal({
   stage,
   period,
 }: FunnelDrilldownModalProps) {
-  const [data, setData] = useState<FunnelDrilldownData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [data, setData] = useState<FunnelDrilldownData | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [debouncedSearch, setDebouncedSearch] = useState('')
 
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+      setDebouncedSearch(search)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const fetchData = useCallback(async () => {
-    if (!stage) return;
+    if (!stage) return
 
-    setLoading(true);
+    setLoading(true)
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        pageSize: "10",
+        pageSize: '10',
         search: debouncedSearch,
         period,
-      });
+      })
 
-      const res = await fetch(`/api/dashboard/funnel/${stage}?${params}`);
-      const json = await res.json();
+      const res = await fetch(`/api/dashboard/funnel/${stage}?${params}`)
+      const json = await res.json()
 
       if (res.ok) {
-        setData(json);
+        setData(json)
       }
     } catch (error) {
-      console.error("Error fetching drilldown:", error);
+      console.error('Error fetching drilldown:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [stage, page, debouncedSearch, period]);
+  }, [stage, page, debouncedSearch, period])
 
   useEffect(() => {
     if (open && stage) {
-      fetchData();
+      fetchData()
     }
-  }, [open, stage, fetchData]);
+  }, [open, stage, fetchData])
 
   // Reset state when closing
   useEffect(() => {
     if (!open) {
-      setSearch("");
-      setDebouncedSearch("");
-      setPage(1);
-      setData(null);
+      setSearch('')
+      setDebouncedSearch('')
+      setPage(1)
+      setData(null)
     }
-  }, [open]);
+  }, [open])
 
   const handleSearchChange = (value: string) => {
-    setSearch(value);
-    setPage(1); // Reset page on search
-  };
+    setSearch(value)
+    setPage(1) // Reset page on search
+  }
 
-  const totalPages = data ? Math.ceil(data.total / data.pageSize) : 0;
+  const totalPages = data ? Math.ceil(data.total / data.pageSize) : 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="flex max-h-[80vh] max-w-4xl flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>
             Medicos em &quot;{data?.stageLabel || stage}&quot; ({data?.total || 0})
@@ -120,7 +109,7 @@ export function FunnelDrilldownModal({
 
         {/* Busca */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             placeholder="Buscar por nome..."
             value={search}
@@ -130,7 +119,7 @@ export function FunnelDrilldownModal({
         </div>
 
         {/* Tabela */}
-        <div className="flex-1 overflow-auto border rounded-lg">
+        <div className="flex-1 overflow-auto rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -145,16 +134,13 @@ export function FunnelDrilldownModal({
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                  <TableCell colSpan={6} className="py-8 text-center">
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                   </TableCell>
                 </TableRow>
               ) : data?.items.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center py-8 text-gray-500"
-                  >
+                  <TableCell colSpan={6} className="py-8 text-center text-gray-500">
                     Nenhum medico encontrado
                   </TableCell>
                 </TableRow>
@@ -162,29 +148,19 @@ export function FunnelDrilldownModal({
                 data?.items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.nome}</TableCell>
-                    <TableCell className="text-gray-600">
-                      {item.telefone || "-"}
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {item.especialidade}
-                    </TableCell>
+                    <TableCell className="text-gray-600">{item.telefone || '-'}</TableCell>
+                    <TableCell className="text-gray-600">{item.especialidade}</TableCell>
                     <TableCell className="text-gray-500">
                       {formatDistanceToNow(new Date(item.ultimoContato), {
                         addSuffix: true,
                         locale: ptBR,
                       })}
                     </TableCell>
-                    <TableCell className="text-gray-600">
-                      {item.chipName}
-                    </TableCell>
+                    <TableCell className="text-gray-600">{item.chipName}</TableCell>
                     <TableCell>
                       {item.chatwootUrl ? (
                         <Button variant="ghost" size="sm" asChild>
-                          <a
-                            href={item.chatwootUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
+                          <a href={item.chatwootUrl} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="h-4 w-4" />
                           </a>
                         </Button>
@@ -201,14 +177,14 @@ export function FunnelDrilldownModal({
 
         {/* Paginacao */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-4 border-t">
+          <div className="flex items-center justify-between border-t pt-4">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
+              <ChevronLeft className="mr-1 h-4 w-4" />
               Anterior
             </Button>
             <span className="text-sm text-gray-500">
@@ -221,11 +197,11 @@ export function FunnelDrilldownModal({
               disabled={page === totalPages || loading}
             >
               Proximo
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
         )}
       </DialogContent>
     </Dialog>
-  );
+  )
 }

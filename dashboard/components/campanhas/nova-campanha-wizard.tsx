@@ -1,26 +1,21 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
+import { useToast } from '@/hooks/use-toast'
 import {
   Settings,
   Users,
@@ -30,138 +25,137 @@ import {
   ChevronLeft,
   Loader2,
   Megaphone,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface NovaCampanhaWizardProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSuccess: () => void
 }
 
 interface CampanhaFormData {
   // Etapa 1 - Basico
-  nome_template: string;
-  tipo_campanha: string;
-  categoria: string;
-  objetivo: string;
+  nome_template: string
+  tipo_campanha: string
+  categoria: string
+  objetivo: string
 
   // Etapa 2 - Audiencia
-  audiencia_tipo: "todos" | "filtrado";
-  especialidades: string[];
-  regioes: string[];
-  status_cliente: string[];
+  audiencia_tipo: 'todos' | 'filtrado'
+  especialidades: string[]
+  regioes: string[]
+  status_cliente: string[]
 
   // Etapa 3 - Mensagem
-  corpo: string;
-  tom: string;
+  corpo: string
+  tom: string
 
   // Etapa 4 - Agendamento
-  agendar: boolean;
-  agendar_para: string;
+  agendar: boolean
+  agendar_para: string
 }
 
 const STEPS = [
-  { id: 1, title: "Configuracao", icon: Settings },
-  { id: 2, title: "Audiencia", icon: Users },
-  { id: 3, title: "Mensagem", icon: MessageSquare },
-  { id: 4, title: "Revisao", icon: CheckCircle2 },
-];
+  { id: 1, title: 'Configuracao', icon: Settings },
+  { id: 2, title: 'Audiencia', icon: Users },
+  { id: 3, title: 'Mensagem', icon: MessageSquare },
+  { id: 4, title: 'Revisao', icon: CheckCircle2 },
+]
 
 const TIPOS_CAMPANHA = [
-  { value: "oferta_plantao", label: "Oferta de Plantao" },
-  { value: "reativacao", label: "Reativacao" },
-  { value: "followup", label: "Follow-up" },
-  { value: "descoberta", label: "Descoberta" },
-];
+  { value: 'oferta_plantao', label: 'Oferta de Plantao' },
+  { value: 'reativacao', label: 'Reativacao' },
+  { value: 'followup', label: 'Follow-up' },
+  { value: 'descoberta', label: 'Descoberta' },
+]
 
 const CATEGORIAS = [
-  { value: "marketing", label: "Marketing" },
-  { value: "operacional", label: "Operacional" },
-  { value: "relacionamento", label: "Relacionamento" },
-];
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'operacional', label: 'Operacional' },
+  { value: 'relacionamento', label: 'Relacionamento' },
+]
 
 const TONS = [
-  { value: "amigavel", label: "Amigavel" },
-  { value: "profissional", label: "Profissional" },
-  { value: "urgente", label: "Urgente" },
-  { value: "casual", label: "Casual" },
-];
+  { value: 'amigavel', label: 'Amigavel' },
+  { value: 'profissional', label: 'Profissional' },
+  { value: 'urgente', label: 'Urgente' },
+  { value: 'casual', label: 'Casual' },
+]
 
 const ESPECIALIDADES = [
-  "Cardiologia",
-  "Clinica Medica",
-  "Pediatria",
-  "Ortopedia",
-  "Ginecologia",
-  "Neurologia",
-  "Dermatologia",
-  "Oftalmologia",
-];
+  'Cardiologia',
+  'Clinica Medica',
+  'Pediatria',
+  'Ortopedia',
+  'Ginecologia',
+  'Neurologia',
+  'Dermatologia',
+  'Oftalmologia',
+]
 
 const REGIOES = [
-  "Sao Paulo - Capital",
-  "ABC Paulista",
-  "Campinas",
-  "Ribeiro Preto",
-  "Santos",
-  "Sorocaba",
-];
+  'Sao Paulo - Capital',
+  'ABC Paulista',
+  'Campinas',
+  'Ribeiro Preto',
+  'Santos',
+  'Sorocaba',
+]
 
-export function NovaCampanhaWizard({
-  open,
-  onOpenChange,
-  onSuccess,
-}: NovaCampanhaWizardProps) {
-  const { toast } = useToast();
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+export function NovaCampanhaWizard({ open, onOpenChange, onSuccess }: NovaCampanhaWizardProps) {
+  const { toast } = useToast()
+  const [step, setStep] = useState(1)
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<CampanhaFormData>({
-    nome_template: "",
-    tipo_campanha: "oferta_plantao",
-    categoria: "marketing",
-    objetivo: "",
-    audiencia_tipo: "todos",
+    nome_template: '',
+    tipo_campanha: 'oferta_plantao',
+    categoria: 'marketing',
+    objetivo: '',
+    audiencia_tipo: 'todos',
     especialidades: [],
     regioes: [],
     status_cliente: [],
-    corpo: "",
-    tom: "amigavel",
+    corpo: '',
+    tom: 'amigavel',
     agendar: false,
-    agendar_para: "",
-  });
+    agendar_para: '',
+  })
 
   const updateFormData = (field: keyof CampanhaFormData, value: unknown) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
 
-  const toggleArrayItem = (field: "especialidades" | "regioes" | "status_cliente", item: string) => {
+  const toggleArrayItem = (
+    field: 'especialidades' | 'regioes' | 'status_cliente',
+    item: string
+  ) => {
     setFormData((prev) => {
-      const array = prev[field];
+      const array = prev[field]
       if (array.includes(item)) {
-        return { ...prev, [field]: array.filter((i) => i !== item) };
+        return { ...prev, [field]: array.filter((i) => i !== item) }
       }
-      return { ...prev, [field]: [...array, item] };
-    });
-  };
+      return { ...prev, [field]: [...array, item] }
+    })
+  }
 
   const canProceed = () => {
     switch (step) {
       case 1:
-        return formData.nome_template.trim() !== "";
+        return formData.nome_template.trim() !== ''
       case 2:
-        return true;
+        return true
       case 3:
-        return formData.corpo.trim() !== "";
+        return formData.corpo.trim() !== ''
       case 4:
-        return true;
+        return true
       default:
-        return false;
+        return false
     }
-  };
+  }
 
   const handleSubmit = async () => {
-    setLoading(true);
+    setLoading(true)
 
     try {
       const payload = {
@@ -172,68 +166,69 @@ export function NovaCampanhaWizard({
         corpo: formData.corpo,
         tom: formData.tom,
         audience_filters:
-          formData.audiencia_tipo === "filtrado"
+          formData.audiencia_tipo === 'filtrado'
             ? {
                 especialidades: formData.especialidades,
                 regioes: formData.regioes,
                 status_cliente: formData.status_cliente,
               }
             : {},
-        agendar_para: formData.agendar && formData.agendar_para
-          ? new Date(formData.agendar_para).toISOString()
-          : null,
-        status: formData.agendar ? "agendada" : "rascunho",
-      };
-
-      const res = await fetch("/api/campanhas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        throw new Error("Erro ao criar campanha");
+        agendar_para:
+          formData.agendar && formData.agendar_para
+            ? new Date(formData.agendar_para).toISOString()
+            : null,
+        status: formData.agendar ? 'agendada' : 'rascunho',
       }
 
-      onSuccess();
-      resetForm();
+      const res = await fetch('/api/campanhas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        throw new Error('Erro ao criar campanha')
+      }
+
+      onSuccess()
+      resetForm()
     } catch {
       toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Nao foi possivel criar a campanha.",
-      });
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Nao foi possivel criar a campanha.',
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const resetForm = () => {
-    setStep(1);
+    setStep(1)
     setFormData({
-      nome_template: "",
-      tipo_campanha: "oferta_plantao",
-      categoria: "marketing",
-      objetivo: "",
-      audiencia_tipo: "todos",
+      nome_template: '',
+      tipo_campanha: 'oferta_plantao',
+      categoria: 'marketing',
+      objetivo: '',
+      audiencia_tipo: 'todos',
       especialidades: [],
       regioes: [],
       status_cliente: [],
-      corpo: "",
-      tom: "amigavel",
+      corpo: '',
+      tom: 'amigavel',
       agendar: false,
-      agendar_para: "",
-    });
-  };
+      agendar_para: '',
+    })
+  }
 
   const handleClose = () => {
-    resetForm();
-    onOpenChange(false);
-  };
+    resetForm()
+    onOpenChange(false)
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Megaphone className="h-5 w-5" />
@@ -242,20 +237,20 @@ export function NovaCampanhaWizard({
         </DialogHeader>
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           {STEPS.map((s, index) => {
-            const StepIcon = s.icon;
-            const isActive = step === s.id;
-            const isCompleted = step > s.id;
+            const StepIcon = s.icon
+            const isActive = step === s.id
+            const isCompleted = step > s.id
 
             return (
               <div key={s.id} className="flex items-center">
                 <div
                   className={cn(
-                    "flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors",
-                    isActive && "border-primary bg-primary text-white",
-                    isCompleted && "border-green-500 bg-green-500 text-white",
-                    !isActive && !isCompleted && "border-gray-300 text-gray-400"
+                    'flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors',
+                    isActive && 'border-primary bg-primary text-white',
+                    isCompleted && 'border-green-500 bg-green-500 text-white',
+                    !isActive && !isCompleted && 'border-gray-300 text-gray-400'
                   )}
                 >
                   {isCompleted ? (
@@ -266,9 +261,9 @@ export function NovaCampanhaWizard({
                 </div>
                 <span
                   className={cn(
-                    "ml-2 text-sm font-medium",
-                    isActive && "text-primary",
-                    !isActive && "text-gray-500"
+                    'ml-2 text-sm font-medium',
+                    isActive && 'text-primary',
+                    !isActive && 'text-gray-500'
                   )}
                 >
                   {s.title}
@@ -277,15 +272,13 @@ export function NovaCampanhaWizard({
                   <ChevronRight className="mx-4 h-5 w-5 text-gray-300" />
                 )}
               </div>
-            );
+            )
           })}
         </div>
 
         {/* Step Content */}
         <div className="min-h-[300px]">
-          {step === 1 && (
-            <Step1Configuracao formData={formData} updateFormData={updateFormData} />
-          )}
+          {step === 1 && <Step1Configuracao formData={formData} updateFormData={updateFormData} />}
           {step === 2 && (
             <Step2Audiencia
               formData={formData}
@@ -293,40 +286,32 @@ export function NovaCampanhaWizard({
               toggleArrayItem={toggleArrayItem}
             />
           )}
-          {step === 3 && (
-            <Step3Mensagem formData={formData} updateFormData={updateFormData} />
-          )}
-          {step === 4 && (
-            <Step4Revisao formData={formData} updateFormData={updateFormData} />
-          )}
+          {step === 3 && <Step3Mensagem formData={formData} updateFormData={updateFormData} />}
+          {step === 4 && <Step4Revisao formData={formData} updateFormData={updateFormData} />}
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between mt-6 pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={() => setStep((s) => s - 1)}
-            disabled={step === 1}
-          >
-            <ChevronLeft className="h-4 w-4 mr-2" />
+        <div className="mt-6 flex justify-between border-t pt-4">
+          <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={step === 1}>
+            <ChevronLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
 
           {step < 4 ? (
             <Button onClick={() => setStep((s) => s + 1)} disabled={!canProceed()}>
               Proximo
-              <ChevronRight className="h-4 w-4 ml-2" />
+              <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
             <Button onClick={handleSubmit} disabled={loading}>
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Criando...
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
                   Criar Campanha
                 </>
               )}
@@ -335,7 +320,7 @@ export function NovaCampanhaWizard({
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
 // Step 1 - Configuracao
@@ -343,8 +328,8 @@ function Step1Configuracao({
   formData,
   updateFormData,
 }: {
-  formData: CampanhaFormData;
-  updateFormData: (field: keyof CampanhaFormData, value: unknown) => void;
+  formData: CampanhaFormData
+  updateFormData: (field: keyof CampanhaFormData, value: unknown) => void
 }) {
   return (
     <div className="space-y-4">
@@ -354,7 +339,7 @@ function Step1Configuracao({
           id="nome"
           placeholder="Ex: Oferta Cardio ABC - Janeiro"
           value={formData.nome_template}
-          onChange={(e) => updateFormData("nome_template", e.target.value)}
+          onChange={(e) => updateFormData('nome_template', e.target.value)}
         />
       </div>
 
@@ -363,7 +348,7 @@ function Step1Configuracao({
           <Label>Tipo de Campanha</Label>
           <Select
             value={formData.tipo_campanha}
-            onValueChange={(v) => updateFormData("tipo_campanha", v)}
+            onValueChange={(v) => updateFormData('tipo_campanha', v)}
           >
             <SelectTrigger>
               <SelectValue />
@@ -380,10 +365,7 @@ function Step1Configuracao({
 
         <div>
           <Label>Categoria</Label>
-          <Select
-            value={formData.categoria}
-            onValueChange={(v) => updateFormData("categoria", v)}
-          >
+          <Select value={formData.categoria} onValueChange={(v) => updateFormData('categoria', v)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -404,12 +386,12 @@ function Step1Configuracao({
           id="objetivo"
           placeholder="Descreva o objetivo desta campanha..."
           value={formData.objetivo}
-          onChange={(e) => updateFormData("objetivo", e.target.value)}
+          onChange={(e) => updateFormData('objetivo', e.target.value)}
           rows={3}
         />
       </div>
     </div>
-  );
+  )
 }
 
 // Step 2 - Audiencia
@@ -418,9 +400,9 @@ function Step2Audiencia({
   updateFormData,
   toggleArrayItem,
 }: {
-  formData: CampanhaFormData;
-  updateFormData: (field: keyof CampanhaFormData, value: unknown) => void;
-  toggleArrayItem: (field: "especialidades" | "regioes" | "status_cliente", item: string) => void;
+  formData: CampanhaFormData
+  updateFormData: (field: keyof CampanhaFormData, value: unknown) => void
+  toggleArrayItem: (field: 'especialidades' | 'regioes' | 'status_cliente', item: string) => void
 }) {
   return (
     <div className="space-y-4">
@@ -428,7 +410,7 @@ function Step2Audiencia({
         <Label>Audiencia</Label>
         <Select
           value={formData.audiencia_tipo}
-          onValueChange={(v) => updateFormData("audiencia_tipo", v as "todos" | "filtrado")}
+          onValueChange={(v) => updateFormData('audiencia_tipo', v as 'todos' | 'filtrado')}
         >
           <SelectTrigger>
             <SelectValue />
@@ -440,7 +422,7 @@ function Step2Audiencia({
         </Select>
       </div>
 
-      {formData.audiencia_tipo === "filtrado" && (
+      {formData.audiencia_tipo === 'filtrado' && (
         <>
           <div>
             <Label className="mb-2 block">Especialidades</Label>
@@ -448,9 +430,9 @@ function Step2Audiencia({
               {ESPECIALIDADES.map((esp) => (
                 <Badge
                   key={esp}
-                  variant={formData.especialidades.includes(esp) ? "default" : "outline"}
+                  variant={formData.especialidades.includes(esp) ? 'default' : 'outline'}
                   className="cursor-pointer"
-                  onClick={() => toggleArrayItem("especialidades", esp)}
+                  onClick={() => toggleArrayItem('especialidades', esp)}
                 >
                   {esp}
                 </Badge>
@@ -464,9 +446,9 @@ function Step2Audiencia({
               {REGIOES.map((reg) => (
                 <Badge
                   key={reg}
-                  variant={formData.regioes.includes(reg) ? "default" : "outline"}
+                  variant={formData.regioes.includes(reg) ? 'default' : 'outline'}
                   className="cursor-pointer"
-                  onClick={() => toggleArrayItem("regioes", reg)}
+                  onClick={() => toggleArrayItem('regioes', reg)}
                 >
                   {reg}
                 </Badge>
@@ -476,18 +458,18 @@ function Step2Audiencia({
         </>
       )}
 
-      <div className="p-4 bg-gray-50 rounded-lg">
+      <div className="rounded-lg bg-gray-50 p-4">
         <p className="text-sm text-gray-600">
-          {formData.audiencia_tipo === "todos" ? (
+          {formData.audiencia_tipo === 'todos' ? (
             <>A campanha sera enviada para todos os medicos cadastrados.</>
           ) : (
             <>
-              Filtros selecionados:{" "}
+              Filtros selecionados:{' '}
               {formData.especialidades.length > 0 && (
                 <span className="font-medium">{formData.especialidades.length} especialidades</span>
               )}
               {formData.regioes.length > 0 && (
-                <span className="font-medium ml-1">, {formData.regioes.length} regioes</span>
+                <span className="ml-1 font-medium">, {formData.regioes.length} regioes</span>
               )}
               {formData.especialidades.length === 0 && formData.regioes.length === 0 && (
                 <span className="text-gray-400">Nenhum filtro selecionado</span>
@@ -497,7 +479,7 @@ function Step2Audiencia({
         </p>
       </div>
     </div>
-  );
+  )
 }
 
 // Step 3 - Mensagem
@@ -505,14 +487,14 @@ function Step3Mensagem({
   formData,
   updateFormData,
 }: {
-  formData: CampanhaFormData;
-  updateFormData: (field: keyof CampanhaFormData, value: unknown) => void;
+  formData: CampanhaFormData
+  updateFormData: (field: keyof CampanhaFormData, value: unknown) => void
 }) {
   return (
     <div className="space-y-4">
       <div>
         <Label>Tom da Mensagem</Label>
-        <Select value={formData.tom} onValueChange={(v) => updateFormData("tom", v)}>
+        <Select value={formData.tom} onValueChange={(v) => updateFormData('tom', v)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -536,29 +518,30 @@ Use {{nome}} para inserir o nome do medico.
 Use {{especialidade}} para a especialidade.
 Use {{hospital}} para o hospital da vaga."
           value={formData.corpo}
-          onChange={(e) => updateFormData("corpo", e.target.value)}
+          onChange={(e) => updateFormData('corpo', e.target.value)}
           rows={8}
           className="font-mono text-sm"
         />
-        <p className="text-xs text-gray-500 mt-1">
-          Variaveis disponiveis: {"{{nome}}"}, {"{{especialidade}}"}, {"{{hospital}}"}, {"{{valor}}"}
+        <p className="mt-1 text-xs text-gray-500">
+          Variaveis disponiveis: {'{{nome}}'}, {'{{especialidade}}'}, {'{{hospital}}'},{' '}
+          {'{{valor}}'}
         </p>
       </div>
 
       {formData.corpo && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm font-medium text-green-800 mb-2">Preview:</p>
-          <p className="text-sm text-green-700 whitespace-pre-wrap">
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <p className="mb-2 text-sm font-medium text-green-800">Preview:</p>
+          <p className="whitespace-pre-wrap text-sm text-green-700">
             {formData.corpo
-              .replace("{{nome}}", "Dr. Carlos")
-              .replace("{{especialidade}}", "Cardiologia")
-              .replace("{{hospital}}", "Hospital Sao Luiz")
-              .replace("{{valor}}", "R$ 2.500")}
+              .replace('{{nome}}', 'Dr. Carlos')
+              .replace('{{especialidade}}', 'Cardiologia')
+              .replace('{{hospital}}', 'Hospital Sao Luiz')
+              .replace('{{valor}}', 'R$ 2.500')}
           </p>
         </div>
       )}
     </div>
-  );
+  )
 }
 
 // Step 4 - Revisao
@@ -566,12 +549,12 @@ function Step4Revisao({
   formData,
   updateFormData,
 }: {
-  formData: CampanhaFormData;
-  updateFormData: (field: keyof CampanhaFormData, value: unknown) => void;
+  formData: CampanhaFormData
+  updateFormData: (field: keyof CampanhaFormData, value: unknown) => void
 }) {
   return (
     <div className="space-y-4">
-      <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+      <div className="space-y-3 rounded-lg bg-gray-50 p-4">
         <h3 className="font-medium">Resumo da Campanha</h3>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -596,9 +579,7 @@ function Step4Revisao({
 
           <div>
             <span className="text-gray-500">Tom:</span>
-            <p className="font-medium">
-              {TONS.find((t) => t.value === formData.tom)?.label}
-            </p>
+            <p className="font-medium">{TONS.find((t) => t.value === formData.tom)?.label}</p>
           </div>
         </div>
 
@@ -612,8 +593,8 @@ function Step4Revisao({
         <div className="text-sm">
           <span className="text-gray-500">Audiencia:</span>
           <p>
-            {formData.audiencia_tipo === "todos"
-              ? "Todos os medicos"
+            {formData.audiencia_tipo === 'todos'
+              ? 'Todos os medicos'
               : `Filtrada (${formData.especialidades.length} especialidades, ${formData.regioes.length} regioes)`}
           </p>
         </div>
@@ -624,7 +605,7 @@ function Step4Revisao({
           <Checkbox
             id="agendar"
             checked={formData.agendar}
-            onCheckedChange={(checked) => updateFormData("agendar", checked)}
+            onCheckedChange={(checked) => updateFormData('agendar', checked)}
           />
           <Label htmlFor="agendar">Agendar envio</Label>
         </div>
@@ -636,17 +617,17 @@ function Step4Revisao({
               id="data"
               type="datetime-local"
               value={formData.agendar_para}
-              onChange={(e) => updateFormData("agendar_para", e.target.value)}
+              onChange={(e) => updateFormData('agendar_para', e.target.value)}
             />
           </div>
         )}
 
         {!formData.agendar && (
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="mt-2 text-sm text-gray-500">
             A campanha sera salva como rascunho. Voce podera iniciar o envio manualmente depois.
           </p>
         )}
       </div>
     </div>
-  );
+  )
 }

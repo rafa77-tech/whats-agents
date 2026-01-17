@@ -5,25 +5,25 @@
 @layer base {
   :root {
     /* Paleta Revoluna - baseada em #C82D37 */
-    --background: 0 0% 100%;           /* #F7F7F7 Off-White */
-    --foreground: 0 0% 3.9%;        /* #2D3748 Cinza Escuro */
+    --background: 0 0% 100%; /* #F7F7F7 Off-White */
+    --foreground: 0 0% 3.9%; /* #2D3748 Cinza Escuro */
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;           /* #C82D37 Vermelho Principal */
-    --primary-foreground: 0 0% 98%;  /* Branco */
-    --secondary: 0 0% 96.1%;         /* #2D3748 Cinza Escuro */
+    --primary: 0 0% 9%; /* #C82D37 Vermelho Principal */
+    --primary-foreground: 0 0% 98%; /* Branco */
+    --secondary: 0 0% 96.1%; /* #2D3748 Cinza Escuro */
     --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;             /* #E2E8F0 Cinza Claro */
-    --muted-foreground: 0 0% 45.1%;  /* #4A5568 Cinza Médio */
-    --accent: 0 0% 96.1%;            /* #FADCDE Rosa Suave */
+    --muted: 0 0% 96.1%; /* #E2E8F0 Cinza Claro */
+    --muted-foreground: 0 0% 45.1%; /* #4A5568 Cinza Médio */
+    --accent: 0 0% 96.1%; /* #FADCDE Rosa Suave */
     --accent-foreground: 0 0% 9%; /* #7A1B22 Vermelho Escuro */
-    --destructive: 0 84.2% 60.2%;       /* #C82D37 (mesmo que primary) */
+    --destructive: 0 84.2% 60.2%; /* #C82D37 (mesmo que primary) */
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;              /* #C82D37 */
+    --ring: 0 0% 3.9%; /* #C82D37 */
     --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;

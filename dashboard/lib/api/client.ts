@@ -1,56 +1,53 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 interface FetchOptions extends RequestInit {
-  token?: string;
+  token?: string
 }
 
-export async function apiClient<T>(
-  endpoint: string,
-  options: FetchOptions = {}
-): Promise<T> {
-  const { token, ...fetchOptions } = options;
+export async function apiClient<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+  const { token, ...fetchOptions } = options
 
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
     ...fetchOptions.headers,
-  };
+  }
 
   if (token) {
-    (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+    ;(headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...fetchOptions,
     headers,
-  });
+  })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || `API Error: ${response.status}`);
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || `API Error: ${response.status}`)
   }
 
-  return response.json();
+  return response.json()
 }
 
 // Shortcuts
 export const api = {
   get: <T>(endpoint: string, options?: FetchOptions) =>
-    apiClient<T>(endpoint, { ...options, method: "GET" }),
+    apiClient<T>(endpoint, { ...options, method: 'GET' }),
 
   post: <T>(endpoint: string, data?: unknown, options?: FetchOptions) =>
     apiClient<T>(endpoint, {
       ...options,
-      method: "POST",
+      method: 'POST',
       ...(data !== undefined && { body: JSON.stringify(data) }),
     }),
 
   put: <T>(endpoint: string, data?: unknown, options?: FetchOptions) =>
     apiClient<T>(endpoint, {
       ...options,
-      method: "PUT",
+      method: 'PUT',
       ...(data !== undefined && { body: JSON.stringify(data) }),
     }),
 
   delete: <T>(endpoint: string, options?: FetchOptions) =>
-    apiClient<T>(endpoint, { ...options, method: "DELETE" }),
-};
+    apiClient<T>(endpoint, { ...options, method: 'DELETE' }),
+}

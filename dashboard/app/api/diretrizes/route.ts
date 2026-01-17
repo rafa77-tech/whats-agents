@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 /**
  * GET /api/diretrizes
@@ -9,12 +9,12 @@ import { createClient } from "@/lib/supabase/server";
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const status = request.nextUrl.searchParams.get("status") || "ativa";
-    const statusArray = status.split(",");
+    const supabase = await createClient()
+    const status = request.nextUrl.searchParams.get('status') || 'ativa'
+    const statusArray = status.split(',')
 
     const { data, error } = await supabase
-      .from("diretrizes_contextuais")
+      .from('diretrizes_contextuais')
       .select(
         `
         *,
@@ -24,24 +24,18 @@ export async function GET(request: NextRequest) {
         especialidades (nome)
       `
       )
-      .in("status", statusArray)
-      .order("created_at", { ascending: false });
+      .in('status', statusArray)
+      .order('created_at', { ascending: false })
 
     if (error) {
-      console.error("Erro ao buscar diretrizes:", error);
-      return NextResponse.json(
-        { detail: "Erro ao buscar diretrizes" },
-        { status: 500 }
-      );
+      console.error('Erro ao buscar diretrizes:', error)
+      return NextResponse.json({ detail: 'Erro ao buscar diretrizes' }, { status: 500 })
     }
 
-    return NextResponse.json(data || []);
+    return NextResponse.json(data || [])
   } catch (error) {
-    console.error("Erro ao buscar diretrizes:", error);
-    return NextResponse.json(
-      { detail: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao buscar diretrizes:', error)
+    return NextResponse.json({ detail: 'Erro interno do servidor' }, { status: 500 })
   }
 }
 
@@ -51,40 +45,37 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = await createClient()
 
     // Verificar autenticacao
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json({ detail: "Nao autorizado" }, { status: 401 });
+      return NextResponse.json({ detail: 'Nao autorizado' }, { status: 401 })
     }
 
-    const body = (await request.json()) as Record<string, unknown>;
+    const body = (await request.json()) as Record<string, unknown>
 
     const { data, error } = await supabase
-      .from("diretrizes_contextuais")
+      .from('diretrizes_contextuais')
       .insert({
         ...body,
         criado_por: user.email || user.id,
         criado_em: new Date().toISOString(),
-        status: "ativa",
+        status: 'ativa',
       })
       .select()
-      .single();
+      .single()
 
     if (error) {
-      console.error("Erro ao criar diretriz:", error);
-      return NextResponse.json(
-        { detail: "Erro ao criar diretriz" },
-        { status: 500 }
-      );
+      console.error('Erro ao criar diretriz:', error)
+      return NextResponse.json({ detail: 'Erro ao criar diretriz' }, { status: 500 })
     }
 
     // Registrar no audit_log
-    await supabase.from("audit_log").insert({
-      action: "diretriz_criada",
+    await supabase.from('audit_log').insert({
+      action: 'diretriz_criada',
       user_email: user.email,
       details: {
         diretriz_id: data.id,
@@ -92,14 +83,11 @@ export async function POST(request: NextRequest) {
         escopo: body.escopo,
       },
       created_at: new Date().toISOString(),
-    });
+    })
 
-    return NextResponse.json(data);
+    return NextResponse.json(data)
   } catch (error) {
-    console.error("Erro ao criar diretriz:", error);
-    return NextResponse.json(
-      { detail: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao criar diretriz:', error)
+    return NextResponse.json({ detail: 'Erro interno do servidor' }, { status: 500 })
   }
 }

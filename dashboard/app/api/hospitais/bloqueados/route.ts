@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 /**
  * GET /api/hospitais/bloqueados
@@ -9,12 +9,12 @@ import { createClient } from "@/lib/supabase/server";
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const searchParams = request.nextUrl.searchParams;
-    const historico = searchParams.get("historico") === "true";
+    const supabase = await createClient()
+    const searchParams = request.nextUrl.searchParams
+    const historico = searchParams.get('historico') === 'true'
 
     let query = supabase
-      .from("hospitais_bloqueados")
+      .from('hospitais_bloqueados')
       .select(
         `
         id,
@@ -32,29 +32,23 @@ export async function GET(request: NextRequest) {
         )
       `
       )
-      .order("bloqueado_em", { ascending: false });
+      .order('bloqueado_em', { ascending: false })
 
     // Se não é histórico, filtrar apenas bloqueados ativos
     if (!historico) {
-      query = query.eq("status", "bloqueado");
+      query = query.eq('status', 'bloqueado')
     }
 
-    const { data, error } = await query;
+    const { data, error } = await query
 
     if (error) {
-      console.error("Erro ao buscar hospitais bloqueados:", error);
-      return NextResponse.json(
-        { detail: "Erro ao buscar hospitais bloqueados" },
-        { status: 500 }
-      );
+      console.error('Erro ao buscar hospitais bloqueados:', error)
+      return NextResponse.json({ detail: 'Erro ao buscar hospitais bloqueados' }, { status: 500 })
     }
 
-    return NextResponse.json(data || []);
+    return NextResponse.json(data || [])
   } catch (error) {
-    console.error("Erro ao buscar hospitais bloqueados:", error);
-    return NextResponse.json(
-      { detail: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao buscar hospitais bloqueados:', error)
+    return NextResponse.json({ detail: 'Erro interno do servidor' }, { status: 500 })
   }
 }

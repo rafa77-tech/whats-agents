@@ -4,24 +4,24 @@
  * Generates PDF reports with all dashboard metrics using jsPDF.
  */
 
-import { jsPDF } from "jspdf";
-import { type DashboardExportData } from "@/types/dashboard";
+import { jsPDF } from 'jspdf'
+import { type DashboardExportData } from '@/types/dashboard'
 
 // Colors
 const COLORS = {
-  primary: "#1e40af", // blue-800
-  secondary: "#6b7280", // gray-500
-  success: "#16a34a", // green-600
-  warning: "#ca8a04", // yellow-600
-  danger: "#dc2626", // red-600
-  text: "#111827", // gray-900
-  textMuted: "#6b7280", // gray-500
-  border: "#e5e7eb", // gray-200
-};
+  primary: '#1e40af', // blue-800
+  secondary: '#6b7280', // gray-500
+  success: '#16a34a', // green-600
+  warning: '#ca8a04', // yellow-600
+  danger: '#dc2626', // red-600
+  text: '#111827', // gray-900
+  textMuted: '#6b7280', // gray-500
+  border: '#e5e7eb', // gray-200
+}
 
 interface TableColumn {
-  header: string;
-  width: number;
+  header: string
+  width: number
 }
 
 /**
@@ -32,51 +32,51 @@ interface TableColumn {
  */
 export function generateDashboardPDF(data: DashboardExportData): ArrayBuffer {
   const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4",
-  });
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  })
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 20;
-  const contentWidth = pageWidth - margin * 2;
-  let yPosition = margin;
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const margin = 20
+  const contentWidth = pageWidth - margin * 2
+  let yPosition = margin
 
   // Header
-  yPosition = drawHeader(doc, data, yPosition, margin, contentWidth);
+  yPosition = drawHeader(doc, data, yPosition, margin, contentWidth)
 
   // Main Metrics Section
-  yPosition = drawSection(doc, "METRICAS PRINCIPAIS", yPosition, margin);
-  yPosition = drawMetricsTable(doc, data.metrics, yPosition, margin);
+  yPosition = drawSection(doc, 'METRICAS PRINCIPAIS', yPosition, margin)
+  yPosition = drawMetricsTable(doc, data.metrics, yPosition, margin)
 
   // Quality Section
-  yPosition = drawSection(doc, "QUALIDADE DA PERSONA", yPosition, margin);
-  yPosition = drawQualityTable(doc, data.quality, yPosition, margin);
+  yPosition = drawSection(doc, 'QUALIDADE DA PERSONA', yPosition, margin)
+  yPosition = drawQualityTable(doc, data.quality, yPosition, margin)
 
   // Check if we need a new page
   if (yPosition > 200) {
-    doc.addPage();
-    yPosition = margin;
+    doc.addPage()
+    yPosition = margin
   }
 
   // Chips Section
-  yPosition = drawSection(doc, "POOL DE CHIPS", yPosition, margin);
-  yPosition = drawChipsTable(doc, data.chips, yPosition, margin);
+  yPosition = drawSection(doc, 'POOL DE CHIPS', yPosition, margin)
+  yPosition = drawChipsTable(doc, data.chips, yPosition, margin)
 
   // Check if we need a new page
   if (yPosition > 220) {
-    doc.addPage();
-    yPosition = margin;
+    doc.addPage()
+    yPosition = margin
   }
 
   // Funnel Section
-  yPosition = drawSection(doc, "FUNIL DE CONVERSAO", yPosition, margin);
-  yPosition = drawFunnelTable(doc, data.funnel, yPosition, margin);
+  yPosition = drawSection(doc, 'FUNIL DE CONVERSAO', yPosition, margin)
+  yPosition = drawFunnelTable(doc, data.funnel, yPosition, margin)
 
   // Footer
-  drawFooter(doc);
+  drawFooter(doc)
 
-  return doc.output("arraybuffer");
+  return doc.output('arraybuffer')
 }
 
 /**
@@ -90,47 +90,42 @@ function drawHeader(
   _contentWidth: number
 ): number {
   // Title
-  doc.setFontSize(20);
-  doc.setTextColor(COLORS.primary);
-  doc.text("Relatorio Dashboard Julia", margin, y);
-  y += 10;
+  doc.setFontSize(20)
+  doc.setTextColor(COLORS.primary)
+  doc.text('Relatorio Dashboard Julia', margin, y)
+  y += 10
 
   // Period
-  doc.setFontSize(11);
-  doc.setTextColor(COLORS.textMuted);
-  const periodStart = formatDate(data.period.start);
-  const periodEnd = formatDate(data.period.end);
-  doc.text(`Periodo: ${periodStart} a ${periodEnd}`, margin, y);
-  y += 6;
+  doc.setFontSize(11)
+  doc.setTextColor(COLORS.textMuted)
+  const periodStart = formatDate(data.period.start)
+  const periodEnd = formatDate(data.period.end)
+  doc.text(`Periodo: ${periodStart} a ${periodEnd}`, margin, y)
+  y += 6
 
   // Generated date
-  doc.text(`Gerado em: ${formatDateTime(new Date())}`, margin, y);
-  y += 10;
+  doc.text(`Gerado em: ${formatDateTime(new Date())}`, margin, y)
+  y += 10
 
   // Separator line
-  doc.setDrawColor(COLORS.border);
-  doc.setLineWidth(0.5);
-  doc.line(margin, y, doc.internal.pageSize.getWidth() - margin, y);
-  y += 10;
+  doc.setDrawColor(COLORS.border)
+  doc.setLineWidth(0.5)
+  doc.line(margin, y, doc.internal.pageSize.getWidth() - margin, y)
+  y += 10
 
-  return y;
+  return y
 }
 
 /**
  * Draws a section header.
  */
-function drawSection(
-  doc: jsPDF,
-  title: string,
-  y: number,
-  margin: number
-): number {
-  doc.setFontSize(12);
-  doc.setTextColor(COLORS.primary);
-  doc.setFont("helvetica", "bold");
-  doc.text(title, margin, y);
-  doc.setFont("helvetica", "normal");
-  return y + 8;
+function drawSection(doc: jsPDF, title: string, y: number, margin: number): number {
+  doc.setFontSize(12)
+  doc.setTextColor(COLORS.primary)
+  doc.setFont('helvetica', 'bold')
+  doc.text(title, margin, y)
+  doc.setFont('helvetica', 'normal')
+  return y + 8
 }
 
 /**
@@ -138,25 +133,25 @@ function drawSection(
  */
 function drawMetricsTable(
   doc: jsPDF,
-  metrics: DashboardExportData["metrics"],
+  metrics: DashboardExportData['metrics'],
   y: number,
   margin: number
 ): number {
   const columns: TableColumn[] = [
-    { header: "Metrica", width: 45 },
-    { header: "Atual", width: 25 },
-    { header: "Anterior", width: 25 },
-    { header: "Variacao", width: 25 },
-    { header: "Meta", width: 25 },
-    { header: "Status", width: 25 },
-  ];
+    { header: 'Metrica', width: 45 },
+    { header: 'Atual', width: 25 },
+    { header: 'Anterior', width: 25 },
+    { header: 'Variacao', width: 25 },
+    { header: 'Meta', width: 25 },
+    { header: 'Status', width: 25 },
+  ]
 
-  y = drawTableHeader(doc, columns, y, margin);
+  y = drawTableHeader(doc, columns, y, margin)
 
   metrics.forEach((m) => {
-    const change = calculateChange(m.current, m.previous);
-    const status = m.current >= m.meta ? "Atingida" : "Abaixo";
-    const statusColor = m.current >= m.meta ? COLORS.success : COLORS.warning;
+    const change = calculateChange(m.current, m.previous)
+    const status = m.current >= m.meta ? 'Atingida' : 'Abaixo'
+    const statusColor = m.current >= m.meta ? COLORS.success : COLORS.warning
 
     const row = [
       m.name,
@@ -165,19 +160,12 @@ function drawMetricsTable(
       change,
       formatValue(m.meta, m.unit),
       status,
-    ];
+    ]
 
-    y = drawTableRow(doc, columns, row, y, margin, [
-      null,
-      null,
-      null,
-      null,
-      null,
-      statusColor,
-    ]);
-  });
+    y = drawTableRow(doc, columns, row, y, margin, [null, null, null, null, null, statusColor])
+  })
 
-  return y + 8;
+  return y + 8
 }
 
 /**
@@ -185,22 +173,22 @@ function drawMetricsTable(
  */
 function drawQualityTable(
   doc: jsPDF,
-  quality: DashboardExportData["quality"],
+  quality: DashboardExportData['quality'],
   y: number,
   margin: number
 ): number {
   const columns: TableColumn[] = [
-    { header: "Metrica", width: 45 },
-    { header: "Atual", width: 30 },
-    { header: "Anterior", width: 30 },
-    { header: "Variacao", width: 30 },
-    { header: "Meta", width: 35 },
-  ];
+    { header: 'Metrica', width: 45 },
+    { header: 'Atual', width: 30 },
+    { header: 'Anterior', width: 30 },
+    { header: 'Variacao', width: 30 },
+    { header: 'Meta', width: 35 },
+  ]
 
-  y = drawTableHeader(doc, columns, y, margin);
+  y = drawTableHeader(doc, columns, y, margin)
 
   quality.forEach((q) => {
-    const change = calculateChange(q.current, q.previous);
+    const change = calculateChange(q.current, q.previous)
 
     const row = [
       q.name,
@@ -208,12 +196,12 @@ function drawQualityTable(
       formatValue(q.previous, q.unit),
       change,
       String(q.meta),
-    ];
+    ]
 
-    y = drawTableRow(doc, columns, row, y, margin);
-  });
+    y = drawTableRow(doc, columns, row, y, margin)
+  })
 
-  return y + 8;
+  return y + 8
 }
 
 /**
@@ -221,23 +209,23 @@ function drawQualityTable(
  */
 function drawChipsTable(
   doc: jsPDF,
-  chips: DashboardExportData["chips"],
+  chips: DashboardExportData['chips'],
   y: number,
   margin: number
 ): number {
   const columns: TableColumn[] = [
-    { header: "Chip", width: 35 },
-    { header: "Status", width: 25 },
-    { header: "Trust", width: 20 },
-    { header: "Msgs Hoje", width: 30 },
-    { header: "Taxa Resp", width: 30 },
-    { header: "Erros 24h", width: 25 },
-  ];
+    { header: 'Chip', width: 35 },
+    { header: 'Status', width: 25 },
+    { header: 'Trust', width: 20 },
+    { header: 'Msgs Hoje', width: 30 },
+    { header: 'Taxa Resp', width: 30 },
+    { header: 'Erros 24h', width: 25 },
+  ]
 
-  y = drawTableHeader(doc, columns, y, margin);
+  y = drawTableHeader(doc, columns, y, margin)
 
   chips.forEach((c) => {
-    const statusColor = getStatusColor(c.status);
+    const statusColor = getStatusColor(c.status)
 
     const row = [
       c.name,
@@ -246,7 +234,7 @@ function drawChipsTable(
       String(c.messagesToday),
       `${c.responseRate.toFixed(1)}%`,
       String(c.errors),
-    ];
+    ]
 
     y = drawTableRow(doc, columns, row, y, margin, [
       null,
@@ -255,10 +243,10 @@ function drawChipsTable(
       null,
       null,
       c.errors > 0 ? COLORS.danger : null,
-    ]);
-  });
+    ])
+  })
 
-  return y + 8;
+  return y + 8
 }
 
 /**
@@ -266,70 +254,54 @@ function drawChipsTable(
  */
 function drawFunnelTable(
   doc: jsPDF,
-  funnel: DashboardExportData["funnel"],
+  funnel: DashboardExportData['funnel'],
   y: number,
   margin: number
 ): number {
   const columns: TableColumn[] = [
-    { header: "Etapa", width: 45 },
-    { header: "Quantidade", width: 40 },
-    { header: "Porcentagem", width: 40 },
-    { header: "Variacao", width: 40 },
-  ];
+    { header: 'Etapa', width: 45 },
+    { header: 'Quantidade', width: 40 },
+    { header: 'Porcentagem', width: 40 },
+    { header: 'Variacao', width: 40 },
+  ]
 
-  y = drawTableHeader(doc, columns, y, margin);
+  y = drawTableHeader(doc, columns, y, margin)
 
   funnel.forEach((f) => {
-    const changeText =
-      f.change >= 0 ? `+${f.change.toFixed(0)}%` : `${f.change.toFixed(0)}%`;
-    const changeColor = f.change >= 0 ? COLORS.success : COLORS.danger;
+    const changeText = f.change >= 0 ? `+${f.change.toFixed(0)}%` : `${f.change.toFixed(0)}%`
+    const changeColor = f.change >= 0 ? COLORS.success : COLORS.danger
 
-    const row = [
-      f.stage,
-      String(f.count),
-      `${f.percentage.toFixed(1)}%`,
-      changeText,
-    ];
+    const row = [f.stage, String(f.count), `${f.percentage.toFixed(1)}%`, changeText]
 
-    y = drawTableRow(doc, columns, row, y, margin, [
-      null,
-      null,
-      null,
-      changeColor,
-    ]);
-  });
+    y = drawTableRow(doc, columns, row, y, margin, [null, null, null, changeColor])
+  })
 
-  return y + 8;
+  return y + 8
 }
 
 /**
  * Draws a table header row.
  */
-function drawTableHeader(
-  doc: jsPDF,
-  columns: TableColumn[],
-  y: number,
-  margin: number
-): number {
-  doc.setFontSize(9);
-  doc.setTextColor(COLORS.textMuted);
-  doc.setFont("helvetica", "bold");
+function drawTableHeader(doc: jsPDF, columns: TableColumn[], y: number, margin: number): number {
+  doc.setFontSize(9)
+  doc.setTextColor(COLORS.textMuted)
+  doc.setFont('helvetica', 'bold')
 
-  let x = margin;
+  let x = margin
   columns.forEach((col) => {
-    doc.text(col.header, x, y);
-    x += col.width;
-  });
+    doc.text(col.header, x, y)
+    x += col.width
+  })
 
-  doc.setFont("helvetica", "normal");
-  y += 2;
+  doc.setFont('helvetica', 'normal')
+  y += 2
 
   // Header underline
-  doc.setDrawColor(COLORS.border);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, margin + columns.reduce((sum, c) => sum + c.width, 0), y);
+  doc.setDrawColor(COLORS.border)
+  doc.setLineWidth(0.3)
+  doc.line(margin, y, margin + columns.reduce((sum, c) => sum + c.width, 0), y)
 
-  return y + 5;
+  return y + 5
 }
 
 /**
@@ -343,81 +315,76 @@ function drawTableRow(
   margin: number,
   colors?: (string | null)[]
 ): number {
-  doc.setFontSize(9);
+  doc.setFontSize(9)
 
-  let x = margin;
+  let x = margin
   values.forEach((value, i) => {
-    const color = colors?.[i];
+    const color = colors?.[i]
     if (color) {
-      doc.setTextColor(color);
+      doc.setTextColor(color)
     } else {
-      doc.setTextColor(COLORS.text);
+      doc.setTextColor(COLORS.text)
     }
-    doc.text(value, x, y);
-    x += columns[i]?.width ?? 30;
-  });
+    doc.text(value, x, y)
+    x += columns[i]?.width ?? 30
+  })
 
-  return y + 6;
+  return y + 6
 }
 
 /**
  * Draws the page footer.
  */
 function drawFooter(doc: jsPDF): void {
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const totalPages = doc.getNumberOfPages();
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const totalPages = doc.getNumberOfPages()
 
   for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(COLORS.textMuted);
-    doc.text(
-      `Pagina ${i} de ${totalPages}`,
-      pageWidth / 2,
-      pageHeight - 10,
-      { align: "center" }
-    );
-    doc.text("Revoluna - Dashboard Julia", 20, pageHeight - 10);
+    doc.setPage(i)
+    doc.setFontSize(8)
+    doc.setTextColor(COLORS.textMuted)
+    doc.text(`Pagina ${i} de ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+    doc.text('Revoluna - Dashboard Julia', 20, pageHeight - 10)
   }
 }
 
 // Helper functions
 
 function formatDate(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString("pt-BR");
+  return new Date(isoDate).toLocaleDateString('pt-BR')
 }
 
 function formatDateTime(date: Date): string {
-  return date.toLocaleString("pt-BR");
+  return date.toLocaleString('pt-BR')
 }
 
 function formatValue(value: number, unit: string): string {
-  if (unit === "percent") return `${value.toFixed(1)}%`;
-  if (unit === "%") return `${value.toFixed(1)}%`;
-  if (unit === "s") return `${value}s`;
-  if (unit === "seconds") return `${value}s`;
-  if (unit === "currency") return `R$ ${value.toFixed(2)}`;
-  return value.toString();
+  if (unit === 'percent') return `${value.toFixed(1)}%`
+  if (unit === '%') return `${value.toFixed(1)}%`
+  if (unit === 's') return `${value}s`
+  if (unit === 'seconds') return `${value}s`
+  if (unit === 'currency') return `R$ ${value.toFixed(2)}`
+  return value.toString()
 }
 
 function calculateChange(current: number, previous: number): string {
-  if (previous === 0) return "N/A";
-  const change = ((current - previous) / previous) * 100;
-  return change >= 0 ? `+${change.toFixed(0)}%` : `${change.toFixed(0)}%`;
+  if (previous === 0) return 'N/A'
+  const change = ((current - previous) / previous) * 100
+  return change >= 0 ? `+${change.toFixed(0)}%` : `${change.toFixed(0)}%`
 }
 
 function getStatusColor(status: string): string {
   switch (status) {
-    case "active":
-      return COLORS.success;
-    case "ready":
-      return COLORS.primary;
-    case "warming":
-      return COLORS.warning;
-    case "degraded":
-      return COLORS.danger;
+    case 'active':
+      return COLORS.success
+    case 'ready':
+      return COLORS.primary
+    case 'warming':
+      return COLORS.warning
+    case 'degraded':
+      return COLORS.danger
     default:
-      return COLORS.textMuted;
+      return COLORS.textMuted
   }
 }

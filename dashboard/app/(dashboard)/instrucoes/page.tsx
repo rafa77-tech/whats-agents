@@ -1,8 +1,8 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useCallback } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useCallback } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -10,14 +10,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,8 +27,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+} from '@/components/ui/alert-dialog'
+import { useToast } from '@/hooks/use-toast'
 import {
   Plus,
   MoreHorizontal,
@@ -39,36 +39,36 @@ import {
   Briefcase,
   Globe,
   Loader2,
-} from "lucide-react";
-import { NovaInstrucaoDialog } from "@/components/instrucoes/nova-instrucao-dialog";
-import { formatDistanceToNow, format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+} from 'lucide-react'
+import { NovaInstrucaoDialog } from '@/components/instrucoes/nova-instrucao-dialog'
+import { formatDistanceToNow, format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
-type TipoDiretriz = "margem_negociacao" | "regra_especial" | "info_adicional";
-type Escopo = "vaga" | "medico" | "hospital" | "especialidade" | "global";
+type TipoDiretriz = 'margem_negociacao' | 'regra_especial' | 'info_adicional'
+type Escopo = 'vaga' | 'medico' | 'hospital' | 'especialidade' | 'global'
 
 interface Diretriz {
-  id: string;
-  tipo: TipoDiretriz;
-  escopo: Escopo;
-  vaga_id?: string;
-  cliente_id?: string;
-  hospital_id?: string;
-  especialidade_id?: string;
+  id: string
+  tipo: TipoDiretriz
+  escopo: Escopo
+  vaga_id?: string
+  cliente_id?: string
+  hospital_id?: string
+  especialidade_id?: string
   conteudo: {
-    valor_maximo?: number;
-    percentual_maximo?: number;
-    regra?: string;
-    info?: string;
-  };
-  criado_por: string;
-  criado_em: string;
-  expira_em?: string;
-  status: "ativa" | "expirada" | "cancelada";
-  vagas?: { data: string; hospital_id: string } | null;
-  clientes?: { primeiro_nome: string; sobrenome: string; telefone: string } | null;
-  hospitais?: { nome: string } | null;
-  especialidades?: { nome: string } | null;
+    valor_maximo?: number
+    percentual_maximo?: number
+    regra?: string
+    info?: string
+  }
+  criado_por: string
+  criado_em: string
+  expira_em?: string
+  status: 'ativa' | 'expirada' | 'cancelada'
+  vagas?: { data: string; hospital_id: string } | null
+  clientes?: { primeiro_nome: string; sobrenome: string; telefone: string } | null
+  hospitais?: { nome: string } | null
+  especialidades?: { nome: string } | null
 }
 
 const escopoIcons: Record<Escopo, React.ReactNode> = {
@@ -77,154 +77,151 @@ const escopoIcons: Record<Escopo, React.ReactNode> = {
   hospital: <Building2 className="h-4 w-4" />,
   especialidade: <Briefcase className="h-4 w-4" />,
   global: <Globe className="h-4 w-4" />,
-};
+}
 
 const tipoLabels: Record<TipoDiretriz, string> = {
-  margem_negociacao: "Margem de Negociacao",
-  regra_especial: "Regra Especial",
-  info_adicional: "Info Adicional",
-};
+  margem_negociacao: 'Margem de Negociacao',
+  regra_especial: 'Regra Especial',
+  info_adicional: 'Info Adicional',
+}
 
 function getEscopoLabel(diretriz: Diretriz): string {
   switch (diretriz.escopo) {
-    case "vaga":
+    case 'vaga':
       return diretriz.vagas?.data
-        ? `Vaga ${format(new Date(diretriz.vagas.data), "dd/MM")}`
-        : "Vaga";
-    case "medico":
+        ? `Vaga ${format(new Date(diretriz.vagas.data), 'dd/MM')}`
+        : 'Vaga'
+    case 'medico':
       return diretriz.clientes
         ? `${diretriz.clientes.primeiro_nome} ${diretriz.clientes.sobrenome}`.trim()
-        : "Medico";
-    case "hospital":
-      return diretriz.hospitais?.nome ?? "Hospital";
-    case "especialidade":
-      return diretriz.especialidades?.nome ?? "Especialidade";
-    case "global":
-      return "Todas as conversas";
+        : 'Medico'
+    case 'hospital':
+      return diretriz.hospitais?.nome ?? 'Hospital'
+    case 'especialidade':
+      return diretriz.especialidades?.nome ?? 'Especialidade'
+    case 'global':
+      return 'Todas as conversas'
     default:
-      return "";
+      return ''
   }
 }
 
 function getConteudoLabel(diretriz: Diretriz): string {
-  const { conteudo, tipo } = diretriz;
+  const { conteudo, tipo } = diretriz
 
-  if (tipo === "margem_negociacao") {
+  if (tipo === 'margem_negociacao') {
     if (conteudo.valor_maximo) {
-      return `Ate R$ ${conteudo.valor_maximo.toLocaleString("pt-BR")}`;
+      return `Ate R$ ${conteudo.valor_maximo.toLocaleString('pt-BR')}`
     }
     if (conteudo.percentual_maximo) {
-      return `Ate ${conteudo.percentual_maximo}% acima`;
+      return `Ate ${conteudo.percentual_maximo}% acima`
     }
   }
 
-  if (tipo === "regra_especial") {
-    return conteudo.regra ?? "";
+  if (tipo === 'regra_especial') {
+    return conteudo.regra ?? ''
   }
 
-  if (tipo === "info_adicional") {
-    return conteudo.info ?? "";
+  if (tipo === 'info_adicional') {
+    return conteudo.info ?? ''
   }
 
-  return JSON.stringify(conteudo);
+  return JSON.stringify(conteudo)
 }
 
 export default function InstrucoesPage() {
-  const { toast } = useToast();
-  const [diretrizes, setDiretrizes] = useState<Diretriz[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [novaOpen, setNovaOpen] = useState(false);
-  const [cancelarDialog, setCancelarDialog] = useState<Diretriz | null>(null);
-  const [canceling, setCanceling] = useState(false);
-  const [tab, setTab] = useState<"ativas" | "historico">("ativas");
+  const { toast } = useToast()
+  const [diretrizes, setDiretrizes] = useState<Diretriz[]>([])
+  const [loading, setLoading] = useState(true)
+  const [novaOpen, setNovaOpen] = useState(false)
+  const [cancelarDialog, setCancelarDialog] = useState<Diretriz | null>(null)
+  const [canceling, setCanceling] = useState(false)
+  const [tab, setTab] = useState<'ativas' | 'historico'>('ativas')
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null)
 
   const carregarDiretrizes = useCallback(async () => {
     try {
-      setError(null);
-      const status = tab === "ativas" ? "ativa" : "expirada,cancelada";
-      const res = await fetch(`/api/diretrizes?status=${status}`);
-      const data = await res.json();
+      setError(null)
+      const status = tab === 'ativas' ? 'ativa' : 'expirada,cancelada'
+      const res = await fetch(`/api/diretrizes?status=${status}`)
+      const data = await res.json()
 
       if (!res.ok) {
-        setError(data.detail || "Erro ao carregar diretrizes");
-        setDiretrizes([]);
-        return;
+        setError(data.detail || 'Erro ao carregar diretrizes')
+        setDiretrizes([])
+        return
       }
 
-      setDiretrizes(Array.isArray(data) ? data : []);
+      setDiretrizes(Array.isArray(data) ? data : [])
     } catch (err) {
-      console.error("Erro ao carregar:", err);
-      setError("Erro de conexao com o servidor");
-      setDiretrizes([]);
+      console.error('Erro ao carregar:', err)
+      setError('Erro de conexao com o servidor')
+      setDiretrizes([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [tab]);
+  }, [tab])
 
   useEffect(() => {
-    setLoading(true);
-    carregarDiretrizes();
-  }, [carregarDiretrizes]);
+    setLoading(true)
+    carregarDiretrizes()
+  }, [carregarDiretrizes])
 
   const handleCancelar = async (diretriz: Diretriz) => {
-    setCanceling(true);
+    setCanceling(true)
     try {
       const res = await fetch(`/api/diretrizes/${diretriz.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "cancelada" }),
-      });
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelada' }),
+      })
 
-      if (!res.ok) throw new Error("Erro ao cancelar");
+      if (!res.ok) throw new Error('Erro ao cancelar')
 
       toast({
-        title: "Instrucao cancelada",
-        description: "A diretriz foi desativada.",
-      });
+        title: 'Instrucao cancelada',
+        description: 'A diretriz foi desativada.',
+      })
 
-      setCancelarDialog(null);
-      carregarDiretrizes();
+      setCancelarDialog(null)
+      carregarDiretrizes()
     } catch {
       toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Nao foi possivel cancelar a instrucao.",
-      });
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Nao foi possivel cancelar a instrucao.',
+      })
     } finally {
-      setCanceling(false);
+      setCanceling(false)
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Instrucoes Ativas</h1>
-          <p className="text-gray-500">
-            Diretrizes contextuais que Julia segue nas conversas
-          </p>
+          <p className="text-gray-500">Diretrizes contextuais que Julia segue nas conversas</p>
         </div>
 
         <Button onClick={() => setNovaOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           Nova Instrucao
         </Button>
       </div>
 
       {/* Alerta informativo */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
         <p className="text-sm text-blue-800">
-          Instrucoes sao regras especificas que Julia segue em conversas.
-          Por exemplo: margens de negociacao para vagas, regras especiais
-          para hospitais ou informacoes sobre medicos.
+          Instrucoes sao regras especificas que Julia segue em conversas. Por exemplo: margens de
+          negociacao para vagas, regras especiais para hospitais ou informacoes sobre medicos.
         </p>
       </div>
 
       {/* Erro */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <p className="text-sm text-red-800">{error}</p>
         </div>
       )}
@@ -262,10 +259,7 @@ export default function InstrucoesPage() {
       />
 
       {/* Dialog cancelar */}
-      <AlertDialog
-        open={!!cancelarDialog}
-        onOpenChange={() => setCancelarDialog(null)}
-      >
+      <AlertDialog open={!!cancelarDialog} onOpenChange={() => setCancelarDialog(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar instrucao?</AlertDialogTitle>
@@ -279,34 +273,25 @@ export default function InstrucoesPage() {
               onClick={() => cancelarDialog && handleCancelar(cancelarDialog)}
               disabled={canceling}
             >
-              {canceling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Confirmar cancelamento"
-              )}
+              {canceling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirmar cancelamento'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }
 
 interface DiretrizesTableProps {
-  diretrizes: Diretriz[];
-  loading: boolean;
-  onCancelar: (d: Diretriz) => void;
-  showActions: boolean;
+  diretrizes: Diretriz[]
+  loading: boolean
+  onCancelar: (d: Diretriz) => void
+  showActions: boolean
 }
 
-function DiretrizesTable({
-  diretrizes,
-  loading,
-  onCancelar,
-  showActions,
-}: DiretrizesTableProps) {
+function DiretrizesTable({ diretrizes, loading, onCancelar, showActions }: DiretrizesTableProps) {
   return (
-    <div className="border rounded-lg bg-white">
+    <div className="rounded-lg border bg-white">
       <Table>
         <TableHeader>
           <TableRow>
@@ -321,13 +306,13 @@ function DiretrizesTable({
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" />
+              <TableCell colSpan={6} className="py-8 text-center">
+                <Loader2 className="mx-auto h-6 w-6 animate-spin text-gray-400" />
               </TableCell>
             </TableRow>
           ) : diretrizes.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8">
+              <TableCell colSpan={6} className="py-8 text-center">
                 <div className="flex flex-col items-center gap-2">
                   <span className="text-4xl">📋</span>
                   <span className="text-gray-600">Nenhuma instrucao encontrada</span>
@@ -355,18 +340,14 @@ function DiretrizesTable({
                         addSuffix: true,
                         locale: ptBR,
                       })
-                    : "-"}
+                    : '-'}
                 </TableCell>
                 <TableCell>
                   {diretriz.expira_em ? (
                     <span
-                      className={
-                        new Date(diretriz.expira_em) < new Date()
-                          ? "text-red-500"
-                          : ""
-                      }
+                      className={new Date(diretriz.expira_em) < new Date() ? 'text-red-500' : ''}
                     >
-                      {format(new Date(diretriz.expira_em), "dd/MM HH:mm")}
+                      {format(new Date(diretriz.expira_em), 'dd/MM HH:mm')}
                     </span>
                   ) : (
                     <span className="text-gray-400">Nao expira</span>
@@ -385,7 +366,7 @@ function DiretrizesTable({
                           className="text-red-600"
                           onClick={() => onCancelar(diretriz)}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
+                          <Trash2 className="mr-2 h-4 w-4" />
                           Cancelar
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -398,5 +379,5 @@ function DiretrizesTable({
         </TableBody>
       </Table>
     </div>
-  );
+  )
 }

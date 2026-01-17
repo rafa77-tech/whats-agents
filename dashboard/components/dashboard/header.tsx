@@ -1,32 +1,32 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { Bell, Menu, Search, X } from "lucide-react";
-import { Sidebar } from "./sidebar";
+import { useState } from 'react'
+import { Bell, Menu, Search, X } from 'lucide-react'
+import { Sidebar } from './sidebar'
 
 export function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
+      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between px-4 py-3 lg:px-6">
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="lg:hidden p-2 -ml-2 text-gray-500 hover:text-gray-700"
+            className="-ml-2 p-2 text-gray-500 hover:text-gray-700 lg:hidden"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="h-6 w-6" />
           </button>
 
           {/* Search */}
-          <div className="flex-1 max-w-lg mx-4 lg:mx-0">
+          <div className="mx-4 max-w-lg flex-1 lg:mx-0">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
                 type="search"
                 placeholder="Buscar medicos, conversas..."
-                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-revoluna-400 focus:border-transparent outline-none"
+                className="w-full rounded-lg border border-gray-200 py-2 pl-10 pr-4 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-revoluna-400"
               />
             </div>
           </div>
@@ -35,12 +35,12 @@ export function Header() {
           <div className="flex items-center gap-2">
             {/* Notifications */}
             <button className="relative p-2 text-gray-500 hover:text-gray-700">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              <Bell className="h-6 w-6" />
+              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
             </button>
 
             {/* User avatar */}
-            <div className="w-9 h-9 rounded-full bg-revoluna-50 flex items-center justify-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-revoluna-50">
               <span className="text-sm font-medium text-revoluna-700">R</span>
             </div>
           </div>
@@ -51,23 +51,20 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/50"
-            onClick={() => setMobileMenuOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
 
           {/* Sidebar */}
           <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-xl">
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="absolute top-4 right-4 p-2 text-gray-500"
+              className="absolute right-4 top-4 p-2 text-gray-500"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </button>
             <Sidebar />
           </div>
         </div>
       )}
     </>
-  );
+  )
 }

@@ -4,4 +4,4 @@
  * Exports all dashboard utilities.
  */
 
-export * from "./calculations";
+export * from './calculations'

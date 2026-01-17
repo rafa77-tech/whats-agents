@@ -1,10 +1,10 @@
-"use client";
+'use client'
 
-import { type ChipPoolAggregatedMetrics } from "@/types/dashboard";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { type ChipPoolAggregatedMetrics } from '@/types/dashboard'
+import { TrendingUp, TrendingDown } from 'lucide-react'
 
 interface ChipPoolMetricsProps {
-  metrics: ChipPoolAggregatedMetrics;
+  metrics: ChipPoolAggregatedMetrics
 }
 
 function MetricItem({
@@ -14,53 +14,48 @@ function MetricItem({
   format,
   invertTrend = false,
 }: {
-  label: string;
-  value: number;
-  previousValue: number;
-  format: "number" | "percent";
-  invertTrend?: boolean;
+  label: string
+  value: number
+  previousValue: number
+  format: 'number' | 'percent'
+  invertTrend?: boolean
 }) {
-  const diff =
-    previousValue !== 0 ? ((value - previousValue) / previousValue) * 100 : 0;
-  const isPositive = diff > 0;
+  const diff = previousValue !== 0 ? ((value - previousValue) / previousValue) * 100 : 0
+  const isPositive = diff > 0
   // Para taxa block e erros, queda e bom
-  const isGood = invertTrend ? !isPositive : isPositive;
+  const isGood = invertTrend ? !isPositive : isPositive
 
   const formattedValue =
-    format === "percent"
-      ? `${value.toFixed(1)}%`
-      : value.toLocaleString("pt-BR");
+    format === 'percent' ? `${value.toFixed(1)}%` : value.toLocaleString('pt-BR')
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3 text-center">
+    <div className="rounded-lg bg-gray-50 p-3 text-center">
       <div className="text-lg font-bold text-gray-900">{formattedValue}</div>
-      <div className="text-xs text-gray-500 mb-1">{label}</div>
+      <div className="mb-1 text-xs text-gray-500">{label}</div>
       {Math.abs(diff) >= 1 && (
         <div
           className={`flex items-center justify-center text-xs ${
-            isGood ? "text-green-600" : "text-red-600"
+            isGood ? 'text-green-600' : 'text-red-600'
           }`}
         >
           {isPositive ? (
-            <TrendingUp className="h-3 w-3 mr-0.5" />
+            <TrendingUp className="mr-0.5 h-3 w-3" />
           ) : (
-            <TrendingDown className="h-3 w-3 mr-0.5" />
+            <TrendingDown className="mr-0.5 h-3 w-3" />
           )}
-          {isPositive ? "+" : ""}
+          {isPositive ? '+' : ''}
           {diff.toFixed(0)}%
         </div>
       )}
     </div>
-  );
+  )
 }
 
 export function ChipPoolMetricsComponent({ metrics }: ChipPoolMetricsProps) {
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium text-gray-700">
-        Metricas Agregadas (periodo)
-      </h4>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <h4 className="text-sm font-medium text-gray-700">Metricas Agregadas (periodo)</h4>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <MetricItem
           label="Msgs Enviadas"
           value={metrics.totalMessagesSent}
@@ -89,5 +84,5 @@ export function ChipPoolMetricsComponent({ metrics }: ChipPoolMetricsProps) {
         />
       </div>
     </div>
-  );
+  )
 }

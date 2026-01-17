@@ -4,20 +4,20 @@
  * Timeline of recent system events with auto-refresh.
  */
 
-"use client";
+'use client'
 
-import { useEffect, useState, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ActivityItem } from "./activity-item";
-import { type ActivityFeedData } from "@/types/dashboard";
-import { Activity, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState, useCallback } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ActivityItem } from './activity-item'
+import { type ActivityFeedData } from '@/types/dashboard'
+import { Activity, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface ActivityFeedProps {
-  initialData?: ActivityFeedData;
-  autoRefresh?: boolean;
-  refreshInterval?: number;
-  limit?: number;
+  initialData?: ActivityFeedData
+  autoRefresh?: boolean
+  refreshInterval?: number
+  limit?: number
 }
 
 export function ActivityFeed({
@@ -26,43 +26,41 @@ export function ActivityFeed({
   refreshInterval = 30000,
   limit = 10,
 }: ActivityFeedProps) {
-  const [data, setData] = useState<ActivityFeedData | null>(
-    initialData ?? null
-  );
-  const [loading, setLoading] = useState(!initialData);
+  const [data, setData] = useState<ActivityFeedData | null>(initialData ?? null)
+  const [loading, setLoading] = useState(!initialData)
 
   const fetchActivity = useCallback(async () => {
     try {
-      const res = await fetch(`/api/dashboard/activity?limit=${limit}`);
-      const json = (await res.json()) as ActivityFeedData;
+      const res = await fetch(`/api/dashboard/activity?limit=${limit}`)
+      const json = (await res.json()) as ActivityFeedData
       if (res.ok) {
-        setData(json);
+        setData(json)
       }
     } catch (error) {
-      console.error("Error fetching activity:", error);
+      console.error('Error fetching activity:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [limit]);
+  }, [limit])
 
   useEffect(() => {
     if (!initialData) {
-      void fetchActivity();
+      void fetchActivity()
     }
 
     if (autoRefresh) {
       const interval = setInterval(() => {
-        void fetchActivity();
-      }, refreshInterval);
-      return () => clearInterval(interval);
+        void fetchActivity()
+      }, refreshInterval)
+      return () => clearInterval(interval)
     }
-    return undefined;
-  }, [initialData, autoRefresh, refreshInterval, fetchActivity]);
+    return undefined
+  }, [initialData, autoRefresh, refreshInterval, fetchActivity])
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-gray-500">
           <Activity className="h-4 w-4" />
           Atividade Recente
         </CardTitle>
@@ -73,8 +71,8 @@ export function ActivityFeed({
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         ) : data?.events.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Activity className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+          <div className="py-8 text-center text-gray-500">
+            <Activity className="mx-auto mb-2 h-8 w-8 text-gray-300" />
             <p>Nenhuma atividade recente</p>
           </div>
         ) : (
@@ -86,7 +84,7 @@ export function ActivityFeed({
         )}
 
         {data?.hasMore && (
-          <div className="pt-4 border-t mt-4">
+          <div className="mt-4 border-t pt-4">
             <Button variant="ghost" size="sm" className="w-full">
               Ver mais
             </Button>
@@ -94,5 +92,5 @@ export function ActivityFeed({
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

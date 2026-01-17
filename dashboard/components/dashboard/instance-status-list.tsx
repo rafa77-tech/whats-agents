@@ -1,9 +1,9 @@
-"use client";
+'use client'
 
-import { type WhatsAppInstance } from "@/types/dashboard";
+import { type WhatsAppInstance } from '@/types/dashboard'
 
 interface InstanceStatusListProps {
-  instances: WhatsAppInstance[];
+  instances: WhatsAppInstance[]
 }
 
 export function InstanceStatusList({ instances }: InstanceStatusListProps) {
@@ -14,22 +14,20 @@ export function InstanceStatusList({ instances }: InstanceStatusListProps) {
         {instances.map((instance) => (
           <div
             key={instance.name}
-            className="flex items-center justify-between py-1.5 px-2 bg-gray-50 rounded"
+            className="flex items-center justify-between rounded bg-gray-50 px-2 py-1.5"
           >
             <div className="flex items-center gap-2">
               <span
                 className={`h-2 w-2 rounded-full ${
-                  instance.status === "online" ? "bg-green-500" : "bg-red-500"
+                  instance.status === 'online' ? 'bg-green-500' : 'bg-red-500'
                 }`}
               />
               <span className="text-sm font-medium">{instance.name}</span>
             </div>
-            <span className="text-sm text-gray-500">
-              {instance.messagesToday} msgs
-            </span>
+            <span className="text-sm text-gray-500">{instance.messagesToday} msgs</span>
           </div>
         ))}
       </div>
     </div>
-  );
+  )
 }

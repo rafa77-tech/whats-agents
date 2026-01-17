@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   Select,
@@ -6,19 +6,19 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { type DashboardPeriod } from "@/types/dashboard";
+} from '@/components/ui/select'
+import { type DashboardPeriod } from '@/types/dashboard'
 
 interface PeriodSelectorProps {
-  value: DashboardPeriod;
-  onChange: (value: DashboardPeriod) => void;
+  value: DashboardPeriod
+  onChange: (value: DashboardPeriod) => void
 }
 
 const periodLabels: Record<DashboardPeriod, string> = {
-  "7d": "7 dias",
-  "14d": "14 dias",
-  "30d": "30 dias",
-};
+  '7d': '7 dias',
+  '14d': '14 dias',
+  '30d': '30 dias',
+}
 
 export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
   return (
@@ -27,10 +27,10 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="7d">{periodLabels["7d"]}</SelectItem>
-        <SelectItem value="14d">{periodLabels["14d"]}</SelectItem>
-        <SelectItem value="30d">{periodLabels["30d"]}</SelectItem>
+        <SelectItem value="7d">{periodLabels['7d']}</SelectItem>
+        <SelectItem value="14d">{periodLabels['14d']}</SelectItem>
+        <SelectItem value="30d">{periodLabels['30d']}</SelectItem>
       </SelectContent>
     </Select>
-  );
+  )
 }

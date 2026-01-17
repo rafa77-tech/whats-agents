@@ -4,14 +4,14 @@
  * Funcoes auxiliares para calculos de datas e metricas do dashboard.
  */
 
-import { type DashboardPeriod } from "@/types/dashboard";
+import { type DashboardPeriod } from '@/types/dashboard'
 
 export interface PeriodDates {
-  currentStart: string;
-  currentEnd: string;
-  previousStart: string;
-  previousEnd: string;
-  days: number;
+  currentStart: string
+  currentEnd: string
+  previousStart: string
+  previousEnd: string
+  days: number
 }
 
 /**
@@ -22,23 +22,23 @@ export interface PeriodDates {
  */
 export function getPeriodDates(period: DashboardPeriod | string): PeriodDates {
   const periodMap: Record<string, number> = {
-    "7d": 7,
-    "14d": 14,
-    "30d": 30,
-  };
+    '7d': 7,
+    '14d': 14,
+    '30d': 30,
+  }
 
-  const days = periodMap[period] || 7;
-  const now = new Date();
+  const days = periodMap[period] || 7
+  const now = new Date()
 
   // Periodo atual: agora ate X dias atras
-  const currentEnd = now.toISOString();
-  const currentStart = new Date(now);
-  currentStart.setDate(currentStart.getDate() - days);
+  const currentEnd = now.toISOString()
+  const currentStart = new Date(now)
+  currentStart.setDate(currentStart.getDate() - days)
 
   // Periodo anterior: X dias atras ate 2X dias atras
-  const previousEnd = currentStart.toISOString();
-  const previousStart = new Date(currentStart);
-  previousStart.setDate(previousStart.getDate() - days);
+  const previousEnd = currentStart.toISOString()
+  const previousStart = new Date(currentStart)
+  previousStart.setDate(previousStart.getDate() - days)
 
   return {
     currentStart: currentStart.toISOString(),
@@ -46,7 +46,7 @@ export function getPeriodDates(period: DashboardPeriod | string): PeriodDates {
     previousStart: previousStart.toISOString(),
     previousEnd,
     days,
-  };
+  }
 }
 
 /**
@@ -56,14 +56,11 @@ export function getPeriodDates(period: DashboardPeriod | string): PeriodDates {
  * @param previous - Valor anterior
  * @returns Variacao percentual (positivo = aumento, negativo = queda)
  */
-export function calculatePercentChange(
-  current: number,
-  previous: number
-): number {
+export function calculatePercentChange(current: number, previous: number): number {
   if (previous === 0) {
-    return current > 0 ? 100 : 0;
+    return current > 0 ? 100 : 0
   }
-  return Number((((current - previous) / previous) * 100).toFixed(1));
+  return Number((((current - previous) / previous) * 100).toFixed(1))
 }
 
 /**
@@ -74,8 +71,8 @@ export function calculatePercentChange(
  * @returns Taxa em porcentagem (0-100)
  */
 export function calculateRate(numerator: number, denominator: number): number {
-  if (denominator === 0) return 0;
-  return Number(((numerator / denominator) * 100).toFixed(1));
+  if (denominator === 0) return 0
+  return Number(((numerator / denominator) * 100).toFixed(1))
 }
 
 /**
@@ -86,8 +83,8 @@ export function calculateRate(numerator: number, denominator: number): number {
  * @returns Valor arredondado
  */
 export function roundTo(value: number, decimals: number = 1): number {
-  const multiplier = Math.pow(10, decimals);
-  return Math.round(value * multiplier) / multiplier;
+  const multiplier = Math.pow(10, decimals)
+  return Math.round(value * multiplier) / multiplier
 }
 
 /**
@@ -97,11 +94,11 @@ export function roundTo(value: number, decimals: number = 1): number {
  * @returns Periodo valido
  */
 export function validatePeriod(period: string | null): DashboardPeriod {
-  const validPeriods = ["7d", "14d", "30d"];
+  const validPeriods = ['7d', '14d', '30d']
   if (period && validPeriods.includes(period)) {
-    return period as DashboardPeriod;
+    return period as DashboardPeriod
   }
-  return "7d";
+  return '7d'
 }
 
 // ============================================================================
@@ -116,12 +113,9 @@ export function validatePeriod(period: string | null): DashboardPeriod {
  * @param previous - Valor anterior
  * @returns Variacao percentual ou null
  */
-export function calculatePercentageChange(
-  current: number,
-  previous: number
-): number | null {
-  if (previous === 0) return null;
-  return ((current - previous) / previous) * 100;
+export function calculatePercentageChange(current: number, previous: number): number | null {
+  if (previous === 0) return null
+  return ((current - previous) / previous) * 100
 }
 
 /**
@@ -131,14 +125,11 @@ export function calculatePercentageChange(
  * @param lesserIsBetter - Se menor valor e melhor (ex: latencia, bot detection)
  * @returns true se a tendencia e positiva
  */
-export function isTrendPositive(
-  change: number,
-  lesserIsBetter: boolean = false
-): boolean {
+export function isTrendPositive(change: number, lesserIsBetter: boolean = false): boolean {
   if (lesserIsBetter) {
-    return change < 0; // queda e positiva para estas metricas
+    return change < 0 // queda e positiva para estas metricas
   }
-  return change > 0; // subida e positiva
+  return change > 0 // subida e positiva
 }
 
 /**
@@ -148,9 +139,9 @@ export function isTrendPositive(
  * @returns String formatada (ex: "+15%", "-8%", "N/A")
  */
 export function formatChange(change: number | null): string {
-  if (change === null) return "N/A";
-  const prefix = change > 0 ? "+" : "";
-  return `${prefix}${change.toFixed(0)}%`;
+  if (change === null) return 'N/A'
+  const prefix = change > 0 ? '+' : ''
+  return `${prefix}${change.toFixed(0)}%`
 }
 
 /**
@@ -163,8 +154,8 @@ export function formatChange(change: number | null): string {
 export function getTrendStatus(
   change: number | null,
   lesserIsBetter: boolean = false
-): "positive" | "negative" | "neutral" {
-  if (change === null || Math.abs(change) < 1) return "neutral";
-  const isPositive = isTrendPositive(change, lesserIsBetter);
-  return isPositive ? "positive" : "negative";
+): 'positive' | 'negative' | 'neutral' {
+  if (change === null || Math.abs(change) < 1) return 'neutral'
+  const isPositive = isTrendPositive(change, lesserIsBetter)
+  return isPositive ? 'positive' : 'negative'
 }

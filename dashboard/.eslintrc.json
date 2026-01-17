@@ -43,11 +43,5 @@
       "version": "detect"
     }
   },
-  "ignorePatterns": [
-    "node_modules/",
-    ".next/",
-    "coverage/",
-    "playwright-report/",
-    "test-results/"
-  ]
+  "ignorePatterns": ["node_modules/", ".next/", "coverage/", "playwright-report/", "test-results/"]
 }
