@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/hooks/use-toast'
+import { useApiError } from '@/hooks/use-api-error'
 import {
   Settings,
   Users,
@@ -104,7 +104,7 @@ const REGIOES = [
 ]
 
 export function NovaCampanhaWizard({ open, onOpenChange, onSuccess }: NovaCampanhaWizardProps) {
-  const { toast } = useToast()
+  const { handleError } = useApiError()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<CampanhaFormData>({
@@ -187,17 +187,14 @@ export function NovaCampanhaWizard({ open, onOpenChange, onSuccess }: NovaCampan
       })
 
       if (!res.ok) {
-        throw new Error('Erro ao criar campanha')
+        await handleError({ response: res })
+        return
       }
 
       onSuccess()
       resetForm()
-    } catch {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Nao foi possivel criar a campanha.',
-      })
+    } catch (error) {
+      await handleError({ error: error instanceof Error ? error : undefined })
     } finally {
       setLoading(false)
     }

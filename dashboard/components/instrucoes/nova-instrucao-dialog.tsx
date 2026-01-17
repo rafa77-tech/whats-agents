@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { useToast } from '@/hooks/use-toast'
+import { useApiError } from '@/hooks/use-api-error'
+import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
 type TipoDiretriz = 'margem_negociacao' | 'regra_especial' | 'info_adicional'
@@ -43,7 +44,7 @@ interface Especialidade {
 }
 
 export function NovaInstrucaoDialog({ open, onOpenChange, onSuccess }: NovaInstrucaoDialogProps) {
-  const { toast } = useToast()
+  const { handleError } = useApiError()
   const [loading, setLoading] = useState(false)
   const [tipo, setTipo] = useState<TipoDiretriz>('margem_negociacao')
   const [escopo, setEscopo] = useState<Escopo>('global')
@@ -125,22 +126,20 @@ export function NovaInstrucaoDialog({ open, onOpenChange, onSuccess }: NovaInstr
         body: JSON.stringify(payload),
       })
 
-      if (!res.ok) throw new Error('Erro ao criar instrucao')
+      if (!res.ok) {
+        await handleError({ response: res })
+        return
+      }
 
-      toast({
-        title: 'Instrucao criada',
+      toast.success('Instrucao criada', {
         description: 'Julia seguira esta diretriz a partir de agora.',
       })
 
       resetForm()
       onOpenChange(false)
       onSuccess()
-    } catch {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Nao foi possivel criar a instrucao.',
-      })
+    } catch (error) {
+      await handleError({ error: error instanceof Error ? error : undefined })
     } finally {
       setLoading(false)
     }
