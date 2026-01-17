@@ -13,6 +13,7 @@ import {
   type ChipPoolOverviewData,
   type ChipDetail,
   type FunnelDataVisual,
+  type TrendsData,
 } from "@/types/dashboard";
 
 // ============================================================================
@@ -254,4 +255,82 @@ export const mockFunnelData: FunnelDataVisual = {
     },
   ],
   period: "7 dias",
+};
+
+// ============================================================================
+// E12 - Trends Sparklines
+// ============================================================================
+
+export const mockTrendsData: TrendsData = {
+  metrics: [
+    {
+      id: "responseRate",
+      label: "Taxa de Resposta",
+      data: [
+        { date: "2025-01-10", value: 28 },
+        { date: "2025-01-11", value: 29 },
+        { date: "2025-01-12", value: 27 },
+        { date: "2025-01-13", value: 30 },
+        { date: "2025-01-14", value: 31 },
+        { date: "2025-01-15", value: 30 },
+        { date: "2025-01-16", value: 32 },
+      ],
+      currentValue: 32,
+      unit: "%",
+      trend: "up",
+      trendIsGood: true,
+    },
+    {
+      id: "latency",
+      label: "Latencia Media",
+      data: [
+        { date: "2025-01-10", value: 30 },
+        { date: "2025-01-11", value: 28 },
+        { date: "2025-01-12", value: 32 },
+        { date: "2025-01-13", value: 26 },
+        { date: "2025-01-14", value: 25 },
+        { date: "2025-01-15", value: 24 },
+        { date: "2025-01-16", value: 24 },
+      ],
+      currentValue: 24,
+      unit: "s",
+      trend: "down",
+      trendIsGood: true,
+    },
+    {
+      id: "botDetection",
+      label: "Deteccao Bot",
+      data: [
+        { date: "2025-01-10", value: 0.8 },
+        { date: "2025-01-11", value: 0.6 },
+        { date: "2025-01-12", value: 0.7 },
+        { date: "2025-01-13", value: 0.5 },
+        { date: "2025-01-14", value: 0.5 },
+        { date: "2025-01-15", value: 0.4 },
+        { date: "2025-01-16", value: 0.4 },
+      ],
+      currentValue: 0.4,
+      unit: "%",
+      trend: "down",
+      trendIsGood: true,
+    },
+    {
+      id: "trustScore",
+      label: "Trust Score Medio",
+      data: [
+        { date: "2025-01-10", value: 78 },
+        { date: "2025-01-11", value: 79 },
+        { date: "2025-01-12", value: 78 },
+        { date: "2025-01-13", value: 80 },
+        { date: "2025-01-14", value: 81 },
+        { date: "2025-01-15", value: 82 },
+        { date: "2025-01-16", value: 82 },
+      ],
+      currentValue: 82,
+      unit: "",
+      trend: "up",
+      trendIsGood: true,
+    },
+  ],
+  period: "7d",
 };

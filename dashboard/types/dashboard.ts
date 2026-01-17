@@ -239,6 +239,30 @@ export interface FunnelDrilldownData {
 }
 
 // ============================================================================
+// Sparkline/Trends Types
+// ============================================================================
+
+export interface SparklineDataPoint {
+  date: string; // YYYY-MM-DD
+  value: number;
+}
+
+export interface SparklineMetric {
+  id: string;
+  label: string;
+  data: SparklineDataPoint[];
+  currentValue: number;
+  unit: string; // "%", "s", "$"
+  trend: "up" | "down" | "stable";
+  trendIsGood: boolean; // para determinar cor
+}
+
+export interface TrendsData {
+  metrics: SparklineMetric[];
+  period: string;
+}
+
+// ============================================================================
 // Alert Types
 // ============================================================================
 

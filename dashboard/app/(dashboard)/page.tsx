@@ -17,6 +17,7 @@ import { ChipPoolOverview } from "@/components/dashboard/chip-pool-overview";
 import { ChipListTable } from "@/components/dashboard/chip-list-table";
 import { ConversionFunnel } from "@/components/dashboard/conversion-funnel";
 import { FunnelDrilldownModal } from "@/components/dashboard/funnel-drilldown-modal";
+import { TrendsSection } from "@/components/dashboard/trends-section";
 import { type DashboardPeriod } from "@/types/dashboard";
 import {
   mockMetricsVsMeta,
@@ -25,6 +26,7 @@ import {
   mockChipPoolOverview,
   mockChipsList,
   mockFunnelData,
+  mockTrendsData,
 } from "@/lib/mock/dashboard-data";
 
 export default function DashboardPage() {
@@ -112,20 +114,7 @@ export default function DashboardPage() {
           className="grid grid-cols-1 lg:grid-cols-2 gap-6"
         >
           {/* E12 - Gráficos Sparkline */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="space-y-4">
-              <div className="h-5 w-32 bg-gray-100 rounded animate-pulse" />
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="h-4 w-24 bg-gray-100 rounded animate-pulse" />
-                    <div className="flex-1 h-10 bg-gray-50 rounded animate-pulse" />
-                    <div className="h-4 w-12 bg-gray-100 rounded animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <TrendsSection data={mockTrendsData} />
 
           {/* E13 - Sistema de Alertas */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
