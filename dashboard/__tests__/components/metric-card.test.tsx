@@ -11,7 +11,6 @@ import { type MetricData } from '@/types/dashboard'
 
 describe('MetricCard', () => {
   const baseMetric: MetricData = {
-    id: 'test-metric',
     label: 'Taxa de Resposta',
     value: 35,
     previousValue: 30,

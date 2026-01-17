@@ -33,7 +33,11 @@ describe('FunnelStageComponent', () => {
 
     it('should display the count with locale formatting', () => {
       render(
-        <FunnelStageComponent {...defaultProps} stage={{ ...baseStage, count: 1000 }} maxCount={1000} />
+        <FunnelStageComponent
+          {...defaultProps}
+          stage={{ ...baseStage, count: 1000 }}
+          maxCount={1000}
+        />
       )
       expect(screen.getByText('1.000')).toBeInTheDocument()
     })

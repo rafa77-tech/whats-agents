@@ -5,7 +5,7 @@
  * works correctly across both PDF and CSV export formats.
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   formatExportDate,
   formatExportDateTime,

@@ -11,7 +11,9 @@ import { type SparklineMetric } from '@/types/dashboard'
 
 // Mock recharts to avoid canvas issues in tests
 vi.mock('recharts', () => ({
-  LineChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
+  LineChart: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="line-chart">{children}</div>
+  ),
   Line: () => <div data-testid="line" />,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="responsive-container">{children}</div>
@@ -23,8 +25,8 @@ describe('SparklineChart', () => {
     id: 'response-rate',
     label: 'Taxa de Resposta',
     data: [
-      { timestamp: '2025-01-01', value: 30 },
-      { timestamp: '2025-01-02', value: 35 },
+      { date: '2025-01-01', value: 30 },
+      { date: '2025-01-02', value: 35 },
     ],
     currentValue: 35,
     unit: '%',

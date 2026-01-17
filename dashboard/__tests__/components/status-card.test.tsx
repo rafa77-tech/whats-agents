@@ -42,28 +42,36 @@ describe('StatusCard', () => {
     })
 
     it('should show positive trend with green color', () => {
-      const { container } = render(<StatusCard {...defaultProps} trend={{ value: 15, positive: true }} />)
+      const { container } = render(
+        <StatusCard {...defaultProps} trend={{ value: 15, positive: true }} />
+      )
       expect(screen.getByText('15%')).toBeInTheDocument()
       const trendDiv = container.querySelector('.text-green-600')
       expect(trendDiv).toBeInTheDocument()
     })
 
     it('should show negative trend with red color', () => {
-      const { container } = render(<StatusCard {...defaultProps} trend={{ value: 10, positive: false }} />)
+      const { container } = render(
+        <StatusCard {...defaultProps} trend={{ value: 10, positive: false }} />
+      )
       expect(screen.getByText('10%')).toBeInTheDocument()
       const trendDiv = container.querySelector('.text-red-600')
       expect(trendDiv).toBeInTheDocument()
     })
 
     it('should show TrendingUp icon for positive trend', () => {
-      const { container } = render(<StatusCard {...defaultProps} trend={{ value: 15, positive: true }} />)
+      const { container } = render(
+        <StatusCard {...defaultProps} trend={{ value: 15, positive: true }} />
+      )
       // There should be 2 SVGs: the main icon and the trend icon
       const icons = container.querySelectorAll('svg')
       expect(icons.length).toBe(2)
     })
 
     it('should show TrendingDown icon for negative trend', () => {
-      const { container } = render(<StatusCard {...defaultProps} trend={{ value: 10, positive: false }} />)
+      const { container } = render(
+        <StatusCard {...defaultProps} trend={{ value: 10, positive: false }} />
+      )
       const icons = container.querySelectorAll('svg')
       expect(icons.length).toBe(2)
     })
