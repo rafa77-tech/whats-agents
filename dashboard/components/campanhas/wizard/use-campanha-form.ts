@@ -1,15 +1,36 @@
 /**
- * Campanha Form Hook - Sprint 34 E03
+ * Campanha Form Hook - Sprint 34 E03/E05
+ *
+ * Manages form state with draft persistence.
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { type CampanhaFormData, INITIAL_FORM_DATA } from './types'
 import { validateStep } from './schema'
+import { useWizardDraft } from './use-wizard-draft'
 
 export function useCampanhaForm() {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState<CampanhaFormData>(INITIAL_FORM_DATA)
   const [loading, setLoading] = useState(false)
+  const isInitialized = useRef(false)
+
+  const { hasDraft, draftStep, loadDraft, saveDraft, clearDraft, dismissDraft } = useWizardDraft()
+
+  // Auto-save draft when formData or step changes (debounced)
+  useEffect(() => {
+    // Skip initial render to avoid saving empty state
+    if (!isInitialized.current) {
+      isInitialized.current = true
+      return
+    }
+
+    const timer = setTimeout(() => {
+      saveDraft(formData, step)
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [formData, step, saveDraft])
 
   const updateField = useCallback(
     <K extends keyof CampanhaFormData>(field: K, value: CampanhaFormData[K]) => {
@@ -51,7 +72,16 @@ export function useCampanhaForm() {
     setStep(1)
     setFormData(INITIAL_FORM_DATA)
     setLoading(false)
-  }, [])
+    clearDraft()
+  }, [clearDraft])
+
+  const restoreFromDraft = useCallback(() => {
+    const draft = loadDraft()
+    if (draft) {
+      setFormData(draft.formData)
+      setStep(draft.step)
+    }
+  }, [loadDraft])
 
   const buildPayload = useCallback(() => {
     return {
@@ -90,6 +120,11 @@ export function useCampanhaForm() {
     loading,
     setLoading,
     buildPayload,
+    // Draft state
+    hasDraft,
+    draftStep,
+    restoreFromDraft,
+    dismissDraft,
   }
 }
 

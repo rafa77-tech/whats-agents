@@ -1,7 +1,8 @@
 /**
- * Wizard Container - Sprint 34 E03
+ * Wizard Container - Sprint 34 E03/E05
  *
  * Responsive container that uses Dialog on desktop and Sheet on mobile.
+ * Includes draft state persistence and recovery.
  */
 
 'use client'
@@ -19,6 +20,7 @@ import { StepAudiencia } from './step-audiencia'
 import { StepMensagem } from './step-mensagem'
 import { StepRevisao } from './step-revisao'
 import { useCampanhaForm } from './use-campanha-form'
+import { DraftRecoveryDialog } from './draft-recovery-dialog'
 
 interface WizardContainerProps {
   open: boolean
@@ -42,7 +44,15 @@ export function WizardContainer({ open, onOpenChange, onSuccess }: WizardContain
     loading,
     setLoading,
     buildPayload,
+    // Draft state
+    hasDraft,
+    draftStep,
+    restoreFromDraft,
+    dismissDraft,
   } = useCampanhaForm()
+
+  // Show draft recovery dialog when modal opens and draft exists
+  const showDraftDialog = open && hasDraft
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -128,33 +138,48 @@ export function WizardContainer({ open, onOpenChange, onSuccess }: WizardContain
     </>
   )
 
+  const draftDialog = (
+    <DraftRecoveryDialog
+      open={showDraftDialog}
+      draftStep={draftStep}
+      onRecover={restoreFromDraft}
+      onDiscard={dismissDraft}
+    />
+  )
+
   if (isDesktop) {
     return (
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Megaphone className="h-5 w-5" />
-              Nova Campanha
-            </DialogTitle>
-          </DialogHeader>
-          {content}
-        </DialogContent>
-      </Dialog>
+      <>
+        {draftDialog}
+        <Dialog open={open} onOpenChange={handleClose}>
+          <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Megaphone className="h-5 w-5" />
+                Nova Campanha
+              </DialogTitle>
+            </DialogHeader>
+            {content}
+          </DialogContent>
+        </Dialog>
+      </>
     )
   }
 
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Megaphone className="h-5 w-5" />
-            Nova Campanha
-          </SheetTitle>
-        </SheetHeader>
-        <div className="mt-4">{content}</div>
-      </SheetContent>
-    </Sheet>
+    <>
+      {draftDialog}
+      <Sheet open={open} onOpenChange={handleClose}>
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Megaphone className="h-5 w-5" />
+              Nova Campanha
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">{content}</div>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }
