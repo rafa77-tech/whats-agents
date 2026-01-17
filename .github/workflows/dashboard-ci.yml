@@ -401,7 +401,7 @@ jobs:
         working-directory: dashboard
         run: |
           echo "Deploying dashboard to Railway..."
-          railway up --detach --service julia-dashboard
+          railway up --detach --service Dashboard
           echo "Dashboard deployment initiated!"
 
       - name: Skip deploy notice
