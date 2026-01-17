@@ -55,9 +55,41 @@ export default function DashboardPage() {
     console.log("Período alterado para:", period);
   };
 
-  const handleExport = (format: "csv" | "pdf") => {
-    console.log("Exportando em formato:", format);
-    // Sera implementado nos epicos E16/E17
+  const handleExport = async (format: "csv" | "pdf") => {
+    try {
+      const response = await fetch(
+        `/api/dashboard/export?format=${format}&period=${selectedPeriod}`
+      );
+
+      if (!response.ok) {
+        console.error("Export failed:", response.statusText);
+        return;
+      }
+
+      // Get the blob and create download link
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      // Get filename from Content-Disposition header or generate one
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `dashboard-julia-${selectedPeriod}.${format}`;
+      if (contentDisposition) {
+        const match = /filename="?([^"]+)"?/.exec(contentDisposition);
+        if (match?.[1]) {
+          filename = match[1];
+        }
+      }
+
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export error:", error);
+    }
   };
 
   const handleFunnelStageClick = (stageId: string) => {

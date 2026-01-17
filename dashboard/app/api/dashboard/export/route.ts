@@ -1,29 +1,31 @@
 /**
  * API: GET /api/dashboard/export
  *
- * Exports dashboard data in CSV format.
+ * Exports dashboard data in CSV or PDF format.
  *
  * Query params:
- * - format: "csv" (default)
+ * - format: "csv" (default) | "pdf"
  * - period: "7d", "14d", "30d" (default: "7d")
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateDashboardCSV } from "@/lib/dashboard/csv-generator";
+import { generateDashboardPDF } from "@/lib/dashboard/pdf-generator";
 import { getPeriodDates } from "@/lib/dashboard/calculations";
 import { type DashboardExportData } from "@/types/dashboard";
 
 export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const format = searchParams.get("format") || "csv";
+  const period = searchParams.get("period") || "7d";
+
   try {
     const supabase = await createClient();
-    const searchParams = request.nextUrl.searchParams;
-    const format = searchParams.get("format") || "csv";
-    const period = searchParams.get("period") || "7d";
 
-    if (format !== "csv") {
+    if (format !== "csv" && format !== "pdf") {
       return NextResponse.json(
-        { error: "Format not supported. Use format=csv" },
+        { error: "Format not supported. Use format=csv or format=pdf" },
         { status: 400 }
       );
     }
@@ -197,11 +199,24 @@ export async function GET(request: NextRequest) {
       },
     ];
 
-    // Generate CSV
-    const csv = generateDashboardCSV(exportData);
-
     // Generate filename with date
     const dateStr = new Date().toISOString().split("T")[0] ?? "export";
+
+    // Generate and return based on format
+    if (format === "pdf") {
+      const pdfBuffer = generateDashboardPDF(exportData);
+      const filename = `dashboard-julia-${period}-${dateStr}.pdf`;
+
+      return new NextResponse(Buffer.from(pdfBuffer), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${filename}"`,
+        },
+      });
+    }
+
+    // Default: CSV
+    const csv = generateDashboardCSV(exportData);
     const filename = `dashboard-julia-${period}-${dateStr}.csv`;
 
     return new NextResponse(csv, {
@@ -292,8 +307,23 @@ export async function GET(request: NextRequest) {
       ],
     };
 
-    const csv = generateDashboardCSV(mockData);
     const dateStr = new Date().toISOString().split("T")[0] ?? "export";
+
+    // Return based on requested format
+    if (format === "pdf") {
+      const pdfBuffer = generateDashboardPDF(mockData);
+      const filename = `dashboard-julia-7d-${dateStr}.pdf`;
+
+      return new NextResponse(Buffer.from(pdfBuffer), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${filename}"`,
+        },
+      });
+    }
+
+    // Default: CSV
+    const csv = generateDashboardCSV(mockData);
     const filename = `dashboard-julia-7d-${dateStr}.csv`;
 
     return new NextResponse(csv, {
