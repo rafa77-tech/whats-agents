@@ -132,7 +132,7 @@ export default function HospitaisBloqueadosPage() {
         setLoadingHistorico(true)
         carregarHistorico()
       }
-    } catch (_error) {
+    } catch {
       toast({
         variant: 'destructive',
         title: 'Erro',
