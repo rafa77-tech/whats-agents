@@ -11,8 +11,20 @@ name: CI/CD
 on:
   push:
     branches: [main, develop]
+    paths-ignore:
+      - 'docs/**'
+      - 'planning/**'
+      - '*.md'
+      - 'dashboard/**'
+      - '.github/workflows/dashboard-ci.yml'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'planning/**'
+      - '*.md'
+      - 'dashboard/**'
+      - '.github/workflows/dashboard-ci.yml'
   workflow_dispatch:  # Permite disparo manual via UI
 
 env:
