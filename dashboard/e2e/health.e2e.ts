@@ -7,7 +7,7 @@ test.describe('Health Check', () => {
     expect(response.ok()).toBeTruthy()
 
     const body = await response.json()
-    expect(body).toHaveProperty('status', 'healthy')
+    expect(body).toHaveProperty('status', 'ok')
   })
 
   test('should load the login page', async ({ page }) => {
