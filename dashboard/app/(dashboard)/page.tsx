@@ -16,6 +16,7 @@ import { OperationalStatus } from "@/components/dashboard/operational-status";
 import { ChipPoolOverview } from "@/components/dashboard/chip-pool-overview";
 import { ChipListTable } from "@/components/dashboard/chip-list-table";
 import { ConversionFunnel } from "@/components/dashboard/conversion-funnel";
+import { FunnelDrilldownModal } from "@/components/dashboard/funnel-drilldown-modal";
 import { type DashboardPeriod } from "@/types/dashboard";
 import {
   mockMetricsVsMeta,
@@ -27,8 +28,14 @@ import {
 } from "@/lib/mock/dashboard-data";
 
 export default function DashboardPage() {
-  // Estado do período selecionado (default: 7 dias conforme requisito)
+  // Estado do periodo selecionado (default: 7 dias conforme requisito)
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>("7d");
+
+  // Estado do modal de drill-down do funil
+  const [funnelModalOpen, setFunnelModalOpen] = useState(false);
+  const [selectedFunnelStage, setSelectedFunnelStage] = useState<string | null>(
+    null
+  );
 
   // Mock data para o header (será substituído por dados reais no E08)
   const mockHeaderData = {
@@ -48,8 +55,8 @@ export default function DashboardPage() {
   };
 
   const handleFunnelStageClick = (stageId: string) => {
-    console.log("Funil stage clicado:", stageId);
-    // Sera implementado no E11 (Modal Drill-Down)
+    setSelectedFunnelStage(stageId);
+    setFunnelModalOpen(true);
   };
 
   return (
@@ -147,7 +154,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Activity Feed - E14 implementará */}
+        {/* Activity Feed - E14 implementara */}
         <section aria-label="Feed de Atividades">
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="space-y-4">
@@ -171,6 +178,14 @@ export default function DashboardPage() {
           </div>
         </section>
       </div>
+
+      {/* E11 - Modal Drill-Down do Funil */}
+      <FunnelDrilldownModal
+        open={funnelModalOpen}
+        onOpenChange={setFunnelModalOpen}
+        stage={selectedFunnelStage}
+        period={selectedPeriod}
+      />
     </div>
   );
 }

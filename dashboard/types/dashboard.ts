@@ -216,6 +216,28 @@ export interface FunnelDataVisual {
   period: string;
 }
 
+// Funnel Drilldown (E11)
+export interface FunnelDrilldownItem {
+  id: string;
+  medicoId: string;
+  nome: string;
+  telefone: string;
+  especialidade: string;
+  ultimoContato: string; // ISO timestamp
+  chipName: string;
+  conversaId?: string;
+  chatwootUrl?: string;
+}
+
+export interface FunnelDrilldownData {
+  stage: string;
+  stageLabel: string;
+  items: FunnelDrilldownItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 // ============================================================================
 // Alert Types
 // ============================================================================
