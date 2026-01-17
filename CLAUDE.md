@@ -16,19 +16,19 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 **Sprint Atual:** Sprint 30 - Refatoração Arquitetural
 **Início do Projeto:** 05/12/2025
-**Última Atualização:** 13/01/2026
+**Última Atualização:** 16/01/2026
 
 ### Métricas do Projeto
 
 | Recurso | Quantidade | Como verificar |
 |---------|------------|----------------|
-| Arquivos Python | ~220 | `find app -name "*.py" \| wc -l` |
-| Módulos de serviço | ~150 | `find app/services -name "*.py" \| wc -l` |
-| Tabelas no banco | ~55 | `mcp__supabase__list_tables` |
-| Testes | ~1500 | `grep -r "def test_" tests/ \| wc -l` |
-| Routers API | ~15 | `find app/api/routes -name "*.py" \| wc -l` |
+| Arquivos Python | ~310 | `find app -name "*.py" \| wc -l` |
+| Módulos de serviço | ~220 | `find app/services -name "*.py" \| wc -l` |
+| Tabelas no banco | ~90 | `mcp__supabase__list_tables` |
+| Testes | ~2100 | `grep -r "def test_" tests/ \| wc -l` |
+| Routers API | ~20 | `find app/api/routes -name "*.py" \| wc -l` |
 
-> **Nota:** Métricas aproximadas. Rodar comandos para valores exatos.
+> **Nota:** Métricas aproximadas (verificadas em 16/01/2026). Rodar comandos para valores exatos.
 
 ### Sprints Concluídas
 
@@ -50,7 +50,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 13 | Conhecimento Dinâmico (RAG) | ✅ Completa |
 | 14 | Pipeline de Grupos WhatsApp | ✅ Completa |
 | 15 | Policy Engine (Estado + Decisão) | ✅ Completa |
-| 16 | Confirmação de Plantão | ✅ Completa |
+| 16 | Confirmação de Plantão | ✅ Completa (doc retroativa) |
 | 17 | Business Events e Funil | ✅ Completa |
 | 18 | Auditoria e Integridade | ✅ Completa |
 | 25 | Julia Warmer (Foundation) | ✅ Completa |
@@ -97,6 +97,22 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 - [x] Confirmação antes de ações críticas
 - [x] Contexto de sessão (30 min TTL)
 - [x] 5 tipos de abordagem (discovery, oferta, reativação, followup, custom)
+
+**Automação e Piloto:**
+- [x] Modo piloto com grupo restrito de médicos
+- [x] Worker de monitoramento de piloto
+- [x] Confirmação de plantão (pós-realização)
+
+**Business Events (Sprint 17):**
+- [x] Sistema de business events (17+ tipos)
+- [x] Tracking de funil de conversão
+- [x] Emissores de eventos (transições de status)
+
+**Julia Warmer/Chips (Sprints 25-27):**
+- [x] Sistema de aquecimento de números (Julia Warmer)
+- [x] Multi-Julia Orchestration
+- [x] Chip Activator para VPS
+- [x] Integração Salvy (números virtuais)
 
 ### Contexto de Mercado (Crítico)
 
@@ -218,7 +234,6 @@ CRM, RG e dados bancários, blz?
 │   ├── tools/                  # Tools do agente (vagas, memoria, slack)
 │   ├── pipeline/               # Pipeline de processamento
 │   ├── prompts/                # Sistema de prompts dinâmicos
-│   ├── templates/              # Templates de mensagens
 │   ├── workers/                # Scheduler e workers
 │   ├── core/                   # Config, logging, exceptions
 │   ├── CONVENTIONS.md          # Convenções de código
@@ -332,16 +347,19 @@ claude mcp add supabase-dev --transport http "https://mcp.supabase.com/mcp?proje
 
 ## Banco de Dados
 
-Tabelas organizadas em categorias (ver métricas acima para contagem atual):
+Tabelas organizadas em categorias (~90 tabelas total):
 
-| Categoria | Tabelas | Principais |
-|-----------|---------|------------|
-| Core do Agente | 6 | clientes, conversations, interacoes, handoffs, doctor_context, fila_mensagens |
-| Gestão de Vagas | 7 | vagas, hospitais, especialidades, setores, periodos, tipos_vaga, formas_recebimento |
-| Campanhas | 4 | campanhas, envios, execucoes_campanhas, metricas_campanhas |
-| Gestão Júlia | 10 | diretrizes, reports, julia_status, briefing_config, feedbacks_gestor, prompts, slack_sessoes |
-| Analytics | 4 | metricas_conversa, avaliacoes_qualidade, metricas_deteccao_bot, sugestoes_prompt |
-| Infraestrutura | 4 | whatsapp_instances, notificacoes_gestor, slack_comandos, briefing_sync_log |
+| Categoria | Qtd | Principais |
+|-----------|-----|------------|
+| Core do Agente | ~10 | clientes, conversations, interacoes, handoffs, doctor_context, fila_mensagens |
+| Gestão de Vagas | ~10 | vagas, hospitais, especialidades, setores, periodos, tipos_vaga |
+| Campanhas | ~8 | campanhas, envios, execucoes_campanhas, metricas_campanhas |
+| Gestão Júlia | ~12 | diretrizes, reports, julia_status, briefing_config, prompts, slack_sessoes |
+| Business Events | ~8 | business_events, event_metrics, kpis, alerts |
+| Chips/Warmer | ~8 | julia_chips, chip_warmer_metrics, salvy_accounts |
+| Analytics | ~10 | metricas_conversa, avaliacoes_qualidade, metricas_deteccao_bot |
+| Infraestrutura | ~10 | whatsapp_instances, notificacoes_gestor, slack_comandos |
+| Migrations/Views | ~14 | Views materializadas e tabelas de sistema |
 
 **Detalhes completos:** `docs/arquitetura/banco-de-dados.md`
 
@@ -459,241 +477,51 @@ Usar exceptions de `app/core/exceptions.py`:
 | Julia | `docs/julia/` | Persona, prompts, conhecimento RAG |
 | Auditorias | `docs/auditorias/` | Relatórios técnicos e de processos |
 
-### Docs de Integrações (Quick Reference)
+### Integrações Externas
 
-| Documento | Conteúdo |
-|-----------|----------|
-| `docs/integracoes/evolution-api-quickref.md` | Endpoints, auth, envio de mensagens |
-| `docs/integracoes/evolution-api-webhooks.md` | Eventos, payloads, configuração |
-| `docs/integracoes/chatwoot-api-quickref.md` | Endpoints, auth, conversas, contatos |
-| `docs/integracoes/chatwoot-webhooks.md` | Eventos, payloads, handoff |
-| `docs/integracoes/railway-quickref.md` | CLI, comandos, variáveis |
-| `docs/integracoes/railway-deploy.md` | Deploy, troubleshooting, logs |
-| `planning/sprint-25/docs-salvy-*.md` | Salvy API (números virtuais) |
+**Documentação completa:** `docs/integracoes/README.md`
 
----
+| Integração | Quick Ref | Docs Oficiais |
+|------------|-----------|---------------|
+| Evolution API | `docs/integracoes/evolution-api-quickref.md` | https://doc.evolution-api.com/v2/ |
+| Chatwoot | `docs/integracoes/chatwoot-api-quickref.md` | https://developers.chatwoot.com/ |
+| Railway | `docs/integracoes/railway-quickref.md` | https://docs.railway.com/ |
+| Salvy | `docs/integracoes/salvy-quickref.md` | https://docs.salvy.com.br/ |
+| Slack | - | https://api.slack.com/methods |
+| Google Docs | - | https://developers.google.com/docs/api |
 
-## Documentação de Integrações Externas
-
-Ao trabalhar com serviços externos, **sempre consultar a documentação local primeiro**. Na dúvida, fazer pesquisa online com `WebFetch` ou `WebSearch`.
-
-### Salvy (Números Virtuais)
-
-**Serviço:** Provisionamento de números virtuais para WhatsApp
-
-**Documentação local (consultar primeiro):**
-- `planning/sprint-25/docs-salvy-quickref.md` - Endpoints, auth, exemplos rápidos
-- `planning/sprint-25/docs-salvy-webhooks.md` - Webhook SMS, verificação Svix
-
-**Documentação oficial (na dúvida):**
-- https://docs.salvy.com.br/api-reference/virtual-phone-accounts/introduction
-
-**Epic de implementação:** `planning/sprint-25/epic-02-salvy-integration.md`
-
-### Evolution API (WhatsApp)
-
-**Serviço:** API para controle do WhatsApp via Baileys
-
-**Documentação local (consultar primeiro):**
-- `docs/integracoes/evolution-api-quickref.md` - Endpoints, auth, envio de mensagens
-- `docs/integracoes/evolution-api-webhooks.md` - Eventos, payloads, configuração
-
-**Documentação oficial (na dúvida):**
-- https://doc.evolution-api.com/v2/
-
-### Chatwoot (Supervisão)
-
-**Serviço:** Plataforma de atendimento e supervisão
-
-**Documentação local (consultar primeiro):**
-- `docs/integracoes/chatwoot-api-quickref.md` - Endpoints, auth, conversas, contatos
-- `docs/integracoes/chatwoot-webhooks.md` - Eventos, payloads, handoff
-
-**Documentação oficial (na dúvida):**
-- https://developers.chatwoot.com/
-
-### Railway (Deploy)
-
-**Serviço:** Plataforma de deploy via GitHub
-
-**Documentação local (consultar primeiro):**
-- `docs/integracoes/railway-quickref.md` - CLI, comandos, variaveis, healthcheck
-- `docs/integracoes/railway-deploy.md` - Deploy, troubleshooting, logs, rollback
-
-**Documentação oficial (na dúvida):**
-- https://docs.railway.com/
-
-**Projeto:** `remarkable-communication` | **Serviço:** `whats-agents`
-
-### Outras Integrações
-
-| Serviço | Docs |
-|---------|------|
-| Slack | https://api.slack.com/methods |
-| Google Docs | https://developers.google.com/docs/api |
+> **Regra:** Sempre consultar docs locais primeiro. Na dúvida, usar `WebFetch` ou `WebSearch`.
 
 ---
 
-## Boas Práticas - Projetos Frontend (Next.js/TypeScript)
+## Dashboard (Next.js/TypeScript)
 
-> **ATENÇÃO:** Para projetos Next.js/TypeScript, existe documentação específica obrigatória.
+> Para trabalho no dashboard, consultar documentação específica.
 
-**Arquivo:** `docs/best-practices/nextjs-typescript-rules.md`
+**Documentação completa:** `docs/best-practices/nextjs-typescript-rules.md`
 
-### Quando Consultar (OBRIGATÓRIO)
-
-| Momento | Ação |
-|---------|------|
-| ANTES de escrever código | Ler regras de Client/Server Components e TypeScript strict |
-| APÓS terminar código | Verificar conformidade com checklist |
-| ANTES de commitar | Garantir todos os testes passam |
-
-### Problemas Críticos que o Arquivo Previne
-
-1. **Webpack Build Errors** - Importação de Node.js em Client Components
-2. **Hydration Errors** - Diferença server/client render
-3. **Uso de `any`** - Tolerância ZERO para `any` em TypeScript
-4. **Testes não executados** - Validação obrigatória antes de commit
-
-### Workflow Resumido
+### Validação Obrigatória
 
 ```bash
-# 1. Antes de codificar
-cat docs/best-practices/nextjs-typescript-rules.md
-
-# 2. Após codificar - Validação obrigatória
-npm run tsc -- --noEmit    # Type check
-npm run lint               # Linting
-npm run format             # Formatting
-npm test                   # Testes
-
-# 3. Verificar any (deve retornar vazio)
-grep -r ": any" src/
-grep -r "as any" src/
-
-# 4. Build final
-npm run build
+cd dashboard
+npm run validate  # type-check + lint + format + tests
+npm run build     # Build final
 ```
 
-### Regras Principais (Resumo)
+### Regras Críticas
 
 - **NUNCA** usar `any` - usar `unknown` + type guards
-- **NUNCA** importar Node.js (`fs`, `path`, `crypto`) em Client Components
-- **NUNCA** usar `Math.random()`, `Date.now()`, `window` no render inicial
-- **SEMPRE** tipar retornos de função explicitamente
-- **SEMPRE** validar dados externos com Zod ou type guards
+- **NUNCA** importar Node.js em Client Components
 - **SEMPRE** rodar testes antes de commitar
 
----
+### CI/CD
 
-## Dashboard CI/CD (Next.js/TypeScript)
+Pipeline em `.github/workflows/dashboard-ci.yml`:
+- Typecheck, Lint, Format, Tests (Unit + E2E)
+- Lighthouse CI (Performance, A11y, SEO)
+- Deploy automático para Railway (apenas main)
 
-O dashboard tem seu próprio pipeline de CI/CD em `.github/workflows/dashboard-ci.yml`.
-
-### Pipeline de CI
-
-| Job | Descrição | Bloqueia Build? |
-|-----|-----------|-----------------|
-| install | Instala dependências com cache | Não |
-| typecheck | `tsc --noEmit` + verificação de `any` | Sim |
-| lint | ESLint com regras strict | Sim |
-| format | Prettier check | Sim |
-| unit-tests | Vitest + React Testing Library | Sim |
-| e2e-tests | Playwright (Chromium) | Sim |
-| build | `next build` | Sim |
-| security | `npm audit` + verificação de secrets | Não |
-| lighthouse | Performance, A11y, SEO, Best Practices | Sim |
-| deploy | Railway (apenas main) | N/A |
-
-### Comandos Locais
-
-```bash
-cd dashboard
-
-# Validação completa (type-check + lint + format + tests)
-npm run validate
-
-# Testes unitários
-npm run test              # Watch mode
-npm run test:ci           # CI mode com coverage
-
-# Testes E2E
-npm run test:e2e          # Headless
-npm run test:e2e:ui       # UI mode
-npm run test:e2e:report   # Ver relatório
-
-# Linting e formatação
-npm run lint              # Verificar
-npm run lint:fix          # Corrigir
-npm run format            # Formatar
-npm run format:check      # Verificar formatação
-
-# Type check
-npm run type-check
-
-# Build com análise de bundle
-ANALYZE=true npm run build
-```
-
-### Estrutura de Testes
-
-```
-dashboard/
-├── __tests__/           # Testes unitários (Vitest + RTL)
-│   └── *.test.tsx
-├── e2e/                  # Testes E2E (Playwright)
-│   └── *.e2e.ts
-├── vitest.config.ts      # Configuração Vitest
-├── vitest.setup.ts       # Setup (mocks, globals)
-└── playwright.config.ts  # Configuração Playwright
-```
-
-### Cobertura de Código
-
-**Thresholds mínimos (falha se abaixo):**
-- Statements: 70%
-- Branches: 70%
-- Functions: 70%
-- Lines: 70%
-
-### Lighthouse CI (Performance)
-
-**Thresholds configurados em `lighthouserc.js`:**
-
-| Métrica | Mínimo | Tipo |
-|---------|--------|------|
-| Performance | 70% | warn |
-| Accessibility | 90% | error |
-| Best Practices | 80% | warn |
-| SEO | 80% | warn |
-
-**Core Web Vitals:**
-| Métrica | Máximo |
-|---------|--------|
-| First Contentful Paint | 2000ms |
-| Largest Contentful Paint | 2500ms |
-| Cumulative Layout Shift | 0.1 |
-| Total Blocking Time | 300ms |
-| Time to Interactive | 3500ms |
-
-**Rodar localmente:**
-```bash
-npm install -g @lhci/cli
-cd dashboard
-npm run build && lhci autorun
-```
-
-### Secrets Necessários (GitHub Actions)
-
-| Secret | Descrição | Obrigatório |
-|--------|-----------|-------------|
-| `RAILWAY_TOKEN` | Token para deploy | Sim (para deploy) |
-| `DASHBOARD_URL` | URL do dashboard em prod | Não (health check) |
-| `NEXT_PUBLIC_SUPABASE_URL` | URL do Supabase | Não (usa fallback) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key do Supabase | Não (usa fallback) |
-| `LHCI_GITHUB_APP_TOKEN` | Token para Lighthouse status checks | Não (opcional) |
-
-> **Nota:** Para habilitar status checks do Lighthouse em PRs, instale o [Lighthouse CI GitHub App](https://github.com/apps/lighthouse-ci) e configure o token.
+**Thresholds:** 70% cobertura | 90% accessibility | 70% performance
 
 ---
 

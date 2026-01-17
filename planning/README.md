@@ -43,16 +43,51 @@ Este diretório contém o planejamento completo do projeto organizado em **Sprin
 
 ---
 
-## Visão Geral das Sprints
+## Roadmap Completo
 
-| Sprint | Nome | Objetivo | Stories |
-|--------|------|----------|---------|
-| 0 | Setup & Configuração | Todas as integrações funcionando | 17 |
-| 1 | Core do Agente | Júlia responde mensagens | 15 |
-| 2 | Vagas & Chatwoot | Ofertar vagas, handoff funciona | 16 |
-| 3 | Testes & Ajustes | Persona validada, equipe aprova | 14 |
-| 4 | Piloto Restrito | 100 médicos reais, métricas | 14 |
-| 5 | Expansão | 1000+ médicos, múltiplas especialidades | 13 |
+> Para o roadmap atualizado com status de todas as sprints, ver **CLAUDE.md**.
+
+### Sprints Iniciais (MVP)
+
+| Sprint | Nome | Status |
+|--------|------|--------|
+| 0 | Setup & Configuração | ✅ Completa |
+| 1 | Core do Agente | ✅ Completa |
+| 2 | Vagas & Chatwoot | ✅ Completa |
+| 3 | Testes & Ajustes | ✅ Completa |
+| 4 | Piloto Restrito | ✅ Completa |
+| 5 | Expansão | ✅ Completa |
+
+### Sprints de Evolução (6-18)
+
+| Sprint | Nome | Status |
+|--------|------|--------|
+| 6 | Multi-instância WhatsApp | ✅ Completa |
+| 7 | Briefing Google Docs | ✅ Completa |
+| 8 | Memória & Pipeline | ✅ Completa |
+| 9 | Julia no Slack (NLP) | ✅ Completa |
+| 10 | Refatoração e Dívida Técnica | ✅ Completa |
+| 11 | Briefing Conversacional | ✅ Completa |
+| 12 | Deploy Produção | 📋 Planejado |
+| 13 | Conhecimento Dinâmico (RAG) | ✅ Completa |
+| 14 | Pipeline de Grupos WhatsApp | ✅ Completa |
+| 15 | Policy Engine (Estado + Decisão) | ✅ Completa |
+| 16 | Confirmação de Plantão | ✅ Completa |
+| 17 | Business Events e Funil | ✅ Completa |
+| 18 | Auditoria e Integridade | ✅ Completa |
+
+### Sprints Avançadas (25-33)
+
+| Sprint | Nome | Status |
+|--------|------|--------|
+| 25 | Julia Warmer (Foundation) | ✅ Completa |
+| 26 | Multi-Julia Orchestration | ✅ Completa |
+| 27 | Chip Activator (VPS) | 🔄 Em Andamento |
+| 28 | Dashboard Julia | ✅ Completa |
+| 29 | Conversation Mode | ✅ Completa |
+| 30 | Refatoração Arquitetural | 🔄 Em Andamento |
+
+> **Nota:** Sprints 19-24 e 31-33 estão em planejamento futuro.
 
 ---
 
@@ -204,14 +239,18 @@ Sprint 0 (Dados)                           │
 
 | Recurso | Local |
 |---------|-------|
-| Documentação técnica | `/docs/TECHNICAL.md` |
-| Schema do banco | `/docs/DATABASE.md` |
-| Persona Júlia | `/CLAUDE.md` |
-| Fluxos de negócio | `/docs/FLUXOS.md` |
-| Estratégia de testes | `/docs/ESTRATEGIA_TESTES.md` |
+| Fonte única de verdade | `/CLAUDE.md` |
+| Arquitetura geral | `/docs/arquitetura/visao-geral.md` |
+| Schema do banco | `/docs/arquitetura/banco-de-dados.md` |
+| Convenções de código | `/app/CONVENTIONS.md` |
+| Integrações | `/docs/integracoes/README.md` |
+| Runbook operacional | `/docs/operacao/runbook.md` |
 
 ---
 
 ## Começando
 
-**Próximo passo:** Acesse [Sprint 0](./sprint-0/README.md) para começar.
+Para novos desenvolvedores:
+1. Leia o [CLAUDE.md](/CLAUDE.md) para entender o projeto
+2. Siga o [Setup Local](/docs/setup/setup.md)
+3. Consulte a sprint atual para tarefas pendentes
