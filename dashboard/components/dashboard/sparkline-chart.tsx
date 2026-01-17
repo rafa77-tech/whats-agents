@@ -43,8 +43,8 @@ export function SparklineChart({ metric }: SparklineChartProps) {
     <div className="flex items-center gap-4 py-2">
       <div className="w-32 text-sm text-gray-600">{label}</div>
 
-      <div className="flex-1 h-8">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="flex-1 h-8 min-w-[100px]">
+        <ResponsiveContainer width="100%" height={32} minWidth={100}>
           <LineChart data={data}>
             <Line
               type="monotone"
