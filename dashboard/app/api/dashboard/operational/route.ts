@@ -79,15 +79,15 @@ export async function GET() {
       })) || [];
 
     return NextResponse.json({
-      rateLimits: {
-        hour: {
-          current: msgsLastHour || 0,
-          max: RATE_LIMITS.hour,
-        },
-        day: {
-          current: msgsToday || 0,
-          max: RATE_LIMITS.day,
-        },
+      rateLimitHour: {
+        current: msgsLastHour || 0,
+        max: RATE_LIMITS.hour,
+        label: "Rate Limit Hora",
+      },
+      rateLimitDay: {
+        current: msgsToday || 0,
+        max: RATE_LIMITS.day,
+        label: "Rate Limit Dia",
       },
       queueSize: queueSize || 0,
       llmUsage,

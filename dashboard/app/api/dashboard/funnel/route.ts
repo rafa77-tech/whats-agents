@@ -95,34 +95,52 @@ export async function GET(request: NextRequest) {
       .gte("completed_at", previousStart)
       .lte("completed_at", previousEnd);
 
+    // Calculate percentages based on enviadas
+    const enviadasCount = enviadasCurrent || 1;
+    const entreguesCount = entreguesCurrent || 0;
+    const respostasCount = respostasCurrent || 0;
+    const interesseCount = interesseCurrent || 0;
+    const fechadasCount = fechadasCurrent || 0;
+
     return NextResponse.json({
-      stages: {
-        enviadas: {
-          count: enviadasCurrent || 0,
-          previous: enviadasPrevious || 0,
+      stages: [
+        {
+          id: "enviadas",
+          label: "Enviadas",
+          count: enviadasCount,
+          previousCount: enviadasPrevious || 0,
+          percentage: 100,
         },
-        entregues: {
-          count: entreguesCurrent || 0,
-          previous: entreguesPrevious || 0,
+        {
+          id: "entregues",
+          label: "Entregues",
+          count: entreguesCount,
+          previousCount: entreguesPrevious || 0,
+          percentage: Number(((entreguesCount / enviadasCount) * 100).toFixed(1)),
         },
-        respostas: {
-          count: respostasCurrent || 0,
-          previous: respostasPrevious || 0,
+        {
+          id: "respostas",
+          label: "Respostas",
+          count: respostasCount,
+          previousCount: respostasPrevious || 0,
+          percentage: Number(((respostasCount / enviadasCount) * 100).toFixed(1)),
         },
-        interesse: {
-          count: interesseCurrent || 0,
-          previous: interessePrevious || 0,
+        {
+          id: "interesse",
+          label: "Interesse",
+          count: interesseCount,
+          previousCount: interessePrevious || 0,
+          percentage: Number(((interesseCount / enviadasCount) * 100).toFixed(1)),
         },
-        fechadas: {
-          count: fechadasCurrent || 0,
-          previous: fechadasPrevious || 0,
+        {
+          id: "fechadas",
+          label: "Fechadas",
+          count: fechadasCount,
+          previousCount: fechadasPrevious || 0,
+          percentage: Number(((fechadasCount / enviadasCount) * 100).toFixed(1)),
         },
-      },
-      period: {
-        start: currentStart,
-        end: currentEnd,
-        days,
-      },
+      ],
+      period: `${days} dias`,
     });
   } catch (error) {
     console.error("Error fetching funnel data:", error);
