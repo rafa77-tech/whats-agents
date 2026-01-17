@@ -2,6 +2,7 @@
  * Alerts List Component - Sprint 33 E13
  *
  * Card showing recent alerts sorted by severity with auto-refresh.
+ * Uses CRITICAL priority (15s) for quick alert updates.
  */
 
 'use client'
@@ -12,17 +13,18 @@ import { AlertItem } from './alert-item'
 import { type AlertsData } from '@/types/dashboard'
 import { Bell, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { REFRESH_INTERVALS } from '@/lib/config'
 
 interface AlertsListProps {
   initialData?: AlertsData
   autoRefresh?: boolean
-  refreshInterval?: number // em ms
+  refreshInterval?: number // em ms, defaults to CRITICAL priority
 }
 
 export function AlertsList({
   initialData,
   autoRefresh = true,
-  refreshInterval = 30000,
+  refreshInterval = REFRESH_INTERVALS.CRITICAL,
 }: AlertsListProps) {
   const [data, setData] = useState<AlertsData | null>(initialData ?? null)
   const [loading, setLoading] = useState(!initialData)
