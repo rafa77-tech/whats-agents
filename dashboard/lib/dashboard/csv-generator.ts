@@ -5,6 +5,14 @@
  */
 
 import { type DashboardExportData } from '@/types/dashboard'
+import {
+  formatExportDate,
+  formatExportDateTime,
+  formatValue,
+  calculateChange,
+  getMetaStatus,
+  escapeCSV,
+} from './formatters'
 
 /**
  * Generates a complete CSV report from dashboard data.
@@ -18,8 +26,8 @@ export function generateDashboardCSV(data: DashboardExportData): string {
 
   // Header
   lines.push('Relatorio Dashboard Julia')
-  lines.push(`Periodo: ${formatDate(period.start)} a ${formatDate(period.end)}`)
-  lines.push(`Gerado em: ${formatDateTime(new Date())}`)
+  lines.push(`Periodo: ${formatExportDate(period.start)} a ${formatExportDate(period.end)}`)
+  lines.push(`Gerado em: ${formatExportDateTime(new Date())}`)
   lines.push('')
 
   // Metricas Principais
@@ -66,56 +74,4 @@ export function generateDashboardCSV(data: DashboardExportData): string {
   // Add BOM for Excel UTF-8 compatibility
   const bom = '\uFEFF'
   return bom + lines.join('\n')
-}
-
-/**
- * Formats a date string for display (DD/MM/YYYY).
- */
-function formatDate(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString('pt-BR')
-}
-
-/**
- * Formats a date and time for display.
- */
-function formatDateTime(date: Date): string {
-  return date.toLocaleString('pt-BR')
-}
-
-/**
- * Formats a numeric value with its unit.
- */
-function formatValue(value: number, unit: string): string {
-  if (unit === 'percent') return `${value.toFixed(1)}%`
-  if (unit === '%') return `${value.toFixed(1)}%`
-  if (unit === 's') return `${value}s`
-  if (unit === 'seconds') return `${value}s`
-  if (unit === 'currency') return `R$ ${value.toFixed(2)}`
-  return value.toString()
-}
-
-/**
- * Calculates percentage change between two values.
- */
-function calculateChange(current: number, previous: number): string {
-  if (previous === 0) return 'N/A'
-  const change = ((current - previous) / previous) * 100
-  return change >= 0 ? `+${change.toFixed(0)}%` : `${change.toFixed(0)}%`
-}
-
-/**
- * Determines if a metric has reached its goal.
- */
-function getMetaStatus(value: number, meta: number): string {
-  return value >= meta ? 'Atingida' : 'Abaixo'
-}
-
-/**
- * Escapes a string for CSV (handles commas and quotes).
- */
-function escapeCSV(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`
-  }
-  return value
 }

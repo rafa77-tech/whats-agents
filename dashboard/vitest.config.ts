@@ -28,12 +28,58 @@ export default defineConfig({
         '**/*.spec.{ts,tsx}',
         '**/types/**',
         'app/api/**',
+        // ============================================================
+        // EXCLUSÕES JUSTIFICADAS (revisadas em 2026-01-16)
+        // ============================================================
+        // Lógica de negócio DEVE ser testada. Excluímos apenas:
+        // 1. Wrappers de SDK/biblioteca sem lógica própria
+        // 2. Código de infraestrutura de UI
+        // 3. Arquivos que são apenas re-exports
+        // 4. Renderização pura (lógica extraída para módulos testados)
+        // ============================================================
+        'lib/mock/**', // Dados mock para desenvolvimento
+        'lib/supabase/**', // Wrappers de SDK (testados via E2E)
+        'lib/dashboard/index.ts', // Apenas re-exports
+        'lib/dashboard/pdf-generator.ts', // Renderização jsPDF, lógica em formatters.ts (100% testado)
+        'lib/api/**', // HTTP clients (testados via E2E/integration)
+        'hooks/use-toast.ts', // Padrão react-hot-toast, infraestrutura de UI
+        'components/ui/toast.tsx', // Wrapper Radix
+        'components/ui/toaster.tsx', // Wrapper toast
+        'components/ui/tooltip.tsx', // Wrapper Radix
+        'components/ui/progress.tsx', // Wrapper Radix
       ],
       thresholds: {
-        statements: 30,
-        branches: 50,
-        functions: 20,
-        lines: 30,
+        // ============================================================
+        // FILOSOFIA DE TESTES (2026-01-16)
+        // ============================================================
+        // "Testar o que não pode quebrar"
+        //
+        // Testamos código onde bugs causam:
+        // 1. Dano irreversível (rate-limit → ban de chip)
+        // 2. Dados exportados incorretos (formatters, csv)
+        // 3. Decisões operacionais erradas (status de metas)
+        //
+        // NÃO testamos código puramente apresentacional:
+        // - Ordenação de listas (erro visível e recuperável)
+        // - Layout e estilos (sem impacto em dados)
+        // - Composição de componentes (sem lógica própria)
+        //
+        // ARQUIVOS CRÍTICOS COM 100% DE COBERTURA:
+        // - lib/dashboard/formatters.ts
+        // - lib/dashboard/calculations.ts
+        // - lib/dashboard/csv-generator.ts
+        // - lib/utils/index.ts
+        // - components/dashboard/rate-limit-bar.tsx (evita ban)
+        // - components/dashboard/metric-card.tsx
+        // - components/dashboard/funnel-stage.tsx
+        // - components/dashboard/sparkline-chart.tsx
+        // - components/dashboard/status-card.tsx
+        // - components/dashboard/comparison-indicator.tsx
+        // ============================================================
+        statements: 54,
+        branches: 78,
+        functions: 46,
+        lines: 54,
       },
     },
     testTimeout: 10000,

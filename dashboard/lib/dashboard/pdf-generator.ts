@@ -2,12 +2,21 @@
  * PDF Generator for Dashboard Export - Sprint 33 E17
  *
  * Generates PDF reports with all dashboard metrics using jsPDF.
+ * Business logic is extracted to formatters.ts for testability.
  */
 
 import { jsPDF } from 'jspdf'
 import { type DashboardExportData } from '@/types/dashboard'
+import {
+  formatExportDate,
+  formatExportDateTime,
+  formatValue,
+  calculateChange,
+  getMetaStatus,
+  getStatusColor,
+} from './formatters'
 
-// Colors
+// Colors for PDF rendering
 const COLORS = {
   primary: '#1e40af', // blue-800
   secondary: '#6b7280', // gray-500
@@ -98,13 +107,13 @@ function drawHeader(
   // Period
   doc.setFontSize(11)
   doc.setTextColor(COLORS.textMuted)
-  const periodStart = formatDate(data.period.start)
-  const periodEnd = formatDate(data.period.end)
+  const periodStart = formatExportDate(data.period.start)
+  const periodEnd = formatExportDate(data.period.end)
   doc.text(`Periodo: ${periodStart} a ${periodEnd}`, margin, y)
   y += 6
 
   // Generated date
-  doc.text(`Gerado em: ${formatDateTime(new Date())}`, margin, y)
+  doc.text(`Gerado em: ${formatExportDateTime(new Date())}`, margin, y)
   y += 10
 
   // Separator line
@@ -150,8 +159,8 @@ function drawMetricsTable(
 
   metrics.forEach((m) => {
     const change = calculateChange(m.current, m.previous)
-    const status = m.current >= m.meta ? 'Atingida' : 'Abaixo'
-    const statusColor = m.current >= m.meta ? COLORS.success : COLORS.warning
+    const status = getMetaStatus(m.current, m.meta)
+    const statusColor = status === 'Atingida' ? COLORS.success : COLORS.warning
 
     const row = [
       m.name,
@@ -346,45 +355,5 @@ function drawFooter(doc: jsPDF): void {
     doc.setTextColor(COLORS.textMuted)
     doc.text(`Pagina ${i} de ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
     doc.text('Revoluna - Dashboard Julia', 20, pageHeight - 10)
-  }
-}
-
-// Helper functions
-
-function formatDate(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString('pt-BR')
-}
-
-function formatDateTime(date: Date): string {
-  return date.toLocaleString('pt-BR')
-}
-
-function formatValue(value: number, unit: string): string {
-  if (unit === 'percent') return `${value.toFixed(1)}%`
-  if (unit === '%') return `${value.toFixed(1)}%`
-  if (unit === 's') return `${value}s`
-  if (unit === 'seconds') return `${value}s`
-  if (unit === 'currency') return `R$ ${value.toFixed(2)}`
-  return value.toString()
-}
-
-function calculateChange(current: number, previous: number): string {
-  if (previous === 0) return 'N/A'
-  const change = ((current - previous) / previous) * 100
-  return change >= 0 ? `+${change.toFixed(0)}%` : `${change.toFixed(0)}%`
-}
-
-function getStatusColor(status: string): string {
-  switch (status) {
-    case 'active':
-      return COLORS.success
-    case 'ready':
-      return COLORS.primary
-    case 'warming':
-      return COLORS.warning
-    case 'degraded':
-      return COLORS.danger
-    default:
-      return COLORS.textMuted
   }
 }
