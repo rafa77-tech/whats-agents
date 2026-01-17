@@ -1,5 +1,11 @@
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+
+interface CookieToSet {
+  name: string;
+  value: string;
+  options?: CookieOptions;
+}
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -14,7 +20,7 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieToSet[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
@@ -22,7 +28,7 @@ export async function middleware(request: NextRequest) {
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options ?? {})
           );
         },
       },
@@ -37,7 +43,8 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/auth");
   const isApiRoute = request.nextUrl.pathname.startsWith("/api");
-  const isDashboardRoute = request.nextUrl.pathname.startsWith("/campanhas") ||
+  const isDashboardRoute = request.nextUrl.pathname === "/" ||
+    request.nextUrl.pathname.startsWith("/campanhas") ||
     request.nextUrl.pathname.startsWith("/sistema") ||
     request.nextUrl.pathname.startsWith("/instrucoes") ||
     request.nextUrl.pathname.startsWith("/hospitais") ||
@@ -51,7 +58,7 @@ export async function middleware(request: NextRequest) {
   // Redirect authenticated users away from auth routes
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/campanhas";
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 

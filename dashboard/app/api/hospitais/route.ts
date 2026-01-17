@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const excluirBloqueados = searchParams.get("excluir_bloqueados") === "true";
 
     // Buscar hospitais
-    let query = supabase
+    const query = supabase
       .from("hospitais")
       .select("id, nome, cidade")
       .eq("ativo", true)

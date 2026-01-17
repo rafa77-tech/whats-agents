@@ -85,7 +85,7 @@ export default function SistemaPage() {
 
       setConfirmDialog(null);
       carregarStatus();
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: "destructive",
         title: "Erro",

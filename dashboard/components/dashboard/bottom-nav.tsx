@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -9,10 +10,17 @@ import {
   FileText,
   Settings,
   HelpCircle,
+  type LucideIcon,
 } from "lucide-react";
 
-const navigation = [
-  { name: "Home", href: "/", icon: LayoutDashboard },
+interface NavItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+const navigation: NavItem[] = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Campanhas", href: "/campanhas", icon: Megaphone },
   { name: "Instrucoes", href: "/instrucoes", icon: FileText },
   { name: "Sistema", href: "/sistema", icon: Settings },
@@ -27,11 +35,11 @@ export function BottomNav() {
       <nav className="flex items-center justify-around">
         {navigation.map((item) => {
           const isActive = pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href));
+            (item.href !== "/dashboard" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.name}
-              href={item.href}
+              href={item.href as Route}
               className={cn(
                 "flex flex-col items-center gap-1 px-3 py-2 rounded-lg min-w-[64px] transition-colors",
                 isActive
