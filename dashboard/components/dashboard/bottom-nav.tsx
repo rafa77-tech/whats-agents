@@ -20,7 +20,7 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
-  { name: "Home", href: "/", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Campanhas", href: "/campanhas", icon: Megaphone },
   { name: "Instrucoes", href: "/instrucoes", icon: FileText },
   { name: "Sistema", href: "/sistema", icon: Settings },
@@ -35,7 +35,7 @@ export function BottomNav() {
       <nav className="flex items-center justify-around">
         {navigation.map((item) => {
           const isActive = pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href));
+            (item.href !== "/dashboard" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.name}
