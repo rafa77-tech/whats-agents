@@ -14,6 +14,7 @@ import {
   type ChipDetail,
   type FunnelDataVisual,
   type TrendsData,
+  type AlertsData,
 } from "@/types/dashboard";
 
 // ============================================================================
@@ -333,4 +334,53 @@ export const mockTrendsData: TrendsData = {
     },
   ],
   period: "7d",
+};
+
+// ============================================================================
+// E13 - Alerts
+// ============================================================================
+
+export const mockAlertsData: AlertsData = {
+  alerts: [
+    {
+      id: "alert-1",
+      severity: "critical",
+      category: "julia",
+      title: "Dr. Joao - aguardando atendimento",
+      message: "Medico solicitou falar com humano ha 2 horas",
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      actionLabel: "Ver conversa",
+      actionUrl: "#",
+    },
+    {
+      id: "alert-2",
+      severity: "critical",
+      category: "chip",
+      title: "Julia-05 - Trust critico",
+      message: "Trust score caiu para 48 (-15 pts em 24h)",
+      createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      actionLabel: "Ver chip",
+      actionUrl: "#",
+    },
+    {
+      id: "alert-3",
+      severity: "warning",
+      category: "operational",
+      title: "Rate limit hora em 85%",
+      message: "Reseta em 12 minutos",
+      createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "alert-4",
+      severity: "warning",
+      category: "vaga",
+      title: "5 vagas expirando em 24h",
+      message: "Sem medico confirmado",
+      createdAt: new Date().toISOString(),
+      actionLabel: "Ver vagas",
+      actionUrl: "#",
+    },
+  ],
+  totalCritical: 2,
+  totalWarning: 2,
 };
