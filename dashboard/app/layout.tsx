@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  // Note: maximumScale removed to allow user zoom (accessibility requirement)
   themeColor: '#C82D37', // Revoluna primary
 }
 

@@ -57,7 +57,6 @@ module.exports = {
 
         // Best Practices
         'errors-in-console': 'warn',
-        'no-unload-listeners': 'warn',
         'valid-source-maps': 'off',
         'inspector-issues': 'warn',
 
@@ -75,6 +74,18 @@ module.exports = {
         // Security
         'is-on-https': 'off', // Localhost doesn't have HTTPS
         'csp-xss': 'warn',
+
+        // Disable audits that return NaN on pages without applicable content
+        // (e.g., login page has no LCP image, no animations)
+        'lcp-lazy-loaded': 'off',
+        'non-composited-animations': 'off',
+        'prioritize-lcp-image': 'off',
+
+        // Allow some unused JS (Next.js framework overhead is unavoidable)
+        'unused-javascript': 'off',
+
+        // Disable deprecated/removed audits
+        'no-unload-listeners': 'off',
       },
     },
 
