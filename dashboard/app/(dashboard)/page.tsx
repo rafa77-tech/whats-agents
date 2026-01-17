@@ -19,6 +19,7 @@ import { ConversionFunnel } from "@/components/dashboard/conversion-funnel";
 import { FunnelDrilldownModal } from "@/components/dashboard/funnel-drilldown-modal";
 import { TrendsSection } from "@/components/dashboard/trends-section";
 import { AlertsList } from "@/components/dashboard/alerts-list";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { type DashboardPeriod } from "@/types/dashboard";
 import {
   mockMetricsVsMeta,
@@ -29,6 +30,7 @@ import {
   mockFunnelData,
   mockTrendsData,
   mockAlertsData,
+  mockActivityData,
 } from "@/lib/mock/dashboard-data";
 
 export default function DashboardPage() {
@@ -122,28 +124,9 @@ export default function DashboardPage() {
           <AlertsList initialData={mockAlertsData} />
         </section>
 
-        {/* Activity Feed - E14 implementara */}
+        {/* E14 - Activity Feed */}
         <section aria-label="Feed de Atividades">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="h-5 w-36 bg-gray-100 rounded animate-pulse" />
-                <div className="h-4 w-20 bg-gray-100 rounded animate-pulse" />
-              </div>
-              <div className="divide-y divide-gray-100">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="py-3 flex items-center gap-4">
-                    <div className="h-4 w-12 bg-gray-100 rounded animate-pulse" />
-                    <div className="h-8 w-8 bg-gray-100 rounded-full animate-pulse" />
-                    <div className="flex-1 space-y-1">
-                      <div className="h-4 w-3/4 bg-gray-100 rounded animate-pulse" />
-                      <div className="h-3 w-1/2 bg-gray-50 rounded animate-pulse" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <ActivityFeed initialData={mockActivityData} />
         </section>
       </div>
 

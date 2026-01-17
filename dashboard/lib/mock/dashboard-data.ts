@@ -15,6 +15,7 @@ import {
   type FunnelDataVisual,
   type TrendsData,
   type AlertsData,
+  type ActivityFeedData,
 } from "@/types/dashboard";
 
 // ============================================================================
@@ -383,4 +384,55 @@ export const mockAlertsData: AlertsData = {
   ],
   totalCritical: 2,
   totalWarning: 2,
+};
+
+// ============================================================================
+// E14 - Activity Feed
+// ============================================================================
+
+export const mockActivityData: ActivityFeedData = {
+  events: [
+    {
+      id: "event-1",
+      type: "fechamento",
+      message: "fechou plantao com Dr. Carlos (R$ 2.800)",
+      chipName: "Julia-01",
+      timestamp: new Date(Date.now() - 28 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "event-2",
+      type: "handoff",
+      message: "handoff: Dra. Maria pediu humano",
+      chipName: "Julia-02",
+      timestamp: new Date(Date.now() - 32 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "event-3",
+      type: "campanha",
+      message: 'Campanha "Reativacao Janeiro" enviou 15 mensagens',
+      timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "event-4",
+      type: "resposta",
+      message: "Dr. Pedro respondeu apos 3 dias",
+      chipName: "Julia-01",
+      timestamp: new Date(Date.now() - 58 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "event-5",
+      type: "alerta",
+      message: "trust caiu 8 pontos (56 -> 48)",
+      chipName: "Julia-05",
+      timestamp: new Date(Date.now() - 75 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "event-6",
+      type: "chip",
+      message: "graduou do warming (trust: 85)",
+      chipName: "Julia-03",
+      timestamp: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+    },
+  ],
+  hasMore: true,
 };
