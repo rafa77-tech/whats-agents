@@ -398,7 +398,7 @@ jobs:
         if: steps.check_railway.outputs.token_available == 'true'
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        working-directory: dashboard
+        working-directory: .
         run: |
           echo "Deploying dashboard to Railway..."
           railway up --detach --service Dashboard
