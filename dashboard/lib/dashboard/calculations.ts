@@ -103,3 +103,68 @@ export function validatePeriod(period: string | null): DashboardPeriod {
   }
   return "7d";
 }
+
+// ============================================================================
+// E15 - Comparison Functions
+// ============================================================================
+
+/**
+ * Calcula a diferenca percentual entre dois valores.
+ * Retorna null se o valor anterior e zero (para evitar divisao por zero).
+ *
+ * @param current - Valor atual
+ * @param previous - Valor anterior
+ * @returns Variacao percentual ou null
+ */
+export function calculatePercentageChange(
+  current: number,
+  previous: number
+): number | null {
+  if (previous === 0) return null;
+  return ((current - previous) / previous) * 100;
+}
+
+/**
+ * Determina se a tendencia e positiva baseado no tipo de metrica.
+ *
+ * @param change - Variacao percentual
+ * @param lesserIsBetter - Se menor valor e melhor (ex: latencia, bot detection)
+ * @returns true se a tendencia e positiva
+ */
+export function isTrendPositive(
+  change: number,
+  lesserIsBetter: boolean = false
+): boolean {
+  if (lesserIsBetter) {
+    return change < 0; // queda e positiva para estas metricas
+  }
+  return change > 0; // subida e positiva
+}
+
+/**
+ * Formata a variacao para exibicao.
+ *
+ * @param change - Variacao percentual
+ * @returns String formatada (ex: "+15%", "-8%", "N/A")
+ */
+export function formatChange(change: number | null): string {
+  if (change === null) return "N/A";
+  const prefix = change > 0 ? "+" : "";
+  return `${prefix}${change.toFixed(0)}%`;
+}
+
+/**
+ * Determina o status da tendencia (positivo, negativo ou neutro).
+ *
+ * @param change - Variacao percentual
+ * @param lesserIsBetter - Se menor valor e melhor
+ * @returns Status da tendencia
+ */
+export function getTrendStatus(
+  change: number | null,
+  lesserIsBetter: boolean = false
+): "positive" | "negative" | "neutral" {
+  if (change === null || Math.abs(change) < 1) return "neutral";
+  const isPositive = isTrendPositive(change, lesserIsBetter);
+  return isPositive ? "positive" : "negative";
+}
