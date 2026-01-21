@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -298,6 +299,7 @@ interface CampanhaCardProps {
 }
 
 function CampanhaCard({ campanha, onUpdate: _onUpdate, readOnly }: CampanhaCardProps) {
+  const router = useRouter()
   const status = statusConfig[campanha.status] || statusConfig.rascunho
   const StatusIcon = status.icon
 
@@ -328,31 +330,33 @@ function CampanhaCard({ campanha, onUpdate: _onUpdate, readOnly }: CampanhaCardP
               {status.label}
             </Badge>
 
-            {!readOnly && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <Eye className="mr-2 h-4 w-4" />
-                    Ver Detalhes
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Duplicar
-                  </DropdownMenuItem>
-                  {campanha.status === 'rascunho' && (
-                    <DropdownMenuItem className="text-red-600">
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Excluir
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => router.push(`/campanhas/${campanha.id}`)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Ver Detalhes
+                </DropdownMenuItem>
+                {!readOnly && (
+                  <>
+                    <DropdownMenuItem>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Duplicar
                     </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                    {campanha.status === 'rascunho' && (
+                      <DropdownMenuItem className="text-red-600">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir
+                      </DropdownMenuItem>
+                    )}
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>

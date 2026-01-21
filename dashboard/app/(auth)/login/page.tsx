@@ -1,13 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Mail, Loader2, CheckCircle } from 'lucide-react'
+import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const supabase = createClient()
@@ -18,47 +21,26 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const { error: authError } = await supabase.auth.signInWithOtp({
+      const { error: authError } = await supabase.auth.signInWithPassword({
         email,
-        options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`,
-        },
+        password,
       })
 
-      if (authError) throw authError
-      setSent(true)
+      if (authError) {
+        if (authError.message.includes('Invalid login credentials')) {
+          throw new Error('Email ou senha incorretos')
+        }
+        throw authError
+      }
+
+      router.push('/')
+      router.refresh()
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao enviar link'
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao fazer login'
       setError(errorMessage)
     } finally {
       setLoading(false)
     }
-  }
-
-  if (sent) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-revoluna-50 to-revoluna-100">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-          </div>
-          <h1 className="mb-2 text-2xl font-bold text-gray-900">Verifique seu email</h1>
-          <p className="mb-6 text-gray-500">
-            Enviamos um link de acesso para <strong>{email}</strong>
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setSent(false)
-              setEmail('')
-            }}
-            className="text-sm text-revoluna-600 underline hover:text-revoluna-700"
-          >
-            Usar outro email
-          </button>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -69,10 +51,10 @@ export default function LoginPage() {
             <span className="text-2xl font-bold text-white">J</span>
           </div>
           <h1 className="text-3xl font-bold text-revoluna-700">Julia Dashboard</h1>
-          <p className="mt-2 text-gray-500">Entre com seu email para acessar</p>
+          <p className="mt-2 text-gray-500">Entre com suas credenciais</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-5">
           {error && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3">
               <p className="text-sm text-red-600">{error}</p>
@@ -98,25 +80,47 @@ export default function LoginPage() {
             </div>
           </div>
 
+          <div>
+            <label htmlFor="password" className="mb-2 block text-sm font-medium text-gray-700">
+              Senha
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="********"
+                required
+                disabled={loading}
+                className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-12 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-revoluna-400 disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
+
           <button
             type="submit"
-            disabled={loading || !email}
+            disabled={loading || !email || !password}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-revoluna-400 px-4 py-3 font-medium text-white transition-colors hover:bg-revoluna-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin" />
-                Enviando...
+                Entrando...
               </>
             ) : (
-              'Entrar com Magic Link'
+              'Entrar'
             )}
           </button>
         </form>
-
-        <p className="mt-6 text-center text-sm text-gray-500">
-          Voce recebera um link de acesso no seu email
-        </p>
       </div>
     </div>
   )

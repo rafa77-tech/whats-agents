@@ -8,6 +8,15 @@ interface CookieToSet {
 }
 
 export async function middleware(request: NextRequest) {
+  // Bypass de auth em desenvolvimento local
+  const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
+  const isLocalhost = request.nextUrl.hostname === 'localhost'
+
+  if (isDev && isLocalhost) {
+    // Em dev local, permitir acesso sem autenticacao
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
