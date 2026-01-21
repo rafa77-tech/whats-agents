@@ -90,9 +90,7 @@ export function WizardContainer({ open, onOpenChange, onSuccess }: WizardContain
       <WizardSteps currentStep={step} />
 
       <div className="min-h-[300px]">
-        {step === 1 && (
-          <StepConfiguracao formData={formData} updateField={updateField} />
-        )}
+        {step === 1 && <StepConfiguracao formData={formData} updateField={updateField} />}
         {step === 2 && (
           <StepAudiencia
             formData={formData}
@@ -100,12 +98,8 @@ export function WizardContainer({ open, onOpenChange, onSuccess }: WizardContain
             toggleArrayItem={toggleArrayItem}
           />
         )}
-        {step === 3 && (
-          <StepMensagem formData={formData} updateField={updateField} />
-        )}
-        {step === 4 && (
-          <StepRevisao formData={formData} updateField={updateField} />
-        )}
+        {step === 3 && <StepMensagem formData={formData} updateField={updateField} />}
+        {step === 4 && <StepRevisao formData={formData} updateField={updateField} />}
       </div>
 
       <div className="mt-6 flex justify-between border-t pt-4">

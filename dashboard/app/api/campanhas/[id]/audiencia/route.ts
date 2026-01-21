@@ -8,39 +8,210 @@ interface RouteParams {
 // Nomes femininos comuns no Brasil (para deteccao de genero)
 const NOMES_FEMININOS = new Set([
   // Terminados em A (mais comuns)
-  'ana', 'maria', 'julia', 'luiza', 'paula', 'carla', 'fernanda', 'amanda', 'bruna',
-  'camila', 'daniela', 'eduarda', 'fabiana', 'gabriela', 'helena', 'isabela', 'isadora',
-  'jessica', 'juliana', 'larissa', 'leticia', 'luana', 'luciana', 'mariana', 'natalia',
-  'patricia', 'rafaela', 'renata', 'roberta', 'sandra', 'silvia', 'tatiana', 'vanessa',
-  'victoria', 'viviane', 'adriana', 'alessandra', 'aline', 'bianca', 'carolina', 'clara',
-  'claudia', 'cristina', 'debora', 'eliana', 'erica', 'flavia', 'giovana', 'giovanna',
-  'graziela', 'heloisa', 'ingrid', 'ivana', 'janaina', 'joana', 'karen', 'karina',
-  'livia', 'lorena', 'lucia', 'madalena', 'marcela', 'marina', 'mayara', 'michela',
-  'milena', 'nadia', 'nathalia', 'nicole', 'paloma', 'priscila', 'raquel', 'regina',
-  'rosana', 'sabrina', 'samara', 'simone', 'sonia', 'stella', 'suzana', 'talita',
-  'tania', 'tereza', 'thais', 'vera', 'yara', 'zelia',
+  'ana',
+  'maria',
+  'julia',
+  'luiza',
+  'paula',
+  'carla',
+  'fernanda',
+  'amanda',
+  'bruna',
+  'camila',
+  'daniela',
+  'eduarda',
+  'fabiana',
+  'gabriela',
+  'helena',
+  'isabela',
+  'isadora',
+  'jessica',
+  'juliana',
+  'larissa',
+  'leticia',
+  'luana',
+  'luciana',
+  'mariana',
+  'natalia',
+  'patricia',
+  'rafaela',
+  'renata',
+  'roberta',
+  'sandra',
+  'silvia',
+  'tatiana',
+  'vanessa',
+  'victoria',
+  'viviane',
+  'adriana',
+  'alessandra',
+  'aline',
+  'bianca',
+  'carolina',
+  'clara',
+  'claudia',
+  'cristina',
+  'debora',
+  'eliana',
+  'erica',
+  'flavia',
+  'giovana',
+  'giovanna',
+  'graziela',
+  'heloisa',
+  'ingrid',
+  'ivana',
+  'janaina',
+  'joana',
+  'karen',
+  'karina',
+  'livia',
+  'lorena',
+  'lucia',
+  'madalena',
+  'marcela',
+  'marina',
+  'mayara',
+  'michela',
+  'milena',
+  'nadia',
+  'nathalia',
+  'nicole',
+  'paloma',
+  'priscila',
+  'raquel',
+  'regina',
+  'rosana',
+  'sabrina',
+  'samara',
+  'simone',
+  'sonia',
+  'stella',
+  'suzana',
+  'talita',
+  'tania',
+  'tereza',
+  'thais',
+  'vera',
+  'yara',
+  'zelia',
   // Terminados em E
-  'alice', 'beatrice', 'carine', 'diane', 'elaine', 'fabiane', 'gisele', 'helene',
-  'irene', 'jacqueline', 'michele', 'monique', 'nadine', 'noelle', 'rosane', 'simone',
-  'suzane', 'viviane', 'yasmine', 'denise', 'elise', 'louise', 'rose',
+  'alice',
+  'beatrice',
+  'carine',
+  'diane',
+  'elaine',
+  'fabiane',
+  'gisele',
+  'helene',
+  'irene',
+  'jacqueline',
+  'michele',
+  'monique',
+  'nadine',
+  'noelle',
+  'rosane',
+  'simone',
+  'suzane',
+  'viviane',
+  'yasmine',
+  'denise',
+  'elise',
+  'louise',
+  'rose',
   // Terminados em outras letras
-  'beatriz', 'raquel', 'mabel', 'miriam', 'deborah', 'sarah', 'ruth', 'elizabeth',
-  'carmen', 'lilian', 'suelen', 'jaquelin', 'ellen', 'kelen', 'maryellen',
+  'beatriz',
+  'raquel',
+  'mabel',
+  'miriam',
+  'deborah',
+  'sarah',
+  'ruth',
+  'elizabeth',
+  'carmen',
+  'lilian',
+  'suelen',
+  'jaquelin',
+  'ellen',
+  'kelen',
+  'maryellen',
   // Nomes compostos comuns (primeiro nome)
-  'ana', 'maria', 'rosa', 'santa', 'flor',
+  'ana',
+  'maria',
+  'rosa',
+  'santa',
+  'flor',
 ])
 
 // Nomes masculinos comuns (para casos ambiguos)
 const NOMES_MASCULINOS = new Set([
-  'joao', 'jose', 'carlos', 'paulo', 'pedro', 'lucas', 'marcos', 'andre', 'rafael',
-  'fernando', 'rodrigo', 'bruno', 'gustavo', 'daniel', 'ricardo', 'marcelo', 'fabio',
-  'eduardo', 'alexandre', 'leonardo', 'thiago', 'tiago', 'diego', 'vitor', 'victor',
-  'gabriel', 'henrique', 'felipe', 'matheus', 'mateus', 'guilherme', 'antonio',
-  'francisco', 'sergio', 'luiz', 'luis', 'claudio', 'roberto', 'mario', 'jorge',
-  'leandro', 'anderson', 'diego', 'renato', 'rogerio', 'wagner', 'wellington',
-  'william', 'wilson', 'alex', 'alan', 'caio', 'cesar', 'danilo', 'erick', 'igor',
-  'ivan', 'junior', 'julio', 'luan', 'murilo', 'nelson', 'otavio', 'renan', 'samuel',
-  'vinicius', 'yuri',
+  'joao',
+  'jose',
+  'carlos',
+  'paulo',
+  'pedro',
+  'lucas',
+  'marcos',
+  'andre',
+  'rafael',
+  'fernando',
+  'rodrigo',
+  'bruno',
+  'gustavo',
+  'daniel',
+  'ricardo',
+  'marcelo',
+  'fabio',
+  'eduardo',
+  'alexandre',
+  'leonardo',
+  'thiago',
+  'tiago',
+  'diego',
+  'vitor',
+  'victor',
+  'gabriel',
+  'henrique',
+  'felipe',
+  'matheus',
+  'mateus',
+  'guilherme',
+  'antonio',
+  'francisco',
+  'sergio',
+  'luiz',
+  'luis',
+  'claudio',
+  'roberto',
+  'mario',
+  'jorge',
+  'leandro',
+  'anderson',
+  'diego',
+  'renato',
+  'rogerio',
+  'wagner',
+  'wellington',
+  'william',
+  'wilson',
+  'alex',
+  'alan',
+  'caio',
+  'cesar',
+  'danilo',
+  'erick',
+  'igor',
+  'ivan',
+  'junior',
+  'julio',
+  'luan',
+  'murilo',
+  'nelson',
+  'otavio',
+  'renan',
+  'samuel',
+  'vinicius',
+  'yuri',
 ])
 
 /**
@@ -48,7 +219,11 @@ const NOMES_MASCULINOS = new Set([
  * Retorna 'F' para feminino, 'M' para masculino
  */
 function detectarGenero(nome: string): 'F' | 'M' {
-  const nomeNormalizado = nome.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const nomeNormalizado = nome
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
 
   // Verificar lista de nomes femininos
   if (NOMES_FEMININOS.has(nomeNormalizado)) {
@@ -185,7 +360,8 @@ const GANCHOS_DEFAULT: string[] = GANCHOS_POR_TIPO.descoberta!
 function gerarMensagemExemplo(nome: string, tipoCampanha?: string): string {
   const titulo = getTitulo(nome)
   const saudacao = SAUDACOES[Math.floor(Math.random() * SAUDACOES.length)] ?? SAUDACOES[0]!
-  const apresentacao = APRESENTACOES[Math.floor(Math.random() * APRESENTACOES.length)] ?? APRESENTACOES[0]!
+  const apresentacao =
+    APRESENTACOES[Math.floor(Math.random() * APRESENTACOES.length)] ?? APRESENTACOES[0]!
   const incluirContexto = Math.random() < 0.7
   const contexto = incluirContexto
     ? (CONTEXTOS[Math.floor(Math.random() * CONTEXTOS.length)] ?? CONTEXTOS[0]!)
@@ -264,7 +440,11 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
         .order('created_at', { ascending: false })
 
       // Aplicar filtros
-      if (filters.especialidades && Array.isArray(filters.especialidades) && filters.especialidades.length > 0) {
+      if (
+        filters.especialidades &&
+        Array.isArray(filters.especialidades) &&
+        filters.especialidades.length > 0
+      ) {
         query = query.in('especialidade', filters.especialidades)
       }
 
@@ -310,7 +490,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
     // Calcular variacoes possiveis baseado no tipo de campanha
     const ganchosTipo = GANCHOS_POR_TIPO[tipoCampanha] ?? GANCHOS_DEFAULT
-    const variacoesPossiveis = SAUDACOES.length * APRESENTACOES.length * (CONTEXTOS.length + 1) * (ganchosTipo?.length ?? 10)
+    const variacoesPossiveis =
+      SAUDACOES.length * APRESENTACOES.length * (CONTEXTOS.length + 1) * (ganchosTipo?.length ?? 10)
 
     return NextResponse.json({
       total: clientes.length,
@@ -408,7 +589,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           .is('deleted_at', null)
           .eq('opt_out', false)
 
-        if (filters.especialidades && Array.isArray(filters.especialidades) && filters.especialidades.length > 0) {
+        if (
+          filters.especialidades &&
+          Array.isArray(filters.especialidades) &&
+          filters.especialidades.length > 0
+        ) {
           query = query.in('especialidade', filters.especialidades)
         }
 
@@ -500,7 +685,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .select('id, primeiro_nome, sobrenome, telefone, especialidade, cidade, estado')
       .is('deleted_at', null)
       .eq('opt_out', false)
-      .or(`primeiro_nome.ilike.%${searchQuery}%,sobrenome.ilike.%${searchQuery}%,telefone.ilike.%${searchQuery}%`)
+      .or(
+        `primeiro_nome.ilike.%${searchQuery}%,sobrenome.ilike.%${searchQuery}%,telefone.ilike.%${searchQuery}%`
+      )
       .order('primeiro_nome')
       .limit(20)
 
@@ -516,7 +703,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const clientesComStatus = (clientes || []).map((cliente) => ({
       ...cliente,
-      na_campanha: selectedIds.includes(cliente.id) || (!selectedIds.length && !excludedIds.includes(cliente.id)),
+      na_campanha:
+        selectedIds.includes(cliente.id) ||
+        (!selectedIds.length && !excludedIds.includes(cliente.id)),
     }))
 
     return NextResponse.json({

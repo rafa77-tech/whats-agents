@@ -129,7 +129,11 @@ export default function EditarCampanhaPage() {
         if (dataParte) {
           setAgendarPara(dataParte)
         }
-        const horaParte = dataAgendamento.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false })
+        const horaParte = dataAgendamento.toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        })
         setHoraAgendamento(horaParte)
       }
     } catch (err) {
@@ -234,9 +238,7 @@ export default function EditarCampanhaPage() {
   }
 
   const toggleRegiao = (reg: string) => {
-    setRegioes((prev) =>
-      prev.includes(reg) ? prev.filter((r) => r !== reg) : [...prev, reg]
-    )
+    setRegioes((prev) => (prev.includes(reg) ? prev.filter((r) => r !== reg) : [...prev, reg]))
   }
 
   if (loading) {
@@ -425,9 +427,7 @@ export default function EditarCampanhaPage() {
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-gray-500">
-                Deixe em branco para iniciar manualmente
-              </p>
+              <p className="text-xs text-gray-500">Deixe em branco para iniciar manualmente</p>
             )}
           </CardContent>
         </Card>
@@ -439,7 +439,9 @@ export default function EditarCampanhaPage() {
               <MessageSquare className="h-5 w-5" />
               Mensagem
             </CardTitle>
-            <CardDescription>Template da mensagem (variacoes sao geradas automaticamente)</CardDescription>
+            <CardDescription>
+              Template da mensagem (variacoes sao geradas automaticamente)
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -495,9 +497,7 @@ export default function EditarCampanhaPage() {
                 onChange={(e) => setQuantidadeAlvo(parseInt(e.target.value) || 50)}
                 className="w-32"
               />
-              <p className="mt-1 text-xs text-gray-500">
-                Maximo de medicos a serem selecionados
-              </p>
+              <p className="mt-1 text-xs text-gray-500">Maximo de medicos a serem selecionados</p>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">

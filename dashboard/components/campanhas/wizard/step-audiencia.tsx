@@ -18,17 +18,10 @@ import { type CampanhaFormData, ESPECIALIDADES, REGIOES } from './types'
 interface StepAudienciaProps {
   formData: CampanhaFormData
   updateField: <K extends keyof CampanhaFormData>(field: K, value: CampanhaFormData[K]) => void
-  toggleArrayItem: (
-    field: 'especialidades' | 'regioes' | 'status_cliente',
-    item: string
-  ) => void
+  toggleArrayItem: (field: 'especialidades' | 'regioes' | 'status_cliente', item: string) => void
 }
 
-export function StepAudiencia({
-  formData,
-  updateField,
-  toggleArrayItem,
-}: StepAudienciaProps) {
+export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAudienciaProps) {
   return (
     <div className="space-y-4">
       <div>
@@ -91,14 +84,10 @@ export function StepAudiencia({
             <>
               Filtros selecionados:{' '}
               {formData.especialidades.length > 0 && (
-                <span className="font-medium">
-                  {formData.especialidades.length} especialidades
-                </span>
+                <span className="font-medium">{formData.especialidades.length} especialidades</span>
               )}
               {formData.regioes.length > 0 && (
-                <span className="ml-1 font-medium">
-                  , {formData.regioes.length} regioes
-                </span>
+                <span className="ml-1 font-medium">, {formData.regioes.length} regioes</span>
               )}
               {formData.especialidades.length === 0 && formData.regioes.length === 0 && (
                 <span className="text-gray-400">Nenhum filtro selecionado</span>

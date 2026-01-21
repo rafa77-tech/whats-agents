@@ -46,12 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -174,7 +169,10 @@ const statusConfig = {
   },
 }
 
-const envioStatusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
+const envioStatusConfig: Record<
+  string,
+  { label: string; color: string; icon: typeof CheckCircle2 }
+> = {
   pendente: { label: 'Pendente', color: 'text-gray-500', icon: Clock },
   enviado: { label: 'Enviado', color: 'text-blue-500', icon: Send },
   entregue: { label: 'Entregue', color: 'text-green-500', icon: CheckCircle2 },
@@ -445,6 +443,7 @@ export default function CampanhaDetalhesPage() {
     }, 300)
 
     return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery])
 
   const executarAcao = async (action: string) => {
@@ -551,7 +550,9 @@ export default function CampanhaDetalhesPage() {
               <p className="mt-1 flex items-center gap-1 text-sm text-blue-600">
                 <Calendar className="h-4 w-4" />
                 Agendada para{' '}
-                {format(new Date(campanha.agendar_para), "EEEE, d 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                {format(new Date(campanha.agendar_para), "EEEE, d 'de' MMMM 'às' HH:mm", {
+                  locale: ptBR,
+                })}
               </p>
             )}
           </div>
@@ -585,7 +586,11 @@ export default function CampanhaDetalhesPage() {
               }
               disabled={actionLoading}
             >
-              {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+              {actionLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="mr-2 h-4 w-4" />
+              )}
               Iniciar
             </Button>
           )}
@@ -627,7 +632,11 @@ export default function CampanhaDetalhesPage() {
               <Button
                 variant="outline"
                 onClick={() =>
-                  abrirConfirmacao('pausar', 'Pausar Campanha', 'Tem certeza que deseja pausar esta campanha?')
+                  abrirConfirmacao(
+                    'pausar',
+                    'Pausar Campanha',
+                    'Tem certeza que deseja pausar esta campanha?'
+                  )
                 }
                 disabled={actionLoading}
               >
@@ -669,7 +678,11 @@ export default function CampanhaDetalhesPage() {
               </Button>
               <Button
                 onClick={() =>
-                  abrirConfirmacao('retomar', 'Retomar Campanha', 'Tem certeza que deseja retomar esta campanha?')
+                  abrirConfirmacao(
+                    'retomar',
+                    'Retomar Campanha',
+                    'Tem certeza que deseja retomar esta campanha?'
+                  )
                 }
                 disabled={actionLoading}
               >
@@ -799,7 +812,9 @@ export default function CampanhaDetalhesPage() {
                 <p className="text-sm font-medium text-gray-500">Agendada para</p>
                 <p className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  {format(new Date(campanha.agendar_para), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR })}
+                  {format(new Date(campanha.agendar_para), "dd/MM/yyyy 'as' HH:mm", {
+                    locale: ptBR,
+                  })}
                 </p>
               </div>
             )}
@@ -809,7 +824,9 @@ export default function CampanhaDetalhesPage() {
                 <p className="text-sm font-medium text-gray-500">Iniciada em</p>
                 <p className="flex items-center gap-1">
                   <Play className="h-4 w-4" />
-                  {format(new Date(campanha.iniciada_em), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR })}
+                  {format(new Date(campanha.iniciada_em), "dd/MM/yyyy 'as' HH:mm", {
+                    locale: ptBR,
+                  })}
                 </p>
               </div>
             )}
@@ -819,7 +836,9 @@ export default function CampanhaDetalhesPage() {
                 <p className="text-sm font-medium text-gray-500">Finalizada em</p>
                 <p className="flex items-center gap-1">
                   <CheckCircle2 className="h-4 w-4" />
-                  {format(new Date(campanha.concluida_em), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR })}
+                  {format(new Date(campanha.concluida_em), "dd/MM/yyyy 'as' HH:mm", {
+                    locale: ptBR,
+                  })}
                 </p>
               </div>
             )}
@@ -878,9 +897,7 @@ export default function CampanhaDetalhesPage() {
             Publico da Campanha
           </CardTitle>
           <CardDescription>
-            {audiencia
-              ? `${audiencia.total} medicos selecionados`
-              : 'Carregando audiencia...'}
+            {audiencia ? `${audiencia.total} medicos selecionados` : 'Carregando audiencia...'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -971,7 +988,9 @@ export default function CampanhaDetalhesPage() {
                         <TableHead>Telefone</TableHead>
                         <TableHead>Especialidade</TableHead>
                         <TableHead>Localizacao</TableHead>
-                        {campanha.status === 'rascunho' && <TableHead className="w-[80px]">Acoes</TableHead>}
+                        {campanha.status === 'rascunho' && (
+                          <TableHead className="w-[80px]">Acoes</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1040,7 +1059,9 @@ export default function CampanhaDetalhesPage() {
               ) : (
                 <div className="py-8 text-center">
                   <Users className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-                  <p className="text-gray-500">Nenhum medico encontrado com os filtros selecionados</p>
+                  <p className="text-gray-500">
+                    Nenhum medico encontrado com os filtros selecionados
+                  </p>
                   {campanha.status === 'rascunho' && (
                     <Button
                       variant="outline"
@@ -1085,7 +1106,11 @@ export default function CampanhaDetalhesPage() {
                     </TableHeader>
                     <TableBody>
                       {campanha.envios.map((envio) => {
-                        const defaultStatus = { label: 'Pendente', color: 'text-gray-500', icon: Clock }
+                        const defaultStatus = {
+                          label: 'Pendente',
+                          color: 'text-gray-500',
+                          icon: Clock,
+                        }
                         const envioStatus = envioStatusConfig[envio.status] ?? defaultStatus
                         const EnvioStatusIcon = envioStatus.icon
 
@@ -1149,7 +1174,10 @@ export default function CampanhaDetalhesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={actionLoading}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => executarAcao(confirmDialog.action)} disabled={actionLoading}>
+            <AlertDialogAction
+              onClick={() => executarAcao(confirmDialog.action)}
+              disabled={actionLoading}
+            >
               {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirmar
             </AlertDialogAction>

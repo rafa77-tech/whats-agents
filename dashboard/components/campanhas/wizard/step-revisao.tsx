@@ -42,9 +42,7 @@ export function StepRevisao({ formData, updateField }: StepRevisaoProps) {
 
           <div>
             <span className="text-gray-500">Tom:</span>
-            <p className="font-medium">
-              {TONS.find((t) => t.value === formData.tom)?.label}
-            </p>
+            <p className="font-medium">{TONS.find((t) => t.value === formData.tom)?.label}</p>
           </div>
         </div>
 

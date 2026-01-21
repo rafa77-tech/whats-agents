@@ -86,9 +86,7 @@ export function useWizardDraft(): UseWizardDraftReturn {
 
     // Don't save if form is empty
     const hasContent =
-      formData.nome_template.trim().length > 0 ||
-      formData.corpo.trim().length > 0 ||
-      step > 1
+      formData.nome_template.trim().length > 0 || formData.corpo.trim().length > 0 || step > 1
 
     if (!hasContent) return
 
