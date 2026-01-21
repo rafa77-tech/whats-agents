@@ -19,7 +19,9 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     // Check if we have a valid session from the recovery link
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
       if (!session) {
         // No session means the recovery link wasn't processed correctly
         // The user might have arrived here directly
@@ -72,7 +74,7 @@ export default function ResetPasswordPage() {
   if (success) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-revoluna-50 to-revoluna-100">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl text-center">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
@@ -129,7 +131,10 @@ export default function ResetPasswordPage() {
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="mb-2 block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="confirmPassword"
+              className="mb-2 block text-sm font-medium text-gray-700"
+            >
               Confirmar Senha
             </label>
             <div className="relative">
