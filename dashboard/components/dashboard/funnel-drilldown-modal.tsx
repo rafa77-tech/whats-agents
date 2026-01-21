@@ -1,7 +1,8 @@
 /**
- * Funnel Drilldown Modal - Sprint 33 E11
+ * Funnel Drilldown Modal - Sprint 34 E04
  *
  * Modal showing list of doctors at each funnel stage.
+ * Improved: skeleton loading, overlay pagination, range indicator.
  */
 
 'use client'
@@ -18,10 +19,12 @@ import {
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { type FunnelDrilldownData } from '@/types/dashboard'
-import { Search, ExternalLink, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, ExternalLink, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 
 interface FunnelDrilldownModalProps {
   open: boolean
@@ -38,6 +41,7 @@ export function FunnelDrilldownModal({
 }: FunnelDrilldownModalProps) {
   const [data, setData] = useState<FunnelDrilldownData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -67,6 +71,7 @@ export function FunnelDrilldownModal({
 
       if (res.ok) {
         setData(json)
+        setIsInitialLoad(false)
       }
     } catch (error) {
       console.error('Error fetching drilldown:', error)
@@ -88,6 +93,7 @@ export function FunnelDrilldownModal({
       setDebouncedSearch('')
       setPage(1)
       setData(null)
+      setIsInitialLoad(true)
     }
   }, [open])
 
@@ -96,7 +102,18 @@ export function FunnelDrilldownModal({
     setPage(1) // Reset page on search
   }
 
+  const clearSearch = () => {
+    setSearch('')
+    setDebouncedSearch('')
+    setPage(1)
+  }
+
   const totalPages = data ? Math.ceil(data.total / data.pageSize) : 0
+  const pageSize = data?.pageSize || 10
+  const startItem = data ? (page - 1) * pageSize + 1 : 0
+  const endItem = data ? Math.min(page * pageSize, data.total) : 0
+  const hasSearchFilter = debouncedSearch.length > 0
+  const isEmptySearchResult = !loading && data?.items.length === 0 && hasSearchFilter
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -114,12 +131,30 @@ export function FunnelDrilldownModal({
             placeholder="Buscar por nome..."
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10"
           />
+          {search && (
+            <button
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Limpar busca"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* Tabela */}
-        <div className="flex-1 overflow-auto rounded-lg border">
+        <div className="relative flex-1 overflow-auto rounded-lg border">
+          {/* Overlay de loading durante paginacao */}
+          {loading && !isInitialLoad && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
+              <div className="rounded-lg bg-white px-4 py-2 shadow-lg">
+                <span className="text-sm text-gray-600">Carregando...</span>
+              </div>
+            </div>
+          )}
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -131,17 +166,26 @@ export function FunnelDrilldownModal({
                 <TableHead className="w-[80px]">Acao</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {loading ? (
+            <TableBody className={cn(loading && !isInitialLoad && 'opacity-50')}>
+              {loading && isInitialLoad ? (
+                <TableSkeleton rows={5} columns={6} />
+              ) : isEmptySearchResult ? (
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center">
-                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                    <div className="space-y-2">
+                      <p className="text-gray-500">
+                        Nenhum medico encontrado para &quot;{debouncedSearch}&quot;
+                      </p>
+                      <Button variant="outline" size="sm" onClick={clearSearch}>
+                        Limpar busca
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : data?.items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center text-gray-500">
-                    Nenhum medico encontrado
+                    Nenhum medico neste estagio
                   </TableCell>
                 </TableRow>
               ) : (
@@ -176,29 +220,36 @@ export function FunnelDrilldownModal({
         </div>
 
         {/* Paginacao */}
-        {totalPages > 1 && (
+        {data && data.total > 0 && (
           <div className="flex items-center justify-between border-t pt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1 || loading}
-            >
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              Anterior
-            </Button>
-            <span className="text-sm text-gray-500">
-              Pagina {page} de {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages || loading}
-            >
-              Proximo
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
+            <div className="text-sm text-gray-500">
+              Mostrando {startItem}-{endItem} de {data.total} medicos
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1 || loading}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Anterior
+                </Button>
+                <span className="text-sm text-gray-500">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages || loading}
+                >
+                  Proximo
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>

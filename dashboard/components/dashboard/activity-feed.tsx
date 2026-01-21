@@ -2,6 +2,7 @@
  * Activity Feed Component - Sprint 33 E14
  *
  * Timeline of recent system events with auto-refresh.
+ * Uses NORMAL priority (60s) as this is informational data.
  */
 
 'use client'
@@ -12,18 +13,19 @@ import { ActivityItem } from './activity-item'
 import { type ActivityFeedData } from '@/types/dashboard'
 import { Activity, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { REFRESH_INTERVALS } from '@/lib/config'
 
 interface ActivityFeedProps {
   initialData?: ActivityFeedData
   autoRefresh?: boolean
-  refreshInterval?: number
+  refreshInterval?: number // defaults to NORMAL priority
   limit?: number
 }
 
 export function ActivityFeed({
   initialData,
   autoRefresh = true,
-  refreshInterval = 30000,
+  refreshInterval = REFRESH_INTERVALS.NORMAL,
   limit = 10,
 }: ActivityFeedProps) {
   const [data, setData] = useState<ActivityFeedData | null>(initialData ?? null)
