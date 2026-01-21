@@ -11,7 +11,8 @@ interface CookieToSet {
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
+  const type = searchParams.get('type') // 'recovery', 'signup', 'invite', etc.
+  const next = searchParams.get('next') ?? (type === 'recovery' ? '/reset-password' : '/')
 
   if (code) {
     const cookieStore = await cookies()
