@@ -1,5 +1,18 @@
 """
 Script para executar o piloto completo.
+
+DEPRECATED (Sprint 35 - Debt Cleanup):
+=====================================
+Este script usa funções e tabelas LEGADAS que foram removidas.
+NÃO EXECUTE este script - ele irá FALHAR.
+
+A tabela `envios_campanha` foi removida em favor de `fila_mensagens`.
+
+Para executar campanhas, use:
+- API: POST /campanhas/{id}/iniciar
+- Módulo: app.services.campanhas.campanha_executor.executar()
+
+Ver documentação: docs/arquitetura/schema-campanhas.md
 """
 import asyncio
 import sys

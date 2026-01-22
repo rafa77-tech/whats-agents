@@ -1,10 +1,27 @@
 """
 Serviço para gerenciamento de campanhas de primeiro contato.
 
-DEPRECATION WARNING (Sprint 23 E03):
-- A tabela `envios_campanha` está deprecated
-- Novos envios devem usar `fila_mensagens` via `fila_service.enfileirar`
-- Para queries, use a view `campaign_sends` via `campaign_sends_repo`
+DEPRECATION WARNING (Sprint 35 - Debt Cleanup):
+=====================================
+Este módulo contém código LEGADO que será removido em futuras sprints.
+
+MIGRAÇÃO RECOMENDADA:
+- Para criar/gerenciar campanhas: use `app.services.campanhas.campanha_repository`
+- Para executar campanhas: use `app.services.campanhas.campanha_executor`
+- Para tipos/enums: use `app.services.campanhas.types`
+
+FUNÇÕES DEPRECATED:
+- `criar_campanha_piloto()` - usa tabela/colunas legadas
+- `executar_campanha()` - usa tabela `envios_campanha` (removida)
+- `controlador_envio` - usa tabela `envios_campanha` (removida)
+
+FUNÇÕES MIGRADAS (ainda funcionais):
+- `criar_envios_campanha()` - atualizada para usar nomes de colunas corretos
+- `enviar_mensagem_prospeccao()` - funcional mas usa `envios_campanha` para registro
+
+Histórico:
+- Sprint 23 E03: Tabela `envios_campanha` deprecated
+- Sprint 35: Módulo `app.services.campanhas` criado com nova arquitetura
 """
 import asyncio
 import logging
@@ -104,7 +121,20 @@ controlador_envio = ControladorEnvio()
 
 
 async def criar_campanha_piloto() -> dict:
-    """Cria campanha de primeiro contato para piloto."""
+    """
+    Cria campanha de primeiro contato para piloto.
+
+    DEPRECATED: Esta função usa colunas legadas (tipo, mensagem_template, config)
+    e a tabela `envios_campanha` que foi removida.
+
+    Use `app.services.campanhas.campanha_repository.criar()` para criar campanhas.
+    """
+    warnings.warn(
+        "criar_campanha_piloto() usa colunas legadas e tabela removida. "
+        "Use campanha_repository.criar() do módulo app.services.campanhas",
+        DeprecationWarning,
+        stacklevel=2
+    )
     from app.fragmentos.mensagens import MENSAGEM_PRIMEIRO_CONTATO
 
     # Buscar médicos do piloto que ainda não foram contactados
@@ -169,8 +199,18 @@ async def executar_campanha(campanha_id: str):
     """
     Executa campanha respeitando rate limiting.
 
+    DEPRECATED: Esta função usa a tabela `envios_campanha` que foi removida.
+
+    Use `app.services.campanhas.campanha_executor.executar()` para executar campanhas.
+
     Processa um envio por vez, aguardando intervalo.
     """
+    warnings.warn(
+        "executar_campanha() usa tabela envios_campanha que foi removida. "
+        "Use campanha_executor.executar() do módulo app.services.campanhas",
+        DeprecationWarning,
+        stacklevel=2
+    )
     while True:
         # Verificar se pode enviar
         if not await controlador_envio.pode_enviar_primeiro_contato():
