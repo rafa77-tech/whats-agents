@@ -94,7 +94,7 @@ interface Campanha {
   nome_template: string
   tipo_campanha: string
   categoria: string
-  status: 'rascunho' | 'agendada' | 'em_execucao' | 'concluida' | 'pausada' | 'cancelada'
+  status: 'rascunho' | 'agendada' | 'ativa' | 'concluida' | 'pausada' | 'cancelada'
   objetivo?: string
   corpo: string
   tom?: string
@@ -147,8 +147,8 @@ const statusConfig = {
     color: 'bg-blue-100 text-blue-800 border-blue-200',
     icon: Clock,
   },
-  em_execucao: {
-    label: 'Em Execucao',
+  ativa: {
+    label: 'Ativa',
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     icon: Play,
   },
@@ -627,7 +627,7 @@ export default function CampanhaDetalhesPage() {
             </>
           )}
 
-          {campanha.status === 'em_execucao' && (
+          {campanha.status === 'ativa' && (
             <>
               <Button
                 variant="outline"

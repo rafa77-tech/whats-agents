@@ -125,12 +125,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             { status: 400 }
           )
         }
-        newStatus = 'em_execucao'
+        newStatus = 'ativa'
         updateData = { iniciada_em: new Date().toISOString() }
         break
 
       case 'pausar':
-        if (campanha.status !== 'em_execucao') {
+        if (campanha.status !== 'ativa') {
           return NextResponse.json(
             { detail: 'Apenas campanhas em execucao podem ser pausadas' },
             { status: 400 }
@@ -146,7 +146,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             { status: 400 }
           )
         }
-        newStatus = 'em_execucao'
+        newStatus = 'ativa'
         break
 
       case 'cancelar':
@@ -158,7 +158,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         break
 
       case 'concluir':
-        if (campanha.status !== 'em_execucao') {
+        if (campanha.status !== 'ativa') {
           return NextResponse.json(
             { detail: 'Apenas campanhas em execucao podem ser concluidas' },
             { status: 400 }

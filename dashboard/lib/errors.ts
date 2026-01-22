@@ -32,8 +32,8 @@ export const API_ERROR_MESSAGES: Record<string, ErrorConfig> = {
   campanha_corpo_invalido: {
     message: 'A mensagem contem variaveis invalidas.',
   },
-  campanha_em_execucao: {
-    message: 'Esta campanha ja esta em execucao.',
+  campanha_ativa: {
+    message: 'Esta campanha ja esta ativa.',
   },
 
   // Diretrizes
