@@ -90,6 +90,9 @@ export default function EditarCampanhaPage() {
   const [quantidadeAlvo, setQuantidadeAlvo] = useState(50)
   const [agendarPara, setAgendarPara] = useState<string>('')
   const [horaAgendamento, setHoraAgendamento] = useState<string>('09:00')
+  // Preservar IDs selecionados/excluidos manualmente
+  const [selectedClienteIds, setSelectedClienteIds] = useState<string[] | undefined>(undefined)
+  const [excludedClienteIds, setExcludedClienteIds] = useState<string[] | undefined>(undefined)
 
   const carregarCampanha = useCallback(async () => {
     try {
@@ -120,6 +123,9 @@ export default function EditarCampanhaPage() {
         setEspecialidades(data.audience_filters.especialidades || [])
         setRegioes(data.audience_filters.regioes || [])
         setQuantidadeAlvo(data.audience_filters.quantidade_alvo || 50)
+        // Preservar IDs selecionados/excluidos manualmente
+        setSelectedClienteIds(data.audience_filters.selected_cliente_ids)
+        setExcludedClienteIds(data.audience_filters.excluded_cliente_ids)
       }
 
       // Carregar agendamento se existir
@@ -181,6 +187,20 @@ export default function EditarCampanhaPage() {
         agendarParaISO = dataCompleta.toISOString()
       }
 
+      // Construir audience_filters preservando IDs manuais
+      const audienceFilters: Record<string, unknown> = {
+        especialidades,
+        regioes,
+        quantidade_alvo: quantidadeAlvo,
+      }
+      // Preservar IDs selecionados/excluidos manualmente
+      if (selectedClienteIds && selectedClienteIds.length > 0) {
+        audienceFilters.selected_cliente_ids = selectedClienteIds
+      }
+      if (excludedClienteIds && excludedClienteIds.length > 0) {
+        audienceFilters.excluded_cliente_ids = excludedClienteIds
+      }
+
       const payload = {
         nome_template: nomeTemplate,
         tipo_campanha: tipoCampanha,
@@ -189,11 +209,7 @@ export default function EditarCampanhaPage() {
         corpo,
         tom,
         agendar_para: agendarParaISO,
-        audience_filters: {
-          especialidades,
-          regioes,
-          quantidade_alvo: quantidadeAlvo,
-        },
+        audience_filters: audienceFilters,
       }
 
       const res = await fetch(`/api/campanhas/${params.id}`, {
