@@ -128,8 +128,9 @@ class CampanhaData:
         )
 
     def to_dict(self) -> dict:
-        """Converte para dicionario (para updates)."""
+        """Converte para dicionario."""
         return {
+            "id": self.id,
             "nome_template": self.nome_template,
             "tipo_campanha": self.tipo_campanha.value,
             "corpo": self.corpo,
