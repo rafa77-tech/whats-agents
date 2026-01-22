@@ -16,7 +16,7 @@ from app.services.supabase import supabase
 from app.services.outbound import send_outbound_message, criar_contexto_campanha
 from app.core.piloto_config import piloto_config
 from app.fragmentos.mensagens import formatar_primeiro_contato
-from app.services.abertura import obter_abertura
+from app.services.abertura import obter_abertura, obter_abertura_texto
 
 logger = logging.getLogger(__name__)
 
@@ -274,40 +274,52 @@ async def criar_envios_campanha(campanha_id: str):
         return
 
     campanha = campanha_resp.data
-    config = campanha.get("config", {})
+    audience_filters = campanha.get("audience_filters", {})
 
     # Montar filtros
     filtros = {}
-    if config.get("filtro_especialidades"):
-        filtros["especialidade"] = config["filtro_especialidades"][0]
-    if config.get("filtro_regioes"):
-        filtros["regiao"] = config["filtro_regioes"][0]
-    if config.get("filtro_tags"):
-        filtros["tag"] = config["filtro_tags"][0]
+    if audience_filters.get("especialidades"):
+        filtros["especialidade"] = audience_filters["especialidades"][0]
+    if audience_filters.get("regioes"):
+        filtros["regiao"] = audience_filters["regioes"][0]
 
     # Buscar destinatários
     destinatarios = await segmentacao_service.buscar_segmento(filtros, limite=10000)
 
     # Criar envio para cada destinatário
+    tipo_campanha = campanha.get("tipo_campanha", "campanha")
+
     for dest in destinatarios:
-        # Personalizar mensagem
-        mensagem = campanha["mensagem_template"].format(
-            nome=dest.get("primeiro_nome", ""),
-            especialidade=dest.get("especialidade_nome", "médico")
-        )
+        # Gerar mensagem baseada no tipo de campanha
+        if tipo_campanha == "discovery":
+            # Discovery: usar aberturas dinâmicas para variedade
+            mensagem = await obter_abertura_texto(
+                cliente_id=dest["id"],
+                nome=dest.get("primeiro_nome", "")
+            )
+        else:
+            # Outros tipos: usar corpo como template
+            corpo = campanha.get("corpo", "")
+            if "{nome}" in corpo or "{especialidade}" in corpo:
+                mensagem = corpo.format(
+                    nome=dest.get("primeiro_nome", ""),
+                    especialidade=dest.get("especialidade_nome", "médico")
+                )
+            else:
+                mensagem = corpo
 
         # Enfileirar
         await fila_service.enfileirar(
             cliente_id=dest["id"],
             conteudo=mensagem,
-            tipo=campanha["tipo"],
+            tipo=tipo_campanha,
             prioridade=3,  # Prioridade baixa para campanhas
-            metadata={"campanha_id": campanha_id}
+            metadata={"campanha_id": str(campanha_id)}
         )
 
     # Atualizar contagem
     supabase.table("campanhas").update({
-        "envios_criados": len(destinatarios)
+        "enviados": len(destinatarios)
     }).eq("id", campanha_id).execute()
     
     logger.info(f"Enfileirados {len(destinatarios)} envios para campanha {campanha_id}")
