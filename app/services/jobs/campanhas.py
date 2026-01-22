@@ -2,13 +2,13 @@
 Service para processamento de campanhas agendadas.
 
 Sprint 10 - S10.E3.1
+Sprint 35 - E04: Atualizado para usar campanha_executor
 """
 import logging
 from dataclasses import dataclass
 from datetime import datetime
 
-from app.services.supabase import supabase
-from app.services.campanha import criar_envios_campanha
+from app.services.campanhas import campanha_executor, campanha_repository
 
 logger = logging.getLogger(__name__)
 
@@ -27,50 +27,40 @@ async def processar_campanhas_agendadas() -> ResultadoCampanhas:
     Returns:
         ResultadoCampanhas com estatisticas
     """
-    agora = datetime.utcnow().isoformat()
+    agora = datetime.utcnow()
 
-    # Buscar campanhas prontas
-    campanhas_resp = (
-        supabase.table("campanhas")
-        .select("id")
-        .eq("status", "agendada")
-        .lte("agendar_para", agora)
-        .execute()
-    )
-
-    campanhas = campanhas_resp.data or []
+    # Buscar campanhas prontas usando o repository
+    campanhas = await campanha_repository.listar_agendadas(agora)
     resultado = ResultadoCampanhas(campanhas_encontradas=len(campanhas))
 
     for campanha in campanhas:
-        sucesso = await _iniciar_campanha(campanha["id"], agora)
+        sucesso = await _iniciar_campanha(campanha.id)
         if sucesso:
             resultado.campanhas_iniciadas += 1
 
     return resultado
 
 
-async def _iniciar_campanha(campanha_id: str, agora: str) -> bool:
+async def _iniciar_campanha(campanha_id: int) -> bool:
     """
-    Inicia uma campanha individual.
+    Inicia execucao de uma campanha.
 
     Args:
         campanha_id: ID da campanha
-        agora: Timestamp atual
 
     Returns:
         True se iniciada com sucesso
     """
     try:
-        await criar_envios_campanha(campanha_id)
+        sucesso = await campanha_executor.executar(campanha_id)
 
-        supabase.table("campanhas").update({
-            "status": "ativa",
-            "iniciada_em": agora
-        }).eq("id", campanha_id).execute()
+        if sucesso:
+            logger.info(f"Campanha {campanha_id} executada com sucesso")
+        else:
+            logger.warning(f"Campanha {campanha_id} executada com problemas")
 
-        logger.info(f"Campanha {campanha_id} iniciada")
-        return True
+        return sucesso
 
     except Exception as e:
-        logger.error(f"Erro ao iniciar campanha {campanha_id}: {e}")
+        logger.error(f"Erro ao executar campanha {campanha_id}: {e}")
         return False

@@ -1,0 +1,226 @@
+"""
+Executor de campanhas.
+
+Responsavel por:
+- Buscar destinatarios elegiveis
+- Gerar mensagens apropriadas por tipo
+- Enfileirar envios em fila_mensagens
+- Atualizar contadores
+
+Sprint 35 - Epic 04
+"""
+import logging
+from typing import List, Optional
+
+from app.services.abertura import obter_abertura_texto
+from app.services.campanhas.repository import campanha_repository
+from app.services.campanhas.types import (
+    CampanhaData,
+    StatusCampanha,
+    TipoCampanha,
+)
+from app.services.fila import fila_service
+from app.services.segmentacao import segmentacao_service
+
+logger = logging.getLogger(__name__)
+
+
+class CampanhaExecutor:
+    """Executor de campanhas."""
+
+    async def executar(self, campanha_id: int) -> bool:
+        """
+        Executa uma campanha.
+
+        Args:
+            campanha_id: ID da campanha a executar
+
+        Returns:
+            True se executada com sucesso
+        """
+        logger.info(f"Iniciando execucao da campanha {campanha_id}")
+
+        # 1. Buscar campanha
+        campanha = await campanha_repository.buscar_por_id(campanha_id)
+        if not campanha:
+            logger.error(f"Campanha {campanha_id} nao encontrada")
+            return False
+
+        # 2. Validar status
+        if campanha.status not in (StatusCampanha.AGENDADA, StatusCampanha.ATIVA):
+            logger.warning(
+                f"Campanha {campanha_id} tem status {campanha.status.value}, "
+                "nao pode ser executada"
+            )
+            return False
+
+        # 3. Atualizar status para ativa
+        await campanha_repository.atualizar_status(campanha_id, StatusCampanha.ATIVA)
+
+        # 4. Buscar destinatarios
+        destinatarios = await self._buscar_destinatarios(campanha)
+        if not destinatarios:
+            logger.warning(f"Campanha {campanha_id} nao tem destinatarios elegiveis")
+            await campanha_repository.atualizar_status(campanha_id, StatusCampanha.CONCLUIDA)
+            return True
+
+        # 5. Atualizar total de destinatarios
+        await campanha_repository.atualizar_total_destinatarios(campanha_id, len(destinatarios))
+
+        # 6. Criar envios
+        enviados = 0
+        for dest in destinatarios:
+            try:
+                sucesso = await self._criar_envio(campanha, dest)
+                if sucesso:
+                    enviados += 1
+            except Exception as e:
+                logger.error(f"Erro ao criar envio para {dest.get('id')}: {e}")
+
+        # 7. Atualizar contador de enviados
+        await campanha_repository.incrementar_enviados(campanha_id, enviados)
+
+        logger.info(f"Campanha {campanha_id}: {enviados}/{len(destinatarios)} envios criados")
+        return True
+
+    async def _buscar_destinatarios(self, campanha: CampanhaData) -> List[dict]:
+        """
+        Busca destinatarios elegiveis para a campanha.
+
+        Args:
+            campanha: Dados da campanha
+
+        Returns:
+            Lista de destinatarios
+        """
+        filtros = {}
+
+        if campanha.audience_filters:
+            # Mapear filtros para formato do segmentacao_service
+            if campanha.audience_filters.especialidades:
+                filtros["especialidade"] = campanha.audience_filters.especialidades[0]
+            if campanha.audience_filters.regioes:
+                filtros["regiao"] = campanha.audience_filters.regioes[0]
+
+        limite = campanha.audience_filters.quantidade_alvo if campanha.audience_filters else 50
+
+        try:
+            return await segmentacao_service.buscar_segmento(filtros, limite=limite)
+        except Exception as e:
+            logger.error(f"Erro ao buscar destinatarios: {e}")
+            return []
+
+    async def _criar_envio(self, campanha: CampanhaData, destinatario: dict) -> bool:
+        """
+        Cria envio para um destinatario.
+
+        Args:
+            campanha: Dados da campanha
+            destinatario: Dados do destinatario
+
+        Returns:
+            True se criado com sucesso
+        """
+        cliente_id = destinatario.get("id")
+
+        # Gerar mensagem baseada no tipo
+        mensagem = await self._gerar_mensagem(campanha, destinatario)
+
+        if not mensagem:
+            logger.warning(f"Nao foi possivel gerar mensagem para {cliente_id}")
+            return False
+
+        # Enfileirar
+        await fila_service.enfileirar(
+            cliente_id=cliente_id,
+            conteudo=mensagem,
+            tipo="campanha",
+            prioridade=3,  # Prioridade baixa para campanhas
+            metadata={
+                "campanha_id": str(campanha.id),
+                "tipo_campanha": campanha.tipo_campanha.value,
+            }
+        )
+
+        return True
+
+    async def _gerar_mensagem(
+        self,
+        campanha: CampanhaData,
+        destinatario: dict,
+    ) -> Optional[str]:
+        """
+        Gera mensagem para o destinatario baseada no tipo de campanha.
+
+        Args:
+            campanha: Dados da campanha
+            destinatario: Dados do destinatario
+
+        Returns:
+            Mensagem gerada ou None
+        """
+        cliente_id = destinatario.get("id")
+        nome = destinatario.get("primeiro_nome", "")
+        especialidade = destinatario.get("especialidade_nome", "medico")
+
+        if campanha.tipo_campanha == TipoCampanha.DISCOVERY:
+            # Discovery: usar aberturas dinamicas
+            return await obter_abertura_texto(cliente_id, nome)
+
+        elif campanha.tipo_campanha in (TipoCampanha.OFERTA, TipoCampanha.OFERTA_PLANTAO):
+            # Oferta: usar corpo como template
+            if campanha.corpo:
+                return self._formatar_template(campanha.corpo, nome, especialidade)
+            return None
+
+        elif campanha.tipo_campanha == TipoCampanha.REATIVACAO:
+            # Reativacao: usar corpo ou template padrao
+            if campanha.corpo:
+                return self._formatar_template(campanha.corpo, nome, especialidade)
+            return f"Oi Dr {nome}! Tudo bem? Faz tempo que a gente nao se fala..."
+
+        elif campanha.tipo_campanha == TipoCampanha.FOLLOWUP:
+            # Followup: usar corpo ou template padrao
+            if campanha.corpo:
+                return self._formatar_template(campanha.corpo, nome, especialidade)
+            return f"Oi Dr {nome}! Lembrei de vc..."
+
+        # Fallback
+        if campanha.corpo:
+            return self._formatar_template(campanha.corpo, nome, especialidade)
+
+        return None
+
+    def _formatar_template(
+        self,
+        template: str,
+        nome: str,
+        especialidade: str,
+    ) -> str:
+        """
+        Formata template com variaveis.
+
+        Args:
+            template: Template com placeholders
+            nome: Nome do destinatario
+            especialidade: Especialidade
+
+        Returns:
+            Template formatado
+        """
+        try:
+            # Suportar diferentes formatos de placeholder
+            # Importante: substituir chaves duplas ANTES das simples
+            resultado = template
+            resultado = resultado.replace("{{nome}}", nome)
+            resultado = resultado.replace("{{especialidade}}", especialidade)
+            resultado = resultado.replace("{nome}", nome)
+            resultado = resultado.replace("{especialidade}", especialidade)
+            return resultado
+        except Exception as e:
+            logger.warning(f"Erro ao formatar template: {e}")
+            return template
+
+
+# Instancia singleton
+campanha_executor = CampanhaExecutor()
