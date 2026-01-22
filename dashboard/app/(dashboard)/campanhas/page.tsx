@@ -105,8 +105,7 @@ export default function CampanhasPage() {
   const carregarCampanhas = useCallback(async () => {
     try {
       setError(null)
-      const status =
-        tab === 'ativas' ? 'rascunho,agendada,ativa,pausada' : 'concluida,cancelada'
+      const status = tab === 'ativas' ? 'rascunho,agendada,ativa,pausada' : 'concluida,cancelada'
       const res = await fetch(`/api/campanhas?status=${status}`)
       const data = await res.json()
 
