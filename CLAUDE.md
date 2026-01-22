@@ -455,6 +455,17 @@ from app.services.supabase import supabase
 from app.services.supabase import get_supabase
 ```
 
+### Import de Campanhas
+
+```python
+# Correto (Sprint 35+)
+from app.services.campanhas import campanha_repository, campanha_executor
+from app.services.campanhas.types import TipoCampanha, StatusCampanha
+
+# Incorreto (deprecated)
+from app.services.campanha import criar_envios_campanha  # usar campanha_executor
+```
+
 ### Exceptions Customizadas
 
 Usar exceptions de `app/core/exceptions.py`:
