@@ -63,55 +63,136 @@ export async function GET(request: NextRequest) {
       .in('status', ['fechado', 'completed'])
 
     const taxaResposta =
-      totalConversas && totalConversas > 0 && respostas ? (respostas / totalConversas) * 100 : 32
+      totalConversas && totalConversas > 0 && respostas ? (respostas / totalConversas) * 100 : 0
     const taxaConversao =
-      respostas && respostas > 0 && fechamentos ? (fechamentos / respostas) * 100 : 18
+      respostas && respostas > 0 && fechamentos ? (fechamentos / respostas) * 100 : 0
 
-    // Add metrics with mock previous values for now
+    // Calculate previous period for comparison
+    const periodDays = period === '7d' ? 7 : period === '14d' ? 14 : 30
+    const previousStart = new Date(new Date(currentStart).getTime() - periodDays * 24 * 60 * 60 * 1000).toISOString()
+    const previousEnd = currentStart
+
+    // Fetch previous period metrics
+    const { count: prevConversas } = await supabase
+      .from('conversations')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', previousStart)
+      .lt('created_at', previousEnd)
+
+    const { count: prevRespostas } = await supabase
+      .from('conversations')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', previousStart)
+      .lt('created_at', previousEnd)
+      .in('stage', ['respondido', 'interesse', 'negociacao', 'qualificado'])
+
+    const { count: prevFechamentos } = await supabase
+      .from('conversations')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', previousStart)
+      .lt('created_at', previousEnd)
+      .in('status', ['fechado', 'completed'])
+
+    const prevTaxaResposta =
+      prevConversas && prevConversas > 0 && prevRespostas ? (prevRespostas / prevConversas) * 100 : 0
+    const prevTaxaConversao =
+      prevRespostas && prevRespostas > 0 && prevFechamentos ? (prevFechamentos / prevRespostas) * 100 : 0
+
     exportData.metrics = [
       {
         name: 'Taxa de Resposta',
         current: Number(taxaResposta.toFixed(1)),
-        previous: 28,
+        previous: Number(prevTaxaResposta.toFixed(1)),
         meta: 30,
         unit: 'percent',
       },
       {
         name: 'Taxa de Conversao',
         current: Number(taxaConversao.toFixed(1)),
-        previous: 20,
+        previous: Number(prevTaxaConversao.toFixed(1)),
         meta: 25,
         unit: 'percent',
       },
       {
         name: 'Fechamentos/Semana',
-        current: fechamentos ?? 18,
-        previous: 15,
+        current: fechamentos ?? 0,
+        previous: prevFechamentos ?? 0,
         meta: 15,
         unit: 'number',
       },
     ]
 
-    // Quality metrics (simplified with defaults)
+    // Fetch real quality metrics
+    const { count: botDetections } = await supabase
+      .from('metricas_deteccao_bot')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', currentStart)
+      .lte('created_at', currentEnd)
+
+    const { count: prevBotDetections } = await supabase
+      .from('metricas_deteccao_bot')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', previousStart)
+      .lt('created_at', previousEnd)
+
+    const botRate = totalConversas && totalConversas > 0 ? ((botDetections ?? 0) / totalConversas) * 100 : 0
+    const prevBotRate = prevConversas && prevConversas > 0 ? ((prevBotDetections ?? 0) / prevConversas) * 100 : 0
+
+    const { data: latencyData } = await supabase
+      .from('metricas_conversa')
+      .select('tempo_medio_resposta_segundos')
+      .not('tempo_medio_resposta_segundos', 'is', null)
+      .gte('created_at', currentStart)
+      .lte('created_at', currentEnd)
+
+    const { data: prevLatencyData } = await supabase
+      .from('metricas_conversa')
+      .select('tempo_medio_resposta_segundos')
+      .not('tempo_medio_resposta_segundos', 'is', null)
+      .gte('created_at', previousStart)
+      .lt('created_at', previousEnd)
+
+    const avgLatency = latencyData && latencyData.length > 0
+      ? latencyData.reduce((sum, r) => sum + (Number(r.tempo_medio_resposta_segundos) || 0), 0) / latencyData.length
+      : 0
+    const prevAvgLatency = prevLatencyData && prevLatencyData.length > 0
+      ? prevLatencyData.reduce((sum, r) => sum + (Number(r.tempo_medio_resposta_segundos) || 0), 0) / prevLatencyData.length
+      : 0
+
+    const { count: handoffs } = await supabase
+      .from('handoffs')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', currentStart)
+      .lte('created_at', currentEnd)
+
+    const { count: prevHandoffs } = await supabase
+      .from('handoffs')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', previousStart)
+      .lt('created_at', previousEnd)
+
+    const handoffRate = totalConversas && totalConversas > 0 ? ((handoffs ?? 0) / totalConversas) * 100 : 0
+    const prevHandoffRate = prevConversas && prevConversas > 0 ? ((prevHandoffs ?? 0) / prevConversas) * 100 : 0
+
     exportData.quality = [
       {
         name: 'Deteccao Bot',
-        current: 0.4,
-        previous: 0.6,
+        current: Number(botRate.toFixed(2)),
+        previous: Number(prevBotRate.toFixed(2)),
         meta: '<1%',
         unit: 'percent',
       },
       {
         name: 'Latencia Media',
-        current: 24,
-        previous: 28,
+        current: Number(avgLatency.toFixed(1)),
+        previous: Number(prevAvgLatency.toFixed(1)),
         meta: '<30s',
         unit: 'seconds',
       },
       {
         name: 'Taxa Handoff',
-        current: 3.2,
-        previous: 4.1,
+        current: Number(handoffRate.toFixed(2)),
+        previous: Number(prevHandoffRate.toFixed(2)),
         meta: '<5%',
         unit: 'percent',
       },
@@ -147,12 +228,19 @@ export async function GET(request: NextRequest) {
         errors: c.erros_ultimas_24h ?? 0,
       })) ?? []
 
-    // Funnel data
+    // Funnel data - current period
     const { count: enviadas } = await supabase
-      .from('conversations')
+      .from('fila_mensagens')
       .select('id', { count: 'exact', head: true })
       .gte('created_at', currentStart)
       .lte('created_at', currentEnd)
+
+    const { count: entregues } = await supabase
+      .from('fila_mensagens')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', currentStart)
+      .lte('created_at', currentEnd)
+      .eq('outcome', 'delivered')
 
     const { count: interesse } = await supabase
       .from('conversations')
@@ -161,37 +249,70 @@ export async function GET(request: NextRequest) {
       .lte('created_at', currentEnd)
       .in('stage', ['interesse', 'negociacao', 'qualificado'])
 
-    const enviadasCount = enviadas ?? 320
-    const entreguesCount = Math.round(enviadasCount * 0.975)
-    const respostasCount = respostas ?? Math.round(enviadasCount * 0.32)
-    const interesseCount = interesse ?? Math.round(enviadasCount * 0.15)
-    const fechadasCount = fechamentos ?? Math.round(enviadasCount * 0.056)
+    // Funnel data - previous period for change calculation
+    const { count: prevEnviadas } = await supabase
+      .from('fila_mensagens')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', previousStart)
+      .lt('created_at', previousEnd)
+
+    const { count: prevEntregues } = await supabase
+      .from('fila_mensagens')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', previousStart)
+      .lt('created_at', previousEnd)
+      .eq('outcome', 'delivered')
+
+    const { count: prevInteresse } = await supabase
+      .from('conversations')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', previousStart)
+      .lt('created_at', previousEnd)
+      .in('stage', ['interesse', 'negociacao', 'qualificado'])
+
+    const enviadasCount = enviadas ?? 0
+    const entreguesCount = entregues ?? 0
+    const respostasCount = respostas ?? 0
+    const interesseCount = interesse ?? 0
+    const fechadasCount = fechamentos ?? 0
+
+    const prevEnviadasCount = prevEnviadas ?? 0
+    const prevEntreguesCount = prevEntregues ?? 0
+    const prevRespostasCount = prevRespostas ?? 0
+    const prevInteresseCount = prevInteresse ?? 0
+    const prevFechadasCount = prevFechamentos ?? 0
+
+    // Calculate percentage change
+    const calcChange = (current: number, previous: number): number => {
+      if (previous === 0) return current > 0 ? 100 : 0
+      return Number((((current - previous) / previous) * 100).toFixed(1))
+    }
 
     exportData.funnel = [
-      { stage: 'Enviadas', count: enviadasCount, percentage: 100, change: 12 },
+      { stage: 'Enviadas', count: enviadasCount, percentage: 100, change: calcChange(enviadasCount, prevEnviadasCount) },
       {
         stage: 'Entregues',
         count: entreguesCount,
-        percentage: (entreguesCount / enviadasCount) * 100,
-        change: 11,
+        percentage: enviadasCount > 0 ? (entreguesCount / enviadasCount) * 100 : 0,
+        change: calcChange(entreguesCount, prevEntreguesCount),
       },
       {
         stage: 'Respostas',
         count: respostasCount,
-        percentage: (respostasCount / enviadasCount) * 100,
-        change: 18,
+        percentage: enviadasCount > 0 ? (respostasCount / enviadasCount) * 100 : 0,
+        change: calcChange(respostasCount, prevRespostasCount),
       },
       {
         stage: 'Interesse',
         count: interesseCount,
-        percentage: (interesseCount / enviadasCount) * 100,
-        change: 8,
+        percentage: enviadasCount > 0 ? (interesseCount / enviadasCount) * 100 : 0,
+        change: calcChange(interesseCount, prevInteresseCount),
       },
       {
         stage: 'Fechadas',
         count: fechadasCount,
-        percentage: (fechadasCount / enviadasCount) * 100,
-        change: 20,
+        percentage: enviadasCount > 0 ? (fechadasCount / enviadasCount) * 100 : 0,
+        change: calcChange(fechadasCount, prevFechadasCount),
       },
     ]
 
@@ -223,110 +344,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error exporting dashboard:', error)
-
-    // Return fallback mock data on error
-    const mockData: DashboardExportData = {
-      period: {
-        start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        end: new Date().toISOString(),
-      },
-      metrics: [
-        {
-          name: 'Taxa de Resposta',
-          current: 32,
-          previous: 28,
-          meta: 30,
-          unit: 'percent',
-        },
-        {
-          name: 'Taxa de Conversao',
-          current: 18,
-          previous: 20,
-          meta: 25,
-          unit: 'percent',
-        },
-        {
-          name: 'Fechamentos/Semana',
-          current: 18,
-          previous: 15,
-          meta: 15,
-          unit: 'number',
-        },
-      ],
-      quality: [
-        {
-          name: 'Deteccao Bot',
-          current: 0.4,
-          previous: 0.6,
-          meta: '<1%',
-          unit: 'percent',
-        },
-        {
-          name: 'Latencia Media',
-          current: 24,
-          previous: 28,
-          meta: '<30s',
-          unit: 'seconds',
-        },
-        {
-          name: 'Taxa Handoff',
-          current: 3.2,
-          previous: 4.1,
-          meta: '<5%',
-          unit: 'percent',
-        },
-      ],
-      chips: [
-        {
-          name: 'Julia-01',
-          status: 'active',
-          trust: 92,
-          messagesToday: 47,
-          responseRate: 96.2,
-          errors: 0,
-        },
-        {
-          name: 'Julia-02',
-          status: 'active',
-          trust: 88,
-          messagesToday: 52,
-          responseRate: 94.8,
-          errors: 1,
-        },
-      ],
-      funnel: [
-        { stage: 'Enviadas', count: 320, percentage: 100, change: 12 },
-        { stage: 'Entregues', count: 312, percentage: 97.5, change: 11 },
-        { stage: 'Respostas', count: 102, percentage: 31.9, change: 18 },
-        { stage: 'Interesse', count: 48, percentage: 15, change: 8 },
-        { stage: 'Fechadas', count: 18, percentage: 5.6, change: 20 },
-      ],
-    }
-
-    const dateStr = new Date().toISOString().split('T')[0] ?? 'export'
-
-    // Return based on requested format
-    if (format === 'pdf') {
-      const pdfBuffer = generateDashboardPDF(mockData)
-      const filename = `dashboard-julia-7d-${dateStr}.pdf`
-
-      return new NextResponse(Buffer.from(pdfBuffer), {
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="${filename}"`,
-        },
-      })
-    }
-
-    // Default: CSV
-    const csv = generateDashboardCSV(mockData)
-    const filename = `dashboard-julia-7d-${dateStr}.csv`
-
-    return new NextResponse(csv, {
-      headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-      },
-    })
+    return NextResponse.json({ error: 'Failed to export dashboard' }, { status: 500 })
   }
 }
