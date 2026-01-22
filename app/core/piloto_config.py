@@ -14,7 +14,7 @@ class PilotoConfig:
 
     # Horário de envio
     HORA_INICIO: int = 8
-    HORA_FIM: int = 18
+    HORA_FIM: int = 20
 
     # Rate limiting de respostas (mais conservador)
     MAX_RESPOSTAS_HORA: int = 15
