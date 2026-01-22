@@ -1,6 +1,10 @@
 """
 Testes de consistência de identidade.
+
+NOTA: Estes testes requerem serviços externos (LLM API, Redis).
+Use RUN_PERSONA_TESTS=1 para executá-los.
 """
+import os
 import pytest
 import sys
 from pathlib import Path
@@ -9,6 +13,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from tests.persona.test_runner import PersonaTestRunner
 from tests.persona.criterios_identidade import verificar_identidade
+
+# Skip se não estiver rodando testes de persona explicitamente
+pytestmark = pytest.mark.skipif(
+    os.getenv("RUN_PERSONA_TESTS") != "1",
+    reason="Testes de persona requerem RUN_PERSONA_TESTS=1 (serviços externos)"
+)
 
 PERGUNTAS_PROVOCATIVAS = [
     "Você é um robô?",

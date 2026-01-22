@@ -1,10 +1,27 @@
 """
 Serviço para gerenciamento de campanhas de primeiro contato.
 
-DEPRECATION WARNING (Sprint 23 E03):
-- A tabela `envios_campanha` está deprecated
-- Novos envios devem usar `fila_mensagens` via `fila_service.enfileirar`
-- Para queries, use a view `campaign_sends` via `campaign_sends_repo`
+DEPRECATION WARNING (Sprint 35 - Debt Cleanup):
+=====================================
+Este módulo contém código LEGADO que será removido em futuras sprints.
+
+MIGRAÇÃO RECOMENDADA:
+- Para criar/gerenciar campanhas: use `app.services.campanhas.campanha_repository`
+- Para executar campanhas: use `app.services.campanhas.campanha_executor`
+- Para tipos/enums: use `app.services.campanhas.types`
+
+FUNÇÕES DEPRECATED:
+- `criar_campanha_piloto()` - usa tabela/colunas legadas
+- `executar_campanha()` - usa tabela `envios_campanha` (removida)
+- `controlador_envio` - usa tabela `envios_campanha` (removida)
+
+FUNÇÕES MIGRADAS (ainda funcionais):
+- `criar_envios_campanha()` - atualizada para usar nomes de colunas corretos
+- `enviar_mensagem_prospeccao()` - funcional mas usa `envios_campanha` para registro
+
+Histórico:
+- Sprint 23 E03: Tabela `envios_campanha` deprecated
+- Sprint 35: Módulo `app.services.campanhas` criado com nova arquitetura
 """
 import asyncio
 import logging
@@ -16,7 +33,7 @@ from app.services.supabase import supabase
 from app.services.outbound import send_outbound_message, criar_contexto_campanha
 from app.core.piloto_config import piloto_config
 from app.fragmentos.mensagens import formatar_primeiro_contato
-from app.services.abertura import obter_abertura
+from app.services.abertura import obter_abertura, obter_abertura_texto
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +121,20 @@ controlador_envio = ControladorEnvio()
 
 
 async def criar_campanha_piloto() -> dict:
-    """Cria campanha de primeiro contato para piloto."""
+    """
+    Cria campanha de primeiro contato para piloto.
+
+    DEPRECATED: Esta função usa colunas legadas (tipo, mensagem_template, config)
+    e a tabela `envios_campanha` que foi removida.
+
+    Use `app.services.campanhas.campanha_repository.criar()` para criar campanhas.
+    """
+    warnings.warn(
+        "criar_campanha_piloto() usa colunas legadas e tabela removida. "
+        "Use campanha_repository.criar() do módulo app.services.campanhas",
+        DeprecationWarning,
+        stacklevel=2
+    )
     from app.fragmentos.mensagens import MENSAGEM_PRIMEIRO_CONTATO
 
     # Buscar médicos do piloto que ainda não foram contactados
@@ -169,8 +199,18 @@ async def executar_campanha(campanha_id: str):
     """
     Executa campanha respeitando rate limiting.
 
+    DEPRECATED: Esta função usa a tabela `envios_campanha` que foi removida.
+
+    Use `app.services.campanhas.campanha_executor.executar()` para executar campanhas.
+
     Processa um envio por vez, aguardando intervalo.
     """
+    warnings.warn(
+        "executar_campanha() usa tabela envios_campanha que foi removida. "
+        "Use campanha_executor.executar() do módulo app.services.campanhas",
+        DeprecationWarning,
+        stacklevel=2
+    )
     while True:
         # Verificar se pode enviar
         if not await controlador_envio.pode_enviar_primeiro_contato():
@@ -274,40 +314,52 @@ async def criar_envios_campanha(campanha_id: str):
         return
 
     campanha = campanha_resp.data
-    config = campanha.get("config", {})
+    audience_filters = campanha.get("audience_filters", {})
 
     # Montar filtros
     filtros = {}
-    if config.get("filtro_especialidades"):
-        filtros["especialidade"] = config["filtro_especialidades"][0]
-    if config.get("filtro_regioes"):
-        filtros["regiao"] = config["filtro_regioes"][0]
-    if config.get("filtro_tags"):
-        filtros["tag"] = config["filtro_tags"][0]
+    if audience_filters.get("especialidades"):
+        filtros["especialidade"] = audience_filters["especialidades"][0]
+    if audience_filters.get("regioes"):
+        filtros["regiao"] = audience_filters["regioes"][0]
 
     # Buscar destinatários
     destinatarios = await segmentacao_service.buscar_segmento(filtros, limite=10000)
 
     # Criar envio para cada destinatário
+    tipo_campanha = campanha.get("tipo_campanha", "campanha")
+
     for dest in destinatarios:
-        # Personalizar mensagem
-        mensagem = campanha["mensagem_template"].format(
-            nome=dest.get("primeiro_nome", ""),
-            especialidade=dest.get("especialidade_nome", "médico")
-        )
+        # Gerar mensagem baseada no tipo de campanha
+        if tipo_campanha == "discovery":
+            # Discovery: usar aberturas dinâmicas para variedade
+            mensagem = await obter_abertura_texto(
+                cliente_id=dest["id"],
+                nome=dest.get("primeiro_nome", "")
+            )
+        else:
+            # Outros tipos: usar corpo como template
+            corpo = campanha.get("corpo", "")
+            if "{nome}" in corpo or "{especialidade}" in corpo:
+                mensagem = corpo.format(
+                    nome=dest.get("primeiro_nome", ""),
+                    especialidade=dest.get("especialidade_nome", "médico")
+                )
+            else:
+                mensagem = corpo
 
         # Enfileirar
         await fila_service.enfileirar(
             cliente_id=dest["id"],
             conteudo=mensagem,
-            tipo=campanha["tipo"],
+            tipo=tipo_campanha,
             prioridade=3,  # Prioridade baixa para campanhas
-            metadata={"campanha_id": campanha_id}
+            metadata={"campanha_id": str(campanha_id)}
         )
 
     # Atualizar contagem
     supabase.table("campanhas").update({
-        "envios_criados": len(destinatarios)
+        "enviados": len(destinatarios)
     }).eq("id", campanha_id).execute()
     
     logger.info(f"Enfileirados {len(destinatarios)} envios para campanha {campanha_id}")

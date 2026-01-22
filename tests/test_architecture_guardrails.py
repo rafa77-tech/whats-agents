@@ -31,6 +31,8 @@ ALLOWED_EVOLUTION_IMPORTERS = {
     "app/services/grupos/ingestor.py",
     # Agente (fallback legado com warning - TODO: remover)
     "app/services/agente.py",
+    # Validação de telefone (apenas check_number_status, não envio)
+    "app/services/validacao_telefone.py",
     # Testes podem importar para mocking
     "tests/",
 }
