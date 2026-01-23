@@ -81,18 +81,28 @@ def require_pilot_disabled(feature: AutonomousFeature) -> bool:
         feature: Tipo da funcionalidade autônoma
 
     Returns:
-        True se pode executar (piloto desabilitado)
-        False se deve pular (piloto ativo)
+        True se pode executar (feature habilitada)
+        False se deve pular (piloto ativo ou feature desabilitada)
+
+    Lógica (Sprint 35 - Controle Granular):
+        1. Se PILOT_MODE=True → sempre False (master switch)
+        2. Se PILOT_MODE=False → verifica flag individual da feature
 
     Exemplo:
         if not require_pilot_disabled(AutonomousFeature.DISCOVERY):
-            logger.info("Discovery automático desabilitado em modo piloto")
+            logger.info("Discovery automático desabilitado")
             return
     """
-    if settings.is_pilot_mode:
+    # Verificação granular usando o método is_feature_enabled
+    if not settings.is_feature_enabled(feature.value):
+        reason = "modo piloto ativo" if settings.is_pilot_mode else "feature desabilitada"
         logger.info(
-            f"Modo piloto ativo - {feature.value} desabilitado",
-            extra={"feature": feature.value, "pilot_mode": True},
+            f"{feature.value} desabilitado ({reason})",
+            extra={
+                "feature": feature.value,
+                "pilot_mode": settings.is_pilot_mode,
+                "feature_enabled": False,
+            },
         )
         return False
     return True
@@ -100,7 +110,7 @@ def require_pilot_disabled(feature: AutonomousFeature) -> bool:
 
 def skip_if_pilot(feature: AutonomousFeature) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
-    Decorator que pula execução se estiver em modo piloto.
+    Decorator que pula execução se a feature estiver desabilitada.
 
     Args:
         feature: Tipo da funcionalidade autônoma
@@ -108,22 +118,29 @@ def skip_if_pilot(feature: AutonomousFeature) -> Callable[[Callable[P, T]], Call
     Returns:
         Decorator que wraps a função
 
+    Lógica (Sprint 35 - Controle Granular):
+        1. Se PILOT_MODE=True → pula (master switch)
+        2. Se PILOT_MODE=False e feature desabilitada → pula
+        3. Se PILOT_MODE=False e feature habilitada → executa
+
     Exemplo:
         @skip_if_pilot(AutonomousFeature.OFERTA)
         async def enviar_ofertas_automaticas():
-            # Só executa se PILOT_MODE=False
+            # Só executa se feature está habilitada
             ...
     """
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
-            if settings.is_pilot_mode:
+            if not settings.is_feature_enabled(feature.value):
+                reason = "modo piloto ativo" if settings.is_pilot_mode else "feature desabilitada"
                 logger.info(
-                    f"Modo piloto ativo - pulando {func.__name__}",
+                    f"Pulando {func.__name__} ({reason})",
                     extra={
                         "function": func.__name__,
                         "feature": feature.value,
-                        "pilot_mode": True,
+                        "pilot_mode": settings.is_pilot_mode,
+                        "feature_enabled": False,
                     },
                 )
                 return None
@@ -131,13 +148,15 @@ def skip_if_pilot(feature: AutonomousFeature) -> Callable[[Callable[P, T]], Call
 
         @wraps(func)
         def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
-            if settings.is_pilot_mode:
+            if not settings.is_feature_enabled(feature.value):
+                reason = "modo piloto ativo" if settings.is_pilot_mode else "feature desabilitada"
                 logger.info(
-                    f"Modo piloto ativo - pulando {func.__name__}",
+                    f"Pulando {func.__name__} ({reason})",
                     extra={
                         "function": func.__name__,
                         "feature": feature.value,
-                        "pilot_mode": True,
+                        "pilot_mode": settings.is_pilot_mode,
+                        "feature_enabled": False,
                     },
                 )
                 return None
@@ -154,38 +173,64 @@ def skip_if_pilot(feature: AutonomousFeature) -> Callable[[Callable[P, T]], Call
 
 def get_pilot_status() -> dict[str, Any]:
     """
-    Retorna status completo do modo piloto.
+    Retorna status completo do modo piloto e features.
 
     Útil para endpoints de health/status e dashboard.
 
     Returns:
-        Dict com status do piloto e features
+        Dict com status do piloto e features individuais
+
+    Sprint 35: Atualizado para refletir controle granular.
     """
+    features = settings.autonomous_features_status
+    enabled_count = sum(1 for v in features.values() if v)
+    total_count = len(features)
+
+    if settings.is_pilot_mode:
+        message = "Modo piloto ATIVO - todas as ações autônomas desabilitadas"
+    elif enabled_count == total_count:
+        message = "Todas as funcionalidades autônomas habilitadas"
+    elif enabled_count == 0:
+        message = "Todas as funcionalidades autônomas desabilitadas"
+    else:
+        enabled_names = [k for k, v in features.items() if v]
+        message = f"{enabled_count}/{total_count} funcionalidades habilitadas: {', '.join(enabled_names)}"
+
     return {
         "pilot_mode": settings.is_pilot_mode,
-        "features": settings.autonomous_features_status,
-        "message": (
-            "Modo piloto ATIVO - ações autônomas desabilitadas"
-            if settings.is_pilot_mode
-            else "Modo piloto INATIVO - todas as funcionalidades habilitadas"
-        ),
+        "features": features,
+        "enabled_count": enabled_count,
+        "total_count": total_count,
+        "message": message,
     }
 
 
 def log_pilot_status() -> None:
     """
-    Loga status do modo piloto.
+    Loga status do modo piloto e features.
 
     Útil para chamar no startup de workers.
+
+    Sprint 35: Atualizado para refletir controle granular.
     """
     status = get_pilot_status()
     if status["pilot_mode"]:
         logger.warning(
-            "🧪 MODO PILOTO ATIVO - Ações autônomas desabilitadas",
+            "🧪 MODO PILOTO ATIVO - Todas as ações autônomas desabilitadas",
+            extra=status,
+        )
+    elif status["enabled_count"] == status["total_count"]:
+        logger.info(
+            "🚀 Todas as funcionalidades autônomas habilitadas",
+            extra=status,
+        )
+    elif status["enabled_count"] == 0:
+        logger.warning(
+            "⚠️ Todas as funcionalidades autônomas desabilitadas",
             extra=status,
         )
     else:
         logger.info(
-            "🚀 Modo piloto INATIVO - Todas as funcionalidades habilitadas",
+            f"🔧 {status['enabled_count']}/{status['total_count']} funcionalidades autônomas habilitadas",
             extra=status,
         )
