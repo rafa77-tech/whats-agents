@@ -390,7 +390,9 @@ export default function SistemaPage() {
                             : 'border-yellow-300 bg-yellow-100 text-yellow-800'
                         }
                       >
-                        {config.uso_atual.horario_permitido ? 'Dentro do horario' : 'Fora do horario'}
+                        {config.uso_atual.horario_permitido
+                          ? 'Dentro do horario'
+                          : 'Fora do horario'}
                       </Badge>
                     </div>
                     <p className="mt-1 text-xs text-gray-400">
@@ -582,7 +584,11 @@ function FeatureToggleCard({
       </div>
       <p
         className={`mt-1 text-xs ${
-          isEffectivelyEnabled ? 'text-green-600' : isPilotMode ? 'text-yellow-600' : 'text-gray-400'
+          isEffectivelyEnabled
+            ? 'text-green-600'
+            : isPilotMode
+              ? 'text-yellow-600'
+              : 'text-gray-400'
         }`}
       >
         {description}

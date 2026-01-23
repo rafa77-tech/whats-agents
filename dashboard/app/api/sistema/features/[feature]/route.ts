@@ -107,9 +107,6 @@ export async function POST(
     return NextResponse.json(data)
   } catch (error) {
     console.error(`Erro ao alterar feature ${feature}:`, error)
-    return NextResponse.json(
-      { error: `Erro ao alterar feature ${feature}` },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: `Erro ao alterar feature ${feature}` }, { status: 500 })
   }
 }
