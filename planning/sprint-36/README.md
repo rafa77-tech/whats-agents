@@ -37,8 +37,9 @@ O incidente de 2026-01-23 revelou múltiplos gaps:
 | E02 | Circuit Breaker | 5 | Alta |
 | E03 | Observabilidade | 7 | Alta |
 | E04 | Rate Limiting | 4 | Média |
-| E05 | Chips & Multi-Chip | 4 | Média |
+| E05 | Chips & Multi-Chip | 8 | **Crítica** |
 | E06 | Guardrails | 3 | Baixa |
+| E07 | Trust Score System | 4 | **Crítica** |
 
 ---
 
@@ -550,6 +551,23 @@ Se Redis cai, usar Supabase como fallback.
 
 ## E05: Chips & Multi-Chip
 
+### Análise Atual (Investigação Incidente 2026-01-23)
+
+| Componente | Status | Problema |
+|------------|--------|----------|
+| `MULTI_CHIP_ENABLED` | ❌ | **Provavelmente `false` em produção** |
+| ChipSelector | ⚠️ | Funciona, mas sem retry com chip alternativo |
+| Trust Score threshold | ⚠️ | Requer >= 80 para prospecção (muito restritivo) |
+| Fallback | ❌ | Não existe "retry com outro chip" em caso de falha |
+
+**Descoberta crítica:** Durante o incidente, havia 4 chips cadastrados:
+- Revoluna (trust=85) → foi restrito pelo WhatsApp
+- Revoluna-01 (trust=75) → NÃO foi usado (75 < 80 threshold)
+- Revoluna-02 (trust=70) → NÃO elegível
+- zapi-revoluna (trust=70) → NÃO elegível
+
+**Por que não houve fallback:** O sistema não tem lógica de "tentar próximo chip se atual falhar".
+
 ### Tasks
 
 #### T05.1: Cache de chips elegíveis
@@ -584,6 +602,143 @@ Dashboard de uso e saúde por chip.
 
 ---
 
+#### T05.5: Ativar MULTI_CHIP_ENABLED em produção
+**Prioridade:** Crítica
+**Arquivo:** Railway Environment Variables
+
+Verificar e ativar `MULTI_CHIP_ENABLED=true` em produção para habilitar seleção inteligente de chips.
+
+**Critério de aceite:**
+- [ ] Verificar valor atual no Railway
+- [ ] Setar `MULTI_CHIP_ENABLED=true` se necessário
+- [ ] Validar que seleção está funcionando via logs
+- [ ] Monitorar primeira campanha com multi-chip
+
+---
+
+#### T05.6: Retry com chip alternativo em caso de falha
+**Prioridade:** Crítica
+**Arquivo:** `app/services/outbound.py`, `app/services/chips/selector.py`
+
+Implementar lógica de retry com próximo chip elegível quando envio falha.
+
+```python
+async def _enviar_com_fallback(telefone: str, texto: str, ctx: OutboundContext) -> OutboundResult:
+    """Tenta enviar com chip selecionado, fallback para próximo se falhar."""
+    chips_tentados = []
+    max_tentativas = 3
+
+    for tentativa in range(max_tentativas):
+        chip = await chip_selector.selecionar_chip(
+            tipo_mensagem=_determinar_tipo_mensagem(ctx),
+            conversa_id=ctx.conversation_id,
+            telefone_destino=telefone,
+            excluir_chips=chips_tentados,  # NOVO: excluir já tentados
+        )
+
+        if not chip:
+            break
+
+        result = await enviar_via_chip(chip, telefone, texto)
+
+        if result.success:
+            return result
+
+        chips_tentados.append(chip["id"])
+        logger.warning(f"Chip {chip['telefone']} falhou, tentando próximo...")
+
+    # Todos falharam
+    return OutboundResult(
+        success=False,
+        outcome=SendOutcome.FAILED_ALL_CHIPS,
+        error=f"Todos os {len(chips_tentados)} chips falharam",
+    )
+```
+
+**Critério de aceite:**
+- [ ] Parâmetro `excluir_chips` no selector
+- [ ] Até 3 tentativas com chips diferentes
+- [ ] Novo outcome `FAILED_ALL_CHIPS`
+- [ ] Log de cada tentativa
+- [ ] Testes de integração
+
+---
+
+#### T05.7: Threshold de trust emergencial para fallback
+**Prioridade:** Alta
+**Arquivo:** `app/services/chips/selector.py`
+
+Quando não há chip com trust >= 80, aceitar chips com trust >= 60 como fallback.
+
+```python
+async def _buscar_chips_elegiveis(
+    self,
+    tipo_mensagem: TipoMensagem,
+    fallback_mode: bool = False,
+) -> List[Dict]:
+    """
+    Busca chips elegíveis com threshold normal ou fallback.
+
+    Normal: prospeccao >= 80, followup >= 60, resposta >= 40
+    Fallback: prospeccao >= 60, followup >= 40, resposta >= 20
+    """
+    if tipo_mensagem == "prospeccao":
+        min_trust = 60 if fallback_mode else 80
+        query = query.eq("pode_prospectar", True).gte("trust_score", min_trust)
+    # ...
+
+async def selecionar_chip(...) -> Optional[Dict]:
+    # Tentar com threshold normal
+    chips = await self._buscar_chips_elegiveis(tipo_mensagem, fallback_mode=False)
+
+    if not chips:
+        # Tentar com threshold reduzido
+        logger.warning(f"[ChipSelector] Sem chips com trust alto, usando fallback mode")
+        chips = await self._buscar_chips_elegiveis(tipo_mensagem, fallback_mode=True)
+
+    # ...
+```
+
+**Critério de aceite:**
+- [ ] Modo fallback implementado
+- [ ] Log quando fallback é usado
+- [ ] Métricas de uso do fallback
+- [ ] Testes unitários
+
+---
+
+#### T05.8: Marcar chip como "cooling_off" após erro WhatsApp
+**Prioridade:** Alta
+**Arquivo:** `app/services/chips/health_monitor.py`
+
+Quando chip recebe erro 400/403 do WhatsApp, colocar em cooldown temporário.
+
+```python
+async def registrar_erro_whatsapp(chip_id: str, error_code: int, error_message: str):
+    """Registra erro do WhatsApp e aplica cooldown se necessário."""
+
+    # Erros que indicam restrição
+    RESTRICTION_CODES = [400, 403, 429]
+
+    if error_code in RESTRICTION_CODES:
+        cooldown_minutes = {
+            429: 5,     # Rate limit: 5 min
+            400: 30,    # Bad request (possível restrição): 30 min
+            403: 60,    # Forbidden (restrição): 1 hora
+        }.get(error_code, 15)
+
+        await aplicar_cooldown(chip_id, cooldown_minutes)
+        logger.warning(f"Chip {chip_id} em cooldown por {cooldown_minutes}min após erro {error_code}")
+```
+
+**Critério de aceite:**
+- [ ] Cooldown automático por tipo de erro
+- [ ] Chip ignorado na seleção durante cooldown
+- [ ] Log de cooldowns aplicados
+- [ ] Métrica de chips em cooldown
+
+---
+
 ## E06: Guardrails
 
 ### Tasks
@@ -612,7 +767,194 @@ Admin pode desbloquear médico com motivo auditado.
 
 ---
 
+## E07: Trust Score System
+
+### Análise Atual (Investigação Incidente 2026-01-23)
+
+| Componente | Status | Problema |
+|------------|--------|----------|
+| Engine de cálculo | ✅ | `trust_score.py` implementado |
+| Fatores dinâmicos | ✅ | 8 fatores configurados |
+| Níveis e permissões | ✅ | 5 níveis (Verde a Crítico) |
+| Job de atualização | ❌ | **NÃO está no scheduler!** |
+| Resultado | ❌ | **Scores são FIXOS desde criação** |
+
+**Descoberta crítica:** O Trust Score possui implementação completa mas o job `atualizar_todos_trust_scores` **nunca foi adicionado ao scheduler**. Isso significa que os scores dos chips nunca são recalculados!
+
+**Arquivos relacionados:**
+- `app/services/warmer/trust_score.py` - Engine de cálculo (implementado)
+- `app/workers/scheduler.py` - Scheduler (falta o job!)
+
+### Tasks
+
+#### T07.1: Adicionar job de Trust Score ao scheduler
+**Prioridade:** Crítica
+**Arquivo:** `app/workers/scheduler.py`, `app/api/routes/jobs.py`
+
+Adicionar job que recalcula trust scores de todos os chips ativos.
+
+```python
+# scheduler.py - Adicionar ao JOBS:
+{
+    "name": "atualizar_trust_scores",
+    "endpoint": "/jobs/atualizar-trust-scores",
+    "schedule": "*/15 * * * *",  # A cada 15 minutos
+}
+
+# jobs.py - Implementar endpoint:
+@router.post("/jobs/atualizar-trust-scores")
+async def job_atualizar_trust_scores():
+    """Recalcula Trust Score de todos os chips ativos."""
+    from app.services.warmer.trust_score import calcular_trust_score
+
+    chips = supabase.table("chips").select("id").in_(
+        "status", ["active", "warming", "ready"]
+    ).execute()
+
+    atualizados = 0
+    erros = 0
+
+    for chip in chips.data:
+        try:
+            await calcular_trust_score(chip["id"])
+            atualizados += 1
+        except Exception as e:
+            logger.error(f"Erro ao atualizar trust score de {chip['id']}: {e}")
+            erros += 1
+
+    return {"atualizados": atualizados, "erros": erros}
+```
+
+**Critério de aceite:**
+- [ ] Job adicionado ao scheduler
+- [ ] Endpoint `/jobs/atualizar-trust-scores` criado
+- [ ] Executa a cada 15 minutos
+- [ ] Log de chips atualizados
+- [ ] Alerta se mais de 50% dos chips falharem
+
+---
+
+#### T07.2: Atualizar fatores do chip após cada envio
+**Prioridade:** Alta
+**Arquivo:** `app/services/chips/sender.py`
+
+Atualizar métricas de envio que alimentam o Trust Score.
+
+```python
+async def _atualizar_metricas_envio(chip_id: str, sucesso: bool) -> None:
+    """Atualiza métricas de envio do chip."""
+    try:
+        # Incrementar contador de envios
+        supabase.rpc(
+            "incrementar_msgs_enviadas",
+            {"p_chip_id": chip_id},
+        ).execute()
+
+        # Atualizar erros se falhou
+        if not sucesso:
+            supabase.rpc(
+                "incrementar_erros_24h",
+                {"p_chip_id": chip_id},
+            ).execute()
+
+        # Atualizar taxa de delivery
+        await _recalcular_taxa_delivery(chip_id)
+
+    except Exception as e:
+        logger.warning(f"[ChipSender] Erro ao atualizar métricas: {e}")
+```
+
+**Critério de aceite:**
+- [ ] Métricas atualizadas após cada envio
+- [ ] Taxa de delivery recalculada
+- [ ] Erros nas últimas 24h incrementados
+- [ ] RPC functions criadas no Supabase
+
+---
+
+#### T07.3: Atualizar fatores após resposta recebida
+**Prioridade:** Alta
+**Arquivo:** `app/services/chips/selector.py`
+
+Atualizar taxa de resposta e conversas bidirecionais.
+
+```python
+async def registrar_resposta_recebida(chip_id: str, telefone_remetente: str):
+    """Registra resposta recebida para métricas de trust."""
+
+    # Incrementar contador de respostas
+    supabase.rpc(
+        "incrementar_msgs_recebidas",
+        {"p_chip_id": chip_id},
+    ).execute()
+
+    # Marcar interação anterior como "obteve_resposta"
+    supabase.table("chip_interactions").update({
+        "obteve_resposta": True,
+    }).eq(
+        "chip_id", chip_id
+    ).eq(
+        "destinatario", telefone_remetente
+    ).eq(
+        "tipo", "msg_enviada"
+    ).is_(
+        "obteve_resposta", None
+    ).execute()
+
+    # Recalcular taxa de resposta
+    await _recalcular_taxa_resposta(chip_id)
+```
+
+**Critério de aceite:**
+- [ ] Webhook chama `registrar_resposta_recebida`
+- [ ] Taxa de resposta atualizada em tempo real
+- [ ] Conversas bidirecionais contabilizadas
+- [ ] Testes de integração
+
+---
+
+#### T07.4: Recalcular Trust Score após mudança significativa
+**Prioridade:** Média
+**Arquivo:** `app/services/warmer/trust_score.py`
+
+Trigger para recálculo imediato após eventos significativos (erro grave, ban, etc).
+
+```python
+async def recalcular_trust_urgente(chip_id: str, motivo: str):
+    """Recalcula Trust Score imediatamente após evento crítico."""
+    logger.warning(f"[TrustScore] Recálculo urgente para {chip_id}: {motivo}")
+
+    result = await calcular_trust_score(chip_id)
+
+    # Se caiu para vermelho/crítico, notificar
+    if result["nivel"] in ["vermelho", "critico"]:
+        await notificar_slack(
+            f":warning: Chip `{chip_id[:8]}...` caiu para nível *{result['nivel']}* "
+            f"(score: {result['score']}) após {motivo}",
+            canal="alertas"
+        )
+
+    return result
+
+# Chamar após eventos críticos:
+# - Erro 400/403 do WhatsApp
+# - Bloqueio por spam detectado
+# - Taxa de block > 2%
+```
+
+**Critério de aceite:**
+- [ ] Função `recalcular_trust_urgente` criada
+- [ ] Chamada após erros críticos
+- [ ] Notificação no Slack se chip cair para vermelho/crítico
+- [ ] Log de recálculos urgentes
+
+---
+
 ## Priorização Sugerida
+
+### Imediato (Pré-Sprint - Ação Operacional)
+- **T05.5: Verificar/Ativar MULTI_CHIP_ENABLED em produção** ⚡
+- **T07.1: Adicionar job de Trust Score ao scheduler** ⚡
 
 ### Semana 1 (Crítico)
 - T01.3: Circuit breaker no fila_worker
@@ -620,6 +962,9 @@ Admin pode desbloquear médico com motivo auditado.
 - T01.6: Health check do worker
 - T03.1: Corrigir /health/ready
 - T03.7: Monitor WhatsApp para Railway
+- **T05.6: Retry com chip alternativo em caso de falha** ⚡
+- **T05.8: Marcar chip como "cooling_off" após erro WhatsApp** ⚡
+- **T07.2: Atualizar fatores do chip após cada envio** ⚡
 
 ### Semana 2 (Importante)
 - T01.1: Timeout para mensagens travadas
@@ -628,6 +973,8 @@ Admin pode desbloquear médico com motivo auditado.
 - T02.3: Diferenciar tipos de erro
 - T03.3: Alerta de erros acumulados
 - T04.1: Limite por cliente_id
+- **T05.7: Threshold de trust emergencial para fallback**
+- **T07.3: Atualizar fatores após resposta recebida**
 
 ### Backlog (Nice to have)
 - T01.2: Cancelar mensagens antigas
@@ -635,6 +982,8 @@ Admin pode desbloquear médico com motivo auditado.
 - T02.4: Fallback Evolution
 - T03.2: Persistir métricas
 - T03.4: Health score consolidado
+- T05.1-T05.4: Melhorias de chips
+- T07.4: Recálculo urgente de Trust Score
 - Restante
 
 ---
