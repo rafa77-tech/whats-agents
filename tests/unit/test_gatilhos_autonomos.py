@@ -51,11 +51,12 @@ class TestExecutarDiscoveryAutomatico:
 
     @pytest.mark.asyncio
     async def test_retorna_none_em_modo_piloto(self):
-        """Deve retornar None quando PILOT_MODE=True."""
+        """Deve retornar None quando feature está desabilitada (piloto ativo)."""
         from app.services.gatilhos_autonomos import executar_discovery_automatico
 
         with patch("app.workers.pilot_mode.settings") as mock_settings:
             mock_settings.is_pilot_mode = True
+            mock_settings.is_feature_enabled.return_value = False
 
             resultado = await executar_discovery_automatico()
 
@@ -63,11 +64,12 @@ class TestExecutarDiscoveryAutomatico:
 
     @pytest.mark.asyncio
     async def test_executa_quando_piloto_desabilitado(self):
-        """Deve executar discovery quando PILOT_MODE=False."""
+        """Deve executar discovery quando feature está habilitada."""
         from app.services.gatilhos_autonomos import executar_discovery_automatico
 
         with patch("app.workers.pilot_mode.settings") as mock_settings:
             mock_settings.is_pilot_mode = False
+            mock_settings.is_feature_enabled.return_value = True
 
             with patch("app.services.gatilhos_autonomos.buscar_medicos_nao_enriquecidos") as mock_buscar:
                 mock_buscar.return_value = []
@@ -128,11 +130,12 @@ class TestExecutarOfertaAutomatica:
 
     @pytest.mark.asyncio
     async def test_retorna_none_em_modo_piloto(self):
-        """Deve retornar None quando PILOT_MODE=True."""
+        """Deve retornar None quando feature está desabilitada (piloto ativo)."""
         from app.services.gatilhos_autonomos import executar_oferta_automatica
 
         with patch("app.workers.pilot_mode.settings") as mock_settings:
             mock_settings.is_pilot_mode = True
+            mock_settings.is_feature_enabled.return_value = False
 
             resultado = await executar_oferta_automatica()
 
@@ -140,11 +143,12 @@ class TestExecutarOfertaAutomatica:
 
     @pytest.mark.asyncio
     async def test_executa_quando_piloto_desabilitado(self):
-        """Deve executar oferta quando PILOT_MODE=False."""
+        """Deve executar oferta quando feature está habilitada."""
         from app.services.gatilhos_autonomos import executar_oferta_automatica
 
         with patch("app.workers.pilot_mode.settings") as mock_settings:
             mock_settings.is_pilot_mode = False
+            mock_settings.is_feature_enabled.return_value = True
 
             with patch("app.services.gatilhos_autonomos.buscar_vagas_urgentes") as mock_buscar:
                 mock_buscar.return_value = []
@@ -190,11 +194,12 @@ class TestExecutarReativacaoAutomatica:
 
     @pytest.mark.asyncio
     async def test_retorna_none_em_modo_piloto(self):
-        """Deve retornar None quando PILOT_MODE=True."""
+        """Deve retornar None quando feature está desabilitada (piloto ativo)."""
         from app.services.gatilhos_autonomos import executar_reativacao_automatica
 
         with patch("app.workers.pilot_mode.settings") as mock_settings:
             mock_settings.is_pilot_mode = True
+            mock_settings.is_feature_enabled.return_value = False
 
             resultado = await executar_reativacao_automatica()
 
@@ -243,11 +248,12 @@ class TestExecutarFeedbackAutomatico:
 
     @pytest.mark.asyncio
     async def test_retorna_none_em_modo_piloto(self):
-        """Deve retornar None quando PILOT_MODE=True."""
+        """Deve retornar None quando feature está desabilitada (piloto ativo)."""
         from app.services.gatilhos_autonomos import executar_feedback_automatico
 
         with patch("app.workers.pilot_mode.settings") as mock_settings:
             mock_settings.is_pilot_mode = True
+            mock_settings.is_feature_enabled.return_value = False
 
             resultado = await executar_feedback_automatico()
 
@@ -259,11 +265,12 @@ class TestExecutarTodosGatilhos:
 
     @pytest.mark.asyncio
     async def test_retorna_pilot_mode_true_quando_ativo(self):
-        """Deve indicar que está em modo piloto."""
+        """Deve indicar que está em modo piloto quando feature desabilitada."""
         from app.services.gatilhos_autonomos import executar_todos_gatilhos
 
         with patch("app.workers.pilot_mode.settings") as mock_settings:
             mock_settings.is_pilot_mode = True
+            mock_settings.is_feature_enabled.return_value = False
 
             resultado = await executar_todos_gatilhos()
 
@@ -271,11 +278,12 @@ class TestExecutarTodosGatilhos:
 
     @pytest.mark.asyncio
     async def test_executa_todos_quando_piloto_desabilitado(self):
-        """Deve executar todos os gatilhos quando PILOT_MODE=False."""
+        """Deve executar todos os gatilhos quando features habilitadas."""
         from app.services.gatilhos_autonomos import executar_todos_gatilhos
 
         with patch("app.workers.pilot_mode.settings") as mock_settings:
             mock_settings.is_pilot_mode = False
+            mock_settings.is_feature_enabled.return_value = True
 
             with patch("app.services.gatilhos_autonomos.executar_discovery_automatico") as mock_discovery:
                 mock_discovery.return_value = {"encontrados": 0, "enfileirados": 0, "erros": 0}

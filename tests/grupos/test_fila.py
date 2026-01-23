@@ -99,7 +99,7 @@ class TestEnfileirarMensagem:
         item_id = uuid4()
 
         with patch("app.services.grupos.fila.supabase") as mock_supabase:
-            mock_supabase.table.return_value.upsert.return_value.execute.return_value = MagicMock(
+            mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
                 data=[{"id": str(item_id)}]
             )
 
