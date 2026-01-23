@@ -210,10 +210,11 @@ A função `enfileirar_mensagem()` em `fila.py:81` tenta converter para UUID um 
 [x] Epic 1: Corrigir mocks de is_feature_enabled (5 testes)
 [x] Epic 2: Corrigir require_pilot_disabled (1 teste)
 [x] Epic 3: Corrigir mock de insert vs upsert (1 teste)
+[x] Bonus: Renomear test_*.py → debug_*.py (4 falhas pré-existentes)
 [ ] Categoria A: Criar/remover docs
 [ ] Categoria D: Investigar views
 [ ] Categoria E: Investigar segmentação
-[x] Rodar suite completa (2321 passed, 17 skipped, 4 pre-existing failures)
+[x] Rodar suite completa (2320 passed, 17 skipped, 0 failures)
 ```
 
 ## Correções Realizadas
@@ -233,8 +234,15 @@ A função `enfileirar_mensagem()` em `fila.py:81` tenta converter para UUID um 
 
 **Fix:** Alterado mock de `upsert` para `insert`.
 
-### Nota sobre 4 falhas pré-existentes
-Os testes em `app/api/routes/test_*.py` já falhavam na `main`. São testes em local incorreto (deveriam estar em `tests/`) e não fazem parte do escopo desta sprint.
+### Falhas pré-existentes (4 testes) - RESOLVIDO
+Os arquivos `app/api/routes/test_*.py` eram **rotas de API para debug**, não testes pytest.
+O pytest os coletava incorretamente por causa do prefixo `test_`.
+
+**Fix:** Renomeados para `debug_*.py`:
+- `test_llm.py` → `debug_llm.py`
+- `test_whatsapp.py` → `debug_whatsapp.py`
+
+Atualizado `app/main.py` e `tests/test_architecture_guardrails.py` para refletir os novos nomes.
 
 ---
 
