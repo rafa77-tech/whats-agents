@@ -96,6 +96,7 @@ class TestModoPilotoComportamento:
 
         with patch("app.workers.pilot_mode.settings") as mock_settings:
             mock_settings.is_pilot_mode = True
+            mock_settings.is_feature_enabled.return_value = False
 
             resultado = require_pilot_disabled(AutonomousFeature.DISCOVERY)
             assert resultado is False
@@ -106,6 +107,7 @@ class TestModoPilotoComportamento:
 
         with patch("app.workers.pilot_mode.settings") as mock_settings:
             mock_settings.is_pilot_mode = False
+            mock_settings.is_feature_enabled.return_value = True
 
             resultado = require_pilot_disabled(AutonomousFeature.DISCOVERY)
             assert resultado is True
