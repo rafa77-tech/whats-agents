@@ -256,6 +256,19 @@ JOBS = [
         "endpoint": "/jobs/executar-feedback-autonomo",
         "schedule": "0 11 * * *",  # Diário às 11h
     },
+    # Sincronização de Chips com Evolution API (Sprint 25)
+    {
+        "name": "sincronizar_chips",
+        "endpoint": "/jobs/sincronizar-chips",
+        "schedule": "*/5 * * * *",  # A cada 5 minutos
+    },
+    # Atualização de Trust Score (Sprint 36)
+    # CRÍTICO: Descoberto que job nunca existiu - scores eram fixos!
+    {
+        "name": "atualizar_trust_scores",
+        "endpoint": "/jobs/atualizar-trust-scores",
+        "schedule": "*/15 * * * *",  # A cada 15 minutos
+    },
 ]
 
 

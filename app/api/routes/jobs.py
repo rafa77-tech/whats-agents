@@ -1281,3 +1281,111 @@ async def job_estatisticas_gatilhos():
     except Exception as e:
         logger.error(f"Erro ao obter estatísticas de gatilhos: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# ==========================================
+# Jobs de Trust Score (Sprint 36)
+# ==========================================
+
+
+@router.post("/atualizar-trust-scores")
+async def job_atualizar_trust_scores():
+    """
+    Job para recalcular Trust Score de todos os chips ativos.
+
+    O Trust Score é calculado dinamicamente baseado em:
+    - Idade do chip (dias desde criação)
+    - Taxa de resposta (mensagens recebidas / enviadas)
+    - Taxa de delivery (mensagens entregues com sucesso)
+    - Erros recentes (falhas nas últimas 24h)
+    - Conversas bidirecionais (interações reais)
+    - Dias sem incidente (estabilidade)
+
+    Schedule: */15 * * * * (a cada 15 minutos)
+
+    Sprint 36 - Descoberta: job nunca foi adicionado ao scheduler,
+    resultando em trust scores fixos desde a criação dos chips.
+    """
+    try:
+        from app.services.warmer.trust_score import calcular_trust_score
+
+        # Buscar chips ativos
+        chips = supabase.table("chips").select("id, telefone").in_(
+            "status", ["active", "warming", "ready"]
+        ).execute()
+
+        if not chips.data:
+            return JSONResponse({
+                "status": "ok",
+                "message": "Nenhum chip ativo para atualizar",
+                "atualizados": 0,
+                "erros": 0
+            })
+
+        atualizados = 0
+        erros = 0
+        detalhes = []
+
+        for chip in chips.data:
+            try:
+                result = await calcular_trust_score(chip["id"])
+                atualizados += 1
+                detalhes.append({
+                    "telefone": chip["telefone"][-4:],  # últimos 4 dígitos
+                    "score": result["score"],
+                    "nivel": result["nivel"],
+                })
+            except Exception as e:
+                logger.error(f"Erro ao atualizar trust score de {chip['id']}: {e}")
+                erros += 1
+
+        # Log resumido
+        logger.info(
+            f"[TrustScore] Atualização concluída: {atualizados} chips, {erros} erros"
+        )
+
+        return JSONResponse({
+            "status": "ok",
+            "message": f"{atualizados} chip(s) atualizado(s), {erros} erro(s)",
+            "atualizados": atualizados,
+            "erros": erros,
+            "detalhes": detalhes[:10],  # Limitar para não sobrecarregar resposta
+        })
+    except Exception as e:
+        logger.error(f"Erro ao atualizar trust scores: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# ==========================================
+# Jobs de sincronização de Chips (Sprint 25)
+# ==========================================
+
+@router.post("/sincronizar-chips")
+async def job_sincronizar_chips():
+    """
+    Job para sincronizar chips com Evolution API.
+
+    Atualiza a tabela chips com o estado atual das instâncias na Evolution API.
+    - Atualiza status de conexão de chips existentes
+    - Cria novos chips para instâncias desconhecidas
+    - Marca chips sem instância como desconectados
+
+    Schedule: */5 * * * * (a cada 5 minutos)
+    """
+    try:
+        from app.services.chips import sincronizar_chips_com_evolution
+
+        resultado = await sincronizar_chips_com_evolution()
+
+        return JSONResponse({
+            "status": "ok",
+            "instancias_evolution": resultado["instancias_evolution"],
+            "chips_atualizados": resultado["chips_atualizados"],
+            "chips_criados": resultado["chips_criados"],
+            "chips_conectados": resultado["chips_conectados"],
+            "chips_desconectados": resultado["chips_desconectados"],
+            "erros": resultado["erros"],
+        })
+    except Exception as e:
+        logger.error(f"Erro ao sincronizar chips: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
