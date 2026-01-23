@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.routes import health, test_db, test_llm, test_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer, group_entry, webhook_router, chips_dashboard, sistema
+from app.api.routes import health, test_db, debug_llm, debug_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer, group_entry, webhook_router, chips_dashboard, sistema
 from app.api.error_handlers import register_exception_handlers
 from app.api.middleware import TracingMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -53,8 +53,8 @@ app.add_middleware(
 # Rotas
 app.include_router(health.router, tags=["Health"])
 app.include_router(test_db.router)
-app.include_router(test_llm.router)
-app.include_router(test_whatsapp.router)
+app.include_router(debug_llm.router)
+app.include_router(debug_whatsapp.router)
 app.include_router(webhook.router)
 app.include_router(chatwoot.router)
 app.include_router(jobs.router)

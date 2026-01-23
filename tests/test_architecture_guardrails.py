@@ -24,7 +24,7 @@ ALLOWED_EVOLUTION_IMPORTERS = {
     # Monitoramento e health (não enviam mensagens)
     "app/services/monitor_whatsapp.py",  # Monitoramento de conexão
     "app/api/routes/health.py",  # Health check
-    "app/api/routes/test_whatsapp.py",  # Endpoint de teste
+    "app/api/routes/debug_whatsapp.py",  # Endpoint de debug/teste
     # Pipeline pre-processors (apenas mostrar_online, não envio)
     "app/pipeline/pre_processors.py",
     # Grupos (ingestão, não envio outbound)
