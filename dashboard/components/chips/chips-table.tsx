@@ -40,6 +40,7 @@ const statusBadgeVariants: Record<ChipStatus, string> = {
   provisioned: 'bg-purple-100 text-purple-800 border-purple-200',
   pending: 'bg-gray-100 text-gray-600 border-gray-200',
   cancelled: 'bg-gray-50 text-gray-500 border-gray-200',
+  offline: 'bg-red-100 text-red-800 border-red-200',
 }
 
 const trustLevelColors: Record<TrustLevel | 'critico', string> = {
@@ -60,6 +61,7 @@ const statusLabels: Record<ChipStatus, string> = {
   provisioned: 'Provisionado',
   pending: 'Pendente',
   cancelled: 'Cancelado',
+  offline: 'Offline',
 }
 
 export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }: ChipsTableProps) {

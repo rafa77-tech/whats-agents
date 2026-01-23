@@ -112,6 +112,7 @@ export type ChipStatus =
   | 'paused'
   | 'banned'
   | 'cancelled'
+  | 'offline'
 
 export type TrustLevel = 'verde' | 'amarelo' | 'laranja' | 'vermelho'
 

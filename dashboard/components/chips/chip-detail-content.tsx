@@ -53,6 +53,7 @@ const statusConfig: Record<ChipStatus, { label: string; color: string }> = {
   paused: { label: 'Pausado', color: 'bg-gray-100 text-gray-800' },
   banned: { label: 'Banido', color: 'bg-red-100 text-red-800' },
   cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
+  offline: { label: 'Offline', color: 'bg-red-100 text-red-800' },
 }
 
 const trustLevelConfig: Record<TrustLevelExtended, { color: string }> = {

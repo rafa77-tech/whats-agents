@@ -128,6 +128,7 @@ describe('ChipsTable', () => {
       provisioned: 'Provisionado',
       pending: 'Pendente',
       cancelled: 'Cancelado',
+      offline: 'Offline',
     }
 
     statuses.forEach((status) => {

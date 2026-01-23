@@ -58,6 +58,10 @@ const statusConfig: Record<ChipStatus, { label: string; className: string }> = {
     label: 'Cancelled',
     className: 'bg-gray-100 text-gray-400 border-gray-200',
   },
+  offline: {
+    label: 'Offline',
+    className: 'bg-red-100 text-red-700 border-red-200',
+  },
 }
 
 const trustColors: Record<TrustLevel, string> = {

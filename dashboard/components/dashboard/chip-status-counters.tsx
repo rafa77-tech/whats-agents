@@ -16,6 +16,7 @@ const statusConfig: Record<ChipStatus, { label: string; bgColor: string; textCol
   pending: { label: 'Pending', bgColor: 'bg-gray-100', textColor: 'text-gray-700' },
   paused: { label: 'Paused', bgColor: 'bg-gray-100', textColor: 'text-gray-700' },
   cancelled: { label: 'Cancelled', bgColor: 'bg-gray-100', textColor: 'text-gray-700' },
+  offline: { label: 'Offline', bgColor: 'bg-red-100', textColor: 'text-red-700' },
 }
 
 export function ChipStatusCounters({ counts }: ChipStatusCountersProps) {

@@ -96,6 +96,7 @@ export const mockPoolStatus: PoolStatus = {
     paused: 1,
     banned: 0,
     cancelled: 0,
+    offline: 0,
   },
   byTrustLevel: {
     verde: 2,

@@ -27,6 +27,7 @@ const statusConfig: Record<ChipStatus, { label: string; color: string; bgColor: 
   provisioned: { label: 'Provisionados', color: 'text-purple-700', bgColor: 'bg-purple-50' },
   pending: { label: 'Pendentes', color: 'text-gray-700', bgColor: 'bg-gray-50' },
   cancelled: { label: 'Cancelados', color: 'text-gray-500', bgColor: 'bg-gray-100' },
+  offline: { label: 'Offline', color: 'text-red-700', bgColor: 'bg-red-50' },
 }
 
 export function StatusCounterCard({

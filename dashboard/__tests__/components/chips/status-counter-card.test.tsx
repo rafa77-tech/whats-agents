@@ -45,6 +45,7 @@ describe('StatusCounterCard', () => {
       paused: 'Pausados',
       banned: 'Banidos',
       cancelled: 'Cancelados',
+      offline: 'Offline',
     }
 
     Object.entries(statusLabels).forEach(([status, label]) => {
