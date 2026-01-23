@@ -154,9 +154,9 @@ class CircuitBreaker:
 # Instâncias globais para cada serviço
 circuit_evolution = CircuitBreaker(
     nome="evolution",
-    falhas_para_abrir=5,          # Aumentado: 5 falhas (era 3)
-    timeout_segundos=30.0,        # Aumentado: 30s (era 10s)
-    tempo_reset_segundos=15       # Reduzido: 15s (era 30s) - recupera mais rápido
+    falhas_para_abrir=5,          # 5 falhas consecutivas para abrir
+    timeout_segundos=30.0,        # Timeout de 30s por chamada
+    tempo_reset_segundos=300      # 5 minutos - erros WhatsApp não se resolvem rápido
 )
 
 circuit_claude = CircuitBreaker(
