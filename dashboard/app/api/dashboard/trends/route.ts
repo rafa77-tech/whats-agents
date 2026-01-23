@@ -12,6 +12,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { validatePeriod } from '@/lib/dashboard/calculations'
 
+export const dynamic = 'force-dynamic'
+
 interface TrendDataPoint {
   date: string
   value: number

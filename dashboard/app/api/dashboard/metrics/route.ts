@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getPeriodDates, calculateRate, validatePeriod } from '@/lib/dashboard/calculations'
 
+export const dynamic = 'force-dynamic'
+
 // Metas definidas no CLAUDE.md
 const METAS = {
   responseRate: 30,

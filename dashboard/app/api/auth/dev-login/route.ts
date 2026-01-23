@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/auth/dev-login
  * Bypass de autenticacao APENAS para desenvolvimento local

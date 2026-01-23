@@ -15,6 +15,8 @@ import { generateDashboardPDF } from '@/lib/dashboard/pdf-generator'
 import { getPeriodDates } from '@/lib/dashboard/calculations'
 import { type DashboardExportData } from '@/types/dashboard'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const format = searchParams.get('format') || 'csv'

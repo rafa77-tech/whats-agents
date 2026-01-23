@@ -9,6 +9,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getPeriodDates, validatePeriod } from '@/lib/dashboard/calculations'
 import type { ChipStatus, TrustLevel } from '@/types/dashboard'
 
+export const dynamic = 'force-dynamic'
+
 interface ChipRow {
   id: string
   status: ChipStatus

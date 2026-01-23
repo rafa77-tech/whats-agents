@@ -15,6 +15,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { type ActivityType } from '@/types/dashboard'
 
+export const dynamic = 'force-dynamic'
+
 interface ActivityEventData {
   id: string
   type: ActivityType

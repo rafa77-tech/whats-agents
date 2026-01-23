@@ -7,6 +7,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 // Limites de rate (do CLAUDE.md)
 const RATE_LIMITS = {
   hour: 20,

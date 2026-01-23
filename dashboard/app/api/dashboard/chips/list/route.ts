@@ -15,6 +15,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { ChipStatus, TrustLevel } from '@/types/dashboard'
 
+export const dynamic = 'force-dynamic'
+
 interface ChipRow {
   id: string
   instance_name: string | null
