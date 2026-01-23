@@ -48,6 +48,14 @@ class Settings(BaseSettings):
     # IMPORTANTE: Iniciar em True para testes seguros, mudar para False após validação
     PILOT_MODE: bool = True
 
+    # Features Autônomas Individuais (Sprint 35)
+    # Permitem controle granular quando PILOT_MODE=False
+    # Se PILOT_MODE=True, todas ficam desabilitadas independente destes valores
+    DISCOVERY_AUTOMATICO_ENABLED: bool = False
+    OFERTA_AUTOMATICA_ENABLED: bool = False
+    REATIVACAO_AUTOMATICA_ENABLED: bool = False
+    FEEDBACK_AUTOMATICO_ENABLED: bool = False
+
     # Chatwoot
     # IMPORTANTE: Sem default localhost - deve ser configurado via env var
     CHATWOOT_URL: str = ""
@@ -131,16 +139,41 @@ class Settings(BaseSettings):
         """
         Retorna status das funcionalidades autônomas.
 
-        Em modo piloto, todas retornam False.
-        Fora do piloto, todas retornam True.
+        Lógica:
+        - Se PILOT_MODE=True: todas retornam False (master switch)
+        - Se PILOT_MODE=False: usa flags individuais
+
+        Sprint 35: Controle granular de features autônomas.
         """
-        enabled = not self.PILOT_MODE
+        if self.PILOT_MODE:
+            # Master switch: todas desabilitadas
+            return {
+                "discovery_automatico": False,
+                "oferta_automatica": False,
+                "reativacao_automatica": False,
+                "feedback_automatico": False,
+            }
+        # Flags individuais
         return {
-            "discovery_automatico": enabled,
-            "oferta_automatica": enabled,
-            "reativacao_automatica": enabled,
-            "feedback_automatico": enabled,
+            "discovery_automatico": self.DISCOVERY_AUTOMATICO_ENABLED,
+            "oferta_automatica": self.OFERTA_AUTOMATICA_ENABLED,
+            "reativacao_automatica": self.REATIVACAO_AUTOMATICA_ENABLED,
+            "feedback_automatico": self.FEEDBACK_AUTOMATICO_ENABLED,
         }
+
+    def is_feature_enabled(self, feature: str) -> bool:
+        """
+        Verifica se uma feature autônoma específica está habilitada.
+
+        Args:
+            feature: Nome da feature (discovery_automatico, oferta_automatica, etc)
+
+        Returns:
+            True se a feature está habilitada, False caso contrário.
+
+        Sprint 35: Método auxiliar para verificação granular.
+        """
+        return self.autonomous_features_status.get(feature, False)
 
     @property
     def runtime_endpoints(self) -> dict:

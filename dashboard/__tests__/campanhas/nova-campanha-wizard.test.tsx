@@ -125,10 +125,10 @@ describe('NovaCampanhaWizard', () => {
       fireEvent.click(filtradoOption)
     })
 
-    // Deve mostrar especialidades e regioes
+    // Deve mostrar especialidades e estados
     await waitFor(() => {
       expect(screen.getByText('Especialidades')).toBeInTheDocument()
-      expect(screen.getByText('Regioes')).toBeInTheDocument()
+      expect(screen.getByText('Estados')).toBeInTheDocument()
     })
   })
 

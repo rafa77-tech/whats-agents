@@ -2,6 +2,7 @@
 Testes para utilitários de Modo Piloto.
 
 Sprint 32 E03 - Modo Piloto.
+Sprint 35 - Controle granular de features autonomas.
 """
 import pytest
 from unittest.mock import patch, MagicMock
@@ -14,6 +15,37 @@ from app.workers.pilot_mode import (
     get_pilot_status,
     log_pilot_status,
 )
+
+
+def create_mock_settings(pilot_mode: bool, features_enabled: dict[str, bool] | None = None):
+    """Helper para criar mock de settings com comportamento correto."""
+    mock = MagicMock()
+    mock.is_pilot_mode = pilot_mode
+
+    # Default: todas features desabilitadas se pilot_mode=True
+    if features_enabled is None:
+        if pilot_mode:
+            features_enabled = {
+                "discovery_automatico": False,
+                "oferta_automatica": False,
+                "reativacao_automatica": False,
+                "feedback_automatico": False,
+            }
+        else:
+            features_enabled = {
+                "discovery_automatico": False,
+                "oferta_automatica": False,
+                "reativacao_automatica": False,
+                "feedback_automatico": False,
+            }
+
+    mock.autonomous_features_status = features_enabled
+
+    def is_feature_enabled(feature: str) -> bool:
+        return features_enabled.get(feature, False)
+
+    mock.is_feature_enabled = is_feature_enabled
+    return mock
 
 
 class TestAutonomousFeature:
@@ -58,29 +90,37 @@ class TestRequirePilotDisabled:
     """Testes para require_pilot_disabled()."""
 
     def test_retorna_false_quando_piloto_ativo(self):
-        """Deve retornar False e logar quando piloto ativo."""
-        with patch("app.workers.pilot_mode.settings") as mock_settings:
-            mock_settings.is_pilot_mode = True
-
+        """Deve retornar False quando piloto ativo (master switch)."""
+        mock = create_mock_settings(pilot_mode=True)
+        with patch("app.workers.pilot_mode.settings", mock):
             resultado = require_pilot_disabled(AutonomousFeature.DISCOVERY)
-
             assert resultado is False
 
-    def test_retorna_true_quando_piloto_inativo(self):
-        """Deve retornar True quando piloto inativo."""
-        with patch("app.workers.pilot_mode.settings") as mock_settings:
-            mock_settings.is_pilot_mode = False
-
+    def test_retorna_false_quando_feature_desabilitada(self):
+        """Deve retornar False quando feature individual desabilitada."""
+        mock = create_mock_settings(
+            pilot_mode=False,
+            features_enabled={"oferta_automatica": False},
+        )
+        with patch("app.workers.pilot_mode.settings", mock):
             resultado = require_pilot_disabled(AutonomousFeature.OFERTA)
+            assert resultado is False
 
+    def test_retorna_true_quando_feature_habilitada(self):
+        """Deve retornar True quando piloto inativo e feature habilitada."""
+        mock = create_mock_settings(
+            pilot_mode=False,
+            features_enabled={"oferta_automatica": True},
+        )
+        with patch("app.workers.pilot_mode.settings", mock):
+            resultado = require_pilot_disabled(AutonomousFeature.OFERTA)
             assert resultado is True
 
     def test_loga_feature_desabilitada(self):
         """Deve logar quando feature está desabilitada."""
-        with patch("app.workers.pilot_mode.settings") as mock_settings:
+        mock = create_mock_settings(pilot_mode=True)
+        with patch("app.workers.pilot_mode.settings", mock):
             with patch("app.workers.pilot_mode.logger") as mock_logger:
-                mock_settings.is_pilot_mode = True
-
                 require_pilot_disabled(AutonomousFeature.REATIVACAO)
 
                 mock_logger.info.assert_called_once()
@@ -93,78 +133,98 @@ class TestSkipIfPilot:
 
     @pytest.mark.asyncio
     async def test_pula_funcao_async_quando_piloto_ativo(self):
-        """Deve retornar None para função async quando piloto ativo."""
-        with patch("app.workers.pilot_mode.settings") as mock_settings:
-            mock_settings.is_pilot_mode = True
+        """Deve retornar None para função async quando piloto ativo (master switch)."""
+        mock = create_mock_settings(pilot_mode=True)
+        with patch("app.workers.pilot_mode.settings", mock):
 
             @skip_if_pilot(AutonomousFeature.DISCOVERY)
             async def funcao_async():
                 return "executado"
 
             resultado = await funcao_async()
-
             assert resultado is None
 
     @pytest.mark.asyncio
-    async def test_executa_funcao_async_quando_piloto_inativo(self):
-        """Deve executar função async quando piloto inativo."""
-        with patch("app.workers.pilot_mode.settings") as mock_settings:
-            mock_settings.is_pilot_mode = False
+    async def test_pula_funcao_async_quando_feature_desabilitada(self):
+        """Deve retornar None quando feature individual desabilitada."""
+        mock = create_mock_settings(
+            pilot_mode=False,
+            features_enabled={"discovery_automatico": False},
+        )
+        with patch("app.workers.pilot_mode.settings", mock):
 
             @skip_if_pilot(AutonomousFeature.DISCOVERY)
             async def funcao_async():
                 return "executado"
 
             resultado = await funcao_async()
+            assert resultado is None
 
+    @pytest.mark.asyncio
+    async def test_executa_funcao_async_quando_feature_habilitada(self):
+        """Deve executar função async quando feature habilitada."""
+        mock = create_mock_settings(
+            pilot_mode=False,
+            features_enabled={"discovery_automatico": True},
+        )
+        with patch("app.workers.pilot_mode.settings", mock):
+
+            @skip_if_pilot(AutonomousFeature.DISCOVERY)
+            async def funcao_async():
+                return "executado"
+
+            resultado = await funcao_async()
             assert resultado == "executado"
 
     def test_pula_funcao_sync_quando_piloto_ativo(self):
         """Deve retornar None para função sync quando piloto ativo."""
-        with patch("app.workers.pilot_mode.settings") as mock_settings:
-            mock_settings.is_pilot_mode = True
+        mock = create_mock_settings(pilot_mode=True)
+        with patch("app.workers.pilot_mode.settings", mock):
 
             @skip_if_pilot(AutonomousFeature.OFERTA)
             def funcao_sync():
                 return "executado"
 
             resultado = funcao_sync()
-
             assert resultado is None
 
-    def test_executa_funcao_sync_quando_piloto_inativo(self):
-        """Deve executar função sync quando piloto inativo."""
-        with patch("app.workers.pilot_mode.settings") as mock_settings:
-            mock_settings.is_pilot_mode = False
+    def test_executa_funcao_sync_quando_feature_habilitada(self):
+        """Deve executar função sync quando feature habilitada."""
+        mock = create_mock_settings(
+            pilot_mode=False,
+            features_enabled={"oferta_automatica": True},
+        )
+        with patch("app.workers.pilot_mode.settings", mock):
 
             @skip_if_pilot(AutonomousFeature.OFERTA)
             def funcao_sync():
                 return "executado"
 
             resultado = funcao_sync()
-
             assert resultado == "executado"
 
     @pytest.mark.asyncio
     async def test_preserva_argumentos(self):
         """Deve preservar argumentos da função decorada."""
-        with patch("app.workers.pilot_mode.settings") as mock_settings:
-            mock_settings.is_pilot_mode = False
+        mock = create_mock_settings(
+            pilot_mode=False,
+            features_enabled={"feedback_automatico": True},
+        )
+        with patch("app.workers.pilot_mode.settings", mock):
 
             @skip_if_pilot(AutonomousFeature.FEEDBACK)
             async def funcao_com_args(a, b, c=None):
                 return f"{a}-{b}-{c}"
 
             resultado = await funcao_com_args("x", "y", c="z")
-
             assert resultado == "x-y-z"
 
     @pytest.mark.asyncio
     async def test_loga_quando_pula(self):
         """Deve logar quando pula execução."""
-        with patch("app.workers.pilot_mode.settings") as mock_settings:
+        mock = create_mock_settings(pilot_mode=True)
+        with patch("app.workers.pilot_mode.settings", mock):
             with patch("app.workers.pilot_mode.logger") as mock_logger:
-                mock_settings.is_pilot_mode = True
 
                 @skip_if_pilot(AutonomousFeature.DISCOVERY)
                 async def minha_funcao():
@@ -220,29 +280,71 @@ class TestLogPilotStatus:
 
     def test_loga_warning_quando_ativo(self):
         """Deve logar warning quando piloto ativo."""
-        with patch("app.workers.pilot_mode.settings") as mock_settings:
+        mock = create_mock_settings(pilot_mode=True)
+        with patch("app.workers.pilot_mode.settings", mock):
             with patch("app.workers.pilot_mode.logger") as mock_logger:
-                mock_settings.is_pilot_mode = True
-                mock_settings.autonomous_features_status = {}
-
                 log_pilot_status()
 
                 mock_logger.warning.assert_called_once()
                 call_args = str(mock_logger.warning.call_args)
                 assert "PILOTO" in call_args.upper()
 
-    def test_loga_info_quando_inativo(self):
-        """Deve logar info quando piloto inativo."""
-        with patch("app.workers.pilot_mode.settings") as mock_settings:
+    def test_loga_info_quando_todas_features_habilitadas(self):
+        """Deve logar info quando todas features habilitadas."""
+        mock = create_mock_settings(
+            pilot_mode=False,
+            features_enabled={
+                "discovery_automatico": True,
+                "oferta_automatica": True,
+                "reativacao_automatica": True,
+                "feedback_automatico": True,
+            },
+        )
+        with patch("app.workers.pilot_mode.settings", mock):
             with patch("app.workers.pilot_mode.logger") as mock_logger:
-                mock_settings.is_pilot_mode = False
-                mock_settings.autonomous_features_status = {}
-
                 log_pilot_status()
 
                 mock_logger.info.assert_called_once()
                 call_args = str(mock_logger.info.call_args)
-                assert "INATIVO" in call_args.upper()
+                assert "habilitadas" in call_args.lower()
+
+    def test_loga_warning_quando_nenhuma_feature_habilitada(self):
+        """Deve logar warning quando nenhuma feature habilitada."""
+        mock = create_mock_settings(
+            pilot_mode=False,
+            features_enabled={
+                "discovery_automatico": False,
+                "oferta_automatica": False,
+                "reativacao_automatica": False,
+                "feedback_automatico": False,
+            },
+        )
+        with patch("app.workers.pilot_mode.settings", mock):
+            with patch("app.workers.pilot_mode.logger") as mock_logger:
+                log_pilot_status()
+
+                mock_logger.warning.assert_called_once()
+                call_args = str(mock_logger.warning.call_args)
+                assert "desabilitadas" in call_args.lower()
+
+    def test_loga_info_quando_algumas_features_habilitadas(self):
+        """Deve logar info com contagem quando algumas features habilitadas."""
+        mock = create_mock_settings(
+            pilot_mode=False,
+            features_enabled={
+                "discovery_automatico": True,
+                "oferta_automatica": False,
+                "reativacao_automatica": True,
+                "feedback_automatico": False,
+            },
+        )
+        with patch("app.workers.pilot_mode.settings", mock):
+            with patch("app.workers.pilot_mode.logger") as mock_logger:
+                log_pilot_status()
+
+                mock_logger.info.assert_called_once()
+                call_args = str(mock_logger.info.call_args)
+                assert "2/4" in call_args
 
 
 class TestHealthEndpointPilot:

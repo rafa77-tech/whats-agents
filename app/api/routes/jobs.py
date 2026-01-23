@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import logging
 
+from datetime import datetime, timezone
+from app.services.supabase import supabase
 from app.services.fila_mensagens import processar_mensagens_agendadas
 from app.services.qualidade import avaliar_conversas_pendentes
 from app.services.alertas import executar_verificacao_alertas
@@ -25,6 +27,35 @@ from app.services.jobs import (
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 logger = logging.getLogger(__name__)
+
+
+@router.post("/heartbeat")
+async def job_heartbeat():
+    """
+    Job de heartbeat para monitoramento de status da Julia.
+
+    Insere um registro com status='online' na tabela julia_status.
+    O dashboard verifica se o último heartbeat foi há menos de 5 minutos
+    para determinar se a Julia está online.
+
+    Schedule: * * * * * (a cada minuto)
+    """
+    try:
+        supabase.table("julia_status").insert({
+            "status": "online",
+            "motivo": "Heartbeat automático",
+            "alterado_por": "scheduler",
+            "alterado_via": "job",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }).execute()
+
+        return JSONResponse({
+            "status": "ok",
+            "message": "Heartbeat registrado"
+        })
+    except Exception as e:
+        logger.error(f"Erro ao registrar heartbeat: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 class PrimeiraMensagemRequest(BaseModel):

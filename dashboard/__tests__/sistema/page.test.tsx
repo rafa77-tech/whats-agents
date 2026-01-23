@@ -13,6 +13,60 @@ vi.mock('@/hooks/use-toast', () => ({
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
+const mockStatusData = (
+  pilotMode: boolean,
+  features: Record<string, boolean> = {
+    discovery_automatico: !pilotMode,
+    oferta_automatica: !pilotMode,
+    reativacao_automatica: !pilotMode,
+    feedback_automatico: !pilotMode,
+  }
+) => ({
+  pilot_mode: pilotMode,
+  autonomous_features: features,
+})
+
+const mockConfigData = {
+  rate_limit: {
+    msgs_por_hora: 20,
+    msgs_por_dia: 100,
+    intervalo_min: 45,
+    intervalo_max: 180,
+  },
+  horario: {
+    inicio: 8,
+    fim: 20,
+    dias: 'Segunda a Sexta',
+  },
+}
+
+const setupMock = (
+  statusData: ReturnType<typeof mockStatusData> | null,
+  configData: typeof mockConfigData | null = mockConfigData
+) => {
+  mockFetch.mockImplementation((url: string) => {
+    if (url.includes('/api/sistema/status')) {
+      if (!statusData) {
+        return Promise.reject(new Error('Network error'))
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(statusData),
+      })
+    }
+    if (url.includes('/api/sistema/config')) {
+      if (!configData) {
+        return Promise.reject(new Error('Network error'))
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(configData),
+      })
+    }
+    return Promise.reject(new Error('Unknown URL'))
+  })
+}
+
 describe('SistemaPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -27,19 +81,7 @@ describe('SistemaPage', () => {
   })
 
   it('renders pilot mode ACTIVE status correctly', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          pilot_mode: true,
-          autonomous_features: {
-            discovery_automatico: false,
-            oferta_automatica: false,
-            reativacao_automatica: false,
-            feedback_automatico: false,
-          },
-        }),
-    })
+    setupMock(mockStatusData(true))
 
     render(<SistemaPage />)
 
@@ -50,19 +92,7 @@ describe('SistemaPage', () => {
   })
 
   it('renders pilot mode INACTIVE status correctly', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          pilot_mode: false,
-          autonomous_features: {
-            discovery_automatico: true,
-            oferta_automatica: true,
-            reativacao_automatica: true,
-            feedback_automatico: true,
-          },
-        }),
-    })
+    setupMock(mockStatusData(false))
 
     render(<SistemaPage />)
 
@@ -73,19 +103,7 @@ describe('SistemaPage', () => {
   })
 
   it('shows all autonomous feature cards', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          pilot_mode: false,
-          autonomous_features: {
-            discovery_automatico: true,
-            oferta_automatica: true,
-            reativacao_automatica: true,
-            feedback_automatico: true,
-          },
-        }),
-    })
+    setupMock(mockStatusData(false))
 
     render(<SistemaPage />)
 
@@ -98,19 +116,7 @@ describe('SistemaPage', () => {
   })
 
   it('shows rate limiting card', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          pilot_mode: true,
-          autonomous_features: {
-            discovery_automatico: false,
-            oferta_automatica: false,
-            reativacao_automatica: false,
-            feedback_automatico: false,
-          },
-        }),
-    })
+    setupMock(mockStatusData(true))
 
     render(<SistemaPage />)
 
@@ -122,19 +128,7 @@ describe('SistemaPage', () => {
   })
 
   it('shows operating hours card', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          pilot_mode: true,
-          autonomous_features: {
-            discovery_automatico: false,
-            oferta_automatica: false,
-            reativacao_automatica: false,
-            feedback_automatico: false,
-          },
-        }),
-    })
+    setupMock(mockStatusData(true))
 
     render(<SistemaPage />)
 
@@ -146,19 +140,7 @@ describe('SistemaPage', () => {
   })
 
   it('opens enable confirmation dialog when switch is toggled', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          pilot_mode: false,
-          autonomous_features: {
-            discovery_automatico: true,
-            oferta_automatica: true,
-            reativacao_automatica: true,
-            feedback_automatico: true,
-          },
-        }),
-    })
+    setupMock(mockStatusData(false))
 
     render(<SistemaPage />)
 
@@ -166,9 +148,10 @@ describe('SistemaPage', () => {
       expect(screen.getByText('DESATIVADO')).toBeInTheDocument()
     })
 
-    // Find and click the switch
-    const switchElement = screen.getByRole('switch')
-    fireEvent.click(switchElement)
+    // Find the pilot mode switch (first switch in the document)
+    const switches = screen.getAllByRole('switch')
+    expect(switches.length).toBeGreaterThan(0)
+    fireEvent.click(switches[0]!)
 
     await waitFor(() => {
       expect(screen.getByText('Ativar Modo Piloto?')).toBeInTheDocument()
@@ -176,19 +159,7 @@ describe('SistemaPage', () => {
   })
 
   it('opens disable confirmation dialog when switch is toggled', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          pilot_mode: true,
-          autonomous_features: {
-            discovery_automatico: false,
-            oferta_automatica: false,
-            reativacao_automatica: false,
-            feedback_automatico: false,
-          },
-        }),
-    })
+    setupMock(mockStatusData(true))
 
     render(<SistemaPage />)
 
@@ -196,9 +167,10 @@ describe('SistemaPage', () => {
       expect(screen.getByText('ATIVO')).toBeInTheDocument()
     })
 
-    // Find and click the switch
-    const switchElement = screen.getByRole('switch')
-    fireEvent.click(switchElement)
+    // Find the pilot mode switch (first switch in the document)
+    const switches = screen.getAllByRole('switch')
+    expect(switches.length).toBeGreaterThan(0)
+    fireEvent.click(switches[0]!)
 
     await waitFor(() => {
       expect(screen.getByText('Desativar Modo Piloto?')).toBeInTheDocument()
@@ -207,21 +179,12 @@ describe('SistemaPage', () => {
   })
 
   it('shows last changed info when available', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          pilot_mode: true,
-          autonomous_features: {
-            discovery_automatico: false,
-            oferta_automatica: false,
-            reativacao_automatica: false,
-            feedback_automatico: false,
-          },
-          last_changed_at: '2026-01-16T10:00:00Z',
-          last_changed_by: 'admin@revoluna.com',
-        }),
-    })
+    const statusWithMeta = {
+      ...mockStatusData(true),
+      last_changed_at: '2026-01-16T10:00:00Z',
+      last_changed_by: 'admin@revoluna.com',
+    }
+    setupMock(statusWithMeta)
 
     render(<SistemaPage />)
 
@@ -232,7 +195,7 @@ describe('SistemaPage', () => {
   })
 
   it('handles API error gracefully', async () => {
-    mockFetch.mockRejectedValueOnce(new Error('Network error'))
+    setupMock(null)
 
     render(<SistemaPage />)
 
@@ -240,5 +203,39 @@ describe('SistemaPage', () => {
     await waitFor(() => {
       expect(screen.queryByText('Carregando...')).not.toBeInTheDocument()
     })
+  })
+
+  it('disables feature switches when pilot mode is active', async () => {
+    setupMock(mockStatusData(true))
+
+    render(<SistemaPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('ATIVO')).toBeInTheDocument()
+    })
+
+    // All feature switches should be disabled
+    const switches = screen.getAllByRole('switch')
+    // First switch is pilot mode, remaining are feature toggles
+    for (let i = 1; i < switches.length; i++) {
+      expect(switches[i]).toBeDisabled()
+    }
+  })
+
+  it('enables feature switches when pilot mode is inactive', async () => {
+    setupMock(mockStatusData(false))
+
+    render(<SistemaPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('DESATIVADO')).toBeInTheDocument()
+    })
+
+    // All feature switches should be enabled
+    const switches = screen.getAllByRole('switch')
+    // First switch is pilot mode, remaining are feature toggles
+    for (let i = 1; i < switches.length; i++) {
+      expect(switches[i]).not.toBeDisabled()
+    }
   })
 })

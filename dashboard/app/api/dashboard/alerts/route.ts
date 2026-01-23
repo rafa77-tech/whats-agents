@@ -167,50 +167,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Error fetching alerts:', error)
-
-    // Return mock data on error for development
-    const mockAlerts: AlertData[] = [
-      {
-        id: 'mock-1',
-        severity: 'critical',
-        category: 'julia',
-        title: 'Dr. Joao - aguardando atendimento',
-        message: 'Medico solicitou falar com humano',
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        actionLabel: 'Ver conversa',
-      },
-      {
-        id: 'mock-2',
-        severity: 'critical',
-        category: 'chip',
-        title: 'Julia-05 - Trust baixo',
-        message: 'Trust score: 48',
-        createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        actionLabel: 'Ver chip',
-      },
-      {
-        id: 'mock-3',
-        severity: 'warning',
-        category: 'vaga',
-        title: '5 vagas expirando em 24h',
-        message: 'Sem medico confirmado',
-        createdAt: new Date().toISOString(),
-        actionLabel: 'Ver vagas',
-      },
-      {
-        id: 'mock-4',
-        severity: 'warning',
-        category: 'operational',
-        title: 'Rate limit hora em 85%',
-        message: 'Reseta em 12 minutos',
-        createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-      },
-    ]
-
-    return NextResponse.json({
-      alerts: mockAlerts,
-      totalCritical: 2,
-      totalWarning: 2,
-    })
+    return NextResponse.json({ error: 'Failed to fetch alerts' }, { status: 500 })
   }
 }

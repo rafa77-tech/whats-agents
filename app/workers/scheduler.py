@@ -95,6 +95,12 @@ async def _registrar_fim_job(
 
 
 JOBS = [
+    # Heartbeat para monitoramento de status (Sprint 33)
+    {
+        "name": "heartbeat",
+        "endpoint": "/jobs/heartbeat",
+        "schedule": "* * * * *",  # A cada minuto
+    },
     {
         "name": "processar_mensagens_agendadas",
         "endpoint": "/jobs/processar-mensagens-agendadas",

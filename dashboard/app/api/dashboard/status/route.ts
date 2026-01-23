@@ -46,7 +46,7 @@ export async function GET() {
       .from('julia_status')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .eq('status', 'online')
+      .in('status', ['online', 'ativo'])
 
     if (successError) {
       console.error('Error counting successful checks:', successError)

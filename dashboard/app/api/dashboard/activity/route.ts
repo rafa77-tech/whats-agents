@@ -187,55 +187,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching activity:', error)
-
-    // Return mock data on error for development
-    const mockEvents: ActivityEventData[] = [
-      {
-        id: 'mock-1',
-        type: 'fechamento',
-        message: 'fechou plantao com Dr. Carlos (R$ 2.800)',
-        chipName: 'Julia-01',
-        timestamp: new Date(Date.now() - 28 * 60 * 1000).toISOString(),
-      },
-      {
-        id: 'mock-2',
-        type: 'handoff',
-        message: 'handoff: Dra. Maria pediu humano',
-        chipName: 'Julia-02',
-        timestamp: new Date(Date.now() - 32 * 60 * 1000).toISOString(),
-      },
-      {
-        id: 'mock-3',
-        type: 'campanha',
-        message: 'Campanha "Reativacao Janeiro" enviou 15 mensagens',
-        timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-      },
-      {
-        id: 'mock-4',
-        type: 'resposta',
-        message: 'Dr. Pedro respondeu apos 3 dias',
-        chipName: 'Julia-01',
-        timestamp: new Date(Date.now() - 58 * 60 * 1000).toISOString(),
-      },
-      {
-        id: 'mock-5',
-        type: 'alerta',
-        message: 'trust caiu 8 pontos (56 -> 48)',
-        chipName: 'Julia-05',
-        timestamp: new Date(Date.now() - 75 * 60 * 1000).toISOString(),
-      },
-      {
-        id: 'mock-6',
-        type: 'chip',
-        message: 'graduou do warming (trust: 85)',
-        chipName: 'Julia-03',
-        timestamp: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
-      },
-    ]
-
-    return NextResponse.json({
-      events: mockEvents,
-      hasMore: false,
-    })
+    return NextResponse.json({ error: 'Failed to fetch activity' }, { status: 500 })
   }
 }
