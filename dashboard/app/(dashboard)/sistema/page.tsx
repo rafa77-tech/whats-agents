@@ -29,9 +29,30 @@ interface SystemStatus {
   last_changed_at?: string
 }
 
+interface SystemConfig {
+  rate_limit: {
+    msgs_por_hora: number
+    msgs_por_dia: number
+    intervalo_min: number
+    intervalo_max: number
+  }
+  horario: {
+    inicio: number
+    fim: number
+    dias: string
+  }
+  uso_atual?: {
+    msgs_hora: number
+    msgs_dia: number
+    horario_permitido: boolean
+    hora_atual: string
+  }
+}
+
 export default function SistemaPage() {
   const { toast } = useToast()
   const [status, setStatus] = useState<SystemStatus | null>(null)
+  const [config, setConfig] = useState<SystemConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [confirmDialog, setConfirmDialog] = useState<'enable' | 'disable' | null>(null)
   const [updating, setUpdating] = useState(false)
@@ -39,17 +60,33 @@ export default function SistemaPage() {
   const carregarStatus = async () => {
     try {
       const res = await fetch('/api/sistema/status')
-      const data = await res.json()
-      setStatus(data)
+      if (res.ok) {
+        const data = await res.json()
+        setStatus(data)
+      }
     } catch (error) {
       console.error('Erro ao carregar status:', error)
-    } finally {
-      setLoading(false)
+    }
+  }
+
+  const carregarConfig = async () => {
+    try {
+      const res = await fetch('/api/sistema/config')
+      if (res.ok) {
+        const data = await res.json()
+        setConfig(data)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar config:', error)
     }
   }
 
   useEffect(() => {
-    carregarStatus()
+    const carregarDados = async () => {
+      await Promise.all([carregarStatus(), carregarConfig()])
+      setLoading(false)
+    }
+    carregarDados()
   }, [])
 
   const handleToggle = async (novoPilotMode: boolean) => {
@@ -209,20 +246,45 @@ export default function SistemaPage() {
             <CardDescription>Limites de envio de mensagens</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Mensagens por hora</span>
-                <span className="font-medium">20</span>
+            {config ? (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Mensagens por hora</span>
+                  <span className="font-medium">{config.rate_limit.msgs_por_hora}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Mensagens por dia</span>
+                  <span className="font-medium">{config.rate_limit.msgs_por_dia}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Intervalo entre mensagens</span>
+                  <span className="font-medium">
+                    {config.rate_limit.intervalo_min}-{config.rate_limit.intervalo_max}s
+                  </span>
+                </div>
+                {config.uso_atual && (
+                  <>
+                    <div className="mt-4 border-t pt-4">
+                      <p className="mb-2 text-xs font-medium text-gray-500">Uso atual</p>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Esta hora</span>
+                        <span className="font-medium">
+                          {config.uso_atual.msgs_hora}/{config.rate_limit.msgs_por_hora}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Hoje</span>
+                        <span className="font-medium">
+                          {config.uso_atual.msgs_dia}/{config.rate_limit.msgs_por_dia}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Mensagens por dia</span>
-                <span className="font-medium">100</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Intervalo entre mensagens</span>
-                <span className="font-medium">45-180s</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-sm text-gray-500">Carregando...</p>
+            )}
           </CardContent>
         </Card>
 
@@ -232,16 +294,43 @@ export default function SistemaPage() {
             <CardDescription>Quando Julia pode enviar mensagens</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Horario</span>
-                <span className="font-medium">08h as 20h</span>
+            {config ? (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Horario</span>
+                  <span className="font-medium">
+                    {String(config.horario.inicio).padStart(2, '0')}h as{' '}
+                    {String(config.horario.fim).padStart(2, '0')}h
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Dias</span>
+                  <span className="font-medium">{config.horario.dias}</span>
+                </div>
+                {config.uso_atual && (
+                  <div className="mt-4 border-t pt-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Status agora</span>
+                      <Badge
+                        variant="outline"
+                        className={
+                          config.uso_atual.horario_permitido
+                            ? 'border-green-300 bg-green-100 text-green-800'
+                            : 'border-yellow-300 bg-yellow-100 text-yellow-800'
+                        }
+                      >
+                        {config.uso_atual.horario_permitido ? 'Dentro do horario' : 'Fora do horario'}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-400">
+                      Hora atual no servidor: {config.uso_atual.hora_atual}
+                    </p>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Dias</span>
-                <span className="font-medium">Segunda a Sexta</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-sm text-gray-500">Carregando...</p>
+            )}
           </CardContent>
         </Card>
       </div>
