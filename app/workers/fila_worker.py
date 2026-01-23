@@ -131,3 +131,6 @@ async def processar_fila():
                 )
             await asyncio.sleep(10)
 
+
+if __name__ == "__main__":
+    asyncio.run(processar_fila())
