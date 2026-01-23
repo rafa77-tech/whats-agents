@@ -56,27 +56,40 @@ RETRY_DELAYS = [1, 5, 15]
 # S11.2 - Funções de Enfileiramento
 # =============================================================================
 
-async def enfileirar_mensagem(mensagem_id: UUID) -> UUID:
+async def enfileirar_mensagem(mensagem_id: UUID) -> Optional[UUID]:
     """
     Adiciona mensagem à fila de processamento.
+
+    Usa INSERT simples porque:
+    1. Deduplicação já acontece no webhook via Redis
+    2. O constraint parcial (mensagem_id WHERE vaga_grupo_id IS NULL) não funciona
+       com upsert do cliente Supabase Python
 
     Args:
         mensagem_id: ID da mensagem a processar
 
     Returns:
-        ID do item na fila
+        ID do item na fila, ou None se já existir
     """
-    result = supabase.table("fila_processamento_grupos").upsert({
-        "mensagem_id": str(mensagem_id),
-        "estagio": EstagioPipeline.PENDENTE.value,
-        "tentativas": 0,
-        "updated_at": datetime.now(UTC).isoformat(),
-    }, on_conflict="mensagem_id").execute()
+    try:
+        result = supabase.table("fila_processamento_grupos").insert({
+            "mensagem_id": str(mensagem_id),
+            "estagio": EstagioPipeline.PENDENTE.value,
+            "tentativas": 0,
+        }).execute()
 
-    item_id = UUID(result.data[0]["id"])
-    logger.debug(f"Mensagem {mensagem_id} enfileirada: {item_id}")
+        item_id = UUID(result.data[0]["id"])
+        logger.debug(f"Mensagem {mensagem_id} enfileirada: {item_id}")
+        return item_id
 
-    return item_id
+    except Exception as e:
+        # Constraint violation (duplicata) - mensagem já está na fila
+        if "duplicate" in str(e).lower() or "unique" in str(e).lower():
+            logger.debug(f"Mensagem {mensagem_id} já está na fila (ignorando duplicata)")
+            return None
+        # Outro erro - propagar
+        logger.error(f"Erro ao enfileirar mensagem {mensagem_id}: {e}")
+        raise
 
 
 async def criar_itens_para_vagas(

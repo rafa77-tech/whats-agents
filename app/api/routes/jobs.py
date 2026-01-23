@@ -453,6 +453,59 @@ async def job_reprocessar_grupos_erro(limite: int = 100):
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
+@router.post("/backfill-fila-grupos")
+async def job_backfill_fila_grupos(limite: int = 1000):
+    """
+    Job para enfileirar mensagens pendentes que não foram enfileiradas.
+
+    Corrige o problema do upsert com constraint parcial que não funcionava.
+    Enfileira mensagens com status='pendente' que não estão na fila.
+
+    Args:
+        limite: Máximo de mensagens a enfileirar por execução
+    """
+    try:
+        from app.services.supabase import supabase
+        from app.services.grupos.fila import enfileirar_mensagem
+        from uuid import UUID
+
+        # Buscar mensagens pendentes que NÃO estão na fila
+        result = supabase.rpc("buscar_mensagens_pendentes_sem_fila", {
+            "p_limite": limite
+        }).execute()
+
+        if not result.data:
+            return JSONResponse({
+                "status": "ok",
+                "message": "Nenhuma mensagem pendente para enfileirar",
+                "enfileiradas": 0
+            })
+
+        enfileiradas = 0
+        erros = 0
+
+        for row in result.data:
+            try:
+                mensagem_id = UUID(row["id"])
+                item_id = await enfileirar_mensagem(mensagem_id)
+                if item_id:
+                    enfileiradas += 1
+            except Exception as e:
+                logger.warning(f"Erro ao enfileirar {row['id']}: {e}")
+                erros += 1
+
+        return JSONResponse({
+            "status": "ok",
+            "message": f"{enfileiradas} mensagem(ns) enfileirada(s), {erros} erro(s)",
+            "enfileiradas": enfileiradas,
+            "erros": erros
+        })
+
+    except Exception as e:
+        logger.error(f"Erro no backfill de fila de grupos: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
 @router.post("/verificar-alertas-grupos")
 async def job_verificar_alertas_grupos():
     """
