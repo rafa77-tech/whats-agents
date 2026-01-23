@@ -4,6 +4,7 @@
 
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -13,7 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { type CampanhaFormData, ESPECIALIDADES, REGIOES } from './types'
+import { Loader2 } from 'lucide-react'
+import { type CampanhaFormData } from './types'
+
+interface FiltroOption {
+  value: string
+  label: string
+  count: number
+}
 
 interface StepAudienciaProps {
   formData: CampanhaFormData
@@ -22,6 +30,30 @@ interface StepAudienciaProps {
 }
 
 export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAudienciaProps) {
+  const [especialidadesOptions, setEspecialidadesOptions] = useState<FiltroOption[]>([])
+  const [estadosOptions, setEstadosOptions] = useState<FiltroOption[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const carregarFiltros = async () => {
+      try {
+        const res = await fetch('/api/filtros')
+        const data = await res.json()
+
+        if (res.ok) {
+          setEspecialidadesOptions(data.especialidades || [])
+          setEstadosOptions(data.estados || [])
+        }
+      } catch (err) {
+        console.error('Erro ao carregar filtros:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    carregarFiltros()
+  }, [])
+
   return (
     <div className="space-y-4">
       <div>
@@ -44,34 +76,48 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
         <>
           <div>
             <Label className="mb-2 block">Especialidades</Label>
-            <div className="flex flex-wrap gap-2">
-              {ESPECIALIDADES.map((esp) => (
-                <Badge
-                  key={esp}
-                  variant={formData.especialidades.includes(esp) ? 'default' : 'outline'}
-                  className="cursor-pointer"
-                  onClick={() => toggleArrayItem('especialidades', esp)}
-                >
-                  {esp}
-                </Badge>
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando...
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {especialidadesOptions.map((esp) => (
+                  <Badge
+                    key={esp.value}
+                    variant={formData.especialidades.includes(esp.value) ? 'default' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => toggleArrayItem('especialidades', esp.value)}
+                  >
+                    {esp.label} ({esp.count.toLocaleString()})
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
-            <Label className="mb-2 block">Regioes</Label>
-            <div className="flex flex-wrap gap-2">
-              {REGIOES.map((reg) => (
-                <Badge
-                  key={reg}
-                  variant={formData.regioes.includes(reg) ? 'default' : 'outline'}
-                  className="cursor-pointer"
-                  onClick={() => toggleArrayItem('regioes', reg)}
-                >
-                  {reg}
-                </Badge>
-              ))}
-            </div>
+            <Label className="mb-2 block">Estados</Label>
+            {loading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando...
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {estadosOptions.map((est) => (
+                  <Badge
+                    key={est.value}
+                    variant={formData.regioes.includes(est.value) ? 'default' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => toggleArrayItem('regioes', est.value)}
+                  >
+                    {est.value} ({est.count.toLocaleString()})
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -87,7 +133,7 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
                 <span className="font-medium">{formData.especialidades.length} especialidades</span>
               )}
               {formData.regioes.length > 0 && (
-                <span className="ml-1 font-medium">, {formData.regioes.length} regioes</span>
+                <span className="ml-1 font-medium">, {formData.regioes.length} estados</span>
               )}
               {formData.especialidades.length === 0 && formData.regioes.length === 0 && (
                 <span className="text-gray-400">Nenhum filtro selecionado</span>

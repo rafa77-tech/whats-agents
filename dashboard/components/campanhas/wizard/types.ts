@@ -79,22 +79,4 @@ export const TONS = [
   { value: 'casual', label: 'Casual' },
 ] as const
 
-export const ESPECIALIDADES = [
-  'Cardiologia',
-  'Clinica Medica',
-  'Pediatria',
-  'Ortopedia',
-  'Ginecologia',
-  'Neurologia',
-  'Dermatologia',
-  'Oftalmologia',
-] as const
-
-export const REGIOES = [
-  'Sao Paulo - Capital',
-  'ABC Paulista',
-  'Campinas',
-  'Ribeiro Preto',
-  'Santos',
-  'Sorocaba',
-] as const
+// ESPECIALIDADES e REGIOES agora sao buscados dinamicamente via /api/filtros

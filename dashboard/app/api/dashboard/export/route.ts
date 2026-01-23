@@ -69,7 +69,9 @@ export async function GET(request: NextRequest) {
 
     // Calculate previous period for comparison
     const periodDays = period === '7d' ? 7 : period === '14d' ? 14 : 30
-    const previousStart = new Date(new Date(currentStart).getTime() - periodDays * 24 * 60 * 60 * 1000).toISOString()
+    const previousStart = new Date(
+      new Date(currentStart).getTime() - periodDays * 24 * 60 * 60 * 1000
+    ).toISOString()
     const previousEnd = currentStart
 
     // Fetch previous period metrics
@@ -94,9 +96,13 @@ export async function GET(request: NextRequest) {
       .in('status', ['fechado', 'completed'])
 
     const prevTaxaResposta =
-      prevConversas && prevConversas > 0 && prevRespostas ? (prevRespostas / prevConversas) * 100 : 0
+      prevConversas && prevConversas > 0 && prevRespostas
+        ? (prevRespostas / prevConversas) * 100
+        : 0
     const prevTaxaConversao =
-      prevRespostas && prevRespostas > 0 && prevFechamentos ? (prevFechamentos / prevRespostas) * 100 : 0
+      prevRespostas && prevRespostas > 0 && prevFechamentos
+        ? (prevFechamentos / prevRespostas) * 100
+        : 0
 
     exportData.metrics = [
       {
@@ -135,8 +141,10 @@ export async function GET(request: NextRequest) {
       .gte('created_at', previousStart)
       .lt('created_at', previousEnd)
 
-    const botRate = totalConversas && totalConversas > 0 ? ((botDetections ?? 0) / totalConversas) * 100 : 0
-    const prevBotRate = prevConversas && prevConversas > 0 ? ((prevBotDetections ?? 0) / prevConversas) * 100 : 0
+    const botRate =
+      totalConversas && totalConversas > 0 ? ((botDetections ?? 0) / totalConversas) * 100 : 0
+    const prevBotRate =
+      prevConversas && prevConversas > 0 ? ((prevBotDetections ?? 0) / prevConversas) * 100 : 0
 
     const { data: latencyData } = await supabase
       .from('metricas_conversa')
@@ -152,12 +160,18 @@ export async function GET(request: NextRequest) {
       .gte('created_at', previousStart)
       .lt('created_at', previousEnd)
 
-    const avgLatency = latencyData && latencyData.length > 0
-      ? latencyData.reduce((sum, r) => sum + (Number(r.tempo_medio_resposta_segundos) || 0), 0) / latencyData.length
-      : 0
-    const prevAvgLatency = prevLatencyData && prevLatencyData.length > 0
-      ? prevLatencyData.reduce((sum, r) => sum + (Number(r.tempo_medio_resposta_segundos) || 0), 0) / prevLatencyData.length
-      : 0
+    const avgLatency =
+      latencyData && latencyData.length > 0
+        ? latencyData.reduce((sum, r) => sum + (Number(r.tempo_medio_resposta_segundos) || 0), 0) /
+          latencyData.length
+        : 0
+    const prevAvgLatency =
+      prevLatencyData && prevLatencyData.length > 0
+        ? prevLatencyData.reduce(
+            (sum, r) => sum + (Number(r.tempo_medio_resposta_segundos) || 0),
+            0
+          ) / prevLatencyData.length
+        : 0
 
     const { count: handoffs } = await supabase
       .from('handoffs')
@@ -171,8 +185,10 @@ export async function GET(request: NextRequest) {
       .gte('created_at', previousStart)
       .lt('created_at', previousEnd)
 
-    const handoffRate = totalConversas && totalConversas > 0 ? ((handoffs ?? 0) / totalConversas) * 100 : 0
-    const prevHandoffRate = prevConversas && prevConversas > 0 ? ((prevHandoffs ?? 0) / prevConversas) * 100 : 0
+    const handoffRate =
+      totalConversas && totalConversas > 0 ? ((handoffs ?? 0) / totalConversas) * 100 : 0
+    const prevHandoffRate =
+      prevConversas && prevConversas > 0 ? ((prevHandoffs ?? 0) / prevConversas) * 100 : 0
 
     exportData.quality = [
       {
@@ -289,7 +305,12 @@ export async function GET(request: NextRequest) {
     }
 
     exportData.funnel = [
-      { stage: 'Enviadas', count: enviadasCount, percentage: 100, change: calcChange(enviadasCount, prevEnviadasCount) },
+      {
+        stage: 'Enviadas',
+        count: enviadasCount,
+        percentage: 100,
+        change: calcChange(enviadasCount, prevEnviadasCount),
+      },
       {
         stage: 'Entregues',
         count: entreguesCount,

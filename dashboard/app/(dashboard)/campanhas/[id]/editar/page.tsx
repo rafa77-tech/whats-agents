@@ -49,25 +49,11 @@ const TONS = [
   { value: 'casual', label: 'Casual' },
 ]
 
-const ESPECIALIDADES = [
-  'Cardiologia',
-  'Clinica Medica',
-  'Pediatria',
-  'Ortopedia',
-  'Ginecologia',
-  'Neurologia',
-  'Dermatologia',
-  'Oftalmologia',
-]
-
-const REGIOES = [
-  'Sao Paulo - Capital',
-  'ABC Paulista',
-  'Campinas',
-  'Ribeirao Preto',
-  'Santos',
-  'Sorocaba',
-]
+interface FiltroOption {
+  value: string
+  label: string
+  count: number
+}
 
 export default function EditarCampanhaPage() {
   const params = useParams()
@@ -77,6 +63,11 @@ export default function EditarCampanhaPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Filtros dinamicos do banco
+  const [especialidadesOptions, setEspecialidadesOptions] = useState<FiltroOption[]>([])
+  const [estadosOptions, setEstadosOptions] = useState<FiltroOption[]>([])
+  const [loadingFiltros, setLoadingFiltros] = useState(true)
 
   // Form state
   const [nomeTemplate, setNomeTemplate] = useState('')
@@ -153,6 +144,27 @@ export default function EditarCampanhaPage() {
   useEffect(() => {
     carregarCampanha()
   }, [carregarCampanha])
+
+  // Carregar opcoes de filtros do banco
+  useEffect(() => {
+    const carregarFiltros = async () => {
+      try {
+        const res = await fetch('/api/filtros')
+        const data = await res.json()
+
+        if (res.ok) {
+          setEspecialidadesOptions(data.especialidades || [])
+          setEstadosOptions(data.estados || [])
+        }
+      } catch (err) {
+        console.error('Erro ao carregar filtros:', err)
+      } finally {
+        setLoadingFiltros(false)
+      }
+    }
+
+    carregarFiltros()
+  }, [])
 
   const handleSave = async () => {
     if (!nomeTemplate.trim()) {
@@ -519,20 +531,32 @@ export default function EditarCampanhaPage() {
             <div className="grid gap-6 md:grid-cols-2">
               <div>
                 <Label className="mb-3 block">Especialidades</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {ESPECIALIDADES.map((esp) => (
-                    <label
-                      key={esp}
-                      className="flex cursor-pointer items-center gap-2 rounded border p-2 hover:bg-gray-50"
-                    >
-                      <Checkbox
-                        checked={especialidades.includes(esp)}
-                        onCheckedChange={() => toggleEspecialidade(esp)}
-                      />
-                      <span className="text-sm">{esp}</span>
-                    </label>
-                  ))}
-                </div>
+                {loadingFiltros ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando...
+                  </div>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto">
+                    <div className="grid grid-cols-1 gap-2">
+                      {especialidadesOptions.map((esp) => (
+                        <label
+                          key={esp.value}
+                          className="flex cursor-pointer items-center gap-2 rounded border p-2 hover:bg-gray-50"
+                        >
+                          <Checkbox
+                            checked={especialidades.includes(esp.value)}
+                            onCheckedChange={() => toggleEspecialidade(esp.value)}
+                          />
+                          <span className="flex-1 text-sm">{esp.label}</span>
+                          <span className="text-xs text-gray-400">
+                            ({esp.count.toLocaleString()})
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {especialidades.length === 0 && (
                   <p className="mt-2 text-xs text-gray-500">
                     Nenhuma selecionada = todas as especialidades
@@ -541,24 +565,36 @@ export default function EditarCampanhaPage() {
               </div>
 
               <div>
-                <Label className="mb-3 block">Regioes</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {REGIOES.map((reg) => (
-                    <label
-                      key={reg}
-                      className="flex cursor-pointer items-center gap-2 rounded border p-2 hover:bg-gray-50"
-                    >
-                      <Checkbox
-                        checked={regioes.includes(reg)}
-                        onCheckedChange={() => toggleRegiao(reg)}
-                      />
-                      <span className="text-sm">{reg}</span>
-                    </label>
-                  ))}
-                </div>
+                <Label className="mb-3 block">Estados</Label>
+                {loadingFiltros ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando...
+                  </div>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-2">
+                      {estadosOptions.map((est) => (
+                        <label
+                          key={est.value}
+                          className="flex cursor-pointer items-center gap-2 rounded border p-2 hover:bg-gray-50"
+                        >
+                          <Checkbox
+                            checked={regioes.includes(est.value)}
+                            onCheckedChange={() => toggleRegiao(est.value)}
+                          />
+                          <span className="flex-1 text-sm">{est.value}</span>
+                          <span className="text-xs text-gray-400">
+                            ({est.count.toLocaleString()})
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {regioes.length === 0 && (
                   <p className="mt-2 text-xs text-gray-500">
-                    Nenhuma selecionada = todas as regioes
+                    Nenhum selecionado = todos os estados
                   </p>
                 )}
               </div>
