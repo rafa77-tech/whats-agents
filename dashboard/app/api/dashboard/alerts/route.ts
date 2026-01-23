@@ -11,6 +11,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { type AlertSeverity, type AlertCategory } from '@/types/dashboard'
+import { shouldUseMock, mockAlerts } from '@/lib/mock'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,19 @@ interface AlertData {
 }
 
 export async function GET() {
+  // Return mock data for E2E tests
+  if (shouldUseMock()) {
+    return NextResponse.json({
+      alerts: mockAlerts.alerts.map((a) => ({
+        ...a,
+        severity: 'warning' as AlertSeverity,
+        category: 'performance' as AlertCategory,
+        createdAt: a.timestamp,
+      })),
+      total: mockAlerts.total,
+    })
+  }
+
   try {
     const supabase = await createClient()
     const alerts: AlertData[] = []

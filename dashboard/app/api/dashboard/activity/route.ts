@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { type ActivityType } from '@/types/dashboard'
+import { shouldUseMock, mockActivity } from '@/lib/mock'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,11 @@ interface ActivityEventData {
 }
 
 export async function GET(request: NextRequest) {
+  // Return mock data for E2E tests
+  if (shouldUseMock()) {
+    return NextResponse.json(mockActivity)
+  }
+
   try {
     const supabase = await createClient()
     const limit = parseInt(request.nextUrl.searchParams.get('limit') ?? '10')

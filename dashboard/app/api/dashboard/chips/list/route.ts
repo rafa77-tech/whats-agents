@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { ChipStatus, TrustLevel } from '@/types/dashboard'
+import { shouldUseMock, mockChips } from '@/lib/mock'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,6 +63,42 @@ function getDailyLimit(status: ChipStatus, faseWarmup?: string | null): number {
 }
 
 export async function GET(request: NextRequest) {
+  // Return mock data for E2E tests
+  if (shouldUseMock()) {
+    const searchParams = request.nextUrl.searchParams
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const offset = parseInt(searchParams.get('offset') || '0')
+    const status = searchParams.get('status')
+
+    let filteredChips = [...mockChips]
+    if (status) {
+      filteredChips = filteredChips.filter((c) => c.status === status)
+    }
+
+    const paginatedChips = filteredChips.slice(offset, offset + limit)
+
+    return NextResponse.json({
+      chips: paginatedChips.map((chip) => ({
+        id: chip.id,
+        name: `Chip-${chip.id.slice(-4)}`,
+        telefone: chip.telefone,
+        status: chip.status,
+        trustScore: chip.trustScore,
+        trustLevel: chip.trustLevel,
+        messagesToday: chip.messagesToday,
+        dailyLimit: chip.dailyLimit,
+        responseRate: chip.responseRate,
+        errorsLast24h: chip.errorsLast24h,
+        hasActiveAlert: chip.hasActiveAlert,
+        alertMessage: chip.alertMessage,
+        warmingDay: chip.warmingDay,
+      })),
+      total: filteredChips.length,
+      limit,
+      offset,
+    })
+  }
+
   try {
     const supabase = await createClient()
     const searchParams = request.nextUrl.searchParams

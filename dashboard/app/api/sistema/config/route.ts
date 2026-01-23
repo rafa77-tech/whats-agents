@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server'
+import { shouldUseMock, mockSistemaConfig } from '@/lib/mock'
+
+export const dynamic = 'force-dynamic'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -22,6 +25,29 @@ interface RateLimitResponse {
  * Retorna configuracoes do sistema (rate limiting, horarios, etc)
  */
 export async function GET() {
+  // Return mock data for E2E tests
+  if (shouldUseMock()) {
+    return NextResponse.json({
+      rate_limit: {
+        msgs_por_hora: mockSistemaConfig.rate_limit.mensagens_por_hora,
+        msgs_por_dia: mockSistemaConfig.rate_limit.mensagens_por_dia,
+        intervalo_min: mockSistemaConfig.rate_limit.intervalo_minimo_segundos,
+        intervalo_max: 180,
+      },
+      horario: {
+        inicio: 8,
+        fim: 20,
+        dias: 'Segunda a Sexta',
+      },
+      uso_atual: {
+        msgs_hora: 12,
+        msgs_dia: 45,
+        horario_permitido: true,
+        hora_atual: new Date().toLocaleTimeString('pt-BR'),
+      },
+    })
+  }
+
   try {
     // Buscar estatisticas de rate limit do backend (inclui limites configurados)
     const res = await fetch(`${API_URL}/health/rate-limit`, {

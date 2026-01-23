@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getPeriodDates, validatePeriod } from '@/lib/dashboard/calculations'
 import type { ChipStatus, TrustLevel } from '@/types/dashboard'
+import { shouldUseMock, mockPoolStatus } from '@/lib/mock'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +31,31 @@ function getTrustLevel(score: number): TrustLevel {
 }
 
 export async function GET(request: NextRequest) {
+  // Return mock data for E2E tests
+  if (shouldUseMock()) {
+    return NextResponse.json({
+      statusCounts: Object.entries(mockPoolStatus.byStatus).map(([status, count]) => ({
+        status,
+        count,
+      })),
+      trustDistribution: Object.entries(mockPoolStatus.byTrustLevel).map(([level, count]) => ({
+        level,
+        count,
+        percentage: Math.round((count / mockPoolStatus.total) * 100),
+      })),
+      metrics: {
+        totalMessagesSent: mockPoolStatus.totalMessagesToday * 10,
+        avgResponseRate: 32.5,
+        avgBlockRate: 2.1,
+        totalErrors: 5,
+        previousMessagesSent: mockPoolStatus.totalMessagesToday * 9,
+        previousResponseRate: 30.0,
+        previousBlockRate: 2.5,
+        previousErrors: 7,
+      },
+    })
+  }
+
   try {
     const supabase = await createClient()
     const period = validatePeriod(request.nextUrl.searchParams.get('period'))
