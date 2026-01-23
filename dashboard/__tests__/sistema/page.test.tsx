@@ -150,8 +150,8 @@ describe('SistemaPage', () => {
 
     // Find the pilot mode switch (first switch in the document)
     const switches = screen.getAllByRole('switch')
-    const pilotModeSwitch = switches[0]
-    fireEvent.click(pilotModeSwitch)
+    expect(switches.length).toBeGreaterThan(0)
+    fireEvent.click(switches[0]!)
 
     await waitFor(() => {
       expect(screen.getByText('Ativar Modo Piloto?')).toBeInTheDocument()
@@ -169,8 +169,8 @@ describe('SistemaPage', () => {
 
     // Find the pilot mode switch (first switch in the document)
     const switches = screen.getAllByRole('switch')
-    const pilotModeSwitch = switches[0]
-    fireEvent.click(pilotModeSwitch)
+    expect(switches.length).toBeGreaterThan(0)
+    fireEvent.click(switches[0]!)
 
     await waitFor(() => {
       expect(screen.getByText('Desativar Modo Piloto?')).toBeInTheDocument()
