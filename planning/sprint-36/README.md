@@ -31,15 +31,20 @@ O incidente de 2026-01-23 revelou múltiplos gaps:
 
 ## Épicos
 
-| ID | Épico | Tasks | Prioridade |
-|----|-------|-------|------------|
-| E01 | Fila de Mensagens | 6 | Alta |
-| E02 | Circuit Breaker | 5 | Alta |
-| E03 | Observabilidade | 7 | Alta |
-| E04 | Rate Limiting | 4 | Média |
-| E05 | Chips & Multi-Chip | 8 | **Crítica** |
-| E06 | Guardrails | 3 | Baixa |
-| E07 | Trust Score System | 4 | **Crítica** |
+| ID | Épico | Tasks | Prioridade | Status |
+|----|-------|-------|------------|--------|
+| E01 | Fila de Mensagens | 6 | Alta | Pendente |
+| E02 | Circuit Breaker | 5 | Alta | Pendente |
+| E03 | Observabilidade | 7 | Alta | Pendente |
+| E04 | Rate Limiting | 4 | Média | Pendente |
+| E05 | Chips & Multi-Chip | 8 | **Crítica** | Parcial |
+| E06 | Guardrails | 3 | Baixa | Pendente |
+| E07 | Trust Score System | 4 | **Crítica** | ✅ T07.1 done |
+| E08 | **Alimentação de Métricas** | 5 | **🔴 CRÍTICA** | Novo |
+| E09 | **Circuit Breaker per-Chip** | 2 | **Crítica** | Novo |
+| E10 | **Auditoria de Chips** | 3 | Média | Novo |
+
+**Total:** 10 épicos, ~47 tasks
 
 ---
 
@@ -950,41 +955,338 @@ async def recalcular_trust_urgente(chip_id: str, motivo: str):
 
 ---
 
-## Priorização Sugerida
+## E08: Alimentação de Métricas de Chips (CRÍTICO - Novo)
 
-### Imediato (Pré-Sprint - Ação Operacional)
-- **T05.5: Verificar/Ativar MULTI_CHIP_ENABLED em produção** ⚡
-- **T07.1: Adicionar job de Trust Score ao scheduler** ⚡
+### Análise (Descoberta 2026-01-23 19:35)
 
-### Semana 1 (Crítico)
+**Problema crítico:** O Trust Score está calculando com dados **vazios**!
+
+Query de diagnóstico revelou:
+```
+| Chip | taxa_resposta | conversas_bi | diversidade_midia | erros_24h |
+|------|---------------|--------------|-------------------|-----------|
+| Todos| 0.00          | 0            | 0                 | 0         |
+```
+
+O score de 85 vem apenas de: base(50) + idade(~5) + delivery_default(15) + fase_bonus.
+
+**Causa raiz:** Nenhum componente do sistema atualiza as métricas dos chips!
+
+### Tasks
+
+#### T08.1: Incrementar contadores após envio de mensagem
+**Prioridade:** Crítica
+**Arquivo:** `app/services/chips/sender.py`
+
+Após cada envio via chip, atualizar:
+- `msgs_enviadas_total += 1`
+- `erros_ultimas_24h += 1` (se falhou)
+- `ultimo_envio_em = now()`
+
+```python
+async def _registrar_envio(chip_id: str, sucesso: bool):
+    """Registra envio para métricas do chip."""
+    if sucesso:
+        supabase.rpc("chip_registrar_envio_sucesso", {"p_chip_id": chip_id}).execute()
+    else:
+        supabase.rpc("chip_registrar_envio_erro", {"p_chip_id": chip_id}).execute()
+```
+
+**Critério de aceite:**
+- [ ] RPC `chip_registrar_envio_sucesso` criada
+- [ ] RPC `chip_registrar_envio_erro` criada
+- [ ] Chamada no ChipSender após envio
+- [ ] Teste de integração
+
+---
+
+#### T08.2: Registrar resposta recebida por chip
+**Prioridade:** Crítica
+**Arquivo:** `app/api/routes/webhook.py`
+
+Quando mensagem inbound chega, identificar o chip que recebeu e atualizar:
+- `msgs_recebidas_total += 1`
+- Verificar se é resposta a mensagem enviada → `taxa_resposta`
+
+```python
+async def _registrar_resposta_chip(instance_name: str, telefone_remetente: str):
+    """Registra resposta recebida para métricas do chip."""
+    # Buscar chip pela instance
+    chip = await buscar_chip_por_instance(instance_name)
+    if not chip:
+        return
+
+    # Incrementar msgs recebidas
+    supabase.rpc("chip_registrar_resposta", {
+        "p_chip_id": chip["id"],
+        "p_telefone_remetente": telefone_remetente
+    }).execute()
+```
+
+**Critério de aceite:**
+- [ ] RPC `chip_registrar_resposta` criada
+- [ ] Webhook identifica chip que recebeu
+- [ ] Taxa de resposta calculada corretamente
+- [ ] Teste de integração
+
+---
+
+#### T08.3: Calcular taxa de delivery real
+**Prioridade:** Alta
+**Arquivo:** `app/services/chips/health_monitor.py`
+
+Taxa de delivery = mensagens entregues / mensagens enviadas (últimos 7 dias)
+
+```python
+async def recalcular_taxa_delivery(chip_id: str) -> float:
+    """Recalcula taxa de delivery do chip."""
+    result = supabase.rpc("chip_calcular_taxa_delivery", {
+        "p_chip_id": chip_id,
+        "p_dias": 7
+    }).execute()
+
+    return result.data or 1.0  # Default 100% se sem dados
+```
+
+**Critério de aceite:**
+- [ ] RPC que calcula delivery dos últimos 7 dias
+- [ ] Considera `fila_mensagens.outcome` como fonte
+- [ ] Atualiza `chips.taxa_delivery`
+
+---
+
+#### T08.4: Resetar erros_24h automaticamente
+**Prioridade:** Média
+**Arquivo:** `app/workers/scheduler.py`
+
+Job diário para limpar erros antigos e recalcular `erros_ultimas_24h`.
+
+```python
+# Novo job no scheduler
+{
+    "name": "resetar_erros_chips",
+    "endpoint": "/jobs/resetar-erros-chips",
+    "schedule": "0 0 * * *",  # Meia-noite
+}
+```
+
+**Critério de aceite:**
+- [ ] Job criado
+- [ ] Recalcula erros das últimas 24h reais
+- [ ] Atualiza `dias_sem_erro` se 0 erros
+
+---
+
+#### T08.5: Registrar conversas bidirecionais
+**Prioridade:** Alta
+**Arquivo:** `app/services/chips/selector.py`
+
+Conversa bidirecional = chip enviou E recebeu resposta do mesmo número.
+
+```sql
+-- Incrementar quando:
+-- 1. Chip enviou mensagem para número X
+-- 2. Chip recebeu mensagem de número X (dentro de 24h)
+CREATE OR REPLACE FUNCTION chip_verificar_conversa_bidirecional(
+    p_chip_id UUID,
+    p_telefone TEXT
+) RETURNS BOOLEAN AS $$
+    -- Verificar se já enviamos para esse número nas últimas 24h
+    -- Se sim, incrementar conversas_bidirecionais
+$$;
+```
+
+**Critério de aceite:**
+- [ ] Lógica de detecção implementada
+- [ ] Contador incrementado corretamente
+- [ ] Evita duplicatas (mesma conversa conta 1x)
+
+---
+
+## E09: Circuit Breaker por Chip (Novo)
+
+### Análise
+
+O circuit breaker atual é **global** para o serviço Evolution. Mas:
+- Se Revoluna está restrito, Revoluna-01 deveria funcionar
+- Não devemos parar de enviar por TODOS os chips se UM falhar
+
+### Tasks
+
+#### T09.1: Circuit breaker per-chip
+**Prioridade:** Alta
+**Arquivo:** `app/services/chips/circuit_breaker.py` (novo)
+
+Cada chip tem seu próprio circuit breaker.
+
+```python
+class ChipCircuitBreaker:
+    """Circuit breaker específico por chip."""
+
+    _circuits: Dict[str, CircuitBreaker] = {}
+
+    @classmethod
+    def get_circuit(cls, chip_id: str) -> CircuitBreaker:
+        if chip_id not in cls._circuits:
+            cls._circuits[chip_id] = CircuitBreaker(
+                nome=f"chip_{chip_id[:8]}",
+                falhas_para_abrir=3,  # Menos tolerante por chip
+                tempo_reset_segundos=300,
+            )
+        return cls._circuits[chip_id]
+```
+
+**Critério de aceite:**
+- [ ] Circuit breaker por chip implementado
+- [ ] Integrado com ChipSender
+- [ ] ChipSelector ignora chips com circuit aberto
+
+---
+
+#### T09.2: Integrar circuit breaker na seleção
+**Prioridade:** Alta
+**Arquivo:** `app/services/chips/selector.py`
+
+Não selecionar chip se seu circuit breaker está OPEN.
+
+```python
+async def selecionar_chip(...) -> Optional[Dict]:
+    chips = await self._buscar_chips_elegiveis(...)
+
+    # Filtrar chips com circuit aberto
+    chips_disponiveis = [
+        c for c in chips
+        if ChipCircuitBreaker.get_circuit(c["id"]).estado != CircuitState.OPEN
+    ]
+
+    if not chips_disponiveis:
+        logger.warning("[ChipSelector] Todos os chips com circuit aberto!")
+        return None
+
+    # ... continuar seleção
+```
+
+---
+
+## E10: Auditoria e Observabilidade de Chips (Novo)
+
+### Tasks
+
+#### T10.1: Log de decisão do ChipSelector
+**Prioridade:** Média
+**Arquivo:** `app/services/chips/selector.py`
+
+Registrar por que um chip foi selecionado (ou não).
+
+```python
+async def _log_selecao(
+    chips_elegiveis: List[Dict],
+    chip_selecionado: Optional[Dict],
+    motivo: str,
+    conversa_id: Optional[str] = None,
+):
+    """Registra decisão de seleção para auditoria."""
+    supabase.table("chip_selection_log").insert({
+        "conversa_id": conversa_id,
+        "chips_elegiveis": [c["id"] for c in chips_elegiveis],
+        "chip_selecionado": chip_selecionado["id"] if chip_selecionado else None,
+        "motivo": motivo,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }).execute()
+```
+
+---
+
+#### T10.2: Dashboard de saúde dos chips
+**Prioridade:** Média
+**Arquivo:** `app/api/routes/health.py`
+
+Endpoint `/health/chips` com status de todos os chips.
+
+```python
+@router.get("/health/chips")
+async def health_chips():
+    return {
+        "chips": [
+            {
+                "telefone": c["telefone"][-4:],
+                "trust_score": c["trust_score"],
+                "trust_level": c["trust_level"],
+                "circuit_state": ChipCircuitBreaker.get_circuit(c["id"]).estado.value,
+                "pode_prospectar": c["pode_prospectar"],
+                "msgs_24h": c["msgs_enviadas_24h"],
+                "erros_24h": c["erros_ultimas_24h"],
+            }
+            for c in chips
+        ],
+        "chips_disponiveis": count_disponiveis,
+        "chips_com_circuit_aberto": count_circuit_open,
+    }
+```
+
+---
+
+#### T10.3: Ramp-up gradual pós-restrição
+**Prioridade:** Baixa
+**Arquivo:** `app/services/chips/recovery.py` (novo)
+
+Quando chip sai de restrição, não voltar a 100% imediatamente.
+
+```python
+async def iniciar_recuperacao(chip_id: str):
+    """Inicia recuperação gradual de chip pós-restrição."""
+    # Fase 1: 10% do limite normal (1 dia)
+    # Fase 2: 25% do limite normal (2 dias)
+    # Fase 3: 50% do limite normal (3 dias)
+    # Fase 4: 100% do limite normal
+
+    supabase.table("chips").update({
+        "recovery_phase": 1,
+        "recovery_started_at": datetime.now(timezone.utc).isoformat(),
+        "limite_hora": limite_base * 0.1,
+        "limite_dia": limite_dia_base * 0.1,
+    }).eq("id", chip_id).execute()
+```
+
+---
+
+## Priorização Sugerida (Atualizada)
+
+### Concluído ✅
+- **T05.5: MULTI_CHIP_ENABLED** - Já estava true
+- **T07.1: Job de Trust Score** - Implementado e deployado
+
+### Semana 1 (Crítico - Fundação)
+- **T08.1: Incrementar contadores após envio** ⚡⚡
+- **T08.2: Registrar resposta recebida por chip** ⚡⚡
 - T01.3: Circuit breaker no fila_worker
 - T01.5: Alerta de fila acumulando
 - T01.6: Health check do worker
-- T03.1: Corrigir /health/ready
-- T03.7: Monitor WhatsApp para Railway
-- **T05.6: Retry com chip alternativo em caso de falha** ⚡
-- **T05.8: Marcar chip como "cooling_off" após erro WhatsApp** ⚡
-- **T07.2: Atualizar fatores do chip após cada envio** ⚡
+- **T05.6: Retry com chip alternativo** ⚡
+- **T05.8: Cooldown após erro WhatsApp** ⚡
 
 ### Semana 2 (Importante)
-- T01.1: Timeout para mensagens travadas
-- T01.4: Métricas de processamento
-- T02.1: Log de transições
-- T02.3: Diferenciar tipos de erro
-- T03.3: Alerta de erros acumulados
-- T04.1: Limite por cliente_id
-- **T05.7: Threshold de trust emergencial para fallback**
-- **T07.3: Atualizar fatores após resposta recebida**
+- **T08.3: Calcular taxa de delivery real**
+- **T08.5: Registrar conversas bidirecionais**
+- **T09.1: Circuit breaker per-chip**
+- **T09.2: Integrar circuit na seleção**
+- T07.2: Atualizar fatores após envio (depende de T08.1)
+- T07.3: Atualizar fatores após resposta (depende de T08.2)
+- T05.7: Threshold emergencial
 
-### Backlog (Nice to have)
+### Semana 3 (Refinamento)
+- T08.4: Resetar erros_24h automaticamente
+- T10.1: Log de decisão do ChipSelector
+- T10.2: Dashboard de saúde dos chips
+- T01.1: Timeout para mensagens travadas
+- T02.1: Log de transições circuit breaker
+- T03.1: Corrigir /health/ready
+
+### Backlog
+- T10.3: Ramp-up gradual pós-restrição
 - T01.2: Cancelar mensagens antigas
 - T02.2: Backoff exponencial
-- T02.4: Fallback Evolution
-- T03.2: Persistir métricas
-- T03.4: Health score consolidado
-- T05.1-T05.4: Melhorias de chips
-- T07.4: Recálculo urgente de Trust Score
-- Restante
+- Restante dos épicos anteriores
 
 ---
 
