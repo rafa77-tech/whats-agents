@@ -56,7 +56,9 @@ test.describe('Chips Module', () => {
       const url = page.url()
       if (url.includes('/chips/') && !url.includes('/login')) {
         // Look for back link or navigation - could be a link or button
-        const backNav = page.locator('a[href="/chips"], a:has-text("Voltar"), button:has-text("Voltar"), [aria-label*="voltar" i], [aria-label*="back" i]')
+        const backNav = page.locator(
+          'a[href="/chips"], a:has-text("Voltar"), button:has-text("Voltar"), [aria-label*="voltar" i], [aria-label*="back" i]'
+        )
         const navExists = (await backNav.count()) > 0
         // If no explicit back nav, check for any navigation
         if (!navExists) {
@@ -101,7 +103,9 @@ test.describe('Chips Module', () => {
       const url = page.url()
       if (url.includes('/scheduler') && !url.includes('/login')) {
         // Look for date input or date picker button
-        const dateInput = page.locator('input[type="date"], [data-testid="date-picker"], button:has-text("Hoje"), [aria-label*="date" i]')
+        const dateInput = page.locator(
+          'input[type="date"], [data-testid="date-picker"], button:has-text("Hoje"), [aria-label*="date" i]'
+        )
         const dateExists = (await dateInput.count()) > 0
         // Date selector is optional, just verify page loaded
         if (!dateExists) {
