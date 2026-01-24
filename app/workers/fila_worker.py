@@ -2,17 +2,63 @@
 Worker para processar fila de mensagens.
 
 Sprint 23 E01 - Registra outcome detalhado para cada envio.
+Sprint 36 - T01.3: Circuit breaker no fila_worker.
 """
 import asyncio
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.services.fila import fila_service
 from app.services.rate_limiter import pode_enviar
 from app.services.outbound import send_outbound_message, criar_contexto_followup, criar_contexto_campanha
 from app.services.guardrails import SendOutcome
+from app.services.circuit_breaker import circuit_evolution, CircuitState
 
 logger = logging.getLogger(__name__)
+
+# Sprint 36 - T01.3: Controle de alertas
+_ultimo_alerta_circuit: Optional[datetime] = None
+_ALERTA_COOLDOWN_SEGUNDOS = 300  # 5 minutos entre alertas
+
+
+async def _alertar_circuit_aberto():
+    """
+    Sprint 36 - T01.3: Alerta via Slack quando circuit abre.
+
+    Envia alerta com cooldown para evitar spam.
+    """
+    global _ultimo_alerta_circuit
+
+    agora = datetime.now(timezone.utc)
+
+    # Verificar cooldown
+    if _ultimo_alerta_circuit:
+        delta = (agora - _ultimo_alerta_circuit).total_seconds()
+        if delta < _ALERTA_COOLDOWN_SEGUNDOS:
+            return
+
+    _ultimo_alerta_circuit = agora
+
+    try:
+        from app.services.slack import enviar_mensagem_slack
+
+        status = circuit_evolution.status()
+        await enviar_mensagem_slack(
+            canal="alertas",
+            texto=(
+                f":rotating_light: *Circuit Breaker Aberto - Fila Worker*\n\n"
+                f"O circuit breaker do Evolution API está aberto!\n"
+                f"- Estado: `{status['estado']}`\n"
+                f"- Falhas consecutivas: `{status['falhas_consecutivas']}`\n"
+                f"- Última falha: `{status['ultima_falha'] or 'N/A'}`\n\n"
+                f"O worker está pausado e tentará novamente em "
+                f"`{circuit_evolution.tempo_reset_segundos}s`.\n"
+                f"Verifique a Evolution API e os logs do sistema."
+            ),
+        )
+    except Exception as e:
+        logger.error(f"[FilaWorker] Erro ao enviar alerta Slack: {e}")
 
 
 async def processar_fila():
@@ -23,12 +69,24 @@ async def processar_fila():
     respeitando rate limiting.
 
     Sprint 23 E01: Registra outcome detalhado em fila_mensagens.
+    Sprint 36 T01.3: Integração com circuit breaker.
     """
     logger.info("Worker de fila iniciado")
 
     while True:
         mensagem: Optional[dict] = None
         try:
+            # Sprint 36 - T01.3: Verificar circuit breaker antes de processar
+            if circuit_evolution.estado == CircuitState.OPEN:
+                logger.warning(
+                    "[FilaWorker] Circuit breaker ABERTO - pausando processamento"
+                )
+                await _alertar_circuit_aberto()
+
+                # Aguardar tempo de reset antes de tentar novamente
+                await asyncio.sleep(circuit_evolution.tempo_reset_segundos)
+                continue
+
             # Obter próxima mensagem
             mensagem = await fila_service.obter_proxima()
 
@@ -111,6 +169,12 @@ async def processar_fila():
                     f"Mensagem {mensagem['id']} deduplicada: "
                     f"{result.outcome_reason_code}"
                 )
+            elif result.outcome == SendOutcome.FAILED_CIRCUIT_OPEN:
+                # Sprint 36 - T01.3: Alertar quando circuit abre
+                logger.warning(
+                    f"Mensagem {mensagem['id']} falhou por circuit open"
+                )
+                await _alertar_circuit_aberto()
             else:
                 logger.warning(
                     f"Mensagem {mensagem['id']} falhou: "

@@ -21,7 +21,7 @@ interface ChipListTableProps {
   showViewAll?: boolean
 }
 
-const statusConfig: Record<ChipStatus, { label: string; className: string }> = {
+const statusConfig: Record<string, { label: string; className: string }> = {
   active: {
     label: 'Active',
     className: 'bg-green-100 text-green-700 border-green-200',
@@ -64,17 +64,26 @@ const statusConfig: Record<ChipStatus, { label: string; className: string }> = {
   },
 }
 
-const trustColors: Record<TrustLevel, string> = {
+const defaultStatusConfig = {
+  label: 'Unknown',
+  className: 'bg-gray-100 text-gray-600 border-gray-200',
+}
+
+const trustColors: Record<string, string> = {
   verde: 'text-green-600 bg-green-100',
   amarelo: 'text-yellow-600 bg-yellow-100',
   laranja: 'text-orange-600 bg-orange-100',
   vermelho: 'text-red-600 bg-red-100',
+  critico: 'text-red-800 bg-red-200',
 }
 
+const defaultTrustColor = 'text-gray-600 bg-gray-100'
+
 function TrustBadge({ score, level }: { score: number; level: TrustLevel }) {
+  const colorClass = trustColors[level] || defaultTrustColor
   return (
     <span
-      className={`inline-flex items-center rounded px-2 py-0.5 text-sm font-medium ${trustColors[level]}`}
+      className={`inline-flex items-center rounded px-2 py-0.5 text-sm font-medium ${colorClass}`}
     >
       {score}
     </span>
@@ -82,7 +91,7 @@ function TrustBadge({ score, level }: { score: number; level: TrustLevel }) {
 }
 
 function StatusBadge({ status }: { status: ChipStatus }) {
-  const config = statusConfig[status]
+  const config = statusConfig[status] || defaultStatusConfig
   return (
     <Badge variant="outline" className={config.className}>
       {config.label}

@@ -1,14 +1,14 @@
 /**
  * API: GET /api/dashboard/chips
  *
- * Retorna visao agregada do pool de chips (contagens por status, distribuicao trust, metricas).
+ * Retorna status do pool de chips no formato PoolStatus.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getPeriodDates, validatePeriod } from '@/lib/dashboard/calculations'
 import type { ChipStatus, TrustLevel } from '@/types/dashboard'
 import { shouldUseMock, mockPoolStatus } from '@/lib/mock'
+import type { PoolStatus, TrustLevelExtended } from '@/types/chips'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,49 +17,55 @@ interface ChipRow {
   status: ChipStatus
   trust_score: number | null
   trust_level: TrustLevel | null
-  msgs_enviadas_total: number | null
-  taxa_resposta: number | null
-  taxa_block: number | null
-  erros_ultimas_24h: number | null
+  msgs_enviadas_hoje: number | null
+  limite_dia: number | null
+  fase_warmup: string | null
 }
 
-function getTrustLevel(score: number): TrustLevel {
-  if (score >= 75) return 'verde'
-  if (score >= 50) return 'amarelo'
-  if (score >= 35) return 'laranja'
-  return 'vermelho'
+interface AlertRow {
+  id: string
+  severity: string
 }
 
-export async function GET(request: NextRequest) {
+function getTrustLevelExtended(score: number): TrustLevelExtended {
+  if (score >= 80) return 'verde'
+  if (score >= 60) return 'amarelo'
+  if (score >= 40) return 'laranja'
+  if (score >= 20) return 'vermelho'
+  return 'critico'
+}
+
+function getDailyLimit(
+  status: ChipStatus,
+  faseWarmup?: string | null,
+  limiteDia?: number | null
+): number {
+  if (limiteDia) return limiteDia
+  if (status === 'active') return 100
+  if (status === 'warming') {
+    switch (faseWarmup) {
+      case 'primeiros_contatos':
+        return 10
+      case 'expansao':
+        return 30
+      case 'pre_operacao':
+        return 50
+      default:
+        return 30
+    }
+  }
+  if (status === 'degraded') return 30
+  return 0
+}
+
+export async function GET() {
   // Return mock data for E2E tests
   if (shouldUseMock()) {
-    return NextResponse.json({
-      statusCounts: Object.entries(mockPoolStatus.byStatus).map(([status, count]) => ({
-        status,
-        count,
-      })),
-      trustDistribution: Object.entries(mockPoolStatus.byTrustLevel).map(([level, count]) => ({
-        level,
-        count,
-        percentage: Math.round((count / mockPoolStatus.total) * 100),
-      })),
-      metrics: {
-        totalMessagesSent: mockPoolStatus.totalMessagesToday * 10,
-        avgResponseRate: 32.5,
-        avgBlockRate: 2.1,
-        totalErrors: 5,
-        previousMessagesSent: mockPoolStatus.totalMessagesToday * 9,
-        previousResponseRate: 30.0,
-        previousBlockRate: 2.5,
-        previousErrors: 7,
-      },
-    })
+    return NextResponse.json(mockPoolStatus)
   }
 
   try {
     const supabase = await createClient()
-    const period = validatePeriod(request.nextUrl.searchParams.get('period'))
-    const { previousStart, previousEnd } = getPeriodDates(period)
 
     // Buscar todos os chips
     const { data: chips, error } = await supabase.from('chips').select(`
@@ -67,10 +73,9 @@ export async function GET(request: NextRequest) {
         status,
         trust_score,
         trust_level,
-        msgs_enviadas_total,
-        taxa_resposta,
-        taxa_block,
-        erros_ultimas_24h
+        msgs_enviadas_hoje,
+        limite_dia,
+        fase_warmup
       `)
 
     if (error) throw error
@@ -78,99 +83,84 @@ export async function GET(request: NextRequest) {
     const typedChips = (chips as ChipRow[] | null) || []
 
     // Contagem por status
-    const statusCounts: Record<string, number> = {}
+    const byStatus: Record<ChipStatus, number> = {
+      active: 0,
+      ready: 0,
+      warming: 0,
+      degraded: 0,
+      paused: 0,
+      banned: 0,
+      pending: 0,
+      provisioned: 0,
+      cancelled: 0,
+      offline: 0,
+    }
+
     typedChips.forEach((chip) => {
-      if (chip.status) {
-        statusCounts[chip.status] = (statusCounts[chip.status] || 0) + 1
+      if (chip.status && chip.status in byStatus) {
+        byStatus[chip.status as ChipStatus]++
       }
     })
 
-    // Distribuicao por trust level
-    const trustCounts: Record<TrustLevel, number> = {
+    // Distribuição por trust level extendido
+    const byTrustLevel: Record<TrustLevelExtended, number> = {
       verde: 0,
       amarelo: 0,
       laranja: 0,
       vermelho: 0,
+      critico: 0,
     }
+
+    let totalTrustScore = 0
+    typedChips.forEach((chip) => {
+      const score = chip.trust_score || 0
+      totalTrustScore += score
+      const level = getTrustLevelExtended(score)
+      byTrustLevel[level]++
+    })
+
+    const totalChips = typedChips.length
+    const avgTrustScore = totalChips > 0 ? totalTrustScore / totalChips : 0
+
+    // Mensagens hoje e capacidade
+    let totalMessagesToday = 0
+    let totalDailyCapacity = 0
 
     typedChips.forEach((chip) => {
-      // Usar trust_level do banco se disponivel, senao calcular
-      const level = (chip.trust_level as TrustLevel) || getTrustLevel(chip.trust_score || 0)
-      trustCounts[level]++
+      totalMessagesToday += chip.msgs_enviadas_hoje || 0
+      // Só contar capacidade de chips que podem enviar
+      if (['active', 'warming', 'ready', 'degraded'].includes(chip.status)) {
+        totalDailyCapacity += getDailyLimit(chip.status, chip.fase_warmup, chip.limite_dia)
+      }
     })
 
-    const totalChips = typedChips.length || 1
-    const trustDistribution = (Object.entries(trustCounts) as [TrustLevel, number][]).map(
-      ([level, count]) => ({
-        level,
-        count,
-        percentage: Math.round((count / totalChips) * 100),
-      })
-    )
+    // Buscar alertas ativos
+    const { data: alerts, error: alertsError } = await supabase
+      .from('chip_alerts')
+      .select('id, severity')
+      .eq('resolved', false)
 
-    // Metricas agregadas (periodo atual)
-    const activeChips = typedChips.filter((c) => c.status === 'active')
+    let activeAlerts = 0
+    let criticalAlerts = 0
 
-    const totalMessagesSent = activeChips.reduce((sum, c) => sum + (c.msgs_enviadas_total || 0), 0)
-    const avgResponseRate =
-      activeChips.length > 0
-        ? activeChips.reduce((sum, c) => sum + (c.taxa_resposta || 0), 0) / activeChips.length
-        : 0
-    const avgBlockRate =
-      activeChips.length > 0
-        ? activeChips.reduce((sum, c) => sum + (c.taxa_block || 0), 0) / activeChips.length
-        : 0
-    const totalErrors = typedChips.reduce((sum, c) => sum + (c.erros_ultimas_24h || 0), 0) || 0
-
-    // Buscar metricas do periodo anterior usando chip_metrics_hourly
-    const { data: previousMetrics } = await supabase
-      .from('chip_metrics_hourly')
-      .select('msgs_enviadas, taxa_resposta, erros')
-      .gte('hora', previousStart)
-      .lte('hora', previousEnd)
-
-    let previousMessagesSent = 0
-    let previousResponseRate = 0
-    let previousErrors = 0
-
-    if (previousMetrics && previousMetrics.length > 0) {
-      previousMessagesSent = previousMetrics.reduce(
-        (sum, m) => sum + ((m.msgs_enviadas as number) || 0),
-        0
-      )
-      const ratesSum = previousMetrics.reduce(
-        (sum, m) => sum + ((m.taxa_resposta as number) || 0),
-        0
-      )
-      previousResponseRate = ratesSum / previousMetrics.length
-      previousErrors = previousMetrics.reduce((sum, m) => sum + ((m.erros as number) || 0), 0)
-    } else {
-      // Fallback: simular valores se nao houver dados historicos
-      previousMessagesSent = Math.round(totalMessagesSent * 0.87)
-      previousResponseRate = avgResponseRate * 0.98
-      previousErrors = Math.round(totalErrors * 1.25)
+    if (!alertsError && alerts) {
+      const typedAlerts = alerts as AlertRow[]
+      activeAlerts = typedAlerts.length
+      criticalAlerts = typedAlerts.filter((a) => a.severity === 'critico').length
     }
 
-    // Simular block rate anterior (nao temos historico)
-    const previousBlockRate = avgBlockRate * 1.1
+    const poolStatus: PoolStatus = {
+      total: totalChips,
+      byStatus,
+      byTrustLevel,
+      avgTrustScore: Number(avgTrustScore.toFixed(1)),
+      totalMessagesToday,
+      totalDailyCapacity,
+      activeAlerts,
+      criticalAlerts,
+    }
 
-    return NextResponse.json({
-      statusCounts: Object.entries(statusCounts).map(([status, count]) => ({
-        status,
-        count,
-      })),
-      trustDistribution,
-      metrics: {
-        totalMessagesSent,
-        avgResponseRate: Number((avgResponseRate * 100).toFixed(1)),
-        avgBlockRate: Number((avgBlockRate * 100).toFixed(1)),
-        totalErrors,
-        previousMessagesSent,
-        previousResponseRate: Number((previousResponseRate * 100).toFixed(1)),
-        previousBlockRate: Number((previousBlockRate * 100).toFixed(1)),
-        previousErrors,
-      },
-    })
+    return NextResponse.json(poolStatus)
   } catch (error) {
     console.error('Error fetching chip pool:', error)
     return NextResponse.json({ error: 'Failed to fetch chip pool data' }, { status: 500 })

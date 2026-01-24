@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { chipsApi } from '@/lib/api/chips'
-import { ChipAlert, ChipAlertSeverity, ChipAlertType } from '@/types/chips'
+import { ChipAlert } from '@/types/chips'
 import {
   AlertTriangle,
   TrendingDown,
@@ -47,10 +47,7 @@ interface AlertCardProps {
   onResolved: () => void
 }
 
-const severityConfig: Record<
-  ChipAlertSeverity,
-  { color: string; bgColor: string; borderColor: string }
-> = {
+const severityConfig: Record<string, { color: string; bgColor: string; borderColor: string }> = {
   critico: {
     color: 'text-red-600',
     bgColor: 'bg-red-50',
@@ -73,7 +70,13 @@ const severityConfig: Record<
   },
 }
 
-const typeConfig: Record<ChipAlertType, { icon: typeof AlertTriangle; label: string }> = {
+const defaultSeverityConfig = {
+  color: 'text-gray-600',
+  bgColor: 'bg-gray-50',
+  borderColor: 'border-gray-200',
+}
+
+const typeConfig: Record<string, { icon: typeof AlertTriangle; label: string }> = {
   TRUST_CAINDO: { icon: TrendingDown, label: 'Trust Caindo' },
   TAXA_BLOCK_ALTA: { icon: Ban, label: 'Taxa de Block Alta' },
   ERROS_FREQUENTES: { icon: AlertCircle, label: 'Erros Frequentes' },
@@ -86,12 +89,16 @@ const typeConfig: Record<ChipAlertType, { icon: typeof AlertTriangle; label: str
   COMPORTAMENTO_ANOMALO: { icon: AlertTriangle, label: 'Comportamento Anômalo' },
 }
 
-const severityLabels: Record<ChipAlertSeverity, string> = {
+const defaultTypeConfig = { icon: AlertTriangle, label: 'Desconhecido' }
+
+const severityLabels: Record<string, string> = {
   critico: 'Crítico',
   alerta: 'Alerta',
   atencao: 'Atenção',
   info: 'Info',
 }
+
+const defaultSeverityLabel = 'Desconhecido'
 
 export function AlertCard({ alert, onResolved }: AlertCardProps) {
   const [isResolving, setIsResolving] = useState(false)
@@ -111,8 +118,8 @@ export function AlertCard({ alert, onResolved }: AlertCardProps) {
     }
   }
 
-  const severity = severityConfig[alert.severity]
-  const type = typeConfig[alert.type]
+  const severity = severityConfig[alert.severity] || defaultSeverityConfig
+  const type = typeConfig[alert.type] || defaultTypeConfig
   const Icon = type.icon
 
   return (
@@ -145,7 +152,7 @@ export function AlertCard({ alert, onResolved }: AlertCardProps) {
                       : cn(severity.bgColor, severity.color)
                   )}
                 >
-                  {severityLabels[alert.severity]}
+                  {severityLabels[alert.severity] || defaultSeverityLabel}
                 </Badge>
                 <Badge variant="outline" className="text-xs">
                   {type.label}

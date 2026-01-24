@@ -34,16 +34,14 @@ import {
   ChipMetrics,
   ChipTrustHistory,
   ChipInteractionsResponse,
-  TrustLevelExtended,
   WarmupPhase,
 } from '@/types/chips'
-import { ChipStatus } from '@/types/dashboard'
 
 interface ChipDetailContentProps {
   chipId: string
 }
 
-const statusConfig: Record<ChipStatus, { label: string; color: string }> = {
+const statusConfig: Record<string, { label: string; color: string }> = {
   provisioned: { label: 'Provisionado', color: 'bg-gray-100 text-gray-800' },
   pending: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
   warming: { label: 'Aquecendo', color: 'bg-blue-100 text-blue-800' },
@@ -56,13 +54,17 @@ const statusConfig: Record<ChipStatus, { label: string; color: string }> = {
   offline: { label: 'Offline', color: 'bg-red-100 text-red-800' },
 }
 
-const trustLevelConfig: Record<TrustLevelExtended, { color: string }> = {
+const defaultStatusConfig = { label: 'Desconhecido', color: 'bg-gray-100 text-gray-800' }
+
+const trustLevelConfig: Record<string, { color: string }> = {
   verde: { color: 'bg-green-100 text-green-800' },
   amarelo: { color: 'bg-yellow-100 text-yellow-800' },
   laranja: { color: 'bg-orange-100 text-orange-800' },
   vermelho: { color: 'bg-red-100 text-red-800' },
   critico: { color: 'bg-red-200 text-red-900' },
 }
+
+const defaultTrustConfig = { color: 'bg-gray-100 text-gray-800' }
 
 const warmupPhaseLabels: Record<WarmupPhase, string> = {
   repouso: 'Repouso',
@@ -140,8 +142,8 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
     )
   }
 
-  const statusCfg = statusConfig[chip.status]
-  const trustCfg = trustLevelConfig[chip.trustLevel]
+  const statusCfg = statusConfig[chip.status] || defaultStatusConfig
+  const trustCfg = trustLevelConfig[chip.trustLevel] || defaultTrustConfig
 
   return (
     <div className="space-y-6">

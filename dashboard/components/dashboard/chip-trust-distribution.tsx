@@ -1,17 +1,20 @@
 'use client'
 
-import { type TrustDistribution, type TrustLevel } from '@/types/dashboard'
+import { type TrustDistribution } from '@/types/dashboard'
 
 interface ChipTrustDistributionProps {
   distribution: TrustDistribution[]
 }
 
-const trustConfig: Record<TrustLevel, { label: string; range: string; color: string }> = {
+const trustConfig: Record<string, { label: string; range: string; color: string }> = {
   verde: { label: 'Verde', range: '75+', color: 'bg-green-500' },
   amarelo: { label: 'Amarelo', range: '50-74', color: 'bg-yellow-500' },
   laranja: { label: 'Laranja', range: '35-49', color: 'bg-orange-500' },
   vermelho: { label: 'Vermelho', range: '<35', color: 'bg-red-500' },
+  critico: { label: 'Crítico', range: '<20', color: 'bg-red-700' },
 }
+
+const defaultConfig = { label: 'Desconhecido', range: '-', color: 'bg-gray-500' }
 
 export function ChipTrustDistribution({ distribution }: ChipTrustDistributionProps) {
   const maxCount = Math.max(...distribution.map((d) => d.count), 1)
@@ -21,7 +24,7 @@ export function ChipTrustDistribution({ distribution }: ChipTrustDistributionPro
       <h4 className="text-sm font-medium text-gray-700">Trust Level</h4>
       <div className="space-y-2">
         {distribution.map((item) => {
-          const config = trustConfig[item.level]
+          const config = trustConfig[item.level] || defaultConfig
           const barWidth = (item.count / maxCount) * 100
 
           return (

@@ -140,9 +140,9 @@ describe('BottomNav', () => {
     render(<BottomNav />)
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
     expect(screen.getByText('Campanhas')).toBeInTheDocument()
+    expect(screen.getByText('Chips')).toBeInTheDocument()
     expect(screen.getByText('Instrucoes')).toBeInTheDocument()
     expect(screen.getByText('Sistema')).toBeInTheDocument()
-    expect(screen.getByText('Ajuda')).toBeInTheDocument()
   })
 
   it('should highlight active route on mobile', () => {

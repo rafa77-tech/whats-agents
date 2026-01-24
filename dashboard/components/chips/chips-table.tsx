@@ -17,7 +17,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ChipListItem } from '@/types/chips'
-import { ChipStatus, TrustLevel } from '@/types/dashboard'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
@@ -30,7 +29,7 @@ interface ChipsTableProps {
   onRowClick?: (chip: ChipListItem) => void
 }
 
-const statusBadgeVariants: Record<ChipStatus, string> = {
+const statusBadgeVariants: Record<string, string> = {
   active: 'bg-green-100 text-green-800 border-green-200',
   ready: 'bg-blue-100 text-blue-800 border-blue-200',
   warming: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -43,7 +42,9 @@ const statusBadgeVariants: Record<ChipStatus, string> = {
   offline: 'bg-red-100 text-red-800 border-red-200',
 }
 
-const trustLevelColors: Record<TrustLevel | 'critico', string> = {
+const defaultBadgeVariant = 'bg-gray-100 text-gray-600 border-gray-200'
+
+const trustLevelColors: Record<string, string> = {
   verde: 'text-green-600',
   amarelo: 'text-yellow-600',
   laranja: 'text-orange-600',
@@ -51,7 +52,9 @@ const trustLevelColors: Record<TrustLevel | 'critico', string> = {
   critico: 'text-gray-600',
 }
 
-const statusLabels: Record<ChipStatus, string> = {
+const defaultTrustColor = 'text-gray-600'
+
+const statusLabels: Record<string, string> = {
   active: 'Ativo',
   ready: 'Pronto',
   warming: 'Aquecendo',
@@ -63,6 +66,8 @@ const statusLabels: Record<ChipStatus, string> = {
   cancelled: 'Cancelado',
   offline: 'Offline',
 }
+
+const defaultStatusLabel = 'Desconhecido'
 
 export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }: ChipsTableProps) {
   const allSelected = chips.length > 0 && selectedIds.length === chips.length
@@ -142,13 +147,21 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
                 <TableCell>
                   <Badge
                     variant="outline"
-                    className={cn('capitalize', statusBadgeVariants[chip.status])}
+                    className={cn(
+                      'capitalize',
+                      statusBadgeVariants[chip.status] || defaultBadgeVariant
+                    )}
                   >
-                    {statusLabels[chip.status]}
+                    {statusLabels[chip.status] || defaultStatusLabel}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className={cn('font-medium', trustLevelColors[chip.trustLevel])}>
+                  <span
+                    className={cn(
+                      'font-medium',
+                      trustLevelColors[chip.trustLevel] || defaultTrustColor
+                    )}
+                  >
                     {chip.trustScore}
                   </span>
                 </TableCell>

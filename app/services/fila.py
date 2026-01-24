@@ -2,6 +2,8 @@
 Servico de fila de mensagens agendadas.
 
 Sprint 23 E01 - Adiciona suporte a outcome detalhado.
+Sprint 36 - T01.1: Timeout para mensagens travadas
+Sprint 36 - T01.2: Cancelar mensagens antigas
 """
 from datetime import datetime, timezone, timedelta
 from typing import Optional, TYPE_CHECKING
@@ -168,6 +170,61 @@ class FilaService:
         logger.warning(f"Falha ao registrar outcome para {mensagem_id}")
         return False
 
+    async def obter_metricas_fila(self) -> dict:
+        """
+        Sprint 36 - T01.5: Obtém métricas da fila para monitoramento.
+
+        Returns:
+            {
+                'pendentes': int,
+                'processando': int,
+                'erros_ultimas_24h': int,
+                'mensagem_mais_antiga_min': float | None,
+            }
+        """
+        from datetime import timedelta
+
+        agora = datetime.now(timezone.utc)
+        ontem = (agora - timedelta(hours=24)).isoformat()
+
+        # Contar pendentes
+        pendentes = supabase.table("fila_mensagens").select(
+            "id", count="exact"
+        ).eq("status", "pendente").execute()
+
+        # Contar processando
+        processando = supabase.table("fila_mensagens").select(
+            "id", count="exact"
+        ).eq("status", "processando").execute()
+
+        # Contar erros nas últimas 24h
+        erros = supabase.table("fila_mensagens").select(
+            "id", count="exact"
+        ).eq("status", "erro").gte("updated_at", ontem).execute()
+
+        # Buscar mensagem pendente mais antiga
+        mais_antiga = supabase.table("fila_mensagens").select(
+            "created_at"
+        ).eq("status", "pendente").order(
+            "created_at", desc=False
+        ).limit(1).execute()
+
+        # Calcular idade em minutos
+        idade_minutos = None
+        if mais_antiga.data:
+            created_at_str = mais_antiga.data[0]["created_at"]
+            created_at = datetime.fromisoformat(
+                created_at_str.replace("Z", "+00:00")
+            )
+            idade_minutos = (agora - created_at).total_seconds() / 60
+
+        return {
+            "pendentes": pendentes.count or 0,
+            "processando": processando.count or 0,
+            "erros_ultimas_24h": erros.count or 0,
+            "mensagem_mais_antiga_min": idade_minutos,
+        }
+
     async def marcar_erro(self, mensagem_id: str, erro: str) -> bool:
         """Marca erro e agenda retry se possível."""
         # Buscar mensagem atual
@@ -211,6 +268,176 @@ class FilaService:
             
             logger.error(f"Mensagem {mensagem_id} falhou após {nova_tentativa} tentativas")
             return False
+
+    async def resetar_mensagens_travadas(self, timeout_minutos: int = 60) -> int:
+        """
+        Sprint 36 - T01.1: Reseta mensagens travadas em 'processando'.
+
+        Mensagens em 'processando' por mais de X minutos são resetadas
+        para 'pendente' com incremento de tentativas.
+
+        Args:
+            timeout_minutos: Tempo máximo em processando (default: 60)
+
+        Returns:
+            Número de mensagens resetadas
+        """
+        agora = datetime.now(timezone.utc)
+        limite = (agora - timedelta(minutes=timeout_minutos)).isoformat()
+
+        # Buscar mensagens travadas
+        travadas = supabase.table("fila_mensagens").select(
+            "id, tentativas, max_tentativas"
+        ).eq(
+            "status", "processando"
+        ).lt(
+            "processando_desde", limite
+        ).execute()
+
+        if not travadas.data:
+            return 0
+
+        resetadas = 0
+        for msg in travadas.data:
+            tentativas = (msg.get("tentativas") or 0) + 1
+            max_tentativas = msg.get("max_tentativas", 3)
+
+            if tentativas >= max_tentativas:
+                # Esgotou tentativas - marcar como erro
+                supabase.table("fila_mensagens").update({
+                    "status": "erro",
+                    "tentativas": tentativas,
+                    "erro": f"Timeout após {timeout_minutos}min (tentativa {tentativas})",
+                    "outcome": "FAILED_TIMEOUT",
+                    "outcome_at": agora.isoformat(),
+                }).eq("id", msg["id"]).execute()
+            else:
+                # Ainda tem tentativas - resetar para pendente
+                supabase.table("fila_mensagens").update({
+                    "status": "pendente",
+                    "tentativas": tentativas,
+                    "processando_desde": None,
+                    "agendar_para": agora.isoformat(),  # Tentar imediatamente
+                }).eq("id", msg["id"]).execute()
+
+            resetadas += 1
+
+        if resetadas > 0:
+            logger.warning(
+                f"[Fila] Resetadas {resetadas} mensagens travadas "
+                f"(timeout: {timeout_minutos}min)"
+            )
+
+        return resetadas
+
+    async def cancelar_mensagens_antigas(self, max_idade_horas: int = 24) -> int:
+        """
+        Sprint 36 - T01.2: Cancela mensagens pendentes muito antigas.
+
+        Mensagens pendentes por mais de X horas são canceladas
+        automaticamente para evitar envios desatualizados.
+
+        Args:
+            max_idade_horas: Idade máxima em horas (default: 24)
+
+        Returns:
+            Número de mensagens canceladas
+        """
+        limite = (
+            datetime.now(timezone.utc) - timedelta(hours=max_idade_horas)
+        ).isoformat()
+
+        # Atualizar mensagens antigas para cancelada
+        result = supabase.table("fila_mensagens").update({
+            "status": "cancelada",
+            "outcome": "FAILED_EXPIRED",
+            "outcome_reason_code": f"expired_after_{max_idade_horas}h",
+            "outcome_at": datetime.now(timezone.utc).isoformat(),
+        }).eq(
+            "status", "pendente"
+        ).lt(
+            "created_at", limite
+        ).execute()
+
+        canceladas = len(result.data) if result.data else 0
+
+        if canceladas > 0:
+            logger.warning(
+                f"[Fila] Canceladas {canceladas} mensagens antigas "
+                f"(> {max_idade_horas}h)"
+            )
+
+        return canceladas
+
+    async def obter_estatisticas_completas(self) -> dict:
+        """
+        Sprint 36 - T01.4: Obtém estatísticas completas da fila.
+
+        Returns:
+            {
+                'por_status': {status: count},
+                'pendentes': int,
+                'processando': int,
+                'enviadas_ultima_hora': int,
+                'erros_ultima_hora': int,
+                'tempo_medio_processamento_ms': float,
+                'mensagem_mais_antiga_min': float | None,
+                'travadas': int,  # processando > 1h
+            }
+        """
+        agora = datetime.now(timezone.utc)
+        uma_hora_atras = (agora - timedelta(hours=1)).isoformat()
+        uma_hora_atras_processando = (agora - timedelta(hours=1)).isoformat()
+
+        # Contagens por status
+        pendentes = supabase.table("fila_mensagens").select(
+            "id", count="exact"
+        ).eq("status", "pendente").execute()
+
+        processando = supabase.table("fila_mensagens").select(
+            "id", count="exact"
+        ).eq("status", "processando").execute()
+
+        # Enviadas na última hora
+        enviadas = supabase.table("fila_mensagens").select(
+            "id", count="exact"
+        ).eq("status", "enviada").gte("enviada_em", uma_hora_atras).execute()
+
+        # Erros na última hora
+        erros = supabase.table("fila_mensagens").select(
+            "id", count="exact"
+        ).eq("status", "erro").gte("updated_at", uma_hora_atras).execute()
+
+        # Mensagens travadas (processando > 1h)
+        travadas = supabase.table("fila_mensagens").select(
+            "id", count="exact"
+        ).eq("status", "processando").lt(
+            "processando_desde", uma_hora_atras_processando
+        ).execute()
+
+        # Mensagem pendente mais antiga
+        mais_antiga = supabase.table("fila_mensagens").select(
+            "created_at"
+        ).eq("status", "pendente").order(
+            "created_at", desc=False
+        ).limit(1).execute()
+
+        idade_minutos = None
+        if mais_antiga.data:
+            created_at_str = mais_antiga.data[0]["created_at"]
+            created_at = datetime.fromisoformat(
+                created_at_str.replace("Z", "+00:00")
+            )
+            idade_minutos = round((agora - created_at).total_seconds() / 60, 1)
+
+        return {
+            "pendentes": pendentes.count or 0,
+            "processando": processando.count or 0,
+            "enviadas_ultima_hora": enviadas.count or 0,
+            "erros_ultima_hora": erros.count or 0,
+            "mensagem_mais_antiga_min": idade_minutos,
+            "travadas": travadas.count or 0,
+        }
 
 
 fila_service = FilaService()

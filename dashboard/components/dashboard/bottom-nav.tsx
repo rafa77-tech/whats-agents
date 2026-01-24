@@ -9,7 +9,7 @@ import {
   Megaphone,
   FileText,
   Settings,
-  HelpCircle,
+  Smartphone,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -22,9 +22,9 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Campanhas', href: '/campanhas', icon: Megaphone },
+  { name: 'Chips', href: '/chips', icon: Smartphone },
   { name: 'Instrucoes', href: '/instrucoes', icon: FileText },
   { name: 'Sistema', href: '/sistema', icon: Settings },
-  { name: 'Ajuda', href: '/ajuda', icon: HelpCircle },
 ]
 
 export function BottomNav() {

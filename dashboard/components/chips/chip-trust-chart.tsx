@@ -34,12 +34,15 @@ const trustLevelThresholds = [
   { value: 20, label: 'Vermelho', color: '#ef4444' },
 ]
 
-const eventTypeConfig = {
-  increase: { icon: TrendingUp, color: 'text-green-500', bgColor: 'bg-green-50' },
-  decrease: { icon: TrendingDown, color: 'text-red-500', bgColor: 'bg-red-50' },
-  phase_change: { icon: RefreshCw, color: 'text-blue-500', bgColor: 'bg-blue-50' },
-  alert: { icon: AlertTriangle, color: 'text-orange-500', bgColor: 'bg-orange-50' },
-}
+const eventTypeConfig: Record<string, { icon: typeof TrendingUp; color: string; bgColor: string }> =
+  {
+    increase: { icon: TrendingUp, color: 'text-green-500', bgColor: 'bg-green-50' },
+    decrease: { icon: TrendingDown, color: 'text-red-500', bgColor: 'bg-red-50' },
+    phase_change: { icon: RefreshCw, color: 'text-blue-500', bgColor: 'bg-blue-50' },
+    alert: { icon: AlertTriangle, color: 'text-orange-500', bgColor: 'bg-orange-50' },
+  }
+
+const defaultEventConfig = { icon: AlertTriangle, color: 'text-gray-500', bgColor: 'bg-gray-50' }
 
 export function ChipTrustChart({ history }: ChipTrustChartProps) {
   const chartData = useMemo(() => {
@@ -146,7 +149,7 @@ export function ChipTrustChart({ history }: ChipTrustChartProps) {
 }
 
 function TrustEventItem({ event }: { event: TrustEvent }) {
-  const config = eventTypeConfig[event.type]
+  const config = eventTypeConfig[event.type] || defaultEventConfig
   const Icon = config.icon
   const scoreDiff = event.scoreAfter - event.scoreBefore
   const isPositive = scoreDiff > 0

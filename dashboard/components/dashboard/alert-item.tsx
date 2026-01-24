@@ -16,7 +16,16 @@ interface AlertItemProps {
   alert: DashboardAlert
 }
 
-const severityConfig = {
+const severityConfig: Record<
+  string,
+  {
+    icon: typeof AlertCircle
+    bgColor: string
+    borderColor: string
+    iconColor: string
+    textColor: string
+  }
+> = {
   critical: {
     icon: AlertCircle,
     bgColor: 'bg-red-50',
@@ -40,9 +49,17 @@ const severityConfig = {
   },
 }
 
+const defaultSeverityConfig = {
+  icon: Info,
+  bgColor: 'bg-gray-50',
+  borderColor: 'border-gray-200',
+  iconColor: 'text-gray-500',
+  textColor: 'text-gray-800',
+}
+
 export function AlertItem({ alert }: AlertItemProps) {
   const { severity, title, message, createdAt, actionLabel, actionUrl } = alert
-  const config = severityConfig[severity]
+  const config = severityConfig[severity] || defaultSeverityConfig
   const Icon = config.icon
 
   return (

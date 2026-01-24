@@ -304,3 +304,351 @@ async def cancelar_migracao(migracao_id: str) -> bool:
     }).eq("id", migracao_id).execute()
 
     return True
+
+
+# ============================================================
+# Sprint 36 - T11.4: Migração com Contexto
+# ============================================================
+
+async def coletar_contexto_conversa(
+    medico_id: str,
+    chip_id: str,
+    limite_msgs: int = 20
+) -> Dict:
+    """
+    Sprint 36 - T11.4: Coleta contexto da conversa para migração.
+
+    Preserva:
+    - Resumo das últimas mensagens
+    - Preferências do médico
+    - Estado do relacionamento
+    - Assuntos discutidos
+
+    Args:
+        medico_id: ID do médico
+        chip_id: ID do chip atual
+        limite_msgs: Máximo de mensagens a considerar
+
+    Returns:
+        Dict com contexto completo
+    """
+    contexto = {
+        "medico_id": medico_id,
+        "chip_id": chip_id,
+        "coletado_em": datetime.now(timezone.utc).isoformat(),
+        "resumo_conversa": None,
+        "preferencias": {},
+        "assuntos_recentes": [],
+        "tom_relacionamento": "neutro",
+        "ultima_interacao": None,
+        "total_interacoes": 0,
+    }
+
+    try:
+        # 1. Buscar dados do médico
+        medico_result = supabase.table("clientes").select(
+            "id, nome, primeiro_nome, especialidade, preferencias, "
+            "horario_preferido, dias_preferidos"
+        ).eq("id", medico_id).single().execute()
+
+        if medico_result.data:
+            medico = medico_result.data
+            contexto["preferencias"] = {
+                "nome_tratamento": medico.get("primeiro_nome") or medico.get("nome", "").split()[0],
+                "especialidade": medico.get("especialidade"),
+                "horario_preferido": medico.get("horario_preferido"),
+                "dias_preferidos": medico.get("dias_preferidos"),
+                "preferencias_custom": medico.get("preferencias") or {},
+            }
+
+        # 2. Buscar últimas interações
+        interacoes_result = supabase.table("interacoes").select(
+            "id, tipo, mensagem, resposta, created_at"
+        ).eq(
+            "cliente_id", medico_id
+        ).order(
+            "created_at", desc=True
+        ).limit(limite_msgs).execute()
+
+        interacoes = interacoes_result.data or []
+
+        if interacoes:
+            contexto["total_interacoes"] = len(interacoes)
+            contexto["ultima_interacao"] = interacoes[0]["created_at"]
+
+            # Extrair assuntos discutidos (análise simples)
+            assuntos = set()
+            for inter in interacoes:
+                msg = (inter.get("mensagem") or "").lower()
+                resp = (inter.get("resposta") or "").lower()
+                texto = f"{msg} {resp}"
+
+                if "plantão" in texto or "escala" in texto:
+                    assuntos.add("plantoes")
+                if "valor" in texto or "pagamento" in texto or "remuneração" in texto:
+                    assuntos.add("remuneracao")
+                if "hospital" in texto or "unidade" in texto:
+                    assuntos.add("locais")
+                if "horário" in texto or "disponibilidade" in texto:
+                    assuntos.add("disponibilidade")
+                if "documentos" in texto or "crm" in texto:
+                    assuntos.add("documentacao")
+
+            contexto["assuntos_recentes"] = list(assuntos)
+
+        # 3. Buscar doctor_state para tom do relacionamento
+        state_result = supabase.table("doctor_state").select(
+            "interest_level, engagement_score, sentiment_trend, optout_reason"
+        ).eq("cliente_id", medico_id).single().execute()
+
+        if state_result.data:
+            state = state_result.data
+            interesse = state.get("interest_level", "unknown")
+            sentimento = state.get("sentiment_trend", "neutral")
+
+            # Determinar tom
+            if interesse == "hot" or state.get("engagement_score", 0) > 70:
+                contexto["tom_relacionamento"] = "engajado"
+            elif interesse == "cold" or sentimento == "negative":
+                contexto["tom_relacionamento"] = "distante"
+            elif state.get("optout_reason"):
+                contexto["tom_relacionamento"] = "desinteressado"
+            else:
+                contexto["tom_relacionamento"] = "neutro"
+
+        # 4. Gerar resumo da conversa (últimas 5 mensagens)
+        if interacoes:
+            ultimas = interacoes[:5]
+            resumo_partes = []
+            for inter in reversed(ultimas):  # Ordem cronológica
+                if inter.get("mensagem"):
+                    resumo_partes.append(f"Médico: {inter['mensagem'][:100]}")
+                if inter.get("resposta"):
+                    resumo_partes.append(f"Julia: {inter['resposta'][:100]}")
+
+            contexto["resumo_conversa"] = "\n".join(resumo_partes) if resumo_partes else None
+
+        return contexto
+
+    except Exception as e:
+        logger.error(f"[MigracaoContexto] Erro ao coletar contexto: {e}")
+        contexto["erro"] = str(e)
+        return contexto
+
+
+async def migrar_conversa_com_contexto(
+    chip_antigo: Dict,
+    chip_novo: Dict,
+    medico_id: str,
+    motivo: str = "degradacao_chip"
+) -> Dict:
+    """
+    Sprint 36 - T11.4: Migra conversa preservando contexto completo.
+
+    Diferente da migração simples:
+    - Coleta contexto antes de migrar
+    - Salva contexto para o novo chip poder continuar
+    - Notifica médico se apropriado
+    - Registra auditoria completa
+
+    Args:
+        chip_antigo: Chip que está sendo substituído
+        chip_novo: Chip que vai assumir
+        medico_id: ID do médico
+        motivo: Motivo da migração
+
+    Returns:
+        Resultado completo da migração
+    """
+    resultado = {
+        "sucesso": False,
+        "chip_antigo_id": chip_antigo["id"],
+        "chip_novo_id": chip_novo["id"],
+        "medico_id": medico_id,
+        "motivo": motivo,
+        "contexto_preservado": False,
+        "notificou_medico": False,
+        "migracao_id": None,
+    }
+
+    try:
+        # 1. Coletar contexto completo
+        logger.info(
+            f"[MigracaoContexto] Coletando contexto para migração: "
+            f"medico={medico_id}, chip_antigo={chip_antigo.get('telefone')}"
+        )
+        contexto = await coletar_contexto_conversa(medico_id, chip_antigo["id"])
+
+        # 2. Buscar conversa do médico
+        conversa_result = supabase.table("conversations").select("id").eq(
+            "cliente_id", medico_id
+        ).order("created_at", desc=True).limit(1).execute()
+
+        conversa_id = conversa_result.data[0]["id"] if conversa_result.data else None
+
+        # 3. Salvar contexto na tabela de migrações
+        migracao_data = {
+            "chip_antigo_id": chip_antigo["id"],
+            "chip_novo_id": chip_novo["id"],
+            "medico_id": medico_id,
+            "conversa_id": conversa_id,
+            "motivo": motivo,
+            "contexto": contexto,
+            "status": "em_progresso",
+            "iniciado_em": datetime.now(timezone.utc).isoformat(),
+        }
+
+        migracao_insert = supabase.table("migracao_agendada").insert(
+            migracao_data
+        ).execute()
+
+        if migracao_insert.data:
+            resultado["migracao_id"] = migracao_insert.data[0]["id"]
+            resultado["contexto_preservado"] = True
+
+        # 4. Verificar se deve notificar médico
+        deve_notificar = (
+            contexto.get("total_interacoes", 0) >= 2 and
+            contexto.get("tom_relacionamento") != "desinteressado" and
+            chip_antigo.get("evolution_connected")  # Chip antigo ainda funciona
+        )
+
+        if deve_notificar:
+            # Usar migração anunciada padrão
+            notificou = await migrar_conversa_anunciada(
+                chip_antigo, chip_novo, medico_id
+            )
+            resultado["notificou_medico"] = notificou
+        else:
+            # Migração silenciosa
+            await migrar_conversa_silenciosa(chip_antigo, chip_novo, medico_id)
+
+        # 5. Atualizar mapeamento de conversa com contexto
+        if conversa_id:
+            supabase.table("conversation_chips").update({
+                "chip_id": chip_novo["id"],
+                "migrated_at": datetime.now(timezone.utc).isoformat(),
+                "migrated_from": chip_antigo["id"],
+                "migration_context": contexto,
+            }).eq("conversa_id", conversa_id).eq("active", True).execute()
+
+        # 6. Transferir afinidade para novo chip
+        try:
+            from app.services.chips.affinity import registrar_interacao_chip_medico
+
+            # Registrar afinidade no novo chip baseado no contexto
+            if contexto.get("total_interacoes", 0) > 0:
+                await registrar_interacao_chip_medico(
+                    chip_id=chip_novo["id"],
+                    medico_id=medico_id,
+                    tipo="migracao_afinidade",
+                    metadata={
+                        "chip_anterior": chip_antigo["id"],
+                        "interacoes_anteriores": contexto.get("total_interacoes", 0),
+                        "tom_relacionamento": contexto.get("tom_relacionamento"),
+                    }
+                )
+        except Exception as e:
+            logger.warning(f"[MigracaoContexto] Erro ao transferir afinidade: {e}")
+
+        # 7. Atualizar status da migração
+        if resultado["migracao_id"]:
+            supabase.table("migracao_agendada").update({
+                "status": "concluida" if resultado["notificou_medico"] else "migrado_silencioso",
+                "processado_em": datetime.now(timezone.utc).isoformat(),
+            }).eq("id", resultado["migracao_id"]).execute()
+
+        resultado["sucesso"] = True
+        resultado["contexto"] = {
+            "tom_relacionamento": contexto.get("tom_relacionamento"),
+            "total_interacoes": contexto.get("total_interacoes"),
+            "assuntos_recentes": contexto.get("assuntos_recentes"),
+        }
+
+        logger.info(
+            f"[MigracaoContexto] Migração concluída: "
+            f"medico={medico_id}, "
+            f"chip {chip_antigo.get('telefone')} -> {chip_novo.get('telefone')}, "
+            f"contexto_preservado=True, notificou={resultado['notificou_medico']}"
+        )
+
+        return resultado
+
+    except Exception as e:
+        logger.error(f"[MigracaoContexto] Erro na migração: {e}")
+        resultado["erro"] = str(e)
+
+        # Tentar migração de fallback simples
+        try:
+            await migrar_conversa_silenciosa(chip_antigo, chip_novo, medico_id)
+            resultado["sucesso"] = True
+            resultado["fallback_usado"] = True
+        except Exception:
+            pass
+
+        return resultado
+
+
+async def obter_contexto_conversa_atual(
+    conversa_id: str
+) -> Optional[Dict]:
+    """
+    Sprint 36 - T11.4: Obtém contexto de migração salvo para uma conversa.
+
+    Útil para o agente Julia saber o histórico ao continuar
+    uma conversa em um novo chip.
+
+    Args:
+        conversa_id: ID da conversa
+
+    Returns:
+        Contexto de migração ou None
+    """
+    try:
+        result = supabase.table("conversation_chips").select(
+            "migration_context, migrated_at, migrated_from"
+        ).eq(
+            "conversa_id", conversa_id
+        ).eq(
+            "active", True
+        ).single().execute()
+
+        if result.data and result.data.get("migration_context"):
+            return {
+                "contexto": result.data["migration_context"],
+                "migrado_em": result.data.get("migrated_at"),
+                "chip_anterior": result.data.get("migrated_from"),
+            }
+
+        return None
+
+    except Exception as e:
+        logger.debug(f"[MigracaoContexto] Erro ao buscar contexto: {e}")
+        return None
+
+
+async def listar_migracoes_com_contexto(
+    status: Optional[str] = None,
+    limite: int = 50
+) -> List[Dict]:
+    """
+    Sprint 36 - T11.4: Lista migrações com contexto preservado.
+
+    Args:
+        status: Filtrar por status (opcional)
+        limite: Máximo de registros
+
+    Returns:
+        Lista de migrações com contexto
+    """
+    query = supabase.table("migracao_agendada").select(
+        "*, chips!chip_novo_id(telefone), clientes!medico_id(nome, primeiro_nome)"
+    ).not_.is_("contexto", "null").order(
+        "iniciado_em", desc=True
+    ).limit(limite)
+
+    if status:
+        query = query.eq("status", status)
+
+    result = query.execute()
+    return result.data or []

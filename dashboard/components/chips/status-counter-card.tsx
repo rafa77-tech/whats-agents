@@ -17,7 +17,7 @@ interface StatusCounterCardProps {
   trendValue?: number
 }
 
-const statusConfig: Record<ChipStatus, { label: string; color: string; bgColor: string }> = {
+const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
   active: { label: 'Ativos', color: 'text-green-700', bgColor: 'bg-green-50' },
   ready: { label: 'Prontos', color: 'text-blue-700', bgColor: 'bg-blue-50' },
   warming: { label: 'Aquecendo', color: 'text-yellow-700', bgColor: 'bg-yellow-50' },
@@ -30,6 +30,8 @@ const statusConfig: Record<ChipStatus, { label: string; color: string; bgColor: 
   offline: { label: 'Offline', color: 'text-red-700', bgColor: 'bg-red-50' },
 }
 
+const defaultConfig = { label: 'Desconhecido', color: 'text-gray-700', bgColor: 'bg-gray-50' }
+
 export function StatusCounterCard({
   status,
   count,
@@ -37,7 +39,7 @@ export function StatusCounterCard({
   trend,
   trendValue,
 }: StatusCounterCardProps) {
-  const config = statusConfig[status]
+  const config = statusConfig[status] || defaultConfig
 
   return (
     <div className={cn('rounded-lg border p-4', config.bgColor)}>

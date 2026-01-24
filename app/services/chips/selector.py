@@ -2,11 +2,20 @@
 Chip Selector - Selecao inteligente de chip por tipo de mensagem.
 
 Sprint 26 - E02
+Sprint 36 - T05.6: Retry com chip alternativo
+Sprint 36 - T05.7: Threshold emergencial para fallback
+Sprint 36 - T09.2: Integrar circuit breaker per-chip na seleção
+Sprint 36 - T10.1: Log de decisão ChipSelector
+Sprint 36 - T11.5: Afinidade chip-médico na seleção
+Sprint 36 - T11.6: Verificar conexão Evolution na seleção
 
 Considera:
+- Circuit breaker do chip (não seleciona se OPEN)
+- Conexão Evolution ativa (evolution_connected)
 - Trust Score do chip
 - Permissoes (pode_prospectar, pode_followup, pode_responder)
 - Uso atual (msgs/hora, msgs/dia)
+- Afinidade chip-médico (Sprint 36)
 - Historico com o contato
 - Continuidade de conversa
 """
@@ -16,6 +25,7 @@ from typing import Optional, List, Dict, Literal
 from datetime import datetime, timedelta, timezone
 
 from app.services.supabase import supabase
+from app.services.chips.circuit_breaker import ChipCircuitBreaker, CircuitState
 
 logger = logging.getLogger(__name__)
 
@@ -46,14 +56,21 @@ class ChipSelector:
         tipo_mensagem: TipoMensagem,
         conversa_id: Optional[str] = None,
         telefone_destino: Optional[str] = None,
+        excluir_chips: Optional[List[str]] = None,
+        fallback_mode: bool = False,
     ) -> Optional[Dict]:
         """
         Seleciona melhor chip para enviar mensagem.
+
+        Sprint 36 - T05.6: Suporte a excluir_chips para retry com fallback.
+        Sprint 36 - T05.7: Suporte a fallback_mode para threshold emergencial.
 
         Args:
             tipo_mensagem: 'prospeccao', 'followup', ou 'resposta'
             conversa_id: ID da conversa (para continuidade)
             telefone_destino: Telefone do destinatario
+            excluir_chips: Lista de chip_ids a excluir (já tentados)
+            fallback_mode: Se True, usa thresholds reduzidos
 
         Returns:
             Chip selecionado ou None
@@ -61,17 +78,44 @@ class ChipSelector:
         if not self.config:
             await self.carregar_config()
 
+        excluir_chips = excluir_chips or []
+
         # 1. Se eh resposta e tem conversa, manter no mesmo chip
         if tipo_mensagem == "resposta" and conversa_id:
             chip_existente = await self._buscar_chip_conversa(conversa_id)
             if chip_existente and chip_existente.get("pode_responder"):
-                logger.debug(f"[ChipSelector] Usando chip existente da conversa: {chip_existente['telefone']}")
-                return chip_existente
+                # Sprint 36 - T05.6: Verificar se não está na lista de exclusão
+                if chip_existente["id"] not in excluir_chips:
+                    logger.debug(f"[ChipSelector] Usando chip existente da conversa: {chip_existente['telefone']}")
+                    return chip_existente
 
         # 2. Buscar chips elegiveis
-        chips = await self._buscar_chips_elegiveis(tipo_mensagem)
+        chips = await self._buscar_chips_elegiveis(tipo_mensagem, fallback_mode)
+
+        # Sprint 36 - T05.6: Excluir chips já tentados
+        if excluir_chips:
+            chips_antes = len(chips)
+            chips = [c for c in chips if c["id"] not in excluir_chips]
+            if chips_antes != len(chips):
+                logger.debug(
+                    f"[ChipSelector] Excluídos {chips_antes - len(chips)} chips já tentados"
+                )
 
         if not chips:
+            # Sprint 36 - T05.7: Tentar fallback mode se ainda não tentou
+            if not fallback_mode:
+                logger.warning(
+                    f"[ChipSelector] Sem chips com trust alto para {tipo_mensagem}, "
+                    f"tentando fallback mode"
+                )
+                return await self.selecionar_chip(
+                    tipo_mensagem=tipo_mensagem,
+                    conversa_id=conversa_id,
+                    telefone_destino=telefone_destino,
+                    excluir_chips=excluir_chips,
+                    fallback_mode=True,
+                )
+
             logger.warning(f"[ChipSelector] Nenhum chip disponivel para {tipo_mensagem}")
             return None
 
@@ -86,6 +130,17 @@ class ChipSelector:
         # 4. Selecionar por menor uso
         chip_selecionado = await self._selecionar_menor_uso(chips)
 
+        # Sprint 36 - T10.1: Log de decisão
+        await self._registrar_selecao(
+            tipo_mensagem=tipo_mensagem,
+            chips_elegiveis=chips,
+            chip_selecionado=chip_selecionado,
+            motivo="menor_uso",
+            conversa_id=conversa_id,
+            telefone_destino=telefone_destino,
+            fallback_mode=fallback_mode,
+        )
+
         logger.debug(
             f"[ChipSelector] Selecionado {chip_selecionado['telefone']} "
             f"para {tipo_mensagem}"
@@ -94,7 +149,11 @@ class ChipSelector:
         return chip_selecionado
 
     async def _buscar_chip_conversa(self, conversa_id: str) -> Optional[Dict]:
-        """Busca chip atualmente associado a conversa."""
+        """
+        Busca chip atualmente associado a conversa.
+
+        Sprint 36 - T11.6: Também verifica se chip está conectado.
+        """
         # Usar relationship hint para evitar ambiguidade
         # (conversation_chips tem 2 FKs para chips: chip_id e migrated_from)
         result = supabase.table("conversation_chips").select(
@@ -106,33 +165,85 @@ class ChipSelector:
         ).limit(1).execute()
 
         if result.data and result.data[0].get("chips"):
-            return result.data[0]["chips"]
+            chip = result.data[0]["chips"]
+
+            # Sprint 36 - T11.6: Verificar se chip está conectado
+            if not chip.get("evolution_connected"):
+                logger.warning(
+                    f"[ChipSelector] Chip da conversa {chip.get('telefone')} "
+                    f"não está conectado, ignorando afinidade"
+                )
+                return None
+
+            return chip
         return None
 
-    async def _buscar_chips_elegiveis(self, tipo_mensagem: TipoMensagem) -> List[Dict]:
+    async def _buscar_chips_elegiveis(
+        self,
+        tipo_mensagem: TipoMensagem,
+        fallback_mode: bool = False,
+    ) -> List[Dict]:
         """
         Busca chips que podem enviar o tipo de mensagem.
 
-        Criterios por tipo:
+        Criterios por tipo (normal):
         - prospeccao: Trust >= 80, pode_prospectar = true
         - followup: Trust >= 60, pode_followup = true
         - resposta: Trust >= 40, pode_responder = true
+
+        Criterios por tipo (fallback - Sprint 36 T05.7):
+        - prospeccao: Trust >= 60, pode_prospectar = true
+        - followup: Trust >= 40, pode_followup = true
+        - resposta: Trust >= 20, pode_responder = true
+
+        Sprint 36 - T11.6: Também filtra por evolution_connected = true
         """
         query = supabase.table("chips").select("*").eq("status", "active")
 
+        # Sprint 36 - T11.6: Filtrar apenas chips conectados ao Evolution
+        query = query.eq("evolution_connected", True)
+
         # Filtrar por permissao e trust minimo
+        # Sprint 36 - T05.7: Thresholds reduzidos em fallback mode
         if tipo_mensagem == "prospeccao":
-            query = query.eq("pode_prospectar", True).gte("trust_score", 80)
+            min_trust = 60 if fallback_mode else 80
+            query = query.eq("pode_prospectar", True).gte("trust_score", min_trust)
         elif tipo_mensagem == "followup":
-            query = query.eq("pode_followup", True).gte("trust_score", 60)
+            min_trust = 40 if fallback_mode else 60
+            query = query.eq("pode_followup", True).gte("trust_score", min_trust)
         else:  # resposta
-            query = query.eq("pode_responder", True).gte("trust_score", 40)
+            min_trust = 20 if fallback_mode else 40
+            query = query.eq("pode_responder", True).gte("trust_score", min_trust)
+
+        if fallback_mode:
+            logger.info(
+                f"[ChipSelector] Usando threshold emergencial: "
+                f"trust >= {min_trust} para {tipo_mensagem}"
+            )
 
         result = query.order("trust_score", desc=True).execute()
 
         # Filtrar por limite de uso
         chips_disponiveis = []
+        chips_desconectados = 0
+        chips_circuit_aberto = 0  # Sprint 36 - T09.2
+
         for chip in result.data or []:
+            # Sprint 36 - T11.6: Verificar cooldown de conexão
+            if chip.get("connection_cooldown_until"):
+                try:
+                    cooldown_until = datetime.fromisoformat(
+                        chip["connection_cooldown_until"].replace("Z", "+00:00")
+                    )
+                    if datetime.now(timezone.utc) < cooldown_until:
+                        logger.debug(
+                            f"[ChipSelector] Chip {chip['telefone']} em cooldown de conexão"
+                        )
+                        chips_desconectados += 1
+                        continue
+                except (ValueError, TypeError):
+                    pass  # Ignorar se formato invalido
+
             # Verificar limite diario
             limite_dia = chip.get("limite_dia", 100)
             msgs_hoje = chip.get("msgs_enviadas_hoje", 0)
@@ -149,7 +260,7 @@ class ChipSelector:
                 logger.debug(f"[ChipSelector] Chip {chip['telefone']} no limite horario")
                 continue
 
-            # Verificar cooldown
+            # Verificar cooldown geral
             if chip.get("cooldown_until"):
                 cooldown_until = datetime.fromisoformat(
                     chip["cooldown_until"].replace("Z", "+00:00")
@@ -158,8 +269,30 @@ class ChipSelector:
                     logger.debug(f"[ChipSelector] Chip {chip['telefone']} em cooldown")
                     continue
 
+            # Sprint 36 - T09.2: Verificar circuit breaker do chip
+            if not ChipCircuitBreaker.pode_usar_chip(chip["id"]):
+                circuit = ChipCircuitBreaker.get_circuit(chip["id"], chip.get("telefone", ""))
+                logger.debug(
+                    f"[ChipSelector] Chip {chip['telefone']} descartado: "
+                    f"circuit breaker {circuit.estado.value}"
+                )
+                chips_circuit_aberto += 1
+                continue
+
             chip["_uso_hora"] = uso_hora
             chips_disponiveis.append(chip)
+
+        # Log de chips descartados por conexão
+        if chips_desconectados > 0:
+            logger.warning(
+                f"[ChipSelector] {chips_desconectados} chips descartados por cooldown de conexão"
+            )
+
+        # Sprint 36 - T09.2: Log de chips com circuit aberto
+        if chips_circuit_aberto > 0:
+            logger.warning(
+                f"[ChipSelector] {chips_circuit_aberto} chips descartados por circuit breaker aberto"
+            )
 
         return chips_disponiveis
 
@@ -218,6 +351,50 @@ class ChipSelector:
             chips,
             key=lambda c: (c.get("_uso_hora", 0), -(c.get("trust_score", 0)))
         )[0]
+
+    async def _registrar_selecao(
+        self,
+        tipo_mensagem: TipoMensagem,
+        chips_elegiveis: List[Dict],
+        chip_selecionado: Optional[Dict],
+        motivo: str,
+        conversa_id: Optional[str] = None,
+        telefone_destino: Optional[str] = None,
+        fallback_mode: bool = False,
+    ) -> None:
+        """
+        Sprint 36 - T10.1: Registra decisão de seleção para auditoria.
+
+        Args:
+            tipo_mensagem: Tipo da mensagem
+            chips_elegiveis: Lista de chips considerados
+            chip_selecionado: Chip que foi selecionado (ou None)
+            motivo: Motivo da seleção
+            conversa_id: ID da conversa (opcional)
+            telefone_destino: Telefone destino (opcional)
+            fallback_mode: Se estava em modo fallback
+        """
+        try:
+            supabase.table("chip_selection_log").insert({
+                "tipo_mensagem": tipo_mensagem,
+                "conversa_id": conversa_id,
+                "telefone_destino": telefone_destino[-4:] if telefone_destino else None,
+                "chips_elegiveis_count": len(chips_elegiveis),
+                "chips_elegiveis_ids": [c["id"] for c in chips_elegiveis[:10]],  # Limitar
+                "chip_selecionado_id": chip_selecionado["id"] if chip_selecionado else None,
+                "chip_selecionado_telefone": (
+                    chip_selecionado.get("telefone")[-4:]
+                    if chip_selecionado and chip_selecionado.get("telefone")
+                    else None
+                ),
+                "motivo": motivo,
+                "fallback_mode": fallback_mode,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }).execute()
+
+        except Exception as e:
+            # Não falhar seleção por erro de log
+            logger.debug(f"[ChipSelector] Erro ao registrar seleção: {e}")
 
     async def registrar_envio(
         self,
@@ -343,6 +520,257 @@ class ChipSelector:
         ).order("trust_score", desc=True).execute()
 
         return result.data or []
+
+
+    async def aplicar_rampup_gradual(
+        self,
+        chip_id: str,
+        motivo: str = "recuperacao_cooldown"
+    ) -> Dict:
+        """
+        Sprint 36 - T10.3: Aplica ramp-up gradual para chip saindo de restrição.
+
+        Quando um chip sai de cooldown ou tinha trust baixo, não volta
+        imediatamente para capacidade total. Isso evita sobrecarga e
+        permite monitorar a recuperação.
+
+        Níveis de ramp-up:
+        - Fase 1 (0-2h): 25% da capacidade
+        - Fase 2 (2-6h): 50% da capacidade
+        - Fase 3 (6-12h): 75% da capacidade
+        - Fase 4 (12h+): 100% da capacidade
+
+        Args:
+            chip_id: ID do chip
+            motivo: Motivo do ramp-up
+
+        Returns:
+            {
+                "chip_id": str,
+                "rampup_inicio": datetime,
+                "limite_atual_pct": int,
+                "fase": int
+            }
+        """
+        agora = datetime.now(timezone.utc)
+
+        try:
+            # Buscar chip
+            chip_result = supabase.table("chips").select(
+                "id, telefone, limite_hora, limite_dia"
+            ).eq("id", chip_id).single().execute()
+
+            if not chip_result.data:
+                return {"erro": "Chip não encontrado"}
+
+            chip = chip_result.data
+
+            # Aplicar ramp-up: definir início e fase inicial
+            supabase.table("chips").update({
+                "rampup_inicio": agora.isoformat(),
+                "rampup_fase": 1,
+                "rampup_motivo": motivo,
+                "updated_at": agora.isoformat(),
+            }).eq("id", chip_id).execute()
+
+            logger.info(
+                f"[ChipSelector] T10.3: Ramp-up iniciado para chip {chip.get('telefone')[-4:]}: "
+                f"fase 1 (25%), motivo={motivo}"
+            )
+
+            return {
+                "chip_id": chip_id,
+                "telefone": chip.get("telefone", "")[-4:],
+                "rampup_inicio": agora.isoformat(),
+                "limite_atual_pct": 25,
+                "fase": 1,
+                "motivo": motivo,
+            }
+
+        except Exception as e:
+            logger.error(f"[ChipSelector] Erro ao aplicar ramp-up: {e}")
+            return {"erro": str(e)}
+
+    def calcular_limite_rampup(self, chip: Dict) -> Dict:
+        """
+        Sprint 36 - T10.3: Calcula limite atual baseado no ramp-up.
+
+        Args:
+            chip: Dict com dados do chip
+
+        Returns:
+            {
+                "limite_hora": int,
+                "limite_dia": int,
+                "fase": int,
+                "percentual": int,
+                "em_rampup": bool
+            }
+        """
+        limite_hora_base = chip.get("limite_hora", 20)
+        limite_dia_base = chip.get("limite_dia", 100)
+
+        # Verificar se está em ramp-up
+        rampup_inicio = chip.get("rampup_inicio")
+        if not rampup_inicio:
+            return {
+                "limite_hora": limite_hora_base,
+                "limite_dia": limite_dia_base,
+                "fase": 0,
+                "percentual": 100,
+                "em_rampup": False,
+            }
+
+        try:
+            if isinstance(rampup_inicio, str):
+                rampup_inicio = datetime.fromisoformat(
+                    rampup_inicio.replace("Z", "+00:00")
+                )
+
+            horas_desde_inicio = (
+                datetime.now(timezone.utc) - rampup_inicio
+            ).total_seconds() / 3600
+
+            # Determinar fase e percentual
+            if horas_desde_inicio < 2:
+                fase = 1
+                percentual = 25
+            elif horas_desde_inicio < 6:
+                fase = 2
+                percentual = 50
+            elif horas_desde_inicio < 12:
+                fase = 3
+                percentual = 75
+            else:
+                # Ramp-up completo
+                fase = 4
+                percentual = 100
+
+            return {
+                "limite_hora": int(limite_hora_base * percentual / 100),
+                "limite_dia": int(limite_dia_base * percentual / 100),
+                "fase": fase,
+                "percentual": percentual,
+                "em_rampup": percentual < 100,
+                "horas_restantes": max(0, 12 - horas_desde_inicio) if fase < 4 else 0,
+            }
+
+        except Exception:
+            # Em caso de erro, usar limite padrão
+            return {
+                "limite_hora": limite_hora_base,
+                "limite_dia": limite_dia_base,
+                "fase": 0,
+                "percentual": 100,
+                "em_rampup": False,
+            }
+
+    async def atualizar_fases_rampup(self) -> Dict:
+        """
+        Sprint 36 - T10.3: Atualiza fases de ramp-up de todos os chips.
+
+        Deve ser chamado periodicamente por um job.
+
+        Returns:
+            {
+                "chips_atualizados": int,
+                "chips_finalizados": int,
+                "detalhes": List[Dict]
+            }
+        """
+        agora = datetime.now(timezone.utc)
+
+        try:
+            # Buscar chips em ramp-up
+            result = supabase.table("chips").select(
+                "id, telefone, rampup_inicio, rampup_fase"
+            ).eq(
+                "status", "active"
+            ).not_.is_(
+                "rampup_inicio", "null"
+            ).execute()
+
+            chips_atualizados = 0
+            chips_finalizados = 0
+            detalhes = []
+
+            for chip in result.data or []:
+                chip_id = chip["id"]
+                limite_info = self.calcular_limite_rampup(chip)
+                nova_fase = limite_info["fase"]
+                fase_atual = chip.get("rampup_fase") or 1
+
+                # Verificar se mudou de fase
+                if nova_fase != fase_atual:
+                    if nova_fase == 4:
+                        # Ramp-up completo - limpar campos
+                        supabase.table("chips").update({
+                            "rampup_inicio": None,
+                            "rampup_fase": None,
+                            "rampup_motivo": None,
+                            "updated_at": agora.isoformat(),
+                        }).eq("id", chip_id).execute()
+                        chips_finalizados += 1
+
+                        logger.info(
+                            f"[ChipSelector] Ramp-up finalizado para chip {chip.get('telefone')[-4:]}"
+                        )
+                    else:
+                        # Atualizar fase
+                        supabase.table("chips").update({
+                            "rampup_fase": nova_fase,
+                            "updated_at": agora.isoformat(),
+                        }).eq("id", chip_id).execute()
+
+                        logger.info(
+                            f"[ChipSelector] Ramp-up fase {nova_fase} ({limite_info['percentual']}%) "
+                            f"para chip {chip.get('telefone')[-4:]}"
+                        )
+
+                    chips_atualizados += 1
+                    detalhes.append({
+                        "chip_id": chip_id,
+                        "telefone": chip.get("telefone", "")[-4:],
+                        "fase_anterior": fase_atual,
+                        "fase_nova": nova_fase,
+                        "percentual": limite_info["percentual"],
+                    })
+
+            return {
+                "chips_atualizados": chips_atualizados,
+                "chips_finalizados": chips_finalizados,
+                "detalhes": detalhes,
+            }
+
+        except Exception as e:
+            logger.error(f"[ChipSelector] Erro ao atualizar fases ramp-up: {e}")
+            return {"erro": str(e)}
+
+    async def listar_chips_em_rampup(self) -> List[Dict]:
+        """
+        Sprint 36 - T10.3: Lista chips atualmente em ramp-up.
+
+        Returns:
+            Lista de chips com informações de ramp-up
+        """
+        result = supabase.table("chips").select(
+            "id, telefone, trust_score, rampup_inicio, rampup_fase, rampup_motivo, "
+            "limite_hora, limite_dia"
+        ).eq(
+            "status", "active"
+        ).not_.is_(
+            "rampup_inicio", "null"
+        ).execute()
+
+        chips_rampup = []
+        for chip in result.data or []:
+            limite_info = self.calcular_limite_rampup(chip)
+            chips_rampup.append({
+                **chip,
+                **limite_info,
+            })
+
+        return chips_rampup
 
 
 # Singleton
