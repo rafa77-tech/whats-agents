@@ -1,7 +1,7 @@
 # Sprint 36 - Resiliência e Observabilidade
 
 **Início:** 2026-01-24
-**Duração estimada:** 2 semanas
+**Duração estimada:** 3 semanas
 **Prioridade:** Alta
 **Trigger:** Incidente 2026-01-23 (campanha sem envio + restrição WhatsApp)
 
@@ -14,6 +14,7 @@ Fortalecer os sistemas de resiliência e observabilidade para:
 2. Detectar e reagir a problemas mais rapidamente
 3. Reduzir impacto de falhas em cascata
 4. Ter visibilidade completa do estado do sistema
+5. **Garantir ciclo de vida completo e robusto dos chips**
 
 ---
 
@@ -24,6 +25,13 @@ O incidente de 2026-01-23 revelou múltiplos gaps:
 - Circuit breaker com reset muito rápido (15s → 300s)
 - Nenhum alerta de fila acumulando
 - Sem health check do worker
+
+**Análise adicional (2026-01-24):** Revisão completa do ciclo de vida dos chips revelou gaps adicionais:
+- Métricas dos chips nunca alimentadas (Trust Score com dados vazios)
+- Health Monitor não demove chips automaticamente
+- Sync Evolution não está no scheduler
+- Sem alerta proativo de pool baixo
+- Circuit breaker é global, não per-chip
 
 **Documento de referência:** `docs/auditorias/incidente-2026-01-23-campanha-sem-envio.md`
 
@@ -43,8 +51,39 @@ O incidente de 2026-01-23 revelou múltiplos gaps:
 | E08 | **Alimentação de Métricas** | 5 | **🔴 CRÍTICA** | Novo |
 | E09 | **Circuit Breaker per-Chip** | 2 | **Crítica** | Novo |
 | E10 | **Auditoria de Chips** | 3 | Média | Novo |
+| E11 | **Lifecycle Automation** | 6 | **🔴 CRÍTICA** | Novo |
 
-**Total:** 10 épicos, ~47 tasks
+**Total:** 11 épicos, ~53 tasks
+
+---
+
+## Visão do Ciclo de Vida do Chip
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         CICLO COMPLETO DO CHIP                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌──────────┐   ┌─────────┐   ┌───────────┐   ┌────────┐   ┌────────┐         │
+│  │PROVISION │──►│ WARMING │──►│   READY   │──►│ ACTIVE │──►│DEGRADED│         │
+│  │ (Salvy)  │   │ (21 dias)│   │  (pool)   │   │ (prod) │   │        │         │
+│  └──────────┘   └─────────┘   └───────────┘   └────────┘   └───┬────┘         │
+│       │              │              ▲              │  ▲         │              │
+│       ▼              ▼              │              ▼  │         ▼              │
+│  ┌──────────┐   ┌─────────┐        │         ┌───────┴──┐  ┌────────┐         │
+│  │ PENDING  │   │ Trust   │────────┘         │ Cooldown │  │ BANNED │         │
+│  │  (QR)    │   │ >= 85   │                  │ Recovery │  │(final) │         │
+│  └──────────┘   └─────────┘                  └──────────┘  └────────┘         │
+│                                                                                 │
+│  GAPS ENDEREÇADOS NESTA SPRINT:                                                │
+│  ✅ E07/E08: Trust Score + Métricas alimentadas                                │
+│  ✅ E09: Circuit breaker per-chip                                              │
+│  ✅ E05: Retry com fallback + Cooldown + Threshold emergencial                 │
+│  ✅ E11: Auto-demove + Sync Evolution + Alertas de pool                        │
+│  ✅ E10: Auditoria de seleção + Dashboard + Ramp-up                            │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -1250,47 +1289,530 @@ async def iniciar_recuperacao(chip_id: str):
 
 ---
 
+## E11: Lifecycle Automation (CRÍTICO - Novo)
+
+### Análise (Descoberta 2026-01-24)
+
+**Problema:** Várias automações críticas do ciclo de vida não estão funcionando:
+
+| Componente | Status | Problema |
+|------------|--------|----------|
+| Health Monitor | ⚠️ | Cria alertas mas **não demove** chips |
+| Sync Evolution | ⚠️ | Existe mas **não está no scheduler** |
+| Alertas de pool | ❌ | Não existe alerta proativo |
+| Migração de conversas | ⚠️ | Básica, sem contexto |
+| Registro de afinidade | ❌ | Interações chip-médico não registradas |
+| Verificação conexão | ⚠️ | Não integrada na seleção |
+
+### Tasks
+
+#### T11.1: Health Monitor com auto-demove
+**Prioridade:** Crítica
+**Arquivo:** `app/services/chips/health_monitor.py`
+
+Quando chip atinge critérios de degradação, demover automaticamente (não apenas criar alerta).
+
+```python
+async def verificar_e_demover_chip(chip_id: str) -> bool:
+    """Verifica saúde do chip e demove se necessário."""
+    chip = await buscar_chip(chip_id)
+
+    deve_demover = False
+    motivo = ""
+
+    # Critérios de demoção automática
+    if chip["trust_score"] < 40:
+        deve_demover = True
+        motivo = f"trust_score_critico:{chip['trust_score']}"
+
+    elif chip["erros_ultimas_24h"] > 10:
+        deve_demover = True
+        motivo = f"muitos_erros:{chip['erros_ultimas_24h']}"
+
+    elif not chip["evolution_connected"]:
+        # Só demove se desconectado por mais de 30 minutos
+        if chip["desconectado_desde"] and (now() - chip["desconectado_desde"]).minutes > 30:
+            deve_demover = True
+            motivo = "desconectado_prolongado"
+
+    elif chip["taxa_block"] > 0.02:  # > 2% de blocks
+        deve_demover = True
+        motivo = f"taxa_block_alta:{chip['taxa_block']}"
+
+    if deve_demover and chip["status"] == "active":
+        await demover_chip(chip_id, motivo)
+        await notificar_slack(
+            f":warning: Chip `{chip['telefone'][-4:]}` demovido automaticamente. "
+            f"Motivo: *{motivo}*",
+            canal="alertas"
+        )
+        return True
+
+    return False
+
+async def demover_chip(chip_id: str, motivo: str):
+    """Demove chip de active para degraded."""
+    supabase.table("chips").update({
+        "status": "degraded",
+        "demovido_em": datetime.now(timezone.utc).isoformat(),
+        "demovido_motivo": motivo,
+    }).eq("id", chip_id).execute()
+
+    # Registrar transição
+    await registrar_transicao_chip(chip_id, "active", "degraded", motivo)
+
+    # Triggar auto-replace no orchestrator
+    await orchestrator.verificar_deficits()
+```
+
+**Critério de aceite:**
+- [ ] Função `verificar_e_demover_chip` criada
+- [ ] Critérios de demoção configuráveis
+- [ ] Demoção automática quando critérios atingidos
+- [ ] Notificação no Slack
+- [ ] Auto-replace triggerado
+- [ ] Teste de integração
+
+---
+
+#### T11.2: Sync Evolution no scheduler
+**Prioridade:** Crítica
+**Arquivo:** `app/workers/scheduler.py`, `app/api/routes/jobs.py`
+
+Garantir que sync com Evolution está rodando periodicamente.
+
+```python
+# scheduler.py - Adicionar ao JOBS:
+{
+    "name": "sync_evolution_instances",
+    "endpoint": "/jobs/sync-evolution",
+    "schedule": "*/2 * * * *",  # A cada 2 minutos
+}
+
+# jobs.py - Implementar endpoint:
+@router.post("/jobs/sync-evolution")
+async def job_sync_evolution():
+    """Sincroniza estado de todas as instâncias Evolution."""
+    from app.services.chips.sync_evolution import sincronizar_todas_instancias
+
+    result = await sincronizar_todas_instancias()
+
+    # Alertar se muitas desconectadas
+    if result["desconectadas"] > result["total"] * 0.3:
+        await notificar_slack(
+            f":rotating_light: {result['desconectadas']}/{result['total']} "
+            f"instâncias Evolution desconectadas!",
+            canal="alertas"
+        )
+
+    return result
+```
+
+**Critério de aceite:**
+- [ ] Job adicionado ao scheduler
+- [ ] Executa a cada 2 minutos
+- [ ] Atualiza `evolution_connected` de todos os chips
+- [ ] Alerta se > 30% desconectadas
+- [ ] Log de sincronização
+
+---
+
+#### T11.3: Alerta proativo de pool baixo
+**Prioridade:** Alta
+**Arquivo:** `app/services/chips/orchestrator.py`, `app/services/alertas.py`
+
+Alertar quando pool está abaixo do mínimo e provisioning é necessário.
+
+```python
+async def verificar_e_alertar_pool():
+    """Verifica estado do pool e alerta se necessário."""
+    status = await obter_status_pool()
+    deficits = await verificar_deficits()
+
+    alertas = []
+
+    # Pool de produção crítico
+    if status["producao"] < config["producao_min"]:
+        alertas.append({
+            "tipo": "pool_producao_critico",
+            "severidade": "critical",
+            "mensagem": f"Pool de produção crítico: {status['producao']}/{config['producao_min']} chips ativos",
+        })
+
+    # Reserve (ready) baixo
+    if status["ready"] < config["ready_min"]:
+        alertas.append({
+            "tipo": "pool_ready_baixo",
+            "severidade": "warning",
+            "mensagem": f"Reserve baixo: {status['ready']}/{config['ready_min']} chips ready",
+        })
+
+    # Warming insuficiente
+    if status["warming"] < config["warmup_buffer"]:
+        alertas.append({
+            "tipo": "warming_insuficiente",
+            "severidade": "warning",
+            "mensagem": f"Warming insuficiente: {status['warming']}/{config['warmup_buffer']} chips em aquecimento",
+        })
+
+    # Nenhum chip pode prospectar
+    if status["podem_prospectar"] == 0:
+        alertas.append({
+            "tipo": "nenhum_chip_prospeccao",
+            "severidade": "critical",
+            "mensagem": "CRÍTICO: Nenhum chip disponível para prospecção!",
+        })
+
+    # Enviar alertas
+    for alerta in alertas:
+        await criar_alerta_pool(alerta)
+        emoji = ":rotating_light:" if alerta["severidade"] == "critical" else ":warning:"
+        await notificar_slack(f"{emoji} {alerta['mensagem']}", canal="alertas")
+
+    return alertas
+```
+
+**Critério de aceite:**
+- [ ] Verificação a cada 5 minutos
+- [ ] Alerta crítico se producao < min
+- [ ] Alerta warning se ready ou warming baixos
+- [ ] Alerta crítico se nenhum chip para prospecção
+- [ ] Cooldown de 30 minutos entre alertas do mesmo tipo
+
+---
+
+#### T11.4: Migração de conversas com contexto
+**Prioridade:** Média
+**Arquivo:** `app/services/chips/migration.py`
+
+Ao migrar conversas de um chip degradado, preservar contexto completo.
+
+```python
+async def migrar_conversas_com_contexto(
+    chip_origem_id: str,
+    chip_destino_id: str,
+) -> MigrationResult:
+    """Migra conversas preservando contexto completo."""
+
+    # Buscar conversas ativas do chip origem
+    conversas = supabase.table("conversations").select(
+        "*, interacoes(*), doctor_context(*)"
+    ).eq(
+        "chip_id", chip_origem_id
+    ).eq(
+        "status", "active"
+    ).execute()
+
+    migradas = 0
+    erros = 0
+
+    for conversa in conversas.data:
+        try:
+            # 1. Atualizar chip_id da conversa
+            supabase.table("conversations").update({
+                "chip_id": chip_destino_id,
+                "chip_migrado_de": chip_origem_id,
+                "chip_migrado_em": datetime.now(timezone.utc).isoformat(),
+            }).eq("id", conversa["id"]).execute()
+
+            # 2. Preservar afinidade médico-chip
+            await atualizar_afinidade(
+                medico_id=conversa["cliente_id"],
+                chip_antigo=chip_origem_id,
+                chip_novo=chip_destino_id,
+            )
+
+            # 3. Registrar migração para auditoria
+            supabase.table("chip_migrations").insert({
+                "conversa_id": conversa["id"],
+                "chip_origem": chip_origem_id,
+                "chip_destino": chip_destino_id,
+                "interacoes_count": len(conversa.get("interacoes", [])),
+                "motivo": "chip_degradado",
+            }).execute()
+
+            # 4. Se conversa tinha interação recente, agendar continuidade
+            ultima_interacao = conversa.get("interacoes", [{}])[-1]
+            if ultima_interacao and _foi_recente(ultima_interacao.get("created_at")):
+                await agendar_mensagem_continuidade(
+                    conversa_id=conversa["id"],
+                    chip_id=chip_destino_id,
+                    delay_horas=24,
+                )
+
+            migradas += 1
+
+        except Exception as e:
+            logger.error(f"Erro ao migrar conversa {conversa['id']}: {e}")
+            erros += 1
+
+    return MigrationResult(migradas=migradas, erros=erros)
+```
+
+**Critério de aceite:**
+- [ ] Contexto completo preservado na migração
+- [ ] Afinidade médico-chip atualizada
+- [ ] Auditoria de migrações
+- [ ] Continuidade agendada para conversas recentes
+- [ ] Teste de integração
+
+---
+
+#### T11.5: Registro de interações chip-médico (afinidade)
+**Prioridade:** Alta
+**Arquivo:** `app/services/chips/affinity.py` (novo)
+
+Registrar interações chip-médico para que afinidade funcione corretamente.
+
+```python
+async def registrar_interacao_chip_medico(
+    chip_id: str,
+    medico_id: str,
+    tipo: str,  # "msg_enviada", "msg_recebida", "resposta_obtida"
+) -> None:
+    """Registra interação para cálculo de afinidade."""
+
+    # Buscar ou criar registro de afinidade
+    afinidade = supabase.table("medico_chip_affinity").select("*").eq(
+        "medico_id", medico_id
+    ).eq(
+        "chip_id", chip_id
+    ).single().execute()
+
+    if afinidade.data:
+        # Atualizar existente
+        updates = {
+            "ultima_interacao": datetime.now(timezone.utc).isoformat(),
+            "total_interacoes": afinidade.data["total_interacoes"] + 1,
+        }
+
+        if tipo == "msg_enviada":
+            updates["msgs_enviadas"] = afinidade.data.get("msgs_enviadas", 0) + 1
+        elif tipo == "msg_recebida":
+            updates["msgs_recebidas"] = afinidade.data.get("msgs_recebidas", 0) + 1
+        elif tipo == "resposta_obtida":
+            updates["respostas_obtidas"] = afinidade.data.get("respostas_obtidas", 0) + 1
+
+        supabase.table("medico_chip_affinity").update(
+            updates
+        ).eq("id", afinidade.data["id"]).execute()
+    else:
+        # Criar novo
+        supabase.table("medico_chip_affinity").insert({
+            "medico_id": medico_id,
+            "chip_id": chip_id,
+            "primeira_interacao": datetime.now(timezone.utc).isoformat(),
+            "ultima_interacao": datetime.now(timezone.utc).isoformat(),
+            "total_interacoes": 1,
+            "msgs_enviadas": 1 if tipo == "msg_enviada" else 0,
+            "msgs_recebidas": 1 if tipo == "msg_recebida" else 0,
+            "respostas_obtidas": 1 if tipo == "resposta_obtida" else 0,
+        }).execute()
+
+async def buscar_chip_com_afinidade(medico_id: str) -> Optional[str]:
+    """Busca chip com maior afinidade para o médico."""
+    result = supabase.table("medico_chip_affinity").select(
+        "chip_id, total_interacoes, respostas_obtidas"
+    ).eq(
+        "medico_id", medico_id
+    ).order(
+        "respostas_obtidas", desc=True
+    ).order(
+        "total_interacoes", desc=True
+    ).limit(1).execute()
+
+    if result.data:
+        return result.data[0]["chip_id"]
+    return None
+```
+
+**Critério de aceite:**
+- [ ] Interações registradas no envio
+- [ ] Interações registradas no recebimento
+- [ ] ChipSelector usa afinidade na seleção
+- [ ] Afinidade considera respostas obtidas (peso maior)
+- [ ] Teste unitário
+
+---
+
+#### T11.6: Verificar conexão Evolution na seleção
+**Prioridade:** Alta
+**Arquivo:** `app/services/chips/selector.py`
+
+Não selecionar chip se instância Evolution não está conectada.
+
+```python
+async def _filtrar_chips_conectados(self, chips: List[Dict]) -> List[Dict]:
+    """Filtra apenas chips com Evolution conectada."""
+    chips_conectados = []
+
+    for chip in chips:
+        # Verificar flag de conexão (atualizado pelo sync)
+        if not chip.get("evolution_connected", False):
+            logger.debug(f"[ChipSelector] Chip {chip['id'][:8]} descartado: Evolution desconectada")
+            continue
+
+        # Verificar se não está em cooldown de conexão
+        if chip.get("connection_cooldown_until"):
+            cooldown_until = datetime.fromisoformat(chip["connection_cooldown_until"])
+            if cooldown_until > datetime.now(timezone.utc):
+                logger.debug(f"[ChipSelector] Chip {chip['id'][:8]} descartado: em cooldown de conexão")
+                continue
+
+        chips_conectados.append(chip)
+
+    return chips_conectados
+
+async def selecionar_chip(self, ...) -> Optional[Dict]:
+    """Seleciona chip com todas as verificações."""
+    chips = await self._buscar_chips_elegiveis(tipo_mensagem)
+
+    # Filtrar por conexão Evolution
+    chips = await self._filtrar_chips_conectados(chips)
+
+    # Filtrar por circuit breaker
+    chips = self._filtrar_chips_circuit_ok(chips)
+
+    # Filtrar por cooldown
+    chips = self._filtrar_chips_sem_cooldown(chips)
+
+    if not chips:
+        logger.warning("[ChipSelector] Nenhum chip disponível após todos os filtros")
+        return None
+
+    # Aplicar preferência de afinidade
+    if conversa_id:
+        medico_id = await buscar_medico_por_conversa(conversa_id)
+        chip_afinidade = await buscar_chip_com_afinidade(medico_id)
+        if chip_afinidade and chip_afinidade in [c["id"] for c in chips]:
+            return next(c for c in chips if c["id"] == chip_afinidade)
+
+    # Balanceamento de carga
+    return self._selecionar_menos_usado(chips)
+```
+
+**Critério de aceite:**
+- [ ] Chips desconectados não são selecionados
+- [ ] Verificação usa flag `evolution_connected` (do sync)
+- [ ] Log de chips descartados por conexão
+- [ ] Métrica de chips descartados por conexão
+- [ ] Teste unitário
+
+---
+
 ## Priorização Sugerida (Atualizada)
 
 ### Concluído ✅
 - **T05.5: MULTI_CHIP_ENABLED** - Já estava true
 - **T07.1: Job de Trust Score** - Implementado e deployado
 
-### Semana 1 (Crítico - Fundação)
-- **T08.1: Incrementar contadores após envio** ⚡⚡
-- **T08.2: Registrar resposta recebida por chip** ⚡⚡
-- T01.3: Circuit breaker no fila_worker
-- T01.5: Alerta de fila acumulando
-- T01.6: Health check do worker
-- **T05.6: Retry com chip alternativo** ⚡
-- **T05.8: Cooldown após erro WhatsApp** ⚡
+### Semana 1 (Crítico - Fundação de Métricas)
 
-### Semana 2 (Importante)
-- **T08.3: Calcular taxa de delivery real**
-- **T08.5: Registrar conversas bidirecionais**
-- **T09.1: Circuit breaker per-chip**
-- **T09.2: Integrar circuit na seleção**
-- T07.2: Atualizar fatores após envio (depende de T08.1)
-- T07.3: Atualizar fatores após resposta (depende de T08.2)
-- T05.7: Threshold emergencial
+**Objetivo:** Alimentar o Trust Score com dados reais e garantir visibilidade.
 
-### Semana 3 (Refinamento)
-- T08.4: Resetar erros_24h automaticamente
-- T10.1: Log de decisão do ChipSelector
-- T10.2: Dashboard de saúde dos chips
-- T01.1: Timeout para mensagens travadas
-- T02.1: Log de transições circuit breaker
-- T03.1: Corrigir /health/ready
+| Task | Épico | Descrição | Esforço |
+|------|-------|-----------|---------|
+| **T08.1** | E08 | Incrementar contadores após envio | Médio |
+| **T08.2** | E08 | Registrar resposta recebida por chip | Médio |
+| **T11.2** | E11 | Sync Evolution no scheduler | Baixo |
+| **T11.6** | E11 | Verificar conexão na seleção | Baixo |
+| T01.3 | E01 | Circuit breaker no fila_worker | Médio |
+| T01.5 | E01 | Alerta de fila acumulando | Baixo |
+| T01.6 | E01 | Health check do worker | Baixo |
 
-### Backlog
-- T10.3: Ramp-up gradual pós-restrição
-- T01.2: Cancelar mensagens antigas
-- T02.2: Backoff exponencial
-- Restante dos épicos anteriores
+**Entregas Semana 1:**
+- Trust Score começa a receber dados reais
+- Sync Evolution rodando periodicamente
+- Worker com circuit breaker e health check
+
+---
+
+### Semana 2 (Crítico - Resiliência de Chips)
+
+**Objetivo:** Garantir failover automático e isolamento de falhas por chip.
+
+| Task | Épico | Descrição | Esforço |
+|------|-------|-----------|---------|
+| **T05.6** | E05 | Retry com chip alternativo | Alto |
+| **T05.8** | E05 | Cooldown após erro WhatsApp | Médio |
+| **T09.1** | E09 | Circuit breaker per-chip | Alto |
+| **T09.2** | E09 | Integrar circuit na seleção | Médio |
+| **T11.1** | E11 | Health Monitor auto-demove | Alto |
+| **T11.3** | E11 | Alerta proativo de pool baixo | Médio |
+| T05.7 | E05 | Threshold emergencial | Baixo |
+
+**Entregas Semana 2:**
+- Falha em um chip não afeta outros
+- Retry automático com próximo chip
+- Chips problemáticos demovidos automaticamente
+- Alertas quando pool está baixo
+
+---
+
+### Semana 3 (Importante - Métricas e Auditoria)
+
+**Objetivo:** Completar métricas do Trust Score e auditoria.
+
+| Task | Épico | Descrição | Esforço |
+|------|-------|-----------|---------|
+| **T08.3** | E08 | Calcular taxa de delivery real | Médio |
+| **T08.5** | E08 | Registrar conversas bidirecionais | Médio |
+| **T11.5** | E11 | Registro de afinidade chip-médico | Médio |
+| T07.2 | E07 | Atualizar fatores após envio | Baixo |
+| T07.3 | E07 | Atualizar fatores após resposta | Baixo |
+| T10.1 | E10 | Log de decisão ChipSelector | Baixo |
+| T10.2 | E10 | Dashboard de saúde dos chips | Médio |
+
+**Entregas Semana 3:**
+- Trust Score 100% alimentado
+- Afinidade médico-chip funcionando
+- Dashboard de chips completo
+
+---
+
+### Backlog (Pós-Sprint ou Baixa Prioridade)
+
+| Task | Épico | Descrição | Motivo |
+|------|-------|-----------|--------|
+| T11.4 | E11 | Migração com contexto | Melhoria, não crítico |
+| T10.3 | E10 | Ramp-up gradual pós-restrição | Nice-to-have |
+| T08.4 | E08 | Resetar erros_24h automaticamente | Pode ser feito via RPC |
+| T01.1 | E01 | Timeout mensagens travadas | Menor impacto |
+| T01.2 | E01 | Cancelar mensagens antigas | Menor impacto |
+| T02.1 | E02 | Log transições circuit breaker | Observabilidade |
+| T02.2 | E02 | Backoff exponencial | Refinamento |
+| T03.1 | E03 | Corrigir /health/ready | Pode adiar |
+| T04.* | E04 | Rate Limiting | Já funciona básico |
+| T06.* | E06 | Guardrails | Baixa prioridade |
+
+---
+
+## Matriz de Dependências
+
+```
+T08.1 (envio) ──────┬──► T07.2 (fatores envio)
+                    │
+T08.2 (resposta) ───┼──► T07.3 (fatores resposta)
+                    │
+                    └──► T08.3 (taxa delivery)
+                         T08.5 (conversas bi)
+
+T11.2 (sync evol) ──────► T11.6 (verificar conexão)
+                              │
+                              ▼
+T09.1 (circuit/chip) ───► T09.2 (integrar seleção) ◄─── T05.6 (retry fallback)
+                              │
+                              ▼
+                         T11.1 (auto-demove)
+
+T11.5 (afinidade) ──────► ChipSelector usa afinidade
+```
 
 ---
 
 ## Métricas de Sucesso
+
+### Métricas Gerais
 
 | Métrica | Antes | Meta |
 |---------|-------|------|
@@ -1299,6 +1821,29 @@ async def iniciar_recuperacao(chip_id: str):
 | Cobertura de health checks | 60% | 95% |
 | Alertas falsos positivos | N/A | < 5% |
 
+### Métricas de Chips (NOVO)
+
+| Métrica | Antes | Meta |
+|---------|-------|------|
+| Trust Scores com dados reais | 0% | 100% |
+| Chips com métricas alimentadas | 0 | Todos |
+| Tempo para demover chip problemático | Manual | < 5min (auto) |
+| Retry automático em falha | Não existe | 100% dos casos |
+| Chips desconectados selecionados | Possível | 0 |
+| Downtime por chip único restrito | Total | Isolado |
+| Alertas de pool baixo | Não existe | < 5min após déficit |
+
+### KPIs por Fase do Ciclo de Vida
+
+| Fase | KPI | Meta |
+|------|-----|------|
+| Provisioning | Tempo até pending | < 2min |
+| Pending | Tempo até warming | < 24h (QR scan) |
+| Warming | Graduação em 21 dias | > 80% |
+| Ready → Active | Tempo de promoção | < 1min |
+| Active → Degraded | Demoção automática | 100% quando critérios atingidos |
+| Degraded → Replace | Auto-replace | < 2min |
+
 ---
 
 ## Dependências
@@ -1306,6 +1851,8 @@ async def iniciar_recuperacao(chip_id: str):
 - Redis funcionando em produção
 - Acesso ao Slack para alertas
 - Supabase para novas tabelas
+- **Evolution API acessível para sync**
+- **Salvy API para provisioning**
 
 ---
 
@@ -1316,6 +1863,29 @@ async def iniciar_recuperacao(chip_id: str):
 | Health checks muito agressivos | Média | Falsos positivos | Thresholds conservadores |
 | Overhead de métricas | Baixa | Performance | Sampling se necessário |
 | Migração de circuit breaker | Baixa | Breaking change | Feature flag |
+| **Auto-demove muito sensível** | Média | Chips demovidos desnecessariamente | Cooldown + múltiplos critérios |
+| **Sync Evolution sobrecarrega API** | Baixa | Rate limit | Intervalo de 2min |
+| **Pool esvazia durante warmup** | Média | Sem chips para prospecção | Buffer de 5 chips + alerta proativo |
+
+---
+
+## Tabelas de Banco Necessárias
+
+| Tabela | Épico | Descrição |
+|--------|-------|-----------|
+| `chip_selection_log` | E10 | Auditoria de seleções |
+| `chip_migrations` | E11 | Histórico de migrações |
+| `pool_alerts` | E11 | Alertas de saúde do pool |
+
+### RPCs Necessárias
+
+| RPC | Épico | Descrição |
+|-----|-------|-----------|
+| `chip_registrar_envio_sucesso` | E08 | Incrementa contadores de sucesso |
+| `chip_registrar_envio_erro` | E08 | Incrementa contadores de erro |
+| `chip_registrar_resposta` | E08 | Registra resposta recebida |
+| `chip_calcular_taxa_delivery` | E08 | Calcula taxa de delivery |
+| `chip_verificar_conversa_bidirecional` | E08 | Detecta conversa bidirecional |
 
 ---
 
@@ -1325,3 +1895,10 @@ async def iniciar_recuperacao(chip_id: str):
 - Circuit Breaker: `app/services/circuit_breaker.py`
 - Fila: `app/services/fila.py`, `app/workers/fila_worker.py`
 - Health: `app/api/routes/health.py`
+- **Chips:**
+  - Orchestrator: `app/services/chips/orchestrator.py`
+  - Selector: `app/services/chips/selector.py`
+  - Sender: `app/services/chips/sender.py`
+  - Health Monitor: `app/services/chips/health_monitor.py`
+  - Sync Evolution: `app/services/chips/sync_evolution.py`
+  - Trust Score: `app/services/warmer/trust_score.py`

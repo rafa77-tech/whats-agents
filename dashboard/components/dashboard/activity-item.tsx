@@ -6,7 +6,7 @@
 
 'use client'
 
-import { type ActivityEvent, type ActivityType } from '@/types/dashboard'
+import { type ActivityEvent } from '@/types/dashboard'
 import {
   CheckCircle,
   RefreshCw,
@@ -23,7 +23,7 @@ interface ActivityItemProps {
 }
 
 const typeConfig: Record<
-  ActivityType,
+  string,
   {
     icon: LucideIcon
     bgColor: string
@@ -62,9 +62,15 @@ const typeConfig: Record<
   },
 }
 
+const defaultTypeConfig = {
+  icon: MessageSquare,
+  bgColor: 'bg-gray-100',
+  iconColor: 'text-gray-600',
+}
+
 export function ActivityItem({ event }: ActivityItemProps) {
   const { type, message, chipName, timestamp } = event
-  const config = typeConfig[type]
+  const config = typeConfig[type] || defaultTypeConfig
   const Icon = config.icon
 
   const time = format(new Date(timestamp), 'HH:mm')

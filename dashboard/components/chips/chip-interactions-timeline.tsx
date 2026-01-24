@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { chipsApi } from '@/lib/api/chips'
-import { ChipInteraction, ChipInteractionsResponse, InteractionType } from '@/types/chips'
+import { ChipInteraction, ChipInteractionsResponse } from '@/types/chips'
 import {
   MessageSquare,
   Users,
@@ -30,7 +30,7 @@ interface ChipInteractionsTimelineProps {
 }
 
 const interactionTypeConfig: Record<
-  InteractionType,
+  string,
   { icon: typeof MessageSquare; color: string; bgColor: string; label: string }
 > = {
   conversa_individual: {
@@ -69,6 +69,13 @@ const interactionTypeConfig: Record<
     bgColor: 'bg-pink-50',
     label: 'Warmup Par',
   },
+}
+
+const defaultInteractionConfig = {
+  icon: MessageSquare,
+  color: 'text-gray-500',
+  bgColor: 'bg-gray-50',
+  label: 'Interação',
 }
 
 export function ChipInteractionsTimeline({ chipId, initialData }: ChipInteractionsTimelineProps) {
@@ -144,7 +151,7 @@ function InteractionItem({
   interaction: ChipInteraction
   isLast: boolean
 }) {
-  const config = interactionTypeConfig[interaction.type]
+  const config = interactionTypeConfig[interaction.type] || defaultInteractionConfig
   const Icon = config.icon
 
   return (

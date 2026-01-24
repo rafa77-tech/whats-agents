@@ -1,8 +1,19 @@
+'use client'
+
+import { usePathname } from 'next/navigation'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
 import { BottomNav } from '@/components/dashboard/bottom-nav'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isChipsModule = pathname.startsWith('/chips')
+
+  // O módulo de chips tem seu próprio layout com sidebar
+  if (isChipsModule) {
+    return <>{children}</>
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar - desktop only */}

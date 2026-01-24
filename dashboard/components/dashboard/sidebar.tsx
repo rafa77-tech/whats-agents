@@ -12,6 +12,7 @@ import {
   Settings,
   HelpCircle,
   Power,
+  Smartphone,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -24,6 +25,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Campanhas', href: '/campanhas', icon: Megaphone },
+  { name: 'Pool de Chips', href: '/chips', icon: Smartphone },
   { name: 'Instrucoes', href: '/instrucoes', icon: FileText },
   { name: 'Hospitais Bloqueados', href: '/hospitais/bloqueados', icon: Building2 },
   { name: 'Sistema', href: '/sistema', icon: Settings },
