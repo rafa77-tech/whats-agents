@@ -522,5 +522,256 @@ class ChipSelector:
         return result.data or []
 
 
+    async def aplicar_rampup_gradual(
+        self,
+        chip_id: str,
+        motivo: str = "recuperacao_cooldown"
+    ) -> Dict:
+        """
+        Sprint 36 - T10.3: Aplica ramp-up gradual para chip saindo de restrição.
+
+        Quando um chip sai de cooldown ou tinha trust baixo, não volta
+        imediatamente para capacidade total. Isso evita sobrecarga e
+        permite monitorar a recuperação.
+
+        Níveis de ramp-up:
+        - Fase 1 (0-2h): 25% da capacidade
+        - Fase 2 (2-6h): 50% da capacidade
+        - Fase 3 (6-12h): 75% da capacidade
+        - Fase 4 (12h+): 100% da capacidade
+
+        Args:
+            chip_id: ID do chip
+            motivo: Motivo do ramp-up
+
+        Returns:
+            {
+                "chip_id": str,
+                "rampup_inicio": datetime,
+                "limite_atual_pct": int,
+                "fase": int
+            }
+        """
+        agora = datetime.now(timezone.utc)
+
+        try:
+            # Buscar chip
+            chip_result = supabase.table("chips").select(
+                "id, telefone, limite_hora, limite_dia"
+            ).eq("id", chip_id).single().execute()
+
+            if not chip_result.data:
+                return {"erro": "Chip não encontrado"}
+
+            chip = chip_result.data
+
+            # Aplicar ramp-up: definir início e fase inicial
+            supabase.table("chips").update({
+                "rampup_inicio": agora.isoformat(),
+                "rampup_fase": 1,
+                "rampup_motivo": motivo,
+                "updated_at": agora.isoformat(),
+            }).eq("id", chip_id).execute()
+
+            logger.info(
+                f"[ChipSelector] T10.3: Ramp-up iniciado para chip {chip.get('telefone')[-4:]}: "
+                f"fase 1 (25%), motivo={motivo}"
+            )
+
+            return {
+                "chip_id": chip_id,
+                "telefone": chip.get("telefone", "")[-4:],
+                "rampup_inicio": agora.isoformat(),
+                "limite_atual_pct": 25,
+                "fase": 1,
+                "motivo": motivo,
+            }
+
+        except Exception as e:
+            logger.error(f"[ChipSelector] Erro ao aplicar ramp-up: {e}")
+            return {"erro": str(e)}
+
+    def calcular_limite_rampup(self, chip: Dict) -> Dict:
+        """
+        Sprint 36 - T10.3: Calcula limite atual baseado no ramp-up.
+
+        Args:
+            chip: Dict com dados do chip
+
+        Returns:
+            {
+                "limite_hora": int,
+                "limite_dia": int,
+                "fase": int,
+                "percentual": int,
+                "em_rampup": bool
+            }
+        """
+        limite_hora_base = chip.get("limite_hora", 20)
+        limite_dia_base = chip.get("limite_dia", 100)
+
+        # Verificar se está em ramp-up
+        rampup_inicio = chip.get("rampup_inicio")
+        if not rampup_inicio:
+            return {
+                "limite_hora": limite_hora_base,
+                "limite_dia": limite_dia_base,
+                "fase": 0,
+                "percentual": 100,
+                "em_rampup": False,
+            }
+
+        try:
+            if isinstance(rampup_inicio, str):
+                rampup_inicio = datetime.fromisoformat(
+                    rampup_inicio.replace("Z", "+00:00")
+                )
+
+            horas_desde_inicio = (
+                datetime.now(timezone.utc) - rampup_inicio
+            ).total_seconds() / 3600
+
+            # Determinar fase e percentual
+            if horas_desde_inicio < 2:
+                fase = 1
+                percentual = 25
+            elif horas_desde_inicio < 6:
+                fase = 2
+                percentual = 50
+            elif horas_desde_inicio < 12:
+                fase = 3
+                percentual = 75
+            else:
+                # Ramp-up completo
+                fase = 4
+                percentual = 100
+
+            return {
+                "limite_hora": int(limite_hora_base * percentual / 100),
+                "limite_dia": int(limite_dia_base * percentual / 100),
+                "fase": fase,
+                "percentual": percentual,
+                "em_rampup": percentual < 100,
+                "horas_restantes": max(0, 12 - horas_desde_inicio) if fase < 4 else 0,
+            }
+
+        except Exception:
+            # Em caso de erro, usar limite padrão
+            return {
+                "limite_hora": limite_hora_base,
+                "limite_dia": limite_dia_base,
+                "fase": 0,
+                "percentual": 100,
+                "em_rampup": False,
+            }
+
+    async def atualizar_fases_rampup(self) -> Dict:
+        """
+        Sprint 36 - T10.3: Atualiza fases de ramp-up de todos os chips.
+
+        Deve ser chamado periodicamente por um job.
+
+        Returns:
+            {
+                "chips_atualizados": int,
+                "chips_finalizados": int,
+                "detalhes": List[Dict]
+            }
+        """
+        agora = datetime.now(timezone.utc)
+
+        try:
+            # Buscar chips em ramp-up
+            result = supabase.table("chips").select(
+                "id, telefone, rampup_inicio, rampup_fase"
+            ).eq(
+                "status", "active"
+            ).not_.is_(
+                "rampup_inicio", "null"
+            ).execute()
+
+            chips_atualizados = 0
+            chips_finalizados = 0
+            detalhes = []
+
+            for chip in result.data or []:
+                chip_id = chip["id"]
+                limite_info = self.calcular_limite_rampup(chip)
+                nova_fase = limite_info["fase"]
+                fase_atual = chip.get("rampup_fase") or 1
+
+                # Verificar se mudou de fase
+                if nova_fase != fase_atual:
+                    if nova_fase == 4:
+                        # Ramp-up completo - limpar campos
+                        supabase.table("chips").update({
+                            "rampup_inicio": None,
+                            "rampup_fase": None,
+                            "rampup_motivo": None,
+                            "updated_at": agora.isoformat(),
+                        }).eq("id", chip_id).execute()
+                        chips_finalizados += 1
+
+                        logger.info(
+                            f"[ChipSelector] Ramp-up finalizado para chip {chip.get('telefone')[-4:]}"
+                        )
+                    else:
+                        # Atualizar fase
+                        supabase.table("chips").update({
+                            "rampup_fase": nova_fase,
+                            "updated_at": agora.isoformat(),
+                        }).eq("id", chip_id).execute()
+
+                        logger.info(
+                            f"[ChipSelector] Ramp-up fase {nova_fase} ({limite_info['percentual']}%) "
+                            f"para chip {chip.get('telefone')[-4:]}"
+                        )
+
+                    chips_atualizados += 1
+                    detalhes.append({
+                        "chip_id": chip_id,
+                        "telefone": chip.get("telefone", "")[-4:],
+                        "fase_anterior": fase_atual,
+                        "fase_nova": nova_fase,
+                        "percentual": limite_info["percentual"],
+                    })
+
+            return {
+                "chips_atualizados": chips_atualizados,
+                "chips_finalizados": chips_finalizados,
+                "detalhes": detalhes,
+            }
+
+        except Exception as e:
+            logger.error(f"[ChipSelector] Erro ao atualizar fases ramp-up: {e}")
+            return {"erro": str(e)}
+
+    async def listar_chips_em_rampup(self) -> List[Dict]:
+        """
+        Sprint 36 - T10.3: Lista chips atualmente em ramp-up.
+
+        Returns:
+            Lista de chips com informações de ramp-up
+        """
+        result = supabase.table("chips").select(
+            "id, telefone, trust_score, rampup_inicio, rampup_fase, rampup_motivo, "
+            "limite_hora, limite_dia"
+        ).eq(
+            "status", "active"
+        ).not_.is_(
+            "rampup_inicio", "null"
+        ).execute()
+
+        chips_rampup = []
+        for chip in result.data or []:
+            limite_info = self.calcular_limite_rampup(chip)
+            chips_rampup.append({
+                **chip,
+                **limite_info,
+            })
+
+        return chips_rampup
+
+
 # Singleton
 chip_selector = ChipSelector()

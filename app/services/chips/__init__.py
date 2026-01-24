@@ -20,6 +20,11 @@ from app.services.chips.health_monitor import health_monitor, HealthMonitor
 from app.services.chips.migration import (
     migrar_conversa_anunciada,
     processar_migracoes_agendadas,
+    # Sprint 36 - T11.4: Migração com contexto
+    coletar_contexto_conversa,
+    migrar_conversa_com_contexto,
+    obter_contexto_conversa_atual,
+    listar_migracoes_com_contexto,
 )
 from app.services.chips.sender import (
     enviar_via_chip,
@@ -63,6 +68,11 @@ __all__ = [
     # Migration
     "migrar_conversa_anunciada",
     "processar_migracoes_agendadas",
+    # Sprint 36 - T11.4: Migração com contexto
+    "coletar_contexto_conversa",
+    "migrar_conversa_com_contexto",
+    "obter_contexto_conversa_atual",
+    "listar_migracoes_com_contexto",
     # E08 - Multi-Provider
     "enviar_via_chip",
     "enviar_mensagem_inteligente",

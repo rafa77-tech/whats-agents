@@ -184,18 +184,67 @@ async def health_check():
 @router.get("/health/ready")
 async def readiness_check():
     """
-    Verifica se a API está pronta para receber requests.
-    Pode incluir verificações de dependências.
+    Sprint 36 - T03.1: Verifica se a API está pronta para receber requests.
+
+    Verifica dependências críticas:
+    - Redis: Cache e rate limiting
+    - Supabase: Banco de dados principal
+
+    Returns:
+        - ready: Todas dependências OK
+        - degraded: Alguma dependência com problema mas app funcionando
+        - not_ready: Dependência crítica falhando
     """
-    redis_ok = await verificar_conexao_redis()
+    checks = {}
+    all_ok = True
+
+    # 1. Verificar Redis
+    try:
+        redis_ok = await verificar_conexao_redis()
+        checks["redis"] = "ok" if redis_ok else "error"
+        if not redis_ok:
+            all_ok = False
+    except Exception as e:
+        checks["redis"] = "error"
+        checks["redis_error"] = str(e)
+        all_ok = False
+
+    # 2. Verificar Supabase
+    try:
+        result = supabase.table("clientes").select("id").limit(1).execute()
+        checks["database"] = "ok"
+    except Exception as e:
+        checks["database"] = "error"
+        checks["database_error"] = str(e)
+        all_ok = False
+
+    # 3. Verificar Evolution (opcional - não bloqueia ready)
+    try:
+        evolution_status = await evolution.verificar_conexao()
+        state = None
+        if evolution_status:
+            if "instance" in evolution_status:
+                state = evolution_status.get("instance", {}).get("state")
+            else:
+                state = evolution_status.get("state")
+        checks["evolution"] = "ok" if state == "open" else "degraded"
+    except Exception:
+        checks["evolution"] = "unknown"
+
+    # Determinar status
+    if all_ok:
+        status = "ready"
+    elif checks.get("database") == "ok":
+        # Redis falhando mas DB OK = degraded (pode funcionar)
+        status = "degraded"
+    else:
+        # DB falhando = not_ready
+        status = "not_ready"
 
     return {
-        "status": "ready" if redis_ok else "degraded",
-        "checks": {
-            "database": "ok",  # TODO: verificar conexão real
-            "evolution": "ok",  # TODO: verificar conexão real
-            "redis": "ok" if redis_ok else "error",
-        },
+        "status": status,
+        "checks": checks,
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 
@@ -1130,6 +1179,466 @@ async def chips_health_status():
         logger.error(f"[health/chips] Error: {e}")
         return {
             "status": "error",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+
+@router.get("/health/fila")
+async def fila_health_status():
+    """
+    Sprint 36 - T03.2: Métricas da fila de mensagens.
+
+    Retorna estatísticas completas da fila:
+    - Pendentes e processando
+    - Enviadas/erros na última hora
+    - Mensagens travadas
+    - Idade da mensagem mais antiga
+
+    Status:
+    - healthy: Fila fluindo normalmente
+    - degraded: Backlog crescendo ou erros altos
+    - critical: Fila travada ou muitos erros
+    """
+    try:
+        from app.services.fila import fila_service
+
+        stats = await fila_service.obter_estatisticas_completas()
+
+        # Determinar status
+        pendentes = stats.get("pendentes", 0)
+        travadas = stats.get("travadas", 0)
+        erros = stats.get("erros_ultima_hora", 0)
+        idade_minutos = stats.get("mensagem_mais_antiga_min")
+
+        status = "healthy"
+        alerts = []
+
+        if travadas > 0:
+            status = "degraded"
+            alerts.append(f"{travadas} mensagens travadas")
+
+        if travadas > 10:
+            status = "critical"
+            alerts.append("Muitas mensagens travadas!")
+
+        if pendentes > 100:
+            status = "degraded"
+            alerts.append(f"Backlog alto: {pendentes} pendentes")
+
+        if pendentes > 500:
+            status = "critical"
+            alerts.append("Backlog crítico!")
+
+        if erros > 10:
+            if status != "critical":
+                status = "degraded"
+            alerts.append(f"{erros} erros na última hora")
+
+        if idade_minutos and idade_minutos > 60:
+            if status != "critical":
+                status = "degraded"
+            alerts.append(f"Mensagem mais antiga: {idade_minutos:.1f}min")
+
+        return {
+            "status": status,
+            "alerts": alerts,
+            "metrics": stats,
+            "thresholds": {
+                "backlog_warning": 100,
+                "backlog_critical": 500,
+                "travadas_warning": 1,
+                "travadas_critical": 10,
+                "erros_hora_warning": 10,
+                "idade_warning_min": 60,
+            },
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"[health/fila] Error: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+
+@router.get("/health/alerts")
+async def system_alerts():
+    """
+    Sprint 36 - T03.3: Alertas consolidados do sistema.
+
+    Coleta alertas de todos os subsistemas:
+    - Fila de mensagens
+    - Circuit breakers
+    - Chips/pool
+    - Jobs
+
+    Útil para dashboard de monitoramento.
+    """
+    from datetime import timedelta
+    from app.services.fila import fila_service
+    from app.services.circuit_breaker import obter_status_circuits
+
+    alerts = []
+    now = datetime.utcnow()
+
+    try:
+        # 1. Alertas da fila
+        try:
+            fila_stats = await fila_service.obter_estatisticas_completas()
+            if fila_stats.get("travadas", 0) > 0:
+                alerts.append({
+                    "severity": "warning" if fila_stats["travadas"] < 10 else "critical",
+                    "source": "fila",
+                    "message": f"{fila_stats['travadas']} mensagens travadas",
+                    "value": fila_stats["travadas"],
+                })
+            if fila_stats.get("pendentes", 0) > 100:
+                alerts.append({
+                    "severity": "warning" if fila_stats["pendentes"] < 500 else "critical",
+                    "source": "fila",
+                    "message": f"Backlog alto: {fila_stats['pendentes']} pendentes",
+                    "value": fila_stats["pendentes"],
+                })
+        except Exception as e:
+            alerts.append({
+                "severity": "error",
+                "source": "fila",
+                "message": f"Erro ao verificar fila: {e}",
+            })
+
+        # 2. Alertas dos circuit breakers
+        try:
+            circuits = obter_status_circuits()
+            for name, circuit in circuits.items():
+                if circuit.get("estado") == "open":
+                    alerts.append({
+                        "severity": "critical",
+                        "source": "circuit_breaker",
+                        "message": f"Circuit {name} está ABERTO",
+                        "circuit": name,
+                        "falhas": circuit.get("falhas_consecutivas"),
+                    })
+                elif circuit.get("estado") == "half_open":
+                    alerts.append({
+                        "severity": "warning",
+                        "source": "circuit_breaker",
+                        "message": f"Circuit {name} testando recuperação",
+                        "circuit": name,
+                    })
+        except Exception as e:
+            alerts.append({
+                "severity": "error",
+                "source": "circuit_breaker",
+                "message": f"Erro ao verificar circuits: {e}",
+            })
+
+        # 3. Alertas do pool de chips
+        try:
+            result = supabase.table("chips").select(
+                "id, trust_score, evolution_connected, status"
+            ).eq("status", "active").execute()
+
+            chips = result.data or []
+            total = len(chips)
+            conectados = len([c for c in chips if c.get("evolution_connected")])
+            criticos = len([c for c in chips if (c.get("trust_score") or 0) < 40])
+
+            if total == 0:
+                alerts.append({
+                    "severity": "critical",
+                    "source": "chips",
+                    "message": "Pool de chips vazio!",
+                })
+            elif conectados == 0:
+                alerts.append({
+                    "severity": "critical",
+                    "source": "chips",
+                    "message": "Nenhum chip conectado!",
+                })
+            elif conectados < total * 0.5:
+                alerts.append({
+                    "severity": "warning",
+                    "source": "chips",
+                    "message": f"Poucos chips conectados: {conectados}/{total}",
+                    "conectados": conectados,
+                    "total": total,
+                })
+            if criticos > total * 0.3:
+                alerts.append({
+                    "severity": "warning",
+                    "source": "chips",
+                    "message": f"Muitos chips críticos: {criticos}/{total}",
+                    "criticos": criticos,
+                })
+        except Exception as e:
+            alerts.append({
+                "severity": "error",
+                "source": "chips",
+                "message": f"Erro ao verificar chips: {e}",
+            })
+
+        # Ordenar por severidade
+        severity_order = {"critical": 0, "error": 1, "warning": 2, "info": 3}
+        alerts.sort(key=lambda a: severity_order.get(a.get("severity", "info"), 99))
+
+        # Determinar status geral
+        has_critical = any(a.get("severity") == "critical" for a in alerts)
+        has_warning = any(a.get("severity") == "warning" for a in alerts)
+
+        if has_critical:
+            status = "critical"
+        elif has_warning:
+            status = "warning"
+        else:
+            status = "ok"
+
+        return {
+            "status": status,
+            "total_alerts": len(alerts),
+            "alerts": alerts,
+            "timestamp": now.isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"[health/alerts] Error: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "alerts": alerts,
+            "timestamp": now.isoformat(),
+        }
+
+
+@router.get("/health/score")
+async def system_health_score():
+    """
+    Sprint 36 - T03.4/T03.5: Health score consolidado do sistema.
+
+    Calcula score de 0-100 baseado em:
+    - Conectividade (Redis, Supabase, Evolution): 30 pontos
+    - Fila de mensagens: 25 pontos
+    - Pool de chips: 25 pontos
+    - Circuit breakers: 20 pontos
+
+    Score:
+    - 80-100: Saudável (verde)
+    - 60-79: Atenção (amarelo)
+    - 40-59: Degradado (laranja)
+    - 0-39: Crítico (vermelho)
+    """
+    from app.services.fila import fila_service
+    from app.services.circuit_breaker import obter_status_circuits
+
+    score = 0
+    breakdown = {}
+
+    try:
+        # 1. Conectividade (30 pontos)
+        connectivity_score = 0
+
+        # Redis (10 pontos)
+        try:
+            redis_ok = await verificar_conexao_redis()
+            if redis_ok:
+                connectivity_score += 10
+        except Exception:
+            pass
+
+        # Supabase (10 pontos)
+        try:
+            supabase.table("clientes").select("id").limit(1).execute()
+            connectivity_score += 10
+        except Exception:
+            pass
+
+        # Evolution (10 pontos)
+        try:
+            status = await evolution.verificar_conexao()
+            state = None
+            if status:
+                if "instance" in status:
+                    state = status.get("instance", {}).get("state")
+                else:
+                    state = status.get("state")
+            if state == "open":
+                connectivity_score += 10
+            elif state:
+                connectivity_score += 5
+        except Exception:
+            pass
+
+        breakdown["connectivity"] = {"score": connectivity_score, "max": 30}
+        score += connectivity_score
+
+        # 2. Fila de mensagens (25 pontos)
+        fila_score = 25
+        try:
+            fila_stats = await fila_service.obter_estatisticas_completas()
+            pendentes = fila_stats.get("pendentes", 0)
+            travadas = fila_stats.get("travadas", 0)
+            erros = fila_stats.get("erros_ultima_hora", 0)
+
+            if pendentes > 500:
+                fila_score -= 15
+            elif pendentes > 100:
+                fila_score -= 5
+
+            if travadas > 10:
+                fila_score -= 10
+            elif travadas > 0:
+                fila_score -= 5
+
+            if erros > 20:
+                fila_score -= 10
+            elif erros > 5:
+                fila_score -= 5
+
+            fila_score = max(0, fila_score)
+        except Exception:
+            fila_score = 0
+
+        breakdown["fila"] = {"score": fila_score, "max": 25}
+        score += fila_score
+
+        # 3. Pool de chips (25 pontos)
+        chips_score = 25
+        try:
+            result = supabase.table("chips").select(
+                "id, trust_score, evolution_connected"
+            ).eq("status", "active").execute()
+
+            chips = result.data or []
+            total = len(chips)
+
+            if total == 0:
+                chips_score = 0
+            else:
+                conectados = len([c for c in chips if c.get("evolution_connected")])
+                saudaveis = len([c for c in chips if (c.get("trust_score") or 0) >= 60])
+
+                taxa_conectados = conectados / total
+                taxa_saudaveis = saudaveis / total
+
+                if taxa_conectados < 0.5:
+                    chips_score -= 15
+                elif taxa_conectados < 0.8:
+                    chips_score -= 5
+
+                if taxa_saudaveis < 0.3:
+                    chips_score -= 10
+                elif taxa_saudaveis < 0.5:
+                    chips_score -= 5
+
+                chips_score = max(0, chips_score)
+        except Exception:
+            chips_score = 0
+
+        breakdown["chips"] = {"score": chips_score, "max": 25}
+        score += chips_score
+
+        # 4. Circuit breakers (20 pontos)
+        circuit_score = 20
+        try:
+            circuits = obter_status_circuits()
+            for name, circuit in circuits.items():
+                estado = circuit.get("estado")
+                if estado == "open":
+                    circuit_score -= 8  # Circuit aberto é grave
+                elif estado == "half_open":
+                    circuit_score -= 3
+            circuit_score = max(0, circuit_score)
+        except Exception:
+            circuit_score = 0
+
+        breakdown["circuits"] = {"score": circuit_score, "max": 20}
+        score += circuit_score
+
+        # Determinar nível
+        if score >= 80:
+            level = "healthy"
+            color = "green"
+        elif score >= 60:
+            level = "attention"
+            color = "yellow"
+        elif score >= 40:
+            level = "degraded"
+            color = "orange"
+        else:
+            level = "critical"
+            color = "red"
+
+        return {
+            "score": score,
+            "max_score": 100,
+            "level": level,
+            "color": color,
+            "breakdown": breakdown,
+            "thresholds": {
+                "healthy": 80,
+                "attention": 60,
+                "degraded": 40,
+                "critical": 0,
+            },
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"[health/score] Error: {e}")
+        return {
+            "score": 0,
+            "level": "error",
+            "error": str(e),
+            "breakdown": breakdown,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+
+@router.get("/health/circuits/history")
+async def circuit_breaker_history(circuit_name: str = None, horas: int = 24):
+    """
+    Sprint 36 - T03.6: Histórico de transições dos circuit breakers.
+
+    Retorna transições de estado nas últimas X horas.
+    Útil para análise de incidentes e debugging.
+
+    Args:
+        circuit_name: Filtrar por circuit específico (opcional)
+        horas: Período em horas (default 24)
+    """
+    try:
+        from app.services.circuit_breaker import obter_historico_transicoes
+
+        transicoes = await obter_historico_transicoes(circuit_name, horas)
+
+        # Agrupar por circuit
+        by_circuit = {}
+        for t in transicoes:
+            name = t.get("circuit_name", "unknown")
+            if name not in by_circuit:
+                by_circuit[name] = []
+            by_circuit[name].append({
+                "from": t.get("from_state"),
+                "to": t.get("to_state"),
+                "reason": t.get("reason"),
+                "falhas": t.get("falhas_consecutivas"),
+                "at": t.get("created_at"),
+            })
+
+        return {
+            "circuit_filter": circuit_name,
+            "period_hours": horas,
+            "total_transitions": len(transicoes),
+            "by_circuit": by_circuit,
+            "transitions": transicoes[:50],  # Últimas 50
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"[health/circuits/history] Error: {e}")
+        return {
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat(),
         }

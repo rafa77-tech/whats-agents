@@ -639,5 +639,126 @@ class HealthMonitor:
         logger.info("[HealthMonitor] Parando...")
 
 
+    async def resetar_erros_24h(self) -> Dict:
+        """
+        Sprint 36 - T08.4: Reseta contador de erros_24h automaticamente.
+
+        Chips que não tiveram erros nas últimas 6 horas têm seus contadores
+        resetados para permitir recuperação gradual.
+
+        Returns:
+            {
+                "chips_resetados": int,
+                "detalhes": List[Dict]
+            }
+        """
+        agora = datetime.now(timezone.utc)
+        seis_horas_atras = (agora - timedelta(hours=6)).isoformat()
+
+        try:
+            # Buscar chips ativos com erros mas sem erro recente
+            # (último erro > 6 horas atrás)
+            result = supabase.table("chips").select(
+                "id, telefone, erros_ultimas_24h, ultimo_erro, trust_score"
+            ).eq(
+                "status", "active"
+            ).gt(
+                "erros_ultimas_24h", 0
+            ).execute()
+
+            chips_para_resetar = []
+            for chip in result.data or []:
+                ultimo_erro = chip.get("ultimo_erro")
+
+                # Se não tem último erro registrado ou foi há mais de 6h
+                if not ultimo_erro or ultimo_erro < seis_horas_atras:
+                    chips_para_resetar.append(chip)
+
+            if not chips_para_resetar:
+                logger.debug("[HealthMonitor] Nenhum chip para resetar erros_24h")
+                return {"chips_resetados": 0, "detalhes": []}
+
+            # Resetar erros
+            detalhes = []
+            for chip in chips_para_resetar:
+                chip_id = chip["id"]
+                erros_anteriores = chip.get("erros_ultimas_24h", 0)
+
+                # Resetar para 0
+                supabase.table("chips").update({
+                    "erros_ultimas_24h": 0,
+                    "updated_at": agora.isoformat(),
+                }).eq("id", chip_id).execute()
+
+                detalhes.append({
+                    "chip_id": chip_id,
+                    "telefone": chip.get("telefone", "")[-4:],
+                    "erros_anteriores": erros_anteriores,
+                    "trust_score": chip.get("trust_score"),
+                })
+
+            logger.info(
+                f"[HealthMonitor] T08.4: Resetados erros_24h de {len(chips_para_resetar)} chips"
+            )
+
+            return {
+                "chips_resetados": len(chips_para_resetar),
+                "detalhes": detalhes,
+            }
+
+        except Exception as e:
+            logger.error(f"[HealthMonitor] Erro ao resetar erros_24h: {e}")
+            return {"chips_resetados": 0, "erro": str(e)}
+
+    async def executar_manutencao_diaria(self) -> Dict:
+        """
+        Sprint 36 - T08.4: Executa manutenção diária dos chips.
+
+        Deve ser chamado por um job diário.
+
+        Returns:
+            Resultado consolidado das manutenções
+        """
+        logger.info("[HealthMonitor] Iniciando manutenção diária")
+
+        resultado = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "erros_resetados": {},
+            "alertas_resolvidos": 0,
+        }
+
+        try:
+            # 1. T08.4: Resetar contadores de erro
+            resultado["erros_resetados"] = await self.resetar_erros_24h()
+
+            # 2. Resolver alertas antigos (> 48h)
+            dois_dias_atras = (
+                datetime.now(timezone.utc) - timedelta(hours=48)
+            ).isoformat()
+
+            alertas_antigos = supabase.table("chip_alerts").select("id").eq(
+                "resolved", False
+            ).lt(
+                "created_at", dois_dias_atras
+            ).execute()
+
+            for alerta in alertas_antigos.data or []:
+                await self.resolver_alerta(alerta["id"], resolved_by="auto_expire")
+                resultado["alertas_resolvidos"] += 1
+
+            logger.info(
+                f"[HealthMonitor] Manutenção diária concluída: "
+                f"{resultado['erros_resetados'].get('chips_resetados', 0)} chips resetados, "
+                f"{resultado['alertas_resolvidos']} alertas resolvidos"
+            )
+
+            return resultado
+
+        except Exception as e:
+            logger.error(f"[HealthMonitor] Erro na manutenção diária: {e}")
+            resultado["erro"] = str(e)
+            return resultado
+
+
 # Singleton
 health_monitor = HealthMonitor()
