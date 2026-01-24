@@ -23,10 +23,7 @@ const alertTitles: Record<string, string> = {
   COMPORTAMENTO_ANOMALO: 'Comportamento anômalo detectado',
 }
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient()
     const { id } = await params

@@ -101,22 +101,23 @@ export async function GET(request: NextRequest) {
     })
 
     // Mapear para formato do frontend
-    const mappedAlerts: ChipAlert[] = (alerts as AlertRow[] | null)?.map((a) => {
-      const alert: ChipAlert = {
-        id: a.id,
-        chipId: a.chip_id,
-        chipTelefone: a.chips?.telefone || 'Desconhecido',
-        type: a.tipo as ChipAlert['type'],
-        severity: a.severity as ChipAlertSeverity,
-        title: alertTitles[a.tipo] || a.tipo,
-        message: a.message,
-        createdAt: a.created_at || new Date().toISOString(),
-      }
-      if (a.acao_tomada) alert.recommendation = a.acao_tomada
-      if (a.resolved_at) alert.resolvedAt = a.resolved_at
-      if (a.resolved_by) alert.resolvedBy = a.resolved_by
-      return alert
-    }) || []
+    const mappedAlerts: ChipAlert[] =
+      (alerts as AlertRow[] | null)?.map((a) => {
+        const alert: ChipAlert = {
+          id: a.id,
+          chipId: a.chip_id,
+          chipTelefone: a.chips?.telefone || 'Desconhecido',
+          type: a.tipo as ChipAlert['type'],
+          severity: a.severity as ChipAlertSeverity,
+          title: alertTitles[a.tipo] || a.tipo,
+          message: a.message,
+          createdAt: a.created_at || new Date().toISOString(),
+        }
+        if (a.acao_tomada) alert.recommendation = a.acao_tomada
+        if (a.resolved_at) alert.resolvedAt = a.resolved_at
+        if (a.resolved_by) alert.resolvedBy = a.resolved_by
+        return alert
+      }) || []
 
     const response: ChipAlertsListResponse = {
       alerts: mappedAlerts,

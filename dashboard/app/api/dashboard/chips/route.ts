@@ -35,15 +35,23 @@ function getTrustLevelExtended(score: number): TrustLevelExtended {
   return 'critico'
 }
 
-function getDailyLimit(status: ChipStatus, faseWarmup?: string | null, limiteDia?: number | null): number {
+function getDailyLimit(
+  status: ChipStatus,
+  faseWarmup?: string | null,
+  limiteDia?: number | null
+): number {
   if (limiteDia) return limiteDia
   if (status === 'active') return 100
   if (status === 'warming') {
     switch (faseWarmup) {
-      case 'primeiros_contatos': return 10
-      case 'expansao': return 30
-      case 'pre_operacao': return 50
-      default: return 30
+      case 'primeiros_contatos':
+        return 10
+      case 'expansao':
+        return 30
+      case 'pre_operacao':
+        return 50
+      default:
+        return 30
     }
   }
   if (status === 'degraded') return 30
