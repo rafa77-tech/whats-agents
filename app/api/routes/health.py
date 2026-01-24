@@ -989,3 +989,147 @@ async def pilot_mode_status():
         **status,
         "timestamp": datetime.utcnow().isoformat(),
     }
+
+
+@router.get("/health/chips")
+async def chips_health_status():
+    """
+    Sprint 36 - T10.2: Dashboard de saúde dos chips.
+
+    Retorna status completo de todos os chips:
+    - Trust Score e nível
+    - Estado do circuit breaker
+    - Permissões (pode_prospectar, pode_followup, pode_responder)
+    - Mensagens 24h e erros 24h
+    - Status de conexão Evolution
+
+    Status geral:
+    - healthy: Maioria dos chips saudáveis
+    - degraded: Poucos chips disponíveis ou muitos com problemas
+    - critical: Pool vazio ou todos com circuit aberto
+    """
+    from app.services.chips.circuit_breaker import ChipCircuitBreaker, CircuitState
+
+    try:
+        # Buscar todos os chips ativos
+        result = supabase.table("chips").select("*").eq(
+            "status", "active"
+        ).order("trust_score", desc=True).execute()
+
+        chips = result.data or []
+
+        # Processar dados dos chips
+        chips_status = []
+        chips_disponiveis = 0
+        chips_com_circuit_aberto = 0
+        chips_desconectados = 0
+        chips_saudaveis = 0
+        chips_atencao = 0
+        chips_criticos = 0
+
+        for chip in chips:
+            chip_id = chip["id"]
+            trust = chip.get("trust_score") or 50
+
+            # Verificar circuit breaker
+            circuit = ChipCircuitBreaker.get_circuit(chip_id, chip.get("telefone", ""))
+            circuit_state = circuit.estado.value
+
+            # Verificar conexão
+            evolution_connected = chip.get("evolution_connected", False)
+
+            # Classificar saúde
+            if trust >= 80:
+                health = "saudavel"
+                chips_saudaveis += 1
+            elif trust >= 60:
+                health = "atencao"
+                chips_atencao += 1
+            else:
+                health = "critico"
+                chips_criticos += 1
+
+            # Verificar disponibilidade
+            is_available = (
+                circuit_state != CircuitState.OPEN.value and
+                evolution_connected
+            )
+
+            if is_available:
+                chips_disponiveis += 1
+
+            if circuit_state == CircuitState.OPEN.value:
+                chips_com_circuit_aberto += 1
+
+            if not evolution_connected:
+                chips_desconectados += 1
+
+            chips_status.append({
+                "telefone": chip.get("telefone", "N/A")[-4:],
+                "trust_score": trust,
+                "trust_level": chip.get("trust_level", "unknown"),
+                "health": health,
+                "circuit_state": circuit_state,
+                "circuit_falhas": circuit.falhas_consecutivas,
+                "evolution_connected": evolution_connected,
+                "pode_prospectar": chip.get("pode_prospectar", False),
+                "pode_followup": chip.get("pode_followup", False),
+                "pode_responder": chip.get("pode_responder", False),
+                "msgs_hoje": chip.get("msgs_enviadas_hoje", 0),
+                "erros_24h": chip.get("erros_ultimas_24h", 0),
+                "is_available": is_available,
+            })
+
+        # Determinar status geral
+        total_chips = len(chips)
+
+        if total_chips == 0:
+            status = "critical"
+            message = "Pool de chips vazio!"
+        elif chips_disponiveis == 0:
+            status = "critical"
+            message = "Nenhum chip disponível (todos com circuit aberto ou desconectados)"
+        elif chips_saudaveis < total_chips * 0.3:
+            status = "degraded"
+            message = f"Poucos chips saudáveis: {chips_saudaveis}/{total_chips}"
+        elif chips_com_circuit_aberto > total_chips * 0.5:
+            status = "degraded"
+            message = f"Muitos chips com circuit aberto: {chips_com_circuit_aberto}/{total_chips}"
+        else:
+            status = "healthy"
+            message = "Pool de chips saudável"
+
+        # Contadores por capacidade
+        podem_prospectar = len([c for c in chips if c.get("pode_prospectar") and c.get("trust_score", 0) >= 60])
+        podem_followup = len([c for c in chips if c.get("pode_followup") and c.get("trust_score", 0) >= 40])
+        podem_responder = len([c for c in chips if c.get("pode_responder") and c.get("trust_score", 0) >= 20])
+
+        return {
+            "status": status,
+            "message": message,
+            "summary": {
+                "total": total_chips,
+                "disponiveis": chips_disponiveis,
+                "saudaveis": chips_saudaveis,
+                "atencao": chips_atencao,
+                "criticos": chips_criticos,
+                "circuit_aberto": chips_com_circuit_aberto,
+                "desconectados": chips_desconectados,
+                "trust_medio": round(sum(c.get("trust_score", 0) for c in chips) / total_chips, 1) if total_chips > 0 else 0,
+            },
+            "capacidade": {
+                "prospeccao": podem_prospectar,
+                "followup": podem_followup,
+                "resposta": podem_responder,
+            },
+            "chips": chips_status,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"[health/chips] Error: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+        }

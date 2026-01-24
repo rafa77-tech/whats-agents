@@ -2,18 +2,23 @@
 Chip Sender - Envio de mensagens via chip com provider abstraction.
 
 Sprint 26 - E08: Multi-Provider Support
+Sprint 36 - T05.6: Retry com chip alternativo
+Sprint 36 - T05.8: Cooldown após erro WhatsApp
 Sprint 36 - T08.1: Métricas de envio para Trust Score
+Sprint 36 - T09.2: Integração com circuit breaker per-chip
 
 Integra o Chip Selector com WhatsApp Providers para enviar
 mensagens pelo chip correto usando o provider apropriado.
 """
 
 import logging
-from typing import Optional, Dict, Literal
+from typing import Optional, Dict, Literal, List
 
 from app.services.supabase import supabase
 from app.services.whatsapp_providers import get_provider, MessageResult
 from app.services.chips.selector import ChipSelector
+from app.services.chips.circuit_breaker import ChipCircuitBreaker
+from app.services.chips.cooldown import registrar_erro_whatsapp
 
 logger = logging.getLogger(__name__)
 
@@ -85,17 +90,22 @@ async def enviar_mensagem_inteligente(
     telefone: str,
     texto: str,
     conversa_id: Optional[str] = None,
+    max_retries: int = 3,
 ) -> Dict:
     """
-    Seleciona melhor chip e envia mensagem.
+    Seleciona melhor chip e envia mensagem com retry automático.
+
+    Sprint 36 - T05.6: Retry com chip alternativo em caso de falha.
 
     Combina ChipSelector + Provider para envio inteligente.
+    Em caso de falha, tenta automaticamente com chips alternativos.
 
     Args:
         tipo_mensagem: 'prospeccao', 'followup', ou 'resposta'
         telefone: Número do destinatário
         texto: Texto da mensagem
         conversa_id: ID da conversa (para continuidade)
+        max_retries: Número máximo de tentativas (default: 3)
 
     Returns:
         {
@@ -104,39 +114,87 @@ async def enviar_mensagem_inteligente(
             "chip_telefone": str | None,
             "provider": str | None,
             "message_id": str | None,
-            "error": str | None
+            "error": str | None,
+            "tentativas": int,
+            "chips_tentados": list[str]
         }
     """
     selector = _get_selector()
+    chips_tentados: List[str] = []
+    ultimo_erro: Optional[str] = None
+    ultimo_chip: Optional[Dict] = None
 
-    # 1. Selecionar chip
-    chip = await selector.selecionar_chip(
-        tipo_mensagem=tipo_mensagem,
-        conversa_id=conversa_id,
-        telefone_destino=telefone,
-    )
+    for tentativa in range(max_retries):
+        # 1. Selecionar chip (excluindo os já tentados)
+        chip = await selector.selecionar_chip(
+            tipo_mensagem=tipo_mensagem,
+            conversa_id=conversa_id,
+            telefone_destino=telefone,
+            excluir_chips=chips_tentados if chips_tentados else None,
+        )
 
-    if not chip:
-        logger.warning(f"[ChipSender] Nenhum chip disponível para {tipo_mensagem}")
-        return {
-            "success": False,
-            "chip_id": None,
-            "chip_telefone": None,
-            "provider": None,
-            "message_id": None,
-            "error": f"Nenhum chip disponível para {tipo_mensagem}",
-        }
+        if not chip:
+            # Sem mais chips disponíveis
+            if chips_tentados:
+                logger.warning(
+                    f"[ChipSender] Sem mais chips após {len(chips_tentados)} tentativas "
+                    f"para {tipo_mensagem}"
+                )
+            else:
+                logger.warning(
+                    f"[ChipSender] Nenhum chip disponível para {tipo_mensagem}"
+                )
+            break
 
-    # 2. Enviar via provider do chip
-    result = await enviar_via_chip(chip, telefone, texto)
+        ultimo_chip = chip
+        chips_tentados.append(chip["id"])
 
+        # 2. Tentar enviar
+        result = await enviar_via_chip(chip, telefone, texto)
+
+        if result.success:
+            # Sucesso!
+            if tentativa > 0:
+                logger.info(
+                    f"[ChipSender] Sucesso na tentativa {tentativa + 1} "
+                    f"após fallback de {chips_tentados[:-1]}"
+                )
+            return {
+                "success": True,
+                "chip_id": chip["id"],
+                "chip_telefone": chip.get("telefone"),
+                "provider": result.provider,
+                "message_id": result.message_id,
+                "error": None,
+                "tentativas": tentativa + 1,
+                "chips_tentados": chips_tentados,
+            }
+
+        # Falhou - registrar erro e tentar próximo
+        ultimo_erro = result.error
+
+        logger.warning(
+            f"[ChipSender] Falha na tentativa {tentativa + 1}/{max_retries}: "
+            f"chip={chip.get('telefone', 'N/A')[-4:]}, erro={result.error}"
+        )
+
+        # Verificar se deve fazer retry
+        if tentativa < max_retries - 1:
+            logger.info(
+                f"[ChipSender] Tentando fallback para chip alternativo "
+                f"(tentativa {tentativa + 2}/{max_retries})"
+            )
+
+    # Todas as tentativas falharam
     return {
-        "success": result.success,
-        "chip_id": chip["id"],
-        "chip_telefone": chip.get("telefone"),
-        "provider": result.provider,
-        "message_id": result.message_id,
-        "error": result.error,
+        "success": False,
+        "chip_id": ultimo_chip["id"] if ultimo_chip else None,
+        "chip_telefone": ultimo_chip.get("telefone") if ultimo_chip else None,
+        "provider": None,
+        "message_id": None,
+        "error": ultimo_erro or f"Nenhum chip disponível para {tipo_mensagem}",
+        "tentativas": len(chips_tentados),
+        "chips_tentados": chips_tentados,
     }
 
 
@@ -246,6 +304,8 @@ async def _registrar_envio(
     - erros_ultimas_24h (se falhou)
     - ultimo_envio_em
 
+    Sprint 36 - T09.2: Também atualiza circuit breaker per-chip.
+
     Args:
         chip_id: ID do chip
         telefone_destino: Número do destinatário (para rastrear conversas)
@@ -254,6 +314,27 @@ async def _registrar_envio(
         error_message: Mensagem de erro (se falhou)
         tipo_midia: Tipo de mídia enviada (se aplicável)
     """
+    # Sprint 36 - T09.2: Atualizar circuit breaker per-chip
+    if sucesso:
+        ChipCircuitBreaker.registrar_sucesso(chip_id)
+    else:
+        ChipCircuitBreaker.registrar_falha(chip_id, error_code, error_message)
+
+        # Sprint 36 - T05.8: Aplicar cooldown baseado no tipo de erro
+        try:
+            cooldown_result = await registrar_erro_whatsapp(
+                chip_id=chip_id,
+                error_code=error_code,
+                error_message=error_message,
+            )
+            if cooldown_result.get("cooldown_aplicado"):
+                logger.info(
+                    f"[ChipSender] Cooldown aplicado ao chip {chip_id[:8]}: "
+                    f"{cooldown_result['cooldown_minutos']}min - {cooldown_result['motivo']}"
+                )
+        except Exception as cooldown_err:
+            logger.warning(f"[ChipSender] Erro ao aplicar cooldown: {cooldown_err}")
+
     try:
         if sucesso:
             result = supabase.rpc(

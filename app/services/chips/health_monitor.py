@@ -2,18 +2,25 @@
 Health Monitor - Monitoramento proativo de chips em producao.
 
 Sprint 26 - E04
+Sprint 36 - T11.1: Auto-demove de chips com trust crítico
+Sprint 36 - T11.3: Alerta proativo de pool baixo
 
 Detecta:
 - Taxa de resposta caindo
 - Erros aumentando
 - Desconexoes
 - Trust Score degradando
+- Pool de chips baixo (proativo)
+
+Acoes:
+- Auto-demove de chips críticos
+- Alerta proativo de pool baixo
 """
 
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from app.services.supabase import supabase
 from app.services.slack import enviar_slack
@@ -45,7 +52,16 @@ class HealthMonitor:
             "erros_por_hora_max": 5,
             "trust_drop_alerta": 10,  # Queda de 10 pontos em 24h
             "desconexao_timeout_minutos": 30,
+            # Sprint 36 - T11.1: Auto-demove
+            "trust_auto_demove": 20,  # Trust < 20 = demove automático
+            "falhas_consecutivas_demove": 10,  # 10+ falhas consecutivas
+            # Sprint 36 - T11.3: Pool baixo
+            "pool_minimo_prospeccao": 3,  # Mínimo de chips para prospecção
+            "pool_minimo_followup": 2,  # Mínimo de chips para followup
+            "pool_minimo_resposta": 2,  # Mínimo de chips para resposta
+            "pool_alerta_percentage": 0.3,  # Alerta se < 30% dos chips saudáveis
         }
+        self._last_pool_alert: Dict[str, datetime] = {}  # Evitar spam de alertas
 
     async def verificar_saude_chips(self) -> List[Dict]:
         """
@@ -235,6 +251,271 @@ class HealthMonitor:
             "chips_desconectados": len([c for c in chips if not c.get("evolution_connected")]),
         }
 
+    async def auto_demover_chip(self, chip: Dict, motivo: str) -> Dict:
+        """
+        Sprint 36 - T11.1: Remove chip do pool automaticamente.
+
+        Demove chips com trust crítico ou muitas falhas consecutivas.
+
+        Args:
+            chip: Dict com dados do chip
+            motivo: Motivo do demove
+
+        Returns:
+            {
+                "sucesso": bool,
+                "chip_id": str,
+                "telefone": str,
+                "motivo": str,
+                "status_anterior": str
+            }
+        """
+        chip_id = chip["id"]
+        telefone = chip.get("telefone", "N/A")
+        status_anterior = chip.get("status", "active")
+
+        try:
+            # 1. Atualizar status do chip para 'demoved'
+            supabase.table("chips").update({
+                "status": "demoved",
+                "demoved_at": datetime.now(timezone.utc).isoformat(),
+                "demoved_motivo": motivo,
+                "demoved_by": "health_monitor_auto",
+            }).eq("id", chip_id).execute()
+
+            # 2. Criar alerta
+            await self._criar_alerta(
+                chip_id=chip_id,
+                tipo="auto_demoved",
+                severity="critical",
+                message=f"Chip {telefone} removido automaticamente: {motivo}",
+            )
+
+            # 3. Notificar Slack
+            await notificar_slack(
+                f":warning: *Auto-demove de chip*\n"
+                f"• Chip: {telefone}\n"
+                f"• Motivo: {motivo}\n"
+                f"• Trust Score: {chip.get('trust_score', 'N/A')}\n"
+                f"• Action: Chip removido do pool ativo",
+                canal="alertas"
+            )
+
+            logger.warning(
+                f"[HealthMonitor] Auto-demove: chip={telefone}, motivo={motivo}"
+            )
+
+            return {
+                "sucesso": True,
+                "chip_id": chip_id,
+                "telefone": telefone,
+                "motivo": motivo,
+                "status_anterior": status_anterior,
+            }
+
+        except Exception as e:
+            logger.error(f"[HealthMonitor] Erro no auto-demove: {e}")
+            return {
+                "sucesso": False,
+                "chip_id": chip_id,
+                "telefone": telefone,
+                "motivo": motivo,
+                "erro": str(e),
+            }
+
+    async def verificar_auto_demove(self, chip: Dict) -> Optional[Dict]:
+        """
+        Sprint 36 - T11.1: Verifica se chip deve ser removido automaticamente.
+
+        Critérios para auto-demove:
+        - Trust Score < 20
+        - Falhas consecutivas >= 10 (via circuit breaker)
+
+        Args:
+            chip: Dict com dados do chip
+
+        Returns:
+            Resultado do demove ou None se não necessário
+        """
+        trust = chip.get("trust_score") or 50
+        telefone = chip.get("telefone", "N/A")
+
+        # Verificar Trust Score crítico
+        if trust < self.thresholds["trust_auto_demove"]:
+            logger.warning(
+                f"[HealthMonitor] Chip {telefone} candidato a auto-demove: "
+                f"trust={trust} < {self.thresholds['trust_auto_demove']}"
+            )
+            return await self.auto_demover_chip(
+                chip,
+                motivo=f"Trust Score crítico ({trust})"
+            )
+
+        # Verificar circuit breaker (via dados do chip ou estado em memória)
+        from app.services.chips.circuit_breaker import ChipCircuitBreaker, CircuitState
+
+        circuit = ChipCircuitBreaker.get_circuit(chip["id"], telefone)
+        if circuit.falhas_consecutivas >= self.thresholds["falhas_consecutivas_demove"]:
+            logger.warning(
+                f"[HealthMonitor] Chip {telefone} candidato a auto-demove: "
+                f"{circuit.falhas_consecutivas} falhas consecutivas"
+            )
+            return await self.auto_demover_chip(
+                chip,
+                motivo=f"{circuit.falhas_consecutivas} falhas consecutivas"
+            )
+
+        return None
+
+    async def verificar_pool_baixo(self) -> List[Dict]:
+        """
+        Sprint 36 - T11.3: Verifica se pool está com poucos chips disponíveis.
+
+        Alerta quando:
+        - Menos de X chips disponíveis para cada tipo de operação
+        - Menos de 30% dos chips totais estão saudáveis
+
+        Returns:
+            Lista de alertas gerados
+        """
+        alertas = []
+        agora = datetime.now(timezone.utc)
+
+        # Buscar chips ativos
+        result = supabase.table("chips").select("*").eq(
+            "status", "active"
+        ).eq(
+            "evolution_connected", True
+        ).execute()
+
+        chips = result.data or []
+
+        if not chips:
+            # Crítico: nenhum chip disponível
+            alertas.append(await self._criar_alerta_pool(
+                tipo="pool_vazio",
+                severity="critical",
+                message="Pool de chips está vazio! Nenhum chip conectado disponível.",
+            ))
+            return alertas
+
+        # Contar chips por capacidade (com trust adequado)
+        chips_prospeccao = [
+            c for c in chips
+            if c.get("pode_prospectar") and (c.get("trust_score") or 0) >= 60
+        ]
+        chips_followup = [
+            c for c in chips
+            if c.get("pode_followup") and (c.get("trust_score") or 0) >= 40
+        ]
+        chips_resposta = [
+            c for c in chips
+            if c.get("pode_responder") and (c.get("trust_score") or 0) >= 20
+        ]
+
+        # Verificar mínimos por operação
+        verificacoes = [
+            ("prospeccao", chips_prospeccao, self.thresholds["pool_minimo_prospeccao"]),
+            ("followup", chips_followup, self.thresholds["pool_minimo_followup"]),
+            ("resposta", chips_resposta, self.thresholds["pool_minimo_resposta"]),
+        ]
+
+        for operacao, chips_disponiveis, minimo in verificacoes:
+            if len(chips_disponiveis) < minimo:
+                alerta = await self._criar_alerta_pool(
+                    tipo=f"pool_baixo_{operacao}",
+                    severity="warning" if len(chips_disponiveis) > 0 else "critical",
+                    message=(
+                        f"Pool baixo para {operacao}: "
+                        f"{len(chips_disponiveis)}/{minimo} chips disponíveis"
+                    ),
+                )
+                if not alerta.get("duplicado"):
+                    alertas.append(alerta)
+
+        # Verificar percentual de chips saudáveis
+        chips_saudaveis = [c for c in chips if (c.get("trust_score") or 0) >= 80]
+        percentual_saudavel = len(chips_saudaveis) / len(chips) if chips else 0
+
+        if percentual_saudavel < self.thresholds["pool_alerta_percentage"]:
+            alerta = await self._criar_alerta_pool(
+                tipo="pool_degradado",
+                severity="warning",
+                message=(
+                    f"Pool degradado: apenas {len(chips_saudaveis)}/{len(chips)} "
+                    f"chips saudáveis ({percentual_saudavel:.0%})"
+                ),
+            )
+            if not alerta.get("duplicado"):
+                alertas.append(alerta)
+
+        # Notificar se houver alertas novos
+        novos_alertas = [a for a in alertas if not a.get("duplicado")]
+        if novos_alertas:
+            await self._notificar_pool_baixo(novos_alertas, chips)
+
+        return alertas
+
+    async def _criar_alerta_pool(
+        self,
+        tipo: str,
+        severity: str,
+        message: str,
+    ) -> Dict:
+        """Cria alerta de pool (sem chip específico)."""
+        # Verificar cooldown de alertas (evitar spam)
+        agora = datetime.now(timezone.utc)
+        ultima = self._last_pool_alert.get(tipo)
+        if ultima and (agora - ultima).total_seconds() < 3600:  # 1 hora
+            return {"tipo": tipo, "duplicado": True}
+
+        self._last_pool_alert[tipo] = agora
+
+        # Verificar se já existe alerta ativo
+        existing = supabase.table("chip_alerts").select("id").eq(
+            "tipo", tipo
+        ).eq(
+            "resolved", False
+        ).is_("chip_id", "null").execute()
+
+        if existing.data:
+            return {"tipo": tipo, "severity": severity, "message": message, "duplicado": True}
+
+        # Criar alerta (sem chip_id pois é do pool geral)
+        result = supabase.table("chip_alerts").insert({
+            "chip_id": None,
+            "tipo": tipo,
+            "severity": severity,
+            "message": message,
+        }).execute()
+
+        return {
+            "tipo": tipo,
+            "severity": severity,
+            "message": message,
+            "id": result.data[0]["id"] if result.data else None,
+            "duplicado": False,
+        }
+
+    async def _notificar_pool_baixo(self, alertas: List[Dict], chips: List[Dict]) -> None:
+        """Notifica Slack sobre pool baixo."""
+        mensagens = "\n".join([f"• {a['message']}" for a in alertas])
+        severity_max = "critical" if any(a["severity"] == "critical" for a in alertas) else "warning"
+
+        emoji = ":rotating_light:" if severity_max == "critical" else ":warning:"
+
+        await notificar_slack(
+            f"{emoji} *Alerta de Pool de Chips*\n\n"
+            f"{mensagens}\n\n"
+            f"*Status atual:*\n"
+            f"• Total conectados: {len(chips)}\n"
+            f"• Trust >= 80: {len([c for c in chips if (c.get('trust_score') or 0) >= 80])}\n"
+            f"• Trust >= 60: {len([c for c in chips if (c.get('trust_score') or 0) >= 60])}\n"
+            f"• Trust >= 40: {len([c for c in chips if (c.get('trust_score') or 0) >= 40])}\n\n"
+            f"_Considere ativar novos chips ou investigar os problemas._",
+            canal="alertas"
+        )
+
     async def resolver_alerta(self, alerta_id: str, resolved_by: str = "manual") -> Dict:
         """
         Resolve um alerta.
@@ -292,6 +573,26 @@ class HealthMonitor:
 
         try:
             alertas = await self.verificar_saude_chips()
+
+            # Sprint 36 - T11.1: Verificar auto-demove para chips ativos
+            result = supabase.table("chips").select("*").eq(
+                "status", "active"
+            ).execute()
+
+            chips_demovidos = 0
+            for chip in result.data or []:
+                demove_result = await self.verificar_auto_demove(chip)
+                if demove_result and demove_result.get("sucesso"):
+                    chips_demovidos += 1
+
+            if chips_demovidos > 0:
+                logger.warning(
+                    f"[HealthMonitor] Auto-demove: {chips_demovidos} chip(s) removidos"
+                )
+
+            # Sprint 36 - T11.3: Verificar pool baixo
+            alertas_pool = await self.verificar_pool_baixo()
+            alertas.extend(alertas_pool)
 
             # Filtrar apenas novos alertas
             novos = [a for a in alertas if not a.get("duplicado")]
