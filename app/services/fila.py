@@ -168,6 +168,61 @@ class FilaService:
         logger.warning(f"Falha ao registrar outcome para {mensagem_id}")
         return False
 
+    async def obter_metricas_fila(self) -> dict:
+        """
+        Sprint 36 - T01.5: Obtém métricas da fila para monitoramento.
+
+        Returns:
+            {
+                'pendentes': int,
+                'processando': int,
+                'erros_ultimas_24h': int,
+                'mensagem_mais_antiga_min': float | None,
+            }
+        """
+        from datetime import timedelta
+
+        agora = datetime.now(timezone.utc)
+        ontem = (agora - timedelta(hours=24)).isoformat()
+
+        # Contar pendentes
+        pendentes = supabase.table("fila_mensagens").select(
+            "id", count="exact"
+        ).eq("status", "pendente").execute()
+
+        # Contar processando
+        processando = supabase.table("fila_mensagens").select(
+            "id", count="exact"
+        ).eq("status", "processando").execute()
+
+        # Contar erros nas últimas 24h
+        erros = supabase.table("fila_mensagens").select(
+            "id", count="exact"
+        ).eq("status", "erro").gte("updated_at", ontem).execute()
+
+        # Buscar mensagem pendente mais antiga
+        mais_antiga = supabase.table("fila_mensagens").select(
+            "created_at"
+        ).eq("status", "pendente").order(
+            "created_at", desc=False
+        ).limit(1).execute()
+
+        # Calcular idade em minutos
+        idade_minutos = None
+        if mais_antiga.data:
+            created_at_str = mais_antiga.data[0]["created_at"]
+            created_at = datetime.fromisoformat(
+                created_at_str.replace("Z", "+00:00")
+            )
+            idade_minutos = (agora - created_at).total_seconds() / 60
+
+        return {
+            "pendentes": pendentes.count or 0,
+            "processando": processando.count or 0,
+            "erros_ultimas_24h": erros.count or 0,
+            "mensagem_mais_antiga_min": idade_minutos,
+        }
+
     async def marcar_erro(self, mensagem_id: str, erro: str) -> bool:
         """Marca erro e agenda retry se possível."""
         # Buscar mensagem atual

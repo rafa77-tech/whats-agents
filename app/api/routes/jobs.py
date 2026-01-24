@@ -1365,10 +1365,14 @@ async def job_sincronizar_chips():
     """
     Job para sincronizar chips com Evolution API.
 
+    Sprint 25: Funcionalidade base
+    Sprint 36 T11.2: Adicionado alerta de muitas instâncias desconectadas
+
     Atualiza a tabela chips com o estado atual das instâncias na Evolution API.
     - Atualiza status de conexão de chips existentes
     - Cria novos chips para instâncias desconhecidas
     - Marca chips sem instância como desconectados
+    - Alerta se > 30% das instâncias estão desconectadas (Sprint 36)
 
     Schedule: */5 * * * * (a cada 5 minutos)
     """
@@ -1376,6 +1380,25 @@ async def job_sincronizar_chips():
         from app.services.chips import sincronizar_chips_com_evolution
 
         resultado = await sincronizar_chips_com_evolution()
+
+        # Sprint 36 T11.2: Alertar se muitas instâncias desconectadas
+        total = resultado.get("chips_conectados", 0) + resultado.get("chips_desconectados", 0)
+        desconectadas = resultado.get("chips_desconectados", 0)
+
+        if total > 0 and desconectadas > total * 0.3:
+            from app.services.slack import enviar_mensagem_slack
+
+            await enviar_mensagem_slack(
+                canal="alertas",
+                texto=(
+                    f":rotating_light: *Alerta de Conexão Evolution*\n"
+                    f"{desconectadas}/{total} instâncias desconectadas ({desconectadas/total*100:.0f}%)\n"
+                    f"Verificar: Evolution API e QR codes dos chips"
+                ),
+            )
+            logger.warning(
+                f"[SyncChips] ALERTA: {desconectadas}/{total} instâncias desconectadas"
+            )
 
         return JSONResponse({
             "status": "ok",
@@ -1389,3 +1412,178 @@ async def job_sincronizar_chips():
     except Exception as e:
         logger.error(f"Erro ao sincronizar chips: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# ==========================================
+# Jobs de Monitoramento de Fila (Sprint 36)
+# ==========================================
+
+
+@router.post("/monitorar-fila")
+async def job_monitorar_fila(
+    limite_pendentes: int = 50,
+    limite_idade_minutos: int = 30,
+):
+    """
+    Sprint 36 - T01.5: Monitora saúde da fila de mensagens.
+
+    Verifica:
+    - Quantidade de mensagens pendentes
+    - Idade da mensagem mais antiga
+    - Erros nas últimas 24h
+
+    Alerta via Slack se:
+    - Mais de `limite_pendentes` mensagens pendentes
+    - Mensagem mais antiga há mais de `limite_idade_minutos` minutos
+
+    Args:
+        limite_pendentes: Máximo de mensagens pendentes (default: 50)
+        limite_idade_minutos: Minutos máx da mensagem mais antiga (default: 30)
+
+    Schedule: */10 * * * * (a cada 10 minutos)
+    """
+    try:
+        from app.services.fila import fila_service
+        from app.services.slack import enviar_mensagem_slack
+
+        metricas = await fila_service.obter_metricas_fila()
+
+        pendentes = metricas["pendentes"]
+        idade = metricas["mensagem_mais_antiga_min"]
+        erros_24h = metricas["erros_ultimas_24h"]
+
+        alertas = []
+
+        # Verificar fila acumulando
+        if pendentes > limite_pendentes:
+            alertas.append(
+                f":warning: Fila com {pendentes} mensagens pendentes "
+                f"(limite: {limite_pendentes})"
+            )
+
+        # Verificar mensagens travadas
+        if idade and idade > limite_idade_minutos:
+            alertas.append(
+                f":hourglass: Mensagem mais antiga há {idade:.0f} minutos "
+                f"(limite: {limite_idade_minutos})"
+            )
+
+        # Verificar muitos erros
+        if erros_24h > 20:
+            alertas.append(
+                f":x: {erros_24h} erros nas últimas 24h"
+            )
+
+        # Enviar alerta se houver problemas
+        if alertas:
+            await enviar_mensagem_slack(
+                canal="alertas",
+                texto=(
+                    f":rotating_light: *Alerta de Fila de Mensagens*\n\n"
+                    + "\n".join(alertas)
+                    + f"\n\nMétricas:\n"
+                    f"- Pendentes: {pendentes}\n"
+                    f"- Processando: {metricas['processando']}\n"
+                    f"- Idade mais antiga: {idade:.0f if idade else 0} min\n"
+                    f"- Erros 24h: {erros_24h}\n\n"
+                    f"Ação: Verificar fila_worker e circuit breaker"
+                ),
+            )
+            logger.warning(f"[MonitorFila] Alertas: {alertas}")
+
+        status = "warning" if alertas else "ok"
+
+        return JSONResponse({
+            "status": status,
+            "pendentes": pendentes,
+            "processando": metricas["processando"],
+            "mensagem_mais_antiga_min": idade,
+            "erros_24h": erros_24h,
+            "alertas": alertas,
+        })
+    except Exception as e:
+        logger.error(f"Erro ao monitorar fila: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.get("/fila-worker-health")
+async def job_fila_worker_health():
+    """
+    Sprint 36 - T01.6: Health check do fila_worker.
+
+    Verifica:
+    - Status do circuit breaker
+    - Se há mensagens sendo processadas (não travadas)
+    - Métricas gerais da fila
+
+    Retorna status:
+    - healthy: Tudo funcionando
+    - warning: Problemas detectados mas operacional
+    - critical: Worker possivelmente parado/travado
+
+    Útil para monitoramento externo e dashboards.
+    """
+    try:
+        from app.services.fila import fila_service
+        from app.services.circuit_breaker import circuit_evolution, CircuitState
+
+        metricas = await fila_service.obter_metricas_fila()
+
+        pendentes = metricas["pendentes"]
+        processando = metricas["processando"]
+        idade = metricas["mensagem_mais_antiga_min"]
+        erros_24h = metricas["erros_ultimas_24h"]
+
+        # Status do circuit breaker
+        circuit_status = circuit_evolution.status()
+        circuit_estado = circuit_status["estado"]
+
+        # Determinar status geral
+        issues = []
+
+        # Circuit breaker aberto é crítico
+        if circuit_estado == "open":
+            issues.append("circuit_breaker_open")
+
+        # Mensagem muito antiga indica worker travado
+        if idade and idade > 60:
+            issues.append("message_stuck_60min")
+
+        # Muitos erros é preocupante
+        if erros_24h > 50:
+            issues.append("high_error_rate")
+
+        # Muitas mensagens acumulando
+        if pendentes > 100:
+            issues.append("queue_backlog")
+
+        # Determinar status final
+        if "circuit_breaker_open" in issues or "message_stuck_60min" in issues:
+            status = "critical"
+        elif issues:
+            status = "warning"
+        else:
+            status = "healthy"
+
+        return JSONResponse({
+            "status": status,
+            "circuit_breaker": {
+                "estado": circuit_estado,
+                "falhas_consecutivas": circuit_status["falhas_consecutivas"],
+                "ultima_falha": circuit_status["ultima_falha"],
+            },
+            "fila": {
+                "pendentes": pendentes,
+                "processando": processando,
+                "mensagem_mais_antiga_min": round(idade, 1) if idade else None,
+                "erros_24h": erros_24h,
+            },
+            "issues": issues,
+        })
+    except Exception as e:
+        logger.error(f"Erro no health check do fila_worker: {e}")
+        return JSONResponse({
+            "status": "error",
+            "message": str(e),
+            "issues": ["health_check_failed"],
+        }, status_code=500)

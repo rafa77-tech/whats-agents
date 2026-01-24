@@ -2,8 +2,10 @@
 Chip Selector - Selecao inteligente de chip por tipo de mensagem.
 
 Sprint 26 - E02
+Sprint 36 - T11.6: Verificar conexão Evolution na seleção
 
 Considera:
+- Conexão Evolution ativa (evolution_connected)
 - Trust Score do chip
 - Permissoes (pode_prospectar, pode_followup, pode_responder)
 - Uso atual (msgs/hora, msgs/dia)
@@ -94,7 +96,11 @@ class ChipSelector:
         return chip_selecionado
 
     async def _buscar_chip_conversa(self, conversa_id: str) -> Optional[Dict]:
-        """Busca chip atualmente associado a conversa."""
+        """
+        Busca chip atualmente associado a conversa.
+
+        Sprint 36 - T11.6: Também verifica se chip está conectado.
+        """
         # Usar relationship hint para evitar ambiguidade
         # (conversation_chips tem 2 FKs para chips: chip_id e migrated_from)
         result = supabase.table("conversation_chips").select(
@@ -106,7 +112,17 @@ class ChipSelector:
         ).limit(1).execute()
 
         if result.data and result.data[0].get("chips"):
-            return result.data[0]["chips"]
+            chip = result.data[0]["chips"]
+
+            # Sprint 36 - T11.6: Verificar se chip está conectado
+            if not chip.get("evolution_connected"):
+                logger.warning(
+                    f"[ChipSelector] Chip da conversa {chip.get('telefone')} "
+                    f"não está conectado, ignorando afinidade"
+                )
+                return None
+
+            return chip
         return None
 
     async def _buscar_chips_elegiveis(self, tipo_mensagem: TipoMensagem) -> List[Dict]:
@@ -117,8 +133,13 @@ class ChipSelector:
         - prospeccao: Trust >= 80, pode_prospectar = true
         - followup: Trust >= 60, pode_followup = true
         - resposta: Trust >= 40, pode_responder = true
+
+        Sprint 36 - T11.6: Também filtra por evolution_connected = true
         """
         query = supabase.table("chips").select("*").eq("status", "active")
+
+        # Sprint 36 - T11.6: Filtrar apenas chips conectados ao Evolution
+        query = query.eq("evolution_connected", True)
 
         # Filtrar por permissao e trust minimo
         if tipo_mensagem == "prospeccao":
@@ -132,7 +153,24 @@ class ChipSelector:
 
         # Filtrar por limite de uso
         chips_disponiveis = []
+        chips_desconectados = 0
+
         for chip in result.data or []:
+            # Sprint 36 - T11.6: Verificar cooldown de conexão
+            if chip.get("connection_cooldown_until"):
+                try:
+                    cooldown_until = datetime.fromisoformat(
+                        chip["connection_cooldown_until"].replace("Z", "+00:00")
+                    )
+                    if datetime.now(timezone.utc) < cooldown_until:
+                        logger.debug(
+                            f"[ChipSelector] Chip {chip['telefone']} em cooldown de conexão"
+                        )
+                        chips_desconectados += 1
+                        continue
+                except (ValueError, TypeError):
+                    pass  # Ignorar se formato invalido
+
             # Verificar limite diario
             limite_dia = chip.get("limite_dia", 100)
             msgs_hoje = chip.get("msgs_enviadas_hoje", 0)
@@ -149,7 +187,7 @@ class ChipSelector:
                 logger.debug(f"[ChipSelector] Chip {chip['telefone']} no limite horario")
                 continue
 
-            # Verificar cooldown
+            # Verificar cooldown geral
             if chip.get("cooldown_until"):
                 cooldown_until = datetime.fromisoformat(
                     chip["cooldown_until"].replace("Z", "+00:00")
@@ -160,6 +198,12 @@ class ChipSelector:
 
             chip["_uso_hora"] = uso_hora
             chips_disponiveis.append(chip)
+
+        # Log de chips descartados por conexão
+        if chips_desconectados > 0:
+            logger.warning(
+                f"[ChipSelector] {chips_desconectados} chips descartados por cooldown de conexão"
+            )
 
         return chips_disponiveis
 

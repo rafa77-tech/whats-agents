@@ -2,6 +2,7 @@
 Webhook Router - Roteamento multi-chip.
 
 Sprint 26 - E03
+Sprint 36 - T08.2: Registrar resposta recebida por chip
 
 Recebe webhooks de multiplas instancias Evolution
 e roteia para o processamento correto.
@@ -100,11 +101,12 @@ async def processar_mensagem_recebida(chip: dict, payload: dict) -> dict:
     """
     Processa mensagem recebida no chip.
 
+    Sprint 36 - T08.2: Usa RPC para registrar métricas e conversas bidirecionais.
+
     Fluxo:
     1. Extrair dados da mensagem
-    2. Atualizar metricas do chip
-    3. Registrar interacao
-    4. Se chip ativo, enviar para pipeline Julia
+    2. Registrar resposta via RPC (atualiza métricas + conversas bidirecionais)
+    3. Se chip ativo, enviar para pipeline Julia
     """
     data = payload.get("data", {})
     message = data.get("message", {})
@@ -135,24 +137,46 @@ async def processar_mensagem_recebida(chip: dict, payload: dict) -> dict:
     elif message.get("stickerMessage"):
         tipo_midia = "sticker"
 
-    # Registrar interacao
-    supabase.table("chip_interactions").insert({
-        "chip_id": chip["id"],
-        "tipo": "msg_recebida",
-        "destinatario": telefone,
-        "metadata": {"tipo_midia": tipo_midia},
-    }).execute()
+    # Sprint 36 - T08.2: Usar RPC para registrar métricas e conversas bidirecionais
+    try:
+        result = supabase.rpc(
+            "chip_registrar_resposta",
+            {
+                "p_chip_id": chip["id"],
+                "p_telefone_remetente": telefone,
+            },
+        ).execute()
 
-    # Atualizar contadores
-    result = supabase.table("chips").select(
-        "msgs_recebidas_total, msgs_recebidas_hoje"
-    ).eq("id", chip["id"]).single().execute()
+        foi_bidirecional = result.data.get("foi_bidirecional", False) if result.data else False
 
-    if result.data:
-        supabase.table("chips").update({
-            "msgs_recebidas_total": (result.data.get("msgs_recebidas_total") or 0) + 1,
-            "msgs_recebidas_hoje": (result.data.get("msgs_recebidas_hoje") or 0) + 1,
-        }).eq("id", chip["id"]).execute()
+        if foi_bidirecional:
+            logger.info(
+                f"[WebhookRouter] Conversa bidirecional detectada: "
+                f"chip={chip['telefone'][-4:]}, remetente={telefone[-4:]}"
+            )
+
+    except Exception as e:
+        logger.warning(f"[WebhookRouter] Erro ao registrar resposta via RPC: {e}")
+        # Fallback: registrar manualmente
+        try:
+            supabase.table("chip_interactions").insert({
+                "chip_id": chip["id"],
+                "tipo": "msg_recebida",
+                "remetente": telefone,
+                "metadata": {"tipo_midia": tipo_midia},
+            }).execute()
+
+            # Atualizar contadores manualmente
+            chip_data = supabase.table("chips").select(
+                "msgs_recebidas_total"
+            ).eq("id", chip["id"]).single().execute()
+
+            if chip_data.data:
+                supabase.table("chips").update({
+                    "msgs_recebidas_total": (chip_data.data.get("msgs_recebidas_total") or 0) + 1,
+                }).eq("id", chip["id"]).execute()
+        except Exception as e2:
+            logger.error(f"[WebhookRouter] Erro no fallback de métricas: {e2}")
 
     # Se chip nao deve processar, parar aqui
     if chip.get("_ignore_processing"):

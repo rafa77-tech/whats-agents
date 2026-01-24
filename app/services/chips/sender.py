@@ -2,6 +2,7 @@
 Chip Sender - Envio de mensagens via chip com provider abstraction.
 
 Sprint 26 - E08: Multi-Provider Support
+Sprint 36 - T08.1: Métricas de envio para Trust Score
 
 Integra o Chip Selector com WhatsApp Providers para enviar
 mensagens pelo chip correto usando o provider apropriado.
@@ -50,9 +51,14 @@ async def enviar_via_chip(
         provider = get_provider(chip)
         result = await provider.send_text(telefone, texto)
 
-        # Atualizar métricas do chip
-        if result.success:
-            await _atualizar_metricas_envio(chip["id"])
+        # Atualizar métricas do chip (Sprint 36 - T08.1)
+        await _registrar_envio(
+            chip_id=chip["id"],
+            telefone_destino=telefone,
+            sucesso=result.success,
+            error_code=result.error_code if hasattr(result, "error_code") else None,
+            error_message=result.error if not result.success else None,
+        )
 
         logger.info(
             f"[ChipSender] Enviado via {result.provider}: "
@@ -64,6 +70,13 @@ async def enviar_via_chip(
 
     except Exception as e:
         logger.error(f"[ChipSender] Erro ao enviar: {e}")
+        # Registrar erro mesmo em exceção
+        await _registrar_envio(
+            chip_id=chip["id"],
+            telefone_destino=telefone,
+            sucesso=False,
+            error_message=str(e),
+        )
         return MessageResult(success=False, error=str(e))
 
 
@@ -156,13 +169,26 @@ async def enviar_media_via_chip(
             media_type=media_type,
         )
 
-        if result.success:
-            await _atualizar_metricas_envio(chip["id"])
+        # Atualizar métricas do chip (Sprint 36 - T08.1)
+        await _registrar_envio(
+            chip_id=chip["id"],
+            telefone_destino=telefone,
+            sucesso=result.success,
+            error_code=result.error_code if hasattr(result, "error_code") else None,
+            error_message=result.error if not result.success else None,
+            tipo_midia=media_type,
+        )
 
         return result
 
     except Exception as e:
         logger.error(f"[ChipSender] Erro ao enviar mídia: {e}")
+        await _registrar_envio(
+            chip_id=chip["id"],
+            telefone_destino=telefone,
+            sucesso=False,
+            error_message=str(e),
+        )
         return MessageResult(success=False, error=str(e))
 
 
@@ -203,13 +229,72 @@ async def verificar_conexao_chip(chip: Dict) -> Dict:
         }
 
 
-async def _atualizar_metricas_envio(chip_id: str) -> None:
-    """Atualiza métricas de envio do chip."""
+async def _registrar_envio(
+    chip_id: str,
+    telefone_destino: str,
+    sucesso: bool,
+    error_code: Optional[int] = None,
+    error_message: Optional[str] = None,
+    tipo_midia: Optional[str] = None,
+) -> None:
+    """
+    Registra envio para métricas do chip (Sprint 36 - T08.1).
+
+    Atualiza contadores no banco para alimentar o Trust Score:
+    - msgs_enviadas_total
+    - msgs_enviadas_hoje
+    - erros_ultimas_24h (se falhou)
+    - ultimo_envio_em
+
+    Args:
+        chip_id: ID do chip
+        telefone_destino: Número do destinatário (para rastrear conversas)
+        sucesso: Se o envio foi bem-sucedido
+        error_code: Código do erro (se falhou)
+        error_message: Mensagem de erro (se falhou)
+        tipo_midia: Tipo de mídia enviada (se aplicável)
+    """
     try:
-        supabase.rpc(
-            "incrementar_msgs_enviadas",
-            {"p_chip_id": chip_id},
-        ).execute()
+        if sucesso:
+            result = supabase.rpc(
+                "chip_registrar_envio_sucesso",
+                {"p_chip_id": chip_id},
+            ).execute()
+            logger.debug(f"[ChipSender] Métricas atualizadas (sucesso): {result.data}")
+        else:
+            result = supabase.rpc(
+                "chip_registrar_envio_erro",
+                {
+                    "p_chip_id": chip_id,
+                    "p_error_code": error_code,
+                    "p_error_message": error_message,
+                },
+            ).execute()
+            logger.debug(f"[ChipSender] Métricas atualizadas (erro): {result.data}")
+
+        # Registrar destinatário para rastreio de conversas bidirecionais
+        if telefone_destino:
+            try:
+                supabase.table("chip_interactions").update({
+                    "destinatario": telefone_destino,
+                }).eq(
+                    "chip_id", chip_id
+                ).eq(
+                    "tipo", "msg_enviada"
+                ).is_(
+                    "destinatario", "null"
+                ).order(
+                    "created_at", desc=True
+                ).limit(1).execute()
+            except Exception:
+                pass  # Best effort
+
     except Exception as e:
         # Não falhar o envio por erro de métrica
-        logger.warning(f"[ChipSender] Erro ao atualizar métricas: {e}")
+        logger.warning(f"[ChipSender] Erro ao registrar métricas: {e}")
+
+
+# Alias para retrocompatibilidade
+async def _atualizar_metricas_envio(chip_id: str) -> None:
+    """Alias para retrocompatibilidade."""
+    await _registrar_envio(chip_id=chip_id, telefone_destino="", sucesso=True)
