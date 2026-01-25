@@ -13,9 +13,13 @@ from typing import Callable, Any, Optional
 from enum import Enum
 from dataclasses import dataclass, field
 
-from app.services.supabase import supabase
-
 logger = logging.getLogger(__name__)
+
+
+def _get_supabase():
+    """Lazy import para evitar circular import com supabase.py."""
+    from app.services.supabase import supabase
+    return supabase
 
 
 class CircuitState(Enum):
@@ -134,7 +138,7 @@ class CircuitBreaker:
 
         # Registrar transição no banco (async em background)
         try:
-            supabase.table("circuit_transitions").insert({
+            _get_supabase().table("circuit_transitions").insert({
                 "circuit_name": self.nome,
                 "from_state": estado_anterior.value,
                 "to_state": novo_estado.value,
@@ -260,7 +264,7 @@ class CircuitBreaker:
 
         # Registrar reset
         try:
-            supabase.table("circuit_transitions").insert({
+            _get_supabase().table("circuit_transitions").insert({
                 "circuit_name": self.nome,
                 "from_state": estado_anterior.value,
                 "to_state": "closed",
@@ -323,7 +327,7 @@ async def obter_historico_transicoes(circuit_name: str = None, horas: int = 24) 
 
     limite = (datetime.now(timezone.utc) - timedelta(hours=horas)).isoformat()
 
-    query = supabase.table("circuit_transitions").select("*").gte(
+    query = _get_supabase().table("circuit_transitions").select("*").gte(
         "created_at", limite
     ).order("created_at", desc=True)
 
