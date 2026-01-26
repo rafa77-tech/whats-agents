@@ -38,6 +38,8 @@ from .extrator_hospitais import extrair_hospitais, extrair_hospitais_llm
 
 from .extrator_datas import extrair_datas_periodos, extrair_data_periodo
 
+from .extrator_valores import extrair_valores, obter_valor_para_dia
+
 __all__ = [
     # Enums
     "DiaSemana",
@@ -70,4 +72,6 @@ __all__ = [
     "extrair_hospitais_llm",
     "extrair_datas_periodos",
     "extrair_data_periodo",
+    "extrair_valores",
+    "obter_valor_para_dia",
 ]
