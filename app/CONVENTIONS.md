@@ -221,3 +221,56 @@ logger.info(f"Mensagem enviada", extra={
 # Evitar
 logger.info(f"Mensagem enviada para {medico_id}")  # Dados no texto
 ```
+
+## Timezone (Sprint 40)
+
+O projeto usa timezone centralizado em `app/core/timezone.py`:
+
+- **UTC** para armazenamento no banco de dados
+- **America/Sao_Paulo** para logica de negocio (horario comercial, schedules de jobs)
+
+### Funcoes Disponiveis
+
+| Funcao | Uso | Retorno |
+|--------|-----|---------|
+| `agora_utc()` | Timestamps para banco | datetime UTC |
+| `agora_brasilia()` | Logica de negocio | datetime BRT |
+| `para_brasilia(dt)` | Converter para BRT | datetime BRT |
+| `para_utc(dt)` | Converter para UTC | datetime UTC |
+| `iso_utc(dt)` | String ISO para banco | str |
+| `formatar_data_brasilia(dt)` | Exibicao para usuario | str |
+
+### Exemplos de Uso
+
+```python
+from app.core.timezone import agora_utc, agora_brasilia, iso_utc
+
+# Para salvar no banco (sempre UTC)
+supabase.table("eventos").insert({
+    "created_at": iso_utc()  # ou agora_utc().isoformat()
+})
+
+# Para logica de horario comercial
+hora_atual = agora_brasilia().hour
+if hora_atual < 8 or hora_atual >= 20:
+    return "Fora do horario comercial"
+
+# Para verificar dia da semana (seg-sex = 0-4 em Brasilia)
+if agora_brasilia().weekday() > 4:
+    return "Final de semana"
+```
+
+### O Que NAO Fazer
+
+```python
+# ERRADO - datetime.now() usa timezone do servidor (UTC no Railway)
+hora = datetime.now().hour  # Sera 3h a mais que Brasilia!
+
+# ERRADO - datetime.utcnow() eh deprecated
+dt = datetime.utcnow()
+
+# CORRETO
+from app.core.timezone import agora_brasilia, agora_utc
+hora_brt = agora_brasilia().hour
+dt_utc = agora_utc()
+```

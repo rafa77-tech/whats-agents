@@ -12,7 +12,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
-  const date = searchParams.get('date') || new Date().toISOString().split('T')[0]
+  // Usar timezone de São Paulo para calcular "hoje"
+  const todayInSP = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  const date = searchParams.get('date') || todayInSP
 
   // Mock data - será substituído por dados reais quando scheduler for implementado
   const activities: ScheduledActivity[] = [

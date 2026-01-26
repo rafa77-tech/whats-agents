@@ -6,12 +6,13 @@ import random
 import logging
 import time
 from datetime import datetime, time as dt_time, timedelta
-from zoneinfo import ZoneInfo
+
+from app.core.timezone import TZ_BRASILIA, agora_brasilia
 
 logger = logging.getLogger(__name__)
 
-# Timezone Brasil
-TZ_BRASIL = ZoneInfo("America/Sao_Paulo")
+# Alias para compatibilidade
+TZ_BRASIL = TZ_BRASILIA
 
 # Horário comercial
 HORARIO_INICIO = dt_time(8, 0)   # 8h
@@ -140,17 +141,17 @@ def esta_em_horario_comercial(dt: datetime = None) -> bool:
     Horário: 8h-20h, segunda a sexta
 
     Args:
-        dt: Data/hora a verificar (opcional, usa datetime.now() se None)
+        dt: Data/hora a verificar (opcional, usa agora_brasilia() se None)
 
     Returns:
         True se está em horário comercial
     """
     # Sempre usar horário de Brasília
-    dt = dt or datetime.now(TZ_BRASIL)
+    dt = dt or agora_brasilia()
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=TZ_BRASIL)
+        dt = dt.replace(tzinfo=TZ_BRASILIA)
     else:
-        dt = dt.astimezone(TZ_BRASIL)
+        dt = dt.astimezone(TZ_BRASILIA)
 
     # Verificar dia da semana
     if dt.weekday() not in DIAS_UTEIS:
@@ -166,17 +167,17 @@ def proximo_horario_comercial(dt: datetime = None) -> datetime:
     Retorna próximo horário comercial disponível (horário de Brasília).
 
     Args:
-        dt: Data/hora de referência (opcional, usa datetime.now() se None)
+        dt: Data/hora de referência (opcional, usa agora_brasilia() se None)
 
     Returns:
         Próximo datetime em horário comercial
     """
     # Sempre usar horário de Brasília
-    dt = dt or datetime.now(TZ_BRASIL)
+    dt = dt or agora_brasilia()
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=TZ_BRASIL)
+        dt = dt.replace(tzinfo=TZ_BRASILIA)
     else:
-        dt = dt.astimezone(TZ_BRASIL)
+        dt = dt.astimezone(TZ_BRASILIA)
 
     while True:
         # Se é dia útil
