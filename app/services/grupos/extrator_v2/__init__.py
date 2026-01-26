@@ -36,6 +36,8 @@ from .parser_mensagem import parsear_mensagem, MensagemParsed, TipoSecao, LinhaP
 
 from .extrator_hospitais import extrair_hospitais, extrair_hospitais_llm
 
+from .extrator_datas import extrair_datas_periodos, extrair_data_periodo
+
 __all__ = [
     # Enums
     "DiaSemana",
@@ -66,4 +68,6 @@ __all__ = [
     # Extratores
     "extrair_hospitais",
     "extrair_hospitais_llm",
+    "extrair_datas_periodos",
+    "extrair_data_periodo",
 ]
