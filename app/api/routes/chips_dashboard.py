@@ -1,24 +1,28 @@
 """
 Chips Dashboard API - Endpoints para dashboard unificado.
 
-Sprint 26 - E05
+Sprint 26 - E05 + Sprint 40 - Instance Management
 
 Endpoints para:
 - Status do pool
 - Metricas de saude
 - Gerenciamento de chips
 - Alertas
+- Instance Management (Sprint 40)
 """
 
 from fastapi import APIRouter, HTTPException, Query
 import logging
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timedelta, timezone
+
+from pydantic import BaseModel
 
 from app.services.supabase import supabase
 from app.services.chips.orchestrator import chip_orchestrator
 from app.services.chips.health_monitor import health_monitor
 from app.services.chips.selector import chip_selector
+from app.services.chips.instance_manager import instance_manager
 
 logger = logging.getLogger(__name__)
 
@@ -397,4 +401,93 @@ async def listar_chips_disponiveis(
         ],
         "count": len(chips),
         "tipo_mensagem": tipo_mensagem,
+    }
+
+
+# ════════════════════════════════════════════════════════════
+# INSTANCE MANAGEMENT (Sprint 40)
+# ════════════════════════════════════════════════════════════
+
+
+class CreateInstanceRequest(BaseModel):
+    """Request para criar nova instancia."""
+
+    telefone: str
+    instance_name: Optional[str] = None
+
+
+@router.post("/instances")
+async def create_instance(request: CreateInstanceRequest):
+    """
+    Cria uma nova instancia WhatsApp.
+
+    Registra o chip no banco e cria a instancia na Evolution API.
+    """
+    result = await instance_manager.criar_instancia(
+        telefone=request.telefone,
+        instance_name=request.instance_name,
+    )
+
+    if not result.success:
+        raise HTTPException(500, result.error or "Falha ao criar instancia")
+
+    return {
+        "success": True,
+        "instance_name": result.instance_name,
+        "chip_id": result.chip_id,
+    }
+
+
+@router.get("/instances/{instance_name}/qr-code")
+async def get_instance_qr_code(instance_name: str):
+    """
+    Obtem QR code para pareamento da instancia.
+
+    O QR code e retornado em base64 para exibicao no frontend.
+    """
+    result = await instance_manager.obter_qr_code(instance_name)
+
+    if not result.success:
+        raise HTTPException(500, result.error or "Falha ao obter QR code")
+
+    return {
+        "qr_code": result.qr_code,
+        "state": result.state,
+        "pairing_code": result.pairing_code,
+    }
+
+
+@router.get("/instances/{instance_name}/connection-state")
+async def get_instance_connection_state(instance_name: str):
+    """
+    Verifica o estado da conexao de uma instancia.
+
+    Estados possiveis: open, close, connecting
+    """
+    result = await instance_manager.verificar_conexao(instance_name)
+
+    if not result.success:
+        raise HTTPException(500, result.error or "Falha ao verificar conexao")
+
+    return {
+        "state": result.state,
+        "connected": result.connected,
+    }
+
+
+@router.delete("/instances/{instance_name}")
+async def delete_instance(instance_name: str):
+    """
+    Deleta uma instancia WhatsApp.
+
+    Remove da Evolution API e atualiza status do chip para cancelled.
+    """
+    result = await instance_manager.deletar_instancia(instance_name)
+
+    if not result.success:
+        raise HTTPException(500, result.error or "Falha ao deletar instancia")
+
+    return {
+        "success": True,
+        "message": f"Instancia {instance_name} deletada com sucesso",
     }

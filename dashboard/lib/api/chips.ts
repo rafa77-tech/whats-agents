@@ -21,6 +21,10 @@ import {
   SchedulerStats,
   PoolConfig,
   ChipActionResponse,
+  CreateInstanceRequest,
+  CreateInstanceResponse,
+  QRCodeResponse,
+  ConnectionStateResponse,
 } from '@/types/chips'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || ''
@@ -236,6 +240,31 @@ export async function updatePoolConfig(config: Partial<PoolConfig>): Promise<Poo
 }
 
 // ============================================================================
+// Instance Management (Sprint 40)
+// ============================================================================
+
+export async function createInstance(data: CreateInstanceRequest): Promise<CreateInstanceResponse> {
+  return fetchApi<CreateInstanceResponse>('/api/dashboard/chips/instances', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function getInstanceQRCode(instanceName: string): Promise<QRCodeResponse> {
+  return fetchApi<QRCodeResponse>(
+    `/api/dashboard/chips/instances/${encodeURIComponent(instanceName)}/qr-code`
+  )
+}
+
+export async function getInstanceConnectionState(
+  instanceName: string
+): Promise<ConnectionStateResponse> {
+  return fetchApi<ConnectionStateResponse>(
+    `/api/dashboard/chips/instances/${encodeURIComponent(instanceName)}/connection-state`
+  )
+}
+
+// ============================================================================
 // Export all as namespace
 // ============================================================================
 
@@ -266,4 +295,8 @@ export const chipsApi = {
   // Config
   getPoolConfig,
   updatePoolConfig,
+  // Instance Management (Sprint 40)
+  createInstance,
+  getInstanceQRCode,
+  getInstanceConnectionState,
 }
