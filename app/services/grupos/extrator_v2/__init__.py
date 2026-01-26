@@ -40,6 +40,14 @@ from .extrator_datas import extrair_datas_periodos, extrair_data_periodo
 
 from .extrator_valores import extrair_valores, obter_valor_para_dia
 
+from .extrator_contato import extrair_contato
+
+from .gerador_vagas import gerar_vagas, gerar_vagas_para_hospital, validar_vagas, deduplicar_vagas
+
+from .pipeline import extrair_vagas_v2
+
+from .repository import salvar_vagas_atomicas, atualizar_mensagem_processada
+
 __all__ = [
     # Enums
     "DiaSemana",
@@ -74,4 +82,15 @@ __all__ = [
     "extrair_data_periodo",
     "extrair_valores",
     "obter_valor_para_dia",
+    "extrair_contato",
+    # Gerador
+    "gerar_vagas",
+    "gerar_vagas_para_hospital",
+    "validar_vagas",
+    "deduplicar_vagas",
+    # Pipeline (função principal)
+    "extrair_vagas_v2",
+    # Persistência
+    "salvar_vagas_atomicas",
+    "atualizar_mensagem_processada",
 ]
