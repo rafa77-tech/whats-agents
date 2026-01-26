@@ -32,6 +32,10 @@ from .exceptions import (
     JSONParseError,
 )
 
+from .parser_mensagem import parsear_mensagem, MensagemParsed, TipoSecao, LinhaParsed
+
+from .extrator_hospitais import extrair_hospitais, extrair_hospitais_llm
+
 __all__ = [
     # Enums
     "DiaSemana",
@@ -54,4 +58,12 @@ __all__ = [
     "LLMTimeoutError",
     "LLMRateLimitError",
     "JSONParseError",
+    # Parser
+    "parsear_mensagem",
+    "MensagemParsed",
+    "TipoSecao",
+    "LinhaParsed",
+    # Extratores
+    "extrair_hospitais",
+    "extrair_hospitais_llm",
 ]
