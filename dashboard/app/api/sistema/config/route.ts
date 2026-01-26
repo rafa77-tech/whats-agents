@@ -43,7 +43,7 @@ export async function GET() {
         msgs_hora: 12,
         msgs_dia: 45,
         horario_permitido: true,
-        hora_atual: new Date().toLocaleTimeString('pt-BR'),
+        hora_atual: new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
       },
     })
   }

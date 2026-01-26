@@ -9,6 +9,7 @@ from pydantic import BaseModel
 import logging
 
 from datetime import datetime, timezone
+from app.core.timezone import agora_brasilia, agora_utc
 from app.services.supabase import supabase
 from app.services.fila_mensagens import processar_mensagens_agendadas
 from app.services.qualidade import avaliar_conversas_pendentes
@@ -46,7 +47,7 @@ async def job_heartbeat():
             "motivo": "Heartbeat automático",
             "alterado_por": "scheduler",
             "alterado_via": "job",
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "created_at": agora_utc().isoformat()
         }).execute()
 
         return JSONResponse({
@@ -757,7 +758,7 @@ async def job_setup_templates(parent_folder_id: str):
             ("Feedback", "feedback"),
         ]
 
-        data_hoje = datetime.now().strftime("%Y-%m-%d")
+        data_hoje = agora_brasilia().strftime("%Y-%m-%d")
         resultado = {"pastas": [], "documentos": [], "templates_folder_id": templates_id}
 
         # Verificar subpastas existentes
@@ -1022,10 +1023,8 @@ async def job_validar_telefones(limite: int = 50):
         50 números/5min = 600/hora = ~14k/dia
     """
     try:
-        from datetime import datetime
-
-        # Verificar horário comercial
-        hora_atual = datetime.now().hour
+        # Verificar horário comercial (horário de Brasília)
+        hora_atual = agora_brasilia().hour
         if hora_atual < 8 or hora_atual >= 20:
             return JSONResponse({
                 "status": "skipped",

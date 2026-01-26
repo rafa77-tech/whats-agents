@@ -1,5 +1,8 @@
 """
 Scheduler para executar jobs agendados.
+
+IMPORTANTE: Os schedules (cron expressions) são interpretados no horário de Brasília.
+Exemplo: "0 10 * * *" = 10h no horário de São Paulo.
 """
 import asyncio
 import httpx
@@ -9,6 +12,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 from app.core.config import settings
+from app.core.timezone import agora_brasilia, agora_utc
 
 # Configurar logging para stdout (Railway captura stdout)
 logging.basicConfig(
@@ -44,7 +48,7 @@ async def _registrar_inicio_job(job_name: str) -> str:
                 json={
                     "id": execution_id,
                     "job_name": job_name,
-                    "started_at": datetime.now(timezone.utc).isoformat(),
+                    "started_at": agora_utc().isoformat(),
                     "status": "running",
                 },
             )
@@ -66,7 +70,7 @@ async def _registrar_fim_job(
     """Registra fim de execução de job."""
     try:
         data = {
-            "finished_at": datetime.now(timezone.utc).isoformat(),
+            "finished_at": agora_utc().isoformat(),
             "status": status,
             "duration_ms": duration_ms,
         }
@@ -423,6 +427,8 @@ async def scheduler_loop():
     print("=" * 60, flush=True)
     print("🕐 SCHEDULER INICIADO", flush=True)
     print(f"📡 API URL: {JULIA_API_URL}", flush=True)
+    print(f"🌎 Timezone: America/Sao_Paulo (BRT)", flush=True)
+    print(f"⏰ Hora atual: {agora_brasilia().strftime('%Y-%m-%d %H:%M:%S')} BRT", flush=True)
     print(f"📋 {len(JOBS)} jobs configurados:", flush=True)
     for job in JOBS:
         print(f"   - {job['name']} ({job['schedule']})", flush=True)
@@ -436,15 +442,16 @@ async def scheduler_loop():
     
     while True:
         try:
-            now = datetime.now()
-            
+            # Usar horário de Brasília para interpretar schedules
+            now = agora_brasilia()
+
             # Executar jobs apenas no início de cada minuto
             if now.minute != last_minute:
                 last_minute = now.minute
-                
+
                 for job in JOBS:
                     if should_run(job["schedule"], now):
-                        print(f"⏰ [{now.strftime('%H:%M:%S')}] Trigger: {job['name']}", flush=True)
+                        print(f"⏰ [{now.strftime('%H:%M:%S')} BRT] Trigger: {job['name']}", flush=True)
                         logger.info(f"⏰ Trigger: {job['name']} (schedule: {job['schedule']})")
                         await execute_job(job)
             
