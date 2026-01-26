@@ -1,0 +1,57 @@
+"""
+Extrator de Vagas v2 - Sprint 40
+
+Extrai vagas atômicas de mensagens de grupos de WhatsApp.
+Cada vaga é uma combinação única de: data + período + valor + hospital.
+"""
+
+from .types import (
+    # Enums
+    DiaSemana,
+    Periodo,
+    GrupoDia,
+    # Dataclasses de entrada
+    HospitalExtraido,
+    DataPeriodoExtraido,
+    RegraValor,
+    ValoresExtraidos,
+    ContatoExtraido,
+    EspecialidadeExtraida,
+    # Dataclass de saída
+    VagaAtomica,
+    ResultadoExtracaoV2,
+)
+
+from .exceptions import (
+    ExtracaoError,
+    MensagemVaziaError,
+    SemHospitalError,
+    SemDataError,
+    LLMTimeoutError,
+    LLMRateLimitError,
+    JSONParseError,
+)
+
+__all__ = [
+    # Enums
+    "DiaSemana",
+    "Periodo",
+    "GrupoDia",
+    # Dataclasses
+    "HospitalExtraido",
+    "DataPeriodoExtraido",
+    "RegraValor",
+    "ValoresExtraidos",
+    "ContatoExtraido",
+    "EspecialidadeExtraida",
+    "VagaAtomica",
+    "ResultadoExtracaoV2",
+    # Exceptions
+    "ExtracaoError",
+    "MensagemVaziaError",
+    "SemHospitalError",
+    "SemDataError",
+    "LLMTimeoutError",
+    "LLMRateLimitError",
+    "JSONParseError",
+]
