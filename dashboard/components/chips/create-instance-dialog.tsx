@@ -136,29 +136,26 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
   }, [])
 
   // Check connection state
-  const checkConnectionState = useCallback(
-    async (name: string) => {
-      try {
-        const result: ConnectionStateResponse = await chipsApi.getInstanceConnectionState(name)
+  const checkConnectionState = useCallback(async (name: string) => {
+    try {
+      const result: ConnectionStateResponse = await chipsApi.getInstanceConnectionState(name)
 
-        if (result.connected) {
-          setStep('success')
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current)
-            pollIntervalRef.current = null
-          }
-          if (qrRefreshIntervalRef.current) {
-            clearInterval(qrRefreshIntervalRef.current)
-            qrRefreshIntervalRef.current = null
-          }
-          toast.success('WhatsApp conectado com sucesso!')
+      if (result.connected) {
+        setStep('success')
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+          pollIntervalRef.current = null
         }
-      } catch (err) {
-        console.error('Error checking connection:', err)
+        if (qrRefreshIntervalRef.current) {
+          clearInterval(qrRefreshIntervalRef.current)
+          qrRefreshIntervalRef.current = null
+        }
+        toast.success('WhatsApp conectado com sucesso!')
       }
-    },
-    []
-  )
+    } catch (err) {
+      console.error('Error checking connection:', err)
+    }
+  }, [])
 
   // Handle form submit
   const handleSubmit = async () => {
@@ -254,9 +251,7 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
                   onChange={(e) => setInstanceName(e.target.value)}
                   disabled={loading}
                 />
-                <p className="text-xs text-gray-500">
-                  Se vazio, sera gerado como julia_TELEFONE
-                </p>
+                <p className="text-xs text-gray-500">Se vazio, sera gerado como julia_TELEFONE</p>
               </div>
 
               {error && (
@@ -301,6 +296,7 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
             <div className="flex flex-col items-center space-y-4 py-4">
               {qrCode ? (
                 <div className="rounded-lg border-2 border-gray-200 bg-white p-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`data:image/png;base64,${qrCode}`}
                     alt="QR Code"

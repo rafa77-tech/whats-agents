@@ -18,7 +18,10 @@ interface QRCodeResponse {
   pairing_code: string | null
 }
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ name: string }> }) {
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ name: string }> }
+) {
   try {
     const { name } = await params
 

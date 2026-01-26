@@ -243,9 +243,7 @@ export async function updatePoolConfig(config: Partial<PoolConfig>): Promise<Poo
 // Instance Management (Sprint 40)
 // ============================================================================
 
-export async function createInstance(
-  data: CreateInstanceRequest
-): Promise<CreateInstanceResponse> {
+export async function createInstance(data: CreateInstanceRequest): Promise<CreateInstanceResponse> {
   return fetchApi<CreateInstanceResponse>('/api/dashboard/chips/instances', {
     method: 'POST',
     body: JSON.stringify(data),

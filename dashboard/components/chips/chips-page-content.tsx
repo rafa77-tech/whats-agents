@@ -10,7 +10,15 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Route } from 'next'
-import { RefreshCw, AlertTriangle, Settings, Cpu, Activity, MessageSquare, Plus } from 'lucide-react'
+import {
+  RefreshCw,
+  AlertTriangle,
+  Settings,
+  Cpu,
+  Activity,
+  MessageSquare,
+  Plus,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PoolMetricCard } from './pool-metric-card'
 import { StatusCounterCard } from './status-counter-card'
