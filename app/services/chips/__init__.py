@@ -1,5 +1,5 @@
 """
-Chip Management Services - Sprint 26 + Sprint 36.
+Chip Management Services - Sprint 26 + Sprint 36 + Sprint 40.
 
 Sistema de orquestracao multi-chip para Julia:
 - Orchestrator: Pool manager, auto-replace, auto-provision
@@ -12,6 +12,9 @@ Sprint 36 - Resiliência e Observabilidade:
 - Circuit Breaker: Per-chip circuit breaker (E09)
 - Cooldown: Cooldown automático por tipo de erro (E05)
 - Affinity: Sistema de afinidade chip-médico (E11)
+
+Sprint 40 - Instance Management UI:
+- Instance Manager: Criacao/gerenciamento de instancias WhatsApp
 """
 
 from app.services.chips.orchestrator import chip_orchestrator, ChipOrchestrator
@@ -53,6 +56,15 @@ from app.services.chips.affinity import (
     calcular_taxa_resposta,
     calcular_taxa_delivery,
     atualizar_metricas_chip,
+)
+# Sprint 40 - Instance Manager
+from app.services.chips.instance_manager import (
+    InstanceManager,
+    instance_manager,
+    CreateInstanceResult,
+    QRCodeResult,
+    ConnectionStateResult,
+    DeleteInstanceResult,
 )
 
 __all__ = [
@@ -96,4 +108,11 @@ __all__ = [
     "calcular_taxa_resposta",
     "calcular_taxa_delivery",
     "atualizar_metricas_chip",
+    # Sprint 40 - Instance Manager
+    "InstanceManager",
+    "instance_manager",
+    "CreateInstanceResult",
+    "QRCodeResult",
+    "ConnectionStateResult",
+    "DeleteInstanceResult",
 ]

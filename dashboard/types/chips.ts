@@ -333,3 +333,31 @@ export interface ChipActionResponse {
   message?: string
   chip?: ChipListItem
 }
+
+// ============================================================================
+// Instance Management Types (Sprint 40)
+// ============================================================================
+
+export interface CreateInstanceRequest {
+  telefone: string
+  instanceName?: string
+}
+
+export interface CreateInstanceResponse {
+  success: boolean
+  instanceName: string
+  chipId: string
+}
+
+export interface QRCodeResponse {
+  qrCode: string | null
+  state: 'open' | 'close' | 'connecting'
+  pairingCode?: string | null
+}
+
+export interface ConnectionStateResponse {
+  state: 'open' | 'close' | 'connecting'
+  connected: boolean
+}
+
+export type InstanceConnectionState = 'open' | 'close' | 'connecting'

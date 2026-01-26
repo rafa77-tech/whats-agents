@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Route } from 'next'
-import { RefreshCw, AlertTriangle, Settings, Cpu, Activity, MessageSquare } from 'lucide-react'
+import { RefreshCw, AlertTriangle, Settings, Cpu, Activity, MessageSquare, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PoolMetricCard } from './pool-metric-card'
 import { StatusCounterCard } from './status-counter-card'
@@ -21,6 +21,7 @@ import { ChipsPagination } from './chips-pagination'
 import { ChipsFilters } from './chips-filters'
 import { ChipsBulkActions } from './chips-bulk-actions'
 import { ChipsPageSkeleton } from './chips-page-skeleton'
+import { CreateInstanceDialog } from './create-instance-dialog'
 import { chipsApi } from '@/lib/api/chips'
 import { PoolStatus, ChipListItem, ChipsListParams, TrustLevelExtended } from '@/types/chips'
 import { ChipStatus } from '@/types/dashboard'
@@ -52,6 +53,7 @@ export function ChipsPageContent() {
     sortBy: 'trust',
     order: 'desc',
   })
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
 
   // Fetch pool status
   const fetchPoolStatus = useCallback(async () => {
@@ -188,6 +190,11 @@ export function ChipsPageContent() {
               Config
             </Button>
           </Link>
+
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Instancia
+          </Button>
         </div>
       </div>
 
@@ -297,6 +304,16 @@ export function ChipsPageContent() {
         selectedIds={selectedIds}
         onClearSelection={() => setSelectedIds([])}
         onActionComplete={() => {
+          fetchChips()
+          fetchPoolStatus()
+        }}
+      />
+
+      {/* Create Instance Dialog */}
+      <CreateInstanceDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSuccess={() => {
           fetchChips()
           fetchPoolStatus()
         }}
