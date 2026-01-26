@@ -232,6 +232,9 @@ async def atualizar_estagio(
     """
     Atualiza estágio de um item na fila.
 
+    Também sincroniza o status em mensagens_grupo quando o estágio
+    é terminal (finalizado, descartado, erro).
+
     Args:
         item_id: ID do item na fila
         novo_estagio: Novo estágio
@@ -251,7 +254,7 @@ async def atualizar_estagio(
 
         # Buscar tentativas atuais
         result = supabase.table("fila_processamento_grupos") \
-            .select("tentativas") \
+            .select("tentativas, mensagem_id") \
             .eq("id", str(item_id)) \
             .single() \
             .execute()
@@ -279,6 +282,64 @@ async def atualizar_estagio(
         .update(updates) \
         .eq("id", str(item_id)) \
         .execute()
+
+    # Sincronizar status em mensagens_grupo para estágios terminais
+    await _sincronizar_status_mensagem(item_id, novo_estagio)
+
+
+async def _sincronizar_status_mensagem(
+    item_id: UUID,
+    estagio: EstagioPipeline
+) -> None:
+    """
+    Sincroniza o status da mensagem com base no estágio da fila.
+
+    Mapeamento:
+    - FINALIZADO -> "processada"
+    - DESCARTADO -> "descartada"
+    - EXTRACAO (entrando) -> "classificada" (passou na heurística)
+    - ERRO (max tentativas) -> "erro"
+
+    Args:
+        item_id: ID do item na fila
+        estagio: Estágio atual
+    """
+    # Mapear estágio para status de mensagem
+    mapeamento_status = {
+        EstagioPipeline.FINALIZADO: "processada",
+        EstagioPipeline.DESCARTADO: "descartada",
+        EstagioPipeline.EXTRACAO: "classificada",  # Passou na heurística/LLM
+        EstagioPipeline.NORMALIZACAO: "extraida",  # Extração concluída
+    }
+
+    novo_status = mapeamento_status.get(estagio)
+    if not novo_status:
+        return  # Não atualizar para estágios intermediários
+
+    try:
+        # Buscar mensagem_id do item
+        result = supabase.table("fila_processamento_grupos") \
+            .select("mensagem_id") \
+            .eq("id", str(item_id)) \
+            .single() \
+            .execute()
+
+        if not result.data or not result.data.get("mensagem_id"):
+            return
+
+        mensagem_id = result.data["mensagem_id"]
+
+        # Atualizar status da mensagem
+        supabase.table("mensagens_grupo") \
+            .update({"status": novo_status}) \
+            .eq("id", mensagem_id) \
+            .execute()
+
+        logger.debug(f"Mensagem {mensagem_id} status atualizado para '{novo_status}'")
+
+    except Exception as e:
+        # Log mas não falha - sincronização é best-effort
+        logger.warning(f"Erro ao sincronizar status mensagem para item {item_id}: {e}")
 
 
 async def marcar_como_finalizado(item_id: UUID) -> None:

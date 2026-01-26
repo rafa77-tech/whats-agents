@@ -95,33 +95,44 @@ async def verificar_fila_travada() -> List[Dict]:
 
 
 async def verificar_taxa_conversao() -> List[Dict]:
-    """Verifica se taxa de conversão está baixa."""
+    """
+    Verifica se taxa de conversão está baixa.
+
+    A taxa é calculada como:
+    - Numerador: Vagas importadas (prontas para uso)
+    - Denominador: Mensagens que passaram na heurística (classificadas+)
+
+    Isso evita alertas falsos causados por mensagens irrelevantes
+    (conversas, emojis, etc) que são naturalmente filtradas.
+    """
     config = ALERTAS_GRUPOS["taxa_conversao_baixa"]
     data_inicio = (datetime.now(UTC) - timedelta(days=config["janela_dias"])).isoformat()
 
     try:
-        # Total de vagas criadas
-        vagas_total = supabase.table("vagas_grupo") \
+        # Mensagens que passaram na heurística (classificadas ou além)
+        # Status: classificada, extraida, processada
+        mensagens_classificadas = supabase.table("mensagens_grupo") \
             .select("id", count="exact") \
+            .in_("status", ["classificada", "extraida", "processada"]) \
             .gte("created_at", data_inicio) \
             .execute()
 
-        # Vagas importadas
+        # Vagas importadas (resultado final útil)
         vagas_importadas = supabase.table("vagas_grupo") \
             .select("id", count="exact") \
             .eq("status", "importada") \
             .gte("created_at", data_inicio) \
             .execute()
 
-        total = vagas_total.count or 0
+        total_classificadas = mensagens_classificadas.count or 0
         importadas = vagas_importadas.count or 0
 
-        if total > 0:
-            taxa = importadas / total
+        if total_classificadas > 0:
+            taxa = importadas / total_classificadas
             if taxa < config["threshold"]:
                 return [{
                     "tipo": "taxa_conversao_baixa",
-                    "mensagem": f"Taxa de conversão: {taxa*100:.1f}% (threshold: {config['threshold']*100}%)",
+                    "mensagem": f"Taxa de conversão: {taxa*100:.1f}% (threshold: {config['threshold']*100}%) - {importadas}/{total_classificadas} msgs classificadas",
                     "severidade": config["severidade"],
                     "valor": taxa
                 }]
