@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Optional, List
 from uuid import UUID
 
-from app.core.config import GruposConfig
+from app.core.config import GruposConfig, settings
 from app.core.logging import get_logger
 from app.services.supabase import supabase
 from app.services.grupos.heuristica import calcular_score_heuristica
@@ -25,6 +25,9 @@ from app.services.grupos.extrator import extrair_dados_mensagem
 from app.services.grupos.normalizador import normalizar_vaga
 from app.services.grupos.deduplicador import processar_deduplicacao
 from app.services.grupos.importador import processar_importacao
+
+# Sprint 40 - Extrator v2 (opcional, controlado por feature flag)
+from app.services.grupos.extrator_v2 import extrair_vagas_v2
 
 logger = get_logger(__name__)
 
@@ -182,12 +185,24 @@ class PipelineGrupos:
         """
         Extrai dados estruturados da mensagem.
 
+        Usa extrator v2 se EXTRATOR_V2_ENABLED=true (default: true).
+        O v2 resolve o problema de valores NULL com regras por dia da semana.
+
         Args:
             item: Item da fila com mensagem_id
 
         Returns:
             ResultadoPipeline com ação a tomar
         """
+        import os
+        # Feature flag: usar extrator v2 (Sprint 40)
+        # Default: True (v2 habilitado)
+        use_v2 = os.getenv("EXTRATOR_V2_ENABLED", "true").lower() == "true"
+
+        if use_v2:
+            return await self.processar_extracao_v2(item)
+
+        # Fallback para extrator v1 (legado)
         mensagem_id = item.get("mensagem_id")
         if isinstance(mensagem_id, str):
             mensagem_id = UUID(mensagem_id)
@@ -236,6 +251,153 @@ class PipelineGrupos:
             mensagem_id=mensagem_id,
             vagas_criadas=vagas_criadas
         )
+
+    async def processar_extracao_v2(self, item: dict) -> ResultadoPipeline:
+        """
+        Extrai dados estruturados usando o extrator v2 (Sprint 40).
+
+        O extrator v2 resolve o problema de valores NULL gerando vagas
+        atômicas com valor correto baseado no dia da semana.
+
+        Args:
+            item: Item da fila com mensagem_id
+
+        Returns:
+            ResultadoPipeline com ação a tomar
+        """
+        from datetime import date
+
+        mensagem_id = item.get("mensagem_id")
+        if isinstance(mensagem_id, str):
+            mensagem_id = UUID(mensagem_id)
+
+        # Buscar mensagem completa com dados do grupo
+        msg = supabase.table("mensagens_grupo") \
+            .select("*, grupos_whatsapp(nome, regiao)") \
+            .eq("id", str(mensagem_id)) \
+            .single() \
+            .execute()
+
+        if not msg.data:
+            return ResultadoPipeline(
+                acao="descartar",
+                mensagem_id=mensagem_id,
+                motivo="mensagem_nao_encontrada"
+            )
+
+        grupo_id = msg.data.get("grupo_id")
+        if grupo_id:
+            grupo_id = UUID(grupo_id) if isinstance(grupo_id, str) else grupo_id
+
+        # Extrair usando v2
+        resultado = await extrair_vagas_v2(
+            texto=msg.data.get("texto", ""),
+            mensagem_id=mensagem_id,
+            grupo_id=grupo_id,
+            data_referencia=date.today()
+        )
+
+        if not resultado.vagas:
+            logger.warning(
+                f"Extração v2 falhou para {mensagem_id}: {resultado.erro}"
+            )
+            return ResultadoPipeline(
+                acao="descartar",
+                mensagem_id=mensagem_id,
+                motivo=f"extracao_v2_falhou: {resultado.erro}"
+            )
+
+        # Criar vagas_grupo para cada vaga atômica
+        vagas_criadas = []
+        for vaga in resultado.vagas:
+            vaga_id = await self._criar_vaga_grupo_v2(mensagem_id, vaga, msg.data)
+            if vaga_id:
+                vagas_criadas.append(str(vaga_id))
+
+        logger.info(
+            f"Mensagem {mensagem_id}: {len(vagas_criadas)} vaga(s) extraída(s) [v2] "
+            f"(tempo: {resultado.tempo_processamento_ms}ms)"
+        )
+
+        return ResultadoPipeline(
+            acao="normalizar",
+            mensagem_id=mensagem_id,
+            vagas_criadas=vagas_criadas,
+            detalhes={
+                "extrator": "v2",
+                "tempo_ms": resultado.tempo_processamento_ms,
+                "warnings": resultado.warnings,
+            }
+        )
+
+    async def _criar_vaga_grupo_v2(
+        self,
+        mensagem_id: UUID,
+        vaga,  # VagaAtomica
+        msg_data: dict
+    ) -> Optional[UUID]:
+        """
+        Cria registro de vaga_grupo a partir de VagaAtomica (extrator v2).
+
+        Args:
+            mensagem_id: ID da mensagem original
+            vaga: VagaAtomica do extrator v2
+            msg_data: Dados completos da mensagem
+
+        Returns:
+            ID da vaga_grupo criada ou None se falhou
+        """
+        try:
+            # Serializar data
+            data_str = vaga.data.isoformat() if vaga.data else None
+
+            # Serializar horários
+            hora_inicio = vaga.hora_inicio.strftime("%H:%M") if vaga.hora_inicio else None
+            hora_fim = vaga.hora_fim.strftime("%H:%M") if vaga.hora_fim else None
+
+            # Determinar valor_tipo
+            if vaga.valor and vaga.valor > 0:
+                valor_tipo = "fixo"
+            else:
+                valor_tipo = "a_combinar"
+
+            dados = {
+                "mensagem_id": str(mensagem_id),
+                "grupo_origem_id": msg_data.get("grupo_id"),
+                # Campos do extrator v2
+                "hospital_raw": vaga.hospital_raw,
+                "especialidade_raw": vaga.especialidade_raw,
+                "data": data_str,
+                "hora_inicio": hora_inicio,
+                "hora_fim": hora_fim,
+                "valor": vaga.valor if vaga.valor > 0 else None,
+                "valor_tipo": valor_tipo,
+                # Campos adicionais do v2
+                "dia_semana": vaga.dia_semana.value if vaga.dia_semana else None,
+                "periodo": vaga.periodo.value if vaga.periodo else None,
+                "endereco_raw": vaga.endereco_raw,
+                "cidade": vaga.cidade,
+                "estado": vaga.estado,
+                "contato_nome": vaga.contato_nome,
+                "contato_whatsapp": vaga.contato_whatsapp,
+                # Metadados
+                "confianca_geral": vaga.confianca_geral,
+                "observacoes_raw": vaga.observacoes,
+                "status": "extraido",
+                # Flag para identificar origem v2
+                "dados_minimos_ok": True,
+                "data_valida": True,
+            }
+
+            result = supabase.table("vagas_grupo") \
+                .insert(dados) \
+                .execute()
+
+            return UUID(result.data[0]["id"])
+
+        except Exception as e:
+            logger.error(f"Erro ao criar vaga_grupo v2: {e}")
+            return None
 
     async def _criar_vaga_grupo(
         self,
