@@ -7,12 +7,14 @@ Recebe webhooks da Z-API e roteia para o processamento correto.
 Docs: https://developer.z-api.io/en/webhooks
 """
 
-from fastapi import APIRouter, Request, HTTPException
+import time
+from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
 import logging
 from datetime import datetime, timezone
 from typing import Optional
 
 from app.services.supabase import supabase
+from app.services.redis import cache_get_json, cache_set_json
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ router = APIRouter(prefix="/webhooks/zapi", tags=["zapi-webhook"])
 
 @router.post("")
 @router.post("/")
-async def webhook_zapi(request: Request):
+async def webhook_zapi(request: Request, background_tasks: BackgroundTasks):
     """
     Recebe webhooks da Z-API.
 
@@ -56,7 +58,7 @@ async def webhook_zapi(request: Request):
 
     # Rotear por tipo de evento
     if event_type == "received":
-        return await processar_mensagem_recebida(chip, payload)
+        return await processar_mensagem_recebida(chip, payload, background_tasks)
 
     elif event_type == "message_status":
         return await processar_status_mensagem(chip, payload)
@@ -155,7 +157,7 @@ async def _obter_chip_por_zapi_instance(instance_id: str) -> Optional[dict]:
         return None
 
 
-async def processar_mensagem_recebida(chip: dict, payload: dict) -> dict:
+async def processar_mensagem_recebida(chip: dict, payload: dict, background_tasks: BackgroundTasks) -> dict:
     """
     Processa mensagem recebida no chip via Z-API.
 
@@ -180,14 +182,33 @@ async def processar_mensagem_recebida(chip: dict, payload: dict) -> dict:
     if payload.get("isGroup"):
         return {"status": "ignored", "reason": "group"}
 
-    # Extrair tipo de mídia
+    # Extrair message_id para deduplicação
+    message_id = payload.get("messageId")
+    if message_id:
+        # Verificar se já foi processado
+        cached = await cache_get_json(f"zapi:msg:{message_id}")
+        if cached:
+            logger.debug(f"[WebhookZAPI] Mensagem {message_id} já processada, ignorando")
+            return {"status": "ignored", "reason": "duplicate"}
+
+        # Marcar como processada
+        await cache_set_json(f"zapi:msg:{message_id}", {"processed": True}, ttl=300)
+
+    # Extrair tipo de mídia e conteúdo
     tipo_midia = "text"
-    if payload.get("image"):
+    texto_mensagem = ""
+
+    if payload.get("text"):
+        tipo_midia = "text"
+        texto_mensagem = payload.get("text", {}).get("message", "")
+    elif payload.get("image"):
         tipo_midia = "image"
+        texto_mensagem = payload.get("image", {}).get("caption", "")
     elif payload.get("audio"):
         tipo_midia = "audio"
     elif payload.get("video"):
         tipo_midia = "video"
+        texto_mensagem = payload.get("video", {}).get("caption", "")
     elif payload.get("document"):
         tipo_midia = "document"
     elif payload.get("sticker"):
@@ -219,6 +240,7 @@ async def processar_mensagem_recebida(chip: dict, payload: dict) -> dict:
                 "chip_id": chip["id"],
                 "tipo": "msg_recebida",
                 "remetente": telefone,
+                "sucesso": True,
                 "metadata": {"tipo_midia": tipo_midia, "provider": "zapi"},
             }).execute()
         except Exception as e2:
@@ -236,7 +258,97 @@ async def processar_mensagem_recebida(chip: dict, payload: dict) -> dict:
         f"[WebhookZAPI] Mensagem de {telefone} recebida por chip {chip['telefone']}"
     )
 
+    # Converter payload Z-API para formato Evolution (compatível com pipeline)
+    evolution_data = _converter_para_formato_evolution(payload, chip)
+
+    # Rotear para o pipeline da Julia em background
+    background_tasks.add_task(_processar_no_pipeline, evolution_data)
+    logger.info(f"[WebhookZAPI] Mensagem agendada para pipeline Julia")
+
     return {"status": "ok", "processed": True, "chip": chip["telefone"]}
+
+
+def _converter_para_formato_evolution(payload: dict, chip: dict) -> dict:
+    """
+    Converte payload Z-API para formato Evolution API.
+
+    Isso permite reutilizar o pipeline existente que espera formato Evolution.
+    """
+    telefone = payload.get("phone", "").replace("@c.us", "")
+
+    # Extrair texto da mensagem
+    texto = ""
+    if payload.get("text"):
+        texto = payload.get("text", {}).get("message", "")
+    elif payload.get("image"):
+        texto = payload.get("image", {}).get("caption", "")
+    elif payload.get("video"):
+        texto = payload.get("video", {}).get("caption", "")
+
+    # Formato Evolution esperado pelo pipeline
+    evolution_data = {
+        "key": {
+            "remoteJid": f"{telefone}@s.whatsapp.net",
+            "fromMe": payload.get("fromMe", False),
+            "id": payload.get("messageId", ""),
+        },
+        "message": {
+            "conversation": texto,
+        },
+        "messageTimestamp": payload.get("momment", int(time.time())),
+        # Metadados extras para o pipeline saber que é Z-API
+        "_evolution_instance": chip.get("instance_name", "zapi"),
+        "_zapi_chip_id": chip.get("id"),
+        "_zapi_telefone": chip.get("telefone"),
+        "_provider": "zapi",
+    }
+
+    # Adicionar mídia se presente
+    if payload.get("image"):
+        evolution_data["message"]["imageMessage"] = {
+            "url": payload.get("image", {}).get("imageUrl"),
+            "caption": payload.get("image", {}).get("caption", ""),
+        }
+    elif payload.get("audio"):
+        evolution_data["message"]["audioMessage"] = {
+            "url": payload.get("audio", {}).get("audioUrl"),
+            "ptt": payload.get("audio", {}).get("ptt", False),
+        }
+    elif payload.get("video"):
+        evolution_data["message"]["videoMessage"] = {
+            "url": payload.get("video", {}).get("videoUrl"),
+            "caption": payload.get("video", {}).get("caption", ""),
+        }
+    elif payload.get("document"):
+        evolution_data["message"]["documentMessage"] = {
+            "url": payload.get("document", {}).get("documentUrl"),
+            "fileName": payload.get("document", {}).get("fileName"),
+        }
+
+    return evolution_data
+
+
+async def _processar_no_pipeline(data: dict):
+    """
+    Processa mensagem no pipeline da Julia.
+
+    Importa o pipeline aqui para evitar circular imports.
+    """
+    from app.pipeline.setup import message_pipeline
+
+    try:
+        data["_tempo_inicio"] = time.time()
+        result = await message_pipeline.process(data)
+
+        if not result.success:
+            logger.error(f"[WebhookZAPI] Pipeline falhou: {result.error}")
+        elif result.response:
+            logger.info("[WebhookZAPI] Pipeline concluído com resposta")
+        else:
+            logger.info("[WebhookZAPI] Pipeline concluído sem resposta")
+
+    except Exception as e:
+        logger.error(f"[WebhookZAPI] Erro no pipeline: {e}", exc_info=True)
 
 
 async def processar_conexao(chip: dict, payload: dict) -> dict:
