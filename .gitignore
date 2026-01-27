@@ -24,6 +24,9 @@ Thumbs.db
 .mcp.json
 .claude/
 
+# Supabase CLI
+supabase/.temp/
+
 # Binários
 *.apk
 
