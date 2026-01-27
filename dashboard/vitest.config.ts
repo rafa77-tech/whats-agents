@@ -45,6 +45,13 @@ export default defineConfig({
         'lib/config.ts', // Configuração de ambiente
         'lib/errors.ts', // Classes de erro (infraestrutura)
         'app/(dashboard)/campanhas/[id]/**', // Páginas de campanha (UI, lógica no backend)
+        // Sprint-28 modules - UI pages with backend logic (added 2026-01-27)
+        'app/(dashboard)/auditoria/**', // Audit logs (UI, lógica no backend)
+        'app/(dashboard)/conversas/**', // Conversations (UI, lógica no backend)
+        'app/(dashboard)/medicos/**', // Doctors (UI, lógica no backend)
+        'app/(dashboard)/metricas/**', // Metrics (UI, lógica no backend)
+        'app/(dashboard)/vagas/**', // Shifts (UI, lógica no backend)
+        'components/notifications/**', // Notification system (UI, infraestrutura)
         'app/(auth)/**', // Páginas de auth (UI, lógica no Supabase)
         'hooks/use-toast.ts', // Padrão react-hot-toast, infraestrutura de UI
         'hooks/use-api-error.ts', // Hook de erro (infraestrutura)
