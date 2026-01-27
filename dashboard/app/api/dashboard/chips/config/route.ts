@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { PoolConfig } from '@/types/chips'
 
 export const dynamic = 'force-dynamic'
@@ -55,7 +56,8 @@ function rowToConfig(row: PoolConfigRow | null): PoolConfig {
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    // Use admin client to bypass RLS
+    const supabase = createAdminClient()
 
     const { data, error } = await supabase.from('pool_config').select('*').limit(1).single()
 
@@ -75,7 +77,8 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    // Use admin client to bypass RLS for config updates
+    const supabase = createAdminClient()
     const body: Partial<PoolConfig> = await request.json()
 
     // Map frontend config to database columns
