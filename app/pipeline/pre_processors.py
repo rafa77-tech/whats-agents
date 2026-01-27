@@ -146,6 +146,12 @@ class PresenceProcessor(PreProcessor):
     priority = 15
 
     async def process(self, context: ProcessorContext) -> ProcessorResult:
+        # Verificar se é mensagem Z-API (não usa Evolution para presença)
+        provider = context.mensagem_raw.get("_provider")
+        if provider == "zapi":
+            logger.debug("[Presence] Mensagem Z-API - pulando presença Evolution")
+            return ProcessorResult(success=True)
+
         try:
             # Usar remote_jid original para marcar como lida (pode ser LID ou JID normal)
             remote_jid = context.metadata.get("remote_jid") or context.telefone
