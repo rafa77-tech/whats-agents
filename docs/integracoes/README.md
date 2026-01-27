@@ -4,6 +4,7 @@
 
 **Documentacao detalhada por servico:**
 - [Evolution API - Quick Reference](./evolution-api-quickref.md) | [Webhooks](./evolution-api-webhooks.md)
+- [Z-API - Quick Reference](./zapi-quickref.md) (WhatsApp SaaS alternativo)
 - [Chatwoot API - Quick Reference](./chatwoot-api-quickref.md) | [Webhooks](./chatwoot-webhooks.md)
 - [Railway - Quick Reference](./railway-quickref.md) | [Deploy](./railway-deploy.md)
 - [Salvy - Quick Reference](./salvy-quickref.md) | [Webhooks](./salvy-webhooks.md)
