@@ -292,6 +292,12 @@ def _converter_para_formato_evolution(payload: dict, chip: dict) -> dict:
         logger.warning(f"[WebhookZAPI] Payload sem messageId: {payload}")
         message_id = f"zapi_{int(time.time() * 1000)}"  # Gerar ID temporário
 
+    # Converter timestamp: Z-API pode enviar em segundos ou milissegundos
+    raw_timestamp = payload.get("momment", int(time.time()))
+    # Se timestamp > 10^12, está em milissegundos - converter para segundos
+    if raw_timestamp > 10**12:
+        raw_timestamp = raw_timestamp // 1000
+
     # Formato Evolution esperado pelo pipeline
     evolution_data = {
         "key": {
@@ -302,8 +308,7 @@ def _converter_para_formato_evolution(payload: dict, chip: dict) -> dict:
         "message": {
             "conversation": texto,
         },
-        # Z-API usa "momment" (com typo) para timestamp
-        "messageTimestamp": payload.get("momment", int(time.time())),
+        "messageTimestamp": raw_timestamp,
         # Nome do contato (obrigatório para o parser)
         "pushName": payload.get("senderName") or payload.get("chatName") or "",
         # Metadados extras para o pipeline saber que é Z-API
