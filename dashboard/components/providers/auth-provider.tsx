@@ -164,10 +164,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+// Default context for SSR/build time - returns loading state
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  dashboardUser: null,
+  session: null,
+  loading: true,
+  signingOut: false,
+  signOut: async () => {},
+  hasPermission: () => false,
+}
+
 export function useAuth() {
   const context = useContext(AuthContext)
+  // Return default context during SSR/build (when AuthProvider is not available)
+  // This allows pages to build statically and hydrate properly on client
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    return defaultAuthContext
   }
   return context
 }
