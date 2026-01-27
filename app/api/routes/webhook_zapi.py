@@ -260,10 +260,11 @@ async def processar_mensagem_recebida(chip: dict, payload: dict, background_task
 
     # Converter payload Z-API para formato Evolution (compatível com pipeline)
     evolution_data = _converter_para_formato_evolution(payload, chip)
+    logger.debug(f"[WebhookZAPI] Payload convertido: {evolution_data}")
 
     # Rotear para o pipeline da Julia em background
     background_tasks.add_task(_processar_no_pipeline, evolution_data)
-    logger.info(f"[WebhookZAPI] Mensagem agendada para pipeline Julia")
+    logger.info(f"[WebhookZAPI] Mensagem '{texto_mensagem[:50]}...' agendada para pipeline")
 
     return {"status": "ok", "processed": True, "chip": chip["telefone"]}
 
@@ -285,17 +286,26 @@ def _converter_para_formato_evolution(payload: dict, chip: dict) -> dict:
     elif payload.get("video"):
         texto = payload.get("video", {}).get("caption", "")
 
+    # Validar message_id (obrigatório para o parser)
+    message_id = payload.get("messageId", "")
+    if not message_id:
+        logger.warning(f"[WebhookZAPI] Payload sem messageId: {payload}")
+        message_id = f"zapi_{int(time.time() * 1000)}"  # Gerar ID temporário
+
     # Formato Evolution esperado pelo pipeline
     evolution_data = {
         "key": {
             "remoteJid": f"{telefone}@s.whatsapp.net",
             "fromMe": payload.get("fromMe", False),
-            "id": payload.get("messageId", ""),
+            "id": message_id,
         },
         "message": {
             "conversation": texto,
         },
+        # Z-API usa "momment" (com typo) para timestamp
         "messageTimestamp": payload.get("momment", int(time.time())),
+        # Nome do contato (obrigatório para o parser)
+        "pushName": payload.get("senderName") or payload.get("chatName") or "",
         # Metadados extras para o pipeline saber que é Z-API
         "_evolution_instance": chip.get("instance_name", "zapi"),
         "_zapi_chip_id": chip.get("id"),
