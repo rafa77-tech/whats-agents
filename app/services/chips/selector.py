@@ -8,10 +8,11 @@ Sprint 36 - T09.2: Integrar circuit breaker per-chip na seleção
 Sprint 36 - T10.1: Log de decisão ChipSelector
 Sprint 36 - T11.5: Afinidade chip-médico na seleção
 Sprint 36 - T11.6: Verificar conexão Evolution na seleção
+Sprint 27 - Multi-provider: Suporte a Z-API (não requer evolution_connected)
 
 Considera:
 - Circuit breaker do chip (não seleciona se OPEN)
-- Conexão Evolution ativa (evolution_connected)
+- Conexão ativa (evolution_connected para Evolution, status=active para Z-API)
 - Trust Score do chip
 - Permissoes (pode_prospectar, pode_followup, pode_responder)
 - Uso atual (msgs/hora, msgs/dia)
@@ -153,6 +154,7 @@ class ChipSelector:
         Busca chip atualmente associado a conversa.
 
         Sprint 36 - T11.6: Também verifica se chip está conectado.
+        Sprint 27: Suporte multi-provider (Z-API não usa evolution_connected).
         """
         # Usar relationship hint para evitar ambiguidade
         # (conversation_chips tem 2 FKs para chips: chip_id e migrated_from)
@@ -167,13 +169,25 @@ class ChipSelector:
         if result.data and result.data[0].get("chips"):
             chip = result.data[0]["chips"]
 
-            # Sprint 36 - T11.6: Verificar se chip está conectado
-            if not chip.get("evolution_connected"):
-                logger.warning(
-                    f"[ChipSelector] Chip da conversa {chip.get('telefone')} "
-                    f"não está conectado, ignorando afinidade"
-                )
-                return None
+            # Sprint 27: Verificar conexão baseado no provider
+            provider = chip.get("provider", "evolution")
+
+            if provider == "z-api":
+                # Z-API: considerar conectado se status = 'active'
+                if chip.get("status") != "active":
+                    logger.warning(
+                        f"[ChipSelector] Chip Z-API {chip.get('telefone')} "
+                        f"não está ativo, ignorando afinidade"
+                    )
+                    return None
+            else:
+                # Evolution: verificar evolution_connected
+                if not chip.get("evolution_connected"):
+                    logger.warning(
+                        f"[ChipSelector] Chip Evolution {chip.get('telefone')} "
+                        f"não está conectado, ignorando afinidade"
+                    )
+                    return None
 
             return chip
         return None
@@ -196,12 +210,13 @@ class ChipSelector:
         - followup: Trust >= 40, pode_followup = true
         - resposta: Trust >= 20, pode_responder = true
 
-        Sprint 36 - T11.6: Também filtra por evolution_connected = true
+        Sprint 36 - T11.6: Verifica conexão (evolution_connected para Evolution)
+        Sprint 27: Suporte multi-provider (Z-API não requer evolution_connected)
         """
         query = supabase.table("chips").select("*").eq("status", "active")
 
-        # Sprint 36 - T11.6: Filtrar apenas chips conectados ao Evolution
-        query = query.eq("evolution_connected", True)
+        # Sprint 27: NÃO filtrar por evolution_connected na query
+        # A verificação de conexão é feita no loop, pois depende do provider
 
         # Filtrar por permissao e trust minimo
         # Sprint 36 - T05.7: Thresholds reduzidos em fallback mode
@@ -229,6 +244,21 @@ class ChipSelector:
         chips_circuit_aberto = 0  # Sprint 36 - T09.2
 
         for chip in result.data or []:
+            # Sprint 27: Verificar conexão baseado no provider
+            provider = chip.get("provider", "evolution")
+
+            if provider == "z-api":
+                # Z-API: já filtrado por status = 'active' na query
+                pass
+            else:
+                # Evolution: verificar evolution_connected
+                if not chip.get("evolution_connected"):
+                    logger.debug(
+                        f"[ChipSelector] Chip Evolution {chip['telefone']} não conectado"
+                    )
+                    chips_desconectados += 1
+                    continue
+
             # Sprint 36 - T11.6: Verificar cooldown de conexão
             if chip.get("connection_cooldown_until"):
                 try:
