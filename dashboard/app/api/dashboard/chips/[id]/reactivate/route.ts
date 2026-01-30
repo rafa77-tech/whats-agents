@@ -17,10 +17,7 @@ interface ReactivateRequest {
   para_status?: 'pending' | 'ready'
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: chipId } = await params
     const body = (await request.json()) as ReactivateRequest

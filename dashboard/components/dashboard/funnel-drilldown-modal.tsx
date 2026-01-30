@@ -108,29 +108,32 @@ export function FunnelDrilldownModal({
   }, [open, stage, fetchData])
 
   // Fetch messages for a conversation
-  const fetchMessages = useCallback(async (conversationId: string) => {
-    if (messages[conversationId]) {
-      // Already cached
-      return
-    }
-
-    setLoadingMessages(conversationId)
-    try {
-      const res = await fetch(`/api/dashboard/conversations/${conversationId}/messages?limit=30`)
-      const json = await res.json()
-
-      if (res.ok) {
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: json.messages || [],
-        }))
+  const fetchMessages = useCallback(
+    async (conversationId: string) => {
+      if (messages[conversationId]) {
+        // Already cached
+        return
       }
-    } catch (error) {
-      console.error('Error fetching messages:', error)
-    } finally {
-      setLoadingMessages(null)
-    }
-  }, [messages])
+
+      setLoadingMessages(conversationId)
+      try {
+        const res = await fetch(`/api/dashboard/conversations/${conversationId}/messages?limit=30`)
+        const json = await res.json()
+
+        if (res.ok) {
+          setMessages((prev) => ({
+            ...prev,
+            [conversationId]: json.messages || [],
+          }))
+        }
+      } catch (error) {
+        console.error('Error fetching messages:', error)
+      } finally {
+        setLoadingMessages(null)
+      }
+    },
+    [messages]
+  )
 
   // Toggle row expansion
   const toggleExpand = useCallback(
@@ -257,13 +260,13 @@ export function FunnelDrilldownModal({
                       key={item.id}
                       className={cn(
                         'cursor-pointer hover:bg-gray-50',
-                        expandedRow === item.conversaId && 'bg-blue-50'
+                        expandedRow === (item.conversaId || item.id) && 'bg-blue-50'
                       )}
-                      onClick={() => toggleExpand(item.conversaId)}
+                      onClick={() => toggleExpand(item.conversaId || item.id)}
                     >
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          {expandedRow === item.conversaId ? (
+                          {expandedRow === (item.conversaId || item.id) ? (
                             <ChevronUp className="h-4 w-4 text-gray-400" />
                           ) : (
                             <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -293,24 +296,24 @@ export function FunnelDrilldownModal({
                       </TableCell>
                     </TableRow>
                     {/* Mensagens expandidas */}
-                    {expandedRow === item.conversaId && (
+                    {expandedRow === (item.conversaId || item.id) && (
                       <TableRow key={`${item.id}-messages`}>
                         <TableCell colSpan={6} className="bg-gray-50 p-0">
                           <div className="max-h-80 overflow-y-auto p-4">
-                            {loadingMessages === item.conversaId ? (
+                            {loadingMessages === (item.conversaId || item.id) ? (
                               <div className="flex items-center justify-center py-4">
                                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
                                 <span className="ml-2 text-sm text-gray-500">
                                   Carregando mensagens...
                                 </span>
                               </div>
-                            ) : messages[item.conversaId]?.length === 0 ? (
+                            ) : messages[item.conversaId || item.id]?.length === 0 ? (
                               <div className="py-4 text-center text-sm text-gray-500">
                                 Nenhuma mensagem encontrada
                               </div>
                             ) : (
                               <div className="space-y-3">
-                                {messages[item.conversaId]?.map((msg) => (
+                                {messages[item.conversaId || item.id]?.map((msg) => (
                                   <div
                                     key={msg.id}
                                     className={cn(
@@ -323,7 +326,7 @@ export function FunnelDrilldownModal({
                                         'max-w-[80%] rounded-lg px-3 py-2',
                                         msg.isFromJulia
                                           ? 'bg-blue-500 text-white'
-                                          : 'bg-white text-gray-800 shadow-sm border'
+                                          : 'border bg-white text-gray-800 shadow-sm'
                                       )}
                                     >
                                       <div className="mb-1 flex items-center gap-2">
@@ -332,7 +335,7 @@ export function FunnelDrilldownModal({
                                           {msg.isFromJulia ? 'Julia' : item.nome}
                                         </span>
                                       </div>
-                                      <p className="text-sm whitespace-pre-wrap">{msg.conteudo}</p>
+                                      <p className="whitespace-pre-wrap text-sm">{msg.conteudo}</p>
                                       <div
                                         className={cn(
                                           'mt-1 text-xs',

@@ -235,9 +235,9 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
     }
   }
 
-  const availableActions = (
-    Object.keys(actionsConfig) as Exclude<ActionType, 'qrcode'>[]
-  ).filter((action) => actionsConfig[action].condition(chip))
+  const availableActions = (Object.keys(actionsConfig) as Exclude<ActionType, 'qrcode'>[]).filter(
+    (action) => actionsConfig[action].condition(chip)
+  )
 
   // Show QR Code button for pending/offline chips
   const canShowQRCode =
@@ -424,7 +424,9 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
               onClick={() =>
                 confirmAction && confirmAction !== 'qrcode' && handleAction(confirmAction)
               }
-              disabled={isProcessing || (confirmAction === 'reactivate' && !reactivateMotivo.trim())}
+              disabled={
+                isProcessing || (confirmAction === 'reactivate' && !reactivateMotivo.trim())
+              }
             >
               {isProcessing ? (
                 <>

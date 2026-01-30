@@ -83,13 +83,11 @@ export async function GET(
         .not('conversation_id', 'is', null)
         .gte('created_at', startDateISO)
 
-      const enviadasSet = new Set(
-        (saidaData || []).map((r) => r.conversation_id).filter(Boolean)
-      )
+      const enviadasSet = new Set((saidaData || []).map((r) => r.conversation_id).filter(Boolean))
 
       if (stage === 'enviadas' || stage === 'entregues') {
         // Enviadas e Entregues: todas as conversas com saída
-        conversationIds = [...enviadasSet]
+        conversationIds = Array.from(enviadasSet)
       } else if (stage === 'respostas') {
         // Respostas: conversas com saída que também tiveram entrada
         const { data: entradaData } = await supabase
@@ -104,7 +102,7 @@ export async function GET(
         )
 
         // Interseção: conversas que enviaram E receberam
-        conversationIds = [...enviadasSet].filter((id) => entradaSet.has(id))
+        conversationIds = Array.from(enviadasSet).filter((id) => entradaSet.has(id))
       }
 
       total = conversationIds.length
@@ -161,21 +159,26 @@ export async function GET(
           })
         }
 
-        const chatwootUrl = process.env.CHATWOOT_URL
-        items = filteredConversas.map((c) => ({
-          id: c.id,
-          medicoId: c.cliente_id || '',
-          nome: c.clientes
-            ? `${c.clientes.primeiro_nome || ''} ${c.clientes.sobrenome || ''}`.trim() ||
-              'Desconhecido'
-            : 'Desconhecido',
-          telefone: c.clientes?.telefone || '',
-          especialidade: c.clientes?.especialidade || 'Nao informada',
-          ultimoContato: c.updated_at,
-          chipName: 'Julia',
-          conversaId: c.id,
-          chatwootUrl: chatwootUrl ? `${chatwootUrl}/conversations/${c.id}` : undefined,
-        }))
+        const chatwootBaseUrl = process.env.CHATWOOT_URL
+        items = filteredConversas.map((c) => {
+          const item: (typeof items)[number] = {
+            id: c.id,
+            medicoId: c.cliente_id || '',
+            nome: c.clientes
+              ? `${c.clientes.primeiro_nome || ''} ${c.clientes.sobrenome || ''}`.trim() ||
+                'Desconhecido'
+              : 'Desconhecido',
+            telefone: c.clientes?.telefone || '',
+            especialidade: c.clientes?.especialidade || 'Nao informada',
+            ultimoContato: c.updated_at,
+            chipName: 'Julia',
+            conversaId: c.id,
+          }
+          if (chatwootBaseUrl) {
+            item.chatwootUrl = `${chatwootBaseUrl}/conversations/${c.id}`
+          }
+          return item
+        })
       }
     } else if (['interesse', 'fechadas'].includes(stage)) {
       // Etapas baseadas em conversations (interesse, fechadas)
@@ -228,21 +231,26 @@ export async function GET(
         })
       }
 
-      const chatwootUrl = process.env.CHATWOOT_URL
-      items = filteredConversas.map((c) => ({
-        id: c.id,
-        medicoId: c.cliente_id || '',
-        nome: c.clientes
-          ? `${c.clientes.primeiro_nome || ''} ${c.clientes.sobrenome || ''}`.trim() ||
-            'Desconhecido'
-          : 'Desconhecido',
-        telefone: c.clientes?.telefone || '',
-        especialidade: c.clientes?.especialidade || 'Nao informada',
-        ultimoContato: c.updated_at,
-        chipName: 'Julia',
-        conversaId: c.id,
-        chatwootUrl: chatwootUrl ? `${chatwootUrl}/conversations/${c.id}` : undefined,
-      }))
+      const chatwootBaseUrl = process.env.CHATWOOT_URL
+      items = filteredConversas.map((c) => {
+        const item: (typeof items)[number] = {
+          id: c.id,
+          medicoId: c.cliente_id || '',
+          nome: c.clientes
+            ? `${c.clientes.primeiro_nome || ''} ${c.clientes.sobrenome || ''}`.trim() ||
+              'Desconhecido'
+            : 'Desconhecido',
+          telefone: c.clientes?.telefone || '',
+          especialidade: c.clientes?.especialidade || 'Nao informada',
+          ultimoContato: c.updated_at,
+          chipName: 'Julia',
+          conversaId: c.id,
+        }
+        if (chatwootBaseUrl) {
+          item.chatwootUrl = `${chatwootBaseUrl}/conversations/${c.id}`
+        }
+        return item
+      })
     }
 
     return NextResponse.json({

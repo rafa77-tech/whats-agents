@@ -4,7 +4,7 @@
  * Modal que mostra lista de médicos em cada estágio do funil.
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FunnelDrilldownModal } from '@/components/dashboard/funnel-drilldown-modal'
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
@@ -167,9 +167,7 @@ describe('FunnelDrilldownModal', () => {
       // Esperar debounce (300ms) + fetch
       await waitFor(
         () => {
-          expect(mockFetch).toHaveBeenCalledWith(
-            expect.stringContaining('search=Jo%C3%A3o')
-          )
+          expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('search=Jo%C3%A3o'))
         },
         { timeout: 500 }
       )
@@ -387,7 +385,10 @@ describe('FunnelDrilldownModal', () => {
 
       // Colapsar - nome aparece múltiplas vezes quando expandido (tabela + mensagens)
       const nameElements = screen.getAllByText('Dr. João Silva')
-      await user.click(nameElements[0]) // Clicar na célula da tabela
+      const firstElement = nameElements[0]
+      if (firstElement) {
+        await user.click(firstElement) // Clicar na célula da tabela
+      }
 
       await waitFor(() => {
         expect(screen.queryByText('Oi Dr. João! Tudo bem?')).not.toBeInTheDocument()
@@ -461,14 +462,10 @@ describe('FunnelDrilldownModal', () => {
       await user.type(searchInput, 'João')
 
       // Fechar modal
-      rerender(
-        <FunnelDrilldownModal {...defaultProps} open={false} onOpenChange={onOpenChange} />
-      )
+      rerender(<FunnelDrilldownModal {...defaultProps} open={false} onOpenChange={onOpenChange} />)
 
       // Reabrir modal
-      rerender(
-        <FunnelDrilldownModal {...defaultProps} open={true} onOpenChange={onOpenChange} />
-      )
+      rerender(<FunnelDrilldownModal {...defaultProps} open={true} onOpenChange={onOpenChange} />)
 
       await waitFor(() => {
         const newSearchInput = screen.getByPlaceholderText('Buscar por nome...')

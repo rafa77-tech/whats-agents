@@ -4,7 +4,7 @@
  * Testa ações disponíveis para chips (pause, resume, promote, reactivate, QR code).
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ChipActionsPanel } from '@/components/chips/chip-actions-panel'
 import { chipsApi } from '@/lib/api/chips'
@@ -32,15 +32,27 @@ function createMockChip(overrides: Partial<ChipFullDetail> = {}): ChipFullDetail
     telefone: '5511999999999',
     instanceName: 'julia_01',
     status: 'active',
-    tipo: 'julia',
     trustScore: 85,
-    trustLevel: 'high',
+    trustLevel: 'verde',
     warmupPhase: 'operacao',
     warmingDay: 30,
-    connectionState: 'open',
-    lastActivity: new Date().toISOString(),
-    messagesSentToday: 50,
-    messagesReceivedToday: 25,
+    messagesToday: 50,
+    dailyLimit: 100,
+    responseRate: 0.65,
+    errorsLast24h: 2,
+    hasActiveAlert: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ddd: '11',
+    region: 'SP',
+    deliveryRate: 0.95,
+    blockRate: 0.01,
+    lastActivityAt: new Date().toISOString(),
+    totalMessagesSent: 500,
+    totalConversations: 100,
+    totalBidirectional: 80,
+    groupsJoined: 5,
+    mediaTypesSent: ['image', 'audio'],
     ...overrides,
   }
 }
@@ -86,7 +98,7 @@ describe('ChipActionsPanel', () => {
     it('mostra botão "Promover" para chip em warming com trust >= 70', () => {
       const chip = createMockChip({
         status: 'warming',
-        warmupPhase: 'estabilizacao',
+        warmupPhase: 'expansao',
         trustScore: 75,
       })
 
@@ -98,7 +110,7 @@ describe('ChipActionsPanel', () => {
     it('NÃO mostra "Promover" para chip em warming com trust < 70', () => {
       const chip = createMockChip({
         status: 'warming',
-        warmupPhase: 'estabilizacao',
+        warmupPhase: 'expansao',
         trustScore: 60,
       })
 
@@ -124,8 +136,8 @@ describe('ChipActionsPanel', () => {
     })
 
     it('mostra mensagem quando nenhuma ação disponível', () => {
-      // Chip em estado que não permite nenhuma ação
-      const chip = createMockChip({ status: 'provisioned', instanceName: undefined })
+      // Chip em estado que não permite nenhuma ação (provisioned sem instanceName)
+      const chip = createMockChip({ status: 'provisioned', instanceName: '' })
 
       render(<ChipActionsPanel chip={chip} onActionComplete={mockOnActionComplete} />)
 
@@ -143,9 +155,7 @@ describe('ChipActionsPanel', () => {
       await userEvent.click(screen.getByText('Pausar Chip'))
 
       expect(screen.getByRole('alertdialog')).toBeInTheDocument()
-      expect(
-        screen.getByText(/deixará de enviar e receber mensagens/i)
-      ).toBeInTheDocument()
+      expect(screen.getByText(/deixará de enviar e receber mensagens/i)).toBeInTheDocument()
     })
 
     it('executa ação de pausar com sucesso', async () => {
@@ -238,8 +248,12 @@ describe('ChipActionsPanel', () => {
     it('verifica conexão e mostra resultado conectado', async () => {
       const chip = createMockChip({ status: 'pending' })
       vi.mocked(chipsApi.checkChipConnection).mockResolvedValue({
+        success: true,
         connected: true,
         state: 'open',
+        chip_id: 'chip-123',
+        instance_name: 'julia_01',
+        message: 'Conectado',
         status_atualizado: true,
         novo_status: 'warming',
       })
@@ -257,8 +271,11 @@ describe('ChipActionsPanel', () => {
     it('mostra mensagem de desconectado', async () => {
       const chip = createMockChip({ status: 'pending' })
       vi.mocked(chipsApi.checkChipConnection).mockResolvedValue({
+        success: true,
         connected: false,
         state: 'close',
+        chip_id: 'chip-123',
+        instance_name: 'julia_01',
         message: 'Aguardando QR code',
       })
 
@@ -356,7 +373,7 @@ describe('ChipActionsPanel', () => {
     it('mostra informação de warming com dia atual', () => {
       const chip = createMockChip({
         status: 'warming',
-        warmupPhase: 'inicial',
+        warmupPhase: 'primeiros_contatos',
         warmingDay: 5,
         trustScore: 65,
       })
