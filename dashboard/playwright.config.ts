@@ -77,6 +77,7 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 120000,
     env: {
+      E2E_MOCK: 'true', // Enable mock data for E2E tests
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-key',
     },

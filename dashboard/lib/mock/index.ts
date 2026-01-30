@@ -12,14 +12,15 @@ export * from './sistema'
 /**
  * Check if we should use mock data
  * Returns true when:
- * - E2E_MOCK env var is set
- * - NODE_ENV is 'test'
- * - Running in CI without backend
+ * - E2E_MOCK env var is set to 'true'
+ * - NODE_ENV is 'test' without Supabase configured
+ *
+ * NOTE: Do NOT check CI=true here as Railway sets CI=true during builds,
+ * which would incorrectly enable mocks in production.
  */
 export function shouldUseMock(): boolean {
   return (
     process.env.E2E_MOCK === 'true' ||
-    process.env.CI === 'true' ||
     (process.env.NODE_ENV === 'test' && !process.env.SUPABASE_URL)
   )
 }
