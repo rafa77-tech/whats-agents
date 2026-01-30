@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/campanhas
  * Lista campanhas com filtro por status
+ * Calcula métricas em tempo real a partir da tabela envios
  */
 export async function GET(request: NextRequest) {
   try {
@@ -23,14 +24,64 @@ export async function GET(request: NextRequest) {
       query = query.in('status', statusArray)
     }
 
-    const { data, error } = await query
+    const { data: campanhas, error } = await query
 
     if (error) {
       console.error('Erro ao buscar campanhas:', error)
       return NextResponse.json({ detail: 'Erro ao buscar campanhas' }, { status: 500 })
     }
 
-    return NextResponse.json(data || [])
+    if (!campanhas || campanhas.length === 0) {
+      return NextResponse.json([])
+    }
+
+    // Buscar métricas reais da tabela envios para cada campanha
+    const campanhaIds = campanhas.map((c) => c.id)
+    const { data: envios } = await supabase
+      .from('envios')
+      .select('campanha_id, enviado_em, entregue_em, visualizado_em, status')
+      .in('campanha_id', campanhaIds)
+
+    // Calcular métricas por campanha
+    const metricasPorCampanha = new Map<
+      number,
+      { total: number; enviados: number; entregues: number; respondidos: number }
+    >()
+
+    for (const campanha of campanhas) {
+      metricasPorCampanha.set(campanha.id, {
+        total: 0,
+        enviados: 0,
+        entregues: 0,
+        respondidos: 0,
+      })
+    }
+
+    if (envios) {
+      for (const envio of envios) {
+        const metricas = metricasPorCampanha.get(envio.campanha_id)
+        if (metricas) {
+          metricas.total++
+          if (envio.enviado_em) metricas.enviados++
+          if (envio.entregue_em) metricas.entregues++
+          // respondidos seria baseado em outra lógica (ex: conversa iniciada)
+        }
+      }
+    }
+
+    // Sobrescrever os campos armazenados com os valores calculados
+    const campanhasComMetricas = campanhas.map((campanha) => {
+      const metricas = metricasPorCampanha.get(campanha.id)
+      return {
+        ...campanha,
+        total_destinatarios: metricas?.total ?? campanha.total_destinatarios ?? 0,
+        enviados: metricas?.enviados ?? campanha.enviados ?? 0,
+        entregues: metricas?.entregues ?? campanha.entregues ?? 0,
+        respondidos: metricas?.respondidos ?? campanha.respondidos ?? 0,
+      }
+    })
+
+    return NextResponse.json(campanhasComMetricas)
   } catch (error) {
     console.error('Erro ao buscar campanhas:', error)
     return NextResponse.json({ detail: 'Erro interno do servidor' }, { status: 500 })

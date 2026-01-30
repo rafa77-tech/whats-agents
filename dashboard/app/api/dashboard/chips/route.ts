@@ -4,11 +4,12 @@
  * Retorna status do pool de chips no formato PoolStatus.
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { ChipStatus, TrustLevel } from '@/types/dashboard'
 import { shouldUseMock, mockPoolStatus } from '@/lib/mock'
 import type { PoolStatus, TrustLevelExtended } from '@/types/chips'
+import { getPeriodDates, validatePeriod } from '@/lib/dashboard/calculations'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,7 +59,7 @@ function getDailyLimit(
   return 0
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   // Return mock data for E2E tests
   if (shouldUseMock()) {
     return NextResponse.json(mockPoolStatus)
@@ -66,6 +67,8 @@ export async function GET() {
 
   try {
     const supabase = await createClient()
+    const period = validatePeriod(request.nextUrl.searchParams.get('period'))
+    const { currentStart, currentEnd, previousStart, previousEnd } = getPeriodDates(period)
 
     // Buscar todos os chips
     const { data: chips, error } = await supabase.from('chips').select(`
@@ -122,12 +125,48 @@ export async function GET() {
     const totalChips = typedChips.length
     const avgTrustScore = totalChips > 0 ? totalTrustScore / totalChips : 0
 
-    // Mensagens hoje e capacidade
-    let totalMessagesToday = 0
-    let totalDailyCapacity = 0
+    // Mensagens do período - buscar de interacoes (fonte real)
+    const { count: totalMessagesPeriod } = await supabase
+      .from('interacoes')
+      .select('*', { count: 'exact', head: true })
+      .eq('tipo', 'saida')
+      .gte('created_at', currentStart)
+      .lte('created_at', currentEnd)
 
+    const { count: previousMessagesPeriod } = await supabase
+      .from('interacoes')
+      .select('*', { count: 'exact', head: true })
+      .eq('tipo', 'saida')
+      .gte('created_at', previousStart)
+      .lte('created_at', previousEnd)
+
+    // Respostas do período
+    const { count: totalResponsesPeriod } = await supabase
+      .from('interacoes')
+      .select('*', { count: 'exact', head: true })
+      .eq('tipo', 'entrada')
+      .gte('created_at', currentStart)
+      .lte('created_at', currentEnd)
+
+    const { count: previousResponsesPeriod } = await supabase
+      .from('interacoes')
+      .select('*', { count: 'exact', head: true })
+      .eq('tipo', 'entrada')
+      .gte('created_at', previousStart)
+      .lte('created_at', previousEnd)
+
+    // Calcular taxas
+    const msgsSent = totalMessagesPeriod || 0
+    const prevMsgsSent = previousMessagesPeriod || 0
+    const responses = totalResponsesPeriod || 0
+    const prevResponses = previousResponsesPeriod || 0
+
+    const responseRate = msgsSent > 0 ? (responses / msgsSent) * 100 : 0
+    const prevResponseRate = prevMsgsSent > 0 ? (prevResponses / prevMsgsSent) * 100 : 0
+
+    // Capacidade diária dos chips
+    let totalDailyCapacity = 0
     typedChips.forEach((chip) => {
-      totalMessagesToday += chip.msgs_enviadas_hoje || 0
       // Só contar capacidade de chips que podem enviar
       if (['active', 'warming', 'ready', 'degraded'].includes(chip.status)) {
         totalDailyCapacity += getDailyLimit(chip.status, chip.fase_warmup, chip.limite_dia)
@@ -154,7 +193,12 @@ export async function GET() {
       byStatus,
       byTrustLevel,
       avgTrustScore: Number(avgTrustScore.toFixed(1)),
-      totalMessagesToday,
+      totalMessagesSent: msgsSent,
+      previousMessagesSent: prevMsgsSent,
+      totalResponses: responses,
+      previousResponses: prevResponses,
+      responseRate: Number(responseRate.toFixed(1)),
+      previousResponseRate: Number(prevResponseRate.toFixed(1)),
       totalDailyCapacity,
       activeAlerts,
       criticalAlerts,
