@@ -1505,6 +1505,88 @@ async def job_monitorar_fila(
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
+# ==========================================
+# Jobs de Snapshot de Chips (Sprint 41)
+# ==========================================
+
+
+@router.post("/snapshot-chips-diario")
+async def job_snapshot_chips_diario():
+    """
+    Job para criar snapshots diários das métricas de chips.
+
+    Captura o estado dos contadores de cada chip antes do reset diário.
+    Deve ser executado às 23:55 (antes do reset às 00:05).
+
+    Sprint 41 - Rastreamento de Chips e Status de Entrega.
+
+    Schedule: 55 23 * * * (23:55 todos os dias)
+    """
+    try:
+        # Usar RPC para criar snapshots de todos os chips
+        result = supabase.rpc("chip_criar_snapshots_todos").execute()
+
+        if not result.data:
+            return JSONResponse({
+                "status": "error",
+                "message": "RPC retornou vazio"
+            }, status_code=500)
+
+        row = result.data[0] if isinstance(result.data, list) else result.data
+
+        logger.info(
+            f"[SnapshotChips] Concluído: {row.get('snapshots_criados', 0)} criados, "
+            f"{row.get('snapshots_existentes', 0)} existentes, {row.get('erros', 0)} erros"
+        )
+
+        return JSONResponse({
+            "status": "ok",
+            "total_chips": row.get("total_chips", 0),
+            "snapshots_criados": row.get("snapshots_criados", 0),
+            "snapshots_existentes": row.get("snapshots_existentes", 0),
+            "erros": row.get("erros", 0),
+        })
+    except Exception as e:
+        logger.error(f"Erro ao criar snapshots de chips: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/resetar-contadores-chips")
+async def job_resetar_contadores_chips():
+    """
+    Job para resetar contadores diários dos chips.
+
+    Reseta msgs_enviadas_hoje e msgs_recebidas_hoje para 0.
+    Deve ser executado às 00:05 (após o snapshot às 23:55).
+
+    Sprint 41 - Rastreamento de Chips e Status de Entrega.
+
+    Schedule: 5 0 * * * (00:05 todos os dias)
+    """
+    try:
+        # Usar RPC para resetar contadores
+        result = supabase.rpc("chip_resetar_contadores_diarios").execute()
+
+        if not result.data:
+            return JSONResponse({
+                "status": "error",
+                "message": "RPC retornou vazio"
+            }, status_code=500)
+
+        row = result.data[0] if isinstance(result.data, list) else result.data
+        chips_resetados = row.get("chips_resetados", 0)
+
+        logger.info(f"[ResetChips] {chips_resetados} chips resetados")
+
+        return JSONResponse({
+            "status": "ok",
+            "chips_resetados": chips_resetados,
+        })
+    except Exception as e:
+        logger.error(f"Erro ao resetar contadores de chips: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
 @router.get("/fila-worker-health")
 async def job_fila_worker_health():
     """

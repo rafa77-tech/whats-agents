@@ -23,6 +23,7 @@ from app.services.chips.orchestrator import chip_orchestrator
 from app.services.chips.health_monitor import health_monitor
 from app.services.chips.selector import chip_selector
 from app.services.chips.instance_manager import instance_manager
+from app.services.chips.sync_evolution import sincronizar_chips_com_evolution, buscar_estado_instancia
 
 logger = logging.getLogger(__name__)
 
@@ -239,6 +240,81 @@ async def promote_chip(chip_id: str, para_status: str = Query("active")):
     return await chip_orchestrator.promover_chip_manual(chip_id, para_status)
 
 
+class ReactivateChipRequest(BaseModel):
+    """Request para reativar um chip banido/cancelado."""
+
+    motivo: str
+    para_status: str = "pending"
+
+
+@router.post("/{chip_id}/reactivate")
+async def reactivate_chip(chip_id: str, request: ReactivateChipRequest):
+    """
+    Reativa um chip banido ou cancelado.
+
+    Usado quando um chip volta a funcionar apos recurso ou outro motivo.
+    O chip vai para status 'pending' (precisa reconectar) ou 'ready'.
+
+    para_status: 'pending' (default, precisa QR code) ou 'ready' (ja conectado)
+    """
+    if request.para_status not in ["pending", "ready"]:
+        raise HTTPException(400, "para_status deve ser 'pending' ou 'ready'")
+
+    # Verificar se chip existe e esta banido/cancelado
+    result = supabase.table("chips").select("*").eq("id", chip_id).single().execute()
+
+    if not result.data:
+        raise HTTPException(404, "Chip nao encontrado")
+
+    chip = result.data
+    if chip["status"] not in ["banned", "cancelled"]:
+        raise HTTPException(
+            400,
+            f"Chip nao pode ser reativado (status atual: {chip['status']}). "
+            "Apenas chips banidos ou cancelados podem ser reativados."
+        )
+
+    # Atualizar status e registrar motivo
+    update_data = {
+        "status": request.para_status,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Resetar trust score para valor inicial se estava banido
+    if chip["status"] == "banned":
+        update_data["trust_score"] = 50  # Score inicial conservador
+
+    supabase.table("chips").update(update_data).eq("id", chip_id).execute()
+
+    # Registrar operacao no historico
+    supabase.table("orchestrator_operations").insert({
+        "chip_id": chip_id,
+        "operacao": "reactivate",
+        "motivo": request.motivo,
+        "metadata": {
+            "status_anterior": chip["status"],
+            "status_novo": request.para_status,
+        },
+        "sucesso": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }).execute()
+
+    logger.info(
+        f"Chip {chip_id} reativado: {chip['status']} -> {request.para_status}. "
+        f"Motivo: {request.motivo}"
+    )
+
+    return {
+        "success": True,
+        "chip_id": chip_id,
+        "status_anterior": chip["status"],
+        "status_novo": request.para_status,
+        "motivo": request.motivo,
+        "message": f"Chip reativado com sucesso. "
+                   f"{'Gere o QR Code para reconectar.' if request.para_status == 'pending' else ''}"
+    }
+
+
 # ════════════════════════════════════════════════════════════
 # ALERTAS
 # ════════════════════════════════════════════════════════════
@@ -287,6 +363,87 @@ async def run_health_monitor_cycle():
     """
     await health_monitor.executar_ciclo()
     return {"status": "ok", "message": "Ciclo executado"}
+
+
+@router.post("/sync-evolution")
+async def sync_chips_with_evolution():
+    """
+    Sincroniza chips com Evolution API.
+
+    Detecta conexoes/desconexoes e atualiza status dos chips.
+    """
+    stats = await sincronizar_chips_com_evolution()
+    return {"status": "ok", "stats": stats}
+
+
+@router.get("/{chip_id}/check-connection")
+async def check_chip_connection(chip_id: str):
+    """
+    Verifica estado de conexao de um chip especifico na Evolution API.
+
+    Util para verificar se um chip recem-reativado ja esta conectado.
+    """
+    # Buscar chip
+    result = supabase.table("chips").select("*").eq("id", chip_id).single().execute()
+
+    if not result.data:
+        raise HTTPException(404, "Chip nao encontrado")
+
+    chip = result.data
+    instance_name = chip.get("instance_name")
+
+    if not instance_name:
+        raise HTTPException(400, "Chip nao possui instance_name configurado")
+
+    # Verificar estado na Evolution
+    estado = await buscar_estado_instancia(instance_name)
+
+    if not estado:
+        return {
+            "chip_id": chip_id,
+            "instance_name": instance_name,
+            "connected": False,
+            "state": "unknown",
+            "message": "Nao foi possivel verificar estado na Evolution API"
+        }
+
+    # Estado da Evolution: 'open' = conectado, 'close' = desconectado
+    is_connected = estado.get("state") == "open" or estado.get("instance", {}).get("state") == "open"
+    state = estado.get("state") or estado.get("instance", {}).get("state", "unknown")
+
+    # Atualizar status do chip se necessario
+    if is_connected and chip["status"] == "pending":
+        supabase.table("chips").update({
+            "status": "warming",
+            "evolution_connected": True,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", chip_id).execute()
+
+        return {
+            "chip_id": chip_id,
+            "instance_name": instance_name,
+            "connected": True,
+            "state": state,
+            "status_atualizado": True,
+            "novo_status": "warming",
+            "message": "Chip conectado! Status atualizado para warming."
+        }
+
+    # Atualizar flag de conexao
+    if chip.get("evolution_connected") != is_connected:
+        supabase.table("chips").update({
+            "evolution_connected": is_connected,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", chip_id).execute()
+
+    return {
+        "chip_id": chip_id,
+        "instance_name": instance_name,
+        "connected": is_connected,
+        "state": state,
+        "status_atual": chip["status"],
+        "message": "Conectado" if is_connected else "Desconectado"
+    }
 
 
 # ════════════════════════════════════════════════════════════
