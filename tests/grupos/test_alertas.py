@@ -11,7 +11,6 @@ from datetime import datetime, UTC
 from app.services.grupos.alertas import (
     ALERTAS_GRUPOS,
     verificar_fila_travada,
-    verificar_taxa_conversao,
     verificar_custo_alto,
     verificar_itens_pendentes_antigos,
     verificar_duplicacao_alta,
@@ -31,10 +30,10 @@ class TestConfiguracaoAlertas:
     def test_alertas_definidos(self):
         """Verifica que todos os alertas estão definidos."""
         assert "fila_travada" in ALERTAS_GRUPOS
-        assert "taxa_conversao_baixa" in ALERTAS_GRUPOS
         assert "custo_alto" in ALERTAS_GRUPOS
         assert "itens_pendentes_antigos" in ALERTAS_GRUPOS
         assert "duplicacao_alta" in ALERTAS_GRUPOS
+        # REMOVIDO: taxa_conversao_baixa (Sprint 41 - movido para report fim do dia)
 
     def test_fila_travada_config(self):
         """Verifica configuração de fila travada."""
@@ -96,53 +95,7 @@ class TestVerificarFilaTravada:
             assert result[0]["severidade"] == "error"
 
 
-class TestVerificarTaxaConversao:
-    """Testes de verificação de taxa de conversão."""
-
-    @pytest.mark.asyncio
-    async def test_taxa_ok(self):
-        """Retorna vazio quando taxa está OK."""
-        with patch("app.services.grupos.alertas.supabase") as mock_supabase:
-            # Total: 100, Importadas: 10 = 10%
-            mock_supabase.table.return_value.select.return_value.gte.return_value.execute.return_value = MagicMock(
-                count=100
-            )
-            mock_supabase.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value = MagicMock(
-                count=10
-            )
-
-            result = await verificar_taxa_conversao()
-
-            assert result == []
-
-    @pytest.mark.asyncio
-    async def test_taxa_baixa(self):
-        """Retorna alerta quando taxa está baixa."""
-        with patch("app.services.grupos.alertas.supabase") as mock_supabase:
-            # Total: 100, Importadas: 2 = 2%
-            mock_supabase.table.return_value.select.return_value.gte.return_value.execute.return_value = MagicMock(
-                count=100
-            )
-            mock_supabase.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value = MagicMock(
-                count=2
-            )
-
-            result = await verificar_taxa_conversao()
-
-            assert len(result) == 1
-            assert result[0]["tipo"] == "taxa_conversao_baixa"
-
-    @pytest.mark.asyncio
-    async def test_sem_vagas(self):
-        """Retorna vazio quando não há vagas."""
-        with patch("app.services.grupos.alertas.supabase") as mock_supabase:
-            mock_supabase.table.return_value.select.return_value.gte.return_value.execute.return_value = MagicMock(
-                count=0
-            )
-
-            result = await verificar_taxa_conversao()
-
-            assert result == []
+# REMOVIDO: TestVerificarTaxaConversao (Sprint 41 - movido para report fim do dia)
 
 
 class TestVerificarCustoAlto:
@@ -276,16 +229,14 @@ class TestVerificarAlertasGrupos:
     async def test_sem_alertas(self):
         """Retorna lista vazia quando não há alertas."""
         with patch("app.services.grupos.alertas.verificar_fila_travada", new_callable=AsyncMock) as m1, \
-             patch("app.services.grupos.alertas.verificar_taxa_conversao", new_callable=AsyncMock) as m2, \
-             patch("app.services.grupos.alertas.verificar_custo_alto", new_callable=AsyncMock) as m3, \
-             patch("app.services.grupos.alertas.verificar_itens_pendentes_antigos", new_callable=AsyncMock) as m4, \
-             patch("app.services.grupos.alertas.verificar_duplicacao_alta", new_callable=AsyncMock) as m5:
+             patch("app.services.grupos.alertas.verificar_custo_alto", new_callable=AsyncMock) as m2, \
+             patch("app.services.grupos.alertas.verificar_itens_pendentes_antigos", new_callable=AsyncMock) as m3, \
+             patch("app.services.grupos.alertas.verificar_duplicacao_alta", new_callable=AsyncMock) as m4:
 
             m1.return_value = []
             m2.return_value = []
             m3.return_value = []
             m4.return_value = []
-            m5.return_value = []
 
             result = await verificar_alertas_grupos()
 
@@ -295,16 +246,14 @@ class TestVerificarAlertasGrupos:
     async def test_multiplos_alertas(self):
         """Retorna múltiplos alertas quando há problemas."""
         with patch("app.services.grupos.alertas.verificar_fila_travada", new_callable=AsyncMock) as m1, \
-             patch("app.services.grupos.alertas.verificar_taxa_conversao", new_callable=AsyncMock) as m2, \
-             patch("app.services.grupos.alertas.verificar_custo_alto", new_callable=AsyncMock) as m3, \
-             patch("app.services.grupos.alertas.verificar_itens_pendentes_antigos", new_callable=AsyncMock) as m4, \
-             patch("app.services.grupos.alertas.verificar_duplicacao_alta", new_callable=AsyncMock) as m5:
+             patch("app.services.grupos.alertas.verificar_custo_alto", new_callable=AsyncMock) as m2, \
+             patch("app.services.grupos.alertas.verificar_itens_pendentes_antigos", new_callable=AsyncMock) as m3, \
+             patch("app.services.grupos.alertas.verificar_duplicacao_alta", new_callable=AsyncMock) as m4:
 
             m1.return_value = [{"tipo": "fila_travada"}]
-            m2.return_value = [{"tipo": "taxa_conversao_baixa"}]
+            m2.return_value = [{"tipo": "custo_alto"}]
             m3.return_value = []
             m4.return_value = []
-            m5.return_value = []
 
             result = await verificar_alertas_grupos()
 
