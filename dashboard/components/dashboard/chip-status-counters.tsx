@@ -21,7 +21,7 @@ const statusConfig: Record<string, { label: string; bgColor: string; textColor: 
 
 const defaultConfig = { label: 'Unknown', bgColor: 'bg-gray-100', textColor: 'text-gray-700' }
 
-export function ChipStatusCounters({ counts }: ChipStatusCountersProps) {
+export function ChipStatusCounters({ counts = [] }: ChipStatusCountersProps) {
   // Filtrar apenas status relevantes
   const relevantStatuses: ChipStatus[] = ['active', 'ready', 'warming', 'degraded']
   const filteredCounts = counts.filter((c) => relevantStatuses.includes(c.status))

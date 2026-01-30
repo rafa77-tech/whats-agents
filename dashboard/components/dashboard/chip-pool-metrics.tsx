@@ -51,7 +51,18 @@ function MetricItem({
   )
 }
 
-export function ChipPoolMetricsComponent({ metrics }: ChipPoolMetricsProps) {
+const defaultMetrics: ChipPoolAggregatedMetrics = {
+  totalMessagesSent: 0,
+  previousMessagesSent: 0,
+  avgResponseRate: 0,
+  previousResponseRate: 0,
+  avgBlockRate: 0,
+  previousBlockRate: 0,
+  totalErrors: 0,
+  previousErrors: 0,
+}
+
+export function ChipPoolMetricsComponent({ metrics = defaultMetrics }: ChipPoolMetricsProps) {
   return (
     <div className="space-y-2">
       <h4 className="text-sm font-medium text-gray-700">Metricas Agregadas (periodo)</h4>
