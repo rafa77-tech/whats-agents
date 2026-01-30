@@ -237,14 +237,19 @@ async def processar_conexao(chip: dict, payload: dict) -> dict:
 async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
     """
     Processa atualizacao de status de mensagem (entregue, lido, etc).
+
+    Sprint 41: Atualiza delivery_status na tabela interacoes.
     """
+    from app.services.delivery_status import atualizar_delivery_status
+
     data = payload.get("data", {})
     status = data.get("status")
     key = data.get("key", {})
 
-    # Extrair telefone
+    # Extrair telefone e message_id
     remote_jid = key.get("remoteJid", "")
     telefone = remote_jid.split("@")[0]
+    message_id = key.get("id")
 
     if status == "DELIVERY_ACK":
         # Mensagem entregue
@@ -254,6 +259,14 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
             "destinatario": telefone,
         }).execute()
 
+        # Sprint 41: Atualizar delivery_status na interação
+        if message_id:
+            await atualizar_delivery_status(
+                provider_message_id=message_id,
+                status="delivered",
+                chip_id=chip["id"],
+            )
+
     elif status == "READ":
         # Mensagem lida
         supabase.table("chip_interactions").insert({
@@ -261,6 +274,14 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
             "tipo": "msg_lida",
             "destinatario": telefone,
         }).execute()
+
+        # Sprint 41: Atualizar delivery_status na interação
+        if message_id:
+            await atualizar_delivery_status(
+                provider_message_id=message_id,
+                status="read",
+                chip_id=chip["id"],
+            )
 
     return {"status": "ok", "message_status": status}
 

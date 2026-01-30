@@ -15,7 +15,8 @@ async def salvar_interacao(
     tipo: Literal["entrada", "saida"],
     conteudo: str,
     autor_tipo: Literal["medico", "julia", "gestor"],
-    message_id: Optional[str] = None
+    message_id: Optional[str] = None,
+    chip_id: Optional[str] = None
 ) -> Optional[dict]:
     """
     Salva uma interacao (mensagem) na conversa.
@@ -27,6 +28,7 @@ async def salvar_interacao(
         conteudo: Texto da mensagem
         autor_tipo: Quem enviou (medico, julia, gestor)
         message_id: ID da mensagem no WhatsApp
+        chip_id: ID do chip que enviou/recebeu a mensagem (Sprint 41)
 
     Returns:
         Dados da interacao salva
@@ -47,6 +49,13 @@ async def salvar_interacao(
 
         if message_id:
             dados["provider_message_id"] = message_id
+
+        # Sprint 41: Adicionar chip_id e delivery_status para mensagens de saída
+        if chip_id:
+            dados["chip_id"] = chip_id
+
+        if tipo == "saida":
+            dados["delivery_status"] = "sent"
 
         response = supabase.table("interacoes").insert(dados).execute()
         logger.debug(f"Interacao salva: {tipo} - {conteudo[:50]}...")

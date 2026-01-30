@@ -388,6 +388,7 @@ class OutboundResult:
     dedupe_key: Optional[str] = None
     error: Optional[str] = None
     evolution_response: Optional[dict] = None
+    chip_id: Optional[str] = None  # Sprint 41: ID do chip que enviou
 
     # Alias para compatibilidade (deprecated)
     @property
@@ -582,10 +583,13 @@ async def send_outbound_message(
         await marcar_enviado(dedupe_key)
 
         # Extrair provider_message_id da resposta
+        chip_id = None
         if response and isinstance(response, dict):
             # Evolution API retorna key.id como message id
             key = response.get("key", {})
             provider_message_id = key.get("id") if isinstance(key, dict) else None
+            # Sprint 41: Extrair chip_id se disponível (multi-chip)
+            chip_id = response.get("chip_id")
 
         result = OutboundResult(
             success=True,
@@ -598,6 +602,7 @@ async def send_outbound_message(
             provider_message_id=provider_message_id,
             dedupe_key=dedupe_key,
             evolution_response=response,
+            chip_id=chip_id,  # Sprint 41
         )
 
     except RateLimitError as e:

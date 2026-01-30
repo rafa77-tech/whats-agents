@@ -97,6 +97,8 @@ def _identificar_tipo_evento(payload: dict) -> str:
         return "chat_presence"
     elif callback_type == "DisconnectedCallback":
         return "connection_status"
+    elif callback_type == "ConnectedCallback":
+        return "connection_status"
 
     # Fallback: identificar pela estrutura do payload
     # Mensagem recebida tem phone e text/image/etc
@@ -380,6 +382,13 @@ async def processar_conexao(chip: dict, payload: dict) -> dict:
     connected = payload.get("connected", False)
     smartphone_connected = payload.get("smartphoneConnected", False)
 
+    # Log detalhado para debug
+    logger.info(
+        f"[WebhookZAPI] Conexão recebida - chip={chip['telefone']}, "
+        f"connected={connected}, smartphoneConnected={smartphone_connected}, "
+        f"payload_keys={list(payload.keys())}"
+    )
+
     # Ambos precisam estar true para considerar conectado
     is_connected = connected and smartphone_connected
 
@@ -392,13 +401,23 @@ async def processar_conexao(chip: dict, payload: dict) -> dict:
         if not is_connected:
             logger.warning(f"[WebhookZAPI] Chip desconectado: {chip['telefone']}")
 
-            # Criar alerta
-            supabase.table("chip_alerts").insert({
-                "chip_id": chip["id"],
-                "severity": "warning",
-                "tipo": "connection_lost",
-                "message": f"Chip {chip['telefone']} desconectado (Z-API)",
-            }).execute()
+            # Verificar se já existe alerta aberto antes de criar novo
+            existing_alert = supabase.table("chip_alerts").select("id").eq(
+                "chip_id", chip["id"]
+            ).eq(
+                "tipo", "connection_lost"
+            ).eq(
+                "resolved", False
+            ).limit(1).execute()
+
+            if not existing_alert.data:
+                # Criar alerta apenas se não houver um aberto
+                supabase.table("chip_alerts").insert({
+                    "chip_id": chip["id"],
+                    "severity": "warning",
+                    "tipo": "connection_lost",
+                    "message": f"Chip {chip['telefone']} desconectado (Z-API)",
+                }).execute()
 
         else:
             logger.info(f"[WebhookZAPI] Chip conectado: {chip['telefone']}")
@@ -426,6 +445,8 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
     """
     Processa atualização de status de mensagem (entregue, lido, etc) via Z-API.
 
+    Sprint 41: Atualiza delivery_status na tabela interacoes.
+
     Payload Z-API:
     {
         "id": "message_id",
@@ -434,6 +455,8 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
         "instanceId": "xxxxx"
     }
     """
+    from app.services.delivery_status import atualizar_delivery_status
+
     status = payload.get("status", "").upper()
     telefone = payload.get("phone", "").replace("@c.us", "")
     message_id = payload.get("id")
@@ -447,6 +470,14 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
                 "metadata": {"message_id": message_id, "provider": "zapi"},
             }).execute()
 
+            # Sprint 41: Atualizar delivery_status na interação
+            if message_id:
+                await atualizar_delivery_status(
+                    provider_message_id=message_id,
+                    status="delivered",
+                    chip_id=chip["id"],
+                )
+
         elif status in ["READ", "VIEWED"]:
             supabase.table("chip_interactions").insert({
                 "chip_id": chip["id"],
@@ -454,6 +485,14 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
                 "destinatario": telefone,
                 "metadata": {"message_id": message_id, "provider": "zapi"},
             }).execute()
+
+            # Sprint 41: Atualizar delivery_status na interação
+            if message_id:
+                await atualizar_delivery_status(
+                    provider_message_id=message_id,
+                    status="read",
+                    chip_id=chip["id"],
+                )
 
         elif status == "PLAYED":
             # Áudio/vídeo reproduzido
@@ -463,6 +502,14 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
                 "destinatario": telefone,
                 "metadata": {"message_id": message_id, "provider": "zapi"},
             }).execute()
+
+            # Sprint 41: Atualizar delivery_status na interação (played = read)
+            if message_id:
+                await atualizar_delivery_status(
+                    provider_message_id=message_id,
+                    status="read",
+                    chip_id=chip["id"],
+                )
 
     except Exception as e:
         logger.error(f"[WebhookZAPI] Erro ao registrar status: {e}")

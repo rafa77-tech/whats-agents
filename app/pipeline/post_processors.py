@@ -202,6 +202,10 @@ class SendMessageProcessor(PostProcessor):
             # Fallback para dict legado
             context.metadata["sent_message_id"] = resultado.get("key", {}).get("id")
 
+        # Sprint 41: Capturar chip_id do resultado para rastreamento
+        if hasattr(resultado, 'chip_id') and resultado.chip_id:
+            context.metadata["chip_id"] = resultado.chip_id
+
         logger.info(f"Mensagem enviada para {context.telefone[:8]}...")
 
         # Sprint 22: Marcar ACK como enviado se for mensagem fora do horário
@@ -289,13 +293,21 @@ class SaveInteractionProcessor(PostProcessor):
             # Salvar interacao de entrada (se ainda nao salvou)
             interacao_entrada = None
             if not context.metadata.get("entrada_salva"):
+                # Sprint 41: Tentar extrair chip_id para mensagens recebidas
+                chip_id_entrada = (
+                    context.metadata.get("chip_id") or
+                    context.mensagem_raw.get("_zapi_chip_id") or
+                    context.mensagem_raw.get("_chip_id")
+                )
+
                 interacao_entrada = await salvar_interacao(
                     conversa_id=context.conversa["id"],
                     cliente_id=context.medico["id"],
                     tipo="entrada",
                     conteudo=context.mensagem_texto or "[midia]",
                     autor_tipo="medico",
-                    message_id=context.message_id
+                    message_id=context.message_id,
+                    chip_id=chip_id_entrada,  # Sprint 41
                 )
                 context.metadata["entrada_salva"] = True
 
@@ -315,7 +327,8 @@ class SaveInteractionProcessor(PostProcessor):
                     tipo="saida",
                     conteudo=response,
                     autor_tipo="julia",
-                    message_id=context.metadata.get("sent_message_id")
+                    message_id=context.metadata.get("sent_message_id"),
+                    chip_id=context.metadata.get("chip_id"),  # Sprint 41
                 )
 
                 # Sprint 16 - E08: Atualizar policy_event com interaction_id
