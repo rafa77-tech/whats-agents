@@ -52,6 +52,7 @@ export async function middleware(request: NextRequest) {
   const isApiRoute = request.nextUrl.pathname.startsWith('/api')
   const isDashboardRoute =
     request.nextUrl.pathname === '/' ||
+    request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/campanhas') ||
     request.nextUrl.pathname.startsWith('/sistema') ||
     request.nextUrl.pathname.startsWith('/instrucoes') ||
