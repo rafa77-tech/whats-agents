@@ -20,6 +20,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PeriodSelector } from '@/components/dashboard/period-selector'
 import { PoolMetricCard } from './pool-metric-card'
 import { StatusCounterCard } from './status-counter-card'
 import { TrustDistributionChart } from './trust-distribution-chart'
@@ -32,7 +33,7 @@ import { ChipsPageSkeleton } from './chips-page-skeleton'
 import { CreateInstanceDialog } from './create-instance-dialog'
 import { chipsApi } from '@/lib/api/chips'
 import { PoolStatus, ChipListItem, ChipsListParams, TrustLevelExtended } from '@/types/chips'
-import { ChipStatus } from '@/types/dashboard'
+import { ChipStatus, DashboardPeriod } from '@/types/dashboard'
 
 const displayStatusOrder: ChipStatus[] = [
   'active',
@@ -49,6 +50,7 @@ export function ChipsPageContent() {
   // Pool status state
   const [poolStatus, setPoolStatus] = useState<PoolStatus | null>(null)
   const [isLoadingPool, setIsLoadingPool] = useState(true)
+  const [period, setPeriod] = useState<DashboardPeriod>('7d')
 
   // Chips list state
   const [chips, setChips] = useState<ChipListItem[]>([])
@@ -66,14 +68,14 @@ export function ChipsPageContent() {
   // Fetch pool status
   const fetchPoolStatus = useCallback(async () => {
     try {
-      const data = await chipsApi.getPoolStatus()
+      const data = await chipsApi.getPoolStatus(period)
       setPoolStatus(data)
     } catch (error) {
       console.error('Error fetching pool status:', error)
     } finally {
       setIsLoadingPool(false)
     }
-  }, [])
+  }, [period])
 
   // Fetch chips list
   const fetchChips = useCallback(async () => {
@@ -109,6 +111,11 @@ export function ChipsPageContent() {
     fetchChips()
   }
 
+  const handlePeriodChange = (newPeriod: DashboardPeriod) => {
+    setPeriod(newPeriod)
+    setIsLoadingPool(true)
+  }
+
   const handlePageChange = (newPage: number) => {
     setPage(newPage)
     setSelectedIds([])
@@ -138,7 +145,7 @@ export function ChipsPageContent() {
   // Calculate metrics
   const utilizationPercent =
     poolStatus && poolStatus.totalDailyCapacity > 0
-      ? (poolStatus.totalMessagesToday / poolStatus.totalDailyCapacity) * 100
+      ? (poolStatus.totalMessagesSent / poolStatus.totalDailyCapacity) * 100
       : 0
 
   const getUtilizationStatus = () => {
@@ -187,6 +194,8 @@ export function ChipsPageContent() {
             </Link>
           )}
 
+          <PeriodSelector value={period} onChange={handlePeriodChange} />
+
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoadingPool}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingPool ? 'animate-spin' : ''}`} />
             Atualizar
@@ -226,9 +235,9 @@ export function ChipsPageContent() {
           />
 
           <PoolMetricCard
-            title="Mensagens Hoje"
-            value={poolStatus.totalMessagesToday.toLocaleString()}
-            subtitle={`de ${poolStatus.totalDailyCapacity.toLocaleString()} (${utilizationPercent.toFixed(1)}%)`}
+            title="Mensagens no Período"
+            value={poolStatus.totalMessagesSent.toLocaleString()}
+            subtitle={`capacidade: ${poolStatus.totalDailyCapacity.toLocaleString()} (${utilizationPercent.toFixed(1)}%)`}
             icon={<MessageSquare className="h-6 w-6" />}
             status={getUtilizationStatus()}
           />

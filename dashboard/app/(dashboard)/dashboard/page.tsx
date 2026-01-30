@@ -96,7 +96,39 @@ export default function DashboardPage() {
       const response = await fetch(`/api/dashboard/chips?period=${selectedPeriod}`)
       if (response.ok) {
         const data = await response.json()
-        setChipPoolData(data)
+
+        // Transform API response (PoolStatus) to ChipPoolOverviewData
+        const statusCounts = Object.entries(data.byStatus || {}).map(([status, count]) => ({
+          status: status as ChipPoolOverviewData['statusCounts'][0]['status'],
+          count: count as number,
+        }))
+
+        const total = Object.values(data.byTrustLevel || {}).reduce(
+          (sum: number, val) => sum + (val as number),
+          0
+        )
+        const trustDistribution = Object.entries(data.byTrustLevel || {}).map(([level, count]) => ({
+          level: level as 'verde' | 'amarelo' | 'laranja' | 'vermelho',
+          count: count as number,
+          percentage: total > 0 ? Math.round(((count as number) / total) * 100) : 0,
+        }))
+
+        const transformed: ChipPoolOverviewData = {
+          statusCounts,
+          trustDistribution,
+          metrics: {
+            totalMessagesSent: data.totalMessagesSent || 0,
+            previousMessagesSent: data.previousMessagesSent || 0,
+            avgResponseRate: data.responseRate || 0,
+            previousResponseRate: data.previousResponseRate || 0,
+            avgBlockRate: 0,
+            previousBlockRate: 0,
+            totalErrors: 0,
+            previousErrors: 0,
+          },
+        }
+
+        setChipPoolData(transformed)
       }
     } catch (error) {
       console.error('Error fetching chip pool:', error)
@@ -120,7 +152,35 @@ export default function DashboardPage() {
       const response = await fetch(`/api/dashboard/metrics?period=${selectedPeriod}`)
       if (response.ok) {
         const data = await response.json()
-        if (data.metrics) setMetricsData(data.metrics)
+        if (data.metrics) {
+          // Transform API response object to MetricData array
+          const metricConfig: Record<
+            string,
+            { label: string; unit: 'percent' | 'number'; metaOperator: 'gt' | 'lt' }
+          > = {
+            responseRate: { label: 'Taxa de Resposta', unit: 'percent', metaOperator: 'gt' },
+            conversionRate: { label: 'Taxa de Conversão', unit: 'percent', metaOperator: 'gt' },
+            closingsPerWeek: { label: 'Fechamentos/Semana', unit: 'number', metaOperator: 'gt' },
+          }
+
+          const transformed: MetricData[] = Object.entries(data.metrics).map(([key, val]) => {
+            const config = metricConfig[key] || {
+              label: key,
+              unit: 'number' as const,
+              metaOperator: 'gt' as const,
+            }
+            const metric = val as { value: number; previous: number; meta: number }
+            return {
+              label: config.label,
+              value: metric.value,
+              unit: config.unit,
+              meta: metric.meta,
+              previousValue: metric.previous,
+              metaOperator: config.metaOperator,
+            }
+          })
+          setMetricsData(transformed)
+        }
       }
     } catch (error) {
       console.error('Error fetching metrics:', error)
@@ -132,7 +192,66 @@ export default function DashboardPage() {
       const response = await fetch(`/api/dashboard/quality?period=${selectedPeriod}`)
       if (response.ok) {
         const data = await response.json()
-        if (data.metrics) setQualityData(data.metrics)
+        if (data.metrics) {
+          // Transform API response object to QualityMetricData array
+          const qualityConfig: Record<
+            string,
+            {
+              label: string
+              unit: 'percent' | 'seconds'
+              threshold: { good: number; warning: number }
+              operator: 'lt' | 'gt'
+              tooltip?: string
+            }
+          > = {
+            botDetection: {
+              label: 'Detecção Bot',
+              unit: 'percent',
+              threshold: { good: 1, warning: 5 },
+              operator: 'lt',
+              tooltip: 'Taxa de mensagens detectadas como bot',
+            },
+            avgLatency: {
+              label: 'Latência Média',
+              unit: 'seconds',
+              threshold: { good: 30, warning: 60 },
+              operator: 'lt',
+              tooltip: 'Tempo médio de resposta',
+            },
+            handoffRate: {
+              label: 'Taxa Handoff',
+              unit: 'percent',
+              threshold: { good: 5, warning: 15 },
+              operator: 'lt',
+              tooltip: 'Taxa de transferência para humano',
+            },
+          }
+
+          const transformed: QualityMetricData[] = Object.entries(data.metrics).map(
+            ([key, val]) => {
+              const config = qualityConfig[key] || {
+                label: key,
+                unit: 'percent' as const,
+                threshold: { good: 50, warning: 30 },
+                operator: 'gt' as const,
+              }
+              const metric = val as { value: number; previous: number }
+              const result: QualityMetricData = {
+                label: config.label,
+                value: metric.value,
+                unit: config.unit,
+                threshold: config.threshold,
+                operator: config.operator,
+                previousValue: metric.previous,
+              }
+              if (config.tooltip) {
+                result.tooltip = config.tooltip
+              }
+              return result
+            }
+          )
+          setQualityData(transformed)
+        }
       }
     } catch (error) {
       console.error('Error fetching quality:', error)

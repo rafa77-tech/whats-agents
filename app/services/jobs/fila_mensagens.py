@@ -107,12 +107,16 @@ async def _processar_mensagem(mensagem: dict) -> str:
 
         # Salvar interacao se tiver conversa
         if mensagem.get("conversa_id"):
+            # Sprint 41: Extrair chip_id do resultado
+            chip_id = result.chip_id if hasattr(result, 'chip_id') else None
+
             await salvar_interacao(
                 conversa_id=mensagem["conversa_id"],
                 cliente_id=cliente_id,
                 tipo="saida",
                 conteudo=mensagem["conteudo"],
-                autor_tipo="julia"
+                autor_tipo="julia",
+                chip_id=chip_id,  # Sprint 41
             )
 
         logger.info(f"Mensagem {mensagem_id} enviada para {telefone}")

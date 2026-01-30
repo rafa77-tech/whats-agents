@@ -65,8 +65,9 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
 // Pool Status
 // ============================================================================
 
-export async function getPoolStatus(): Promise<PoolStatus> {
-  return fetchApi<PoolStatus>('/api/dashboard/chips')
+export async function getPoolStatus(period?: string): Promise<PoolStatus> {
+  const query = period ? `?period=${period}` : ''
+  return fetchApi<PoolStatus>(`/api/dashboard/chips${query}`)
 }
 
 export async function getPoolHealth(): Promise<PoolHealthStatus> {
@@ -154,6 +155,17 @@ export async function resumeChip(id: string): Promise<ChipActionResponse> {
 export async function promoteChip(id: string): Promise<ChipActionResponse> {
   return fetchApi<ChipActionResponse>(`/api/dashboard/chips/${id}/promote`, {
     method: 'POST',
+  })
+}
+
+export async function reactivateChip(
+  id: string,
+  motivo: string,
+  paraStatus: 'pending' | 'ready' = 'pending'
+): Promise<ChipActionResponse> {
+  return fetchApi<ChipActionResponse>(`/api/dashboard/chips/${id}/reactivate`, {
+    method: 'POST',
+    body: JSON.stringify({ motivo, para_status: paraStatus }),
   })
 }
 
@@ -264,6 +276,22 @@ export async function getInstanceConnectionState(
   )
 }
 
+export interface CheckConnectionResponse {
+  success: boolean
+  chip_id: string
+  instance_name: string
+  connected: boolean
+  state: string
+  status_atualizado?: boolean
+  novo_status?: string
+  status_atual?: string
+  message: string
+}
+
+export async function checkChipConnection(id: string): Promise<CheckConnectionResponse> {
+  return fetchApi<CheckConnectionResponse>(`/api/dashboard/chips/${id}/check-connection`)
+}
+
 // ============================================================================
 // Export all as namespace
 // ============================================================================
@@ -284,6 +312,7 @@ export const chipsApi = {
   pauseChip,
   resumeChip,
   promoteChip,
+  reactivateChip,
   // Alerts
   listAlerts,
   getAlert,
@@ -299,4 +328,6 @@ export const chipsApi = {
   createInstance,
   getInstanceQRCode,
   getInstanceConnectionState,
+  // Connection Check (Sprint 41)
+  checkChipConnection,
 }

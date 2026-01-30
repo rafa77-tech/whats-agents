@@ -62,11 +62,11 @@ export async function GET(request: NextRequest) {
       })
     })
 
-    // Fetch messages sent per day (fila_mensagens with outcome = delivered)
+    // Fetch messages sent per day (interacoes de saida - Julia enviou)
     const { data: msgData } = await supabase
-      .from('fila_mensagens')
+      .from('interacoes')
       .select('created_at')
-      .eq('outcome', 'delivered')
+      .eq('tipo', 'saida')
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString())
 
@@ -78,11 +78,11 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Fetch responses per day (interacoes with direcao = in)
+    // Fetch responses per day (interacoes de entrada - medico respondeu)
     const { data: respData } = await supabase
       .from('interacoes')
       .select('created_at')
-      .eq('direcao', 'in')
+      .eq('tipo', 'entrada')
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString())
 

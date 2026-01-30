@@ -33,13 +33,13 @@ export function ChipMetricsCards({ metrics }: ChipMetricsCardsProps) {
     },
     {
       label: 'Taxa de Resposta',
-      value: metrics.responseRate * 100,
-      previousValue: metrics.previousResponseRate * 100,
+      value: metrics.responseRate,
+      previousValue: metrics.previousResponseRate,
       format: 'percent',
     },
     {
       label: 'Taxa de Entrega',
-      value: metrics.deliveryRate * 100,
+      value: metrics.deliveryRate,
       format: 'percent',
     },
     {

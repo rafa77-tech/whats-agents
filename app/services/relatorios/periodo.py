@@ -36,13 +36,20 @@ async def gerar_report_periodo(tipo: str = "manha") -> dict:
     metricas = await _coletar_metricas_periodo(inicio, agora)
     destaques = await _buscar_destaques_periodo(inicio, agora)
 
-    return {
+    result = {
         "periodo": tipo,
         "inicio": inicio.isoformat(),
         "fim": agora.isoformat(),
         "metricas": metricas,
         "destaques": destaques
     }
+
+    # Resumo do pipeline de grupos apenas no fim do dia (métricas do dia todo)
+    if tipo == "fim_dia":
+        inicio_dia = agora.replace(hour=0, minute=0, second=0, microsecond=0)
+        result["pipeline_grupos"] = await _coletar_metricas_pipeline_grupos(inicio_dia, agora)
+
+    return result
 
 
 async def _coletar_metricas_periodo(inicio: datetime, fim: datetime) -> dict:
@@ -92,6 +99,62 @@ async def _coletar_metricas_periodo(inicio: datetime, fim: datetime) -> dict:
             "handoffs": 0,
             "deteccao_bot": 0,
             "deteccoes_total": 0
+        }
+
+
+async def _coletar_metricas_pipeline_grupos(inicio: datetime, fim: datetime) -> dict:
+    """
+    Coleta métricas do pipeline de grupos para o período.
+
+    Retorna resumo de:
+    - Mensagens recebidas nos grupos
+    - Mensagens processadas (classificadas)
+    - Vagas extraídas e importadas
+    """
+    try:
+        # Total de mensagens recebidas
+        msgs_total = supabase.table("mensagens_grupo") \
+            .select("id", count="exact") \
+            .gte("created_at", inicio.isoformat()) \
+            .lte("created_at", fim.isoformat()) \
+            .execute()
+
+        # Mensagens classificadas (passaram pela heurística)
+        msgs_classificadas = supabase.table("mensagens_grupo") \
+            .select("id", count="exact") \
+            .in_("status", ["classificada", "extraida", "processada"]) \
+            .gte("created_at", inicio.isoformat()) \
+            .lte("created_at", fim.isoformat()) \
+            .execute()
+
+        # Vagas extraídas (qualquer status)
+        vagas_extraidas = supabase.table("vagas_grupo") \
+            .select("id", count="exact") \
+            .gte("created_at", inicio.isoformat()) \
+            .lte("created_at", fim.isoformat()) \
+            .execute()
+
+        # Vagas importadas (prontas para uso)
+        vagas_importadas = supabase.table("vagas_grupo") \
+            .select("id", count="exact") \
+            .eq("status", "importada") \
+            .gte("created_at", inicio.isoformat()) \
+            .lte("created_at", fim.isoformat()) \
+            .execute()
+
+        return {
+            "msgs_recebidas": msgs_total.count or 0,
+            "msgs_classificadas": msgs_classificadas.count or 0,
+            "vagas_extraidas": vagas_extraidas.count or 0,
+            "vagas_importadas": vagas_importadas.count or 0,
+        }
+    except Exception as e:
+        logger.error(f"Erro ao coletar métricas do pipeline de grupos: {e}")
+        return {
+            "msgs_recebidas": 0,
+            "msgs_classificadas": 0,
+            "vagas_extraidas": 0,
+            "vagas_importadas": 0,
         }
 
 
@@ -185,6 +248,24 @@ async def enviar_report_periodo_slack(report: dict):
         blocks.append({
             "type": "section",
             "text": {"type": "mrkdwn", "text": f"*Destaques:*\n{destaque_text}"}
+        })
+
+    # Resumo do pipeline de grupos (apenas no fim do dia)
+    pipeline_grupos = report.get("pipeline_grupos")
+    if pipeline_grupos:
+        blocks.append({"type": "divider"})
+        blocks.append({
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "*Pipeline Grupos (Resumo do Dia)*"}
+        })
+        blocks.append({
+            "type": "section",
+            "fields": [
+                {"type": "mrkdwn", "text": f"*Msgs recebidas:* {pipeline_grupos['msgs_recebidas']}"},
+                {"type": "mrkdwn", "text": f"*Msgs classificadas:* {pipeline_grupos['msgs_classificadas']}"},
+                {"type": "mrkdwn", "text": f"*Vagas extraidas:* {pipeline_grupos['vagas_extraidas']}"},
+                {"type": "mrkdwn", "text": f"*Vagas importadas:* {pipeline_grupos['vagas_importadas']}"},
+            ]
         })
 
     await enviar_slack({"blocks": blocks})

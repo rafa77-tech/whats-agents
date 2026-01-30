@@ -24,12 +24,9 @@ ALERTAS_GRUPOS = {
         "threshold": 10,  # > 10 itens com erro
         "severidade": "error"
     },
-    "taxa_conversao_baixa": {
-        "descricao": "Taxa de conversão abaixo do esperado",
-        "threshold": 0.05,  # < 5% de conversão
-        "janela_dias": 1,
-        "severidade": "warning"
-    },
+    # REMOVIDO: taxa_conversao_baixa
+    # Motivo: Métrica confusa e não acionável. Substituída por resumo no report fim do dia.
+    # Ref: Sprint 41 - Limpeza de alertas
     "custo_alto": {
         "descricao": "Custo diário acima do orçamento",
         "threshold_usd": 1.0,  # > $1/dia
@@ -52,7 +49,6 @@ ALERTAS_GRUPOS = {
 # Títulos amigáveis para exibição ao usuário (Slack, logs)
 TITULOS_ALERTAS = {
     "fila_travada": "Fila com Muitos Erros",
-    "taxa_conversao_baixa": "Taxa de Conversão Baixa",
     "custo_alto": "Custo Diário Elevado",
     "itens_pendentes_antigos": "Itens Pendentes Há Muito Tempo",
     "duplicacao_alta": "Alta Taxa de Duplicação",
@@ -94,53 +90,10 @@ async def verificar_fila_travada() -> List[Dict]:
         return []
 
 
-async def verificar_taxa_conversao() -> List[Dict]:
-    """
-    Verifica se taxa de conversão está baixa.
-
-    A taxa é calculada como:
-    - Numerador: Vagas importadas (prontas para uso)
-    - Denominador: Mensagens que passaram na heurística (classificadas+)
-
-    Isso evita alertas falsos causados por mensagens irrelevantes
-    (conversas, emojis, etc) que são naturalmente filtradas.
-    """
-    config = ALERTAS_GRUPOS["taxa_conversao_baixa"]
-    data_inicio = (datetime.now(UTC) - timedelta(days=config["janela_dias"])).isoformat()
-
-    try:
-        # Mensagens que passaram na heurística (classificadas ou além)
-        # Status: classificada, extraida, processada
-        mensagens_classificadas = supabase.table("mensagens_grupo") \
-            .select("id", count="exact") \
-            .in_("status", ["classificada", "extraida", "processada"]) \
-            .gte("created_at", data_inicio) \
-            .execute()
-
-        # Vagas importadas (resultado final útil)
-        vagas_importadas = supabase.table("vagas_grupo") \
-            .select("id", count="exact") \
-            .eq("status", "importada") \
-            .gte("created_at", data_inicio) \
-            .execute()
-
-        total_classificadas = mensagens_classificadas.count or 0
-        importadas = vagas_importadas.count or 0
-
-        if total_classificadas > 0:
-            taxa = importadas / total_classificadas
-            if taxa < config["threshold"]:
-                return [{
-                    "tipo": "taxa_conversao_baixa",
-                    "mensagem": f"Taxa de conversão: {taxa*100:.1f}% (threshold: {config['threshold']*100}%) - {importadas}/{total_classificadas} msgs classificadas",
-                    "severidade": config["severidade"],
-                    "valor": taxa
-                }]
-
-        return []
-    except Exception as e:
-        logger.error(f"Erro ao verificar taxa de conversão: {e}")
-        return []
+    # REMOVIDO: verificar_taxa_conversao()
+    # Motivo: Métrica confusa ("taxa de conversão" vs extração de vagas).
+    # Substituída por resumo no report fim do dia.
+    # Ref: Sprint 41 - Limpeza de alertas
 
 
 async def verificar_custo_alto() -> List[Dict]:
@@ -253,7 +206,6 @@ async def verificar_alertas_grupos() -> List[Dict]:
     alertas = []
 
     alertas.extend(await verificar_fila_travada())
-    alertas.extend(await verificar_taxa_conversao())
     alertas.extend(await verificar_custo_alto())
     alertas.extend(await verificar_itens_pendentes_antigos())
     alertas.extend(await verificar_duplicacao_alta())

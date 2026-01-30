@@ -246,19 +246,21 @@ export async function GET(request: NextRequest) {
         errors: c.erros_ultimas_24h ?? 0,
       })) ?? []
 
-    // Funnel data - current period
+    // Funnel data - current period (usando interacoes)
     const { count: enviadas } = await supabase
-      .from('fila_mensagens')
+      .from('interacoes')
       .select('id', { count: 'exact', head: true })
+      .eq('tipo', 'saida')
       .gte('created_at', currentStart)
       .lte('created_at', currentEnd)
 
     const { count: entregues } = await supabase
-      .from('fila_mensagens')
+      .from('interacoes')
       .select('id', { count: 'exact', head: true })
+      .eq('tipo', 'saida')
+      .or('delivery_status.is.null,delivery_status.in.(sent,delivered,read)')
       .gte('created_at', currentStart)
       .lte('created_at', currentEnd)
-      .eq('outcome', 'delivered')
 
     const { count: interesse } = await supabase
       .from('conversations')
@@ -269,17 +271,19 @@ export async function GET(request: NextRequest) {
 
     // Funnel data - previous period for change calculation
     const { count: prevEnviadas } = await supabase
-      .from('fila_mensagens')
+      .from('interacoes')
       .select('id', { count: 'exact', head: true })
+      .eq('tipo', 'saida')
       .gte('created_at', previousStart)
       .lt('created_at', previousEnd)
 
     const { count: prevEntregues } = await supabase
-      .from('fila_mensagens')
+      .from('interacoes')
       .select('id', { count: 'exact', head: true })
+      .eq('tipo', 'saida')
+      .or('delivery_status.is.null,delivery_status.in.(sent,delivered,read)')
       .gte('created_at', previousStart)
       .lt('created_at', previousEnd)
-      .eq('outcome', 'delivered')
 
     const { count: prevInteresse } = await supabase
       .from('conversations')

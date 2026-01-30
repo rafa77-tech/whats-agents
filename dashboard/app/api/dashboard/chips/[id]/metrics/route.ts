@@ -106,8 +106,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ? Number(((previousReceived / previousMessagesSent) * 100).toFixed(1))
         : 0
 
-    // Usar taxa de entrega do chip ou padrao
-    const deliveryRate = Number(((chip.taxa_delivery ?? 0.95) * 100).toFixed(1))
+    // Taxa de entrega: usa valor real do banco ou 0 se não houver dados
+    const deliveryRate =
+      messagesSent > 0 && chip.taxa_delivery != null
+        ? Number((chip.taxa_delivery * 100).toFixed(1))
+        : 0
 
     // Tempo medio de resposta (mock - precisaria de dados mais detalhados)
     const avgResponseTime = messagesReceived > 0 ? 45 + Math.random() * 30 : 0

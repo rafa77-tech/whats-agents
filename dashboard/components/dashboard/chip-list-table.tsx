@@ -147,13 +147,9 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
                   <TrustBadge score={chip.trustScore} level={chip.trustLevel} />
                 </TableCell>
                 <TableCell>
-                  {chip.status === 'active' || chip.status === 'warming' ? (
-                    <span className="text-gray-600">
-                      {chip.messagesToday}/{chip.dailyLimit}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
+                  <span className="text-gray-600">
+                    {chip.messagesToday}/{chip.dailyLimit}
+                  </span>
                 </TableCell>
                 <TableCell>
                   {chip.responseRate > 0 ? (

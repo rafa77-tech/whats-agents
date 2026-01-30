@@ -273,6 +273,17 @@ JOBS = [
         "endpoint": "/jobs/atualizar-trust-scores",
         "schedule": "*/15 * * * *",  # A cada 15 minutos
     },
+    # Sprint 41: Snapshot e Reset de Contadores de Chips
+    {
+        "name": "snapshot_chips_diario",
+        "endpoint": "/jobs/snapshot-chips-diario",
+        "schedule": "55 23 * * *",  # 23:55 todos os dias (antes do reset)
+    },
+    {
+        "name": "resetar_contadores_chips",
+        "endpoint": "/jobs/resetar-contadores-chips",
+        "schedule": "5 0 * * *",  # 00:05 todos os dias (após o snapshot)
+    },
 ]
 
 

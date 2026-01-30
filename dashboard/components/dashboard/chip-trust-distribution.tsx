@@ -16,7 +16,7 @@ const trustConfig: Record<string, { label: string; range: string; color: string 
 
 const defaultConfig = { label: 'Desconhecido', range: '-', color: 'bg-gray-500' }
 
-export function ChipTrustDistribution({ distribution }: ChipTrustDistributionProps) {
+export function ChipTrustDistribution({ distribution = [] }: ChipTrustDistributionProps) {
   const maxCount = Math.max(...distribution.map((d) => d.count), 1)
 
   return (

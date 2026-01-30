@@ -136,7 +136,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       ddd,
       region: getRegionByDDD(ddd),
       instanceName: typedChip.instance_name ?? `Chip-${typedChip.id.slice(0, 4)}`,
-      deliveryRate: Number(((typedChip.taxa_delivery ?? 0.95) * 100).toFixed(1)),
+      deliveryRate:
+        (typedChip.msgs_enviadas_total ?? 0) > 0 && typedChip.taxa_delivery != null
+          ? Number((typedChip.taxa_delivery * 100).toFixed(1))
+          : 0,
       blockRate: Number(((typedChip.taxa_block ?? 0) * 100).toFixed(1)),
       lastActivityAt: typedChip.last_activity_start,
       totalMessagesSent: typedChip.msgs_enviadas_total ?? 0,
