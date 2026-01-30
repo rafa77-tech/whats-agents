@@ -203,7 +203,7 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
               <Activity className="h-4 w-4" />
               <span className="text-sm">Taxa de Resposta</span>
             </div>
-            <div className="text-2xl font-bold">{(chip.responseRate * 100).toFixed(1)}%</div>
+            <div className="text-2xl font-bold">{chip.responseRate.toFixed(1)}%</div>
           </CardContent>
         </Card>
         <Card>
@@ -212,7 +212,7 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
               <TrendingUp className="h-4 w-4" />
               <span className="text-sm">Taxa de Entrega</span>
             </div>
-            <div className="text-2xl font-bold">{(chip.deliveryRate * 100).toFixed(1)}%</div>
+            <div className="text-2xl font-bold">{chip.deliveryRate.toFixed(1)}%</div>
           </CardContent>
         </Card>
         <Card>

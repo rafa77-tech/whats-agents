@@ -74,7 +74,12 @@ export interface PoolStatus {
   byStatus: Record<import('./dashboard').ChipStatus, number>
   byTrustLevel: Record<TrustLevelExtended, number>
   avgTrustScore: number
-  totalMessagesToday: number
+  totalMessagesSent: number
+  previousMessagesSent: number
+  totalResponses: number
+  previousResponses: number
+  responseRate: number
+  previousResponseRate: number
   totalDailyCapacity: number
   activeAlerts: number
   criticalAlerts: number
