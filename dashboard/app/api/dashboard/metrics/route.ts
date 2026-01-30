@@ -23,27 +23,27 @@ export async function GET(request: NextRequest) {
     const period = validatePeriod(request.nextUrl.searchParams.get('period'))
     const { currentStart, currentEnd, previousStart, previousEnd, days } = getPeriodDates(period)
 
-    // Mensagens enviadas (current) - usando fila_mensagens com outcome
+    // Mensagens enviadas (current) - interacoes de saida (Julia enviou)
     const { count: enviadasCurrent } = await supabase
-      .from('fila_mensagens')
+      .from('interacoes')
       .select('*', { count: 'exact', head: true })
-      .eq('outcome', 'delivered')
+      .eq('tipo', 'saida')
       .gte('created_at', currentStart)
       .lte('created_at', currentEnd)
 
-    // Respostas recebidas (current) - interacoes com direcao 'in' (medico respondeu)
+    // Respostas recebidas (current) - interacoes de entrada (medico respondeu)
     const { count: respostasCurrent } = await supabase
       .from('interacoes')
       .select('*', { count: 'exact', head: true })
-      .eq('direcao', 'in')
+      .eq('tipo', 'entrada')
       .gte('created_at', currentStart)
       .lte('created_at', currentEnd)
 
     // Mensagens enviadas (previous)
     const { count: enviadasPrevious } = await supabase
-      .from('fila_mensagens')
+      .from('interacoes')
       .select('*', { count: 'exact', head: true })
-      .eq('outcome', 'delivered')
+      .eq('tipo', 'saida')
       .gte('created_at', previousStart)
       .lte('created_at', previousEnd)
 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const { count: respostasPrevious } = await supabase
       .from('interacoes')
       .select('*', { count: 'exact', head: true })
-      .eq('direcao', 'in')
+      .eq('tipo', 'entrada')
       .gte('created_at', previousStart)
       .lte('created_at', previousEnd)
 

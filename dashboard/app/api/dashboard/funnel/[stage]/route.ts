@@ -2,6 +2,7 @@
  * API: GET /api/dashboard/funnel/[stage]
  *
  * Retorna lista de medicos em uma etapa especifica do funil.
+ * Alinhado com a lógica do funil principal (baseado em interacoes).
  *
  * Query params:
  * - page: numero da pagina (default: 1)
@@ -23,25 +24,12 @@ const stageLabels: Record<string, string> = {
   fechadas: 'Fechadas',
 }
 
-// Mapeia etapas do funil para filtros de status/stage
-const stageFilters: Record<string, { status?: string[]; stage?: string[] }> = {
-  enviadas: {}, // Todas as conversas do periodo
-  entregues: {}, // Conversas com mensagem entregue
-  respostas: {
-    stage: ['respondido', 'interesse', 'negociacao', 'qualificado', 'proposta'],
-  },
-  interesse: {
-    stage: ['interesse', 'negociacao', 'qualificado', 'proposta'],
-  },
-  fechadas: {
-    status: ['fechado', 'completed', 'convertido'],
-  },
-}
-
 interface ConversationRow {
   id: string
   cliente_id: string
   updated_at: string
+  stage: string | null
+  status: string | null
   clientes: {
     primeiro_nome: string | null
     sobrenome: string | null
@@ -80,77 +68,188 @@ export async function GET(
     const days = periodMap[period] || 7
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
+    const startDateISO = startDate.toISOString()
 
-    // Query principal com relacionamentos
-    let query = supabase
-      .from('conversations')
-      .select(
-        `
-        id,
-        cliente_id,
-        updated_at,
-        clientes (
-          primeiro_nome,
-          sobrenome,
-          telefone,
-          especialidade
-        )
-      `,
-        { count: 'exact' }
+    let conversationIds: string[] = []
+    let total = 0
+
+    // Etapas baseadas em interacoes (enviadas, entregues, respostas)
+    if (['enviadas', 'entregues', 'respostas'].includes(stage)) {
+      // Buscar conversation_ids com mensagens de saída no período
+      const { data: saidaData } = await supabase
+        .from('interacoes')
+        .select('conversation_id')
+        .eq('tipo', 'saida')
+        .not('conversation_id', 'is', null)
+        .gte('created_at', startDateISO)
+
+      const enviadasSet = new Set(
+        (saidaData || []).map((r) => r.conversation_id).filter(Boolean)
       )
-      .gte('updated_at', startDate.toISOString())
-      .order('updated_at', { ascending: false })
 
-    // Aplicar filtros de status/stage baseado na etapa
-    const filters = stageFilters[stage]
-    if (filters?.status) {
-      query = query.in('status', filters.status)
-    }
-    if (filters?.stage) {
-      query = query.in('stage', filters.stage)
-    }
+      if (stage === 'enviadas' || stage === 'entregues') {
+        // Enviadas e Entregues: todas as conversas com saída
+        conversationIds = [...enviadasSet]
+      } else if (stage === 'respostas') {
+        // Respostas: conversas com saída que também tiveram entrada
+        const { data: entradaData } = await supabase
+          .from('interacoes')
+          .select('conversation_id')
+          .eq('tipo', 'entrada')
+          .not('conversation_id', 'is', null)
+          .gte('created_at', startDateISO)
 
-    // Paginacao
-    query = query.range(offset, offset + pageSize - 1)
+        const entradaSet = new Set(
+          (entradaData || []).map((r) => r.conversation_id).filter(Boolean)
+        )
 
-    const { data: conversas, count, error } = await query
+        // Interseção: conversas que enviaram E receberam
+        conversationIds = [...enviadasSet].filter((id) => entradaSet.has(id))
+      }
 
-    if (error) throw error
-
-    const typedConversas = (conversas as unknown as ConversationRow[] | null) || []
-
-    // Filtrar por nome se busca fornecida (client-side pois ilike em relacionamento e complexo)
-    let filteredConversas = typedConversas
-    if (search) {
-      const searchLower = search.toLowerCase()
-      filteredConversas = typedConversas.filter((c) => {
-        const nome =
-          `${c.clientes?.primeiro_nome || ''} ${c.clientes?.sobrenome || ''}`.toLowerCase()
-        return nome.includes(searchLower)
-      })
+      total = conversationIds.length
     }
 
-    // Formatar resposta
-    const chatwootUrl = process.env.CHATWOOT_URL
-    const items = filteredConversas.map((c) => ({
-      id: c.id,
-      medicoId: c.cliente_id || '',
-      nome: c.clientes
-        ? `${c.clientes.primeiro_nome || ''} ${c.clientes.sobrenome || ''}`.trim() || 'Desconhecido'
-        : 'Desconhecido',
-      telefone: c.clientes?.telefone || '',
-      especialidade: c.clientes?.especialidade || 'Nao informada',
-      ultimoContato: c.updated_at,
-      chipName: 'Julia', // Simplificado - poderia buscar do chip_id
-      conversaId: c.id,
-      chatwootUrl: chatwootUrl ? `${chatwootUrl}/conversations/${c.id}` : undefined,
-    }))
+    // Buscar detalhes das conversas
+    let items: Array<{
+      id: string
+      medicoId: string
+      nome: string
+      telefone: string
+      especialidade: string
+      ultimoContato: string
+      chipName: string
+      conversaId: string
+      chatwootUrl?: string
+    }> = []
+
+    if (['enviadas', 'entregues', 'respostas'].includes(stage) && conversationIds.length > 0) {
+      // Paginar os IDs
+      const paginatedIds = conversationIds.slice(offset, offset + pageSize)
+
+      if (paginatedIds.length > 0) {
+        const { data: conversas } = await supabase
+          .from('conversations')
+          .select(
+            `
+            id,
+            cliente_id,
+            updated_at,
+            stage,
+            status,
+            clientes (
+              primeiro_nome,
+              sobrenome,
+              telefone,
+              especialidade
+            )
+          `
+          )
+          .in('id', paginatedIds)
+          .order('updated_at', { ascending: false })
+
+        const typedConversas = (conversas as unknown as ConversationRow[] | null) || []
+
+        // Filtrar por nome se busca fornecida
+        let filteredConversas = typedConversas
+        if (search) {
+          const searchLower = search.toLowerCase()
+          filteredConversas = typedConversas.filter((c) => {
+            const nome =
+              `${c.clientes?.primeiro_nome || ''} ${c.clientes?.sobrenome || ''}`.toLowerCase()
+            return nome.includes(searchLower)
+          })
+        }
+
+        const chatwootUrl = process.env.CHATWOOT_URL
+        items = filteredConversas.map((c) => ({
+          id: c.id,
+          medicoId: c.cliente_id || '',
+          nome: c.clientes
+            ? `${c.clientes.primeiro_nome || ''} ${c.clientes.sobrenome || ''}`.trim() ||
+              'Desconhecido'
+            : 'Desconhecido',
+          telefone: c.clientes?.telefone || '',
+          especialidade: c.clientes?.especialidade || 'Nao informada',
+          ultimoContato: c.updated_at,
+          chipName: 'Julia',
+          conversaId: c.id,
+          chatwootUrl: chatwootUrl ? `${chatwootUrl}/conversations/${c.id}` : undefined,
+        }))
+      }
+    } else if (['interesse', 'fechadas'].includes(stage)) {
+      // Etapas baseadas em conversations (interesse, fechadas)
+      let query = supabase
+        .from('conversations')
+        .select(
+          `
+          id,
+          cliente_id,
+          updated_at,
+          stage,
+          status,
+          clientes (
+            primeiro_nome,
+            sobrenome,
+            telefone,
+            especialidade
+          )
+        `,
+          { count: 'exact' }
+        )
+        .order('updated_at', { ascending: false })
+
+      if (stage === 'interesse') {
+        query = query
+          .in('stage', ['interesse', 'negociacao', 'qualificado', 'proposta'])
+          .gte('updated_at', startDateISO)
+      } else if (stage === 'fechadas') {
+        query = query
+          .in('status', ['fechado', 'completed', 'convertido'])
+          .gte('completed_at', startDateISO)
+      }
+
+      query = query.range(offset, offset + pageSize - 1)
+
+      const { data: conversas, count, error } = await query
+      if (error) throw error
+
+      total = count || 0
+      const typedConversas = (conversas as unknown as ConversationRow[] | null) || []
+
+      // Filtrar por nome se busca fornecida
+      let filteredConversas = typedConversas
+      if (search) {
+        const searchLower = search.toLowerCase()
+        filteredConversas = typedConversas.filter((c) => {
+          const nome =
+            `${c.clientes?.primeiro_nome || ''} ${c.clientes?.sobrenome || ''}`.toLowerCase()
+          return nome.includes(searchLower)
+        })
+      }
+
+      const chatwootUrl = process.env.CHATWOOT_URL
+      items = filteredConversas.map((c) => ({
+        id: c.id,
+        medicoId: c.cliente_id || '',
+        nome: c.clientes
+          ? `${c.clientes.primeiro_nome || ''} ${c.clientes.sobrenome || ''}`.trim() ||
+            'Desconhecido'
+          : 'Desconhecido',
+        telefone: c.clientes?.telefone || '',
+        especialidade: c.clientes?.especialidade || 'Nao informada',
+        ultimoContato: c.updated_at,
+        chipName: 'Julia',
+        conversaId: c.id,
+        chatwootUrl: chatwootUrl ? `${chatwootUrl}/conversations/${c.id}` : undefined,
+      }))
+    }
 
     return NextResponse.json({
       stage,
       stageLabel: stageLabels[stage],
       items,
-      total: count || 0,
+      total,
       page,
       pageSize,
     })

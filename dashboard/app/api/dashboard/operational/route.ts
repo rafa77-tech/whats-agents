@@ -39,10 +39,10 @@ export async function GET() {
     oneHourAgo.setHours(oneHourAgo.getHours() - 1)
 
     const { count: msgsLastHour } = await supabase
-      .from('fila_mensagens')
+      .from('interacoes')
       .select('*', { count: 'exact', head: true })
-      .eq('outcome', 'delivered')
-      .gte('enviada_em', oneHourAgo.toISOString())
+      .eq('tipo', 'saida')
+      .gte('created_at', oneHourAgo.toISOString())
 
     // === Rate Limit Dia ===
 
@@ -50,10 +50,10 @@ export async function GET() {
     todayStart.setHours(0, 0, 0, 0)
 
     const { count: msgsToday } = await supabase
-      .from('fila_mensagens')
+      .from('interacoes')
       .select('*', { count: 'exact', head: true })
-      .eq('outcome', 'delivered')
-      .gte('enviada_em', todayStart.toISOString())
+      .eq('tipo', 'saida')
+      .gte('created_at', todayStart.toISOString())
 
     // === LLM Usage (estimativa baseada em interacoes) ===
     // Na pratica, 80% usa Haiku e 20% usa Sonnet (estrategia hibrida)

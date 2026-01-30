@@ -16,53 +16,97 @@ export async function GET(request: NextRequest) {
     const period = validatePeriod(request.nextUrl.searchParams.get('period'))
     const { currentStart, currentEnd, previousStart, previousEnd, days } = getPeriodDates(period)
 
-    // === Enviadas (mensagens na fila que foram processadas) ===
+    // === FUNIL POR CONVERSAS ÚNICAS ===
+    // Contamos conversas únicas em cada etapa, não mensagens individuais
 
-    const { count: enviadasCurrent } = await supabase
-      .from('fila_mensagens')
-      .select('*', { count: 'exact', head: true })
-      .in('outcome', ['delivered', 'sent', 'read'])
-      .gte('created_at', currentStart)
-      .lte('created_at', currentEnd)
-
-    const { count: enviadasPrevious } = await supabase
-      .from('fila_mensagens')
-      .select('*', { count: 'exact', head: true })
-      .in('outcome', ['delivered', 'sent', 'read'])
-      .gte('created_at', previousStart)
-      .lte('created_at', previousEnd)
-
-    // === Entregues (outcome = delivered) ===
-
-    const { count: entreguesCurrent } = await supabase
-      .from('fila_mensagens')
-      .select('*', { count: 'exact', head: true })
-      .eq('outcome', 'delivered')
-      .gte('created_at', currentStart)
-      .lte('created_at', currentEnd)
-
-    const { count: entreguesPrevious } = await supabase
-      .from('fila_mensagens')
-      .select('*', { count: 'exact', head: true })
-      .eq('outcome', 'delivered')
-      .gte('created_at', previousStart)
-      .lte('created_at', previousEnd)
-
-    // === Respostas (interacoes com direcao 'in') ===
-
-    const { count: respostasCurrent } = await supabase
+    // === Enviadas (conversas únicas onde Julia enviou mensagem) ===
+    const { data: conversasEnviadasCurrent } = await supabase
       .from('interacoes')
-      .select('*', { count: 'exact', head: true })
-      .eq('direcao', 'in')
+      .select('conversation_id')
+      .eq('tipo', 'saida')
+      .not('conversation_id', 'is', null)
       .gte('created_at', currentStart)
       .lte('created_at', currentEnd)
 
-    const { count: respostasPrevious } = await supabase
+    const enviadasSetCurrent = new Set(
+      (conversasEnviadasCurrent || []).map((r) => r.conversation_id)
+    )
+    const enviadasCurrent = enviadasSetCurrent.size
+
+    const { data: conversasEnviadasPrevious } = await supabase
       .from('interacoes')
-      .select('*', { count: 'exact', head: true })
-      .eq('direcao', 'in')
+      .select('conversation_id')
+      .eq('tipo', 'saida')
+      .not('conversation_id', 'is', null)
       .gte('created_at', previousStart)
       .lte('created_at', previousEnd)
+
+    const enviadasSetPrevious = new Set(
+      (conversasEnviadasPrevious || []).map((r) => r.conversation_id)
+    )
+    const enviadasPrevious = enviadasSetPrevious.size
+
+    // === Entregues (conversas onde pelo menos uma msg foi entregue) ===
+    // Por enquanto, assumimos que todas enviadas foram entregues (até termos delivery_status populado)
+    const { data: conversasEntreguesCurrent } = await supabase
+      .from('interacoes')
+      .select('conversation_id')
+      .eq('tipo', 'saida')
+      .not('conversation_id', 'is', null)
+      .or('delivery_status.is.null,delivery_status.in.(sent,delivered,read)')
+      .gte('created_at', currentStart)
+      .lte('created_at', currentEnd)
+
+    const entreguesSetCurrent = new Set(
+      (conversasEntreguesCurrent || []).map((r) => r.conversation_id)
+    )
+    const entreguesCurrent = entreguesSetCurrent.size
+
+    const { data: conversasEntreguesPrevious } = await supabase
+      .from('interacoes')
+      .select('conversation_id')
+      .eq('tipo', 'saida')
+      .not('conversation_id', 'is', null)
+      .or('delivery_status.is.null,delivery_status.in.(sent,delivered,read)')
+      .gte('created_at', previousStart)
+      .lte('created_at', previousEnd)
+
+    const entreguesSetPrevious = new Set(
+      (conversasEntreguesPrevious || []).map((r) => r.conversation_id)
+    )
+    const entreguesPrevious = entreguesSetPrevious.size
+
+    // === Respostas (conversas únicas que receberam resposta) ===
+    const { data: conversasRespostaCurrent } = await supabase
+      .from('interacoes')
+      .select('conversation_id')
+      .eq('tipo', 'entrada')
+      .not('conversation_id', 'is', null)
+      .gte('created_at', currentStart)
+      .lte('created_at', currentEnd)
+
+    // Filtrar apenas conversas onde Julia enviou mensagem
+    const respostasSetCurrent = new Set(
+      (conversasRespostaCurrent || [])
+        .map((r) => r.conversation_id)
+        .filter((id) => enviadasSetCurrent.has(id))
+    )
+    const respostasCurrent = respostasSetCurrent.size
+
+    const { data: conversasRespostaPrevious } = await supabase
+      .from('interacoes')
+      .select('conversation_id')
+      .eq('tipo', 'entrada')
+      .not('conversation_id', 'is', null)
+      .gte('created_at', previousStart)
+      .lte('created_at', previousEnd)
+
+    const respostasSetPrevious = new Set(
+      (conversasRespostaPrevious || [])
+        .map((r) => r.conversation_id)
+        .filter((id) => enviadasSetPrevious.has(id))
+    )
+    const respostasPrevious = respostasSetPrevious.size
 
     // === Interesse (conversations com stage que indica interesse) ===
 
