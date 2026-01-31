@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import type { Route } from 'next'
 import { usePathname } from 'next/navigation'
@@ -36,6 +37,11 @@ const navigation: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
     <div className="flex h-full flex-col">
@@ -53,8 +59,10 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
+          // Only check active state after mount to prevent hydration mismatch
           const isActive =
-            pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+            mounted &&
+            (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))
           return (
             <Link
               key={item.name}
