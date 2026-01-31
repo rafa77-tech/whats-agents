@@ -46,7 +46,8 @@ export function ActivityFeed({
   }, [limit])
 
   useEffect(() => {
-    if (!initialData) {
+    // Fetch if no initial data or if events are empty
+    if (!initialData || initialData.events.length === 0) {
       void fetchActivity()
     }
 

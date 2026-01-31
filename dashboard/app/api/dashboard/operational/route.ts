@@ -20,6 +20,7 @@ interface ChipRow {
   evolution_connected: boolean
   msgs_enviadas_hoje: number
   status: string
+  provider: string | null
 }
 
 export async function GET() {
@@ -66,19 +67,25 @@ export async function GET() {
 
     const { data: chipsData } = await supabase
       .from('chips')
-      .select('instance_name, evolution_connected, msgs_enviadas_hoje, status')
+      .select('instance_name, evolution_connected, msgs_enviadas_hoje, status, provider')
       .in('status', ['active', 'warming', 'ready'])
       .order('instance_name')
 
     const instances =
-      (chipsData as ChipRow[] | null)?.map((chip: ChipRow) => ({
-        name: chip.instance_name || 'Unknown',
-        status:
-          chip.evolution_connected && chip.status === 'active'
-            ? ('online' as const)
-            : ('offline' as const),
-        messagesToday: chip.msgs_enviadas_hoje || 0,
-      })) || []
+      (chipsData as ChipRow[] | null)?.map((chip: ChipRow) => {
+        // Para Z-API, consideramos online se status é active (não usa evolution_connected)
+        // Para Evolution, verificamos evolution_connected
+        const isOnline =
+          chip.provider === 'z-api'
+            ? chip.status === 'active'
+            : chip.evolution_connected && chip.status === 'active'
+
+        return {
+          name: chip.instance_name || 'Unknown',
+          status: isOnline ? ('online' as const) : ('offline' as const),
+          messagesToday: chip.msgs_enviadas_hoje || 0,
+        }
+      }) || []
 
     return NextResponse.json({
       rateLimitHour: {

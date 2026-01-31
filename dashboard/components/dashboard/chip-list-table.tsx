@@ -134,60 +134,85 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
               <TableHead className="w-[80px]">Tx Resp</TableHead>
               <TableHead className="w-[60px]">Erros</TableHead>
               <TableHead>Alertas</TableHead>
+              <TableHead className="w-8"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {displayedChips.map((chip) => (
-              <TableRow key={chip.id} className={chip.hasActiveAlert ? 'bg-red-50' : ''}>
-                <TableCell className="font-medium">{chip.name}</TableCell>
-                <TableCell>
-                  <StatusBadge status={chip.status} />
+              <TableRow
+                key={chip.id}
+                className={`cursor-pointer hover:bg-gray-50 ${chip.hasActiveAlert ? 'bg-red-50 hover:bg-red-100' : ''}`}
+              >
+                <TableCell className="font-medium">
+                  <Link href={`/chips/${chip.id}` as Route} className="block">
+                    {chip.name}
+                  </Link>
                 </TableCell>
                 <TableCell>
-                  <TrustBadge score={chip.trustScore} level={chip.trustLevel} />
+                  <Link href={`/chips/${chip.id}` as Route} className="block">
+                    <StatusBadge status={chip.status} />
+                  </Link>
                 </TableCell>
                 <TableCell>
-                  <span className="text-gray-600">
-                    {chip.messagesToday}/{chip.dailyLimit}
-                  </span>
+                  <Link href={`/chips/${chip.id}` as Route} className="block">
+                    <TrustBadge score={chip.trustScore} level={chip.trustLevel} />
+                  </Link>
                 </TableCell>
                 <TableCell>
-                  {chip.responseRate > 0 ? (
+                  <Link href={`/chips/${chip.id}` as Route} className="block">
+                    <span className="text-gray-600">
+                      {chip.messagesToday}/{chip.dailyLimit}
+                    </span>
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  <Link href={`/chips/${chip.id}` as Route} className="block">
+                    {chip.responseRate > 0 ? (
+                      <span
+                        className={
+                          chip.responseRate >= 90
+                            ? 'text-green-600'
+                            : chip.responseRate >= 80
+                              ? 'text-yellow-600'
+                              : 'text-red-600'
+                        }
+                      >
+                        {chip.responseRate.toFixed(1)}%
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  <Link href={`/chips/${chip.id}` as Route} className="block">
                     <span
                       className={
-                        chip.responseRate >= 90
-                          ? 'text-green-600'
-                          : chip.responseRate >= 80
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
+                        chip.errorsLast24h > 0 ? 'font-medium text-red-600' : 'text-gray-400'
                       }
                     >
-                      {chip.responseRate.toFixed(1)}%
+                      {chip.errorsLast24h}
                     </span>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
+                  </Link>
                 </TableCell>
                 <TableCell>
-                  <span
-                    className={
-                      chip.errorsLast24h > 0 ? 'font-medium text-red-600' : 'text-gray-400'
-                    }
-                  >
-                    {chip.errorsLast24h}
-                  </span>
+                  <Link href={`/chips/${chip.id}` as Route} className="block">
+                    {chip.hasActiveAlert ? (
+                      <div className="flex items-center gap-1 text-orange-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="text-xs">{chip.alertMessage}</span>
+                      </div>
+                    ) : chip.warmingDay ? (
+                      <span className="text-xs text-blue-600">Dia {chip.warmingDay}/21</span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </Link>
                 </TableCell>
                 <TableCell>
-                  {chip.hasActiveAlert ? (
-                    <div className="flex items-center gap-1 text-orange-600">
-                      <AlertTriangle className="h-4 w-4" />
-                      <span className="text-xs">{chip.alertMessage}</span>
-                    </div>
-                  ) : chip.warmingDay ? (
-                    <span className="text-xs text-blue-600">Dia {chip.warmingDay}/21</span>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
+                  <Link href={`/chips/${chip.id}` as Route}>
+                    <ChevronRight className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                  </Link>
                 </TableCell>
               </TableRow>
             ))}

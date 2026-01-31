@@ -129,8 +129,9 @@ export async function GET(request: NextRequest) {
         `
         id,
         created_at,
-        total_enviados,
-        campanhas (nome)
+        nome_execucao,
+        quantidade_enviada,
+        status
       `
       )
       .order('created_at', { ascending: false })
@@ -139,24 +140,24 @@ export async function GET(request: NextRequest) {
     interface CampanhaExecRow {
       id: string
       created_at: string
-      total_enviados: number | null
-      campanhas: {
-        nome: string | null
-      } | null
+      nome_execucao: string | null
+      quantidade_enviada: number | null
+      status: string | null
     }
 
     const typedCampanhas = campanhas as unknown as CampanhaExecRow[] | null
 
     typedCampanhas?.forEach((c) => {
+      const statusLabel = c.status === 'pendente' ? 'agendada' : c.status === 'concluida' ? 'concluída' : c.status
       events.push({
         id: `campanha-${c.id}`,
         type: 'campanha',
-        message: `Campanha "${c.campanhas?.nome ?? 'Sem nome'}" enviou ${c.total_enviados ?? 0} mensagens`,
+        message: `Campanha "${c.nome_execucao ?? 'Sem nome'}" ${statusLabel} (${c.quantidade_enviada ?? 0} msgs)`,
         timestamp: c.created_at,
       })
     })
 
-    // 4. Buscar chips que mudaram de status recentemente
+    // 4. Buscar chips atualizados recentemente (qualquer mudança)
     const { data: chipsRecentes } = await supabase
       .from('chips')
       .select('id, instance_name, status, trust_score, updated_at')
@@ -173,16 +174,24 @@ export async function GET(request: NextRequest) {
 
     const typedChips = chipsRecentes as unknown as ChipRow[] | null
 
+    const statusMessages: Record<string, string> = {
+      ready: 'graduou do warming',
+      active: 'está ativo',
+      warming: 'em aquecimento',
+      degraded: 'trust degradado',
+      paused: 'foi pausado',
+      banned: 'foi banido',
+    }
+
     typedChips?.forEach((chip) => {
-      if (chip.status === 'ready') {
-        events.push({
-          id: `chip-ready-${chip.id}`,
-          type: 'chip',
-          message: `graduou do warming (trust: ${chip.trust_score ?? 0})`,
-          chipName: chip.instance_name ?? 'Chip',
-          timestamp: chip.updated_at,
-        })
-      }
+      const statusMsg = statusMessages[chip.status ?? ''] ?? `status: ${chip.status}`
+      events.push({
+        id: `chip-${chip.id}`,
+        type: 'chip',
+        message: `${statusMsg} (trust: ${chip.trust_score ?? 0})`,
+        chipName: chip.instance_name ?? 'Chip',
+        timestamp: chip.updated_at,
+      })
     })
 
     // Ordenar por timestamp (mais recente primeiro) e limitar
