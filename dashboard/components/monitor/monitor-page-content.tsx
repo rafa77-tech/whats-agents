@@ -154,7 +154,7 @@ export function MonitorPageContent() {
 
         <div className="flex items-center gap-3">
           {lastUpdate && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500" suppressHydrationWarning>
               Atualizado: {lastUpdate.toLocaleTimeString('pt-BR')}
             </span>
           )}

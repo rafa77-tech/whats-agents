@@ -118,7 +118,7 @@ export function SystemHealthCard({ data, isLoading }: SystemHealthCardProps) {
           </div>
 
           {/* Last updated */}
-          <div className="text-xs text-gray-400">
+          <div className="text-xs text-gray-400" suppressHydrationWarning>
             Atualizado: {new Date(data.lastUpdated).toLocaleString('pt-BR')}
           </div>
         </div>

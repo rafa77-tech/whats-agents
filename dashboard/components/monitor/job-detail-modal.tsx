@@ -138,7 +138,7 @@ export function JobDetailModal({ open, onOpenChange, jobName }: JobDetailModalPr
                             />
                             {config.label}
                           </Badge>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-gray-500" suppressHydrationWarning>
                             {new Date(exec.startedAt).toLocaleString('pt-BR')}
                           </span>
                         </div>

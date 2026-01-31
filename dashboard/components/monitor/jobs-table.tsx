@@ -400,7 +400,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                           {job.category}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell suppressHydrationWarning>
                         <div className="text-sm">{formatTimeAgo(job.lastRun)}</div>
                         <div className="text-xs text-gray-400">{job.scheduleDescription}</div>
                       </TableCell>
