@@ -89,7 +89,10 @@ export async function GET(request: NextRequest) {
 
     // Calculos
     const responseRateCurrent = calculateRate(medicosResponderamCurrent, medicosContatadosCurrent)
-    const responseRatePrevious = calculateRate(medicosResponderamPrevious, medicosContatadosPrevious)
+    const responseRatePrevious = calculateRate(
+      medicosResponderamPrevious,
+      medicosContatadosPrevious
+    )
 
     // Conversao: fechamentos / medicos que responderam
     const conversionCurrent = calculateRate(fechamentosCurrent || 0, medicosResponderamCurrent)
