@@ -1,0 +1,320 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { HealthGauge } from './health-gauge'
+import { CircuitBreakersPanel } from './circuit-breakers-panel'
+import { AlertsPanel } from './alerts-panel'
+import { RateLimitPanel } from './rate-limit-panel'
+import { QueueStatusPanel } from './queue-status-panel'
+
+interface HealthData {
+  score: number
+  status: 'healthy' | 'degraded' | 'critical'
+  alerts: Array<{
+    id: string
+    tipo: string
+    severity: 'info' | 'warn' | 'critical'
+    message: string
+    source: string
+  }>
+  circuits: Array<{
+    name: string
+    state: 'CLOSED' | 'HALF_OPEN' | 'OPEN'
+    failures: number
+    threshold: number
+  }>
+  services: Array<{
+    name: string
+    status: 'ok' | 'warn' | 'error'
+  }>
+  rateLimit: {
+    hourly: { used: number; limit: number }
+    daily: { used: number; limit: number }
+  }
+  queue: {
+    pendentes: number
+    processando: number
+  }
+}
+
+const REFRESH_INTERVALS = [
+  { label: '15s', value: 15000 },
+  { label: '30s', value: 30000 },
+  { label: '60s', value: 60000 },
+  { label: 'Off', value: 0 },
+]
+
+export function HealthPageContent() {
+  const [data, setData] = useState<HealthData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [refreshInterval, setRefreshInterval] = useState(30000)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+
+  const fetchHealthData = useCallback(async () => {
+    try {
+      setError(null)
+
+      // Fetch data from multiple endpoints in parallel
+      const [monitorRes, guardrailsRes] = await Promise.all([
+        fetch('/api/dashboard/monitor'),
+        fetch('/api/guardrails/status').catch(() => null),
+      ])
+
+      if (!monitorRes.ok) {
+        throw new Error('Falha ao carregar dados de saude')
+      }
+
+      const monitorData = await monitorRes.json()
+
+      // Parse guardrails data if available
+      let guardrailsData = null
+      if (guardrailsRes?.ok) {
+        guardrailsData = await guardrailsRes.json()
+      }
+
+      // Map monitor data to health data
+      const healthData: HealthData = {
+        score: monitorData.systemHealth?.score || 0,
+        status: monitorData.systemHealth?.status || 'degraded',
+        alerts: [
+          ...(monitorData.alerts?.criticalStale || []).map((job: string) => ({
+            id: `stale-${job}`,
+            tipo: 'job_stale',
+            severity: 'critical' as const,
+            message: `Job ${job} esta stale (excedeu SLA)`,
+            source: 'scheduler',
+          })),
+          ...(monitorData.alerts?.jobsWithErrors || []).map((job: string) => ({
+            id: `error-${job}`,
+            tipo: 'job_error',
+            severity: 'warn' as const,
+            message: `Job ${job} teve erros nas ultimas 24h`,
+            source: 'scheduler',
+          })),
+        ],
+        circuits: guardrailsData?.circuits || [
+          { name: 'evolution', state: 'CLOSED', failures: 0, threshold: 5 },
+          { name: 'claude', state: 'CLOSED', failures: 0, threshold: 5 },
+          { name: 'supabase', state: 'CLOSED', failures: 0, threshold: 5 },
+        ],
+        services: [
+          {
+            name: 'WhatsApp',
+            status:
+              monitorData.systemHealth?.checks?.connectivity?.score === 100
+                ? 'ok'
+                : monitorData.systemHealth?.checks?.connectivity?.score > 50
+                  ? 'warn'
+                  : 'error',
+          },
+          {
+            name: 'Redis',
+            status: 'ok',
+          },
+          {
+            name: 'Supabase',
+            status: 'ok',
+          },
+          {
+            name: 'LLM',
+            status:
+              monitorData.systemHealth?.checks?.jobs?.score > 80
+                ? 'ok'
+                : monitorData.systemHealth?.checks?.jobs?.score > 50
+                  ? 'warn'
+                  : 'error',
+          },
+          {
+            name: 'Fila',
+            status:
+              monitorData.systemHealth?.checks?.fila?.score > 80
+                ? 'ok'
+                : monitorData.systemHealth?.checks?.fila?.score > 50
+                  ? 'warn'
+                  : 'error',
+          },
+        ],
+        rateLimit: {
+          hourly: { used: 0, limit: 20 },
+          daily: { used: 0, limit: 100 },
+        },
+        queue: {
+          pendentes: 0,
+          processando: 0,
+        },
+      }
+
+      setData(healthData)
+      setLastUpdated(new Date())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro desconhecido')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchHealthData()
+  }, [fetchHealthData])
+
+  useEffect(() => {
+    if (refreshInterval > 0) {
+      const interval = setInterval(fetchHealthData, refreshInterval)
+      return () => clearInterval(interval)
+    }
+    return undefined
+  }, [refreshInterval, fetchHealthData])
+
+  if (loading && !data) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-400" />
+          <p className="mt-2 text-sm text-gray-500">Carregando dados de saude...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error && !data) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <XCircle className="mx-auto h-8 w-8 text-red-400" />
+          <p className="mt-2 text-sm text-red-600">{error}</p>
+          <Button onClick={fetchHealthData} variant="outline" className="mt-4">
+            Tentar novamente
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Health Center</h1>
+          <p className="text-gray-500">Monitoramento consolidado de saude do sistema</p>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* Refresh interval selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">Auto-refresh:</span>
+            <div className="flex rounded-lg border border-gray-200">
+              {REFRESH_INTERVALS.map((interval) => (
+                <button
+                  key={interval.value}
+                  onClick={() => setRefreshInterval(interval.value)}
+                  className={cn(
+                    'px-3 py-1.5 text-xs font-medium transition-colors',
+                    refreshInterval === interval.value
+                      ? 'bg-revoluna-500 text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  )}
+                >
+                  {interval.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Button onClick={fetchHealthData} variant="outline" size="sm" disabled={loading}>
+            <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
+            Atualizar
+          </Button>
+        </div>
+      </div>
+
+      {/* Health Score */}
+      <Card className="border-2 border-gray-100">
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center">
+            <HealthGauge score={data?.score || 0} status={data?.status || 'degraded'} />
+            <div className="mt-4 text-center">
+              <Badge
+                className={cn(
+                  'text-sm',
+                  data?.status === 'healthy' && 'bg-green-100 text-green-800',
+                  data?.status === 'degraded' && 'bg-yellow-100 text-yellow-800',
+                  data?.status === 'critical' && 'bg-red-100 text-red-800'
+                )}
+              >
+                {data?.status === 'healthy' && 'HEALTHY'}
+                {data?.status === 'degraded' && 'DEGRADED'}
+                {data?.status === 'critical' && 'CRITICAL'}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Services Status */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Status dos Servicos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4">
+            {data?.services.map((service) => (
+              <div
+                key={service.name}
+                className={cn(
+                  'flex items-center gap-2 rounded-lg px-4 py-2',
+                  service.status === 'ok' && 'bg-green-50',
+                  service.status === 'warn' && 'bg-yellow-50',
+                  service.status === 'error' && 'bg-red-50'
+                )}
+              >
+                {service.status === 'ok' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                {service.status === 'warn' && <AlertTriangle className="h-4 w-4 text-yellow-600" />}
+                {service.status === 'error' && <XCircle className="h-4 w-4 text-red-600" />}
+                <span
+                  className={cn(
+                    'text-sm font-medium',
+                    service.status === 'ok' && 'text-green-800',
+                    service.status === 'warn' && 'text-yellow-800',
+                    service.status === 'error' && 'text-red-800'
+                  )}
+                >
+                  {service.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Alerts */}
+      {data && data.alerts.length > 0 && <AlertsPanel alerts={data.alerts} />}
+
+      {/* Circuit Breakers & Rate Limit */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <CircuitBreakersPanel circuits={data?.circuits || []} onReset={fetchHealthData} />
+        <RateLimitPanel rateLimit={data?.rateLimit} />
+      </div>
+
+      {/* Queue Status */}
+      <QueueStatusPanel queue={data?.queue} />
+
+      {/* Last Updated */}
+      {lastUpdated && (
+        <p className="text-center text-xs text-gray-400">
+          Ultima atualizacao: {lastUpdated.toLocaleTimeString('pt-BR')}
+        </p>
+      )}
+    </div>
+  )
+}
