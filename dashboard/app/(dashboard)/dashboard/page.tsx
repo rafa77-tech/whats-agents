@@ -19,6 +19,7 @@ import { FunnelDrilldownModal } from '@/components/dashboard/funnel-drilldown-mo
 import { TrendsSection } from '@/components/dashboard/trends-section'
 import { AlertsList } from '@/components/dashboard/alerts-list'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
+import { CriticalAlertsBanner } from '@/components/shared'
 import {
   type DashboardPeriod,
   type MetricData,
@@ -459,6 +460,9 @@ export default function DashboardPage() {
             isRefreshing={isRefreshing}
           />
         </section>
+
+        {/* Critical Alerts Banner */}
+        <CriticalAlertsBanner />
 
         {metricsData.length > 0 && (
           <section aria-label="Metricas Principais">
