@@ -148,7 +148,8 @@ export async function GET(request: NextRequest) {
     const typedCampanhas = campanhas as unknown as CampanhaExecRow[] | null
 
     typedCampanhas?.forEach((c) => {
-      const statusLabel = c.status === 'pendente' ? 'agendada' : c.status === 'concluida' ? 'concluída' : c.status
+      const statusLabel =
+        c.status === 'pendente' ? 'agendada' : c.status === 'concluida' ? 'concluída' : c.status
       events.push({
         id: `campanha-${c.id}`,
         type: 'campanha',

@@ -92,11 +92,7 @@ export function JobsStatsCards({ stats, isLoading }: JobsStatsCardsProps) {
             ? 'text-yellow-600'
             : 'text-red-600',
       bgColor:
-        stats.staleJobs === 0
-          ? 'bg-green-50'
-          : stats.staleJobs <= 2
-            ? 'bg-yellow-50'
-            : 'bg-red-50',
+        stats.staleJobs === 0 ? 'bg-green-50' : stats.staleJobs <= 2 ? 'bg-yellow-50' : 'bg-red-50',
     },
   ]
 

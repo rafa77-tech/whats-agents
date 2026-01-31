@@ -80,8 +80,7 @@ export async function GET() {
 
         // Para Z-API, não usa evolution_connected
         // Para Evolution, verifica evolution_connected
-        const isConnected =
-          chip.provider === 'z-api' ? true : chip.evolution_connected
+        const isConnected = chip.provider === 'z-api' ? true : chip.evolution_connected
 
         let instanceStatus: 'online' | 'warming' | 'offline'
         if (!isConnected) {

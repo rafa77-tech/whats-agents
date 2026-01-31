@@ -19,7 +19,11 @@ test.describe('Monitor Page', () => {
     const url = page.url()
     if (url.includes('/monitor') && !url.includes('/login')) {
       // Verificar titulo - pode estar em h1 ou no conteúdo
-      const hasTitle = await page.locator('text=Monitor').first().isVisible({ timeout: 5000 }).catch(() => false)
+      const hasTitle = await page
+        .locator('text=Monitor')
+        .first()
+        .isVisible({ timeout: 5000 })
+        .catch(() => false)
       expect(hasTitle || url.includes('/monitor')).toBeTruthy()
     }
   })
@@ -31,8 +35,15 @@ test.describe('Monitor Page', () => {
       await page.waitForLoadState('domcontentloaded')
 
       // Verificar que o card de saude existe (pode estar carregando)
-      const healthCard = await page.locator('text=Saude do Sistema').isVisible({ timeout: 5000 }).catch(() => false)
-      const loadingState = await page.locator('[class*="animate-pulse"]').first().isVisible().catch(() => false)
+      const healthCard = await page
+        .locator('text=Saude do Sistema')
+        .isVisible({ timeout: 5000 })
+        .catch(() => false)
+      const loadingState = await page
+        .locator('[class*="animate-pulse"]')
+        .first()
+        .isVisible()
+        .catch(() => false)
       expect(healthCard || loadingState || url.includes('/monitor')).toBeTruthy()
     }
   })
@@ -43,8 +54,15 @@ test.describe('Monitor Page', () => {
       await page.waitForLoadState('domcontentloaded')
 
       // Verificar cards de estatisticas (pode estar carregando)
-      const statsVisible = await page.locator('text=Total Jobs').isVisible({ timeout: 5000 }).catch(() => false)
-      const loadingState = await page.locator('[class*="animate-pulse"]').first().isVisible().catch(() => false)
+      const statsVisible = await page
+        .locator('text=Total Jobs')
+        .isVisible({ timeout: 5000 })
+        .catch(() => false)
+      const loadingState = await page
+        .locator('[class*="animate-pulse"]')
+        .first()
+        .isVisible()
+        .catch(() => false)
       expect(statsVisible || loadingState || url.includes('/monitor')).toBeTruthy()
     }
   })
@@ -55,8 +73,15 @@ test.describe('Monitor Page', () => {
       await page.waitForLoadState('domcontentloaded')
 
       // Verificar que a tabela existe (pode estar carregando)
-      const tableVisible = await page.locator('text=Jobs do Sistema').isVisible({ timeout: 5000 }).catch(() => false)
-      const loadingState = await page.locator('[class*="animate-pulse"]').first().isVisible().catch(() => false)
+      const tableVisible = await page
+        .locator('text=Jobs do Sistema')
+        .isVisible({ timeout: 5000 })
+        .catch(() => false)
+      const loadingState = await page
+        .locator('[class*="animate-pulse"]')
+        .first()
+        .isVisible()
+        .catch(() => false)
       expect(tableVisible || loadingState || url.includes('/monitor')).toBeTruthy()
     }
   })
@@ -79,8 +104,15 @@ test.describe('Monitor Page', () => {
       await page.waitForLoadState('domcontentloaded')
 
       // Verificar botao de atualizar (pode estar carregando)
-      const refreshVisible = await page.locator('button:has-text("Atualizar")').isVisible({ timeout: 5000 }).catch(() => false)
-      const loadingState = await page.locator('[class*="animate-pulse"]').first().isVisible().catch(() => false)
+      const refreshVisible = await page
+        .locator('button:has-text("Atualizar")')
+        .isVisible({ timeout: 5000 })
+        .catch(() => false)
+      const loadingState = await page
+        .locator('[class*="animate-pulse"]')
+        .first()
+        .isVisible()
+        .catch(() => false)
       expect(refreshVisible || loadingState || url.includes('/monitor')).toBeTruthy()
     }
   })

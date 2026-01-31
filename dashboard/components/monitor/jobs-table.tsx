@@ -19,12 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -233,8 +228,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
   }
 
   // Verifica se pode confirmar delete
-  const canConfirmDelete =
-    dialogState.job && deleteConfirmText === dialogState.job.displayName
+  const canConfirmDelete = dialogState.job && deleteConfirmText === dialogState.job.displayName
 
   const sortedJobs = useMemo(() => {
     if (!jobs || !sortColumn) return jobs
@@ -395,10 +389,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                               </TooltipContent>
                             </Tooltip>
                           )}
-                          <div
-                            className="cursor-pointer"
-                            onClick={() => onJobClick(job.name)}
-                          >
+                          <div className="cursor-pointer" onClick={() => onJobClick(job.name)}>
                             <div className="font-medium">{job.displayName}</div>
                             <div className="text-xs text-gray-500">{job.description}</div>
                           </div>
@@ -484,7 +475,9 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                                     e.stopPropagation()
                                     openDialog('pause', job)
                                   }}
-                                  disabled={job.lastStatus !== 'running' && job.lastStatus !== 'success'}
+                                  disabled={
+                                    job.lastStatus !== 'running' && job.lastStatus !== 'success'
+                                  }
                                 >
                                   <Pause
                                     className={cn(
@@ -541,7 +534,10 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
       </Card>
 
       {/* Dialog de Confirmacao - Executar */}
-      <AlertDialog open={dialogState.type === 'run'} onOpenChange={(open) => !open && closeDialog()}>
+      <AlertDialog
+        open={dialogState.type === 'run'}
+        onOpenChange={(open) => !open && closeDialog()}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Executar Job</AlertDialogTitle>
@@ -585,8 +581,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
             <AlertDialogDescription>
               Deseja pausar o job <strong>{dialogState.job?.displayName}</strong>?
               <br />
-              <br />
-              O job não será executado automaticamente até ser retomado. Isso pode afetar o
+              <br />O job não será executado automaticamente até ser retomado. Isso pode afetar o
               funcionamento do sistema se for um job crítico.
             </AlertDialogDescription>
           </AlertDialogHeader>

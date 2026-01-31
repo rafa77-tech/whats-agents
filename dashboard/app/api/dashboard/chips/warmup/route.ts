@@ -29,7 +29,8 @@ export async function GET(request: NextRequest) {
     // Query base
     let query = supabase
       .from('warmup_schedule')
-      .select(`
+      .select(
+        `
         id,
         chip_id,
         tipo,
@@ -38,7 +39,8 @@ export async function GET(request: NextRequest) {
         executed_at,
         error_message,
         chips!inner(telefone)
-      `)
+      `
+      )
       .gte('scheduled_for', startOfDay)
       .lte('scheduled_for', endOfDay)
       .order('scheduled_for', { ascending: true })

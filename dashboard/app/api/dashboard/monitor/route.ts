@@ -74,7 +74,9 @@ function calculateFilaScore(stats: FilaStats): { score: number; details: string 
 
   score = Math.max(0, score)
   const details =
-    issues.length > 0 ? issues.join(', ') : `${stats.pendentes} pendentes, ${stats.processando} processando`
+    issues.length > 0
+      ? issues.join(', ')
+      : `${stats.pendentes} pendentes, ${stats.processando} processando`
 
   return { score, details }
 }
@@ -154,7 +156,8 @@ export async function GET() {
 
     const chipsStats: ChipsStats = {
       criticalChips: chips.filter((c) => (c.trust_score || 0) < 30).length,
-      warningChips: chips.filter((c) => (c.trust_score || 0) >= 30 && (c.trust_score || 0) < 60).length,
+      warningChips: chips.filter((c) => (c.trust_score || 0) >= 30 && (c.trust_score || 0) < 60)
+        .length,
       criticalAlerts: alerts.filter((a) => a.severity === 'critico').length,
       warningAlerts: alerts.filter((a) => a.severity === 'alerta').length,
     }

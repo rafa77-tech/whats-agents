@@ -66,7 +66,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Mapear ultima execucao por job
-    const lastExecByJob: Record<string, { started_at: string; status: string; error: string | null }> = {}
+    const lastExecByJob: Record<
+      string,
+      { started_at: string; status: string; error: string | null }
+    > = {}
     if (lastExecutionsResult.data) {
       for (const exec of lastExecutionsResult.data as Array<{
         job_name: string

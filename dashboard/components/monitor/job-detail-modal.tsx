@@ -7,23 +7,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getCronDescription } from '@/lib/utils/cron-calculator'
 import { getJobExecutions } from '@/lib/api/monitor'
@@ -106,9 +94,7 @@ export function JobDetailModal({ open, onOpenChange, jobName }: JobDetailModalPr
           </DialogTitle>
           {jobDef && (
             <div className="space-y-2">
-              <p className="text-sm text-gray-500">
-                {getCronDescription(jobDef.schedule)}
-              </p>
+              <p className="text-sm text-gray-500">{getCronDescription(jobDef.schedule)}</p>
               {jobDef.helpText && (
                 <div className="rounded-md bg-blue-50 p-3 text-sm text-blue-800">
                   {jobDef.helpText}
@@ -163,9 +149,7 @@ export function JobDetailModal({ open, onOpenChange, jobName }: JobDetailModalPr
 
                       {/* Detalhes adicionais */}
                       <div className="mt-2 flex gap-4 text-xs text-gray-400">
-                        {exec.itemsProcessed !== null && (
-                          <span>Itens: {exec.itemsProcessed}</span>
-                        )}
+                        {exec.itemsProcessed !== null && <span>Itens: {exec.itemsProcessed}</span>}
                         {exec.responseCode !== null && <span>HTTP: {exec.responseCode}</span>}
                       </div>
 
