@@ -13,6 +13,8 @@ interface DashboardHeaderProps {
   selectedPeriod: DashboardPeriod
   onPeriodChange: (period: DashboardPeriod) => void
   onExport: (format: 'csv' | 'pdf') => void
+  onRefresh?: () => void
+  isRefreshing?: boolean
 }
 
 export function DashboardHeader({
@@ -22,6 +24,8 @@ export function DashboardHeader({
   selectedPeriod,
   onPeriodChange,
   onExport,
+  onRefresh,
+  isRefreshing = false,
 }: DashboardHeaderProps) {
   const isOnline = juliaStatus === 'online'
   const isDegraded = juliaStatus === 'degraded'
@@ -83,6 +87,29 @@ export function DashboardHeader({
 
       <div className="flex items-center gap-4">
         <PeriodSelector value={selectedPeriod} onChange={onPeriodChange} />
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Atualizar dados"
+            aria-label="Atualizar dados"
+          >
+            <svg
+              className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
+        )}
         <ExportMenu onExport={onExport} />
       </div>
     </div>

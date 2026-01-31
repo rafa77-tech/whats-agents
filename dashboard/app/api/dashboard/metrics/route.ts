@@ -23,37 +23,53 @@ export async function GET(request: NextRequest) {
     const period = validatePeriod(request.nextUrl.searchParams.get('period'))
     const { currentStart, currentEnd, previousStart, previousEnd, days } = getPeriodDates(period)
 
-    // Mensagens enviadas (current) - interacoes de saida (Julia enviou)
-    const { count: enviadasCurrent } = await supabase
+    // Medicos unicos contatados (current) - clientes com interacao de saida
+    const { data: contatadosCurrent } = await supabase
       .from('interacoes')
-      .select('*', { count: 'exact', head: true })
+      .select('cliente_id')
       .eq('tipo', 'saida')
       .gte('created_at', currentStart)
       .lte('created_at', currentEnd)
+    const setContatadosCurrent = new Set(contatadosCurrent?.map((i) => i.cliente_id) || [])
 
-    // Respostas recebidas (current) - interacoes de entrada (medico respondeu)
-    const { count: respostasCurrent } = await supabase
+    // Medicos unicos que responderam (current) - clientes com interacao de entrada
+    const { data: responderamCurrent } = await supabase
       .from('interacoes')
-      .select('*', { count: 'exact', head: true })
+      .select('cliente_id')
       .eq('tipo', 'entrada')
       .gte('created_at', currentStart)
       .lte('created_at', currentEnd)
+    const setResponderamCurrent = new Set(responderamCurrent?.map((i) => i.cliente_id) || [])
 
-    // Mensagens enviadas (previous)
-    const { count: enviadasPrevious } = await supabase
+    // Intersecao: medicos contatados que responderam (current)
+    const medicosContatadosCurrent = setContatadosCurrent.size
+    const medicosResponderamCurrent = Array.from(setResponderamCurrent).filter((id) =>
+      setContatadosCurrent.has(id)
+    ).length
+
+    // Medicos unicos contatados (previous)
+    const { data: contatadosPrevious } = await supabase
       .from('interacoes')
-      .select('*', { count: 'exact', head: true })
+      .select('cliente_id')
       .eq('tipo', 'saida')
       .gte('created_at', previousStart)
       .lte('created_at', previousEnd)
+    const setContatadosPrevious = new Set(contatadosPrevious?.map((i) => i.cliente_id) || [])
 
-    // Respostas recebidas (previous)
-    const { count: respostasPrevious } = await supabase
+    // Medicos unicos que responderam (previous)
+    const { data: responderamPrevious } = await supabase
       .from('interacoes')
-      .select('*', { count: 'exact', head: true })
+      .select('cliente_id')
       .eq('tipo', 'entrada')
       .gte('created_at', previousStart)
       .lte('created_at', previousEnd)
+    const setResponderamPrevious = new Set(responderamPrevious?.map((i) => i.cliente_id) || [])
+
+    // Intersecao: medicos contatados que responderam (previous)
+    const medicosContatadosPrevious = setContatadosPrevious.size
+    const medicosResponderamPrevious = Array.from(setResponderamPrevious).filter((id) =>
+      setContatadosPrevious.has(id)
+    ).length
 
     // Fechamentos (current) - conversations com status fechado/completed
     const { count: fechamentosCurrent } = await supabase
@@ -72,12 +88,12 @@ export async function GET(request: NextRequest) {
       .lte('completed_at', previousEnd)
 
     // Calculos
-    const responseRateCurrent = calculateRate(respostasCurrent || 0, enviadasCurrent || 0)
-    const responseRatePrevious = calculateRate(respostasPrevious || 0, enviadasPrevious || 0)
+    const responseRateCurrent = calculateRate(medicosResponderamCurrent, medicosContatadosCurrent)
+    const responseRatePrevious = calculateRate(medicosResponderamPrevious, medicosContatadosPrevious)
 
-    // Conversao: fechamentos / respostas
-    const conversionCurrent = calculateRate(fechamentosCurrent || 0, respostasCurrent || 0)
-    const conversionPrevious = calculateRate(fechamentosPrevious || 0, respostasPrevious || 0)
+    // Conversao: fechamentos / medicos que responderam
+    const conversionCurrent = calculateRate(fechamentosCurrent || 0, medicosResponderamCurrent)
+    const conversionPrevious = calculateRate(fechamentosPrevious || 0, medicosResponderamPrevious)
 
     // Normalizar fechamentos por semana
     const weeksInPeriod = days / 7

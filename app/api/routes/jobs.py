@@ -43,10 +43,10 @@ async def job_heartbeat():
     """
     try:
         supabase.table("julia_status").insert({
-            "status": "online",
+            "status": "ativo",
             "motivo": "Heartbeat automático",
             "alterado_por": "scheduler",
-            "alterado_via": "job",
+            "alterado_via": "sistema",
             "created_at": agora_utc().isoformat()
         }).execute()
 

@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +16,7 @@ interface JuliaStatusRow {
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     // Buscar ultimo status
     const { data: statusData, error: statusError } = await supabase
@@ -65,11 +65,18 @@ export async function GET() {
       ? new Date(typedStatusData.created_at) > fiveMinutesAgo
       : false
 
-    return NextResponse.json({
-      juliaStatus: isOnline ? 'online' : 'offline',
-      lastHeartbeat: typedStatusData?.created_at || null,
-      uptime30d: Number(uptime.toFixed(1)),
-    })
+    return NextResponse.json(
+      {
+        status: isOnline ? 'online' : 'offline',
+        lastHeartbeat: typedStatusData?.created_at || null,
+        uptime30d: Number(uptime.toFixed(1)),
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      }
+    )
   } catch (error) {
     console.error('Error fetching dashboard status:', error)
     return NextResponse.json({ error: 'Failed to fetch status' }, { status: 500 })

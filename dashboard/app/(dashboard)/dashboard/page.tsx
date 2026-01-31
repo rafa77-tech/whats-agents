@@ -73,6 +73,7 @@ export default function DashboardPage() {
   const [funnelModalOpen, setFunnelModalOpen] = useState(false)
   const [selectedFunnelStage, setSelectedFunnelStage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Data states
   const [metricsData, setMetricsData] = useState<MetricData[]>([])
@@ -370,6 +371,34 @@ export default function DashboardPage() {
     setSelectedPeriod(period)
   }
 
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true)
+    await Promise.all([
+      fetchStatus(),
+      fetchChipPool(),
+      fetchChipsList(),
+      fetchMetrics(),
+      fetchQuality(),
+      fetchOperational(),
+      fetchFunnel(),
+      fetchTrends(),
+      fetchAlerts(),
+      fetchActivity(),
+    ])
+    setIsRefreshing(false)
+  }, [
+    fetchStatus,
+    fetchChipPool,
+    fetchChipsList,
+    fetchMetrics,
+    fetchQuality,
+    fetchOperational,
+    fetchFunnel,
+    fetchTrends,
+    fetchAlerts,
+    fetchActivity,
+  ])
+
   const handleExport = async (format: 'csv' | 'pdf') => {
     try {
       const response = await fetch(
@@ -426,6 +455,8 @@ export default function DashboardPage() {
             selectedPeriod={selectedPeriod}
             onPeriodChange={handlePeriodChange}
             onExport={handleExport}
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
           />
         </section>
 
