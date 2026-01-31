@@ -43,6 +43,8 @@ export default defineConfig({
         'lib/dashboard/pdf-generator.ts', // Renderização jsPDF, lógica em formatters.ts (100% testado)
         'lib/api/**', // HTTP clients (testados via E2E/integration)
         'lib/config.ts', // Configuração de ambiente
+        'lib/monitor/**', // Jobs config (dados estáticos)
+        'lib/utils/cron-calculator.ts', // Wrapper cron-parser (testado via E2E)
         'lib/errors.ts', // Classes de erro (infraestrutura)
         'app/(dashboard)/campanhas/[id]/**', // Páginas de campanha (UI, lógica no backend)
         // Sprint-28 modules - UI pages with backend logic (added 2026-01-27)
@@ -51,7 +53,9 @@ export default defineConfig({
         'app/(dashboard)/medicos/**', // Doctors (UI, lógica no backend)
         'app/(dashboard)/metricas/**', // Metrics (UI, lógica no backend)
         'app/(dashboard)/vagas/**', // Shifts (UI, lógica no backend)
+        'app/(dashboard)/monitor/**', // Monitor jobs (UI, lógica no backend)
         'components/notifications/**', // Notification system (UI, infraestrutura)
+        'components/monitor/**', // Monitor jobs (UI, lógica no backend)
         'app/(auth)/**', // Páginas de auth (UI, lógica no Supabase)
         'hooks/use-toast.ts', // Padrão react-hot-toast, infraestrutura de UI
         'hooks/use-api-error.ts', // Hook de erro (infraestrutura)
