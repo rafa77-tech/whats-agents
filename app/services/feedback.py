@@ -164,47 +164,66 @@ async def gerar_exemplos_prompt() -> str:
 
 async def atualizar_prompt_com_feedback():
     """
-    Atualiza arquivo de prompt com novos exemplos.
+    Atualiza exemplos de prompt no banco de dados.
 
     Executar semanalmente ou após N novas avaliações.
+    Salva na tabela 'prompts' com tipo 'exemplos_feedback'.
     """
     try:
         exemplos_texto = await gerar_exemplos_prompt()
+        exemplos_data = await extrair_exemplos_treinamento()
 
-        # Tentar ler prompt atual
-        import os
-        prompt_path = "app/core/prompts.py"
-        if not os.path.exists(prompt_path):
-            prompt_path = "app/prompts/julia.py"
-        
-        if not os.path.exists(prompt_path):
-            logger.warning(f"Arquivo de prompt não encontrado: {prompt_path}")
-            return
+        # Verificar se já existe registro de exemplos
+        response = (
+            supabase.table("prompts")
+            .select("id")
+            .eq("tipo", "exemplos_feedback")
+            .eq("nome", "exemplos_conversas")
+            .execute()
+        )
 
-        with open(prompt_path, "r", encoding="utf-8") as f:
-            prompt_atual = f.read()
+        metadata = {
+            "total_bons": len(exemplos_data.get("bons", [])),
+            "total_ruins": len(exemplos_data.get("ruins", [])),
+            "exemplos_bons": exemplos_data.get("bons", [])[:5],
+            "exemplos_ruins": exemplos_data.get("ruins", [])[:5],
+        }
 
-        # Substituir seção de exemplos
-        # (Assumindo que há marcadores ## Exemplos de Conversas ... ## Fim Exemplos)
-        import re
-        padrao = r"## Exemplos de Conversas.*?## Fim Exemplos"
-        
-        if re.search(padrao, prompt_atual, flags=re.DOTALL):
-            novo_prompt = re.sub(
-                padrao,
-                f"{exemplos_texto}\n## Fim Exemplos",
-                prompt_atual,
-                flags=re.DOTALL
-            )
+        if response.data:
+            # Atualizar registro existente
+            supabase.table("prompts").update({
+                "conteudo": exemplos_texto,
+                "metadata": metadata,
+                "updated_at": "now()",
+            }).eq("id", response.data[0]["id"]).execute()
+            logger.info(f"Exemplos de feedback atualizados no banco (id={response.data[0]['id']})")
         else:
-            # Adicionar seção de exemplos no final
-            novo_prompt = prompt_atual + "\n\n" + exemplos_texto + "\n## Fim Exemplos\n"
+            # Criar novo registro
+            supabase.table("prompts").insert({
+                "nome": "exemplos_conversas",
+                "versao": "1.0",
+                "tipo": "exemplos_feedback",
+                "conteudo": exemplos_texto,
+                "descricao": "Exemplos de conversas boas e ruins extraídos do feedback do gestor",
+                "ativo": True,
+                "metadata": metadata,
+                "created_by": "job_atualizar_prompt_feedback",
+            }).execute()
+            logger.info("Novo registro de exemplos de feedback criado no banco")
 
-        # Salvar
-        with open(prompt_path, "w", encoding="utf-8") as f:
-            f.write(novo_prompt)
+        # Marcar sugestões processadas como aplicadas
+        supabase.table("sugestoes_prompt").update({
+            "status": "aplicada"
+        }).eq("status", "pendente").execute()
 
-        logger.info("Prompt atualizado com novos exemplos do feedback")
+        logger.info(f"Prompt atualizado com {metadata['total_bons']} exemplos bons e {metadata['total_ruins']} ruins")
+
+        return {
+            "status": "ok",
+            "exemplos_bons": metadata["total_bons"],
+            "exemplos_ruins": metadata["total_ruins"],
+        }
     except Exception as e:
         logger.error(f"Erro ao atualizar prompt com feedback: {e}")
+        raise  # Re-raise para que o job reporte o erro corretamente
 

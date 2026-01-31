@@ -139,10 +139,19 @@ async def job_relatorio_diario():
 
 @router.post("/atualizar-prompt-feedback")
 async def job_atualizar_prompt_feedback():
-    """Job para atualizar prompt com feedback do gestor."""
+    """Job para atualizar prompt com feedback do gestor.
+
+    Extrai exemplos bons e ruins das avaliações do gestor
+    e salva na tabela 'prompts' para uso pelo sistema.
+    """
     try:
-        await atualizar_prompt_com_feedback()
-        return JSONResponse({"status": "ok", "message": "Prompt atualizado com feedback"})
+        resultado = await atualizar_prompt_com_feedback()
+        return JSONResponse({
+            "status": "ok",
+            "message": "Exemplos de feedback atualizados no banco",
+            "exemplos_bons": resultado.get("exemplos_bons", 0),
+            "exemplos_ruins": resultado.get("exemplos_ruins", 0),
+        })
     except Exception as e:
         logger.error(f"Erro ao atualizar prompt com feedback: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
