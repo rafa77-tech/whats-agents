@@ -302,19 +302,40 @@ def parse_cron(schedule: str) -> dict:
 
 
 def matches_cron_field(field: str, value: int) -> bool:
-    """Verifica se valor corresponde ao campo cron."""
+    """Verifica se valor corresponde ao campo cron.
+
+    Suporta:
+    - * (qualquer valor)
+    - */N (a cada N)
+    - N-M (range de N até M, inclusive)
+    - N,M,O (lista de valores)
+    - N (valor exato)
+    """
     if field == "*":
         return True
-    
+
     # Suporta */N (a cada N)
     if field.startswith("*/"):
         interval = int(field[2:])
         return value % interval == 0
-    
-    # Suporta lista (1,2,3)
+
+    # Suporta lista (1,2,3) - pode conter ranges também
     if "," in field:
-        return str(value) in field.split(",")
-    
+        for part in field.split(","):
+            if "-" in part:
+                # Range dentro da lista (ex: "1-3,5,7-9")
+                start, end = part.split("-")
+                if int(start) <= value <= int(end):
+                    return True
+            elif str(value) == part:
+                return True
+        return False
+
+    # Suporta range (N-M)
+    if "-" in field:
+        start, end = field.split("-")
+        return int(start) <= value <= int(end)
+
     # Valor exato
     return str(value) == field
 
