@@ -19,7 +19,15 @@ import {
   JobsTable,
   JobDetailModal,
 } from '@/components/monitor'
+import { JOBS_BY_NAME } from '@/lib/monitor/jobs-config'
 import type { MonitorOverviewResponse, MonitorJobsResponse, MonitorFilters } from '@/types/monitor'
+
+/**
+ * Converte nomes tecnicos de jobs para nomes amigaveis.
+ */
+function getJobDisplayNames(jobNames: string[]): string[] {
+  return jobNames.map((name) => JOBS_BY_NAME[name]?.displayName ?? name)
+}
 
 const AUTO_REFRESH_INTERVAL = 30000 // 30 segundos
 
@@ -176,7 +184,7 @@ export function MonitorPageContent() {
               {overview.alerts.criticalStale.length} job(s) critico(s) atrasado(s)
             </div>
             <div className="mt-2 text-sm text-red-700">
-              {overview.alerts.criticalStale.join(', ')}
+              {getJobDisplayNames(overview.alerts.criticalStale).join(', ')}
             </div>
           </div>
         </section>
@@ -189,7 +197,11 @@ export function MonitorPageContent() {
 
       {/* Jobs Table */}
       <section aria-label="Lista de Jobs">
-        <JobsTable jobs={jobsData?.jobs ?? null} onJobClick={handleJobClick} />
+        <JobsTable
+          jobs={jobsData?.jobs ?? null}
+          onJobClick={handleJobClick}
+          onJobAction={handleRefresh}
+        />
       </section>
 
       {/* Job Detail Modal */}

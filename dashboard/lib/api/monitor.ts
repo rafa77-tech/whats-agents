@@ -70,3 +70,37 @@ export async function getJobExecutions(
   }
   return response.json()
 }
+
+// ============================================================================
+// Job Actions
+// ============================================================================
+
+export type JobActionType = 'run' | 'pause' | 'resume' | 'delete'
+
+export interface JobActionResponse {
+  success: boolean
+  message: string
+  jobName: string
+  action: JobActionType
+}
+
+/**
+ * Executa uma acao em um job (run, pause, resume, delete).
+ */
+export async function executeJobAction(
+  jobName: string,
+  action: JobActionType
+): Promise<JobActionResponse> {
+  const response = await fetch(`/api/dashboard/monitor/job/${encodeURIComponent(jobName)}/action`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Erro desconhecido' }))
+    throw new Error(error.message || 'Falha ao executar acao')
+  }
+
+  return response.json()
+}

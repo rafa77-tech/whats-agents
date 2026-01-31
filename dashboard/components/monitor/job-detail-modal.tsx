@@ -105,9 +105,16 @@ export function JobDetailModal({ open, onOpenChange, jobName }: JobDetailModalPr
             )}
           </DialogTitle>
           {jobDef && (
-            <p className="text-sm text-gray-500">
-              {jobDef.description} | {getCronDescription(jobDef.schedule)}
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-gray-500">
+                {getCronDescription(jobDef.schedule)}
+              </p>
+              {jobDef.helpText && (
+                <div className="rounded-md bg-blue-50 p-3 text-sm text-blue-800">
+                  {jobDef.helpText}
+                </div>
+              )}
+            </div>
           )}
         </DialogHeader>
 

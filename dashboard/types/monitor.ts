@@ -36,8 +36,10 @@ export interface JobDefinition {
   category: JobCategory
   /** Expressao cron do schedule (ex: "* * * * *") */
   schedule: string
-  /** Descricao legivel do job */
+  /** Descricao curta do job (exibida na tabela) */
   description: string
+  /** Texto de ajuda detalhado explicando o proposito e impacto do job (exibido no modal) */
+  helpText?: string
   /** SLA em segundos (tempo maximo entre execucoes) */
   slaSeconds: number
   /** Se e um job critico (deve estar sempre rodando) */
