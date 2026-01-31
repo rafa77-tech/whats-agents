@@ -140,29 +140,60 @@ export async function GET(request: NextRequest) {
       .gte('created_at', previousStart)
       .lte('created_at', previousEnd)
 
-    // Respostas do período
-    const { count: totalResponsesPeriod } = await supabase
+    // Taxa de resposta: % de conversas que receberam pelo menos uma resposta
+    // Conversas com msgs enviadas no período atual
+    const { data: convsWithSent } = await supabase
       .from('interacoes')
-      .select('*', { count: 'exact', head: true })
-      .eq('tipo', 'entrada')
+      .select('conversa_id')
+      .eq('tipo', 'saida')
       .gte('created_at', currentStart)
       .lte('created_at', currentEnd)
 
-    const { count: previousResponsesPeriod } = await supabase
+    const currentConvIds = Array.from(new Set((convsWithSent || []).map((i) => i.conversa_id)))
+
+    // Dessas, quantas tiveram resposta (entrada)?
+    let convsWithResponse = 0
+    if (currentConvIds.length > 0) {
+      const { count } = await supabase
+        .from('interacoes')
+        .select('conversa_id', { count: 'exact', head: true })
+        .eq('tipo', 'entrada')
+        .in('conversa_id', currentConvIds)
+        .gte('created_at', currentStart)
+        .lte('created_at', currentEnd)
+      convsWithResponse = count || 0
+    }
+
+    // Período anterior
+    const { data: prevConvsWithSent } = await supabase
       .from('interacoes')
-      .select('*', { count: 'exact', head: true })
-      .eq('tipo', 'entrada')
+      .select('conversa_id')
+      .eq('tipo', 'saida')
       .gte('created_at', previousStart)
       .lte('created_at', previousEnd)
+
+    const prevConvIds = Array.from(new Set((prevConvsWithSent || []).map((i) => i.conversa_id)))
+
+    let prevConvsWithResponse = 0
+    if (prevConvIds.length > 0) {
+      const { count } = await supabase
+        .from('interacoes')
+        .select('conversa_id', { count: 'exact', head: true })
+        .eq('tipo', 'entrada')
+        .in('conversa_id', prevConvIds)
+        .gte('created_at', previousStart)
+        .lte('created_at', previousEnd)
+      prevConvsWithResponse = count || 0
+    }
 
     // Calcular taxas
     const msgsSent = totalMessagesPeriod || 0
     const prevMsgsSent = previousMessagesPeriod || 0
-    const responses = totalResponsesPeriod || 0
-    const prevResponses = previousResponsesPeriod || 0
+    const totalConvs = currentConvIds.length
+    const prevTotalConvs = prevConvIds.length
 
-    const responseRate = msgsSent > 0 ? (responses / msgsSent) * 100 : 0
-    const prevResponseRate = prevMsgsSent > 0 ? (prevResponses / prevMsgsSent) * 100 : 0
+    const responseRate = totalConvs > 0 ? (convsWithResponse / totalConvs) * 100 : 0
+    const prevResponseRate = prevTotalConvs > 0 ? (prevConvsWithResponse / prevTotalConvs) * 100 : 0
 
     // Capacidade diária dos chips
     let totalDailyCapacity = 0
@@ -195,8 +226,8 @@ export async function GET(request: NextRequest) {
       avgTrustScore: Number(avgTrustScore.toFixed(1)),
       totalMessagesSent: msgsSent,
       previousMessagesSent: prevMsgsSent,
-      totalResponses: responses,
-      previousResponses: prevResponses,
+      totalResponses: convsWithResponse,
+      previousResponses: prevConvsWithResponse,
       responseRate: Number(responseRate.toFixed(1)),
       previousResponseRate: Number(prevResponseRate.toFixed(1)),
       totalDailyCapacity,
