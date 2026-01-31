@@ -89,7 +89,7 @@ export default function DashboardPage() {
 
   // Header data
   const [juliaStatus, setJuliaStatus] = useState<'online' | 'offline' | 'degraded'>('offline')
-  const [lastHeartbeat, setLastHeartbeat] = useState<Date>(new Date())
+  const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null)
 
   // Fetch functions
   const fetchChipPool = useCallback(async () => {

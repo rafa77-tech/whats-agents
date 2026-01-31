@@ -54,7 +54,7 @@ export function DashboardHeader({
 
         {/* Ultimo Heartbeat */}
         {lastHeartbeat && (
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500" suppressHydrationWarning>
             Ultimo:{' '}
             <span className="text-gray-700">
               {formatDistanceToNow(lastHeartbeat, {
