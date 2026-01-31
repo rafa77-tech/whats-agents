@@ -98,7 +98,7 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
               <Checkbox
                 checked={allSelected}
                 // @ts-expect-error - indeterminate is valid but not typed
-                indeterminate={someSelected}
+                indeterminate={someSelected || undefined}
                 onCheckedChange={handleSelectAll}
                 aria-label="Selecionar todos"
               />
