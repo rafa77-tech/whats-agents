@@ -1,7 +1,8 @@
 /**
- * Scheduler Page Content - Sprint 36
+ * Warmup Page Content - Sprint 42
  *
- * Conteúdo da página do scheduler de atividades.
+ * Conteúdo da página de atividades de warmup.
+ * Renomeado de SchedulerPageContent (Sprint 42).
  */
 
 'use client'
@@ -9,7 +10,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import type { Route } from 'next'
-import { ChevronLeft, RefreshCw, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { ChevronLeft, RefreshCw, Flame, CheckCircle, XCircle, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -26,7 +27,7 @@ const activityTypeLabels: Record<ScheduledActivityType, string> = {
   CONVERSA_PAR: 'Conversa Par',
   MARCAR_LIDO: 'Marcar Lido',
   ENTRAR_GRUPO: 'Entrar Grupo',
-  ENVIAR_MIDIA: 'Enviar Mídia',
+  ENVIAR_MIDIA: 'Enviar Midia',
   MENSAGEM_GRUPO: 'Mensagem Grupo',
   ATUALIZAR_PERFIL: 'Atualizar Perfil',
 }
@@ -38,7 +39,7 @@ const statusConfig: Record<ActivityStatus, { label: string; color: string; icon:
   cancelada: { label: 'Cancelada', color: 'bg-gray-100 text-gray-800', icon: XCircle },
 }
 
-export function SchedulerPageContent() {
+export function WarmupPageContent() {
   const [activities, setActivities] = useState<ScheduledActivity[]>([])
   const [stats, setStats] = useState<SchedulerStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -49,13 +50,13 @@ export function SchedulerPageContent() {
     try {
       const params = selectedDate ? { date: selectedDate, limit: 50 } : { limit: 50 }
       const [activitiesData, statsData] = await Promise.all([
-        chipsApi.getScheduledActivities(params),
-        chipsApi.getSchedulerStats(selectedDate || undefined),
+        chipsApi.getWarmupActivities(params),
+        chipsApi.getWarmupStats(selectedDate || undefined),
       ])
       setActivities(activitiesData)
       setStats(statsData)
     } catch (error) {
-      console.error('Error fetching scheduler data:', error)
+      console.error('Error fetching warmup data:', error)
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
@@ -97,8 +98,8 @@ export function SchedulerPageContent() {
             </Link>
           </nav>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-            <Calendar className="h-6 w-6" />
-            Scheduler de Atividades
+            <Flame className="h-6 w-6" />
+            Warmup de Atividades
           </h1>
           <p className="mt-1 text-sm text-gray-600">
             Visualize e monitore as atividades de warmup agendadas

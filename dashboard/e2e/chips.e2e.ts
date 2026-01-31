@@ -89,19 +89,19 @@ test.describe('Chips Module', () => {
     })
   })
 
-  test.describe('Scheduler Page', () => {
-    test('should load the scheduler page', async ({ page }) => {
-      await page.goto('/chips/scheduler')
+  test.describe('Warmup Page (renamed from Scheduler - Sprint 42)', () => {
+    test('should load the warmup page', async ({ page }) => {
+      await page.goto('/chips/warmup')
 
-      // Should be on scheduler page or login
-      await expect(page).toHaveURL(/\/(chips\/scheduler|login)/)
+      // Should be on warmup page or login
+      await expect(page).toHaveURL(/\/(chips\/warmup|login)/)
     })
 
     test('should have date selector', async ({ page }) => {
-      await page.goto('/chips/scheduler')
+      await page.goto('/chips/warmup')
 
       const url = page.url()
-      if (url.includes('/scheduler') && !url.includes('/login')) {
+      if (url.includes('/warmup') && !url.includes('/login')) {
         // Look for date input or date picker button
         const dateInput = page.locator(
           'input[type="date"], [data-testid="date-picker"], button:has-text("Hoje"), [aria-label*="date" i]'
@@ -112,6 +112,16 @@ test.describe('Chips Module', () => {
           const pageContent = page.locator('main, [role="main"]')
           expect(await pageContent.count()).toBeGreaterThanOrEqual(0)
         }
+      }
+    })
+
+    test('should have warmup link in chips navigation', async ({ page }) => {
+      await page.goto('/chips/warmup')
+
+      const url = page.url()
+      if (url.includes('/warmup') && !url.includes('/login')) {
+        const nav = page.locator('nav, aside')
+        await expect(nav.first()).toContainText('Warmup')
       }
     })
   })

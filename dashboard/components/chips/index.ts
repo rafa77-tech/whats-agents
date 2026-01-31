@@ -37,8 +37,8 @@ export { AlertsPageContent } from './alerts-page-content'
 export { AlertsPageSkeleton } from './alerts-page-skeleton'
 export { AlertCard } from './alert-card'
 
-// Scheduler page
-export { SchedulerPageContent } from './scheduler-page-content'
+// Warmup page (renamed from Scheduler - Sprint 42)
+export { WarmupPageContent } from './warmup-page-content'
 
 // Config page
 export { ConfigPageContent } from './config-page-content'

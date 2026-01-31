@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 const navItems = [
   { title: 'Visao Geral', href: '/chips', icon: LayoutDashboard, exact: true },
   { title: 'Alertas', href: '/chips/alertas', icon: AlertTriangle },
-  { title: 'Scheduler', href: '/chips/scheduler', icon: Calendar },
+  { title: 'Warmup', href: '/chips/warmup', icon: Calendar },
   { title: 'Configuracoes', href: '/chips/configuracoes', icon: Settings },
 ]
 

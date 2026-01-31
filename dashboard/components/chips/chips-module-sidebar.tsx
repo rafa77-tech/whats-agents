@@ -44,8 +44,8 @@ const navItems: NavItem[] = [
     showBadge: true,
   },
   {
-    title: 'Scheduler',
-    href: '/chips/scheduler',
+    title: 'Warmup',
+    href: '/chips/warmup',
     icon: Calendar,
   },
   {

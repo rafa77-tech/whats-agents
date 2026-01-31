@@ -214,10 +214,10 @@ export async function getAlertsCount(): Promise<{
 }
 
 // ============================================================================
-// Scheduler
+// Warmup (renamed from Scheduler - Sprint 42)
 // ============================================================================
 
-export async function getScheduledActivities(params: {
+export async function getWarmupActivities(params: {
   date?: string
   chipId?: string
   limit?: number
@@ -228,12 +228,12 @@ export async function getScheduledActivities(params: {
   if (params.limit) searchParams.set('limit', String(params.limit))
 
   const query = searchParams.toString()
-  return fetchApi<ScheduledActivity[]>(`/api/dashboard/chips/scheduler${query ? `?${query}` : ''}`)
+  return fetchApi<ScheduledActivity[]>(`/api/dashboard/chips/warmup${query ? `?${query}` : ''}`)
 }
 
-export async function getSchedulerStats(date?: string): Promise<SchedulerStats> {
+export async function getWarmupStats(date?: string): Promise<SchedulerStats> {
   const query = date ? `?date=${date}` : ''
-  return fetchApi<SchedulerStats>(`/api/dashboard/chips/scheduler/stats${query}`)
+  return fetchApi<SchedulerStats>(`/api/dashboard/chips/warmup/stats${query}`)
 }
 
 // ============================================================================
@@ -318,9 +318,9 @@ export const chipsApi = {
   getAlert,
   resolveAlert,
   getAlertsCount,
-  // Scheduler
-  getScheduledActivities,
-  getSchedulerStats,
+  // Warmup (renamed from Scheduler - Sprint 42)
+  getWarmupActivities,
+  getWarmupStats,
   // Config
   getPoolConfig,
   updatePoolConfig,
