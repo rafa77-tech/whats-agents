@@ -61,6 +61,10 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 30 | Refatoração Arquitetural | 🔄 Em Andamento |
 | 33 | Dashboard de Performance | ✅ Completa |
 | 34 | UX Refinements Dashboard | 📋 Planejado |
+| 40 | Chips Dashboard | ✅ Completa |
+| 41 | Chips Ops & Health | ✅ Completa |
+| 42 | Monitor Jobs | ✅ Completa |
+| 43 | UX & Operacao Unificada | 📋 Planejado |
 
 ### Funcionalidades Implementadas
 

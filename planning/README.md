@@ -87,6 +87,15 @@ Este diretório contém o planejamento completo do projeto organizado em **Sprin
 | 29 | Conversation Mode | ✅ Completa |
 | 30 | Refatoração Arquitetural | 🔄 Em Andamento |
 
+### Sprints Recentes (40+)
+
+| Sprint | Nome | Status |
+|--------|------|--------|
+| 40 | Chips Dashboard | ✅ Completa |
+| 41 | Chips Ops & Health | ✅ Completa |
+| 42 | Monitor Jobs | ✅ Completa |
+| 43 | UX & Operacao Unificada | 📋 Planejado |
+
 > **Nota:** Sprints 19-24 e 31-33 estão em planejamento futuro.
 
 ---
