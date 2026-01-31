@@ -17,6 +17,8 @@ import {
   Activity,
   HeartPulse,
   ShieldCheck,
+  Users,
+  Star,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -33,6 +35,8 @@ const navigation: NavItem[] = [
   { name: 'Monitor', href: '/monitor', icon: Activity },
   { name: 'Health Center', href: '/health', icon: HeartPulse },
   { name: 'Integridade', href: '/integridade', icon: ShieldCheck },
+  { name: 'Grupos', href: '/grupos', icon: Users },
+  { name: 'Qualidade', href: '/qualidade', icon: Star },
   { name: 'Instrucoes', href: '/instrucoes', icon: FileText },
   { name: 'Hospitais Bloqueados', href: '/hospitais/bloqueados', icon: Building2 },
   { name: 'Sistema', href: '/sistema', icon: Settings },
