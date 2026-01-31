@@ -66,6 +66,12 @@ from app.services.chips.instance_manager import (
     ConnectionStateResult,
     DeleteInstanceResult,
 )
+# Sync Evolution
+from app.services.chips.sync_evolution import (
+    sincronizar_chips_com_evolution,
+    buscar_estado_instancia,
+    listar_instancias_evolution,
+)
 
 __all__ = [
     # Orchestrator
@@ -115,4 +121,8 @@ __all__ = [
     "QRCodeResult",
     "ConnectionStateResult",
     "DeleteInstanceResult",
+    # Sync Evolution
+    "sincronizar_chips_com_evolution",
+    "buscar_estado_instancia",
+    "listar_instancias_evolution",
 ]

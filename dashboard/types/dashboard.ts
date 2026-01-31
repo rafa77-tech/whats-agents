@@ -86,7 +86,7 @@ export interface LLMUsageData {
 
 export interface WhatsAppInstance {
   name: string
-  status: 'online' | 'offline'
+  status: 'online' | 'warming' | 'offline'
   messagesToday: number
 }
 

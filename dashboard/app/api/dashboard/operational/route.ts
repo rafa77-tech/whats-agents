@@ -73,16 +73,30 @@ export async function GET() {
 
     const instances =
       (chipsData as ChipRow[] | null)?.map((chip: ChipRow) => {
-        // Para Z-API, consideramos online se status é active (não usa evolution_connected)
-        // Para Evolution, verificamos evolution_connected
-        const isOnline =
-          chip.provider === 'z-api'
-            ? chip.status === 'active'
-            : chip.evolution_connected && chip.status === 'active'
+        // Determinar status da instância:
+        // - online (verde): conectado e ativo
+        // - warming (amarelo): em aquecimento
+        // - offline (vermelho): desconectado
+
+        // Para Z-API, não usa evolution_connected
+        // Para Evolution, verifica evolution_connected
+        const isConnected =
+          chip.provider === 'z-api' ? true : chip.evolution_connected
+
+        let instanceStatus: 'online' | 'warming' | 'offline'
+        if (!isConnected) {
+          instanceStatus = 'offline'
+        } else if (chip.status === 'warming') {
+          instanceStatus = 'warming'
+        } else if (chip.status === 'active' || chip.status === 'ready') {
+          instanceStatus = 'online'
+        } else {
+          instanceStatus = 'offline'
+        }
 
         return {
           name: chip.instance_name || 'Unknown',
-          status: isOnline ? ('online' as const) : ('offline' as const),
+          status: instanceStatus,
           messagesToday: chip.msgs_enviadas_hoje || 0,
         }
       }) || []

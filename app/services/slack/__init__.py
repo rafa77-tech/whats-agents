@@ -28,6 +28,22 @@ set_notifications_enabled = _slack_notifications.set_notifications_enabled
 get_notifications_status = _slack_notifications.get_notifications_status
 
 from .agent import AgenteSlack, processar_mensagem_slack
+
+
+async def enviar_mensagem_slack(canal: str, texto: str, force: bool = False) -> bool:
+    """
+    Wrapper para enviar mensagem simples ao Slack.
+
+    Args:
+        canal: Nome do canal (ignorado, usa webhook default)
+        texto: Texto da mensagem
+        force: Se True, ignora flag de notificações desabilitadas
+
+    Returns:
+        True se enviou com sucesso
+    """
+    mensagem = {"text": texto}
+    return await enviar_slack(mensagem, force=force)
 from .session import SessionManager
 from .tool_executor import ToolExecutor
 from .prompts import SYSTEM_PROMPT_AGENTE
@@ -66,6 +82,7 @@ from .formatter import (
 __all__ = [
     # Notifications (from slack.py)
     "enviar_slack",
+    "enviar_mensagem_slack",
     "notificar_plantao_reservado",
     "notificar_handoff",
     "notificar_handoff_resolvido",

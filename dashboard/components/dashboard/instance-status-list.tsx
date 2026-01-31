@@ -19,7 +19,11 @@ export function InstanceStatusList({ instances }: InstanceStatusListProps) {
             <div className="flex items-center gap-2">
               <span
                 className={`h-2 w-2 rounded-full ${
-                  instance.status === 'online' ? 'bg-green-500' : 'bg-red-500'
+                  instance.status === 'online'
+                    ? 'bg-green-500'
+                    : instance.status === 'warming'
+                      ? 'bg-yellow-500'
+                      : 'bg-red-500'
                 }`}
               />
               <span className="text-sm font-medium">{instance.name}</span>

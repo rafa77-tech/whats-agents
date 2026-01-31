@@ -117,10 +117,12 @@ async def sincronizar_chips_com_evolution() -> dict:
     # 2. Criar mapa de instâncias por nome
     instancias_map = {}
     for inst in instancias:
-        # Evolution pode retornar diferentes formatos
-        name = inst.get("instanceName") or inst.get("instance", {}).get("instanceName")
-        state = inst.get("state") or inst.get("instance", {}).get("state", "unknown")
-        phone = inst.get("number") or inst.get("instance", {}).get("number")
+        # Evolution API v2 retorna formato diferente
+        # Campos: name, connectionStatus (open/close), ownerJid
+        name = inst.get("name") or inst.get("instanceName") or inst.get("instance", {}).get("instanceName")
+        # connectionStatus pode ser "open" ou "close"
+        state = inst.get("connectionStatus") or inst.get("state") or inst.get("instance", {}).get("state", "unknown")
+        phone = inst.get("ownerJid", "").split("@")[0] if inst.get("ownerJid") else inst.get("number")
 
         if name:
             instancias_map[name] = {
