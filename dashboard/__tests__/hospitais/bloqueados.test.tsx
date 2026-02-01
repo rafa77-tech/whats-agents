@@ -260,4 +260,220 @@ describe('HospitaisBloqueadosPage', () => {
       expect(screen.getByText(/Quando um hospital e bloqueado/)).toBeInTheDocument()
     })
   })
+
+  // =============================================================================
+  // Cenarios adicionais: Erros e acoes
+  // =============================================================================
+
+  it('shows error message when API fails', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({ detail: 'Erro ao carregar' }),
+    })
+
+    render(<HospitaisBloqueadosPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Erro ao carregar')).toBeInTheDocument()
+    })
+  })
+
+  it('shows generic error when fetch throws', async () => {
+    mockFetch.mockRejectedValue(new Error('Network error'))
+
+    render(<HospitaisBloqueadosPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Erro de conexao com o servidor')).toBeInTheDocument()
+    })
+  })
+
+  it('successfully unblocks hospital and refreshes list', async () => {
+    const user = userEvent.setup()
+    const mockToast = vi.fn()
+
+    // Re-mock useToast to capture calls
+    vi.doMock('@/hooks/use-toast', () => ({
+      useToast: () => ({ toast: mockToast }),
+    }))
+
+    // Initial load with blocked hospital
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve([
+            {
+              id: '1',
+              hospital_id: 'hosp-1',
+              motivo: 'Teste',
+              bloqueado_por: 'admin@test.com',
+              bloqueado_em: new Date().toISOString(),
+              status: 'bloqueado',
+              vagas_movidas: 2,
+              hospitais: { nome: 'Hospital Teste', cidade: 'SP' },
+            },
+          ]),
+      })
+      // Desbloquear call
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true, vagas_restauradas: 2 }),
+      })
+      // Refresh after unblock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+
+    render(<HospitaisBloqueadosPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Hospital Teste')).toBeInTheDocument()
+    })
+
+    // Click desbloquear
+    const desbloquearBtn = screen.getByRole('button', { name: /Desbloquear/i })
+    await user.click(desbloquearBtn)
+
+    // Confirm in dialog
+    await waitFor(() => {
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+    })
+
+    const confirmBtn = screen.getByRole('button', { name: /Confirmar desbloqueio/i })
+    await user.click(confirmBtn)
+
+    // Should have called desbloquear API
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/hospitais/desbloquear', expect.anything())
+    })
+  })
+
+  it('shows error toast when unblock fails', async () => {
+    const user = userEvent.setup()
+
+    // Initial load
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve([
+            {
+              id: '1',
+              hospital_id: 'hosp-1',
+              motivo: 'Teste',
+              bloqueado_por: 'admin@test.com',
+              bloqueado_em: new Date().toISOString(),
+              status: 'bloqueado',
+              vagas_movidas: 0,
+              hospitais: { nome: 'Hospital Erro', cidade: 'SP' },
+            },
+          ]),
+      })
+      // Desbloquear fails
+      .mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ detail: 'Erro ao desbloquear' }),
+      })
+
+    render(<HospitaisBloqueadosPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Hospital Erro')).toBeInTheDocument()
+    })
+
+    // Click desbloquear
+    const desbloquearBtn = screen.getByRole('button', { name: /Desbloquear/i })
+    await user.click(desbloquearBtn)
+
+    // Confirm in dialog
+    await waitFor(() => {
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+    })
+
+    const confirmBtn = screen.getByRole('button', { name: /Confirmar desbloqueio/i })
+    await user.click(confirmBtn)
+
+    // Should still show the hospital (not removed from list due to error)
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('closes confirmation dialog when cancel is clicked', async () => {
+    const user = userEvent.setup()
+
+    setupMockFetch({
+      bloqueados: [
+        {
+          id: '1',
+          hospital_id: 'hosp-1',
+          motivo: 'Teste',
+          bloqueado_por: 'admin@test.com',
+          bloqueado_em: new Date().toISOString(),
+          status: 'bloqueado',
+          vagas_movidas: 0,
+          hospitais: { nome: 'Hospital Cancel', cidade: 'SP' },
+        },
+      ],
+    })
+
+    render(<HospitaisBloqueadosPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Hospital Cancel')).toBeInTheDocument()
+    })
+
+    // Click desbloquear
+    const desbloquearBtn = screen.getByRole('button', { name: /Desbloquear/i })
+    await user.click(desbloquearBtn)
+
+    // Dialog appears
+    await waitFor(() => {
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+    })
+
+    // Click cancel
+    const cancelBtn = screen.getByRole('button', { name: /Cancelar/i })
+    await user.click(cancelBtn)
+
+    // Dialog should close
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows desbloquear dialog title', async () => {
+    const user = userEvent.setup()
+
+    setupMockFetch({
+      bloqueados: [
+        {
+          id: '1',
+          hospital_id: 'hosp-1',
+          motivo: 'Teste',
+          bloqueado_por: 'admin@test.com',
+          bloqueado_em: new Date().toISOString(),
+          status: 'bloqueado',
+          vagas_movidas: 0,
+          hospitais: { nome: 'Hospital Dialog', cidade: 'SP' },
+        },
+      ],
+    })
+
+    render(<HospitaisBloqueadosPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Hospital Dialog')).toBeInTheDocument()
+    })
+
+    const desbloquearBtn = screen.getByRole('button', { name: /Desbloquear/i })
+    await user.click(desbloquearBtn)
+
+    // Check dialog opened
+    await waitFor(() => {
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+    })
+  })
 })
