@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { format } from 'date-fns'
+import { format, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns'
 import { Calendar, List, Filter, Plus, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -30,6 +30,7 @@ export default function VagasPage() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [selectedDate, setSelectedDate] = useState<Date | undefined>()
+  const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [data, setData] = useState<{
     data: Shift[]
     total: number
@@ -39,16 +40,27 @@ export default function VagasPage() {
   const fetchShifts = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        page: String(page),
-        per_page: viewMode === 'calendar' ? '100' : '20',
-      })
+      const params = new URLSearchParams()
+
+      if (viewMode === 'calendar') {
+        // For calendar, fetch all shifts for the visible month
+        const monthStart = startOfMonth(calendarMonth)
+        const monthEnd = endOfMonth(calendarMonth)
+        params.set('date_from', format(monthStart, 'yyyy-MM-dd'))
+        params.set('date_to', format(monthEnd, 'yyyy-MM-dd'))
+        params.set('per_page', '500') // Get all shifts for the month
+      } else {
+        // For list view, use pagination
+        params.set('page', String(page))
+        params.set('per_page', '20')
+
+        if (filters.date_from) params.set('date_from', filters.date_from)
+        if (filters.date_to) params.set('date_to', filters.date_to)
+      }
 
       if (filters.status) params.set('status', filters.status)
       if (filters.hospital_id) params.set('hospital_id', filters.hospital_id)
       if (filters.especialidade_id) params.set('especialidade_id', filters.especialidade_id)
-      if (filters.date_from) params.set('date_from', filters.date_from)
-      if (filters.date_to) params.set('date_to', filters.date_to)
       if (search) params.set('search', search)
 
       const response = await fetch(`/api/vagas?${params}`)
@@ -62,7 +74,7 @@ export default function VagasPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, filters, search, viewMode])
+  }, [page, filters, search, viewMode, calendarMonth])
 
   useEffect(() => {
     fetchShifts()
@@ -83,6 +95,10 @@ export default function VagasPage() {
     }))
     setViewMode('list')
     setPage(1)
+  }
+
+  const handleCalendarMonthChange = (direction: 'prev' | 'next') => {
+    setCalendarMonth((prev) => (direction === 'next' ? addMonths(prev, 1) : subMonths(prev, 1)))
   }
 
   const handleClearFilters = () => {
@@ -177,6 +193,8 @@ export default function VagasPage() {
               shifts={data?.data || []}
               onDateSelect={handleDateSelect}
               selectedDate={selectedDate}
+              currentMonth={calendarMonth}
+              onMonthChange={handleCalendarMonthChange}
             />
           </div>
         ) : (

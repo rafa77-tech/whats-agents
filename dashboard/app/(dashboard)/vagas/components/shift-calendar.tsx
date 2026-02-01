@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import {
   format,
   startOfMonth,
@@ -8,8 +8,6 @@ import {
   eachDayOfInterval,
   isSameMonth,
   isSameDay,
-  addMonths,
-  subMonths,
   startOfWeek,
   endOfWeek,
 } from 'date-fns'
@@ -23,6 +21,8 @@ interface Props {
   shifts: Shift[]
   onDateSelect: (date: Date) => void
   selectedDate?: Date | undefined
+  currentMonth: Date
+  onMonthChange: (direction: 'prev' | 'next') => void
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -34,9 +34,13 @@ const STATUS_COLORS: Record<string, string> = {
   fechada: 'bg-gray-500',
 }
 
-export function ShiftCalendar({ shifts, onDateSelect, selectedDate }: Props) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-
+export function ShiftCalendar({
+  shifts,
+  onDateSelect,
+  selectedDate,
+  currentMonth,
+  onMonthChange,
+}: Props) {
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentMonth), { locale: ptBR })
     const end = endOfWeek(endOfMonth(currentMonth), { locale: ptBR })
@@ -65,18 +69,10 @@ export function ShiftCalendar({ shifts, onDateSelect, selectedDate }: Props) {
           {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
         </h2>
         <div className="flex gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-          >
+          <Button variant="outline" size="icon" onClick={() => onMonthChange('prev')}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-          >
+          <Button variant="outline" size="icon" onClick={() => onMonthChange('next')}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
