@@ -154,7 +154,7 @@ export default function ConversasPage() {
   return (
     <div className="flex h-full overflow-hidden">
       {/* Left Sidebar - Conversation List */}
-      <div className="flex w-full flex-col border-r bg-background md:w-[380px] lg:w-[420px]">
+      <div className="flex h-full w-full flex-col border-r bg-background md:w-[380px] lg:w-[420px]">
         {/* Chip Selector Header */}
         <div className="border-b bg-emerald-50 px-3 py-2 dark:bg-emerald-950/30">
           <div className="flex items-center justify-between">
@@ -288,7 +288,7 @@ export default function ConversasPage() {
         </div>
 
         {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {data?.data && data.data.length > 0 ? (
             <ChatSidebar
               conversations={data.data}
@@ -317,7 +317,7 @@ export default function ConversasPage() {
       </div>
 
       {/* Right Panel - Chat */}
-      <div className="hidden flex-1 md:flex">
+      <div className="hidden h-full min-h-0 flex-1 md:flex">
         {selectedId ? (
           <ChatPanel conversationId={selectedId} />
         ) : (
