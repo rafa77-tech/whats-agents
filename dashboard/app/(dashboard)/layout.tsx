@@ -18,10 +18,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div
-      className={cn('bg-gray-50', isFullScreenPage ? 'h-screen overflow-hidden' : 'min-h-screen')}
+      className={cn('bg-secondary', isFullScreenPage ? 'h-screen overflow-hidden' : 'min-h-screen')}
     >
       {/* Sidebar - desktop only */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-64 lg:overflow-y-auto lg:border-r lg:border-gray-200 lg:bg-white">
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-64 lg:overflow-y-auto lg:border-r lg:border-border lg:bg-card">
         <Sidebar />
       </aside>
 

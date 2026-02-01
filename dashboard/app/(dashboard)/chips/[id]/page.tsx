@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: ChipDetailPageProps): Promise
 
 export default function ChipDetailPage({ params }: ChipDetailPageProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-secondary">
       <div className="mx-auto max-w-[1400px] p-6">
         <Suspense fallback={<ChipDetailSkeleton />}>
           <ChipDetailContent chipId={params.id} />

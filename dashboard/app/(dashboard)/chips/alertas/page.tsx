@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function AlertsPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-secondary">
       <div className="mx-auto max-w-[1400px] p-6">
         <Suspense fallback={<AlertsPageSkeleton />}>
           <AlertsPageContent />

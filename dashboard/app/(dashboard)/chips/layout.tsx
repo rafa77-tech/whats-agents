@@ -14,7 +14,7 @@ interface ChipsLayoutProps {
 
 export default function ChipsLayout({ children }: ChipsLayoutProps) {
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-secondary">
       <ChipsMobileNav />
       <ChipsModuleSidebar />
       <main className="flex-1 overflow-auto p-4 pt-14 lg:p-6 lg:pt-6">{children}</main>

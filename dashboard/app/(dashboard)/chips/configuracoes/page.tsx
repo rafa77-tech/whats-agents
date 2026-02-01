@@ -16,10 +16,10 @@ export const metadata: Metadata = {
 function ConfigSkeleton() {
   return (
     <div className="animate-pulse space-y-6">
-      <div className="h-8 w-48 rounded bg-gray-200" />
+      <div className="h-8 w-48 rounded bg-muted" />
       <div className="space-y-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-32 rounded bg-gray-200" />
+          <div key={i} className="h-32 rounded bg-muted" />
         ))}
       </div>
     </div>
@@ -28,7 +28,7 @@ function ConfigSkeleton() {
 
 export default function ConfigPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-secondary">
       <div className="mx-auto max-w-[1000px] p-6">
         <Suspense fallback={<ConfigSkeleton />}>
           <ConfigPageContent />

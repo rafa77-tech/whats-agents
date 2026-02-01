@@ -16,19 +16,19 @@ export const metadata: Metadata = {
 function HealthSkeleton() {
   return (
     <div className="animate-pulse space-y-6">
-      <div className="h-8 w-48 rounded bg-gray-200" />
+      <div className="h-8 w-48 rounded bg-muted" />
       <div className="flex justify-center">
-        <div className="h-40 w-40 rounded-full bg-gray-200" />
+        <div className="h-40 w-40 rounded-full bg-muted" />
       </div>
       <div className="grid grid-cols-5 gap-4">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-16 rounded bg-gray-200" />
+          <div key={i} className="h-16 rounded bg-muted" />
         ))}
       </div>
-      <div className="h-48 rounded bg-gray-200" />
+      <div className="h-48 rounded bg-muted" />
       <div className="grid grid-cols-2 gap-4">
-        <div className="h-64 rounded bg-gray-200" />
-        <div className="h-64 rounded bg-gray-200" />
+        <div className="h-64 rounded bg-muted" />
+        <div className="h-64 rounded bg-muted" />
       </div>
     </div>
   )
@@ -36,7 +36,7 @@ function HealthSkeleton() {
 
 export default function HealthPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-secondary">
       <div className="mx-auto max-w-[1600px] p-6">
         <Suspense fallback={<HealthSkeleton />}>
           <HealthPageContent />

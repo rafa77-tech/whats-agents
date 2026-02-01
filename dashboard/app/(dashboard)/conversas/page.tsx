@@ -169,10 +169,10 @@ export default function ConversasPage() {
       {/* Left Sidebar - Conversation List */}
       <div className="flex h-full w-full flex-col border-r bg-background md:w-[380px] lg:w-[420px]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b bg-emerald-50 px-3 py-2 dark:bg-emerald-950/30">
+        <div className="flex items-center justify-between border-b bg-state-ai px-3 py-2">
           <div className="flex items-center gap-2">
-            <Smartphone className="h-4 w-4 text-emerald-600" />
-            <span className="text-xs text-emerald-600 dark:text-emerald-400">
+            <Smartphone className="h-4 w-4 text-state-ai-muted" />
+            <span className="text-xs text-state-ai-muted">
               {chips.length} chips • {totalConversations} conversas
             </span>
           </div>
@@ -187,7 +187,7 @@ export default function ConversasPage() {
               className={cn(
                 'flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
                 !selectedChipId
-                  ? 'bg-emerald-600 text-white'
+                  ? 'bg-state-ai-button text-white'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               )}
             >
@@ -209,7 +209,7 @@ export default function ConversasPage() {
                 className={cn(
                   'flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
                   selectedChipId === chip.id
-                    ? 'bg-emerald-600 text-white'
+                    ? 'bg-state-ai-button text-white'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 )}
               >
@@ -238,10 +238,10 @@ export default function ConversasPage() {
                 className={cn(
                   'rounded px-1.5 py-0.5 text-[10px] font-medium',
                   selectedChip.trust_level === 'verde'
-                    ? 'bg-green-100 text-green-700'
+                    ? 'bg-success-light text-success-dark'
                     : selectedChip.trust_level === 'amarelo'
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-red-100 text-red-700'
+                      ? 'bg-warning-light text-warning-dark'
+                      : 'bg-destructive/10 text-destructive'
                 )}
               >
                 {selectedChip.trust_level}
