@@ -1,104 +1,30 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { format } from 'date-fns'
 import { Calendar, List, Filter, Plus, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { useAuth } from '@/hooks/use-auth'
 import { ShiftList } from './components/shift-list'
 import { ShiftFilters } from './components/shift-filters'
 import { ShiftCalendar } from './components/shift-calendar'
-import type { Shift } from './components/shift-card'
-
-interface Filters {
-  status?: string | undefined
-  hospital_id?: string | undefined
-  especialidade_id?: string | undefined
-  date_from?: string | undefined
-  date_to?: string | undefined
-}
-
-type ViewMode = 'list' | 'calendar'
+import { useShifts } from '@/lib/vagas'
+import { useState } from 'react'
 
 export default function VagasPage() {
-  const { session } = useAuth()
-  const [page, setPage] = useState(1)
-  const [filters, setFilters] = useState<Filters>({})
-  const [search, setSearch] = useState('')
   const [showFilters, setShowFilters] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<ViewMode>('list')
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>()
-  const [data, setData] = useState<{
-    data: Shift[]
-    total: number
-    pages: number
-  } | null>(null)
 
-  const fetchShifts = useCallback(async () => {
-    if (!session?.access_token) return
+  const { data, loading, filters, search, page, viewMode, calendarMonth, selectedDate, actions } =
+    useShifts()
 
-    setLoading(true)
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const params = new URLSearchParams({
-        page: String(page),
-        per_page: viewMode === 'calendar' ? '100' : '20',
-      })
-
-      if (filters.status) params.set('status', filters.status)
-      if (filters.hospital_id) params.set('hospital_id', filters.hospital_id)
-      if (filters.especialidade_id) params.set('especialidade_id', filters.especialidade_id)
-      if (filters.date_from) params.set('date_from', filters.date_from)
-      if (filters.date_to) params.set('date_to', filters.date_to)
-      if (search) params.set('search', search)
-
-      const response = await fetch(`${apiUrl}/dashboard/shifts?${params}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        setData(result)
-      }
-    } catch (err) {
-      console.error('Failed to fetch shifts:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [session?.access_token, page, filters, search, viewMode])
-
-  useEffect(() => {
-    fetchShifts()
-  }, [fetchShifts])
-
-  const handleSearch = (value: string) => {
-    setSearch(value)
-    setPage(1)
-  }
-
-  const handleDateSelect = (date: Date) => {
-    setSelectedDate(date)
-    const dateStr = format(date, 'yyyy-MM-dd')
-    setFilters((prev) => ({
-      ...prev,
-      date_from: dateStr,
-      date_to: dateStr,
-    }))
-    setViewMode('list')
-    setPage(1)
+  const handleApplyFilters = (f: typeof filters) => {
+    actions.setFilters(f)
+    setShowFilters(false)
   }
 
   const handleClearFilters = () => {
-    setFilters({})
-    setSelectedDate(undefined)
+    actions.clearFilters()
     setShowFilters(false)
-    setPage(1)
   }
 
   return (
@@ -122,7 +48,7 @@ export default function VagasPage() {
             <Input
               placeholder="Buscar por hospital ou especialidade..."
               value={search}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(e) => actions.setSearch(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -132,7 +58,7 @@ export default function VagasPage() {
             <Button
               variant={viewMode === 'list' ? 'secondary' : 'ghost'}
               size="icon"
-              onClick={() => setViewMode('list')}
+              onClick={() => actions.setViewMode('list')}
               className="rounded-r-none"
             >
               <List className="h-4 w-4" />
@@ -140,7 +66,7 @@ export default function VagasPage() {
             <Button
               variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
               size="icon"
-              onClick={() => setViewMode('calendar')}
+              onClick={() => actions.setViewMode('calendar')}
               className="rounded-l-none"
             >
               <Calendar className="h-4 w-4" />
@@ -160,11 +86,7 @@ export default function VagasPage() {
               </SheetHeader>
               <ShiftFilters
                 filters={filters}
-                onApply={(f) => {
-                  setFilters(f)
-                  setShowFilters(false)
-                  setPage(1)
-                }}
+                onApply={handleApplyFilters}
                 onClear={handleClearFilters}
               />
             </SheetContent>
@@ -184,8 +106,10 @@ export default function VagasPage() {
           <div className="p-4">
             <ShiftCalendar
               shifts={data?.data || []}
-              onDateSelect={handleDateSelect}
+              onDateSelect={actions.handleDateSelect}
               selectedDate={selectedDate}
+              currentMonth={calendarMonth}
+              onMonthChange={actions.handleCalendarMonthChange}
             />
           </div>
         ) : (
@@ -194,7 +118,7 @@ export default function VagasPage() {
             total={data?.total || 0}
             page={page}
             pages={data?.pages || 1}
-            onPageChange={setPage}
+            onPageChange={actions.setPage}
           />
         )}
       </div>

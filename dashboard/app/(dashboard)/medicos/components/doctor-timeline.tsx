@@ -5,17 +5,9 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { MessageCircle, Send, UserCheck, type LucideIcon } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
-
-interface TimelineEvent {
-  id: string
-  type: string
-  title: string
-  description?: string
-  created_at: string
-  metadata?: Record<string, unknown>
-}
+import { getEventColor } from '@/lib/medicos'
+import type { TimelineEvent } from '@/lib/medicos'
 
 const EVENT_ICONS: Record<string, LucideIcon> = {
   message_sent: Send,
@@ -23,31 +15,17 @@ const EVENT_ICONS: Record<string, LucideIcon> = {
   handoff: UserCheck,
 }
 
-const EVENT_COLORS: Record<string, string> = {
-  message_sent: 'bg-blue-100 text-blue-600',
-  message_received: 'bg-green-100 text-green-600',
-  handoff: 'bg-orange-100 text-orange-600',
-}
-
 interface Props {
   doctorId: string
 }
 
 export function DoctorTimeline({ doctorId }: Props) {
-  const { session } = useAuth()
   const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState<TimelineEvent[]>([])
 
   const fetchTimeline = useCallback(async () => {
-    if (!session?.access_token) return
-
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const response = await fetch(`${apiUrl}/dashboard/doctors/${doctorId}/timeline`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const response = await fetch(`/api/medicos/${doctorId}/timeline`)
 
       if (response.ok) {
         const result = await response.json()
@@ -58,7 +36,7 @@ export function DoctorTimeline({ doctorId }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, doctorId])
+  }, [doctorId])
 
   useEffect(() => {
     fetchTimeline()
@@ -88,7 +66,7 @@ export function DoctorTimeline({ doctorId }: Props) {
       <div className="space-y-6">
         {events.map((event) => {
           const Icon = EVENT_ICONS[event.type] || MessageCircle
-          const colorClass = EVENT_COLORS[event.type] || 'bg-gray-100 text-gray-600'
+          const colorClass = getEventColor(event.type)
 
           return (
             <div key={event.id} className="relative pl-10">

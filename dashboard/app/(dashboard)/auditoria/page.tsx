@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { useAuth } from '@/hooks/use-auth'
 import { AuditList } from './components/audit-list'
 import { AuditFilters } from './components/audit-filters'
 
@@ -35,7 +34,6 @@ interface AuditResponse {
 }
 
 export default function AuditoriaPage() {
-  const { session, hasPermission } = useAuth()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<Filters>({})
   const [showFilters, setShowFilters] = useState(false)
@@ -44,11 +42,8 @@ export default function AuditoriaPage() {
   const [data, setData] = useState<AuditResponse | null>(null)
 
   const fetchLogs = useCallback(async () => {
-    if (!session?.access_token) return
-
     setLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       const params = new URLSearchParams({
         page: String(page),
         per_page: '50',
@@ -59,11 +54,7 @@ export default function AuditoriaPage() {
       if (filters.from_date) params.set('from_date', filters.from_date)
       if (filters.to_date) params.set('to_date', filters.to_date)
 
-      const response = await fetch(`${apiUrl}/dashboard/audit?${params}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const response = await fetch(`/api/auditoria?${params}`)
 
       if (response.ok) {
         const result: AuditResponse = await response.json()
@@ -74,7 +65,7 @@ export default function AuditoriaPage() {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, page, filters])
+  }, [page, filters])
 
   useEffect(() => {
     fetchLogs()
@@ -90,21 +81,14 @@ export default function AuditoriaPage() {
   }
 
   const handleExport = async () => {
-    if (!session?.access_token) return
-
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       const params = new URLSearchParams()
       if (filters.action) params.set('action', filters.action)
       if (filters.actor_email) params.set('actor_email', filters.actor_email)
       if (filters.from_date) params.set('from_date', filters.from_date)
       if (filters.to_date) params.set('to_date', filters.to_date)
 
-      const response = await fetch(`${apiUrl}/dashboard/audit/export?${params}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const response = await fetch(`/api/auditoria/export?${params}`)
 
       if (response.ok) {
         const blob = await response.blob()
@@ -133,15 +117,6 @@ export default function AuditoriaPage() {
     setSearchInput('')
     setShowFilters(false)
     setPage(1)
-  }
-
-  // Check permission
-  if (!hasPermission('manager')) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">Acesso restrito a gestores</p>
-      </div>
-    )
   }
 
   return (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import {
   format,
   startOfMonth,
@@ -8,8 +8,6 @@ import {
   eachDayOfInterval,
   isSameMonth,
   isSameDay,
-  addMonths,
-  subMonths,
   startOfWeek,
   endOfWeek,
 } from 'date-fns'
@@ -17,26 +15,24 @@ import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { Shift } from './shift-card'
+import { getStatusIndicatorColor, WEEK_DAYS } from '@/lib/vagas'
+import type { Shift } from '@/lib/vagas'
 
 interface Props {
   shifts: Shift[]
   onDateSelect: (date: Date) => void
   selectedDate?: Date | undefined
+  currentMonth: Date
+  onMonthChange: (direction: 'prev' | 'next') => void
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  aberta: 'bg-green-500',
-  reservada: 'bg-yellow-500',
-  confirmada: 'bg-blue-500',
-  cancelada: 'bg-red-500',
-  realizada: 'bg-gray-500',
-  fechada: 'bg-gray-500',
-}
-
-export function ShiftCalendar({ shifts, onDateSelect, selectedDate }: Props) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-
+export function ShiftCalendar({
+  shifts,
+  onDateSelect,
+  selectedDate,
+  currentMonth,
+  onMonthChange,
+}: Props) {
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentMonth), { locale: ptBR })
     const end = endOfWeek(endOfMonth(currentMonth), { locale: ptBR })
@@ -55,8 +51,6 @@ export function ShiftCalendar({ shifts, onDateSelect, selectedDate }: Props) {
     return map
   }, [shifts])
 
-  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
-
   return (
     <div className="rounded-lg border bg-card p-4">
       {/* Header */}
@@ -65,18 +59,10 @@ export function ShiftCalendar({ shifts, onDateSelect, selectedDate }: Props) {
           {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
         </h2>
         <div className="flex gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-          >
+          <Button variant="outline" size="icon" onClick={() => onMonthChange('prev')}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-          >
+          <Button variant="outline" size="icon" onClick={() => onMonthChange('next')}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -84,7 +70,7 @@ export function ShiftCalendar({ shifts, onDateSelect, selectedDate }: Props) {
 
       {/* Week days header */}
       <div className="mb-2 grid grid-cols-7 gap-1">
-        {weekDays.map((day) => (
+        {WEEK_DAYS.map((day) => (
           <div key={day} className="py-2 text-center text-xs font-medium text-muted-foreground">
             {day}
           </div>
@@ -122,7 +108,7 @@ export function ShiftCalendar({ shifts, onDateSelect, selectedDate }: Props) {
                     key={shift.id}
                     className={cn(
                       'h-1.5 w-1.5 rounded-full',
-                      STATUS_COLORS[shift.status] || 'bg-gray-500'
+                      getStatusIndicatorColor(shift.status)
                     )}
                     title={`${shift.hospital} - ${shift.especialidade}`}
                   />

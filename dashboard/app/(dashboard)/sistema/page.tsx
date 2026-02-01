@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -15,7 +16,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
-import { Shield, Zap, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
+import { Shield, Zap, AlertTriangle, CheckCircle2, Loader2, Edit2 } from 'lucide-react'
+import { EditRateLimitModal, EditScheduleModal, SafeModeCard } from '@/components/sistema'
 
 interface SystemStatus {
   pilot_mode: boolean
@@ -87,6 +89,8 @@ export default function SistemaPage() {
   const [confirmDialog, setConfirmDialog] = useState<'enable' | 'disable' | null>(null)
   const [featureDialog, setFeatureDialog] = useState<FeatureDialogState | null>(null)
   const [updating, setUpdating] = useState(false)
+  const [editRateLimit, setEditRateLimit] = useState(false)
+  const [editSchedule, setEditSchedule] = useState(false)
 
   const carregarStatus = async () => {
     try {
@@ -313,8 +317,20 @@ export default function SistemaPage() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Rate Limiting</CardTitle>
-            <CardDescription>Limites de envio de mensagens</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Rate Limiting</CardTitle>
+                <CardDescription>Limites de envio de mensagens</CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditRateLimit(true)}
+                disabled={!config}
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {config ? (
@@ -361,8 +377,20 @@ export default function SistemaPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Horario de Operacao</CardTitle>
-            <CardDescription>Quando Julia pode enviar mensagens</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Horario de Operacao</CardTitle>
+                <CardDescription>Quando Julia pode enviar mensagens</CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditSchedule(true)}
+                disabled={!config}
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {config ? (
@@ -407,6 +435,46 @@ export default function SistemaPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Safe Mode Card */}
+      <SafeModeCard
+        isActive={status?.pilot_mode ?? false}
+        onActivate={() => {
+          carregarStatus()
+          carregarConfig()
+        }}
+      />
+
+      {/* Edit Modals */}
+      {editRateLimit && config && (
+        <EditRateLimitModal
+          currentConfig={config.rate_limit}
+          onClose={() => setEditRateLimit(false)}
+          onSave={() => {
+            setEditRateLimit(false)
+            carregarConfig()
+            toast({
+              title: 'Rate Limiting Atualizado',
+              description: 'As novas configuracoes foram salvas.',
+            })
+          }}
+        />
+      )}
+
+      {editSchedule && config && (
+        <EditScheduleModal
+          currentConfig={config.horario}
+          onClose={() => setEditSchedule(false)}
+          onSave={() => {
+            setEditSchedule(false)
+            carregarConfig()
+            toast({
+              title: 'Horario Atualizado',
+              description: 'As novas configuracoes foram salvas.',
+            })
+          }}
+        />
+      )}
 
       {/* Dialogs de confirmacao */}
       <AlertDialog open={confirmDialog === 'enable'} onOpenChange={() => setConfirmDialog(null)}>

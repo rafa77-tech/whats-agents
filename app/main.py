@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.routes import health, test_db, debug_llm, debug_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer, group_entry, webhook_router, webhook_zapi, chips_dashboard, sistema
+from app.api.routes import health, test_db, debug_llm, debug_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer, group_entry, webhook_router, webhook_zapi, chips_dashboard, sistema, guardrails, policy, dashboard_conversations
 from app.api.error_handlers import register_exception_handlers
 from app.api.middleware import TracingMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -71,6 +71,9 @@ app.include_router(webhook_router.router)  # Sprint 26 - Multi-chip Webhook Rout
 app.include_router(webhook_zapi.router)  # Sprint 27 - Z-API Webhook
 app.include_router(chips_dashboard.router)  # Sprint 26 - Chips Dashboard
 app.include_router(sistema.router)  # Sprint 32 - Sistema Config (Modo Piloto)
+app.include_router(guardrails.router)  # Sprint 43 - Guardrails API
+app.include_router(policy.router)  # Sprint 43 - Policy Engine API
+app.include_router(dashboard_conversations.router)  # Sprint 43 - Dashboard Conversations
 
 # Arquivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")

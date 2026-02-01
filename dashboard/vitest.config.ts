@@ -40,6 +40,14 @@ export default defineConfig({
         'lib/mock/**', // Dados mock para desenvolvimento
         'lib/supabase/**', // Wrappers de SDK (testados via E2E)
         'lib/dashboard/index.ts', // Apenas re-exports
+        'lib/vagas/index.ts', // Apenas re-exports
+        'lib/vagas/types.ts', // Apenas tipos
+        'lib/medicos/index.ts', // Apenas re-exports
+        'lib/medicos/types.ts', // Apenas tipos
+        'lib/health/index.ts', // Apenas re-exports
+        'lib/health/types.ts', // Apenas tipos
+        'lib/integridade/index.ts', // Apenas re-exports
+        'lib/integridade/types.ts', // Apenas tipos
         'lib/dashboard/pdf-generator.ts', // Renderização jsPDF, lógica em formatters.ts (100% testado)
         'lib/api/**', // HTTP clients (testados via E2E/integration)
         'lib/config.ts', // Configuração de ambiente

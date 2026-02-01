@@ -19,6 +19,7 @@ import { FunnelDrilldownModal } from '@/components/dashboard/funnel-drilldown-mo
 import { TrendsSection } from '@/components/dashboard/trends-section'
 import { AlertsList } from '@/components/dashboard/alerts-list'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
+import { CriticalAlertsBanner } from '@/components/shared'
 import {
   type DashboardPeriod,
   type MetricData,
@@ -90,6 +91,7 @@ export default function DashboardPage() {
   // Header data
   const [juliaStatus, setJuliaStatus] = useState<'online' | 'offline' | 'degraded'>('offline')
   const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null)
+  const [uptime30d, setUptime30d] = useState<number>(100)
 
   // Fetch functions
   const fetchChipPool = useCallback(async () => {
@@ -327,6 +329,7 @@ export default function DashboardPage() {
         if (data) {
           setJuliaStatus(data.status || 'offline')
           if (data.lastHeartbeat) setLastHeartbeat(new Date(data.lastHeartbeat))
+          if (typeof data.uptime30d === 'number') setUptime30d(data.uptime30d)
         }
       }
     } catch (error) {
@@ -451,7 +454,7 @@ export default function DashboardPage() {
           <DashboardHeader
             juliaStatus={juliaStatus}
             lastHeartbeat={lastHeartbeat}
-            uptime30d={99.8}
+            uptime30d={uptime30d}
             selectedPeriod={selectedPeriod}
             onPeriodChange={handlePeriodChange}
             onExport={handleExport}
@@ -459,6 +462,9 @@ export default function DashboardPage() {
             isRefreshing={isRefreshing}
           />
         </section>
+
+        {/* Critical Alerts Banner */}
+        <CriticalAlertsBanner />
 
         {metricsData.length > 0 && (
           <section aria-label="Metricas Principais">

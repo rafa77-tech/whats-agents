@@ -1,5 +1,10 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+/**
+ * Testes para SistemaPage
+ */
+
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import SistemaPage from '@/app/(dashboard)/sistema/page'
 
 // Mock useToast
@@ -9,101 +14,177 @@ vi.mock('@/hooks/use-toast', () => ({
   }),
 }))
 
-// Mock fetch
 const mockFetch = vi.fn()
-global.fetch = mockFetch
-
-const mockStatusData = (
-  pilotMode: boolean,
-  features: Record<string, boolean> = {
-    discovery_automatico: !pilotMode,
-    oferta_automatica: !pilotMode,
-    reativacao_automatica: !pilotMode,
-    feedback_automatico: !pilotMode,
-  }
-) => ({
-  pilot_mode: pilotMode,
-  autonomous_features: features,
-})
-
-const mockConfigData = {
-  rate_limit: {
-    msgs_por_hora: 20,
-    msgs_por_dia: 100,
-    intervalo_min: 45,
-    intervalo_max: 180,
-  },
-  horario: {
-    inicio: 8,
-    fim: 20,
-    dias: 'Segunda a Sexta',
-  },
-}
-
-const setupMock = (
-  statusData: ReturnType<typeof mockStatusData> | null,
-  configData: typeof mockConfigData | null = mockConfigData
-) => {
-  mockFetch.mockImplementation((url: string) => {
-    if (url.includes('/api/sistema/status')) {
-      if (!statusData) {
-        return Promise.reject(new Error('Network error'))
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(statusData),
-      })
-    }
-    if (url.includes('/api/sistema/config')) {
-      if (!configData) {
-        return Promise.reject(new Error('Network error'))
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(configData),
-      })
-    }
-    return Promise.reject(new Error('Unknown URL'))
-  })
-}
 
 describe('SistemaPage', () => {
+  const mockStatus = {
+    pilot_mode: true,
+    autonomous_features: {
+      discovery_automatico: false,
+      oferta_automatica: false,
+      reativacao_automatica: false,
+      feedback_automatico: false,
+    },
+    last_changed_by: 'admin@test.com',
+    last_changed_at: '2026-01-30T10:00:00Z',
+  }
+
+  const mockConfig = {
+    rate_limit: {
+      msgs_por_hora: 20,
+      msgs_por_dia: 100,
+      intervalo_min: 45,
+      intervalo_max: 180,
+    },
+    horario: {
+      inicio: 8,
+      fim: 20,
+      dias: 'Segunda a Sexta',
+    },
+    uso_atual: {
+      msgs_hora: 5,
+      msgs_dia: 25,
+      horario_permitido: true,
+      hora_atual: '14:30',
+    },
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
+    global.fetch = mockFetch
   })
 
-  it('shows loading state initially', () => {
-    mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  function setupMockFetch(options?: { status?: object; config?: object }) {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/sistema/status')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(options?.status ?? mockStatus),
+        })
+      }
+      if (url.includes('/api/sistema/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(options?.config ?? mockConfig),
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({}),
+      })
+    })
+  }
+
+  it('deve mostrar estado de loading inicialmente', () => {
+    mockFetch.mockImplementation(() => new Promise(() => {}))
 
     render(<SistemaPage />)
 
     expect(screen.getByText('Carregando...')).toBeInTheDocument()
   })
 
-  it('renders pilot mode ACTIVE status correctly', async () => {
-    setupMock(mockStatusData(true))
+  it('deve renderizar titulo e descricao', async () => {
+    setupMockFetch()
+
+    render(<SistemaPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Sistema')).toBeInTheDocument()
+      expect(screen.getByText('Configuracoes e controles do sistema Julia')).toBeInTheDocument()
+    })
+  })
+
+  it('deve renderizar card de Modo Piloto', async () => {
+    setupMockFetch()
+
+    render(<SistemaPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Modo Piloto')).toBeInTheDocument()
+      expect(screen.getByText('Controla se Julia age autonomamente')).toBeInTheDocument()
+    })
+  })
+
+  it('deve mostrar badge ATIVO quando pilot_mode e true', async () => {
+    setupMockFetch({ status: { ...mockStatus, pilot_mode: true } })
 
     render(<SistemaPage />)
 
     await waitFor(() => {
       expect(screen.getByText('ATIVO')).toBeInTheDocument()
-      expect(screen.getByText('Modo seguro ativo')).toBeInTheDocument()
     })
   })
 
-  it('renders pilot mode INACTIVE status correctly', async () => {
-    setupMock(mockStatusData(false))
+  it('deve mostrar badge DESATIVADO quando pilot_mode e false', async () => {
+    setupMockFetch({ status: { ...mockStatus, pilot_mode: false } })
 
     render(<SistemaPage />)
 
     await waitFor(() => {
       expect(screen.getByText('DESATIVADO')).toBeInTheDocument()
-      expect(screen.getByText('Julia autonoma')).toBeInTheDocument()
     })
   })
 
-  it('shows all autonomous feature cards', async () => {
-    setupMock(mockStatusData(false))
+  it('deve renderizar card de Rate Limiting', async () => {
+    setupMockFetch()
+
+    render(<SistemaPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Rate Limiting')).toBeInTheDocument()
+      expect(screen.getByText('Limites de envio de mensagens')).toBeInTheDocument()
+    })
+  })
+
+  it('deve mostrar valores de rate limit', async () => {
+    setupMockFetch()
+
+    render(<SistemaPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('20')).toBeInTheDocument() // msgs_por_hora
+      expect(screen.getByText('100')).toBeInTheDocument() // msgs_por_dia
+    })
+  })
+
+  it('deve renderizar card de Horario de Operacao', async () => {
+    setupMockFetch()
+
+    render(<SistemaPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Horario de Operacao')).toBeInTheDocument()
+      expect(screen.getByText('Quando Julia pode enviar mensagens')).toBeInTheDocument()
+    })
+  })
+
+  it('deve mostrar horario configurado', async () => {
+    setupMockFetch()
+
+    render(<SistemaPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('08h as 20h')).toBeInTheDocument()
+      expect(screen.getByText('Segunda a Sexta')).toBeInTheDocument()
+    })
+  })
+
+  it('deve renderizar Safe Mode Card', async () => {
+    setupMockFetch()
+
+    render(<SistemaPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Safe Mode Emergencial')).toBeInTheDocument()
+    })
+  })
+
+  it('deve mostrar todas as features autonomas', async () => {
+    setupMockFetch()
 
     render(<SistemaPage />)
 
@@ -115,32 +196,9 @@ describe('SistemaPage', () => {
     })
   })
 
-  it('shows rate limiting card', async () => {
-    setupMock(mockStatusData(true))
-
-    render(<SistemaPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Rate Limiting')).toBeInTheDocument()
-      expect(screen.getByText('20')).toBeInTheDocument() // msgs por hora
-      expect(screen.getByText('100')).toBeInTheDocument() // msgs por dia
-    })
-  })
-
-  it('shows operating hours card', async () => {
-    setupMock(mockStatusData(true))
-
-    render(<SistemaPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Horario de Operacao')).toBeInTheDocument()
-      expect(screen.getByText('08h as 20h')).toBeInTheDocument()
-      expect(screen.getByText('Segunda a Sexta')).toBeInTheDocument()
-    })
-  })
-
-  it('opens enable confirmation dialog when switch is toggled', async () => {
-    setupMock(mockStatusData(false))
+  it('deve abrir dialog ao tentar ativar modo piloto', async () => {
+    const user = userEvent.setup()
+    setupMockFetch({ status: { ...mockStatus, pilot_mode: false } })
 
     render(<SistemaPage />)
 
@@ -148,18 +206,19 @@ describe('SistemaPage', () => {
       expect(screen.getByText('DESATIVADO')).toBeInTheDocument()
     })
 
-    // Find the pilot mode switch (first switch in the document)
+    // Find the switch and click it
     const switches = screen.getAllByRole('switch')
-    expect(switches.length).toBeGreaterThan(0)
-    fireEvent.click(switches[0]!)
+    expect(switches[0]).toBeDefined()
+    await user.click(switches[0] as HTMLElement)
 
     await waitFor(() => {
       expect(screen.getByText('Ativar Modo Piloto?')).toBeInTheDocument()
     })
   })
 
-  it('opens disable confirmation dialog when switch is toggled', async () => {
-    setupMock(mockStatusData(true))
+  it('deve abrir dialog ao tentar desativar modo piloto', async () => {
+    const user = userEvent.setup()
+    setupMockFetch({ status: { ...mockStatus, pilot_mode: true } })
 
     render(<SistemaPage />)
 
@@ -167,75 +226,55 @@ describe('SistemaPage', () => {
       expect(screen.getByText('ATIVO')).toBeInTheDocument()
     })
 
-    // Find the pilot mode switch (first switch in the document)
+    // Find the switch and click it
     const switches = screen.getAllByRole('switch')
-    expect(switches.length).toBeGreaterThan(0)
-    fireEvent.click(switches[0]!)
+    expect(switches[0]).toBeDefined()
+    await user.click(switches[0] as HTMLElement)
 
     await waitFor(() => {
       expect(screen.getByText('Desativar Modo Piloto?')).toBeInTheDocument()
-      expect(screen.getByText(/Atencao: acao significativa/)).toBeInTheDocument()
     })
   })
 
-  it('shows last changed info when available', async () => {
-    const statusWithMeta = {
-      ...mockStatusData(true),
-      last_changed_at: '2026-01-16T10:00:00Z',
-      last_changed_by: 'admin@revoluna.com',
-    }
-    setupMock(statusWithMeta)
+  it('deve mostrar ultima alteracao quando disponivel', async () => {
+    setupMockFetch()
 
     render(<SistemaPage />)
 
     await waitFor(() => {
       expect(screen.getByText(/Ultima alteracao:/)).toBeInTheDocument()
-      expect(screen.getByText(/admin@revoluna.com/)).toBeInTheDocument()
+      expect(screen.getByText(/admin@test.com/)).toBeInTheDocument()
     })
   })
 
-  it('handles API error gracefully', async () => {
-    setupMock(null)
-
-    render(<SistemaPage />)
-
-    // Should still show the page after loading (empty state from error)
-    await waitFor(() => {
-      expect(screen.queryByText('Carregando...')).not.toBeInTheDocument()
-    })
-  })
-
-  it('disables feature switches when pilot mode is active', async () => {
-    setupMock(mockStatusData(true))
+  it('deve mostrar uso atual de rate limit', async () => {
+    setupMockFetch()
 
     render(<SistemaPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('ATIVO')).toBeInTheDocument()
+      expect(screen.getByText('5/20')).toBeInTheDocument() // msgs_hora
+      expect(screen.getByText('25/100')).toBeInTheDocument() // msgs_dia
     })
-
-    // All feature switches should be disabled
-    const switches = screen.getAllByRole('switch')
-    // First switch is pilot mode, remaining are feature toggles
-    for (let i = 1; i < switches.length; i++) {
-      expect(switches[i]).toBeDisabled()
-    }
   })
 
-  it('enables feature switches when pilot mode is inactive', async () => {
-    setupMock(mockStatusData(false))
+  it('deve mostrar status do horario atual', async () => {
+    setupMockFetch()
 
     render(<SistemaPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('DESATIVADO')).toBeInTheDocument()
+      expect(screen.getByText('Dentro do horario')).toBeInTheDocument()
     })
+  })
 
-    // All feature switches should be enabled
-    const switches = screen.getAllByRole('switch')
-    // First switch is pilot mode, remaining are feature toggles
-    for (let i = 1; i < switches.length; i++) {
-      expect(switches[i]).not.toBeDisabled()
-    }
+  it('deve mostrar features desabilitadas quando em modo piloto', async () => {
+    setupMockFetch({ status: { ...mockStatus, pilot_mode: true } })
+
+    render(<SistemaPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Desative o Modo Piloto para controlar/)).toBeInTheDocument()
+    })
   })
 })

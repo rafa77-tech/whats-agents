@@ -159,4 +159,60 @@ describe('BloquearHospitalDialog', () => {
 
     expect(mockFetch).not.toHaveBeenCalled()
   })
+
+  // =============================================================================
+  // Cenarios adicionais: Estado e erros
+  // =============================================================================
+
+  it('clears state when dialog is reopened', async () => {
+    const { rerender } = render(<BloquearHospitalDialog {...defaultProps} open={false} />)
+
+    // Open dialog
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve([{ id: '1', nome: 'Hospital A', cidade: 'SP', vagas_abertas: 0 }]),
+    })
+
+    rerender(<BloquearHospitalDialog {...defaultProps} open={true} />)
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/hospitais?excluir_bloqueados=true')
+    })
+
+    // Should show placeholder (state cleared)
+    expect(screen.getByText('Selecione um hospital...')).toBeInTheDocument()
+  })
+
+  it('handles API error gracefully', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      json: () => Promise.resolve({ detail: 'Erro de servidor' }),
+    })
+
+    render(<BloquearHospitalDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled()
+    })
+
+    // Should not crash and show empty state
+    expect(screen.getByText('Selecione um hospital...')).toBeInTheDocument()
+  })
+
+  it('handles non-array response gracefully', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ error: 'Invalid response' }),
+    })
+
+    render(<BloquearHospitalDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled()
+    })
+
+    // Should not crash
+    expect(screen.getByText('Selecione um hospital...')).toBeInTheDocument()
+  })
 })

@@ -5,62 +5,21 @@ import { Phone, Stethoscope, MapPin } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { getInitials, getStageColor, getStageLabel } from '@/lib/medicos'
+import type { Doctor } from '@/lib/medicos'
 
-export interface Doctor {
-  id: string
-  nome: string
-  telefone: string
-  especialidade?: string
-  cidade?: string
-  stage_jornada?: string
-  opt_out: boolean
-  created_at: string
-}
+export type { Doctor }
 
 interface Props {
   doctor: Doctor
 }
 
-const STAGE_COLORS: Record<string, string> = {
-  novo: 'bg-gray-100 text-gray-800',
-  prospecting: 'bg-gray-100 text-gray-800',
-  respondeu: 'bg-blue-100 text-blue-800',
-  engaged: 'bg-blue-100 text-blue-800',
-  negociando: 'bg-yellow-100 text-yellow-800',
-  negotiating: 'bg-yellow-100 text-yellow-800',
-  convertido: 'bg-green-100 text-green-800',
-  converted: 'bg-green-100 text-green-800',
-  perdido: 'bg-red-100 text-red-800',
-  lost: 'bg-red-100 text-red-800',
-}
-
-const STAGE_LABELS: Record<string, string> = {
-  novo: 'Novo',
-  prospecting: 'Prospeccao',
-  respondeu: 'Respondeu',
-  engaged: 'Engajado',
-  negociando: 'Negociando',
-  negotiating: 'Negociando',
-  convertido: 'Convertido',
-  converted: 'Convertido',
-  perdido: 'Perdido',
-  lost: 'Perdido',
-}
-
 export function DoctorCard({ doctor }: Props) {
   const router = useRouter()
 
-  const initials =
-    (doctor.nome || 'XX')
-      .split(' ')
-      .slice(0, 2)
-      .map((n) => n?.[0] || '')
-      .join('')
-      .toUpperCase() || 'XX'
-
-  const stageColor = STAGE_COLORS[doctor.stage_jornada || ''] || 'bg-gray-100 text-gray-800'
-  const stageLabel =
-    STAGE_LABELS[doctor.stage_jornada || ''] || doctor.stage_jornada || 'Desconhecido'
+  const initials = getInitials(doctor.nome)
+  const stageColor = getStageColor(doctor.stage_jornada)
+  const stageLabel = getStageLabel(doctor.stage_jornada)
 
   return (
     <div

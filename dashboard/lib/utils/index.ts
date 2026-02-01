@@ -35,3 +35,16 @@ export function formatRelativeTime(date: Date | string): string {
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h`
   return `${Math.floor(diffInSeconds / 86400)}d`
 }
+
+/**
+ * Formats a Brazilian phone number.
+ * @param phone - Phone number (with or without country code)
+ * @returns Formatted phone as (11) 99999-9999
+ */
+export function formatPhone(phone: string): string {
+  const cleaned = phone.replace(/\D/g, '').slice(-11)
+  if (cleaned.length === 11) {
+    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
+  }
+  return phone.slice(-11)
+}

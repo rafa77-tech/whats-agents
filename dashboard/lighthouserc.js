@@ -56,7 +56,7 @@ module.exports = {
         label: 'error',
 
         // Best Practices
-        'errors-in-console': 'warn',
+        'errors-in-console': 'off', // CI doesn't have backend, so console errors are expected
         'valid-source-maps': 'off',
         'inspector-issues': 'warn',
 
@@ -81,8 +81,9 @@ module.exports = {
         'non-composited-animations': 'off',
         'prioritize-lcp-image': 'off',
 
-        // Allow some unused JS (Next.js framework overhead is unavoidable)
+        // Allow some unused JS/CSS (Next.js/Tailwind framework overhead is unavoidable)
         'unused-javascript': 'off',
+        'unused-css-rules': 'off',
 
         // Disable deprecated/removed audits
         'no-unload-listeners': 'off',

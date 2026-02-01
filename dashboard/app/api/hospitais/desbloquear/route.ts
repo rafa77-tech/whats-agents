@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import {
+  verificarHospitalBloqueado,
+  desbloquearHospital,
+  registrarAuditLog,
+  type DesbloquearHospitalRequest,
+} from '@/lib/hospitais'
 
 export const dynamic = 'force-dynamic'
-
-interface DesbloquearRequest {
-  hospital_id: string
-}
 
 /**
  * POST /api/hospitais/desbloquear
@@ -24,77 +26,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'Não autorizado' }, { status: 401 })
     }
 
-    const body = (await request.json()) as DesbloquearRequest
+    const body = (await request.json()) as DesbloquearHospitalRequest
     const { hospital_id } = body
 
+    // Validação
     if (!hospital_id) {
       return NextResponse.json({ detail: 'hospital_id é obrigatório' }, { status: 400 })
     }
 
     // Buscar registro de bloqueio ativo
-    const { data: bloqueio, error: bloqueioError } = await supabase
-      .from('hospitais_bloqueados')
-      .select('id, vagas_movidas, hospitais(nome)')
-      .eq('hospital_id', hospital_id)
-      .eq('status', 'bloqueado')
-      .single()
-
-    if (bloqueioError || !bloqueio) {
+    const { bloqueado, bloqueio } = await verificarHospitalBloqueado(supabase, hospital_id)
+    if (!bloqueado || !bloqueio) {
       return NextResponse.json({ detail: 'Hospital não está bloqueado' }, { status: 404 })
     }
 
-    // Atualizar status para desbloqueado
-    const { error: updateError } = await supabase
-      .from('hospitais_bloqueados')
-      .update({
-        status: 'desbloqueado',
-        desbloqueado_em: new Date().toISOString(),
-        desbloqueado_por: user.email || 'desconhecido',
-      })
-      .eq('id', bloqueio.id)
+    // Desbloquear hospital
+    const userEmail = user.email || 'desconhecido'
+    const result = await desbloquearHospital(supabase, hospital_id, bloqueio.id, userEmail)
 
-    if (updateError) {
-      console.error('Erro ao desbloquear hospital:', updateError)
-      return NextResponse.json({ detail: 'Erro ao desbloquear hospital' }, { status: 500 })
-    }
-
-    // Contar vagas que serão restauradas
-    const { count: vagasRestauradas } = await supabase
-      .from('vagas')
-      .select('id', { count: 'exact', head: true })
-      .eq('hospital_id', hospital_id)
-      .eq('status', 'bloqueada')
-
-    // Restaurar vagas bloqueadas para "aberta"
-    await supabase
-      .from('vagas')
-      .update({ status: 'aberta' })
-      .eq('hospital_id', hospital_id)
-      .eq('status', 'bloqueada')
-
-    // Registrar no audit_log
+    // Extrair nome do hospital do bloqueio
     const hospitalNome =
       bloqueio.hospitais && typeof bloqueio.hospitais === 'object' && 'nome' in bloqueio.hospitais
         ? bloqueio.hospitais.nome
         : 'desconhecido'
 
-    await supabase.from('audit_log').insert({
-      action: 'hospital_desbloqueado',
-      user_email: user.email,
-      details: {
-        hospital_id,
-        hospital_nome: hospitalNome,
-        vagas_restauradas: vagasRestauradas || 0,
-      },
-      created_at: new Date().toISOString(),
+    // Registrar no audit_log
+    await registrarAuditLog(supabase, 'hospital_desbloqueado', userEmail, {
+      hospital_id,
+      hospital_nome: hospitalNome,
+      vagas_restauradas: result.vagas_restauradas,
     })
 
     return NextResponse.json({
       success: true,
-      vagas_restauradas: vagasRestauradas || 0,
+      vagas_restauradas: result.vagas_restauradas,
     })
   } catch (error) {
     console.error('Erro ao desbloquear hospital:', error)
-    return NextResponse.json({ detail: 'Erro interno do servidor' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Erro interno do servidor'
+    return NextResponse.json({ detail: message }, { status: 500 })
   }
 }

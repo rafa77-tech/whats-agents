@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jull.ia Control Prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">
+            <img src="logo.png" alt="Jull.ia" />
+          </div>
+          <div>
+            <div class="brand-name">Jull.ia</div>
+            <div class="brand-tag">Escalista virtual AI autonoma</div>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <div class="nav-group">
+            <div class="nav-title">Centro de comando</div>
+            <button class="nav-item active" data-view="home">Home</button>
+            <button class="nav-item" data-view="alerts">Alertas</button>
+          </div>
+          <div class="nav-group">
+            <div class="nav-title">Operacao</div>
+            <button class="nav-item" data-view="monitor">Monitor</button>
+            <button class="nav-item" data-view="health">Health</button>
+          </div>
+          <div class="nav-group">
+            <div class="nav-title">Core</div>
+            <button class="nav-item" data-view="campaigns">Campanhas</button>
+            <button class="nav-item" data-view="conversations">Conversas</button>
+            <button class="nav-item" data-view="vagas">Vagas</button>
+          </div>
+          <div class="nav-group">
+            <div class="nav-title">Infra</div>
+            <button class="nav-item" data-view="chips">Chips</button>
+            <button class="nav-item" data-view="warmup">Warmup</button>
+            <button class="nav-item" data-view="grupos">Grupos</button>
+          </div>
+          <div class="nav-group">
+            <div class="nav-title">Governanca</div>
+            <button class="nav-item" data-view="qualidade">Qualidade</button>
+            <button class="nav-item" data-view="auditoria">Auditoria</button>
+            <button class="nav-item" data-view="sistema">Sistema</button>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="status-pill">Saude OK</div>
+          <div class="status-pill muted">1 alerta critico</div>
+        </div>
+      </aside>
+
+      <div class="content">
+        <header class="topbar">
+          <div class="top-left">
+            <div class="page-title" id="pageTitle">Home</div>
+            <div class="page-subtitle" id="pageSubtitle">Centro de comando</div>
+          </div>
+          <div class="top-right">
+            <input class="search" placeholder="Buscar chips, conversas, campanhas" />
+            <button class="btn ghost">Atualizar</button>
+            <button class="btn primary">Nova acao</button>
+          </div>
+        </header>
+
+        <main class="view" id="home">
+          <section class="grid-3">
+            <div class="card">
+              <div class="card-title">Saude do sistema</div>
+              <div class="kpi">95/100</div>
+              <div class="muted">Sem incidentes criticos ativos.</div>
+              <button class="btn ghost small">Ver Health</button>
+            </div>
+            <div class="card">
+              <div class="card-title">Campanhas ativas</div>
+              <ul class="list">
+                <li><span>Reativacao SP</span><span class="muted">2.4% resp.</span></li>
+                <li><span>Plantao Noturno</span><span class="muted">0.9% resp.</span></li>
+                <li><span>Recuperacao Inativos</span><span class="muted">3.1% resp.</span></li>
+              </ul>
+              <button class="btn ghost small">Abrir campanhas</button>
+            </div>
+            <div class="card">
+              <div class="card-title">Conversas criticas</div>
+              <ul class="list">
+                <li><span>Dra. Ana</span><span class="muted">12 min</span></li>
+                <li><span>Dr. Carlos</span><span class="muted">18 min</span></li>
+                <li><span>Dra. Flavia</span><span class="muted">24 min</span></li>
+              </ul>
+              <button class="btn ghost small">Ir para inbox</button>
+            </div>
+          </section>
+
+          <section class="card emphasis">
+            <div>
+              <div class="card-title">Proxima acao</div>
+              <div class="headline">Resolver alerta de conexao perdida</div>
+              <div class="muted">Chip zapi-revoluna desconectado ha 10h.</div>
+            </div>
+            <button class="btn primary">Ir para alertas</button>
+          </section>
+
+          <section class="grid-4">
+            <div class="metric">
+              <div class="metric-label">Taxa de resposta</div>
+              <div class="metric-value">98%</div>
+              <div class="muted">+2%</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Conversao</div>
+              <div class="metric-value">12%</div>
+              <div class="muted">+1%</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Latencia media</div>
+              <div class="metric-value">1.6s</div>
+              <div class="muted">-0.2s</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Fila</div>
+              <div class="metric-value">4</div>
+              <div class="muted">-3</div>
+            </div>
+          </section>
+        </main>
+
+        <main class="view hidden" id="monitor">
+          <section class="header-row">
+            <div>
+              <div class="card-title">Operacao em tempo real</div>
+              <div class="muted">Ultima hora</div>
+            </div>
+            <div class="chips">
+              <span class="chip">Status</span>
+              <span class="chip">Categoria</span>
+              <span class="chip">Ultimas 24h</span>
+            </div>
+          </section>
+
+          <section class="grid-4">
+            <div class="metric">
+              <div class="metric-label">Jobs</div>
+              <div class="metric-value">32</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Sucesso</div>
+              <div class="metric-value">96%</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Erros</div>
+              <div class="metric-value">1</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Atrasados</div>
+              <div class="metric-value">0</div>
+            </div>
+          </section>
+
+          <section class="table-card">
+            <div class="table-header">
+              <div>Jobs do sistema</div>
+              <button class="btn ghost small">Ver detalhes</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Job</th>
+                  <th>Categoria</th>
+                  <th>Ultima execucao</th>
+                  <th>Status</th>
+                  <th>Duracao</th>
+                  <th>Execucoes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Processar Campanhas</td>
+                  <td>critical</td>
+                  <td>41s atras</td>
+                  <td><span class="badge">Sucesso</span></td>
+                  <td>499ms</td>
+                  <td>200</td>
+                </tr>
+                <tr>
+                  <td>Processar Mensagens</td>
+                  <td>critical</td>
+                  <td>42s atras</td>
+                  <td><span class="badge">Sucesso</span></td>
+                  <td>506ms</td>
+                  <td>200</td>
+                </tr>
+                <tr>
+                  <td>Snapshot de Chips</td>
+                  <td>daily</td>
+                  <td>11h atras</td>
+                  <td><span class="badge">Sucesso</span></td>
+                  <td>2.2s</td>
+                  <td>1</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </main>
+
+        <main class="view hidden" id="campaigns">
+          <section class="header-row">
+            <div>
+              <div class="card-title">Campanhas</div>
+              <div class="muted">Gestao de campanhas ativas e pausadas</div>
+            </div>
+            <button class="btn primary">Nova campanha</button>
+          </section>
+          <section class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Campanha</th>
+                  <th>Status</th>
+                  <th>Publico</th>
+                  <th>Enviados</th>
+                  <th>Respostas</th>
+                  <th>Proxima execucao</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Reativacao SP</td>
+                  <td><span class="badge">Rodando</span></td>
+                  <td>3.2k</td>
+                  <td>1.4k</td>
+                  <td>2.4%</td>
+                  <td>Hoje 18:00</td>
+                </tr>
+                <tr>
+                  <td>Plantao Noturno</td>
+                  <td><span class="badge muted">Pausada</span></td>
+                  <td>1.1k</td>
+                  <td>0.5k</td>
+                  <td>0.9%</td>
+                  <td>--</td>
+                </tr>
+                <tr>
+                  <td>Recuperacao Inativos</td>
+                  <td><span class="badge">Rodando</span></td>
+                  <td>4.0k</td>
+                  <td>2.3k</td>
+                  <td>3.1%</td>
+                  <td>Amanha 10:00</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </main>
+
+        <main class="view hidden" id="conversations">
+          <section class="split">
+            <div class="panel">
+              <div class="panel-header">
+                <div class="card-title">Inbox</div>
+                <div class="chips">
+                  <span class="chip">Criticas</span>
+                  <span class="chip">Sem resposta</span>
+                </div>
+              </div>
+              <ul class="conversation-list">
+                <li class="conversation active">
+                  <div>
+                    <div class="name">Dra. Ana</div>
+                    <div class="muted">Sem resposta ha 12 min</div>
+                  </div>
+                  <div class="badge danger">Critica</div>
+                </li>
+                <li class="conversation">
+                  <div>
+                    <div class="name">Dr. Carlos</div>
+                    <div class="muted">Sem resposta ha 18 min</div>
+                  </div>
+                  <div class="badge">Risco</div>
+                </li>
+                <li class="conversation">
+                  <div>
+                    <div class="name">Dra. Flavia</div>
+                    <div class="muted">Ultima msg 24 min</div>
+                  </div>
+                  <div class="badge muted">Pendente</div>
+                </li>
+              </ul>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <div class="card-title">Conversa</div>
+                <button class="btn primary">Assumir conversa</button>
+              </div>
+              <div class="chat">
+                <div class="bubble">Oi, tudo bem? Tenho interesse em plantao.</div>
+                <div class="bubble me">Perfeito! Qual sua disponibilidade?</div>
+                <div class="bubble">Noite e fim de semana.</div>
+              </div>
+              <div class="input-row">
+                <input placeholder="Digite sua resposta..." />
+                <button class="btn primary">Enviar</button>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <main class="view hidden" id="alerts">
+          <section class="card">
+            <div class="card-title">Alertas criticos</div>
+            <div class="alert-item">
+              <div>
+                <div class="headline">connection_lost</div>
+                <div class="muted">Chip 5511945128618 desconectado</div>
+              </div>
+              <button class="btn primary">Resolver</button>
+            </div>
+          </section>
+        </main>
+
+        <main class="view hidden" id="health">
+          <section class="grid-3">
+            <div class="card">
+              <div class="card-title">Score geral</div>
+              <div class="kpi">95/100</div>
+              <div class="muted">Sem incidentes criticos ativos.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Servicos</div>
+              <div class="list">
+                <span>WhatsApp: OK</span>
+                <span>Redis: OK</span>
+                <span>Supabase: OK</span>
+                <span>LLM: OK</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Fila</div>
+              <div class="kpi">0</div>
+              <div class="muted">Pendentes</div>
+            </div>
+          </section>
+
+          <section class="table-card">
+            <div class="table-header">
+              <div>Alertas ativos</div>
+              <button class="btn ghost small">Ver detalhes</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Servico</th>
+                  <th>Tipo</th>
+                  <th>Inicio</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Scheduler</td>
+                  <td>Validar telefones</td>
+                  <td>2h atras</td>
+                  <td><span class="badge danger">Alerta</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </main>
+
+        <main class="view hidden" id="vagas">
+          <section class="header-row">
+            <div>
+              <div class="card-title">Vagas</div>
+              <div class="muted">Gestao de plantao em tempo real</div>
+            </div>
+            <button class="btn primary">Nova vaga</button>
+          </section>
+          <section class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Hospital</th>
+                  <th>Especialidade</th>
+                  <th>Data</th>
+                  <th>Status</th>
+                  <th>Valor</th>
+                  <th>Medico</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>UPA Vila Mariana</td>
+                  <td>Clinica Medica</td>
+                  <td>02/02 07:00-19:00</td>
+                  <td><span class="badge">Aberta</span></td>
+                  <td>R$ 1.800</td>
+                  <td>--</td>
+                </tr>
+                <tr>
+                  <td>Hospital Waldomiro</td>
+                  <td>Neonatologia</td>
+                  <td>03/02 07:00-12:00</td>
+                  <td><span class="badge muted">Reservada</span></td>
+                  <td>R$ 1.000</td>
+                  <td>Dra. Flavia</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </main>
+
+        <main class="view hidden" id="chips">
+          <section class="header-row">
+            <div>
+              <div class="card-title">Chips e instancias</div>
+              <div class="muted">Pool operacional</div>
+            </div>
+            <button class="btn primary">Nova instancia</button>
+          </section>
+          <section class="grid-4">
+            <div class="metric">
+              <div class="metric-label">Ativos</div>
+              <div class="metric-value">4</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Warmup</div>
+              <div class="metric-value">2</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Alertas</div>
+              <div class="metric-value">1</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Trust medio</div>
+              <div class="metric-value">88.5</div>
+            </div>
+          </section>
+          <section class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Instancia</th>
+                  <th>Status</th>
+                  <th>Trust</th>
+                  <th>Msgs hoje</th>
+                  <th>Erros 24h</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>zapi-revoluna</td>
+                  <td><span class="badge danger">Alerta</span></td>
+                  <td>92</td>
+                  <td>0/100</td>
+                  <td>1</td>
+                </tr>
+                <tr>
+                  <td>Revoluna-01</td>
+                  <td><span class="badge">Ativo</span></td>
+                  <td>86</td>
+                  <td>0/30</td>
+                  <td>0</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </main>
+
+        <main class="view hidden" id="warmup">
+          <section class="grid-4">
+            <div class="metric">
+              <div class="metric-label">Planejadas</div>
+              <div class="metric-value">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Executadas</div>
+              <div class="metric-value">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Falhas</div>
+              <div class="metric-value">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Taxa de sucesso</div>
+              <div class="metric-value">0%</div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-title">Atividades do dia</div>
+            <div class="muted">Nenhuma atividade agendada.</div>
+          </section>
+        </main>
+
+        <main class="view hidden" id="grupos">
+          <section class="header-row">
+            <div>
+              <div class="card-title">Grupos</div>
+              <div class="muted">Entrada e gestao de links</div>
+            </div>
+            <button class="btn primary">Importar links</button>
+          </section>
+          <section class="grid-3">
+            <div class="card">
+              <div class="card-title">Capacidade</div>
+              <div class="kpi">0/100</div>
+              <div class="muted">Grupos ativos</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Fila</div>
+              <div class="kpi">0</div>
+              <div class="muted">Processando</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Processados hoje</div>
+              <div class="kpi">0</div>
+              <div class="muted">Sucesso/erro</div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-title">Links de grupos</div>
+            <div class="muted">Nenhum link encontrado.</div>
+          </section>
+        </main>
+
+        <main class="view hidden" id="qualidade">
+          <section class="grid-4">
+            <div class="metric">
+              <div class="metric-label">Avaliadas</div>
+              <div class="metric-value">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Pendentes</div>
+              <div class="metric-value">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Score medio</div>
+              <div class="metric-value">0/5</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Validacoes</div>
+              <div class="metric-value">98%</div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-title">Sugestoes pendentes</div>
+            <div class="muted">Nenhuma sugestao no momento.</div>
+          </section>
+        </main>
+
+        <main class="view hidden" id="auditoria">
+          <section class="header-row">
+            <div>
+              <div class="card-title">Auditoria</div>
+              <div class="muted">Historico de acoes no sistema</div>
+            </div>
+            <button class="btn ghost">Exportar</button>
+          </section>
+          <section class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Acao</th>
+                  <th>Modulo</th>
+                  <th>Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>operador_manual</td>
+                  <td>Pausou campanha</td>
+                  <td>Campanhas</td>
+                  <td>01/02 10:22</td>
+                </tr>
+                <tr>
+                  <td>system</td>
+                  <td>Reiniciou job</td>
+                  <td>Monitor</td>
+                  <td>01/02 09:12</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </main>
+
+        <main class="view hidden" id="sistema">
+          <section class="grid-3">
+            <div class="card">
+              <div class="card-title">Modo piloto</div>
+              <div class="headline">Ativo</div>
+              <div class="muted">Acoes autonomas desabilitadas.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Rate limiting</div>
+              <div class="list">
+                <span>Mensagens/hora: 20</span>
+                <span>Mensagens/dia: 200</span>
+                <span>Intervalo: 45-180s</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Horario de operacao</div>
+              <div class="list">
+                <span>08h as 20h</span>
+                <span>Segunda a sexta</span>
+              </div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-title">Safe mode emergencial</div>
+            <div class="muted">Todas as operacoes autonomas pausadas.</div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

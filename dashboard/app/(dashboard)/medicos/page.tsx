@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { useAuth } from '@/hooks/use-auth'
 import { DoctorList } from './components/doctor-list'
 import { DoctorFilters } from './components/doctor-filters'
 import type { Doctor } from './components/doctor-card'
@@ -19,7 +18,6 @@ interface Filters {
 }
 
 export default function MedicosPage() {
-  const { session } = useAuth()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<Filters>({})
   const [search, setSearch] = useState('')
@@ -32,11 +30,8 @@ export default function MedicosPage() {
   } | null>(null)
 
   const fetchDoctors = useCallback(async () => {
-    if (!session?.access_token) return
-
     setLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       const params = new URLSearchParams({
         page: String(page),
         per_page: '20',
@@ -47,11 +42,7 @@ export default function MedicosPage() {
       if (filters.opt_out !== undefined) params.set('opt_out', String(filters.opt_out))
       if (filters.search) params.set('search', filters.search)
 
-      const response = await fetch(`${apiUrl}/dashboard/doctors?${params}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const response = await fetch(`/api/medicos?${params}`)
 
       if (response.ok) {
         const result = await response.json()
@@ -62,7 +53,7 @@ export default function MedicosPage() {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, page, filters])
+  }, [page, filters])
 
   useEffect(() => {
     fetchDoctors()
