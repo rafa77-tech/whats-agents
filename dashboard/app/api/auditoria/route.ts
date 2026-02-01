@@ -1,41 +1,90 @@
 /**
  * API: GET /api/auditoria
  *
- * Proxy para listagem de logs de auditoria do backend Python.
+ * Lista logs de auditoria do banco de dados.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
-    const params = new URLSearchParams()
+    const page = parseInt(searchParams.get('page') || '1')
+    const perPage = parseInt(searchParams.get('per_page') || '50')
+    const action = searchParams.get('action')
+    const actorEmail = searchParams.get('actor_email')
+    const fromDate = searchParams.get('from_date')
+    const toDate = searchParams.get('to_date')
 
-    // Forward all query params
-    searchParams.forEach((value, key) => {
-      params.set(key, value)
-    })
+    const supabase = createAdminClient()
 
-    const res = await fetch(`${API_URL}/dashboard/audit?${params.toString()}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.API_SECRET ?? ''}`,
-      },
-      cache: 'no-store',
-    })
+    // Build query
+    let query = supabase
+      .from('audit_log')
+      .select(
+        `
+        id,
+        action,
+        user_email,
+        details,
+        created_at
+      `,
+        { count: 'exact' }
+      )
 
-    if (!res.ok) {
-      if (res.status === 404) {
-        return NextResponse.json({ data: [], total: 0, page: 1, per_page: 50, pages: 0 })
-      }
-      throw new Error(`Backend returned ${res.status}`)
+    // Apply filters
+    if (action) {
+      query = query.eq('action', action)
+    }
+    if (actorEmail) {
+      query = query.ilike('user_email', `%${actorEmail}%`)
+    }
+    if (fromDate) {
+      query = query.gte('created_at', fromDate)
+    }
+    if (toDate) {
+      query = query.lte('created_at', toDate)
     }
 
-    const data: unknown = await res.json()
-    return NextResponse.json(data)
+    // Pagination
+    const from = (page - 1) * perPage
+    const to = from + perPage - 1
+
+    query = query.order('created_at', { ascending: false }).range(from, to)
+
+    const { data: logs, error, count } = await query
+
+    if (error) {
+      console.error('Erro ao buscar logs de auditoria:', error)
+      throw error
+    }
+
+    // Transform data to match frontend interface
+    const data = (logs || []).map((log) => {
+      const details = (log.details as Record<string, unknown>) || {}
+      return {
+        id: log.id,
+        action: log.action,
+        actor_email: log.user_email || 'system',
+        actor_role: (details.role as string) || 'unknown',
+        details: details,
+        created_at: log.created_at,
+      }
+    })
+
+    const total = count || 0
+    const pages = Math.ceil(total / perPage)
+
+    return NextResponse.json({
+      data,
+      total,
+      page,
+      per_page: perPage,
+      pages,
+    })
   } catch (error) {
     console.error('Erro ao buscar logs de auditoria:', error)
     return NextResponse.json({ data: [], total: 0, page: 1, per_page: 50, pages: 0 })
