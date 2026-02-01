@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Fredoka:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   --primary: #ff1200;
@@ -22,7 +22,7 @@
 
 body {
   margin: 0;
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--black);
   background: var(--white);
 }
@@ -66,8 +66,9 @@ body {
 }
 
 .brand-name {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 18px;
+  font-weight: 600;
 }
 
 .brand-tag {
@@ -145,8 +146,9 @@ body {
 }
 
 .page-title {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 22px;
+  font-weight: 600;
 }
 
 .page-subtitle {
@@ -236,13 +238,15 @@ body {
 }
 
 .kpi {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 28px;
+  font-weight: 600;
 }
 
 .headline {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 22px;
+  font-weight: 600;
 }
 
 .emphasis {
@@ -266,8 +270,9 @@ body {
 }
 
 .metric-value {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 24px;
+  font-weight: 600;
   margin-top: 6px;
 }
 
@@ -480,8 +485,9 @@ th {
 }
 
 .ds-title {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 26px;
+  font-weight: 600;
   margin-bottom: 6px;
 }
 
@@ -523,22 +529,24 @@ th {
 }
 
 .type-h1 {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 28px;
+  font-weight: 600;
 }
 
 .type-h2 {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 22px;
+  font-weight: 600;
 }
 
 .type-body {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 16px;
 }
 
 .type-small {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 13px;
 }
 
@@ -744,8 +752,9 @@ th {
 }
 
 .state-title {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 18px;
+  font-weight: 600;
 }
 
 .pill {
