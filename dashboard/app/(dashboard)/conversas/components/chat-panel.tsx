@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Phone, MoreVertical, User, Bot, UserCheck, CheckCheck } from 'lucide-react'
+import { Phone, MoreVertical, User, Bot, UserCheck, CheckCheck, Hand, RotateCcw } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,6 +12,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
@@ -37,13 +38,14 @@ interface ConversationDetail {
 
 interface Props {
   conversationId: string
-  onRefresh?: () => void
+  onControlChange?: () => void
 }
 
-export function ChatPanel({ conversationId }: Props) {
+export function ChatPanel({ conversationId, onControlChange }: Props) {
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
+  const [changingControl, setChangingControl] = useState(false)
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
 
   // Scroll to bottom when messages change
@@ -65,6 +67,26 @@ export function ChatPanel({ conversationId }: Props) {
       setLoading(false)
     }
   }, [conversationId])
+
+  const handleControlChange = async (newControl: 'julia' | 'human') => {
+    setChangingControl(true)
+    try {
+      const response = await fetch(`/api/conversas/${conversationId}/control`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ controlled_by: newControl }),
+      })
+
+      if (response.ok) {
+        await fetchConversation()
+        onControlChange?.()
+      }
+    } catch (err) {
+      console.error('Failed to change control:', err)
+    } finally {
+      setChangingControl(false)
+    }
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -169,19 +191,64 @@ export function ChatPanel({ conversationId }: Props) {
           </div>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="h-5 w-5" />
+        <div className="flex items-center gap-2">
+          {/* Control Button */}
+          {isHandoff ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleControlChange('julia')}
+              disabled={changingControl}
+              className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+            >
+              <RotateCcw className="h-4 w-4" />
+              <span className="hidden sm:inline">Devolver para Julia</span>
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => router.push(`/medicos/${cliente.id}`)}>
-              <User className="mr-2 h-4 w-4" />
-              Ver perfil do medico
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleControlChange('human')}
+              disabled={changingControl}
+              className="gap-2 border-yellow-200 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800"
+            >
+              <Hand className="h-4 w-4" />
+              <span className="hidden sm:inline">Assumir conversa</span>
+            </Button>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => router.push(`/medicos/${cliente.id}`)}>
+                <User className="mr-2 h-4 w-4" />
+                Ver perfil do medico
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {isHandoff ? (
+                <DropdownMenuItem
+                  onClick={() => handleControlChange('julia')}
+                  disabled={changingControl}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Devolver para Julia
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  onClick={() => handleControlChange('human')}
+                  disabled={changingControl}
+                >
+                  <Hand className="mr-2 h-4 w-4" />
+                  Assumir conversa
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Messages */}
@@ -260,19 +327,66 @@ export function ChatPanel({ conversationId }: Props) {
       </div>
 
       {/* Footer - Status info */}
-      <div className="border-t bg-muted/20 px-4 py-2">
-        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          {isHandoff ? (
-            <>
-              <UserCheck className="h-4 w-4 text-yellow-600" />
-              <span>Conversa em modo handoff - atendimento humano</span>
-            </>
-          ) : (
-            <>
-              <Bot className="h-4 w-4 text-emerald-600" />
-              <span>Julia esta respondendo esta conversa</span>
-            </>
-          )}
+      <div
+        className={cn(
+          'border-t px-4 py-3',
+          isHandoff ? 'bg-yellow-50 dark:bg-yellow-950/30' : 'bg-emerald-50 dark:bg-emerald-950/30'
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm">
+            {isHandoff ? (
+              <>
+                <UserCheck className="h-5 w-5 text-yellow-600" />
+                <div>
+                  <span className="font-medium text-yellow-800 dark:text-yellow-200">
+                    Voce esta no controle
+                  </span>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                    Julia nao respondera automaticamente
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <Bot className="h-5 w-5 text-emerald-600" />
+                <div>
+                  <span className="font-medium text-emerald-800 dark:text-emerald-200">
+                    Julia esta respondendo
+                  </span>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                    Respostas automaticas ativas
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Quick action button in footer */}
+          <Button
+            variant={isHandoff ? 'outline' : 'default'}
+            size="sm"
+            onClick={() => handleControlChange(isHandoff ? 'julia' : 'human')}
+            disabled={changingControl}
+            className={cn(
+              'gap-2',
+              isHandoff
+                ? 'border-emerald-300 bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                : 'bg-yellow-500 text-white hover:bg-yellow-600'
+            )}
+          >
+            {isHandoff ? (
+              <>
+                <RotateCcw className="h-4 w-4" />
+                Devolver para Julia
+              </>
+            ) : (
+              <>
+                <Hand className="h-4 w-4" />
+                Assumir
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </div>
