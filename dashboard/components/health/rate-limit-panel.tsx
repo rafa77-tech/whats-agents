@@ -13,12 +13,12 @@ interface RateLimitPanelProps {
 }
 
 export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
-  const hourlyPercentage = rateLimit
-    ? Math.round((rateLimit.hourly.used / rateLimit.hourly.limit) * 100)
-    : 0
-  const dailyPercentage = rateLimit
-    ? Math.round((rateLimit.daily.used / rateLimit.daily.limit) * 100)
-    : 0
+  // Safe access with fallbacks
+  const hourly = rateLimit?.hourly ?? { used: 0, limit: 20 }
+  const daily = rateLimit?.daily ?? { used: 0, limit: 100 }
+
+  const hourlyPercentage = hourly.limit > 0 ? Math.round((hourly.used / hourly.limit) * 100) : 0
+  const dailyPercentage = daily.limit > 0 ? Math.round((daily.used / daily.limit) * 100) : 0
 
   const getProgressColor = (percentage: number) => {
     if (percentage >= 90) return 'bg-red-500'
@@ -38,7 +38,7 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">Por Hora</span>
             <span className="text-sm text-gray-500">
-              {rateLimit?.hourly.used || 0}/{rateLimit?.hourly.limit || 20} ({hourlyPercentage}%)
+              {hourly.used}/{hourly.limit} ({hourlyPercentage}%)
             </span>
           </div>
           <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
@@ -59,7 +59,7 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">Por Dia</span>
             <span className="text-sm text-gray-500">
-              {rateLimit?.daily.used || 0}/{rateLimit?.daily.limit || 100} ({dailyPercentage}%)
+              {daily.used}/{daily.limit} ({dailyPercentage}%)
             </span>
           </div>
           <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">

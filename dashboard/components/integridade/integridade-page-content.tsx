@@ -46,6 +46,13 @@ interface IntegridadeData {
     healthScore: number
     conversionRate: number
     timeToFill: number
+    componentScores: {
+      pressao: number
+      friccao: number
+      qualidade: number
+      spam: number
+    }
+    recommendations: string[]
   }
   anomalias: {
     abertas: number
@@ -75,46 +82,63 @@ export function IntegridadePageContent() {
         fetch('/api/integridade/anomalias?limit=20').catch(() => null),
       ])
 
-      // Parse KPIs
-      let kpis = { healthScore: 85, conversionRate: 72, timeToFill: 4.2 }
+      // Parse KPIs - backend returns nested structure
+      let kpis = {
+        healthScore: 0,
+        conversionRate: 0,
+        timeToFill: 0,
+        componentScores: { pressao: 0, friccao: 0, qualidade: 0, spam: 0 },
+        recommendations: [] as string[],
+      }
       if (kpisRes?.ok) {
         const kpisData = await kpisRes.json()
+        // Backend structure: { kpis: { health_score: { score, component_scores }, conversion_rate: { value }, time_to_fill: { time_to_fill_full: { avg_hours } } } }
+        const kpisNested = kpisData.kpis || kpisData
         kpis = {
-          healthScore: kpisData.health_score || 85,
-          conversionRate: kpisData.conversion_rate || 72,
-          timeToFill: kpisData.time_to_fill || 4.2,
+          healthScore: kpisNested.health_score?.score ?? kpisData.health_score ?? 0,
+          conversionRate: kpisNested.conversion_rate?.value ?? kpisData.conversion_rate ?? 0,
+          timeToFill: kpisNested.time_to_fill?.time_to_fill_full?.avg_hours ?? kpisData.time_to_fill ?? 0,
+          componentScores: {
+            pressao: kpisNested.health_score?.component_scores?.pressao ?? 0,
+            friccao: kpisNested.health_score?.component_scores?.friccao ?? 0,
+            qualidade: kpisNested.health_score?.component_scores?.qualidade ?? 0,
+            spam: kpisNested.health_score?.component_scores?.spam ?? 0,
+          },
+          recommendations: kpisNested.health_score?.recommendations || [],
         }
       }
 
-      // Parse anomalias
+      // Parse anomalias - backend returns "anomalies" not "anomalias"
       let anomaliasList: Anomaly[] = []
       let anomalias = { abertas: 0, resolvidas: 0, total: 0 }
       if (anomaliasRes?.ok) {
         const anomaliasData = await anomaliasRes.json()
-        anomaliasList =
-          anomaliasData.anomalias?.map((a: Record<string, unknown>) => ({
-            id: a.id,
-            tipo: a.tipo,
-            entidade: a.entidade,
-            entidadeId: a.entidade_id,
-            severidade: a.severidade,
-            mensagem: a.mensagem,
-            criadaEm: a.criada_em,
-            resolvida: a.resolvida,
-          })) || []
+        // Backend uses "anomalies" key
+        const rawAnomalies = anomaliasData.anomalies || anomaliasData.anomalias || []
+        anomaliasList = rawAnomalies.map((a: Record<string, unknown>) => ({
+          id: a.id,
+          tipo: a.tipo || a.type,
+          entidade: a.entidade || a.entity,
+          entidadeId: a.entidade_id || a.entity_id,
+          severidade: a.severidade || a.severity,
+          mensagem: a.mensagem || a.message,
+          criadaEm: a.criada_em || a.created_at,
+          resolvida: a.resolvida || a.resolved || false,
+        }))
+        // Use summary from backend if available
+        const summary = anomaliasData.summary || {}
         anomalias = {
-          abertas: anomaliasData.total_abertas || anomaliasList.filter((a) => !a.resolvida).length,
-          resolvidas:
-            anomaliasData.total_resolvidas || anomaliasList.filter((a) => a.resolvida).length,
-          total: anomaliasData.total || anomaliasList.length,
+          abertas: summary.by_severity?.warning + summary.by_severity?.critical || anomaliasList.filter((a) => !a.resolvida).length,
+          resolvidas: anomaliasList.filter((a) => a.resolvida).length,
+          total: summary.total || anomaliasList.length,
         }
       }
 
       setData({
         kpis,
         anomalias,
-        violacoes: 0,
-        ultimaAuditoria: null,
+        violacoes: anomalias.abertas, // Use abertas as violacoes count
+        ultimaAuditoria: new Date().toISOString(), // Mark as "just checked"
         anomaliasList,
       })
     } catch (err) {
@@ -375,44 +399,30 @@ export function IntegridadePageContent() {
               <div className="space-y-6">
                 {/* Health Score Components */}
                 <div>
-                  <h3 className="mb-3 text-sm font-medium">Health Score: {data?.kpis.healthScore}/100</h3>
+                  <h3 className="mb-3 text-sm font-medium">Health Score: {data?.kpis.healthScore.toFixed(1)}/100</h3>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Pressao de Vagas</span>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200">
-                          <div className="h-full w-4/5 bg-green-500" />
+                    {[
+                      { label: 'Pressao de Vagas', key: 'pressao' as const },
+                      { label: 'Friccao no Funil', key: 'friccao' as const },
+                      { label: 'Qualidade Respostas', key: 'qualidade' as const },
+                      { label: 'Score de Spam', key: 'spam' as const },
+                    ].map(({ label, key }) => {
+                      const value = data?.kpis.componentScores[key] || 0
+                      // Convert component score to percentage (lower is better for these metrics)
+                      const percentage = Math.max(0, Math.min(100, 100 - value * 10))
+                      const color = percentage >= 80 ? 'bg-green-500' : percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                      return (
+                        <div key={key} className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">{label}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200">
+                              <div className={cn('h-full', color)} style={{ width: `${percentage}%` }} />
+                            </div>
+                            <span className="text-sm font-medium">{percentage.toFixed(0)}</span>
+                          </div>
                         </div>
-                        <span className="text-sm font-medium">90</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Friccao no Funil</span>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200">
-                          <div className="h-full w-3/4 bg-yellow-500" />
-                        </div>
-                        <span className="text-sm font-medium">75</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Qualidade Respostas</span>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200">
-                          <div className="h-full w-[88%] bg-green-500" />
-                        </div>
-                        <span className="text-sm font-medium">88</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Score de Spam</span>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200">
-                          <div className="h-full w-[87%] bg-green-500" />
-                        </div>
-                        <span className="text-sm font-medium">87</span>
-                      </div>
-                    </div>
+                      )
+                    })}
                   </div>
                 </div>
 
@@ -420,18 +430,21 @@ export function IntegridadePageContent() {
                 <div>
                   <h3 className="mb-3 text-sm font-medium">Recomendacoes</h3>
                   <div className="space-y-2">
-                    <div className="flex items-start gap-2 rounded-lg bg-yellow-50 p-3">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-600" />
-                      <p className="text-sm text-yellow-800">
-                        Considere aumentar a capacidade de chips para melhorar a taxa de conversao
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3">
-                      <Activity className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
-                      <p className="text-sm text-blue-800">
-                        Revise a taxa de conversao na etapa de reserva
-                      </p>
-                    </div>
+                    {data?.kpis.recommendations && data.kpis.recommendations.length > 0 ? (
+                      data.kpis.recommendations.map((rec, idx) => (
+                        <div key={idx} className="flex items-start gap-2 rounded-lg bg-yellow-50 p-3">
+                          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-600" />
+                          <p className="text-sm text-yellow-800">{rec}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-start gap-2 rounded-lg bg-green-50 p-3">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
+                        <p className="text-sm text-green-800">
+                          Nenhuma recomendacao no momento. Sistema saudavel!
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

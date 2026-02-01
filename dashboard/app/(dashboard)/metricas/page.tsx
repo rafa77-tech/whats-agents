@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { Download, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAuth } from '@/hooks/use-auth'
 import { KPICards } from './components/kpi-cards'
 import { ConversionFunnel } from './components/conversion-funnel'
 import { TrendChart } from './components/trend-chart'
@@ -29,7 +28,6 @@ interface MetricsData {
 }
 
 export default function MetricasPage() {
-  const { session } = useAuth()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [data, setData] = useState<MetricsData | null>(null)
@@ -39,18 +37,11 @@ export default function MetricasPage() {
   })
 
   const fetchMetrics = useCallback(async () => {
-    if (!session?.access_token) return
-
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       const fromDate = dateRange.from.toISOString().split('T')[0]
       const toDate = dateRange.to.toISOString().split('T')[0]
 
-      const response = await fetch(`${apiUrl}/dashboard/metrics?from=${fromDate}&to=${toDate}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const response = await fetch(`/api/metricas?from=${fromDate}&to=${toDate}`)
 
       if (response.ok) {
         const result = await response.json()
@@ -62,7 +53,7 @@ export default function MetricasPage() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [session?.access_token, dateRange])
+  }, [dateRange])
 
   useEffect(() => {
     fetchMetrics()
@@ -74,21 +65,11 @@ export default function MetricasPage() {
   }
 
   const handleExport = async () => {
-    if (!session?.access_token) return
-
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       const fromDate = dateRange.from.toISOString().split('T')[0]
       const toDate = dateRange.to.toISOString().split('T')[0]
 
-      const response = await fetch(
-        `${apiUrl}/dashboard/metrics/export?from=${fromDate}&to=${toDate}`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      )
+      const response = await fetch(`/api/metricas/export?from=${fromDate}&to=${toDate}`)
 
       if (response.ok) {
         const result = await response.json()

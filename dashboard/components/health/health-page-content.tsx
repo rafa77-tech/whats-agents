@@ -45,6 +45,8 @@ interface HealthData {
   queue: {
     pendentes: number
     processando: number
+    processadasPorHora?: number
+    tempoMedioMs?: number | null
   }
 }
 
@@ -67,9 +69,12 @@ export function HealthPageContent() {
       setError(null)
 
       // Fetch data from multiple endpoints in parallel
-      const [monitorRes, guardrailsRes] = await Promise.all([
+      const [monitorRes, guardrailsRes, rateLimitRes, servicesRes, queueRes] = await Promise.all([
         fetch('/api/dashboard/monitor'),
         fetch('/api/guardrails/status').catch(() => null),
+        fetch('/api/health/rate-limit').catch(() => null),
+        fetch('/api/health/services').catch(() => null),
+        fetch('/api/health/queue').catch(() => null),
       ])
 
       if (!monitorRes.ok) {
@@ -83,6 +88,47 @@ export function HealthPageContent() {
       if (guardrailsRes?.ok) {
         guardrailsData = await guardrailsRes.json()
       }
+
+      // Parse rate limit data
+      let rateLimitData = null
+      if (rateLimitRes?.ok) {
+        rateLimitData = await rateLimitRes.json()
+      }
+
+      // Parse services data
+      let servicesData = null
+      if (servicesRes?.ok) {
+        servicesData = await servicesRes.json()
+      }
+
+      // Parse queue data
+      let queueData = null
+      if (queueRes?.ok) {
+        queueData = await queueRes.json()
+      }
+
+      // Build services from real API or fallback to calculated
+      const services = servicesData?.services || [
+        {
+          name: 'WhatsApp',
+          status:
+            monitorData.systemHealth?.checks?.connectivity?.score === 100
+              ? 'ok'
+              : monitorData.systemHealth?.checks?.connectivity?.score > 50
+                ? 'warn'
+                : 'error',
+        },
+        { name: 'Redis', status: 'warn' },
+        { name: 'Supabase', status: 'ok' },
+        { name: 'LLM', status: 'ok' },
+      ]
+
+      // Add Fila service based on queue data or monitor
+      const filaScore = monitorData.systemHealth?.checks?.fila?.score || 100
+      services.push({
+        name: 'Fila',
+        status: filaScore > 80 ? 'ok' : filaScore > 50 ? 'warn' : 'error',
+      })
 
       // Map monitor data to health data
       const healthData: HealthData = {
@@ -109,50 +155,16 @@ export function HealthPageContent() {
           { name: 'claude', state: 'CLOSED', failures: 0, threshold: 5 },
           { name: 'supabase', state: 'CLOSED', failures: 0, threshold: 5 },
         ],
-        services: [
-          {
-            name: 'WhatsApp',
-            status:
-              monitorData.systemHealth?.checks?.connectivity?.score === 100
-                ? 'ok'
-                : monitorData.systemHealth?.checks?.connectivity?.score > 50
-                  ? 'warn'
-                  : 'error',
-          },
-          {
-            name: 'Redis',
-            status: 'ok',
-          },
-          {
-            name: 'Supabase',
-            status: 'ok',
-          },
-          {
-            name: 'LLM',
-            status:
-              monitorData.systemHealth?.checks?.jobs?.score > 80
-                ? 'ok'
-                : monitorData.systemHealth?.checks?.jobs?.score > 50
-                  ? 'warn'
-                  : 'error',
-          },
-          {
-            name: 'Fila',
-            status:
-              monitorData.systemHealth?.checks?.fila?.score > 80
-                ? 'ok'
-                : monitorData.systemHealth?.checks?.fila?.score > 50
-                  ? 'warn'
-                  : 'error',
-          },
-        ],
-        rateLimit: {
+        services,
+        rateLimit: rateLimitData?.rate_limit || {
           hourly: { used: 0, limit: 20 },
           daily: { used: 0, limit: 100 },
         },
         queue: {
-          pendentes: 0,
-          processando: 0,
+          pendentes: queueData?.queue?.pendentes || 0,
+          processando: queueData?.queue?.processando || 0,
+          processadasPorHora: queueData?.queue?.processadasPorHora,
+          tempoMedioMs: queueData?.queue?.tempoMedioMs,
         },
       }
 

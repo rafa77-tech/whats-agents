@@ -19,6 +19,11 @@ import {
   ShieldCheck,
   Users,
   Star,
+  BarChart3,
+  Briefcase,
+  MessageSquare,
+  Stethoscope,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -30,13 +35,18 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Metricas', href: '/metricas', icon: BarChart3 },
   { name: 'Campanhas', href: '/campanhas', icon: Megaphone },
+  { name: 'Vagas', href: '/vagas', icon: Briefcase },
+  { name: 'Conversas', href: '/conversas', icon: MessageSquare },
+  { name: 'Medicos', href: '/medicos', icon: Stethoscope },
   { name: 'Pool de Chips', href: '/chips', icon: Smartphone },
   { name: 'Monitor', href: '/monitor', icon: Activity },
   { name: 'Health Center', href: '/health', icon: HeartPulse },
   { name: 'Integridade', href: '/integridade', icon: ShieldCheck },
   { name: 'Grupos', href: '/grupos', icon: Users },
   { name: 'Qualidade', href: '/qualidade', icon: Star },
+  { name: 'Auditoria', href: '/auditoria', icon: ClipboardList },
   { name: 'Instrucoes', href: '/instrucoes', icon: FileText },
   { name: 'Hospitais Bloqueados', href: '/hospitais/bloqueados', icon: Building2 },
   { name: 'Sistema', href: '/sistema', icon: Settings },
