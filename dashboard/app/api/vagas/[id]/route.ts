@@ -29,9 +29,11 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         hospital_id,
         especialidade_id,
         setor_id,
+        cliente_id,
         hospitais!inner(id, nome),
         especialidades!inner(id, nome),
-        setores(id, nome)
+        setores(id, nome),
+        clientes(id, primeiro_nome, sobrenome)
       `
       )
       .eq('id', id)
@@ -48,21 +50,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const hospital = vaga.hospitais as unknown as { id: string; nome: string } | null
     const especialidade = vaga.especialidades as unknown as { id: string; nome: string } | null
     const setor = vaga.setores as unknown as { id: string; nome: string } | null
-
-    // Check if there's a reservation for this shift
-    const { data: reserva } = await supabase
-      .from('reservas')
-      .select(
-        `
-        cliente_id,
-        clientes(id, primeiro_nome, sobrenome)
-      `
-      )
-      .eq('vaga_id', id)
-      .eq('status', 'confirmada')
-      .single()
-
-    const cliente = reserva?.clientes as unknown as {
+    const cliente = vaga.clientes as unknown as {
       id: string
       primeiro_nome: string | null
       sobrenome: string | null
@@ -81,7 +69,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       hora_fim: vaga.hora_fim,
       valor: vaga.valor || 0,
       status: vaga.status || 'aberta',
-      cliente_id: reserva?.cliente_id || null,
+      cliente_id: vaga.cliente_id || null,
       cliente_nome: cliente
         ? [cliente.primeiro_nome, cliente.sobrenome].filter(Boolean).join(' ')
         : null,
@@ -93,6 +81,43 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   } catch (error) {
     console.error('Erro ao buscar vaga:', error)
     return NextResponse.json({ error: 'Erro ao buscar vaga' }, { status: 500 })
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const body = await request.json()
+    const { cliente_id } = body
+
+    const supabase = createAdminClient()
+
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    }
+
+    if (cliente_id !== undefined) {
+      updateData.cliente_id = cliente_id
+      // If assigning a doctor, change status to reservada
+      if (cliente_id) {
+        updateData.status = 'reservada'
+      }
+    }
+
+    const { error } = await supabase.from('vagas').update(updateData).eq('id', id)
+
+    if (error) {
+      console.error('Erro ao atualizar vaga:', error)
+      throw error
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Erro ao atualizar vaga:', error)
+    return NextResponse.json({ error: 'Erro ao atualizar vaga' }, { status: 500 })
   }
 }
 

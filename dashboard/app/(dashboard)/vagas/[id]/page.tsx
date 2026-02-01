@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
@@ -15,11 +15,21 @@ import {
   User,
   Edit,
   Trash2,
+  Search,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
 interface ShiftDetail {
@@ -39,6 +49,13 @@ interface ShiftDetail {
   cliente_nome: string | null
   created_at: string
   updated_at: string | null
+}
+
+interface Doctor {
+  id: string
+  nome: string
+  telefone: string
+  especialidade?: string
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -67,29 +84,61 @@ export default function ShiftDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchShift = async () => {
-      try {
-        const response = await fetch(`/api/vagas/${id}`)
+  // Dialog state
+  const [showAssignDialog, setShowAssignDialog] = useState(false)
+  const [doctorSearch, setDoctorSearch] = useState('')
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [searchingDoctors, setSearchingDoctors] = useState(false)
+  const [assigningDoctor, setAssigningDoctor] = useState(false)
 
-        if (response.ok) {
-          const data = await response.json()
-          setShift(data)
-        } else if (response.status === 404) {
-          setError('Vaga nao encontrada')
-        } else {
-          setError('Erro ao carregar vaga')
-        }
-      } catch (err) {
-        console.error('Failed to fetch shift:', err)
+  const fetchShift = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/vagas/${id}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        setShift(data)
+      } else if (response.status === 404) {
+        setError('Vaga nao encontrada')
+      } else {
         setError('Erro ao carregar vaga')
-      } finally {
-        setLoading(false)
       }
+    } catch (err) {
+      console.error('Failed to fetch shift:', err)
+      setError('Erro ao carregar vaga')
+    } finally {
+      setLoading(false)
+    }
+  }, [id])
+
+  useEffect(() => {
+    fetchShift()
+  }, [fetchShift])
+
+  // Search doctors with debounce
+  useEffect(() => {
+    if (!doctorSearch || doctorSearch.length < 2) {
+      setDoctors([])
+      return
     }
 
-    fetchShift()
-  }, [id])
+    const timer = setTimeout(async () => {
+      setSearchingDoctors(true)
+      try {
+        const response = await fetch(`/api/medicos?search=${encodeURIComponent(doctorSearch)}&per_page=10`)
+        if (response.ok) {
+          const result = await response.json()
+          setDoctors(result.data || [])
+        }
+      } catch (err) {
+        console.error('Failed to search doctors:', err)
+      } finally {
+        setSearchingDoctors(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [doctorSearch])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -115,6 +164,33 @@ export default function ShiftDetailPage() {
     } catch (err) {
       console.error('Failed to delete shift:', err)
       alert('Erro ao excluir vaga')
+    }
+  }
+
+  const handleAssignDoctor = async (doctorId: string) => {
+    setAssigningDoctor(true)
+    try {
+      const response = await fetch(`/api/vagas/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cliente_id: doctorId }),
+      })
+
+      if (response.ok) {
+        setShowAssignDialog(false)
+        setDoctorSearch('')
+        setDoctors([])
+        // Refresh shift data
+        await fetchShift()
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Erro ao atribuir medico')
+      }
+    } catch (err) {
+      console.error('Failed to assign doctor:', err)
+      alert('Erro ao atribuir medico')
+    } finally {
+      setAssigningDoctor(false)
     }
   }
 
@@ -273,7 +349,11 @@ export default function ShiftDetailPage() {
                     <User className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
                     <p className="text-muted-foreground">Nenhum medico atribuido</p>
                     {shift.status === 'aberta' && (
-                      <Button variant="outline" className="mt-2">
+                      <Button
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => setShowAssignDialog(true)}
+                      >
                         Atribuir Medico
                       </Button>
                     )}
@@ -317,6 +397,72 @@ export default function ShiftDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Assign Doctor Dialog */}
+      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Atribuir Medico</DialogTitle>
+            <DialogDescription>
+              Busque e selecione um medico para atribuir a esta vaga.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, telefone ou CRM..."
+                value={doctorSearch}
+                onChange={(e) => setDoctorSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <div className="max-h-64 space-y-2 overflow-auto">
+              {searchingDoctors && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+
+              {!searchingDoctors && doctorSearch.length >= 2 && doctors.length === 0 && (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  Nenhum medico encontrado
+                </p>
+              )}
+
+              {!searchingDoctors &&
+                doctors.map((doctor) => (
+                  <button
+                    key={doctor.id}
+                    onClick={() => handleAssignDoctor(doctor.id)}
+                    disabled={assigningDoctor}
+                    className="flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent disabled:opacity-50"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{doctor.nome}</p>
+                      <p className="truncate text-sm text-muted-foreground">
+                        {doctor.telefone}
+                        {doctor.especialidade && ` • ${doctor.especialidade}`}
+                      </p>
+                    </div>
+                    {assigningDoctor && <Loader2 className="h-4 w-4 animate-spin" />}
+                  </button>
+                ))}
+
+              {!searchingDoctors && doctorSearch.length < 2 && (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  Digite ao menos 2 caracteres para buscar
+                </p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
