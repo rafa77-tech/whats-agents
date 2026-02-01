@@ -15,9 +15,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const body = await request.json()
     const { controlled_by } = body
 
-    if (!['julia', 'human'].includes(controlled_by)) {
+    if (!['ai', 'human'].includes(controlled_by)) {
       return NextResponse.json(
-        { error: 'controlled_by deve ser "julia" ou "human"' },
+        { error: 'controlled_by deve ser "ai" ou "human"' },
         { status: 400 }
       )
     }

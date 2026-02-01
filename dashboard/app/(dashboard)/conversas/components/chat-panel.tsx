@@ -4,10 +4,22 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Phone, MoreVertical, User, Bot, UserCheck, CheckCheck, Hand, RotateCcw } from 'lucide-react'
+import {
+  Phone,
+  MoreVertical,
+  User,
+  Bot,
+  UserCheck,
+  CheckCheck,
+  Hand,
+  RotateCcw,
+  Send,
+  Loader2,
+} from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,8 +56,11 @@ interface Props {
 export function ChatPanel({ conversationId, onControlChange }: Props) {
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [loading, setLoading] = useState(true)
   const [changingControl, setChangingControl] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [messageText, setMessageText] = useState('')
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
 
   // Scroll to bottom when messages change
@@ -68,7 +83,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
     }
   }, [conversationId])
 
-  const handleControlChange = async (newControl: 'julia' | 'human') => {
+  const handleControlChange = async (newControl: 'ai' | 'human') => {
     setChangingControl(true)
     try {
       const response = await fetch(`/api/conversas/${conversationId}/control`, {
@@ -80,11 +95,45 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
       if (response.ok) {
         await fetchConversation()
         onControlChange?.()
+        // Focus textarea when taking control
+        if (newControl === 'human') {
+          setTimeout(() => textareaRef.current?.focus(), 100)
+        }
       }
     } catch (err) {
       console.error('Failed to change control:', err)
     } finally {
       setChangingControl(false)
+    }
+  }
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || sending) return
+
+    setSending(true)
+    try {
+      const response = await fetch(`/api/conversas/${conversationId}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: messageText.trim() }),
+      })
+
+      if (response.ok) {
+        setMessageText('')
+        await fetchConversation()
+        setTimeout(scrollToBottom, 100)
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
     }
   }
 
@@ -100,7 +149,6 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
   // Scroll to bottom when conversation loads or updates
   useEffect(() => {
     if (conversation?.messages.length) {
-      // Small delay to ensure DOM is updated
       setTimeout(scrollToBottom, 100)
     }
   }, [conversation?.messages.length, scrollToBottom])
@@ -197,11 +245,15 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleControlChange('julia')}
+              onClick={() => handleControlChange('ai')}
               disabled={changingControl}
               className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
             >
-              <RotateCcw className="h-4 w-4" />
+              {changingControl ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="h-4 w-4" />
+              )}
               <span className="hidden sm:inline">Devolver para Julia</span>
             </Button>
           ) : (
@@ -212,7 +264,11 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
               disabled={changingControl}
               className="gap-2 border-yellow-200 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800"
             >
-              <Hand className="h-4 w-4" />
+              {changingControl ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Hand className="h-4 w-4" />
+              )}
               <span className="hidden sm:inline">Assumir conversa</span>
             </Button>
           )}
@@ -231,7 +287,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
               <DropdownMenuSeparator />
               {isHandoff ? (
                 <DropdownMenuItem
-                  onClick={() => handleControlChange('julia')}
+                  onClick={() => handleControlChange('ai')}
                   disabled={changingControl}
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
@@ -326,69 +382,72 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
         )}
       </div>
 
-      {/* Footer - Status info */}
-      <div
-        className={cn(
-          'border-t px-4 py-3',
-          isHandoff ? 'bg-yellow-50 dark:bg-yellow-950/30' : 'bg-emerald-50 dark:bg-emerald-950/30'
-        )}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            {isHandoff ? (
-              <>
-                <UserCheck className="h-5 w-5 text-yellow-600" />
-                <div>
-                  <span className="font-medium text-yellow-800 dark:text-yellow-200">
-                    Voce esta no controle
-                  </span>
-                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                    Julia nao respondera automaticamente
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                <Bot className="h-5 w-5 text-emerald-600" />
-                <div>
-                  <span className="font-medium text-emerald-800 dark:text-emerald-200">
-                    Julia esta respondendo
-                  </span>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                    Respostas automaticas ativas
-                  </p>
-                </div>
-              </>
-            )}
+      {/* Footer - Message Input or Status */}
+      {isHandoff ? (
+        <div className="border-t bg-background p-3">
+          <div className="flex gap-2">
+            <Textarea
+              ref={textareaRef}
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)"
+              className="min-h-[44px] max-h-[120px] resize-none"
+              rows={1}
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={sending || !messageText.trim()}
+              className="h-auto bg-emerald-600 px-4 hover:bg-emerald-700"
+            >
+              {sending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
+            </Button>
           </div>
-
-          {/* Quick action button in footer */}
-          <Button
-            variant={isHandoff ? 'outline' : 'default'}
-            size="sm"
-            onClick={() => handleControlChange(isHandoff ? 'julia' : 'human')}
-            disabled={changingControl}
-            className={cn(
-              'gap-2',
-              isHandoff
-                ? 'border-emerald-300 bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                : 'bg-yellow-500 text-white hover:bg-yellow-600'
-            )}
-          >
-            {isHandoff ? (
-              <>
-                <RotateCcw className="h-4 w-4" />
-                Devolver para Julia
-              </>
-            ) : (
-              <>
-                <Hand className="h-4 w-4" />
-                Assumir
-              </>
-            )}
-          </Button>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            Voce esta no controle desta conversa.{' '}
+            <button
+              onClick={() => handleControlChange('ai')}
+              disabled={changingControl}
+              className="text-emerald-600 hover:underline"
+            >
+              Devolver para Julia
+            </button>
+          </p>
         </div>
-      </div>
+      ) : (
+        <div className="border-t bg-emerald-50 px-4 py-3 dark:bg-emerald-950/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Bot className="h-5 w-5 text-emerald-600" />
+              <div>
+                <span className="font-medium text-emerald-800 dark:text-emerald-200">
+                  Julia esta respondendo
+                </span>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                  Respostas automaticas ativas
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => handleControlChange('human')}
+              disabled={changingControl}
+              className="gap-2 bg-yellow-500 text-white hover:bg-yellow-600"
+            >
+              {changingControl ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Hand className="h-4 w-4" />
+              )}
+              Assumir
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
