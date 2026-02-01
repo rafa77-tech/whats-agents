@@ -17,13 +17,8 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { RotateCcw, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-interface Circuit {
-  name: string
-  state: 'CLOSED' | 'HALF_OPEN' | 'OPEN'
-  failures: number
-  threshold: number
-}
+import { getCircuitStateColors, CIRCUIT_STATE_LEGEND } from '@/lib/health'
+import type { Circuit, CircuitState } from '@/lib/health'
 
 interface CircuitBreakersPanelProps {
   circuits: Circuit[]
@@ -67,17 +62,9 @@ export function CircuitBreakersPanel({ circuits, onReset }: CircuitBreakersPanel
     }
   }
 
-  const getStateBadge = (state: string) => {
-    switch (state) {
-      case 'CLOSED':
-        return <Badge className="bg-green-100 text-green-800">CLOSED</Badge>
-      case 'HALF_OPEN':
-        return <Badge className="bg-yellow-100 text-yellow-800">HALF_OPEN</Badge>
-      case 'OPEN':
-        return <Badge className="bg-red-100 text-red-800">OPEN</Badge>
-      default:
-        return <Badge variant="outline">{state}</Badge>
-    }
+  const getStateBadge = (state: CircuitState) => {
+    const colors = getCircuitStateColors(state)
+    return <Badge className={colors.badge}>{state}</Badge>
   }
 
   return (
@@ -89,50 +76,43 @@ export function CircuitBreakersPanel({ circuits, onReset }: CircuitBreakersPanel
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {circuits.map((circuit) => (
-              <div
-                key={circuit.name}
-                className={cn(
-                  'flex items-center justify-between rounded-lg border p-3',
-                  circuit.state === 'CLOSED' && 'border-green-200 bg-green-50/50',
-                  circuit.state === 'HALF_OPEN' && 'border-yellow-200 bg-yellow-50/50',
-                  circuit.state === 'OPEN' && 'border-red-200 bg-red-50/50'
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      'h-3 w-3 rounded-full',
-                      circuit.state === 'CLOSED' && 'bg-green-500',
-                      circuit.state === 'HALF_OPEN' && 'bg-yellow-500',
-                      circuit.state === 'OPEN' && 'bg-red-500'
+            {circuits.map((circuit) => {
+              const colors = getCircuitStateColors(circuit.state)
+              return (
+                <div
+                  key={circuit.name}
+                  className={cn(
+                    'flex items-center justify-between rounded-lg border p-3',
+                    colors.border,
+                    colors.bg
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn('h-3 w-3 rounded-full', colors.indicator)} />
+                    <div>
+                      <p className="font-medium capitalize">{circuit.name}</p>
+                      <p className="text-xs text-gray-500">
+                        Falhas: {circuit.failures}/{circuit.threshold}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStateBadge(circuit.state)}
+                    {circuit.state !== 'CLOSED' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setResetDialog(circuit.name)}
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
                     )}
-                  />
-                  <div>
-                    <p className="font-medium capitalize">{circuit.name}</p>
-                    <p className="text-xs text-gray-500">
-                      Falhas: {circuit.failures}/{circuit.threshold}
-                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {getStateBadge(circuit.state)}
-                  {circuit.state !== 'CLOSED' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setResetDialog(circuit.name)}
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
-          <p className="mt-4 text-xs text-gray-400">
-            CLOSED = operacional | HALF_OPEN = testando | OPEN = bloqueado
-          </p>
+          <p className="mt-4 text-xs text-gray-400">{CIRCUIT_STATE_LEGEND}</p>
         </CardContent>
       </Card>
 

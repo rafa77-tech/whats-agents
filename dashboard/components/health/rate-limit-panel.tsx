@@ -2,29 +2,25 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import {
+  DEFAULT_RATE_LIMIT,
+  getProgressColor,
+  calculatePercentage,
+  shouldShowRateLimitWarning,
+} from '@/lib/health'
+import type { RateLimitData } from '@/lib/health'
 
 interface RateLimitPanelProps {
-  rateLimit:
-    | {
-        hourly: { used: number; limit: number }
-        daily: { used: number; limit: number }
-      }
-    | undefined
+  rateLimit: RateLimitData | undefined
 }
 
 export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
   // Safe access with fallbacks
-  const hourly = rateLimit?.hourly ?? { used: 0, limit: 20 }
-  const daily = rateLimit?.daily ?? { used: 0, limit: 100 }
+  const hourly = rateLimit?.hourly ?? DEFAULT_RATE_LIMIT.hourly
+  const daily = rateLimit?.daily ?? DEFAULT_RATE_LIMIT.daily
 
-  const hourlyPercentage = hourly.limit > 0 ? Math.round((hourly.used / hourly.limit) * 100) : 0
-  const dailyPercentage = daily.limit > 0 ? Math.round((daily.used / daily.limit) * 100) : 0
-
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 90) return 'bg-red-500'
-    if (percentage >= 70) return 'bg-yellow-500'
-    return 'bg-green-500'
-  }
+  const hourlyPercentage = calculatePercentage(hourly.used, hourly.limit)
+  const dailyPercentage = calculatePercentage(daily.used, daily.limit)
 
   return (
     <Card>
@@ -50,7 +46,7 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
               style={{ width: `${hourlyPercentage}%` }}
             />
           </div>
-          {hourlyPercentage >= 80 && (
+          {shouldShowRateLimitWarning(hourlyPercentage) && (
             <p className="mt-1 text-xs text-yellow-600">
               Proximo do limite horario ({100 - hourlyPercentage}% restante)
             </p>
@@ -74,7 +70,7 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
               style={{ width: `${dailyPercentage}%` }}
             />
           </div>
-          {dailyPercentage >= 80 && (
+          {shouldShowRateLimitWarning(dailyPercentage) && (
             <p className="mt-1 text-xs text-yellow-600">
               Proximo do limite diario ({100 - dailyPercentage}% restante)
             </p>

@@ -1,24 +1,17 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { getHealthStatusColors, calculateGaugeOffset } from '@/lib/health'
+import type { HealthStatus } from '@/lib/health'
 
 interface HealthGaugeProps {
   score: number
-  status: 'healthy' | 'degraded' | 'critical'
+  status: HealthStatus
 }
 
 export function HealthGauge({ score, status }: HealthGaugeProps) {
-  // Calculate the stroke dashoffset for the progress arc
-  const circumference = 2 * Math.PI * 45 // radius = 45
-  const strokeDashoffset = circumference - (score / 100) * circumference
-
-  const getColor = () => {
-    if (status === 'healthy') return { stroke: '#22c55e', bg: '#dcfce7' }
-    if (status === 'degraded') return { stroke: '#eab308', bg: '#fef9c3' }
-    return { stroke: '#ef4444', bg: '#fee2e2' }
-  }
-
-  const colors = getColor()
+  const { circumference, strokeDashoffset } = calculateGaugeOffset(score)
+  const colors = getHealthStatusColors(status)
 
   return (
     <div className="relative h-40 w-40">

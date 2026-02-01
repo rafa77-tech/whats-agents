@@ -1,25 +1,35 @@
 /**
  * API: GET /api/vagas
  *
- * Lista vagas do banco de dados.
+ * Lista vagas do banco de dados com validacao Zod.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { ZodError } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { parseShiftListParams } from '@/lib/vagas'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
-    const page = parseInt(searchParams.get('page') || '1')
-    const perPage = parseInt(searchParams.get('per_page') || '20')
-    const status = searchParams.get('status')
-    const hospitalId = searchParams.get('hospital_id')
-    const especialidadeId = searchParams.get('especialidade_id')
-    const dateFrom = searchParams.get('date_from')
-    const dateTo = searchParams.get('date_to')
-    const search = searchParams.get('search')
+
+    // Validate query params with Zod
+    let params
+    try {
+      params = parseShiftListParams(searchParams)
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return NextResponse.json(
+          { error: 'Parametros de busca invalidos', details: error.errors },
+          { status: 400 }
+        )
+      }
+      throw error
+    }
+
+    const { page, per_page: perPage, status, hospital_id, especialidade_id, date_from, date_to, search } = params
 
     const supabase = createAdminClient()
 
@@ -46,17 +56,17 @@ export async function GET(request: NextRequest) {
     if (status) {
       query = query.eq('status', status)
     }
-    if (hospitalId) {
-      query = query.eq('hospital_id', hospitalId)
+    if (hospital_id) {
+      query = query.eq('hospital_id', hospital_id)
     }
-    if (especialidadeId) {
-      query = query.eq('especialidade_id', especialidadeId)
+    if (especialidade_id) {
+      query = query.eq('especialidade_id', especialidade_id)
     }
-    if (dateFrom) {
-      query = query.gte('data', dateFrom)
+    if (date_from) {
+      query = query.gte('data', date_from)
     }
-    if (dateTo) {
-      query = query.lte('data', dateTo)
+    if (date_to) {
+      query = query.lte('data', date_to)
     }
     if (search) {
       query = query.or(`hospitais.nome.ilike.%${search}%,especialidades.nome.ilike.%${search}%`)

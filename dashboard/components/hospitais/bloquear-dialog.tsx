@@ -55,9 +55,10 @@ export function BloquearHospitalDialog({
       try {
         const res = await fetch('/api/hospitais?excluir_bloqueados=true')
         const data = await res.json()
-        setHospitais(data)
+        setHospitais(Array.isArray(data) ? data : [])
       } catch (error) {
         console.error('Erro ao carregar hospitais:', error)
+        setHospitais([])
       } finally {
         setLoadingHospitais(false)
       }

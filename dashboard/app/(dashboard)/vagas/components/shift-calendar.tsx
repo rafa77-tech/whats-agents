@@ -15,7 +15,8 @@ import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { Shift } from './shift-card'
+import { getStatusIndicatorColor, WEEK_DAYS } from '@/lib/vagas'
+import type { Shift } from '@/lib/vagas'
 
 interface Props {
   shifts: Shift[]
@@ -23,15 +24,6 @@ interface Props {
   selectedDate?: Date | undefined
   currentMonth: Date
   onMonthChange: (direction: 'prev' | 'next') => void
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  aberta: 'bg-green-500',
-  reservada: 'bg-yellow-500',
-  confirmada: 'bg-blue-500',
-  cancelada: 'bg-red-500',
-  realizada: 'bg-gray-500',
-  fechada: 'bg-gray-500',
 }
 
 export function ShiftCalendar({
@@ -59,8 +51,6 @@ export function ShiftCalendar({
     return map
   }, [shifts])
 
-  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
-
   return (
     <div className="rounded-lg border bg-card p-4">
       {/* Header */}
@@ -80,7 +70,7 @@ export function ShiftCalendar({
 
       {/* Week days header */}
       <div className="mb-2 grid grid-cols-7 gap-1">
-        {weekDays.map((day) => (
+        {WEEK_DAYS.map((day) => (
           <div key={day} className="py-2 text-center text-xs font-medium text-muted-foreground">
             {day}
           </div>
@@ -118,7 +108,7 @@ export function ShiftCalendar({
                     key={shift.id}
                     className={cn(
                       'h-1.5 w-1.5 rounded-full',
-                      STATUS_COLORS[shift.status] || 'bg-gray-500'
+                      getStatusIndicatorColor(shift.status)
                     )}
                     title={`${shift.hospital} - ${shift.especialidade}`}
                   />

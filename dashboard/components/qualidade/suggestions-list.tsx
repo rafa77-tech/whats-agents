@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -20,93 +20,49 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Loader2, Plus, Check, X, XCircle } from 'lucide-react'
+import {
+  useSuggestions,
+  formatDateBR,
+  SUGGESTION_STATUS_FILTER_OPTIONS,
+  SUGGESTION_STATUS_COLORS,
+  SUGGESTION_STATUS_LABELS,
+  SUGGESTION_TYPE_COLORS,
+} from '@/lib/qualidade'
+import type { SuggestionStatus, SuggestionType } from '@/lib/qualidade'
 import { NewSuggestionModal } from './new-suggestion-modal'
 
-interface Suggestion {
-  id: string
-  tipo: string
-  descricao: string
-  status: 'pending' | 'approved' | 'rejected' | 'implemented'
-  criadaEm: string
-}
-
 export function SuggestionsList() {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
-  const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>('pending')
   const [isNewOpen, setIsNewOpen] = useState(false)
 
-  const fetchSuggestions = useCallback(async () => {
+  const { suggestions, loading, refresh, updateStatus, actionLoading } =
+    useSuggestions(filterStatus)
+
+  const getStatusBadge = (status: SuggestionStatus) => {
+    const colorClass = SUGGESTION_STATUS_COLORS[status] || 'bg-gray-100 text-gray-800'
+    const label = SUGGESTION_STATUS_LABELS[status] || status
+    return <Badge className={colorClass}>{label}</Badge>
+  }
+
+  const getTipoBadge = (tipo: SuggestionType) => {
+    const colorClass = SUGGESTION_TYPE_COLORS[tipo] || 'bg-gray-100 text-gray-800'
+    return <Badge className={colorClass}>{tipo}</Badge>
+  }
+
+  const handleApprove = async (id: string) => {
     try {
-      const params = new URLSearchParams()
-      if (filterStatus !== 'all') {
-        params.append('status', filterStatus)
-      }
-
-      const res = await fetch(`/api/admin/sugestoes?${params.toString()}`)
-      if (res.ok) {
-        const data = await res.json()
-        setSuggestions(
-          data.sugestoes?.map((s: Record<string, unknown>) => ({
-            id: s.id,
-            tipo: s.tipo,
-            descricao: s.descricao,
-            status: s.status,
-            criadaEm: s.criada_em,
-          })) || []
-        )
-      }
+      await updateStatus(id, 'approved')
     } catch {
-      // Ignore errors
-    } finally {
-      setLoading(false)
-    }
-  }, [filterStatus])
-
-  useEffect(() => {
-    fetchSuggestions()
-  }, [fetchSuggestions])
-
-  const handleUpdateStatus = async (id: string, status: string) => {
-    setActionLoading(id)
-    try {
-      await fetch(`/api/admin/sugestoes/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      })
-      await fetchSuggestions()
-    } catch {
-      // Ignore errors
-    } finally {
-      setActionLoading(null)
+      // Error handled by hook
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pendente</Badge>
-      case 'approved':
-        return <Badge className="bg-blue-100 text-blue-800">Aprovada</Badge>
-      case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">Rejeitada</Badge>
-      case 'implemented':
-        return <Badge className="bg-green-100 text-green-800">Implementada</Badge>
-      default:
-        return <Badge>{status}</Badge>
+  const handleReject = async (id: string) => {
+    try {
+      await updateStatus(id, 'rejected')
+    } catch {
+      // Error handled by hook
     }
-  }
-
-  const getTipoBadge = (tipo: string) => {
-    const colors: Record<string, string> = {
-      tom: 'bg-purple-100 text-purple-800',
-      resposta: 'bg-blue-100 text-blue-800',
-      abertura: 'bg-green-100 text-green-800',
-      objecao: 'bg-orange-100 text-orange-800',
-    }
-    return <Badge className={colors[tipo] || 'bg-gray-100 text-gray-800'}>{tipo}</Badge>
   }
 
   return (
@@ -132,11 +88,11 @@ export function SuggestionsList() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="pending">Pendentes</SelectItem>
-                <SelectItem value="approved">Aprovadas</SelectItem>
-                <SelectItem value="rejected">Rejeitadas</SelectItem>
-                <SelectItem value="implemented">Implementadas</SelectItem>
+                {SUGGESTION_STATUS_FILTER_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -163,7 +119,7 @@ export function SuggestionsList() {
                     <TableCell className="max-w-xs truncate">{sug.descricao}</TableCell>
                     <TableCell>{getStatusBadge(sug.status)}</TableCell>
                     <TableCell className="text-sm text-gray-500">
-                      {new Date(sug.criadaEm).toLocaleDateString('pt-BR')}
+                      {formatDateBR(sug.criadaEm)}
                     </TableCell>
                     <TableCell className="text-right">
                       {sug.status === 'pending' && (
@@ -171,7 +127,7 @@ export function SuggestionsList() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleUpdateStatus(sug.id, 'rejected')}
+                            onClick={() => handleReject(sug.id)}
                             disabled={actionLoading === sug.id}
                           >
                             {actionLoading === sug.id ? (
@@ -183,7 +139,7 @@ export function SuggestionsList() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleUpdateStatus(sug.id, 'approved')}
+                            onClick={() => handleApprove(sug.id)}
                             disabled={actionLoading === sug.id}
                           >
                             {actionLoading === sug.id ? (
@@ -213,7 +169,7 @@ export function SuggestionsList() {
           onClose={() => setIsNewOpen(false)}
           onCreated={() => {
             setIsNewOpen(false)
-            fetchSuggestions()
+            refresh()
           }}
         />
       )}

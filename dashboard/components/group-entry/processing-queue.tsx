@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,92 +13,78 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Loader2, XCircle, RefreshCw, Play, X } from 'lucide-react'
-
-interface QueueItem {
-  id: string
-  linkUrl: string
-  chipName: string
-  scheduledAt: string
-  status: 'queued' | 'processing'
-}
+import { toast } from '@/hooks/use-toast'
+import {
+  useProcessingQueue,
+  useQueueActions,
+  getQueueStatusBadgeColor,
+  getQueueStatusLabel,
+  formatLinkUrl,
+  formatTime,
+} from '@/lib/group-entry'
 
 interface ProcessingQueueProps {
   onUpdate: () => void
 }
 
 export function ProcessingQueue({ onUpdate }: ProcessingQueueProps) {
-  const [queue, setQueue] = useState<QueueItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const { queue, loading, error, refresh } = useProcessingQueue(true)
 
-  const fetchQueue = useCallback(async () => {
-    try {
-      const res = await fetch('/api/group-entry/queue')
-      if (res.ok) {
-        const data = await res.json()
-        setQueue(
-          data.queue?.map((q: Record<string, unknown>) => ({
-            id: q.id,
-            linkUrl: q.link_url,
-            chipName: q.chip_name,
-            scheduledAt: q.scheduled_at,
-            status: q.status,
-          })) || []
-        )
-      }
-    } catch {
-      // Ignore errors
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchQueue()
-  }, [fetchQueue])
-
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(fetchQueue, 30000)
-    return () => clearInterval(interval)
-  }, [fetchQueue])
-
-  const handleCancel = async (id: string) => {
-    setActionLoading(id)
-    try {
-      await fetch(`/api/group-entry/queue/${id}`, { method: 'DELETE' })
-      await fetchQueue()
-      onUpdate()
-    } catch {
-      // Ignore errors
-    } finally {
-      setActionLoading(null)
-    }
+  const handleSuccess = () => {
+    refresh()
+    onUpdate()
   }
+
+  const { actionLoading, error: actionError, processItem, cancelItem } = useQueueActions(handleSuccess)
+
+  // Show toast on errors
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: error,
+        variant: 'destructive',
+      })
+    }
+  }, [error])
+
+  useEffect(() => {
+    if (actionError) {
+      toast({
+        title: 'Erro na acao',
+        description: actionError,
+        variant: 'destructive',
+      })
+    }
+  }, [actionError])
 
   const handleProcess = async (id: string) => {
-    setActionLoading(id)
-    try {
-      await fetch(`/api/group-entry/process/${id}`, { method: 'POST' })
-      await fetchQueue()
-      onUpdate()
-    } catch {
-      // Ignore errors
-    } finally {
-      setActionLoading(null)
+    const success = await processItem(id)
+    if (success) {
+      toast({
+        title: 'Sucesso',
+        description: 'Item processado com sucesso',
+      })
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'queued':
-        return <Badge className="bg-yellow-100 text-yellow-800">Na Fila</Badge>
-      case 'processing':
-        return <Badge className="bg-blue-100 text-blue-800">Processando</Badge>
-      default:
-        return <Badge>{status}</Badge>
+  const handleCancel = async (id: string) => {
+    const success = await cancelItem(id)
+    if (success) {
+      toast({
+        title: 'Sucesso',
+        description: 'Item cancelado com sucesso',
+      })
     }
   }
+
+  const renderStatusBadge = (status: string) => {
+    const colorClass = getQueueStatusBadgeColor(status)
+    const label = getQueueStatusLabel(status)
+    return <Badge className={colorClass}>{label}</Badge>
+  }
+
+  const canTakeAction = (status: string) => status === 'queued'
 
   return (
     <Card>
@@ -108,7 +94,7 @@ export function ProcessingQueue({ onUpdate }: ProcessingQueueProps) {
             <CardTitle className="text-base">Fila de Processamento</CardTitle>
             <CardDescription>{queue.length} itens na fila</CardDescription>
           </div>
-          <Button variant="ghost" size="sm" onClick={fetchQueue}>
+          <Button variant="ghost" size="sm" onClick={refresh}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -135,27 +121,23 @@ export function ProcessingQueue({ onUpdate }: ProcessingQueueProps) {
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{index + 1}</TableCell>
                   <TableCell>
-                    <code className="text-xs">
-                      {item.linkUrl.replace('https://chat.whatsapp.com/', '...')}
-                    </code>
+                    <code className="text-xs">{formatLinkUrl(item.link_url)}</code>
                   </TableCell>
-                  <TableCell className="text-sm">{item.chipName}</TableCell>
+                  <TableCell className="text-sm">{item.chip_name}</TableCell>
                   <TableCell className="text-sm text-gray-500">
-                    {new Date(item.scheduledAt).toLocaleTimeString('pt-BR', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {formatTime(item.scheduled_at)}
                   </TableCell>
-                  <TableCell>{getStatusBadge(item.status)}</TableCell>
+                  <TableCell>{renderStatusBadge(item.status)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      {item.status === 'queued' && (
+                      {canTakeAction(item.status) && (
                         <>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleProcess(item.id)}
                             disabled={actionLoading === item.id}
+                            title="Processar agora"
                           >
                             {actionLoading === item.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -168,6 +150,7 @@ export function ProcessingQueue({ onUpdate }: ProcessingQueueProps) {
                             size="sm"
                             onClick={() => handleCancel(item.id)}
                             disabled={actionLoading === item.id}
+                            title="Cancelar"
                           >
                             {actionLoading === item.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />

@@ -7,57 +7,27 @@ import { Clock, DollarSign, User } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import {
+  formatCurrency,
+  parseShiftDate,
+  getStatusBadgeColor,
+  getStatusLabel,
+} from '@/lib/vagas'
+import type { Shift } from '@/lib/vagas'
 
-export interface Shift {
-  id: string
-  hospital: string
-  hospital_id: string
-  especialidade: string
-  especialidade_id: string
-  data: string
-  hora_inicio: string
-  hora_fim: string
-  valor: number
-  status: string
-  reservas_count: number
-  created_at: string
-}
+// Re-export for backward compatibility
+export type { Shift } from '@/lib/vagas'
 
 interface Props {
   shift: Shift
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  aberta: 'bg-green-100 text-green-800',
-  reservada: 'bg-yellow-100 text-yellow-800',
-  confirmada: 'bg-blue-100 text-blue-800',
-  cancelada: 'bg-red-100 text-red-800',
-  realizada: 'bg-gray-100 text-gray-800',
-  fechada: 'bg-gray-100 text-gray-800',
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  aberta: 'Aberta',
-  reservada: 'Reservada',
-  confirmada: 'Confirmada',
-  cancelada: 'Cancelada',
-  realizada: 'Realizada',
-  fechada: 'Fechada',
-}
-
 export function ShiftCard({ shift }: Props) {
   const router = useRouter()
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
-  }
-
-  const shiftDate = new Date(shift.data + 'T00:00:00')
-  const statusColor = STATUS_COLORS[shift.status] || 'bg-gray-100 text-gray-800'
-  const statusLabel = STATUS_LABELS[shift.status] || shift.status
+  const shiftDate = parseShiftDate(shift.data)
+  const statusColor = getStatusBadgeColor(shift.status)
+  const statusLabel = getStatusLabel(shift.status)
 
   return (
     <Card

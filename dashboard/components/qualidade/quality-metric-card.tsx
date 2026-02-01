@@ -1,39 +1,9 @@
 'use client'
 
 import { Card, CardContent } from '@/components/ui/card'
-import { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-interface QualityMetricCardProps {
-  title: string
-  value: number
-  suffix?: string
-  icon: LucideIcon
-  color: 'green' | 'yellow' | 'blue' | 'red'
-}
-
-const colorClasses = {
-  green: {
-    bg: 'bg-green-50',
-    text: 'text-green-600',
-    icon: 'text-green-400',
-  },
-  yellow: {
-    bg: 'bg-yellow-50',
-    text: 'text-yellow-600',
-    icon: 'text-yellow-400',
-  },
-  blue: {
-    bg: 'bg-blue-50',
-    text: 'text-blue-600',
-    icon: 'text-blue-400',
-  },
-  red: {
-    bg: 'bg-red-50',
-    text: 'text-red-600',
-    icon: 'text-red-400',
-  },
-}
+import { METRIC_CARD_COLORS } from '@/lib/qualidade'
+import type { QualityMetricCardProps } from '@/lib/qualidade'
 
 export function QualityMetricCard({
   title,
@@ -42,7 +12,7 @@ export function QualityMetricCard({
   icon: Icon,
   color,
 }: QualityMetricCardProps) {
-  const colors = colorClasses[color]
+  const colors = METRIC_CARD_COLORS[color]
 
   return (
     <Card>

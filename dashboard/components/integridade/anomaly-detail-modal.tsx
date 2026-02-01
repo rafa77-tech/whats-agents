@@ -14,17 +14,14 @@ import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-interface Anomaly {
-  id: string
-  tipo: string
-  entidade: string
-  entidadeId: string
-  severidade: 'low' | 'medium' | 'high'
-  mensagem: string
-  criadaEm: string
-  resolvida: boolean
-}
+import {
+  getAnomalySeverityColors,
+  getAnomalySeverityLabel,
+  formatResolutionNotes,
+  truncateAnomalyId,
+  formatDateTimeBR,
+} from '@/lib/integridade'
+import type { Anomaly, AnomalyResolutionType } from '@/lib/integridade'
 
 interface AnomalyDetailModalProps {
   anomaly: Anomaly
@@ -36,42 +33,25 @@ export function AnomalyDetailModal({ anomaly, onClose, onResolve }: AnomalyDetai
   const [notas, setNotas] = useState('')
   const [resolving, setResolving] = useState(false)
 
-  const handleResolve = async (tipo: 'corrigido' | 'falso_positivo') => {
+  const handleResolve = async (tipo: AnomalyResolutionType) => {
     setResolving(true)
     try {
-      const notasCompletas =
-        tipo === 'falso_positivo' ? `[Falso Positivo] ${notas}` : `[Corrigido] ${notas}`
+      const notasCompletas = formatResolutionNotes(tipo, notas)
       await onResolve(anomaly.id, notasCompletas)
     } finally {
       setResolving(false)
     }
   }
 
-  const getSeverityBadge = (severidade: string) => {
-    switch (severidade) {
-      case 'high':
-        return <Badge className="bg-red-100 text-red-800">Alta</Badge>
-      case 'medium':
-        return <Badge className="bg-yellow-100 text-yellow-800">Media</Badge>
-      default:
-        return <Badge className="bg-blue-100 text-blue-800">Baixa</Badge>
-    }
-  }
+  const severityColors = getAnomalySeverityColors(anomaly.severidade)
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle
-              className={cn(
-                'h-5 w-5',
-                anomaly.severidade === 'high' && 'text-red-500',
-                anomaly.severidade === 'medium' && 'text-yellow-500',
-                anomaly.severidade === 'low' && 'text-blue-500'
-              )}
-            />
-            Anomalia #{anomaly.id.slice(0, 8)}
+            <AlertTriangle className={cn('h-5 w-5', severityColors.icon)} />
+            Anomalia #{truncateAnomalyId(anomaly.id)}
           </DialogTitle>
           <DialogDescription>Detalhes e resolucao da anomalia</DialogDescription>
         </DialogHeader>
@@ -85,7 +65,9 @@ export function AnomalyDetailModal({ anomaly, onClose, onResolve }: AnomalyDetai
             </div>
             <div>
               <p className="text-gray-500">Severidade</p>
-              {getSeverityBadge(anomaly.severidade)}
+              <Badge className={severityColors.badge}>
+                {getAnomalySeverityLabel(anomaly.severidade)}
+              </Badge>
             </div>
             <div>
               <p className="text-gray-500">Entidade</p>
@@ -97,7 +79,7 @@ export function AnomalyDetailModal({ anomaly, onClose, onResolve }: AnomalyDetai
             </div>
             <div className="col-span-2">
               <p className="text-gray-500">Detectada</p>
-              <p className="font-medium">{new Date(anomaly.criadaEm).toLocaleString('pt-BR')}</p>
+              <p className="font-medium">{formatDateTimeBR(anomaly.criadaEm)}</p>
             </div>
           </div>
 

@@ -20,31 +20,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Loader2 } from 'lucide-react'
-
-interface NewSuggestionModalProps {
-  onClose: () => void
-  onCreated: () => void
-}
-
-const TIPOS = [
-  { value: 'tom', label: 'Tom de voz' },
-  { value: 'resposta', label: 'Tipo de resposta' },
-  { value: 'abertura', label: 'Mensagem de abertura' },
-  { value: 'objecao', label: 'Tratamento de objecao' },
-]
+import { SUGGESTION_TYPES, API_ENDPOINTS, canCreateSuggestion } from '@/lib/qualidade'
+import type { NewSuggestionModalProps, SuggestionType } from '@/lib/qualidade'
 
 export function NewSuggestionModal({ onClose, onCreated }: NewSuggestionModalProps) {
-  const [tipo, setTipo] = useState('')
+  const [tipo, setTipo] = useState<SuggestionType | ''>('')
   const [descricao, setDescricao] = useState('')
   const [exemplos, setExemplos] = useState('')
   const [saving, setSaving] = useState(false)
 
   const handleSubmit = async () => {
-    if (!tipo || !descricao) return
+    if (!canCreateSuggestion(tipo, descricao)) return
 
     setSaving(true)
     try {
-      await fetch('/api/admin/sugestoes', {
+      const res = await fetch(API_ENDPOINTS.suggestions, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -53,9 +43,12 @@ export function NewSuggestionModal({ onClose, onCreated }: NewSuggestionModalPro
           exemplos: exemplos || undefined,
         }),
       })
-      onCreated()
+
+      if (res.ok) {
+        onCreated()
+      }
     } catch {
-      // Ignore errors
+      // Error handling could be improved with toast notification
     } finally {
       setSaving(false)
     }
@@ -72,12 +65,12 @@ export function NewSuggestionModal({ onClose, onCreated }: NewSuggestionModalPro
         <div className="space-y-4">
           <div>
             <Label htmlFor="tipo">Tipo</Label>
-            <Select value={tipo} onValueChange={setTipo}>
+            <Select value={tipo} onValueChange={(value) => setTipo(value as SuggestionType)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
-                {TIPOS.map((t) => (
+                {SUGGESTION_TYPES.map((t) => (
                   <SelectItem key={t.value} value={t.value}>
                     {t.label}
                   </SelectItem>
@@ -113,7 +106,10 @@ export function NewSuggestionModal({ onClose, onCreated }: NewSuggestionModalPro
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={saving || !tipo || !descricao}>
+          <Button
+            onClick={handleSubmit}
+            disabled={saving || !canCreateSuggestion(tipo, descricao)}
+          >
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

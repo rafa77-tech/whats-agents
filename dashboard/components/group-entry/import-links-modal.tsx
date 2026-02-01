@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -12,25 +12,30 @@ import {
 import { Button } from '@/components/ui/button'
 import { Upload, Download, Loader2, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from '@/hooks/use-toast'
+import { useImportLinks, isValidFileExtension } from '@/lib/group-entry'
 
 interface ImportLinksModalProps {
   onClose: () => void
   onImport: () => void
 }
 
-interface ImportResult {
-  total: number
-  valid: number
-  duplicates: number
-  invalid: number
-  errors: Array<{ line: number; error: string }>
-}
-
 export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
   const [file, setFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
-  const [result, setResult] = useState<ImportResult | null>(null)
   const [dragActive, setDragActive] = useState(false)
+
+  const { uploading, result, error, uploadFile, reset } = useImportLinks()
+
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: 'Erro na importacao',
+        description: error,
+        variant: 'destructive',
+      })
+    }
+  }, [error])
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -49,50 +54,52 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0]
-      if (droppedFile.name.endsWith('.csv') || droppedFile.name.endsWith('.xlsx')) {
+      if (isValidFileExtension(droppedFile.name)) {
         setFile(droppedFile)
+      } else {
+        toast({
+          title: 'Arquivo invalido',
+          description: 'Selecione um arquivo CSV ou Excel (.xlsx)',
+          variant: 'destructive',
+        })
       }
     }
   }, [])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
+      const selectedFile = e.target.files[0]
+      if (isValidFileExtension(selectedFile.name)) {
+        setFile(selectedFile)
+      } else {
+        toast({
+          title: 'Arquivo invalido',
+          description: 'Selecione um arquivo CSV ou Excel (.xlsx)',
+          variant: 'destructive',
+        })
+      }
     }
   }
 
   const handleUpload = async () => {
     if (!file) return
 
-    setUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const res = await fetch('/api/group-entry/import/csv', {
-        method: 'POST',
-        body: formData,
+    const success = await uploadFile(file)
+    if (success) {
+      toast({
+        title: 'Arquivo processado',
+        description: 'Verifique os resultados abaixo',
       })
-
-      if (res.ok) {
-        const data = await res.json()
-        setResult({
-          total: data.total || 0,
-          valid: data.valid || 0,
-          duplicates: data.duplicates || 0,
-          invalid: data.invalid || 0,
-          errors: data.errors || [],
-        })
-      }
-    } catch {
-      // Ignore errors
-    } finally {
-      setUploading(false)
     }
   }
 
   const handleConfirmImport = () => {
     onImport()
+  }
+
+  const handleRemoveFile = () => {
+    setFile(null)
+    reset()
   }
 
   const downloadTemplate = () => {
@@ -132,7 +139,7 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
                 <>
                   <CheckCircle2 className="h-8 w-8 text-green-500" />
                   <p className="mt-2 text-sm font-medium text-green-700">{file.name}</p>
-                  <Button variant="link" size="sm" onClick={() => setFile(null)}>
+                  <Button variant="link" size="sm" onClick={handleRemoveFile}>
                     Remover
                   </Button>
                 </>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -16,62 +16,14 @@ import {
   Lightbulb,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useQualidadeMetrics, calculateFailureRate, MAX_PATTERNS_DISPLAYED } from '@/lib/qualidade'
 import { QualityMetricCard } from './quality-metric-card'
 import { ConversationsList } from './conversations-list'
 import { SuggestionsList } from './suggestions-list'
 
-interface QualityMetrics {
-  avaliadas: number
-  pendentes: number
-  scoreMedio: number
-  validacaoTaxa: number
-  validacaoFalhas: number
-  padroesViolados: Array<{ padrao: string; count: number }>
-}
-
 export function QualidadePageContent() {
-  const [metrics, setMetrics] = useState<QualityMetrics | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { metrics, loading, error, refresh } = useQualidadeMetrics()
   const [activeTab, setActiveTab] = useState('overview')
-
-  const fetchMetrics = useCallback(async () => {
-    try {
-      setError(null)
-
-      const [performanceRes, validacaoRes] = await Promise.all([
-        fetch('/api/admin/metricas/performance').catch(() => null),
-        fetch('/api/admin/validacao/metricas').catch(() => null),
-      ])
-
-      let performanceData = null
-      if (performanceRes?.ok) {
-        performanceData = await performanceRes.json()
-      }
-
-      let validacaoData = null
-      if (validacaoRes?.ok) {
-        validacaoData = await validacaoRes.json()
-      }
-
-      setMetrics({
-        avaliadas: performanceData?.avaliadas || 0,
-        pendentes: performanceData?.pendentes || 0,
-        scoreMedio: performanceData?.score_medio || 0,
-        validacaoTaxa: validacaoData?.taxa_sucesso || 98,
-        validacaoFalhas: validacaoData?.falhas || 0,
-        padroesViolados: validacaoData?.padroes_violados || [],
-      })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro desconhecido')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchMetrics()
-  }, [fetchMetrics])
 
   if (loading && !metrics) {
     return (
@@ -90,7 +42,7 @@ export function QualidadePageContent() {
         <div className="text-center">
           <XCircle className="mx-auto h-8 w-8 text-red-400" />
           <p className="mt-2 text-sm text-red-600">{error}</p>
-          <Button onClick={fetchMetrics} variant="outline" className="mt-4">
+          <Button onClick={refresh} variant="outline" className="mt-4">
             Tentar novamente
           </Button>
         </div>
@@ -106,7 +58,7 @@ export function QualidadePageContent() {
           <h1 className="text-2xl font-bold text-gray-900">Qualidade das Conversas</h1>
           <p className="text-gray-500">Avaliacao e gestao de qualidade das respostas</p>
         </div>
-        <Button onClick={fetchMetrics} variant="outline" size="sm" disabled={loading}>
+        <Button onClick={refresh} variant="outline" size="sm" disabled={loading}>
           <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
           Atualizar
         </Button>
@@ -116,26 +68,26 @@ export function QualidadePageContent() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <QualityMetricCard
           title="Avaliadas"
-          value={metrics?.avaliadas || 0}
+          value={metrics?.avaliadas ?? 0}
           icon={CheckCircle2}
           color="green"
         />
         <QualityMetricCard
           title="Pendentes"
-          value={metrics?.pendentes || 0}
+          value={metrics?.pendentes ?? 0}
           icon={ClipboardList}
           color="yellow"
         />
         <QualityMetricCard
           title="Score Medio"
-          value={metrics?.scoreMedio || 0}
+          value={metrics?.scoreMedio ?? 0}
           suffix="/5"
           icon={Star}
           color="blue"
         />
         <QualityMetricCard
           title="Validacoes"
-          value={metrics?.validacaoTaxa || 0}
+          value={metrics?.validacaoTaxa ?? 0}
           suffix="%"
           icon={CheckCircle2}
           color="green"
@@ -148,14 +100,14 @@ export function QualidadePageContent() {
           <CardContent className="flex items-center justify-between p-6">
             <div>
               <p className="text-sm text-gray-500">Conversas para Avaliar</p>
-              <p className="text-2xl font-bold">{metrics?.pendentes || 0} novas</p>
+              <p className="text-2xl font-bold">{metrics?.pendentes ?? 0} novas</p>
             </div>
             <div className="flex items-center gap-3">
               <MessageSquare className="h-8 w-8 text-blue-400" />
               <Button
                 size="sm"
                 onClick={() => setActiveTab('conversas')}
-                disabled={(metrics?.pendentes || 0) === 0}
+                disabled={(metrics?.pendentes ?? 0) === 0}
               >
                 Iniciar Avaliacao
               </Button>
@@ -184,12 +136,13 @@ export function QualidadePageContent() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Validador de Output</CardTitle>
             <CardDescription>
-              {metrics.validacaoFalhas} falhas hoje ({(100 - metrics.validacaoTaxa).toFixed(1)}%)
+              {metrics.validacaoFalhas} falhas hoje (
+              {calculateFailureRate(metrics.validacaoTaxa).toFixed(1)}%)
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {metrics.padroesViolados.slice(0, 5).map((p) => (
+              {metrics.padroesViolados.slice(0, MAX_PATTERNS_DISPLAYED).map((p) => (
                 <div
                   key={p.padrao}
                   className="flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-sm"

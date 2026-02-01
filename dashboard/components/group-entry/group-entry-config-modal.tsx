@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -14,101 +14,61 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Loader2 } from 'lucide-react'
-
-interface GroupEntryConfig {
-  gruposPorDia: number
-  intervaloMin: number
-  intervaloMax: number
-  horarioInicio: string
-  horarioFim: string
-  diasAtivos: string[]
-  autoValidar: boolean
-  autoAgendar: boolean
-  notificarFalhas: boolean
-}
+import { toast } from '@/hooks/use-toast'
+import {
+  useGroupEntryConfig,
+  validateConfig,
+  DIAS_SEMANA,
+  CONFIG_LIMITS,
+} from '@/lib/group-entry'
+import type { GroupEntryConfigUI } from '@/lib/group-entry'
 
 interface GroupEntryConfigModalProps {
   onClose: () => void
   onSave: () => void
 }
 
-const DIAS_SEMANA = [
-  { key: 'seg', label: 'Seg' },
-  { key: 'ter', label: 'Ter' },
-  { key: 'qua', label: 'Qua' },
-  { key: 'qui', label: 'Qui' },
-  { key: 'sex', label: 'Sex' },
-  { key: 'sab', label: 'Sab' },
-  { key: 'dom', label: 'Dom' },
-]
-
 export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModalProps) {
-  const [config, setConfig] = useState<GroupEntryConfig>({
-    gruposPorDia: 10,
-    intervaloMin: 30,
-    intervaloMax: 60,
-    horarioInicio: '08:00',
-    horarioFim: '20:00',
-    diasAtivos: ['seg', 'ter', 'qua', 'qui', 'sex'],
-    autoValidar: true,
-    autoAgendar: false,
-    notificarFalhas: true,
-  })
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const { config, setConfig, loading, saving, error, saveConfig } = useGroupEntryConfig()
 
+  // Show error toast
   useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const res = await fetch('/api/group-entry/config')
-        if (res.ok) {
-          const data = await res.json()
-          setConfig({
-            gruposPorDia: data.grupos_por_dia || 10,
-            intervaloMin: data.intervalo_min || 30,
-            intervaloMax: data.intervalo_max || 60,
-            horarioInicio: data.horario_inicio || '08:00',
-            horarioFim: data.horario_fim || '20:00',
-            diasAtivos: data.dias_ativos || ['seg', 'ter', 'qua', 'qui', 'sex'],
-            autoValidar: data.auto_validar ?? true,
-            autoAgendar: data.auto_agendar ?? false,
-            notificarFalhas: data.notificar_falhas ?? true,
-          })
-        }
-      } catch {
-        // Use defaults
-      } finally {
-        setLoading(false)
-      }
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: error,
+        variant: 'destructive',
+      })
     }
-
-    fetchConfig()
-  }, [])
+  }, [error])
 
   const handleSave = async () => {
-    setSaving(true)
-    try {
-      await fetch('/api/group-entry/config', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          grupos_por_dia: config.gruposPorDia,
-          intervalo_min: config.intervaloMin,
-          intervalo_max: config.intervaloMax,
-          horario_inicio: config.horarioInicio,
-          horario_fim: config.horarioFim,
-          dias_ativos: config.diasAtivos,
-          auto_validar: config.autoValidar,
-          auto_agendar: config.autoAgendar,
-          notificar_falhas: config.notificarFalhas,
-        }),
+    // Validate config
+    const validationErrors = validateConfig(config)
+    if (validationErrors.length > 0) {
+      toast({
+        title: 'Configuracao invalida',
+        description: validationErrors.join('. '),
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const success = await saveConfig(config)
+    if (success) {
+      toast({
+        title: 'Sucesso',
+        description: 'Configuracao salva com sucesso',
       })
       onSave()
-    } catch {
-      // Ignore errors
-    } finally {
-      setSaving(false)
     }
+  }
+
+  const updateConfig = <K extends keyof GroupEntryConfigUI>(
+    key: K,
+    value: GroupEntryConfigUI[K]
+  ) => {
+    setConfig((prev) => ({ ...prev, [key]: value }))
   }
 
   const toggleDia = (dia: string) => {
@@ -146,15 +106,17 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
             <h4 className="mb-3 text-sm font-medium">Limites por Chip</h4>
             <div className="space-y-3">
               <div>
-                <Label htmlFor="gruposPorDia">Grupos por dia (max 20)</Label>
+                <Label htmlFor="gruposPorDia">
+                  Grupos por dia (max {CONFIG_LIMITS.gruposPorDia.max})
+                </Label>
                 <Input
                   id="gruposPorDia"
                   type="number"
-                  min={1}
-                  max={20}
+                  min={CONFIG_LIMITS.gruposPorDia.min}
+                  max={CONFIG_LIMITS.gruposPorDia.max}
                   value={config.gruposPorDia}
                   onChange={(e) =>
-                    setConfig((prev) => ({ ...prev, gruposPorDia: parseInt(e.target.value) || 10 }))
+                    updateConfig('gruposPorDia', parseInt(e.target.value) || 10)
                   }
                 />
               </div>
@@ -164,13 +126,10 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
                   <Input
                     id="intervaloMin"
                     type="number"
-                    min={15}
+                    min={CONFIG_LIMITS.intervaloMin.min}
                     value={config.intervaloMin}
                     onChange={(e) =>
-                      setConfig((prev) => ({
-                        ...prev,
-                        intervaloMin: parseInt(e.target.value) || 30,
-                      }))
+                      updateConfig('intervaloMin', parseInt(e.target.value) || 30)
                     }
                   />
                 </div>
@@ -179,13 +138,10 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
                   <Input
                     id="intervaloMax"
                     type="number"
-                    min={30}
+                    min={CONFIG_LIMITS.intervaloMax.min}
                     value={config.intervaloMax}
                     onChange={(e) =>
-                      setConfig((prev) => ({
-                        ...prev,
-                        intervaloMax: parseInt(e.target.value) || 60,
-                      }))
+                      updateConfig('intervaloMax', parseInt(e.target.value) || 60)
                     }
                   />
                 </div>
@@ -203,9 +159,7 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
                   id="horarioInicio"
                   type="time"
                   value={config.horarioInicio}
-                  onChange={(e) =>
-                    setConfig((prev) => ({ ...prev, horarioInicio: e.target.value }))
-                  }
+                  onChange={(e) => updateConfig('horarioInicio', e.target.value)}
                 />
               </div>
               <div>
@@ -214,7 +168,7 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
                   id="horarioFim"
                   type="time"
                   value={config.horarioFim}
-                  onChange={(e) => setConfig((prev) => ({ ...prev, horarioFim: e.target.value }))}
+                  onChange={(e) => updateConfig('horarioFim', e.target.value)}
                 />
               </div>
             </div>
@@ -245,9 +199,7 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
                 <Switch
                   id="autoValidar"
                   checked={config.autoValidar}
-                  onCheckedChange={(checked) =>
-                    setConfig((prev) => ({ ...prev, autoValidar: checked }))
-                  }
+                  onCheckedChange={(checked) => updateConfig('autoValidar', checked)}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -255,9 +207,7 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
                 <Switch
                   id="autoAgendar"
                   checked={config.autoAgendar}
-                  onCheckedChange={(checked) =>
-                    setConfig((prev) => ({ ...prev, autoAgendar: checked }))
-                  }
+                  onCheckedChange={(checked) => updateConfig('autoAgendar', checked)}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -265,9 +215,7 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
                 <Switch
                   id="notificarFalhas"
                   checked={config.notificarFalhas}
-                  onCheckedChange={(checked) =>
-                    setConfig((prev) => ({ ...prev, notificarFalhas: checked }))
-                  }
+                  onCheckedChange={(checked) => updateConfig('notificarFalhas', checked)}
                 />
               </div>
             </div>

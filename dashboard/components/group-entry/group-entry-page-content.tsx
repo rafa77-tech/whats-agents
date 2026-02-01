@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -17,135 +17,76 @@ import {
   Play,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from '@/hooks/use-toast'
 import { CapacityBar } from './capacity-bar'
 import { LinksTable } from './links-table'
 import { ProcessingQueue } from './processing-queue'
 import { ImportLinksModal } from './import-links-modal'
 import { GroupEntryConfigModal } from './group-entry-config-modal'
-
-interface GroupEntryDashboard {
-  links: {
-    total: number
-    pending: number
-    validated: number
-    scheduled: number
-    processed: number
-  }
-  queue: {
-    queued: number
-    processing: number
-  }
-  processedToday: {
-    success: number
-    failed: number
-  }
-  capacity: {
-    used: number
-    total: number
-  }
-}
+import { useGroupEntryDashboard, useBatchActions } from '@/lib/group-entry'
 
 export function GroupEntryPageContent() {
-  const [data, setData] = useState<GroupEntryDashboard | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
-  const [processingAction, setProcessingAction] = useState<string | null>(null)
 
-  const fetchData = useCallback(async () => {
-    try {
-      setError(null)
+  const { data, loading, error, refresh } = useGroupEntryDashboard()
+  const {
+    processingAction,
+    error: batchError,
+    validatePending,
+    scheduleValidated,
+    processQueue,
+  } = useBatchActions(refresh)
 
-      const [dashboardRes, capacityRes] = await Promise.all([
-        fetch('/api/group-entry/dashboard').catch(() => null),
-        fetch('/api/group-entry/capacity').catch(() => null),
-      ])
-
-      let dashboardData = null
-      if (dashboardRes?.ok) {
-        dashboardData = await dashboardRes.json()
-      }
-
-      let capacityData = null
-      if (capacityRes?.ok) {
-        capacityData = await capacityRes.json()
-      }
-
-      setData({
-        links: {
-          total: dashboardData?.links?.total || 0,
-          pending: dashboardData?.links?.pending || 0,
-          validated: dashboardData?.links?.validated || 0,
-          scheduled: dashboardData?.links?.scheduled || 0,
-          processed: dashboardData?.links?.processed || 0,
-        },
-        queue: {
-          queued: dashboardData?.queue?.queued || 0,
-          processing: dashboardData?.queue?.processing || 0,
-        },
-        processedToday: {
-          success: dashboardData?.processed_today?.success || 0,
-          failed: dashboardData?.processed_today?.failed || 0,
-        },
-        capacity: {
-          used: capacityData?.used || 0,
-          total: capacityData?.total || 100,
-        },
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: 'Erro ao carregar dados',
+        description: error,
+        variant: 'destructive',
       })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro desconhecido')
-    } finally {
-      setLoading(false)
     }
-  }, [])
+  }, [error])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    if (batchError) {
+      toast({
+        title: 'Erro na acao',
+        description: batchError,
+        variant: 'destructive',
+      })
+    }
+  }, [batchError])
 
   const handleValidatePending = async () => {
-    setProcessingAction('validate')
-    try {
-      await fetch('/api/group-entry/validate/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'pending' }),
+    const success = await validatePending()
+    if (success) {
+      toast({
+        title: 'Sucesso',
+        description: 'Links validados com sucesso',
       })
-      await fetchData()
-    } catch {
-      // Ignore errors
-    } finally {
-      setProcessingAction(null)
     }
   }
 
   const handleScheduleValidated = async () => {
-    setProcessingAction('schedule')
-    try {
-      await fetch('/api/group-entry/schedule/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'validated' }),
+    const success = await scheduleValidated()
+    if (success) {
+      toast({
+        title: 'Sucesso',
+        description: 'Links agendados com sucesso',
       })
-      await fetchData()
-    } catch {
-      // Ignore errors
-    } finally {
-      setProcessingAction(null)
     }
   }
 
   const handleProcessQueue = async () => {
-    setProcessingAction('process')
-    try {
-      await fetch('/api/group-entry/process', { method: 'POST' })
-      await fetchData()
-    } catch {
-      // Ignore errors
-    } finally {
-      setProcessingAction(null)
+    const success = await processQueue()
+    if (success) {
+      toast({
+        title: 'Sucesso',
+        description: 'Fila processada com sucesso',
+      })
     }
   }
 
@@ -166,7 +107,7 @@ export function GroupEntryPageContent() {
         <div className="text-center">
           <XCircle className="mx-auto h-8 w-8 text-red-400" />
           <p className="mt-2 text-sm text-red-600">{error}</p>
-          <Button onClick={fetchData} variant="outline" className="mt-4">
+          <Button onClick={refresh} variant="outline" className="mt-4">
             Tentar novamente
           </Button>
         </div>
@@ -190,7 +131,7 @@ export function GroupEntryPageContent() {
           <Button onClick={() => setIsConfigOpen(true)} variant="outline" size="sm">
             <Settings className="h-4 w-4" />
           </Button>
-          <Button onClick={fetchData} variant="outline" size="sm" disabled={loading}>
+          <Button onClick={refresh} variant="outline" size="sm" disabled={loading}>
             <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
           </Button>
         </div>
@@ -303,11 +244,11 @@ export function GroupEntryPageContent() {
         </TabsList>
 
         <TabsContent value="overview">
-          <LinksTable onUpdate={fetchData} />
+          <LinksTable onUpdate={refresh} />
         </TabsContent>
 
         <TabsContent value="queue">
-          <ProcessingQueue onUpdate={fetchData} />
+          <ProcessingQueue onUpdate={refresh} />
         </TabsContent>
       </Tabs>
 
@@ -317,7 +258,7 @@ export function GroupEntryPageContent() {
           onClose={() => setIsImportOpen(false)}
           onImport={() => {
             setIsImportOpen(false)
-            fetchData()
+            refresh()
           }}
         />
       )}
@@ -327,7 +268,7 @@ export function GroupEntryPageContent() {
           onClose={() => setIsConfigOpen(false)}
           onSave={() => {
             setIsConfigOpen(false)
-            fetchData()
+            refresh()
           }}
         />
       )}

@@ -6,51 +6,43 @@ import { Button } from '@/components/ui/button'
 import { AlertTriangle, AlertCircle, Info, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-
-interface Alert {
-  id: string
-  tipo: string
-  severity: 'info' | 'warn' | 'critical'
-  message: string
-  source: string
-}
+import {
+  getAlertSeverityColors,
+  getAlertSeverityLabel,
+  sortAlertsBySeverity,
+  countAlertsBySeverity,
+  MAX_DISPLAYED_ALERTS,
+} from '@/lib/health'
+import type { HealthAlert, AlertSeverity } from '@/lib/health'
 
 interface AlertsPanelProps {
-  alerts: Alert[]
+  alerts: HealthAlert[]
 }
 
 export function AlertsPanel({ alerts }: AlertsPanelProps) {
-  const criticalCount = alerts.filter((a) => a.severity === 'critical').length
-  const warnCount = alerts.filter((a) => a.severity === 'warn').length
-  const infoCount = alerts.filter((a) => a.severity === 'info').length
+  const counts = countAlertsBySeverity(alerts)
+  const criticalCount = counts.critical
+  const warnCount = counts.warn
+  const infoCount = counts.info
 
-  const getSeverityIcon = (severity: string) => {
+  const getSeverityIcon = (severity: AlertSeverity) => {
+    const colors = getAlertSeverityColors(severity)
     switch (severity) {
       case 'critical':
-        return <AlertTriangle className="h-4 w-4 text-red-500" />
+        return <AlertTriangle className={`h-4 w-4 ${colors.icon}`} />
       case 'warn':
-        return <AlertCircle className="h-4 w-4 text-yellow-500" />
+        return <AlertCircle className={`h-4 w-4 ${colors.icon}`} />
       default:
-        return <Info className="h-4 w-4 text-blue-500" />
+        return <Info className={`h-4 w-4 ${colors.icon}`} />
     }
   }
 
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return <Badge className="bg-red-100 text-red-800">Critico</Badge>
-      case 'warn':
-        return <Badge className="bg-yellow-100 text-yellow-800">Alerta</Badge>
-      default:
-        return <Badge className="bg-blue-100 text-blue-800">Info</Badge>
-    }
+  const getSeverityBadge = (severity: AlertSeverity) => {
+    const colors = getAlertSeverityColors(severity)
+    return <Badge className={colors.badge}>{getAlertSeverityLabel(severity)}</Badge>
   }
 
-  // Sort by severity: critical first, then warn, then info
-  const sortedAlerts = [...alerts].sort((a, b) => {
-    const order = { critical: 0, warn: 1, info: 2 }
-    return order[a.severity] - order[b.severity]
-  })
+  const sortedAlerts = sortAlertsBySeverity(alerts)
 
   return (
     <Card className={cn(criticalCount > 0 && 'border-red-200')}>
@@ -83,37 +75,40 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {sortedAlerts.slice(0, 5).map((alert) => (
-            <div
-              key={alert.id}
-              className={cn(
-                'flex items-center justify-between rounded-lg border p-3',
-                alert.severity === 'critical' && 'border-red-200 bg-red-50',
-                alert.severity === 'warn' && 'border-yellow-200 bg-yellow-50',
-                alert.severity === 'info' && 'border-blue-200 bg-blue-50'
-              )}
-            >
-              <div className="flex items-center gap-3">
-                {getSeverityIcon(alert.severity)}
-                <div>
-                  <p className="text-sm font-medium">{alert.message}</p>
-                  <p className="text-xs text-gray-500">Fonte: {alert.source}</p>
+          {sortedAlerts.slice(0, MAX_DISPLAYED_ALERTS).map((alert) => {
+            const colors = getAlertSeverityColors(alert.severity)
+            return (
+              <div
+                key={alert.id}
+                className={cn(
+                  'flex items-center justify-between rounded-lg border p-3',
+                  colors.border,
+                  colors.bg
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  {getSeverityIcon(alert.severity)}
+                  <div>
+                    <p className="text-sm font-medium">{alert.message}</p>
+                    <p className="text-xs text-gray-500">Fonte: {alert.source}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {getSeverityBadge(alert.severity)}
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/monitor">
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
+                  </Button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {getSeverityBadge(alert.severity)}
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/monitor">
-                    <ExternalLink className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          ))}
-          {alerts.length > 5 && (
+            )
+          })}
+          {alerts.length > MAX_DISPLAYED_ALERTS && (
             <p className="text-center text-sm text-gray-500">
-              + {alerts.length - 5} alerta{alerts.length - 5 > 1 ? 's' : ''} adicional
-              {alerts.length - 5 > 1 ? 'is' : ''}
+              + {alerts.length - MAX_DISPLAYED_ALERTS} alerta
+              {alerts.length - MAX_DISPLAYED_ALERTS > 1 ? 's' : ''} adicional
+              {alerts.length - MAX_DISPLAYED_ALERTS > 1 ? 'is' : ''}
             </p>
           )}
         </div>

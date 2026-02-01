@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import {
+  verificarHospitalExiste,
+  verificarHospitalBloqueado,
+  bloquearHospital,
+  registrarAuditLog,
+  type BloquearHospitalRequest,
+} from '@/lib/hospitais'
 
 export const dynamic = 'force-dynamic'
-
-interface BloquearRequest {
-  hospital_id: string
-  motivo: string
-}
 
 /**
  * POST /api/hospitais/bloquear
@@ -25,89 +27,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'Não autorizado' }, { status: 401 })
     }
 
-    const body = (await request.json()) as BloquearRequest
+    const body = (await request.json()) as BloquearHospitalRequest
     const { hospital_id, motivo } = body
 
+    // Validação
     if (!hospital_id || !motivo) {
       return NextResponse.json({ detail: 'hospital_id e motivo são obrigatórios' }, { status: 400 })
     }
 
     // Verificar se hospital existe
-    const { data: hospital, error: hospitalError } = await supabase
-      .from('hospitais')
-      .select('id, nome')
-      .eq('id', hospital_id)
-      .single()
-
-    if (hospitalError || !hospital) {
+    const { existe, hospital } = await verificarHospitalExiste(supabase, hospital_id)
+    if (!existe || !hospital) {
       return NextResponse.json({ detail: 'Hospital não encontrado' }, { status: 404 })
     }
 
     // Verificar se já está bloqueado
-    const { data: jaExiste } = await supabase
-      .from('hospitais_bloqueados')
-      .select('id')
-      .eq('hospital_id', hospital_id)
-      .eq('status', 'bloqueado')
-      .single()
-
-    if (jaExiste) {
+    const { bloqueado } = await verificarHospitalBloqueado(supabase, hospital_id)
+    if (bloqueado) {
       return NextResponse.json({ detail: 'Hospital já está bloqueado' }, { status: 400 })
     }
 
-    // Contar vagas abertas que serão afetadas
-    const { count: vagasCount } = await supabase
-      .from('vagas')
-      .select('id', { count: 'exact', head: true })
-      .eq('hospital_id', hospital_id)
-      .eq('status', 'aberta')
-
-    const vagasMovidas = vagasCount || 0
-
-    // Criar registro de bloqueio
-    const { error: insertError } = await supabase.from('hospitais_bloqueados').insert({
-      hospital_id,
-      motivo,
-      bloqueado_por: user.email || 'desconhecido',
-      bloqueado_em: new Date().toISOString(),
-      status: 'bloqueado',
-      vagas_movidas: vagasMovidas,
-    })
-
-    if (insertError) {
-      console.error('Erro ao bloquear hospital:', insertError)
-      return NextResponse.json({ detail: 'Erro ao bloquear hospital' }, { status: 500 })
-    }
-
-    // Mover vagas para status "bloqueada" (se houver coluna de status)
-    // Na implementação real, pode ser necessário mover para tabela separada
-    if (vagasMovidas > 0) {
-      await supabase
-        .from('vagas')
-        .update({ status: 'bloqueada' })
-        .eq('hospital_id', hospital_id)
-        .eq('status', 'aberta')
-    }
+    // Bloquear hospital
+    const userEmail = user.email || 'desconhecido'
+    const result = await bloquearHospital(supabase, hospital_id, motivo, userEmail)
 
     // Registrar no audit_log
-    await supabase.from('audit_log').insert({
-      action: 'hospital_bloqueado',
-      user_email: user.email,
-      details: {
-        hospital_id,
-        hospital_nome: hospital.nome,
-        motivo,
-        vagas_movidas: vagasMovidas,
-      },
-      created_at: new Date().toISOString(),
+    await registrarAuditLog(supabase, 'hospital_bloqueado', userEmail, {
+      hospital_id,
+      hospital_nome: hospital.nome,
+      motivo,
+      vagas_movidas: result.vagas_movidas,
     })
 
     return NextResponse.json({
       success: true,
-      vagas_movidas: vagasMovidas,
+      vagas_movidas: result.vagas_movidas,
     })
   } catch (error) {
     console.error('Erro ao bloquear hospital:', error)
-    return NextResponse.json({ detail: 'Erro interno do servidor' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Erro interno do servidor'
+    return NextResponse.json({ detail: message }, { status: 500 })
   }
 }

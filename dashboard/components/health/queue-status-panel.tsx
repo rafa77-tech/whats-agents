@@ -2,26 +2,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { MessageSquare, Clock, TrendingUp } from 'lucide-react'
+import { formatTempoMedio } from '@/lib/health'
+import type { QueueData } from '@/lib/health'
 
 interface QueueStatusPanelProps {
-  queue:
-    | {
-        pendentes: number
-        processando: number
-        processadasPorHora?: number
-        tempoMedioMs?: number | null
-      }
-    | undefined
+  queue: QueueData | undefined
 }
 
 export function QueueStatusPanel({ queue }: QueueStatusPanelProps) {
-  // Format tempo medio (ms to readable)
-  const formatTempoMedio = (ms: number | null | undefined): string => {
-    if (ms === null || ms === undefined) return '-'
-    if (ms < 1000) return `${ms}ms`
-    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
-    return `${(ms / 60000).toFixed(1)}m`
-  }
 
   return (
     <Card>

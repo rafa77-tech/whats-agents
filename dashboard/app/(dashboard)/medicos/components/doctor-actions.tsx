@@ -23,26 +23,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-
-interface Doctor {
-  id: string
-  nome: string
-  stage_jornada?: string
-  opt_out: boolean
-}
+import { STAGE_OPTIONS } from '@/lib/medicos'
+import type { DoctorActions as DoctorActionsType } from '@/lib/medicos'
 
 interface Props {
-  doctor: Doctor
+  doctor: DoctorActionsType
   onRefresh: () => void
 }
-
-const FUNNEL_STATUSES = [
-  { value: 'novo', label: 'Novo' },
-  { value: 'respondeu', label: 'Respondeu' },
-  { value: 'negociando', label: 'Negociando' },
-  { value: 'convertido', label: 'Convertido' },
-  { value: 'perdido', label: 'Perdido' },
-]
 
 export function DoctorActions({ doctor, onRefresh }: Props) {
   const router = useRouter()
@@ -98,7 +85,7 @@ export function DoctorActions({ doctor, onRefresh }: Props) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {FUNNEL_STATUSES.map((status) => (
+              {STAGE_OPTIONS.map((status) => (
                 <SelectItem key={status.value} value={status.value}>
                   {status.label}
                 </SelectItem>

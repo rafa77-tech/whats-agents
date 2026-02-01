@@ -12,19 +12,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAuth } from '@/hooks/use-auth'
-
-interface Filters {
-  status?: string | undefined
-  hospital_id?: string | undefined
-  especialidade_id?: string | undefined
-  date_from?: string | undefined
-  date_to?: string | undefined
-}
-
-interface Option {
-  id: string
-  nome: string
-}
+import { STATUS_OPTIONS } from '@/lib/vagas'
+import type { ShiftFilters as Filters, SelectOption } from '@/lib/vagas'
 
 interface Props {
   filters: Filters
@@ -32,19 +21,11 @@ interface Props {
   onClear: () => void
 }
 
-const STATUS_OPTIONS = [
-  { value: 'aberta', label: 'Aberta' },
-  { value: 'reservada', label: 'Reservada' },
-  { value: 'confirmada', label: 'Confirmada' },
-  { value: 'cancelada', label: 'Cancelada' },
-  { value: 'realizada', label: 'Realizada' },
-]
-
 export function ShiftFilters({ filters, onApply, onClear }: Props) {
   const { session } = useAuth()
   const [localFilters, setLocalFilters] = useState<Filters>(filters)
-  const [hospitals, setHospitals] = useState<Option[]>([])
-  const [especialidades, setEspecialidades] = useState<Option[]>([])
+  const [hospitals, setHospitals] = useState<SelectOption[]>([])
+  const [especialidades, setEspecialidades] = useState<SelectOption[]>([])
 
   useEffect(() => {
     const fetchOptions = async () => {

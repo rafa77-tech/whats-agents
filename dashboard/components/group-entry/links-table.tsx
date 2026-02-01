@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -20,104 +20,95 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { CheckCircle2, Clock, XCircle, Loader2, Search } from 'lucide-react'
-
-interface Link {
-  id: string
-  url: string
-  status: 'pending' | 'validated' | 'scheduled' | 'processed' | 'failed'
-  categoria: string | null
-  criadoEm: string
-}
+import { CheckCircle2, Clock, XCircle, Loader2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { toast } from '@/hooks/use-toast'
+import {
+  useLinksList,
+  useLinkActions,
+  useDebounce,
+  getLinkStatusBadgeColor,
+  getLinkStatusLabel,
+  formatLinkUrl,
+  formatDate,
+} from '@/lib/group-entry'
 
 interface LinksTableProps {
   onUpdate: () => void
 }
 
 export function LinksTable({ onUpdate }: LinksTableProps) {
-  const [links, setLinks] = useState<Link[]>([])
-  const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [search, setSearch] = useState('')
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [searchInput, setSearchInput] = useState('')
 
-  const fetchLinks = useCallback(async () => {
-    try {
-      const params = new URLSearchParams()
-      if (statusFilter !== 'all') params.append('status', statusFilter)
-      if (search) params.append('search', search)
-      params.append('limit', '20')
+  // Debounce search input by 300ms
+  const debouncedSearch = useDebounce(searchInput, 300)
 
-      const res = await fetch(`/api/group-entry/links?${params.toString()}`)
-      if (res.ok) {
-        const data = await res.json()
-        setLinks(
-          data.links?.map((l: Record<string, unknown>) => ({
-            id: l.id,
-            url: l.url,
-            status: l.status,
-            categoria: l.categoria,
-            criadoEm: l.criado_em,
-          })) || []
-        )
-      }
-    } catch {
-      // Ignore errors
-    } finally {
-      setLoading(false)
+  const filters = useMemo(
+    () => ({
+      status: statusFilter,
+      search: debouncedSearch,
+    }),
+    [statusFilter, debouncedSearch]
+  )
+
+  const { links, loading, error, total, page, totalPages, setPage, refresh } = useLinksList(filters)
+
+  const handleSuccess = () => {
+    refresh()
+    onUpdate()
+  }
+
+  const { actionLoading, error: actionError, validateLink, scheduleLink } = useLinkActions(handleSuccess)
+
+  // Show toast on errors
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: error,
+        variant: 'destructive',
+      })
     }
-  }, [statusFilter, search])
+  }, [error])
 
   useEffect(() => {
-    fetchLinks()
-  }, [fetchLinks])
+    if (actionError) {
+      toast({
+        title: 'Erro na acao',
+        description: actionError,
+        variant: 'destructive',
+      })
+    }
+  }, [actionError])
 
   const handleValidate = async (id: string) => {
-    setActionLoading(id)
-    try {
-      await fetch(`/api/group-entry/validate/${id}`, { method: 'POST' })
-      await fetchLinks()
-      onUpdate()
-    } catch {
-      // Ignore errors
-    } finally {
-      setActionLoading(null)
+    const success = await validateLink(id)
+    if (success) {
+      toast({
+        title: 'Sucesso',
+        description: 'Link validado com sucesso',
+      })
     }
   }
 
   const handleSchedule = async (id: string) => {
-    setActionLoading(id)
-    try {
-      await fetch('/api/group-entry/schedule', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ link_id: id }),
+    const success = await scheduleLink(id)
+    if (success) {
+      toast({
+        title: 'Sucesso',
+        description: 'Link agendado com sucesso',
       })
-      await fetchLinks()
-      onUpdate()
-    } catch {
-      // Ignore errors
-    } finally {
-      setActionLoading(null)
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge className="bg-gray-100 text-gray-800">Pendente</Badge>
-      case 'validated':
-        return <Badge className="bg-blue-100 text-blue-800">Validado</Badge>
-      case 'scheduled':
-        return <Badge className="bg-yellow-100 text-yellow-800">Agendado</Badge>
-      case 'processed':
-        return <Badge className="bg-green-100 text-green-800">Processado</Badge>
-      case 'failed':
-        return <Badge className="bg-red-100 text-red-800">Falhou</Badge>
-      default:
-        return <Badge>{status}</Badge>
-    }
+  const renderStatusBadge = (status: string) => {
+    const colorClass = getLinkStatusBadgeColor(status)
+    const label = getLinkStatusLabel(status)
+    return <Badge className={colorClass}>{label}</Badge>
   }
+
+  const canValidate = (status: string) => status === 'pending'
+  const canSchedule = (status: string) => status === 'pending' || status === 'validated'
 
   return (
     <Card>
@@ -125,7 +116,7 @@ export function LinksTable({ onUpdate }: LinksTableProps) {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-base">Links de Grupos</CardTitle>
-            <CardDescription>{links.length} links encontrados</CardDescription>
+            <CardDescription>{total} links encontrados</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -149,8 +140,8 @@ export function LinksTable({ onUpdate }: LinksTableProps) {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               placeholder="Buscar por URL..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -161,65 +152,96 @@ export function LinksTable({ onUpdate }: LinksTableProps) {
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         ) : links.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Link</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Criado</TableHead>
-                <TableHead className="text-right">Acoes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {links.map((link) => (
-                <TableRow key={link.id}>
-                  <TableCell>
-                    <code className="text-xs">
-                      {link.url.replace('https://chat.whatsapp.com/', '...')}
-                    </code>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(link.status)}</TableCell>
-                  <TableCell className="text-sm text-gray-500">{link.categoria || '-'}</TableCell>
-                  <TableCell className="text-sm text-gray-500">
-                    {new Date(link.criadoEm).toLocaleDateString('pt-BR')}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      {link.status === 'pending' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleValidate(link.id)}
-                          disabled={actionLoading === link.id}
-                        >
-                          {actionLoading === link.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <CheckCircle2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
-                      {(link.status === 'pending' || link.status === 'validated') && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleSchedule(link.id)}
-                          disabled={actionLoading === link.id}
-                        >
-                          {actionLoading === link.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Clock className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Link</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Criado</TableHead>
+                  <TableHead className="text-right">Acoes</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {links.map((link) => (
+                  <TableRow key={link.id}>
+                    <TableCell>
+                      <code className="text-xs">{formatLinkUrl(link.url)}</code>
+                    </TableCell>
+                    <TableCell>{renderStatusBadge(link.status)}</TableCell>
+                    <TableCell className="text-sm text-gray-500">{link.categoria || '-'}</TableCell>
+                    <TableCell className="text-sm text-gray-500">
+                      {formatDate(link.criado_em)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        {canValidate(link.status) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleValidate(link.id)}
+                            disabled={actionLoading === link.id}
+                            title="Validar link"
+                          >
+                            {actionLoading === link.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                        {canSchedule(link.status) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSchedule(link.id)}
+                            disabled={actionLoading === link.id}
+                            title="Agendar link"
+                          >
+                            {actionLoading === link.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Clock className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm text-gray-500">
+                  Pagina {page} de {totalPages}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(page - 1)}
+                    disabled={page <= 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(page + 1)}
+                    disabled={page >= totalPages}
+                  >
+                    Proximo
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <div className="py-8 text-center text-gray-500">
             <XCircle className="mx-auto h-8 w-8 text-gray-300" />

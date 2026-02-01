@@ -11,35 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
-interface Filters {
-  stage_jornada?: string | undefined
-  especialidade?: string | undefined
-  opt_out?: boolean | undefined
-}
+import { STAGE_OPTIONS, ESPECIALIDADE_OPTIONS } from '@/lib/medicos'
+import type { DoctorFilters as Filters } from '@/lib/medicos'
 
 interface Props {
   filters: Filters
   onApply: (filters: Filters) => void
   onClear: () => void
 }
-
-const STAGE_OPTIONS = [
-  { value: 'novo', label: 'Novo' },
-  { value: 'respondeu', label: 'Respondeu' },
-  { value: 'negociando', label: 'Negociando' },
-  { value: 'convertido', label: 'Convertido' },
-  { value: 'perdido', label: 'Perdido' },
-]
-
-const ESPECIALIDADE_OPTIONS = [
-  { value: 'Cardiologia', label: 'Cardiologia' },
-  { value: 'Clinica Medica', label: 'Clinica Medica' },
-  { value: 'Ortopedia', label: 'Ortopedia' },
-  { value: 'Pediatria', label: 'Pediatria' },
-  { value: 'Cirurgia Geral', label: 'Cirurgia Geral' },
-  { value: 'Anestesiologia', label: 'Anestesiologia' },
-]
 
 export function DoctorFilters({ filters, onApply, onClear }: Props) {
   const [localFilters, setLocalFilters] = useState<Filters>(filters)

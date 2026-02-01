@@ -11,41 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { DoctorTimeline } from '../components/doctor-timeline'
 import { DoctorStats } from '../components/doctor-stats'
 import { DoctorActions } from '../components/doctor-actions'
-
-interface DoctorDetail {
-  id: string
-  nome: string
-  telefone: string
-  crm?: string
-  especialidade?: string
-  cidade?: string
-  estado?: string
-  email?: string
-  stage_jornada?: string
-  opt_out: boolean
-  opt_out_data?: string
-  pressure_score_atual?: number
-  contexto_consolidado?: string
-  created_at: string
-  conversations_count: number
-  last_interaction_at?: string
-}
-
-const STAGE_COLORS: Record<string, string> = {
-  novo: 'bg-gray-100 text-gray-800',
-  respondeu: 'bg-blue-100 text-blue-800',
-  negociando: 'bg-yellow-100 text-yellow-800',
-  convertido: 'bg-green-100 text-green-800',
-  perdido: 'bg-red-100 text-red-800',
-}
-
-const STAGE_LABELS: Record<string, string> = {
-  novo: 'Novo',
-  respondeu: 'Respondeu',
-  negociando: 'Negociando',
-  convertido: 'Convertido',
-  perdido: 'Perdido',
-}
+import { getInitials, getStageColor, getStageLabel } from '@/lib/medicos'
+import type { DoctorDetail } from '@/lib/medicos'
 
 function DoctorProfileSkeleton() {
   return (
@@ -95,17 +62,9 @@ export default function DoctorProfilePage() {
     )
   }
 
-  const initials =
-    (doctor.nome || 'XX')
-      .split(' ')
-      .slice(0, 2)
-      .map((n) => n?.[0] || '')
-      .join('')
-      .toUpperCase() || 'XX'
-
-  const stageColor = STAGE_COLORS[doctor.stage_jornada || ''] || 'bg-gray-100 text-gray-800'
-  const stageLabel =
-    STAGE_LABELS[doctor.stage_jornada || ''] || doctor.stage_jornada || 'Desconhecido'
+  const initials = getInitials(doctor.nome)
+  const stageColor = getStageColor(doctor.stage_jornada)
+  const stageLabel = getStageLabel(doctor.stage_jornada)
 
   return (
     <div className="flex h-full flex-col overflow-auto">

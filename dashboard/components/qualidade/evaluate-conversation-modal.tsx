@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -14,111 +14,27 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Loader2, Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  useConversationDetail,
+  formatTimeBR,
+  formatShortId,
+  isRatingsComplete,
+  DEFAULT_RATINGS,
+  MAX_RATING_STARS,
+  EVALUATION_CRITERIA,
+} from '@/lib/qualidade'
+import type {
+  EvaluateConversationModalProps,
+  ConversationRatings,
+  RatingInputProps,
+} from '@/lib/qualidade'
 
-interface Message {
-  id: string
-  remetente: 'julia' | 'medico'
-  conteudo: string
-  criadaEm: string
-}
-
-interface ConversationDetail {
-  id: string
-  medicoNome: string
-  mensagens: Message[]
-}
-
-interface EvaluateConversationModalProps {
-  conversationId: string
-  onClose: () => void
-}
-
-interface Ratings {
-  naturalidade: number
-  persona: number
-  objetivo: number
-  satisfacao: number
-}
-
-export function EvaluateConversationModal({
-  conversationId,
-  onClose,
-}: EvaluateConversationModalProps) {
-  const [conversation, setConversation] = useState<ConversationDetail | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [ratings, setRatings] = useState<Ratings>({
-    naturalidade: 0,
-    persona: 0,
-    objetivo: 0,
-    satisfacao: 0,
-  })
-  const [observacoes, setObservacoes] = useState('')
-
-  useEffect(() => {
-    const fetchConversation = async () => {
-      try {
-        const res = await fetch(`/api/admin/conversas/${conversationId}`)
-        if (res.ok) {
-          const data = await res.json()
-          setConversation({
-            id: data.id,
-            medicoNome: data.medico_nome || 'Desconhecido',
-            mensagens:
-              data.interacoes?.map((m: Record<string, unknown>) => ({
-                id: m.id,
-                remetente: m.remetente,
-                conteudo: m.conteudo,
-                criadaEm: m.criada_em,
-              })) || [],
-          })
-        }
-      } catch {
-        // Ignore errors
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchConversation()
-  }, [conversationId])
-
-  const handleSave = async () => {
-    setSaving(true)
-    try {
-      await fetch('/api/admin/avaliacoes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversa_id: conversationId,
-          naturalidade: ratings.naturalidade,
-          persona: ratings.persona,
-          objetivo: ratings.objetivo,
-          satisfacao: ratings.satisfacao,
-          observacoes,
-        }),
-      })
-      onClose()
-    } catch {
-      // Ignore errors
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const RatingInput = ({
-    label,
-    value,
-    onChange,
-  }: {
-    label: string
-    value: number
-    onChange: (v: number) => void
-  }) => (
+function RatingInput({ label, value, onChange }: RatingInputProps) {
+  return (
     <div>
       <Label className="text-sm">{label}</Label>
       <div className="mt-1 flex gap-1">
-        {[1, 2, 3, 4, 5].map((n) => (
+        {Array.from({ length: MAX_RATING_STARS }, (_, i) => i + 1).map((n) => (
           <button key={n} type="button" onClick={() => onChange(n)} className="focus:outline-none">
             <Star
               className={cn(
@@ -131,6 +47,28 @@ export function EvaluateConversationModal({
       </div>
     </div>
   )
+}
+
+export function EvaluateConversationModal({
+  conversationId,
+  onClose,
+}: EvaluateConversationModalProps) {
+  const { conversation, loading, saveEvaluation, saving } = useConversationDetail(conversationId)
+  const [ratings, setRatings] = useState<ConversationRatings>(DEFAULT_RATINGS)
+  const [observacoes, setObservacoes] = useState('')
+
+  const handleSave = async () => {
+    try {
+      await saveEvaluation(ratings, observacoes)
+      onClose()
+    } catch {
+      // Error handled by hook
+    }
+  }
+
+  const updateRating = (key: keyof ConversationRatings, value: number) => {
+    setRatings((prev) => ({ ...prev, [key]: value }))
+  }
 
   if (loading) {
     return (
@@ -148,7 +86,7 @@ export function EvaluateConversationModal({
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-h-[80vh] max-w-3xl overflow-hidden">
         <DialogHeader>
-          <DialogTitle>Avaliar Conversa #{conversationId.slice(0, 8)}</DialogTitle>
+          <DialogTitle>Avaliar Conversa {formatShortId(conversationId)}</DialogTitle>
           <DialogDescription>
             Conversa com {conversation?.medicoNome} - {conversation?.mensagens.length} mensagens
           </DialogDescription>
@@ -172,12 +110,7 @@ export function EvaluateConversationModal({
                     {msg.remetente === 'julia' ? 'Julia' : conversation.medicoNome}
                   </p>
                   <p className="whitespace-pre-wrap">{msg.conteudo}</p>
-                  <p className="mt-1 text-xs text-gray-400">
-                    {new Date(msg.criadaEm).toLocaleTimeString('pt-BR', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
+                  <p className="mt-1 text-xs text-gray-400">{formatTimeBR(msg.criadaEm)}</p>
                 </div>
               ))}
             </div>
@@ -185,26 +118,14 @@ export function EvaluateConversationModal({
 
           {/* Rating Form */}
           <div className="space-y-4 overflow-y-auto">
-            <RatingInput
-              label="Naturalidade"
-              value={ratings.naturalidade}
-              onChange={(v) => setRatings((r) => ({ ...r, naturalidade: v }))}
-            />
-            <RatingInput
-              label="Persona"
-              value={ratings.persona}
-              onChange={(v) => setRatings((r) => ({ ...r, persona: v }))}
-            />
-            <RatingInput
-              label="Objetivo"
-              value={ratings.objetivo}
-              onChange={(v) => setRatings((r) => ({ ...r, objetivo: v }))}
-            />
-            <RatingInput
-              label="Satisfacao"
-              value={ratings.satisfacao}
-              onChange={(v) => setRatings((r) => ({ ...r, satisfacao: v }))}
-            />
+            {EVALUATION_CRITERIA.map((criteria) => (
+              <RatingInput
+                key={criteria.key}
+                label={criteria.label}
+                value={ratings[criteria.key]}
+                onChange={(v) => updateRating(criteria.key, v)}
+              />
+            ))}
 
             <div>
               <Label htmlFor="observacoes">Observacoes</Label>
@@ -234,16 +155,7 @@ export function EvaluateConversationModal({
             <Button variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={
-                saving ||
-                ratings.naturalidade === 0 ||
-                ratings.persona === 0 ||
-                ratings.objetivo === 0 ||
-                ratings.satisfacao === 0
-              }
-            >
+            <Button onClick={handleSave} disabled={saving || !isRatingsComplete(ratings)}>
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

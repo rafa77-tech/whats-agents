@@ -1,11 +1,13 @@
 /**
- * API: GET /api/vagas/[id]
+ * API: GET/PATCH/DELETE /api/vagas/[id]
  *
- * Retorna detalhes de uma vaga específica.
+ * Gerencia uma vaga especifica com validacao Zod.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { ZodError } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { parseShiftUpdateBody } from '@/lib/vagas'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,8 +90,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const { id } = await params
     const body = await request.json()
-    const { cliente_id } = body
 
+    // Validate body with Zod
+    let validatedBody
+    try {
+      validatedBody = parseShiftUpdateBody(body)
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return NextResponse.json(
+          { error: 'Dados invalidos', details: error.errors },
+          { status: 400 }
+        )
+      }
+      throw error
+    }
+
+    const { cliente_id, status } = validatedBody
     const supabase = createAdminClient()
 
     const updateData: Record<string, unknown> = {
@@ -102,6 +118,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (cliente_id) {
         updateData.status = 'reservada'
       }
+    }
+
+    if (status !== undefined) {
+      updateData.status = status
     }
 
     const { error } = await supabase.from('vagas').update(updateData).eq('id', id)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,167 +29,32 @@ import {
 import { cn } from '@/lib/utils'
 import { KpiCard } from './kpi-card'
 import { AnomalyDetailModal } from './anomaly-detail-modal'
-
-interface Anomaly {
-  id: string
-  tipo: string
-  entidade: string
-  entidadeId: string
-  severidade: 'low' | 'medium' | 'high'
-  mensagem: string
-  criadaEm: string
-  resolvida: boolean
-}
-
-interface IntegridadeData {
-  kpis: {
-    healthScore: number
-    conversionRate: number
-    timeToFill: number
-    componentScores: {
-      pressao: number
-      friccao: number
-      qualidade: number
-      spam: number
-    }
-    recommendations: string[]
-  }
-  anomalias: {
-    abertas: number
-    resolvidas: number
-    total: number
-  }
-  violacoes: number
-  ultimaAuditoria: string | null
-  anomaliasList: Anomaly[]
-}
+import {
+  useIntegridadeData,
+  getHealthScoreStatus,
+  getConversionRateStatus,
+  getTimeToFillStatus,
+  getAnomalySeverityColors,
+  getAnomalySeverityLabel,
+  getAnomalyResolutionColors,
+  getAnomalyResolutionLabel,
+  getProgressColor,
+  convertComponentScoreToPercentage,
+  formatDateBR,
+  formatDateTimeBR,
+  HEALTH_SCORE_COMPONENTS,
+} from '@/lib/integridade'
+import type { Anomaly } from '@/lib/integridade'
 
 export function IntegridadePageContent() {
-  const [data, setData] = useState<IntegridadeData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, loading, error, fetchData, runAudit, resolveAnomaly, runningAudit } =
+    useIntegridadeData()
   const [selectedAnomaly, setSelectedAnomaly] = useState<Anomaly | null>(null)
-  const [runningAudit, setRunningAudit] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
 
-  const fetchData = useCallback(async () => {
-    try {
-      setError(null)
-
-      // Fetch integridade data from backend
-      const [kpisRes, anomaliasRes] = await Promise.all([
-        fetch('/api/integridade/kpis').catch(() => null),
-        fetch('/api/integridade/anomalias?limit=20').catch(() => null),
-      ])
-
-      // Parse KPIs - backend returns nested structure
-      let kpis = {
-        healthScore: 0,
-        conversionRate: 0,
-        timeToFill: 0,
-        componentScores: { pressao: 0, friccao: 0, qualidade: 0, spam: 0 },
-        recommendations: [] as string[],
-      }
-      if (kpisRes?.ok) {
-        const kpisData = await kpisRes.json()
-        // Backend structure: { kpis: { health_score: { score, component_scores }, conversion_rate: { value }, time_to_fill: { time_to_fill_full: { avg_hours } } } }
-        const kpisNested = kpisData.kpis || kpisData
-        kpis = {
-          healthScore: kpisNested.health_score?.score ?? kpisData.health_score ?? 0,
-          conversionRate: kpisNested.conversion_rate?.value ?? kpisData.conversion_rate ?? 0,
-          timeToFill:
-            kpisNested.time_to_fill?.time_to_fill_full?.avg_hours ?? kpisData.time_to_fill ?? 0,
-          componentScores: {
-            pressao: kpisNested.health_score?.component_scores?.pressao ?? 0,
-            friccao: kpisNested.health_score?.component_scores?.friccao ?? 0,
-            qualidade: kpisNested.health_score?.component_scores?.qualidade ?? 0,
-            spam: kpisNested.health_score?.component_scores?.spam ?? 0,
-          },
-          recommendations: kpisNested.health_score?.recommendations || [],
-        }
-      }
-
-      // Parse anomalias - backend returns "anomalies" not "anomalias"
-      let anomaliasList: Anomaly[] = []
-      let anomalias = { abertas: 0, resolvidas: 0, total: 0 }
-      if (anomaliasRes?.ok) {
-        const anomaliasData = await anomaliasRes.json()
-        // Backend uses "anomalies" key
-        const rawAnomalies = anomaliasData.anomalies || anomaliasData.anomalias || []
-        anomaliasList = rawAnomalies.map((a: Record<string, unknown>) => ({
-          id: a.id,
-          tipo: a.tipo || a.type,
-          entidade: a.entidade || a.entity,
-          entidadeId: a.entidade_id || a.entity_id,
-          severidade: a.severidade || a.severity,
-          mensagem: a.mensagem || a.message,
-          criadaEm: a.criada_em || a.created_at,
-          resolvida: a.resolvida || a.resolved || false,
-        }))
-        // Use summary from backend if available
-        const summary = anomaliasData.summary || {}
-        anomalias = {
-          abertas:
-            summary.by_severity?.warning + summary.by_severity?.critical ||
-            anomaliasList.filter((a) => !a.resolvida).length,
-          resolvidas: anomaliasList.filter((a) => a.resolvida).length,
-          total: summary.total || anomaliasList.length,
-        }
-      }
-
-      setData({
-        kpis,
-        anomalias,
-        violacoes: anomalias.abertas, // Use abertas as violacoes count
-        ultimaAuditoria: new Date().toISOString(), // Mark as "just checked"
-        anomaliasList,
-      })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro desconhecido')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
-
-  const handleRunAudit = async () => {
-    setRunningAudit(true)
-    try {
-      await fetch('/api/integridade/reconciliacao', { method: 'POST' })
-      await fetchData()
-    } catch {
-      // Ignore errors
-    } finally {
-      setRunningAudit(false)
-    }
-  }
-
   const handleResolveAnomaly = async (anomalyId: string, notas: string) => {
-    try {
-      await fetch(`/api/integridade/anomalias/${anomalyId}/resolver`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notas, usuario: 'dashboard' }),
-      })
-      setSelectedAnomaly(null)
-      await fetchData()
-    } catch {
-      // Ignore errors
-    }
-  }
-
-  const getSeverityBadge = (severidade: string) => {
-    switch (severidade) {
-      case 'high':
-        return <Badge className="bg-red-100 text-red-800">Alta</Badge>
-      case 'medium':
-        return <Badge className="bg-yellow-100 text-yellow-800">Media</Badge>
-      default:
-        return <Badge className="bg-blue-100 text-blue-800">Baixa</Badge>
-    }
+    await resolveAnomaly(anomalyId, notas)
+    setSelectedAnomaly(null)
   }
 
   if (loading && !data) {
@@ -233,6 +98,14 @@ export function IntegridadePageContent() {
         </div>
       </div>
 
+      {/* Error Banner */}
+      {error && (
+        <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-red-800">
+          <AlertTriangle className="h-5 w-5" />
+          <span>{error}</span>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <KpiCard
@@ -240,39 +113,21 @@ export function IntegridadePageContent() {
           value={data?.kpis.healthScore || 0}
           suffix="/100"
           icon={Activity}
-          status={
-            (data?.kpis.healthScore || 0) >= 80
-              ? 'good'
-              : (data?.kpis.healthScore || 0) >= 60
-                ? 'warn'
-                : 'bad'
-          }
+          status={getHealthScoreStatus(data?.kpis.healthScore || 0)}
         />
         <KpiCard
           title="Taxa de Conversao"
           value={data?.kpis.conversionRate || 0}
           suffix="%"
           icon={TrendingUp}
-          status={
-            (data?.kpis.conversionRate || 0) >= 30
-              ? 'good'
-              : (data?.kpis.conversionRate || 0) >= 20
-                ? 'warn'
-                : 'bad'
-          }
+          status={getConversionRateStatus(data?.kpis.conversionRate || 0)}
         />
         <KpiCard
           title="Time-to-Fill"
           value={data?.kpis.timeToFill || 0}
           suffix="h"
           icon={Clock}
-          status={
-            (data?.kpis.timeToFill || 0) <= 4
-              ? 'good'
-              : (data?.kpis.timeToFill || 0) <= 8
-                ? 'warn'
-                : 'bad'
-          }
+          status={getTimeToFillStatus(data?.kpis.timeToFill || 0)}
         />
       </div>
 
@@ -301,12 +156,10 @@ export function IntegridadePageContent() {
             <div>
               <p className="text-sm text-gray-500">Ultima Auditoria</p>
               <p className="text-sm font-medium text-gray-700">
-                {data?.ultimaAuditoria
-                  ? new Date(data.ultimaAuditoria).toLocaleString('pt-BR')
-                  : 'Nunca'}
+                {data?.ultimaAuditoria ? formatDateTimeBR(data.ultimaAuditoria) : 'Nunca'}
               </p>
             </div>
-            <Button onClick={handleRunAudit} size="sm" disabled={runningAudit}>
+            <Button onClick={runAudit} size="sm" disabled={runningAudit}>
               {runningAudit ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -354,34 +207,40 @@ export function IntegridadePageContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.anomaliasList.map((anomaly) => (
-                      <TableRow key={anomaly.id}>
-                        <TableCell className="font-medium">{anomaly.tipo}</TableCell>
-                        <TableCell>
-                          <code className="text-xs">{anomaly.entidadeId}</code>
-                        </TableCell>
-                        <TableCell>{getSeverityBadge(anomaly.severidade)}</TableCell>
-                        <TableCell className="text-sm text-gray-500">
-                          {new Date(anomaly.criadaEm).toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          {anomaly.resolvida ? (
-                            <Badge className="bg-green-100 text-green-800">Resolvida</Badge>
-                          ) : (
-                            <Badge className="bg-yellow-100 text-yellow-800">Aberta</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedAnomaly(anomaly)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {data.anomaliasList.map((anomaly) => {
+                      const severityColors = getAnomalySeverityColors(anomaly.severidade)
+                      const resolutionColors = getAnomalyResolutionColors(anomaly.resolvida)
+                      return (
+                        <TableRow key={anomaly.id}>
+                          <TableCell className="font-medium">{anomaly.tipo}</TableCell>
+                          <TableCell>
+                            <code className="text-xs">{anomaly.entidadeId}</code>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={severityColors.badge}>
+                              {getAnomalySeverityLabel(anomaly.severidade)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-500">
+                            {formatDateBR(anomaly.criadaEm)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`${resolutionColors.bg} ${resolutionColors.text}`}>
+                              {getAnomalyResolutionLabel(anomaly.resolvida)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedAnomaly(anomaly)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               ) : (
@@ -408,21 +267,10 @@ export function IntegridadePageContent() {
                     Health Score: {data?.kpis.healthScore.toFixed(1)}/100
                   </h3>
                   <div className="space-y-2">
-                    {[
-                      { label: 'Pressao de Vagas', key: 'pressao' as const },
-                      { label: 'Friccao no Funil', key: 'friccao' as const },
-                      { label: 'Qualidade Respostas', key: 'qualidade' as const },
-                      { label: 'Score de Spam', key: 'spam' as const },
-                    ].map(({ label, key }) => {
+                    {HEALTH_SCORE_COMPONENTS.map(({ label, key }) => {
                       const value = data?.kpis.componentScores[key] || 0
-                      // Convert component score to percentage (lower is better for these metrics)
-                      const percentage = Math.max(0, Math.min(100, 100 - value * 10))
-                      const color =
-                        percentage >= 80
-                          ? 'bg-green-500'
-                          : percentage >= 60
-                            ? 'bg-yellow-500'
-                            : 'bg-red-500'
+                      const percentage = convertComponentScoreToPercentage(value)
+                      const color = getProgressColor(percentage)
                       return (
                         <div key={key} className="flex items-center justify-between">
                           <span className="text-sm text-gray-600">{label}</span>

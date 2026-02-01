@@ -1,6 +1,11 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import {
+  calculateCapacityPercentage,
+  getCapacityColor,
+  isCapacityWarning,
+} from '@/lib/group-entry'
 
 interface CapacityBarProps {
   used: number
@@ -8,13 +13,9 @@ interface CapacityBarProps {
 }
 
 export function CapacityBar({ used, total }: CapacityBarProps) {
-  const percentage = total > 0 ? Math.round((used / total) * 100) : 0
-
-  const getColor = () => {
-    if (percentage >= 90) return 'bg-red-500'
-    if (percentage >= 70) return 'bg-yellow-500'
-    return 'bg-green-500'
-  }
+  const percentage = calculateCapacityPercentage(used, total)
+  const colorClass = getCapacityColor(percentage)
+  const showWarning = isCapacityWarning(percentage)
 
   return (
     <div>
@@ -26,11 +27,11 @@ export function CapacityBar({ used, total }: CapacityBarProps) {
       </div>
       <div className="h-4 w-full overflow-hidden rounded-full bg-gray-200">
         <div
-          className={cn('h-full transition-all duration-500', getColor())}
+          className={cn('h-full transition-all duration-500', colorClass)}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      {percentage >= 80 && (
+      {showWarning && (
         <p className="mt-1 text-xs text-yellow-600">
           Capacidade quase no limite. Considere adicionar mais chips.
         </p>
