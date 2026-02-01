@@ -63,9 +63,13 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
   const [messageText, setMessageText] = useState('')
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
 
-  // Scroll to bottom when messages change
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  // Scroll to bottom instantly (no animation)
+  const scrollToBottom = useCallback((instant = true) => {
+    if (instant) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [])
 
   const fetchConversation = useCallback(async () => {
@@ -121,7 +125,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
       if (response.ok) {
         setMessageText('')
         await fetchConversation()
-        setTimeout(scrollToBottom, 100)
+        setTimeout(() => scrollToBottom(false), 100) // smooth scroll for new messages
       }
     } catch (err) {
       console.error('Failed to send message:', err)
@@ -146,10 +150,11 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
     return () => clearInterval(interval)
   }, [fetchConversation])
 
-  // Scroll to bottom when conversation loads or updates
+  // Scroll to bottom instantly when conversation loads
   useEffect(() => {
     if (conversation?.messages.length) {
-      setTimeout(scrollToBottom, 100)
+      // Use requestAnimationFrame to ensure DOM is rendered
+      requestAnimationFrame(() => scrollToBottom(true))
     }
   }, [conversation?.messages.length, scrollToBottom])
 
