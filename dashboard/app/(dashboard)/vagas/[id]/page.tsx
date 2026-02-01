@@ -125,7 +125,9 @@ export default function ShiftDetailPage() {
     const timer = setTimeout(async () => {
       setSearchingDoctors(true)
       try {
-        const response = await fetch(`/api/medicos?search=${encodeURIComponent(doctorSearch)}&per_page=10`)
+        const response = await fetch(
+          `/api/medicos?search=${encodeURIComponent(doctorSearch)}&per_page=10`
+        )
         if (response.ok) {
           const result = await response.json()
           setDoctors(result.data || [])

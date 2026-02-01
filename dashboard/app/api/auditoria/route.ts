@@ -22,18 +22,16 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient()
 
     // Build query
-    let query = supabase
-      .from('audit_log')
-      .select(
-        `
+    let query = supabase.from('audit_log').select(
+      `
         id,
         action,
         user_email,
         details,
         created_at
       `,
-        { count: 'exact' }
-      )
+      { count: 'exact' }
+    )
 
     // Apply filters
     if (action) {

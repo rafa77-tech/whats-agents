@@ -11,7 +11,10 @@ export const dynamic = 'force-dynamic'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ name: string }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ name: string }> }
+) {
   try {
     const { name } = await params
     const body = await request.json()

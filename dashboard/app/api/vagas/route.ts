@@ -24,9 +24,8 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient()
 
     // Build query
-    let query = supabase
-      .from('vagas')
-      .select(`
+    let query = supabase.from('vagas').select(
+      `
         id,
         data,
         hora_inicio,
@@ -39,7 +38,9 @@ export async function GET(request: NextRequest) {
         especialidade_id,
         hospitais!inner(id, nome),
         especialidades!inner(id, nome)
-      `, { count: 'exact' })
+      `,
+      { count: 'exact' }
+    )
 
     // Apply filters
     if (status) {
@@ -65,9 +66,7 @@ export async function GET(request: NextRequest) {
     const from = (page - 1) * perPage
     const to = from + perPage - 1
 
-    query = query
-      .order('data', { ascending: false })
-      .range(from, to)
+    query = query.order('data', { ascending: false }).range(from, to)
 
     const { data: vagas, error, count } = await query
 

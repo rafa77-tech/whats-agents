@@ -39,9 +39,8 @@ export function AnomalyDetailModal({ anomaly, onClose, onResolve }: AnomalyDetai
   const handleResolve = async (tipo: 'corrigido' | 'falso_positivo') => {
     setResolving(true)
     try {
-      const notasCompletas = tipo === 'falso_positivo'
-        ? `[Falso Positivo] ${notas}`
-        : `[Corrigido] ${notas}`
+      const notasCompletas =
+        tipo === 'falso_positivo' ? `[Falso Positivo] ${notas}` : `[Corrigido] ${notas}`
       await onResolve(anomaly.id, notasCompletas)
     } finally {
       setResolving(false)
@@ -64,17 +63,17 @@ export function AnomalyDetailModal({ anomaly, onClose, onResolve }: AnomalyDetai
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className={cn(
-              'h-5 w-5',
-              anomaly.severidade === 'high' && 'text-red-500',
-              anomaly.severidade === 'medium' && 'text-yellow-500',
-              anomaly.severidade === 'low' && 'text-blue-500'
-            )} />
+            <AlertTriangle
+              className={cn(
+                'h-5 w-5',
+                anomaly.severidade === 'high' && 'text-red-500',
+                anomaly.severidade === 'medium' && 'text-yellow-500',
+                anomaly.severidade === 'low' && 'text-blue-500'
+              )}
+            />
             Anomalia #{anomaly.id.slice(0, 8)}
           </DialogTitle>
-          <DialogDescription>
-            Detalhes e resolucao da anomalia
-          </DialogDescription>
+          <DialogDescription>Detalhes e resolucao da anomalia</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -98,9 +97,7 @@ export function AnomalyDetailModal({ anomaly, onClose, onResolve }: AnomalyDetai
             </div>
             <div className="col-span-2">
               <p className="text-gray-500">Detectada</p>
-              <p className="font-medium">
-                {new Date(anomaly.criadaEm).toLocaleString('pt-BR')}
-              </p>
+              <p className="font-medium">{new Date(anomaly.criadaEm).toLocaleString('pt-BR')}</p>
             </div>
           </div>
 
@@ -147,10 +144,7 @@ export function AnomalyDetailModal({ anomaly, onClose, onResolve }: AnomalyDetai
               >
                 {resolving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Falso Positivo'}
               </Button>
-              <Button
-                onClick={() => handleResolve('corrigido')}
-                disabled={resolving}
-              >
+              <Button onClick={() => handleResolve('corrigido')} disabled={resolving}>
                 {resolving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Marcar Corrigido'}
               </Button>
             </>

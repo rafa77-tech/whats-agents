@@ -44,7 +44,7 @@ function parseDias(diasStr: string): string[] {
   const mapping: Record<string, string[]> = {
     'Seg-Sex': ['seg', 'ter', 'qua', 'qui', 'sex'],
     'Seg-Sab': ['seg', 'ter', 'qua', 'qui', 'sex', 'sab'],
-    'Todos': ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'],
+    Todos: ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'],
   }
   return mapping[diasStr] || ['seg', 'ter', 'qua', 'qui', 'sex']
 }
@@ -60,9 +60,7 @@ export function EditScheduleModal({ currentConfig, onClose, onSave }: EditSchedu
   const toggleDia = (dia: string) => {
     setConfig((prev) => ({
       ...prev,
-      dias: prev.dias.includes(dia)
-        ? prev.dias.filter((d) => d !== dia)
-        : [...prev.dias, dia],
+      dias: prev.dias.includes(dia) ? prev.dias.filter((d) => d !== dia) : [...prev.dias, dia],
     }))
   }
 
@@ -119,9 +117,7 @@ export function EditScheduleModal({ currentConfig, onClose, onSave }: EditSchedu
                 min={0}
                 max={23}
                 value={config.fim}
-                onChange={(e) =>
-                  setConfig((c) => ({ ...c, fim: parseInt(e.target.value) || 20 }))
-                }
+                onChange={(e) => setConfig((c) => ({ ...c, fim: parseInt(e.target.value) || 20 }))}
               />
             </div>
           </div>

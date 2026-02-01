@@ -48,10 +48,30 @@ export async function GET(request: NextRequest) {
 function getMockMetrics() {
   return {
     kpis: {
-      total_messages: { label: 'Total Mensagens', value: '0', change: 0, changeLabel: 'vs periodo anterior' },
-      active_doctors: { label: 'Medicos Ativos', value: '0', change: 0, changeLabel: 'vs periodo anterior' },
-      conversion_rate: { label: 'Taxa Conversao', value: '0%', change: 0, changeLabel: 'vs periodo anterior' },
-      avg_response_time: { label: 'Tempo Medio', value: '-', change: 0, changeLabel: 'vs periodo anterior' },
+      total_messages: {
+        label: 'Total Mensagens',
+        value: '0',
+        change: 0,
+        changeLabel: 'vs periodo anterior',
+      },
+      active_doctors: {
+        label: 'Medicos Ativos',
+        value: '0',
+        change: 0,
+        changeLabel: 'vs periodo anterior',
+      },
+      conversion_rate: {
+        label: 'Taxa Conversao',
+        value: '0%',
+        change: 0,
+        changeLabel: 'vs periodo anterior',
+      },
+      avg_response_time: {
+        label: 'Tempo Medio',
+        value: '-',
+        change: 0,
+        changeLabel: 'vs periodo anterior',
+      },
     },
     funnel: [
       { name: 'Enviadas', count: 0, percentage: 100, color: '#3b82f6' },

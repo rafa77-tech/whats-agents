@@ -139,9 +139,7 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
               ) : (
                 <>
                   <Upload className="h-8 w-8 text-gray-400" />
-                  <p className="mt-2 text-sm text-gray-600">
-                    Arraste um arquivo CSV ou Excel aqui
-                  </p>
+                  <p className="mt-2 text-sm text-gray-600">Arraste um arquivo CSV ou Excel aqui</p>
                   <label className="mt-2 cursor-pointer">
                     <span className="text-sm text-blue-600 hover:underline">
                       ou selecione um arquivo

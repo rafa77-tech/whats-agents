@@ -40,7 +40,12 @@ export async function GET() {
         details: data.state,
       })
     } else {
-      services.push({ name: 'WhatsApp', status: 'error', latency: undefined, details: 'Backend error' })
+      services.push({
+        name: 'WhatsApp',
+        status: 'error',
+        latency: undefined,
+        details: 'Backend error',
+      })
     }
   } catch {
     services.push({ name: 'WhatsApp', status: 'error', latency: undefined, details: 'Unreachable' })
@@ -85,7 +90,12 @@ export async function GET() {
       })
     } else {
       services.push({ name: 'Redis', status: 'warn', latency: undefined, details: 'Check failed' })
-      services.push({ name: 'Supabase', status: 'warn', latency: undefined, details: 'Check failed' })
+      services.push({
+        name: 'Supabase',
+        status: 'warn',
+        latency: undefined,
+        details: 'Check failed',
+      })
       services.push({ name: 'LLM', status: 'warn', latency: undefined, details: 'Check failed' })
     }
   } catch {

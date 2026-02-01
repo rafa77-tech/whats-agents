@@ -80,7 +80,8 @@ export function Sidebar() {
           // Only check active state after mount to prevent hydration mismatch
           const isActive =
             mounted &&
-            (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))
+            (pathname === item.href ||
+              (item.href !== '/dashboard' && pathname.startsWith(item.href)))
           return (
             <Link
               key={item.name}

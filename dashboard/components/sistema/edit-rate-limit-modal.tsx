@@ -32,9 +32,7 @@ export function EditRateLimitModal({ currentConfig, onClose, onSave }: EditRateL
   const [saving, setSaving] = useState(false)
 
   const isHighRisk =
-    config.msgs_por_hora > 25 ||
-    config.msgs_por_dia > 150 ||
-    config.intervalo_min < 30
+    config.msgs_por_hora > 25 || config.msgs_por_dia > 150 || config.intervalo_min < 30
 
   const handleSave = async () => {
     setSaving(true)

@@ -4,13 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  RefreshCw,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-} from 'lucide-react'
+import { RefreshCw, AlertTriangle, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { HealthGauge } from './health-gauge'
 import { CircuitBreakersPanel } from './circuit-breakers-panel'

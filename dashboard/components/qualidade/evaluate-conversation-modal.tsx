@@ -119,12 +119,7 @@ export function EvaluateConversationModal({
       <Label className="text-sm">{label}</Label>
       <div className="mt-1 flex gap-1">
         {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => onChange(n)}
-            className="focus:outline-none"
-          >
+          <button key={n} type="button" onClick={() => onChange(n)} className="focus:outline-none">
             <Star
               className={cn(
                 'h-5 w-5 transition-colors',

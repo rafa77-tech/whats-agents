@@ -97,7 +97,8 @@ export function IntegridadePageContent() {
         kpis = {
           healthScore: kpisNested.health_score?.score ?? kpisData.health_score ?? 0,
           conversionRate: kpisNested.conversion_rate?.value ?? kpisData.conversion_rate ?? 0,
-          timeToFill: kpisNested.time_to_fill?.time_to_fill_full?.avg_hours ?? kpisData.time_to_fill ?? 0,
+          timeToFill:
+            kpisNested.time_to_fill?.time_to_fill_full?.avg_hours ?? kpisData.time_to_fill ?? 0,
           componentScores: {
             pressao: kpisNested.health_score?.component_scores?.pressao ?? 0,
             friccao: kpisNested.health_score?.component_scores?.friccao ?? 0,
@@ -128,7 +129,9 @@ export function IntegridadePageContent() {
         // Use summary from backend if available
         const summary = anomaliasData.summary || {}
         anomalias = {
-          abertas: summary.by_severity?.warning + summary.by_severity?.critical || anomaliasList.filter((a) => !a.resolvida).length,
+          abertas:
+            summary.by_severity?.warning + summary.by_severity?.critical ||
+            anomaliasList.filter((a) => !a.resolvida).length,
           resolvidas: anomaliasList.filter((a) => a.resolvida).length,
           total: summary.total || anomaliasList.length,
         }
@@ -298,7 +301,9 @@ export function IntegridadePageContent() {
             <div>
               <p className="text-sm text-gray-500">Ultima Auditoria</p>
               <p className="text-sm font-medium text-gray-700">
-                {data?.ultimaAuditoria ? new Date(data.ultimaAuditoria).toLocaleString('pt-BR') : 'Nunca'}
+                {data?.ultimaAuditoria
+                  ? new Date(data.ultimaAuditoria).toLocaleString('pt-BR')
+                  : 'Nunca'}
               </p>
             </div>
             <Button onClick={handleRunAudit} size="sm" disabled={runningAudit}>
@@ -399,7 +404,9 @@ export function IntegridadePageContent() {
               <div className="space-y-6">
                 {/* Health Score Components */}
                 <div>
-                  <h3 className="mb-3 text-sm font-medium">Health Score: {data?.kpis.healthScore.toFixed(1)}/100</h3>
+                  <h3 className="mb-3 text-sm font-medium">
+                    Health Score: {data?.kpis.healthScore.toFixed(1)}/100
+                  </h3>
                   <div className="space-y-2">
                     {[
                       { label: 'Pressao de Vagas', key: 'pressao' as const },
@@ -410,13 +417,21 @@ export function IntegridadePageContent() {
                       const value = data?.kpis.componentScores[key] || 0
                       // Convert component score to percentage (lower is better for these metrics)
                       const percentage = Math.max(0, Math.min(100, 100 - value * 10))
-                      const color = percentage >= 80 ? 'bg-green-500' : percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                      const color =
+                        percentage >= 80
+                          ? 'bg-green-500'
+                          : percentage >= 60
+                            ? 'bg-yellow-500'
+                            : 'bg-red-500'
                       return (
                         <div key={key} className="flex items-center justify-between">
                           <span className="text-sm text-gray-600">{label}</span>
                           <div className="flex items-center gap-2">
                             <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200">
-                              <div className={cn('h-full', color)} style={{ width: `${percentage}%` }} />
+                              <div
+                                className={cn('h-full', color)}
+                                style={{ width: `${percentage}%` }}
+                              />
                             </div>
                             <span className="text-sm font-medium">{percentage.toFixed(0)}</span>
                           </div>
@@ -432,7 +447,10 @@ export function IntegridadePageContent() {
                   <div className="space-y-2">
                     {data?.kpis.recommendations && data.kpis.recommendations.length > 0 ? (
                       data.kpis.recommendations.map((rec, idx) => (
-                        <div key={idx} className="flex items-start gap-2 rounded-lg bg-yellow-50 p-3">
+                        <div
+                          key={idx}
+                          className="flex items-start gap-2 rounded-lg bg-yellow-50 p-3"
+                        >
                           <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-600" />
                           <p className="text-sm text-yellow-800">{rec}</p>
                         </div>

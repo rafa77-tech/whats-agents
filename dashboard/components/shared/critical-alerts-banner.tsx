@@ -37,9 +37,7 @@ export function CriticalAlertsBanner() {
 
         // Check for circuit breakers in OPEN state
         if (data.circuits?.some((c: { state: string }) => c.state === 'OPEN')) {
-          const openCircuits = data.circuits.filter(
-            (c: { state: string }) => c.state === 'OPEN'
-          )
+          const openCircuits = data.circuits.filter((c: { state: string }) => c.state === 'OPEN')
           openCircuits.forEach((c: { name: string }) => {
             criticalAlerts.push({
               id: `circuit-${c.name}`,
@@ -98,9 +96,7 @@ export function CriticalAlertsBanner() {
         <div className="flex items-start gap-3">
           <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
           <div>
-            <h3 className="font-medium text-red-800">
-              ALERTAS CRITICOS ({alerts.length})
-            </h3>
+            <h3 className="font-medium text-red-800">ALERTAS CRITICOS ({alerts.length})</h3>
             <ul className="mt-2 space-y-1">
               {alerts.slice(0, 3).map((alert) => (
                 <li key={alert.id} className="text-sm text-red-700">
@@ -108,9 +104,7 @@ export function CriticalAlertsBanner() {
                 </li>
               ))}
               {alerts.length > 3 && (
-                <li className="text-sm text-red-600">
-                  + {alerts.length - 3} mais alertas
-                </li>
+                <li className="text-sm text-red-600">+ {alerts.length - 3} mais alertas</li>
               )}
             </ul>
             <Link

@@ -21,10 +21,8 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient()
 
     // Build query with join to clientes
-    let query = supabase
-      .from('conversations')
-      .select(
-        `
+    let query = supabase.from('conversations').select(
+      `
         id,
         status,
         controlled_by,
@@ -34,8 +32,8 @@ export async function GET(request: NextRequest) {
         cliente_id,
         clientes!inner(id, primeiro_nome, sobrenome, telefone)
       `,
-        { count: 'exact' }
-      )
+      { count: 'exact' }
+    )
 
     // Apply filters
     if (status) {

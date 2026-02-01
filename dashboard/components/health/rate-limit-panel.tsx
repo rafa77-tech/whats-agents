@@ -43,7 +43,10 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
           </div>
           <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
             <div
-              className={cn('h-full transition-all duration-500', getProgressColor(hourlyPercentage))}
+              className={cn(
+                'h-full transition-all duration-500',
+                getProgressColor(hourlyPercentage)
+              )}
               style={{ width: `${hourlyPercentage}%` }}
             />
           </div>
@@ -64,7 +67,10 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
           </div>
           <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
             <div
-              className={cn('h-full transition-all duration-500', getProgressColor(dailyPercentage))}
+              className={cn(
+                'h-full transition-all duration-500',
+                getProgressColor(dailyPercentage)
+              )}
               style={{ width: `${dailyPercentage}%` }}
             />
           </div>

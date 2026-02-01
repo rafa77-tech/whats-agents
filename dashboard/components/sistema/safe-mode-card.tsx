@@ -82,9 +82,7 @@ export function SafeModeCard({ isActive, onActivate }: SafeModeCardProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div
-            className={`rounded-lg p-4 ${isActive ? 'bg-green-50' : 'bg-red-50'}`}
-          >
+          <div className={`rounded-lg p-4 ${isActive ? 'bg-green-50' : 'bg-red-50'}`}>
             {isActive ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-green-800">
@@ -92,8 +90,8 @@ export function SafeModeCard({ isActive, onActivate }: SafeModeCardProps) {
                   <span className="font-medium">Safe Mode ATIVO</span>
                 </div>
                 <p className="text-sm text-green-700">
-                  Todas as operacoes autonomas estao paradas. Julia so responde mensagens de
-                  medicos ja em conversa.
+                  Todas as operacoes autonomas estao paradas. Julia so responde mensagens de medicos
+                  ja em conversa.
                 </p>
                 <Badge className="bg-green-100 text-green-800">Sistema Protegido</Badge>
               </div>
@@ -110,11 +108,7 @@ export function SafeModeCard({ isActive, onActivate }: SafeModeCardProps) {
                 </ul>
                 <div className="flex items-center justify-between pt-2">
                   <Badge className="bg-yellow-100 text-yellow-800">INATIVO</Badge>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setShowConfirm(true)}
-                  >
+                  <Button variant="destructive" size="sm" onClick={() => setShowConfirm(true)}>
                     <AlertTriangle className="mr-2 h-4 w-4" />
                     ATIVAR
                   </Button>

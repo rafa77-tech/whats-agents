@@ -175,7 +175,9 @@ export function LinksTable({ onUpdate }: LinksTableProps) {
               {links.map((link) => (
                 <TableRow key={link.id}>
                   <TableCell>
-                    <code className="text-xs">{link.url.replace('https://chat.whatsapp.com/', '...')}</code>
+                    <code className="text-xs">
+                      {link.url.replace('https://chat.whatsapp.com/', '...')}
+                    </code>
                   </TableCell>
                   <TableCell>{getStatusBadge(link.status)}</TableCell>
                   <TableCell className="text-sm text-gray-500">{link.categoria || '-'}</TableCell>
