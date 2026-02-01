@@ -73,13 +73,12 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       // Continue without messages
     }
 
-    // Transform messages to expected format
+    // Transform messages to expected format for MessageBubble component
     const messages = ((interacoes as InteracaoRow[] | null) || []).map((msg) => ({
       id: String(msg.id),
-      content: msg.conteudo || '',
-      sender: msg.autor_tipo === 'medico' ? 'user' : 'julia',
-      sender_name: msg.autor_nome || (msg.autor_tipo === 'medico' ? 'Médico' : 'Julia'),
-      timestamp: msg.created_at || new Date().toISOString(),
+      tipo: msg.autor_tipo === 'medico' ? 'entrada' : 'saida',
+      conteudo: msg.conteudo || '',
+      created_at: msg.created_at || new Date().toISOString(),
     }))
 
     const result = {
