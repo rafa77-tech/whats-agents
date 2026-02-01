@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { ConversationFilters } from './components/conversation-filters'
 import { ChatSidebar, type ConversationItem } from './components/chat-sidebar'
 import { ChatPanel } from './components/chat-panel'
@@ -171,8 +171,8 @@ export default function ConversasPage() {
         </div>
 
         {/* Chip Pills */}
-        <ScrollArea className="border-b">
-          <div className="flex gap-1.5 p-2">
+        <ScrollArea className="w-full border-b">
+          <div className="flex w-max gap-1.5 p-2">
             <button
               onClick={() => handleChipSelect(null)}
               className={cn(
@@ -216,6 +216,7 @@ export default function ConversasPage() {
               </button>
             ))}
           </div>
+          <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
         {/* Selected chip info */}
