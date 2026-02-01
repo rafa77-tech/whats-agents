@@ -18,10 +18,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { controlled_by } = body
 
     if (!['ai', 'human'].includes(controlled_by)) {
-      return NextResponse.json(
-        { error: 'controlled_by deve ser "ai" ou "human"' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'controlled_by deve ser "ai" ou "human"' }, { status: 400 })
     }
 
     // Call Python backend

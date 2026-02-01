@@ -48,7 +48,7 @@ describe('CanalAjudaPage', () => {
     cleanup()
     global.fetch = originalFetch
     // Allow any pending promises to settle
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
   })
 
   it('shows loading state initially', async () => {
@@ -72,7 +72,7 @@ describe('CanalAjudaPage', () => {
     })
 
     // Wait for cleanup
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await new Promise((resolve) => setTimeout(resolve, 10))
   })
 
   it('renders page title and description', () => {

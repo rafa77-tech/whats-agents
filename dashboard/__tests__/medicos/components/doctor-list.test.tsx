@@ -47,26 +47,14 @@ describe('DoctorList', () => {
   describe('Empty State', () => {
     it('shows empty message when no doctors', () => {
       render(
-        <DoctorList
-          doctors={[]}
-          total={0}
-          page={1}
-          pages={0}
-          onPageChange={mockOnPageChange}
-        />
+        <DoctorList doctors={[]} total={0} page={1} pages={0} onPageChange={mockOnPageChange} />
       )
       expect(screen.getByText('Nenhum medico encontrado')).toBeInTheDocument()
     })
 
     it('does not show pagination when empty', () => {
       render(
-        <DoctorList
-          doctors={[]}
-          total={0}
-          page={1}
-          pages={0}
-          onPageChange={mockOnPageChange}
-        />
+        <DoctorList doctors={[]} total={0} page={1} pages={0} onPageChange={mockOnPageChange} />
       )
       expect(screen.queryByText(/Pagina/)).not.toBeInTheDocument()
     })

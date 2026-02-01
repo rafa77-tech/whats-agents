@@ -283,33 +283,30 @@ export function useGroupEntryConfig() {
     fetchConfig()
   }, [fetchConfig])
 
-  const saveConfig = useCallback(
-    async (newConfig: GroupEntryConfigUI): Promise<boolean> => {
-      try {
-        setSaving(true)
-        setError(null)
+  const saveConfig = useCallback(async (newConfig: GroupEntryConfigUI): Promise<boolean> => {
+    try {
+      setSaving(true)
+      setError(null)
 
-        const res = await fetch('/api/group-entry/config', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(configUIToApi(newConfig)),
-        })
+      const res = await fetch('/api/group-entry/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(configUIToApi(newConfig)),
+      })
 
-        if (!res.ok) {
-          throw new Error('Erro ao salvar configuração')
-        }
-
-        setConfig(newConfig)
-        return true
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao salvar configuração')
-        return false
-      } finally {
-        setSaving(false)
+      if (!res.ok) {
+        throw new Error('Erro ao salvar configuração')
       }
-    },
-    []
-  )
+
+      setConfig(newConfig)
+      return true
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar configuração')
+      return false
+    } finally {
+      setSaving(false)
+    }
+  }, [])
 
   return {
     config,

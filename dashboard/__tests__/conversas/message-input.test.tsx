@@ -52,7 +52,7 @@ describe('MessageInput', () => {
     // Should show send button (with Send icon) instead of mic button
     // We can detect this by looking for the bg-emerald-600 class on a button
     const buttons = screen.getAllByRole('button')
-    const sendButton = buttons.find(btn => btn.classList.contains('bg-emerald-600'))
+    const sendButton = buttons.find((btn) => btn.classList.contains('bg-emerald-600'))
     expect(sendButton).toBeDefined()
   })
 
@@ -65,7 +65,7 @@ describe('MessageInput', () => {
 
     // Find send button by its emerald styling
     const buttons = screen.getAllByRole('button')
-    const sendButton = buttons.find(btn => btn.classList.contains('bg-emerald-600'))
+    const sendButton = buttons.find((btn) => btn.classList.contains('bg-emerald-600'))
     expect(sendButton).toBeDefined()
 
     if (sendButton) {
@@ -148,9 +148,7 @@ describe('MessageInput', () => {
 
     // Find paperclip button by looking for the lucide-paperclip class on an SVG inside a button
     const buttons = screen.getAllByRole('button')
-    const attachButton = buttons.find(btn =>
-      btn.querySelector('svg.lucide-paperclip')
-    )
+    const attachButton = buttons.find((btn) => btn.querySelector('svg.lucide-paperclip'))
 
     if (attachButton) {
       await user.click(attachButton)

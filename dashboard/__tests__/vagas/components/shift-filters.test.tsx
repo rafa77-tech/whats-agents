@@ -109,12 +109,7 @@ describe('ShiftFilters', () => {
 
   describe('Initial Values', () => {
     it('shows initial status filter', () => {
-      render(
-        <ShiftFilters
-          {...baseProps}
-          filters={{ status: 'aberta' }}
-        />
-      )
+      render(<ShiftFilters {...baseProps} filters={{ status: 'aberta' }} />)
       // The select should show the current value
       // This is hard to test with Radix UI, but we can verify the prop is passed
       expect(screen.getByText('Status')).toBeInTheDocument()

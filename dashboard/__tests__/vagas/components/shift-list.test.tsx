@@ -54,28 +54,12 @@ describe('ShiftList', () => {
 
   describe('Empty State', () => {
     it('shows empty message when no shifts', () => {
-      render(
-        <ShiftList
-          shifts={[]}
-          total={0}
-          page={1}
-          pages={0}
-          onPageChange={mockOnPageChange}
-        />
-      )
+      render(<ShiftList shifts={[]} total={0} page={1} pages={0} onPageChange={mockOnPageChange} />)
       expect(screen.getByText('Nenhuma vaga encontrada')).toBeInTheDocument()
     })
 
     it('does not show pagination when empty', () => {
-      render(
-        <ShiftList
-          shifts={[]}
-          total={0}
-          page={1}
-          pages={0}
-          onPageChange={mockOnPageChange}
-        />
-      )
+      render(<ShiftList shifts={[]} total={0} page={1} pages={0} onPageChange={mockOnPageChange} />)
       expect(screen.queryByText(/Pagina/)).not.toBeInTheDocument()
     })
   })

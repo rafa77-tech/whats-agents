@@ -171,9 +171,7 @@ describe('BloquearHospitalDialog', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () =>
-        Promise.resolve([
-          { id: '1', nome: 'Hospital A', cidade: 'SP', vagas_abertas: 0 },
-        ]),
+        Promise.resolve([{ id: '1', nome: 'Hospital A', cidade: 'SP', vagas_abertas: 0 }]),
     })
 
     rerender(<BloquearHospitalDialog {...defaultProps} open={true} />)

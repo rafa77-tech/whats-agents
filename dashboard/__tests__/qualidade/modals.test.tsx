@@ -293,7 +293,12 @@ describe('EvaluateConversationModal', () => {
           interacoes: [
             { id: 'msg1', remetente: 'julia', conteudo: 'Oi', criada_em: '2024-01-15T10:00:00Z' },
             { id: 'msg2', remetente: 'medico', conteudo: 'Oi', criada_em: '2024-01-15T10:01:00Z' },
-            { id: 'msg3', remetente: 'julia', conteudo: 'Como vai', criada_em: '2024-01-15T10:02:00Z' },
+            {
+              id: 'msg3',
+              remetente: 'julia',
+              conteudo: 'Como vai',
+              criada_em: '2024-01-15T10:02:00Z',
+            },
           ],
         }),
     })

@@ -14,7 +14,13 @@ import {
   PROGRESS_COLORS,
   GAUGE_CONFIG,
 } from './constants'
-import type { HealthStatus, ServiceStatusType, AlertSeverity, CircuitState, HealthAlert } from './types'
+import type {
+  HealthStatus,
+  ServiceStatusType,
+  AlertSeverity,
+  CircuitState,
+  HealthAlert,
+} from './types'
 
 /**
  * Formata tempo em milissegundos para formato legível
@@ -217,7 +223,7 @@ export function calculateGaugeOffset(score: number): {
  * @returns String formatada
  */
 export function formatPlural(count: number, singular: string, plural?: string): string {
-  return count === 1 ? singular : (plural || `${singular}s`)
+  return count === 1 ? singular : plural || `${singular}s`
 }
 
 /**

@@ -78,10 +78,6 @@ export {
 } from './formatters'
 
 // Hooks
-export {
-  useInstrucoes,
-  useNovaInstrucao,
-  useInstrucaoForm,
-} from './hooks'
+export { useInstrucoes, useNovaInstrucao, useInstrucaoForm } from './hooks'
 
 export type { InstrucaoFormState } from './hooks'

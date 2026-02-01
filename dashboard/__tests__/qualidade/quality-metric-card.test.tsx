@@ -9,9 +9,7 @@ import { QualityMetricCard } from '@/components/qualidade/quality-metric-card'
 
 describe('QualityMetricCard', () => {
   it('deve renderizar titulo e valor', () => {
-    render(
-      <QualityMetricCard title="Avaliadas" value={10} icon={CheckCircle2} color="green" />
-    )
+    render(<QualityMetricCard title="Avaliadas" value={10} icon={CheckCircle2} color="green" />)
 
     expect(screen.getByText('Avaliadas')).toBeInTheDocument()
     expect(screen.getByText('10')).toBeInTheDocument()
@@ -80,9 +78,7 @@ describe('QualityMetricCard', () => {
   })
 
   it('deve renderizar valores decimais', () => {
-    render(
-      <QualityMetricCard title="Score" value={4.75} suffix="/5" icon={Star} color="blue" />
-    )
+    render(<QualityMetricCard title="Score" value={4.75} suffix="/5" icon={Star} color="blue" />)
 
     expect(screen.getByText('4.75')).toBeInTheDocument()
   })

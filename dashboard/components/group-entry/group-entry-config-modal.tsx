@@ -15,12 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Loader2 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
-import {
-  useGroupEntryConfig,
-  validateConfig,
-  DIAS_SEMANA,
-  CONFIG_LIMITS,
-} from '@/lib/group-entry'
+import { useGroupEntryConfig, validateConfig, DIAS_SEMANA, CONFIG_LIMITS } from '@/lib/group-entry'
 import type { GroupEntryConfigUI } from '@/lib/group-entry'
 
 interface GroupEntryConfigModalProps {
@@ -115,9 +110,7 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
                   min={CONFIG_LIMITS.gruposPorDia.min}
                   max={CONFIG_LIMITS.gruposPorDia.max}
                   value={config.gruposPorDia}
-                  onChange={(e) =>
-                    updateConfig('gruposPorDia', parseInt(e.target.value) || 10)
-                  }
+                  onChange={(e) => updateConfig('gruposPorDia', parseInt(e.target.value) || 10)}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -128,9 +121,7 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
                     type="number"
                     min={CONFIG_LIMITS.intervaloMin.min}
                     value={config.intervaloMin}
-                    onChange={(e) =>
-                      updateConfig('intervaloMin', parseInt(e.target.value) || 30)
-                    }
+                    onChange={(e) => updateConfig('intervaloMin', parseInt(e.target.value) || 30)}
                   />
                 </div>
                 <div>
@@ -140,9 +131,7 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
                     type="number"
                     min={CONFIG_LIMITS.intervaloMax.min}
                     value={config.intervaloMax}
-                    onChange={(e) =>
-                      updateConfig('intervaloMax', parseInt(e.target.value) || 60)
-                    }
+                    onChange={(e) => updateConfig('intervaloMax', parseInt(e.target.value) || 60)}
                   />
                 </div>
               </div>

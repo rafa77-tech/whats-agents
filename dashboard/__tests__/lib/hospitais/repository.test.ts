@@ -23,19 +23,22 @@ function createChainableMock(finalResult: unknown) {
   const mock: Record<string, ReturnType<typeof vi.fn>> = {}
 
   const createChainable = (): unknown => {
-    return new Proxy({}, {
-      get: (_target, prop) => {
-        if (prop === 'then') {
-          // Se for thenable, resolve com o resultado final
-          return (resolve: (value: unknown) => void) => resolve(finalResult)
-        }
-        // Retorna um mock que também é chainable
-        if (!mock[prop as string]) {
-          mock[prop as string] = vi.fn(() => createChainable())
-        }
-        return mock[prop as string]
+    return new Proxy(
+      {},
+      {
+        get: (_target, prop) => {
+          if (prop === 'then') {
+            // Se for thenable, resolve com o resultado final
+            return (resolve: (value: unknown) => void) => resolve(finalResult)
+          }
+          // Retorna um mock que também é chainable
+          if (!mock[prop as string]) {
+            mock[prop as string] = vi.fn(() => createChainable())
+          }
+          return mock[prop as string]
+        },
       }
-    })
+    )
   }
 
   return { chainable: createChainable(), mocks: mock }

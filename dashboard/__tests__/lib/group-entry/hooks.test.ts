@@ -109,12 +109,10 @@ describe('useGroupEntryDashboard', () => {
   })
 
   it('handles partial API failures gracefully', async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: false })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ used: 25, total: 100 }),
-      })
+    mockFetch.mockResolvedValueOnce({ ok: false }).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ used: 25, total: 100 }),
+    })
 
     const { result } = renderHook(() => useGroupEntryDashboard())
 
@@ -158,7 +156,15 @@ describe('useLinksList', () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          links: [{ id: '1', url: 'https://test.com', status: 'pending', categoria: 'medicos', criado_em: '2024-01-01' }],
+          links: [
+            {
+              id: '1',
+              url: 'https://test.com',
+              status: 'pending',
+              categoria: 'medicos',
+              criado_em: '2024-01-01',
+            },
+          ],
           total: 1,
         }),
     })
@@ -254,7 +260,15 @@ describe('useProcessingQueue', () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          queue: [{ id: '1', link_url: 'https://test.com', chip_name: 'Chip1', scheduled_at: '2024-01-01', status: 'queued' }],
+          queue: [
+            {
+              id: '1',
+              link_url: 'https://test.com',
+              chip_name: 'Chip1',
+              scheduled_at: '2024-01-01',
+              status: 'queued',
+            },
+          ],
         }),
     })
 

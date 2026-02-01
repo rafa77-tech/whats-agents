@@ -66,7 +66,10 @@ describe('ShiftDetailPage', () => {
     mockUseShiftDetail.mockReturnValue(defaultShiftReturn)
     mockUseDoctorSearch.mockReturnValue(mockDoctorSearchReturn)
     // Mock window.confirm
-    vi.stubGlobal('confirm', vi.fn(() => true))
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true)
+    )
   })
 
   afterEach(() => {
@@ -196,9 +199,7 @@ describe('ShiftDetailPage', () => {
 
     // Find delete button by its destructive class
     const deleteButtons = screen.getAllByRole('button')
-    const deleteButton = deleteButtons.find((btn) =>
-      btn.className.includes('destructive')
-    )
+    const deleteButton = deleteButtons.find((btn) => btn.className.includes('destructive'))
 
     expect(deleteButton).toBeDefined()
     fireEvent.click(deleteButton!)
@@ -234,9 +235,7 @@ describe('ShiftDetailPage', () => {
 
     // Find delete button by its destructive class
     const deleteButtons = screen.getAllByRole('button')
-    const deleteButton = deleteButtons.find((btn) =>
-      btn.className.includes('destructive')
-    )
+    const deleteButton = deleteButtons.find((btn) => btn.className.includes('destructive'))
 
     expect(deleteButton).toBeDefined()
     fireEvent.click(deleteButton!)
@@ -275,9 +274,7 @@ describe('ShiftDetailPage', () => {
 
     // Find delete button by its destructive class
     const deleteButtons = screen.getAllByRole('button')
-    const deleteButton = deleteButtons.find((btn) =>
-      btn.className.includes('destructive')
-    )
+    const deleteButton = deleteButtons.find((btn) => btn.className.includes('destructive'))
 
     expect(deleteButton).toBeDefined()
     fireEvent.click(deleteButton!)

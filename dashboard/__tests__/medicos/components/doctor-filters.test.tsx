@@ -42,22 +42,12 @@ describe('DoctorFilters', () => {
 
   describe('Initial Values', () => {
     it('shows initial stage filter', () => {
-      render(
-        <DoctorFilters
-          {...baseProps}
-          filters={{ stage_jornada: 'novo' }}
-        />
-      )
+      render(<DoctorFilters {...baseProps} filters={{ stage_jornada: 'novo' }} />)
       expect(screen.getByText('Etapa do Funil')).toBeInTheDocument()
     })
 
     it('shows opt-out toggle state', () => {
-      render(
-        <DoctorFilters
-          {...baseProps}
-          filters={{ opt_out: true }}
-        />
-      )
+      render(<DoctorFilters {...baseProps} filters={{ opt_out: true }} />)
       const toggle = screen.getByRole('switch')
       expect(toggle).toBeChecked()
     })

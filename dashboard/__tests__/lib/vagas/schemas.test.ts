@@ -46,37 +46,25 @@ describe('shiftListParamsSchema', () => {
   })
 
   it('deve rejeitar status invalido', () => {
-    expect(() =>
-      shiftListParamsSchema.parse({ status: 'invalid' })
-    ).toThrow(ZodError)
+    expect(() => shiftListParamsSchema.parse({ status: 'invalid' })).toThrow(ZodError)
   })
 
   it('deve rejeitar hospital_id invalido (nao UUID)', () => {
-    expect(() =>
-      shiftListParamsSchema.parse({ hospital_id: 'not-a-uuid' })
-    ).toThrow(ZodError)
+    expect(() => shiftListParamsSchema.parse({ hospital_id: 'not-a-uuid' })).toThrow(ZodError)
   })
 
   it('deve rejeitar especialidade_id invalido (nao UUID)', () => {
-    expect(() =>
-      shiftListParamsSchema.parse({ especialidade_id: '123' })
-    ).toThrow(ZodError)
+    expect(() => shiftListParamsSchema.parse({ especialidade_id: '123' })).toThrow(ZodError)
   })
 
   it('deve rejeitar date_from em formato invalido', () => {
-    expect(() =>
-      shiftListParamsSchema.parse({ date_from: '01-15-2024' })
-    ).toThrow(ZodError)
+    expect(() => shiftListParamsSchema.parse({ date_from: '01-15-2024' })).toThrow(ZodError)
 
-    expect(() =>
-      shiftListParamsSchema.parse({ date_from: '2024/01/15' })
-    ).toThrow(ZodError)
+    expect(() => shiftListParamsSchema.parse({ date_from: '2024/01/15' })).toThrow(ZodError)
   })
 
   it('deve rejeitar date_to em formato invalido', () => {
-    expect(() =>
-      shiftListParamsSchema.parse({ date_to: 'January 15, 2024' })
-    ).toThrow(ZodError)
+    expect(() => shiftListParamsSchema.parse({ date_to: 'January 15, 2024' })).toThrow(ZodError)
   })
 
   it('deve aceitar per_page ate 500', () => {
@@ -85,19 +73,13 @@ describe('shiftListParamsSchema', () => {
   })
 
   it('deve rejeitar per_page acima de 500', () => {
-    expect(() =>
-      shiftListParamsSchema.parse({ per_page: '501' })
-    ).toThrow(ZodError)
+    expect(() => shiftListParamsSchema.parse({ per_page: '501' })).toThrow(ZodError)
   })
 
   it('deve rejeitar page menor que 1', () => {
-    expect(() =>
-      shiftListParamsSchema.parse({ page: '0' })
-    ).toThrow(ZodError)
+    expect(() => shiftListParamsSchema.parse({ page: '0' })).toThrow(ZodError)
 
-    expect(() =>
-      shiftListParamsSchema.parse({ page: '-1' })
-    ).toThrow(ZodError)
+    expect(() => shiftListParamsSchema.parse({ page: '-1' })).toThrow(ZodError)
   })
 
   it('deve aceitar todos os status validos', () => {
@@ -111,9 +93,7 @@ describe('shiftListParamsSchema', () => {
 
   it('deve truncar search muito longo', () => {
     const longSearch = 'a'.repeat(300)
-    expect(() =>
-      shiftListParamsSchema.parse({ search: longSearch })
-    ).toThrow(ZodError)
+    expect(() => shiftListParamsSchema.parse({ search: longSearch })).toThrow(ZodError)
   })
 })
 
@@ -191,15 +171,11 @@ describe('shiftUpdateSchema', () => {
   })
 
   it('deve rejeitar cliente_id invalido', () => {
-    expect(() =>
-      shiftUpdateSchema.parse({ cliente_id: 'not-a-uuid' })
-    ).toThrow(ZodError)
+    expect(() => shiftUpdateSchema.parse({ cliente_id: 'not-a-uuid' })).toThrow(ZodError)
   })
 
   it('deve rejeitar status invalido', () => {
-    expect(() =>
-      shiftUpdateSchema.parse({ status: 'pending' })
-    ).toThrow(ZodError)
+    expect(() => shiftUpdateSchema.parse({ status: 'pending' })).toThrow(ZodError)
   })
 
   it('deve aceitar ambos cliente_id e status', () => {

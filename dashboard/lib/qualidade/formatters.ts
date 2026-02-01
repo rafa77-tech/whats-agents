@@ -205,11 +205,7 @@ export function canCreateSuggestion(tipo: string, descricao: string): boolean {
 /**
  * Constroi URL de conversas com filtros
  */
-export function buildConversationsUrl(
-  baseUrl: string,
-  filter: string,
-  limit: number
-): string {
+export function buildConversationsUrl(baseUrl: string, filter: string, limit: number): string {
   const params = new URLSearchParams()
   if (filter !== 'all') {
     params.append('avaliada', filter)

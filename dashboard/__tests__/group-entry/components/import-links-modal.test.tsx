@@ -76,7 +76,9 @@ describe('ImportLinksModal', () => {
       type: 'text/csv',
     })
 
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement | null as HTMLInputElement | null
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement | null as HTMLInputElement | null
     if (input) {
       await user.upload(input, file)
       const sendButton = screen.getByRole('button', { name: /Enviar/i })
@@ -236,7 +238,9 @@ describe('ImportLinksModal', () => {
       await user.click(screen.getByRole('button', { name: /Enviar/i }))
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Importar 8 links validos/i })).toBeInTheDocument()
+        expect(
+          screen.getByRole('button', { name: /Importar 8 links validos/i })
+        ).toBeInTheDocument()
       })
     }
   })
@@ -265,7 +269,9 @@ describe('ImportLinksModal', () => {
       await user.click(screen.getByRole('button', { name: /Enviar/i }))
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Importar 8 links validos/i })).toBeInTheDocument()
+        expect(
+          screen.getByRole('button', { name: /Importar 8 links validos/i })
+        ).toBeInTheDocument()
       })
 
       await user.click(screen.getByRole('button', { name: /Importar 8 links validos/i }))

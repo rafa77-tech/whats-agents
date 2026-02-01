@@ -6,13 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns'
-import type {
-  ShiftDetail,
-  ShiftFilters,
-  ShiftListResponse,
-  Doctor,
-  ViewMode,
-} from './types'
+import type { ShiftDetail, ShiftFilters, ShiftListResponse, Doctor, ViewMode } from './types'
 import { PAGINATION } from './constants'
 
 // =============================================================================

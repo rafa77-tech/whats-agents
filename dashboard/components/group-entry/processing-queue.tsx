@@ -35,7 +35,12 @@ export function ProcessingQueue({ onUpdate }: ProcessingQueueProps) {
     onUpdate()
   }
 
-  const { actionLoading, error: actionError, processItem, cancelItem } = useQueueActions(handleSuccess)
+  const {
+    actionLoading,
+    error: actionError,
+    processItem,
+    cancelItem,
+  } = useQueueActions(handleSuccess)
 
   // Show toast on errors
   useEffect(() => {

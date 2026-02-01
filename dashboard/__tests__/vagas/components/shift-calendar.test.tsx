@@ -82,7 +82,7 @@ describe('ShiftCalendar', () => {
 
       // Find the chevron-left button (first navigation button)
       const buttons = screen.getAllByRole('button')
-      const prevButton = buttons.find(btn => btn.querySelector('svg.lucide-chevron-left'))
+      const prevButton = buttons.find((btn) => btn.querySelector('svg.lucide-chevron-left'))
       if (prevButton) {
         await user.click(prevButton)
         expect(mockOnMonthChange).toHaveBeenCalledWith('prev')
@@ -95,7 +95,7 @@ describe('ShiftCalendar', () => {
 
       // Find the chevron-right button
       const buttons = screen.getAllByRole('button')
-      const nextButton = buttons.find(btn => btn.querySelector('svg.lucide-chevron-right'))
+      const nextButton = buttons.find((btn) => btn.querySelector('svg.lucide-chevron-right'))
       if (nextButton) {
         await user.click(nextButton)
         expect(mockOnMonthChange).toHaveBeenCalledWith('next')
@@ -130,7 +130,7 @@ describe('ShiftCalendar', () => {
       render(<ShiftCalendar {...baseProps} />)
       // Day 15 has 2 shifts
       const dayButtons = screen.getAllByRole('button')
-      const day15Button = dayButtons.find(btn => btn.textContent?.includes('15'))
+      const day15Button = dayButtons.find((btn) => btn.textContent?.includes('15'))
       expect(day15Button).toBeDefined()
       if (day15Button) {
         expect(day15Button.textContent).toContain('2')
@@ -144,7 +144,7 @@ describe('ShiftCalendar', () => {
       // Find day 15 button
       const dayButtons = screen.getAllByRole('button')
       const day15Button = dayButtons.find(
-        btn => btn.textContent?.includes('15') && !btn.textContent?.includes('2026')
+        (btn) => btn.textContent?.includes('15') && !btn.textContent?.includes('2026')
       )
       expect(day15Button).toBeDefined()
       if (day15Button) {
@@ -167,7 +167,7 @@ describe('ShiftCalendar', () => {
 
       // The selected day should have ring-2 ring-primary class
       const dayButtons = screen.getAllByRole('button')
-      const day15Button = dayButtons.find(btn => {
+      const day15Button = dayButtons.find((btn) => {
         const text = btn.textContent
         return text?.includes('15') && btn.classList.contains('ring-2')
       })
@@ -198,25 +198,13 @@ describe('ShiftCalendar', () => {
 
   describe('Different Months', () => {
     it('renders January correctly', () => {
-      render(
-        <ShiftCalendar
-          {...baseProps}
-          currentMonth={new Date(2026, 0, 1)}
-          shifts={[]}
-        />
-      )
+      render(<ShiftCalendar {...baseProps} currentMonth={new Date(2026, 0, 1)} shifts={[]} />)
       expect(screen.getByText(/janeiro 2026/i)).toBeInTheDocument()
       // January has 31 days - just verify the header shows correctly
     })
 
     it('renders December correctly', () => {
-      render(
-        <ShiftCalendar
-          {...baseProps}
-          currentMonth={new Date(2026, 11, 1)}
-          shifts={[]}
-        />
-      )
+      render(<ShiftCalendar {...baseProps} currentMonth={new Date(2026, 11, 1)} shifts={[]} />)
       expect(screen.getByText(/dezembro 2026/i)).toBeInTheDocument()
     })
   })

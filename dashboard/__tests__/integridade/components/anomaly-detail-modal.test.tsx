@@ -198,10 +198,7 @@ describe('AnomalyDetailModal', () => {
       await user.click(screen.getByText('Marcar Corrigido'))
 
       await waitFor(() => {
-        expect(mockOnResolve).toHaveBeenCalledWith(
-          mockAnomaly.id,
-          '[Corrigido] Fixed the issue'
-        )
+        expect(mockOnResolve).toHaveBeenCalledWith(mockAnomaly.id, '[Corrigido] Fixed the issue')
       })
     })
 

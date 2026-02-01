@@ -21,10 +21,7 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => mockSupabase,
 }))
 
-function createRequest(
-  method: string = 'GET',
-  body?: Record<string, unknown>
-) {
+function createRequest(method: string = 'GET', body?: Record<string, unknown>) {
   const url = 'http://localhost:3000/api/vagas/123'
   const init = { method } as { method: string; body?: string; headers?: Record<string, string> }
   if (body) {

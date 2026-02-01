@@ -7,12 +7,7 @@ import { Clock, DollarSign, User } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import {
-  formatCurrency,
-  parseShiftDate,
-  getStatusBadgeColor,
-  getStatusLabel,
-} from '@/lib/vagas'
+import { formatCurrency, parseShiftDate, getStatusBadgeColor, getStatusLabel } from '@/lib/vagas'
 import type { Shift } from '@/lib/vagas'
 
 // Re-export for backward compatibility

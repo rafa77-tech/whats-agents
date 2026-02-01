@@ -13,11 +13,7 @@ import type {
   UseNovaInstrucaoReturn,
   CriarDiretrizPayload,
 } from './types'
-import {
-  API_ENDPOINTS,
-  DEFAULT_STATUS_ATIVAS,
-  DEFAULT_STATUS_HISTORICO,
-} from './constants'
+import { API_ENDPOINTS, DEFAULT_STATUS_ATIVAS, DEFAULT_STATUS_HISTORICO } from './constants'
 import { buildDiretrizesUrl, buildDiretrizUrl } from './formatters'
 
 // =============================================================================
@@ -68,22 +64,25 @@ export function useInstrucoes(): UseInstrucoesReturn {
     setTabState(newTab)
   }, [])
 
-  const cancelar = useCallback(async (diretriz: Diretriz) => {
-    const url = buildDiretrizUrl(API_ENDPOINTS.diretrizes, diretriz.id)
+  const cancelar = useCallback(
+    async (diretriz: Diretriz) => {
+      const url = buildDiretrizUrl(API_ENDPOINTS.diretrizes, diretriz.id)
 
-    const response = await fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'cancelada' }),
-    })
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelada' }),
+      })
 
-    if (!response.ok) {
-      throw new Error('Erro ao cancelar diretriz')
-    }
+      if (!response.ok) {
+        throw new Error('Erro ao cancelar diretriz')
+      }
 
-    // Recarregar lista apos cancelar
-    await carregarDiretrizes()
-  }, [carregarDiretrizes])
+      // Recarregar lista apos cancelar
+      await carregarDiretrizes()
+    },
+    [carregarDiretrizes]
+  )
 
   return {
     diretrizes,
@@ -209,12 +208,12 @@ const INITIAL_FORM_STATE: InstrucaoFormState = {
 export function useInstrucaoForm() {
   const [form, setForm] = useState<InstrucaoFormState>(INITIAL_FORM_STATE)
 
-  const updateField = useCallback(<K extends keyof InstrucaoFormState>(
-    field: K,
-    value: InstrucaoFormState[K]
-  ) => {
-    setForm((prev) => ({ ...prev, [field]: value }))
-  }, [])
+  const updateField = useCallback(
+    <K extends keyof InstrucaoFormState>(field: K, value: InstrucaoFormState[K]) => {
+      setForm((prev) => ({ ...prev, [field]: value }))
+    },
+    []
+  )
 
   const reset = useCallback(() => {
     setForm(INITIAL_FORM_STATE)

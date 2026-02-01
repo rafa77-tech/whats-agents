@@ -77,51 +77,56 @@ describe('DashboardPage', () => {
       if (url.includes('/api/dashboard/status')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({
-            status: 'online',
-            lastHeartbeat: new Date().toISOString(),
-            uptime30d: 99.5,
-          }),
+          json: () =>
+            Promise.resolve({
+              status: 'online',
+              lastHeartbeat: new Date().toISOString(),
+              uptime30d: 99.5,
+            }),
         })
       }
       if (url.includes('/api/dashboard/chips/list')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({
-            chips: [{ id: '1', name: 'Chip 1' }],
-          }),
+          json: () =>
+            Promise.resolve({
+              chips: [{ id: '1', name: 'Chip 1' }],
+            }),
         })
       }
       if (url.includes('/api/dashboard/chips')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({
-            byStatus: { active: 5 },
-            byTrustLevel: { verde: 5 },
-            totalMessagesSent: 100,
-          }),
+          json: () =>
+            Promise.resolve({
+              byStatus: { active: 5 },
+              byTrustLevel: { verde: 5 },
+              totalMessagesSent: 100,
+            }),
         })
       }
       if (url.includes('/api/dashboard/metrics')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({
-            metrics: {
-              responseRate: { value: 85, previous: 80, meta: 70 },
-              conversionRate: { value: 25, previous: 20, meta: 20 },
-            },
-          }),
+          json: () =>
+            Promise.resolve({
+              metrics: {
+                responseRate: { value: 85, previous: 80, meta: 70 },
+                conversionRate: { value: 25, previous: 20, meta: 20 },
+              },
+            }),
         })
       }
       if (url.includes('/api/dashboard/quality')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({
-            metrics: {
-              botDetection: { value: 0.5, previous: 1 },
-              avgLatency: { value: 25, previous: 30 },
-            },
-          }),
+          json: () =>
+            Promise.resolve({
+              metrics: {
+                botDetection: { value: 0.5, previous: 1 },
+                avgLatency: { value: 25, previous: 30 },
+              },
+            }),
         })
       }
       return Promise.resolve({
@@ -259,7 +264,7 @@ describe('DashboardPage', () => {
     })
 
     render(<DashboardPage />)
-    
+
     // Deve ainda renderizar o dashboard mesmo com erros
     await waitFor(() => {
       expect(screen.getByTestId('dashboard-header')).toBeInTheDocument()

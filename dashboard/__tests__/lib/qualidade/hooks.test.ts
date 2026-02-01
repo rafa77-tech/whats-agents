@@ -134,9 +134,7 @@ describe('useConversations', () => {
 
     expect(result.current.conversations).toHaveLength(1)
     expect(result.current.conversations[0]!.medicoNome).toBe('Dr. Silva')
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('avaliada=false')
-    )
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('avaliada=false'))
   })
 
   it('deve buscar todas as conversas quando filtro e "all"', async () => {
@@ -174,10 +172,9 @@ describe('useConversations', () => {
       json: () => Promise.resolve({ conversas: [] }),
     })
 
-    const { rerender } = renderHook(
-      ({ filter }) => useConversations(filter),
-      { initialProps: { filter: 'false' } }
-    )
+    const { rerender } = renderHook(({ filter }) => useConversations(filter), {
+      initialProps: { filter: 'false' },
+    })
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalled()

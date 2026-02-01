@@ -1,11 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import {
-  calculateCapacityPercentage,
-  getCapacityColor,
-  isCapacityWarning,
-} from '@/lib/group-entry'
+import { calculateCapacityPercentage, getCapacityColor, isCapacityWarning } from '@/lib/group-entry'
 
 interface CapacityBarProps {
   used: number

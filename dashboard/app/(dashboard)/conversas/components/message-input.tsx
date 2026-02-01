@@ -16,11 +16,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,26 +78,29 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
     textareaRef.current?.focus()
   }
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'document') => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'document') => {
+      const file = e.target.files?.[0]
+      if (!file) return
 
-    const attachment: Attachment = { type, file }
+      const attachment: Attachment = { type, file }
 
-    if (type === 'image') {
-      const reader = new FileReader()
-      reader.onload = () => {
-        attachment.preview = reader.result as string
+      if (type === 'image') {
+        const reader = new FileReader()
+        reader.onload = () => {
+          attachment.preview = reader.result as string
+          setAttachment(attachment)
+        }
+        reader.readAsDataURL(file)
+      } else {
         setAttachment(attachment)
       }
-      reader.readAsDataURL(file)
-    } else {
-      setAttachment(attachment)
-    }
 
-    // Reset input
-    e.target.value = ''
-  }, [])
+      // Reset input
+      e.target.value = ''
+    },
+    []
+  )
 
   const startRecording = async () => {
     try {
@@ -172,6 +171,7 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
       {attachment && (
         <div className="flex items-center gap-2 rounded-lg bg-muted p-2">
           {attachment.type === 'image' && attachment.preview ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={attachment.preview}
               alt="Preview"
@@ -215,11 +215,7 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
             >
               Cancelar
             </Button>
-            <Button
-              size="sm"
-              className="h-8 bg-red-600 hover:bg-red-700"
-              onClick={stopRecording}
-            >
+            <Button size="sm" className="h-8 bg-red-600 hover:bg-red-700" onClick={stopRecording}>
               <StopCircle className="mr-1 h-4 w-4" />
               Parar
             </Button>
@@ -241,11 +237,7 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
               <Smile className="h-5 w-5 text-muted-foreground" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent
-            side="top"
-            align="start"
-            className="w-auto border-none p-0 shadow-xl"
-          >
+          <PopoverContent side="top" align="start" className="w-auto border-none p-0 shadow-xl">
             <Picker
               data={data}
               onEmojiSelect={handleEmojiSelect}
@@ -305,7 +297,7 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
           onKeyDown={handleKeyDown}
           placeholder={placeholder || 'Digite sua mensagem...'}
           className={cn(
-            'min-h-[44px] max-h-[120px] flex-1 resize-none',
+            'max-h-[120px] min-h-[44px] flex-1 resize-none',
             isRecording && 'opacity-50'
           )}
           rows={1}
@@ -319,11 +311,7 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
             disabled={sending || disabled || isRecording}
             className="h-10 w-10 shrink-0 bg-emerald-600 p-0 hover:bg-emerald-700"
           >
-            {sending ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
+            {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </Button>
         ) : (
           <Button
@@ -333,7 +321,9 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
             disabled={disabled}
             onClick={isRecording ? stopRecording : startRecording}
           >
-            <Mic className={cn('h-5 w-5', isRecording ? 'text-red-500' : 'text-muted-foreground')} />
+            <Mic
+              className={cn('h-5 w-5', isRecording ? 'text-red-500' : 'text-muted-foreground')}
+            />
           </Button>
         )}
       </div>

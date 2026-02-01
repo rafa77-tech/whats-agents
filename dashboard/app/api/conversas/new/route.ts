@@ -61,7 +61,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!cliente_id) {
-      return NextResponse.json({ error: 'Não foi possível encontrar ou criar o contato' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Não foi possível encontrar ou criar o contato' },
+        { status: 500 }
+      )
     }
 
     // Find or create conversation

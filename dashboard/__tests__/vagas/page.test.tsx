@@ -106,9 +106,7 @@ describe('VagasPage', () => {
 
     // Encontrar botoes de modo
     const buttons = screen.getAllByRole('button')
-    const calendarButton = buttons.find((btn) =>
-      btn.querySelector('svg.lucide-calendar')
-    )
+    const calendarButton = buttons.find((btn) => btn.querySelector('svg.lucide-calendar'))
 
     expect(calendarButton).toBeDefined()
 

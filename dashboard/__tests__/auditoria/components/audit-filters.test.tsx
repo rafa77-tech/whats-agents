@@ -92,9 +92,7 @@ describe('AuditFilters', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /aplicar/i }))
 
-    expect(onApply).toHaveBeenCalledWith(
-      expect.objectContaining({ actor_email: 'new@test.com' })
-    )
+    expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ actor_email: 'new@test.com' }))
   })
 
   it('deve permitir selecionar data de inicio', () => {

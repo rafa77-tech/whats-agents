@@ -81,7 +81,9 @@ export default function MakeoverLayout({ children }: { children: React.ReactNode
                   className="h-10 w-full max-w-md rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary"
                   placeholder="Buscar chips, conversas, campanhas"
                 />
-                <button className="h-10 rounded-md border border-border px-4 text-sm">Atualizar</button>
+                <button className="h-10 rounded-md border border-border px-4 text-sm">
+                  Atualizar
+                </button>
               </div>
             </div>
           </header>

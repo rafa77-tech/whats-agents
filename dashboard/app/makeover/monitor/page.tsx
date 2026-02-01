@@ -47,7 +47,9 @@ export default function MakeoverMonitorPage() {
           { label: 'Atrasados', value: '0' },
         ].map((item) => (
           <div key={item.label} className="rounded-lg border border-border p-4">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">{item.label}</div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+              {item.label}
+            </div>
             <div className="mt-2 font-display text-2xl">{item.value}</div>
           </div>
         ))}

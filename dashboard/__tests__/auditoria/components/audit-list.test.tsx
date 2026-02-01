@@ -29,9 +29,7 @@ describe('AuditList', () => {
   it('deve renderizar lista de logs', () => {
     const onPageChange = vi.fn()
 
-    render(
-      <AuditList logs={mockLogs} total={2} page={1} pages={1} onPageChange={onPageChange} />
-    )
+    render(<AuditList logs={mockLogs} total={2} page={1} pages={1} onPageChange={onPageChange} />)
 
     expect(screen.getByText('Toggle Julia')).toBeInTheDocument()
     expect(screen.getByText('Handoff Manual')).toBeInTheDocument()
@@ -40,9 +38,7 @@ describe('AuditList', () => {
   it('deve mostrar total de registros', () => {
     const onPageChange = vi.fn()
 
-    render(
-      <AuditList logs={mockLogs} total={2} page={1} pages={1} onPageChange={onPageChange} />
-    )
+    render(<AuditList logs={mockLogs} total={2} page={1} pages={1} onPageChange={onPageChange} />)
 
     expect(screen.getByText('2 registros')).toBeInTheDocument()
   })
@@ -51,13 +47,7 @@ describe('AuditList', () => {
     const onPageChange = vi.fn()
 
     render(
-      <AuditList
-        logs={[mockLogs[0]!]}
-        total={1}
-        page={1}
-        pages={1}
-        onPageChange={onPageChange}
-      />
+      <AuditList logs={[mockLogs[0]!]} total={1} page={1} pages={1} onPageChange={onPageChange} />
     )
 
     expect(screen.getByText('1 registro')).toBeInTheDocument()
@@ -66,9 +56,7 @@ describe('AuditList', () => {
   it('deve mostrar paginacao', () => {
     const onPageChange = vi.fn()
 
-    render(
-      <AuditList logs={mockLogs} total={100} page={2} pages={5} onPageChange={onPageChange} />
-    )
+    render(<AuditList logs={mockLogs} total={100} page={2} pages={5} onPageChange={onPageChange} />)
 
     expect(screen.getByText('2 / 5')).toBeInTheDocument()
   })
@@ -76,13 +64,11 @@ describe('AuditList', () => {
   it('deve chamar onPageChange ao clicar em proxima', () => {
     const onPageChange = vi.fn()
 
-    render(
-      <AuditList logs={mockLogs} total={100} page={2} pages={5} onPageChange={onPageChange} />
-    )
+    render(<AuditList logs={mockLogs} total={100} page={2} pages={5} onPageChange={onPageChange} />)
 
-    const nextButton = screen.getAllByRole('button').find(
-      (btn) => btn.querySelector('svg.lucide-chevron-right') !== null
-    )
+    const nextButton = screen
+      .getAllByRole('button')
+      .find((btn) => btn.querySelector('svg.lucide-chevron-right') !== null)
 
     fireEvent.click(nextButton!)
 
@@ -92,13 +78,11 @@ describe('AuditList', () => {
   it('deve chamar onPageChange ao clicar em anterior', () => {
     const onPageChange = vi.fn()
 
-    render(
-      <AuditList logs={mockLogs} total={100} page={2} pages={5} onPageChange={onPageChange} />
-    )
+    render(<AuditList logs={mockLogs} total={100} page={2} pages={5} onPageChange={onPageChange} />)
 
-    const prevButton = screen.getAllByRole('button').find(
-      (btn) => btn.querySelector('svg.lucide-chevron-left') !== null
-    )
+    const prevButton = screen
+      .getAllByRole('button')
+      .find((btn) => btn.querySelector('svg.lucide-chevron-left') !== null)
 
     fireEvent.click(prevButton!)
 
@@ -108,13 +92,11 @@ describe('AuditList', () => {
   it('deve desabilitar botao anterior na primeira pagina', () => {
     const onPageChange = vi.fn()
 
-    render(
-      <AuditList logs={mockLogs} total={100} page={1} pages={5} onPageChange={onPageChange} />
-    )
+    render(<AuditList logs={mockLogs} total={100} page={1} pages={5} onPageChange={onPageChange} />)
 
-    const prevButton = screen.getAllByRole('button').find(
-      (btn) => btn.querySelector('svg.lucide-chevron-left') !== null
-    )
+    const prevButton = screen
+      .getAllByRole('button')
+      .find((btn) => btn.querySelector('svg.lucide-chevron-left') !== null)
 
     expect(prevButton).toBeDisabled()
   })
@@ -122,13 +104,11 @@ describe('AuditList', () => {
   it('deve desabilitar botao proxima na ultima pagina', () => {
     const onPageChange = vi.fn()
 
-    render(
-      <AuditList logs={mockLogs} total={100} page={5} pages={5} onPageChange={onPageChange} />
-    )
+    render(<AuditList logs={mockLogs} total={100} page={5} pages={5} onPageChange={onPageChange} />)
 
-    const nextButton = screen.getAllByRole('button').find(
-      (btn) => btn.querySelector('svg.lucide-chevron-right') !== null
-    )
+    const nextButton = screen
+      .getAllByRole('button')
+      .find((btn) => btn.querySelector('svg.lucide-chevron-right') !== null)
 
     expect(nextButton).toBeDisabled()
   })

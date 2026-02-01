@@ -75,7 +75,13 @@ export interface MetricasCampanha {
 // Tipos de Campanha
 // ============================================
 
-export type CampanhaStatus = 'rascunho' | 'agendada' | 'ativa' | 'concluida' | 'pausada' | 'cancelada'
+export type CampanhaStatus =
+  | 'rascunho'
+  | 'agendada'
+  | 'ativa'
+  | 'concluida'
+  | 'pausada'
+  | 'cancelada'
 
 export type TipoCampanha = 'oferta_plantao' | 'reativacao' | 'followup' | 'descoberta'
 

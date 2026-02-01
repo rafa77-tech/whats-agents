@@ -3,7 +3,13 @@
  * Sprint 43: UX & Operacao Unificada
  */
 
-import type { JobStatus, JobCategory, SystemHealthStatus, JobStatusFilter, TimeRangeFilter } from './types'
+import type {
+  JobStatus,
+  JobCategory,
+  SystemHealthStatus,
+  JobStatusFilter,
+  TimeRangeFilter,
+} from './types'
 
 // ============================================
 // Status Labels and Colors

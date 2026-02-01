@@ -4,9 +4,27 @@ import { AlertsPanel } from '@/components/health/alerts-panel'
 
 describe('AlertsPanel', () => {
   const mockAlerts = [
-    { id: '1', tipo: 'job_stale', severity: 'critical' as const, message: 'Job X stale', source: 'scheduler' },
-    { id: '2', tipo: 'job_error', severity: 'warn' as const, message: 'Job Y errors', source: 'scheduler' },
-    { id: '3', tipo: 'info_test', severity: 'info' as const, message: 'Info message', source: 'system' },
+    {
+      id: '1',
+      tipo: 'job_stale',
+      severity: 'critical' as const,
+      message: 'Job X stale',
+      source: 'scheduler',
+    },
+    {
+      id: '2',
+      tipo: 'job_error',
+      severity: 'warn' as const,
+      message: 'Job Y errors',
+      source: 'scheduler',
+    },
+    {
+      id: '3',
+      tipo: 'info_test',
+      severity: 'info' as const,
+      message: 'Info message',
+      source: 'system',
+    },
   ]
 
   describe('Header', () => {
@@ -33,7 +51,13 @@ describe('AlertsPanel', () => {
     it('pluralizes correctly for multiple', () => {
       const multiCritical = [
         ...mockAlerts,
-        { id: '4', tipo: 'test', severity: 'critical' as const, message: 'Another critical', source: 'test' },
+        {
+          id: '4',
+          tipo: 'test',
+          severity: 'critical' as const,
+          message: 'Another critical',
+          source: 'test',
+        },
       ]
       render(<AlertsPanel alerts={multiCritical} />)
       expect(screen.getByText('2 criticos')).toBeInTheDocument()
@@ -66,7 +90,13 @@ describe('AlertsPanel', () => {
     it('displays critical alerts first', () => {
       const mixedAlerts = [
         { id: '1', tipo: 'test', severity: 'info' as const, message: 'Info 1', source: 'test' },
-        { id: '2', tipo: 'test', severity: 'critical' as const, message: 'Critical 1', source: 'test' },
+        {
+          id: '2',
+          tipo: 'test',
+          severity: 'critical' as const,
+          message: 'Critical 1',
+          source: 'test',
+        },
         { id: '3', tipo: 'test', severity: 'warn' as const, message: 'Warn 1', source: 'test' },
       ]
 

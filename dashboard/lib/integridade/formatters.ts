@@ -212,10 +212,7 @@ export function formatDateTimeBR(dateString: string): string {
  * @param notas - Notas adicionais
  * @returns Notas formatadas
  */
-export function formatResolutionNotes(
-  tipo: 'corrigido' | 'falso_positivo',
-  notas: string
-): string {
+export function formatResolutionNotes(tipo: 'corrigido' | 'falso_positivo', notas: string): string {
   const prefix = tipo === 'falso_positivo' ? '[Falso Positivo]' : '[Corrigido]'
   return `${prefix} ${notas}`
 }

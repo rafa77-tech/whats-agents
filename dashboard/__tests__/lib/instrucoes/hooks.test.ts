@@ -185,9 +185,7 @@ describe('useInstrucoes', () => {
     })
 
     // Verifica que PATCH foi chamado
-    const patchCall = mockFetch.mock.calls.find(
-      (call) => call[1]?.method === 'PATCH'
-    )
+    const patchCall = mockFetch.mock.calls.find((call) => call[1]?.method === 'PATCH')
     expect(patchCall).toBeDefined()
   })
 

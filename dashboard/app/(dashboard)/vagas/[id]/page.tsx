@@ -8,12 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import {
-  useShiftDetail,
-  useDoctorSearch,
-  getStatusBadgeColor,
-  getStatusLabel,
-} from '@/lib/vagas'
+import { useShiftDetail, useDoctorSearch, getStatusBadgeColor, getStatusLabel } from '@/lib/vagas'
 import { ShiftInfoCard } from '../components/shift-info-card'
 import { AssignedDoctorCard } from '../components/assigned-doctor-card'
 import { ShiftMetadataCard } from '../components/shift-metadata-card'

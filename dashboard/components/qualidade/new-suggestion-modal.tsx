@@ -106,10 +106,7 @@ export function NewSuggestionModal({ onClose, onCreated }: NewSuggestionModalPro
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={saving || !canCreateSuggestion(tipo, descricao)}
-          >
+          <Button onClick={handleSubmit} disabled={saving || !canCreateSuggestion(tipo, descricao)}>
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -269,11 +269,7 @@ describe('countAnomaliesBySeverity', () => {
 
 describe('filterOpenAnomalies', () => {
   it('returns only open anomalies', () => {
-    const anomalies = [
-      { resolvida: false },
-      { resolvida: true },
-      { resolvida: false },
-    ]
+    const anomalies = [{ resolvida: false }, { resolvida: true }, { resolvida: false }]
 
     const open = filterOpenAnomalies(anomalies)
 
@@ -289,11 +285,7 @@ describe('filterOpenAnomalies', () => {
 
 describe('filterResolvedAnomalies', () => {
   it('returns only resolved anomalies', () => {
-    const anomalies = [
-      { resolvida: false },
-      { resolvida: true },
-      { resolvida: true },
-    ]
+    const anomalies = [{ resolvida: false }, { resolvida: true }, { resolvida: true }]
 
     const resolved = filterResolvedAnomalies(anomalies)
 

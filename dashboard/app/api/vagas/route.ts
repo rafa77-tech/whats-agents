@@ -29,7 +29,16 @@ export async function GET(request: NextRequest) {
       throw error
     }
 
-    const { page, per_page: perPage, status, hospital_id, especialidade_id, date_from, date_to, search } = params
+    const {
+      page,
+      per_page: perPage,
+      status,
+      hospital_id,
+      especialidade_id,
+      date_from,
+      date_to,
+      search,
+    } = params
 
     const supabase = createAdminClient()
 

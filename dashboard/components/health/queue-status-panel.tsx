@@ -10,7 +10,6 @@ interface QueueStatusPanelProps {
 }
 
 export function QueueStatusPanel({ queue }: QueueStatusPanelProps) {
-
   return (
     <Card>
       <CardHeader>

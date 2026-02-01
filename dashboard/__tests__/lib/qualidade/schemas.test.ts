@@ -179,7 +179,9 @@ describe('createSuggestionSchema', () => {
 
   it('deve rejeitar descricao curta', () => {
     const body = { ...validBody, descricao: 'curta' }
-    expect(() => createSuggestionSchema.parse(body)).toThrow('Descricao deve ter pelo menos 10 caracteres')
+    expect(() => createSuggestionSchema.parse(body)).toThrow(
+      'Descricao deve ter pelo menos 10 caracteres'
+    )
   })
 
   it('deve rejeitar descricao muito longa', () => {

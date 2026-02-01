@@ -3,7 +3,13 @@
  * Sprint 43: UX & Operação Unificada
  */
 
-import type { ChipStatus, TrustLevelExtended, WarmupPhase, ChipAlertSeverity, ChipAlertType } from './types'
+import type {
+  ChipStatus,
+  TrustLevelExtended,
+  WarmupPhase,
+  ChipAlertSeverity,
+  ChipAlertType,
+} from './types'
 
 // ============================================
 // Status Constants

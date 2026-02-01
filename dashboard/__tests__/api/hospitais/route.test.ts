@@ -46,16 +46,13 @@ describe('GET /api/hospitais', () => {
 
     expect(response.status).toBe(200)
     expect(data).toEqual(mockData)
-    expect(mockListarHospitais).toHaveBeenCalledWith(
-      expect.anything(),
-      { excluirBloqueados: false }
-    )
+    expect(mockListarHospitais).toHaveBeenCalledWith(expect.anything(), {
+      excluirBloqueados: false,
+    })
   })
 
   it('deve excluir bloqueados quando parametro for true', async () => {
-    const mockData = [
-      { id: 'h2', nome: 'Hospital B', cidade: 'RJ', vagas_abertas: 3 },
-    ]
+    const mockData = [{ id: 'h2', nome: 'Hospital B', cidade: 'RJ', vagas_abertas: 3 }]
     mockListarHospitais.mockResolvedValue(mockData)
 
     const request = createRequest({ excluir_bloqueados: 'true' })
@@ -64,10 +61,7 @@ describe('GET /api/hospitais', () => {
 
     expect(response.status).toBe(200)
     expect(data).toHaveLength(1)
-    expect(mockListarHospitais).toHaveBeenCalledWith(
-      expect.anything(),
-      { excluirBloqueados: true }
-    )
+    expect(mockListarHospitais).toHaveBeenCalledWith(expect.anything(), { excluirBloqueados: true })
   })
 
   it('deve retornar array vazio quando nao ha hospitais', async () => {
@@ -109,9 +103,8 @@ describe('GET /api/hospitais', () => {
     const request = createRequest({ excluir_bloqueados: 'false' })
     await GET(request)
 
-    expect(mockListarHospitais).toHaveBeenCalledWith(
-      expect.anything(),
-      { excluirBloqueados: false }
-    )
+    expect(mockListarHospitais).toHaveBeenCalledWith(expect.anything(), {
+      excluirBloqueados: false,
+    })
   })
 })

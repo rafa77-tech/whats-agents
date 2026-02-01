@@ -74,9 +74,7 @@ describe('Group Entry API Routes', () => {
   describe('GET /api/group-entry/links', () => {
     it('returns links data on success', async () => {
       const mockData = {
-        links: [
-          { id: '1', url: 'https://chat.whatsapp.com/abc', status: 'pending' },
-        ],
+        links: [{ id: '1', url: 'https://chat.whatsapp.com/abc', status: 'pending' }],
       }
 
       mockFetch.mockResolvedValue({
@@ -97,9 +95,7 @@ describe('Group Entry API Routes', () => {
   describe('GET /api/group-entry/queue', () => {
     it('returns queue data on success', async () => {
       const mockData = {
-        queue: [
-          { id: '1', link_url: 'https://chat.whatsapp.com/abc', status: 'queued' },
-        ],
+        queue: [{ id: '1', link_url: 'https://chat.whatsapp.com/abc', status: 'queued' }],
       }
 
       mockFetch.mockResolvedValue({

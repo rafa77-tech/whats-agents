@@ -20,7 +20,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { CheckCircle2, Clock, XCircle, Loader2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  CheckCircle2,
+  Clock,
+  XCircle,
+  Loader2,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import {
   useLinksList,
@@ -58,7 +66,12 @@ export function LinksTable({ onUpdate }: LinksTableProps) {
     onUpdate()
   }
 
-  const { actionLoading, error: actionError, validateLink, scheduleLink } = useLinkActions(handleSuccess)
+  const {
+    actionLoading,
+    error: actionError,
+    validateLink,
+    scheduleLink,
+  } = useLinkActions(handleSuccess)
 
   // Show toast on errors
   useEffect(() => {

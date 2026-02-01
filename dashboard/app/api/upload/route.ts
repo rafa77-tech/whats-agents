@@ -41,12 +41,10 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer)
 
     // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(filename, buffer, {
-        contentType: file.type,
-        upsert: false,
-      })
+    const { data, error } = await supabase.storage.from(BUCKET_NAME).upload(filename, buffer, {
+      contentType: file.type,
+      upsert: false,
+    })
 
     if (error) {
       console.error('Upload error:', error)

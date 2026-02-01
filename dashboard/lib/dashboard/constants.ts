@@ -68,9 +68,21 @@ export const DEFAULT_ACTIVITY: ActivityFeedData = {
 // ============================================
 
 export const METRIC_CONFIG = {
-  responseRate: { label: 'Taxa de Resposta', unit: 'percent' as const, metaOperator: 'gt' as const },
-  conversionRate: { label: 'Taxa de Conversão', unit: 'percent' as const, metaOperator: 'gt' as const },
-  closingsPerWeek: { label: 'Fechamentos/Semana', unit: 'number' as const, metaOperator: 'gt' as const },
+  responseRate: {
+    label: 'Taxa de Resposta',
+    unit: 'percent' as const,
+    metaOperator: 'gt' as const,
+  },
+  conversionRate: {
+    label: 'Taxa de Conversão',
+    unit: 'percent' as const,
+    metaOperator: 'gt' as const,
+  },
+  closingsPerWeek: {
+    label: 'Fechamentos/Semana',
+    unit: 'number' as const,
+    metaOperator: 'gt' as const,
+  },
 } as const
 
 export const QUALITY_CONFIG = {

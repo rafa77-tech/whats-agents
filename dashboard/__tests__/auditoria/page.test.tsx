@@ -148,9 +148,7 @@ describe('AuditoriaPage', () => {
 
     // Botao de filtro (icon Filter)
     const buttons = screen.getAllByRole('button')
-    const filterButton = buttons.find(
-      (btn) => btn.querySelector('svg.lucide-filter') !== null
-    )
+    const filterButton = buttons.find((btn) => btn.querySelector('svg.lucide-filter') !== null)
     expect(filterButton).toBeDefined()
   })
 
@@ -168,9 +166,7 @@ describe('AuditoriaPage', () => {
 
     // Encontrar botao de filtro
     const buttons = screen.getAllByRole('button')
-    const filterButton = buttons.find(
-      (btn) => btn.querySelector('svg.lucide-filter') !== null
-    )
+    const filterButton = buttons.find((btn) => btn.querySelector('svg.lucide-filter') !== null)
 
     fireEvent.click(filterButton!)
 

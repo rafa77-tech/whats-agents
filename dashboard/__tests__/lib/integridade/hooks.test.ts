@@ -280,9 +280,7 @@ describe('useIntegridadeData', () => {
         ok: true,
         json: () =>
           Promise.resolve(
-            url.includes('/kpis')
-              ? { health_score: callCount * 10 }
-              : { anomalies: [] }
+            url.includes('/kpis') ? { health_score: callCount * 10 } : { anomalies: [] }
           ),
       })
     })
@@ -315,9 +313,7 @@ describe('useIntegridadeData', () => {
       return Promise.resolve({
         ok: true,
         json: () =>
-          Promise.resolve(
-            url.includes('/kpis') ? { health_score: 85 } : { anomalies: [] }
-          ),
+          Promise.resolve(url.includes('/kpis') ? { health_score: 85 } : { anomalies: [] }),
       })
     })
 

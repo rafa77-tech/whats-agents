@@ -54,10 +54,9 @@ describe('GET /api/hospitais/bloqueados', () => {
 
     expect(response.status).toBe(200)
     expect(data).toEqual(mockData)
-    expect(mockListarHospitaisBloqueados).toHaveBeenCalledWith(
-      expect.anything(),
-      { incluirHistorico: false }
-    )
+    expect(mockListarHospitaisBloqueados).toHaveBeenCalledWith(expect.anything(), {
+      incluirHistorico: false,
+    })
   })
 
   it('deve incluir historico quando parametro for true', async () => {
@@ -73,10 +72,9 @@ describe('GET /api/hospitais/bloqueados', () => {
 
     expect(response.status).toBe(200)
     expect(data).toHaveLength(2)
-    expect(mockListarHospitaisBloqueados).toHaveBeenCalledWith(
-      expect.anything(),
-      { incluirHistorico: true }
-    )
+    expect(mockListarHospitaisBloqueados).toHaveBeenCalledWith(expect.anything(), {
+      incluirHistorico: true,
+    })
   })
 
   it('deve retornar array vazio quando nao ha bloqueados', async () => {

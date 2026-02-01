@@ -14,17 +14,8 @@ import { useState } from 'react'
 export default function VagasPage() {
   const [showFilters, setShowFilters] = useState(false)
 
-  const {
-    data,
-    loading,
-    filters,
-    search,
-    page,
-    viewMode,
-    calendarMonth,
-    selectedDate,
-    actions,
-  } = useShifts()
+  const { data, loading, filters, search, page, viewMode, calendarMonth, selectedDate, actions } =
+    useShifts()
 
   const handleApplyFilters = (f: typeof filters) => {
     actions.setFilters(f)

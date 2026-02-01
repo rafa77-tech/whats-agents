@@ -111,9 +111,7 @@ export function NewConversationDialog({ onStart, trigger }: Props) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Nova Conversa</DialogTitle>
-          <DialogDescription>
-            Busque um medico ou digite um numero de telefone
-          </DialogDescription>
+          <DialogDescription>Busque um medico ou digite um numero de telefone</DialogDescription>
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as 'search' | 'manual')}>
@@ -220,9 +218,7 @@ export function NewConversationDialog({ onStart, trigger }: Props) {
                   className="pl-9"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Digite o numero com DDD
-              </p>
+              <p className="text-xs text-muted-foreground">Digite o numero com DDD</p>
             </div>
 
             <Button
