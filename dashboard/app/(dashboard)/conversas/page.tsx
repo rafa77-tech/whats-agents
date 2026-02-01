@@ -8,7 +8,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { ConversationList } from './components/conversation-list'
 import { ConversationFilters } from './components/conversation-filters'
-import { useAuth } from '@/hooks/use-auth'
 import type { Conversation } from './components/conversation-card'
 
 interface Filters {
@@ -34,7 +33,6 @@ function ConversasPageSkeleton() {
 }
 
 export default function ConversasPage() {
-  const { session } = useAuth()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<Filters>({})
   const [search, setSearch] = useState('')
@@ -47,10 +45,7 @@ export default function ConversasPage() {
   } | null>(null)
 
   const fetchConversations = useCallback(async () => {
-    if (!session?.access_token) return
-
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       const params = new URLSearchParams({
         page: page.toString(),
         per_page: '20',
@@ -60,11 +55,7 @@ export default function ConversasPage() {
       if (filters.controlled_by) params.append('controlled_by', filters.controlled_by)
       if (search) params.append('search', search)
 
-      const response = await fetch(`${apiUrl}/dashboard/conversations?${params}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const response = await fetch(`/api/conversas?${params}`)
 
       if (response.ok) {
         const result = await response.json()
@@ -75,7 +66,7 @@ export default function ConversasPage() {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, page, filters, search])
+  }, [page, filters, search])
 
   useEffect(() => {
     fetchConversations()

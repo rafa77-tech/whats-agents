@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { useAuth } from '@/hooks/use-auth'
 import { ShiftList } from './components/shift-list'
 import { ShiftFilters } from './components/shift-filters'
 import { ShiftCalendar } from './components/shift-calendar'
@@ -24,7 +23,6 @@ interface Filters {
 type ViewMode = 'list' | 'calendar'
 
 export default function VagasPage() {
-  const { session } = useAuth()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<Filters>({})
   const [search, setSearch] = useState('')
@@ -39,11 +37,8 @@ export default function VagasPage() {
   } | null>(null)
 
   const fetchShifts = useCallback(async () => {
-    if (!session?.access_token) return
-
     setLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       const params = new URLSearchParams({
         page: String(page),
         per_page: viewMode === 'calendar' ? '100' : '20',
@@ -56,11 +51,7 @@ export default function VagasPage() {
       if (filters.date_to) params.set('date_to', filters.date_to)
       if (search) params.set('search', search)
 
-      const response = await fetch(`${apiUrl}/dashboard/shifts?${params}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const response = await fetch(`/api/vagas?${params}`)
 
       if (response.ok) {
         const result = await response.json()
@@ -71,7 +62,7 @@ export default function VagasPage() {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, page, filters, search, viewMode])
+  }, [page, filters, search, viewMode])
 
   useEffect(() => {
     fetchShifts()
