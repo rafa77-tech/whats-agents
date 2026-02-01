@@ -11,7 +11,7 @@ import { ConversationFilters } from './components/conversation-filters'
 import { ChatSidebar, type ConversationItem } from './components/chat-sidebar'
 import { ChatPanel } from './components/chat-panel'
 import { NewConversationDialog } from './components/new-conversation-dialog'
-import { cn } from '@/lib/utils'
+import { cn, formatPhone } from '@/lib/utils'
 
 interface Filters {
   status?: string | undefined
@@ -26,14 +26,6 @@ interface Chip {
   status: string
   trust_level: string
   conversation_count: number
-}
-
-function formatPhone(phone: string): string {
-  const cleaned = phone.replace(/\D/g, '').slice(-11)
-  if (cleaned.length === 11) {
-    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
-  }
-  return phone.slice(-11)
 }
 
 export default function ConversasPage() {

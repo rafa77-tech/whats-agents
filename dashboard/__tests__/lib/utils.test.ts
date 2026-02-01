@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { cn, formatDate, formatDateTime, formatRelativeTime } from '@/lib/utils'
+import { cn, formatDate, formatDateTime, formatRelativeTime, formatPhone } from '@/lib/utils'
 
 describe('cn (className merger)', () => {
   it('should merge class names', () => {
@@ -102,5 +102,45 @@ describe('formatRelativeTime', () => {
   it('should handle string input', () => {
     const result = formatRelativeTime('2025-01-15T11:55:00')
     expect(result).toBe('5min')
+  })
+})
+
+describe('formatPhone', () => {
+  it('should format 11-digit phone with country code', () => {
+    expect(formatPhone('5511999999999')).toBe('(11) 99999-9999')
+  })
+
+  it('should format 11-digit phone without country code', () => {
+    expect(formatPhone('11999999999')).toBe('(11) 99999-9999')
+  })
+
+  it('should handle phone with special characters', () => {
+    expect(formatPhone('(11) 99999-9999')).toBe('(11) 99999-9999')
+  })
+
+  it('should handle phone with dashes and spaces', () => {
+    expect(formatPhone('11 99999-9999')).toBe('(11) 99999-9999')
+  })
+
+  it('should return original if less than 11 digits', () => {
+    expect(formatPhone('1199999')).toBe('1199999')
+  })
+
+  it('should handle phone with +55 prefix', () => {
+    expect(formatPhone('+5511999999999')).toBe('(11) 99999-9999')
+  })
+
+  it('should extract last 11 digits for longer numbers', () => {
+    expect(formatPhone('005511999999999')).toBe('(11) 99999-9999')
+  })
+
+  it('should handle empty string', () => {
+    expect(formatPhone('')).toBe('')
+  })
+
+  it('should handle 10-digit phone (landline)', () => {
+    // 10-digit phones don't match the 11-digit format, returns sliced version
+    const result = formatPhone('1134567890')
+    expect(result).toBe('1134567890')
   })
 })

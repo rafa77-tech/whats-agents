@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Bot, UserCheck, CheckCheck, Smartphone } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { cn } from '@/lib/utils'
+import { cn, formatPhone } from '@/lib/utils'
 
 export interface ChipInfo {
   id: string
@@ -32,15 +32,6 @@ interface Props {
   onSelect: (id: string) => void
   hasMore?: boolean
   onLoadMore?: () => void
-}
-
-function formatPhone(phone: string): string {
-  // Format as (11) 9xxxx-xxxx
-  const cleaned = phone.replace(/\D/g, '').slice(-11)
-  if (cleaned.length === 11) {
-    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
-  }
-  return phone.slice(-11)
 }
 
 export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLoadMore }: Props) {

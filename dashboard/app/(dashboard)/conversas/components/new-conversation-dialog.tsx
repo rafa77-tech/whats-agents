@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
+import { cn, formatPhone } from '@/lib/utils'
 
 interface Doctor {
   id: string
@@ -28,14 +28,6 @@ interface Doctor {
 interface Props {
   onStart: (phone: string, doctorId?: string) => Promise<void>
   trigger?: React.ReactNode
-}
-
-function formatPhone(phone: string): string {
-  const cleaned = phone.replace(/\D/g, '').slice(-11)
-  if (cleaned.length === 11) {
-    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
-  }
-  return phone
 }
 
 export function NewConversationDialog({ onStart, trigger }: Props) {
