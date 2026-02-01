@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -42,8 +42,14 @@ interface Props {
 
 export function ChatPanel({ conversationId }: Props) {
   const router = useRouter()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
+
+  // Scroll to bottom when messages change
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
 
   const fetchConversation = useCallback(async () => {
     try {
@@ -68,6 +74,14 @@ export function ChatPanel({ conversationId }: Props) {
     const interval = setInterval(fetchConversation, 10000)
     return () => clearInterval(interval)
   }, [fetchConversation])
+
+  // Scroll to bottom when conversation loads or updates
+  useEffect(() => {
+    if (conversation?.messages.length) {
+      // Small delay to ensure DOM is updated
+      setTimeout(scrollToBottom, 100)
+    }
+  }, [conversation?.messages.length, scrollToBottom])
 
   if (loading) {
     return (
@@ -239,6 +253,8 @@ export function ChatPanel({ conversationId }: Props) {
                 </div>
               </div>
             ))}
+            {/* Scroll anchor */}
+            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
