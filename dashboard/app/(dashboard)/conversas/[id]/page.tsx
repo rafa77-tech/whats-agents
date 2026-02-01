@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MessageList } from '../components/message-list'
 import { ConversationActions } from '../components/conversation-actions'
-import { useAuth } from '@/hooks/use-auth'
 import type { Message } from '../components/message-bubble'
 
 interface ConversationDetail {
@@ -46,7 +45,6 @@ function ConversationDetailSkeleton() {
 export default function ConversationDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { session } = useAuth()
 
   const conversationId = params.id as string
 
@@ -54,15 +52,8 @@ export default function ConversationDetailPage() {
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
 
   const fetchConversation = useCallback(async () => {
-    if (!session?.access_token) return
-
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const response = await fetch(`${apiUrl}/dashboard/conversations/${conversationId}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const response = await fetch(`/api/conversas/${conversationId}`)
 
       if (response.ok) {
         const result = await response.json()
@@ -73,7 +64,7 @@ export default function ConversationDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, conversationId])
+  }, [conversationId])
 
   useEffect(() => {
     fetchConversation()

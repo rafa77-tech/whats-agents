@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAuth } from '@/hooks/use-auth'
 import { DoctorTimeline } from '../components/doctor-timeline'
 import { DoctorStats } from '../components/doctor-stats'
 import { DoctorActions } from '../components/doctor-actions'
@@ -60,22 +59,14 @@ function DoctorProfileSkeleton() {
 export default function DoctorProfilePage() {
   const params = useParams()
   const router = useRouter()
-  const { session } = useAuth()
   const doctorId = params.id as string
 
   const [loading, setLoading] = useState(true)
   const [doctor, setDoctor] = useState<DoctorDetail | null>(null)
 
   const fetchDoctor = useCallback(async () => {
-    if (!session?.access_token) return
-
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const response = await fetch(`${apiUrl}/dashboard/doctors/${doctorId}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const response = await fetch(`/api/medicos/${doctorId}`)
 
       if (response.ok) {
         const result = await response.json()
@@ -86,7 +77,7 @@ export default function DoctorProfilePage() {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, doctorId])
+  }, [doctorId])
 
   useEffect(() => {
     fetchDoctor()

@@ -20,7 +20,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
 
 interface ShiftDetail {
@@ -64,22 +63,14 @@ export default function ShiftDetailPage() {
   const params = useParams()
   const id = params.id as string
   const router = useRouter()
-  const { session } = useAuth()
   const [shift, setShift] = useState<ShiftDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchShift = async () => {
-      if (!session?.access_token) return
-
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-        const response = await fetch(`${apiUrl}/dashboard/shifts/${id}`, {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        })
+        const response = await fetch(`/api/vagas/${id}`)
 
         if (response.ok) {
           const data = await response.json()
@@ -98,7 +89,7 @@ export default function ShiftDetailPage() {
     }
 
     fetchShift()
-  }, [id, session?.access_token])
+  }, [id])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -111,19 +102,15 @@ export default function ShiftDetailPage() {
     if (!confirm('Tem certeza que deseja excluir esta vaga?')) return
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const response = await fetch(`${apiUrl}/dashboard/shifts/${id}`, {
+      const response = await fetch(`/api/vagas/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
       })
 
       if (response.ok) {
         router.push('/vagas')
       } else {
         const data = await response.json()
-        alert(data.detail || 'Erro ao excluir vaga')
+        alert(data.error || 'Erro ao excluir vaga')
       }
     } catch (err) {
       console.error('Failed to delete shift:', err)
