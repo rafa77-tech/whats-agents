@@ -67,8 +67,8 @@ export function PushPermissionBanner() {
     <Card className="fixed bottom-4 right-4 z-50 w-80 shadow-lg md:bottom-6 md:right-6">
       <CardContent className="p-4">
         <div className="flex gap-3">
-          <div className="rounded-full bg-blue-100 p-2 dark:bg-blue-900/30">
-            <Bell className="h-5 w-5 text-blue-600" />
+          <div className="rounded-full bg-status-info p-2 dark:bg-status-info/30">
+            <Bell className="h-5 w-5 text-status-info-foreground" />
           </div>
           <div className="flex-1">
             <p className="font-medium">Ativar notificacoes?</p>

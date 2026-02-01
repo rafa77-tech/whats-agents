@@ -36,13 +36,13 @@ const trustLevelThresholds = [
 
 const eventTypeConfig: Record<string, { icon: typeof TrendingUp; color: string; bgColor: string }> =
   {
-    increase: { icon: TrendingUp, color: 'text-green-500', bgColor: 'bg-green-50' },
-    decrease: { icon: TrendingDown, color: 'text-red-500', bgColor: 'bg-red-50' },
-    phase_change: { icon: RefreshCw, color: 'text-blue-500', bgColor: 'bg-blue-50' },
-    alert: { icon: AlertTriangle, color: 'text-orange-500', bgColor: 'bg-orange-50' },
+    increase: { icon: TrendingUp, color: 'text-status-success-solid', bgColor: 'bg-status-success/10' },
+    decrease: { icon: TrendingDown, color: 'text-status-error-solid', bgColor: 'bg-status-error/10' },
+    phase_change: { icon: RefreshCw, color: 'text-status-info-solid', bgColor: 'bg-status-info/10' },
+    alert: { icon: AlertTriangle, color: 'text-status-warning-solid', bgColor: 'bg-status-warning/10' },
   }
 
-const defaultEventConfig = { icon: AlertTriangle, color: 'text-gray-500', bgColor: 'bg-gray-50' }
+const defaultEventConfig = { icon: AlertTriangle, color: 'text-muted-foreground', bgColor: 'bg-muted/50' }
 
 export function ChipTrustChart({ history }: ChipTrustChartProps) {
   const chartData = useMemo(() => {
@@ -75,11 +75,11 @@ export function ChipTrustChart({ history }: ChipTrustChartProps) {
           <span>Histórico de Trust Score</span>
           <Badge
             className={cn(
-              currentScore >= 80 && 'bg-green-100 text-green-800',
-              currentScore >= 60 && currentScore < 80 && 'bg-yellow-100 text-yellow-800',
-              currentScore >= 40 && currentScore < 60 && 'bg-orange-100 text-orange-800',
-              currentScore >= 20 && currentScore < 40 && 'bg-red-100 text-red-800',
-              currentScore < 20 && 'bg-red-200 text-red-900'
+              currentScore >= 80 && 'bg-trust-verde text-trust-verde-foreground',
+              currentScore >= 60 && currentScore < 80 && 'bg-trust-amarelo text-trust-amarelo-foreground',
+              currentScore >= 40 && currentScore < 60 && 'bg-trust-laranja text-trust-laranja-foreground',
+              currentScore >= 20 && currentScore < 40 && 'bg-trust-vermelho text-trust-vermelho-foreground',
+              currentScore < 20 && 'bg-trust-critico text-trust-critico-foreground'
             )}
           >
             Atual: {currentScore}
@@ -134,8 +134,8 @@ export function ChipTrustChart({ history }: ChipTrustChartProps) {
 
         {/* Recent events */}
         {recentEvents.length > 0 && (
-          <div className="mt-4 border-t border-gray-200 pt-4">
-            <h4 className="mb-3 text-sm font-medium text-gray-900">Eventos Recentes</h4>
+          <div className="mt-4 border-t border-border pt-4">
+            <h4 className="mb-3 text-sm font-medium text-foreground">Eventos Recentes</h4>
             <div className="space-y-2">
               {recentEvents.map((event) => (
                 <TrustEventItem key={event.id} event={event} />
@@ -156,15 +156,15 @@ function TrustEventItem({ event }: { event: TrustEvent }) {
 
   return (
     <div className={cn('flex items-start gap-3 rounded-md p-2', config.bgColor)}>
-      <div className={cn('rounded p-1', 'bg-white')}>
+      <div className={cn('rounded p-1', 'bg-background')}>
         <Icon className={cn('h-4 w-4', config.color)} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-gray-900">{event.description}</p>
-        <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+        <p className="text-sm text-foreground">{event.description}</p>
+        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
           <span>{new Date(event.timestamp).toLocaleString('pt-BR')}</span>
           <span>•</span>
-          <span className={cn(isPositive ? 'text-green-600' : 'text-red-600')}>
+          <span className={cn(isPositive ? 'text-status-success-foreground' : 'text-status-error-foreground')}>
             {isPositive ? '+' : ''}
             {scoreDiff} ({event.scoreBefore} → {event.scoreAfter})
           </span>

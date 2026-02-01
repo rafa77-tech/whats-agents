@@ -19,11 +19,11 @@ export const LINK_STATUS_LABELS: Record<LinkStatus, string> = {
  * Cores de badge para status de links
  */
 export const LINK_STATUS_BADGE_COLORS: Record<LinkStatus, string> = {
-  pending: 'bg-gray-100 text-gray-800',
-  validated: 'bg-blue-100 text-blue-800',
-  scheduled: 'bg-yellow-100 text-yellow-800',
-  processed: 'bg-green-100 text-green-800',
-  failed: 'bg-red-100 text-red-800',
+  pending: 'bg-status-neutral text-status-neutral-foreground',
+  validated: 'bg-status-info text-status-info-foreground',
+  scheduled: 'bg-status-warning text-status-warning-foreground',
+  processed: 'bg-status-success text-status-success-foreground',
+  failed: 'bg-status-error text-status-error-foreground',
 }
 
 /**
@@ -38,8 +38,8 @@ export const QUEUE_STATUS_LABELS: Record<QueueItemStatus, string> = {
  * Cores de badge para status da fila
  */
 export const QUEUE_STATUS_BADGE_COLORS: Record<QueueItemStatus, string> = {
-  queued: 'bg-yellow-100 text-yellow-800',
-  processing: 'bg-blue-100 text-blue-800',
+  queued: 'bg-status-warning text-status-warning-foreground',
+  processing: 'bg-status-info text-status-info-foreground',
 }
 
 /**

@@ -14,10 +14,10 @@ interface Props {
 }
 
 const DEFAULT_DATA: FunnelStage[] = [
-  { name: 'Prospeccao', count: 0, percentage: 100, color: 'bg-gray-400' },
-  { name: 'Engajados', count: 0, percentage: 0, color: 'bg-blue-400' },
-  { name: 'Negociando', count: 0, percentage: 0, color: 'bg-yellow-400' },
-  { name: 'Convertidos', count: 0, percentage: 0, color: 'bg-green-400' },
+  { name: 'Prospeccao', count: 0, percentage: 100, color: 'bg-muted-foreground' },
+  { name: 'Engajados', count: 0, percentage: 0, color: 'bg-status-info-solid' },
+  { name: 'Negociando', count: 0, percentage: 0, color: 'bg-status-warning-solid' },
+  { name: 'Convertidos', count: 0, percentage: 0, color: 'bg-status-success-solid' },
 ]
 
 export function ConversionFunnel({ data = DEFAULT_DATA }: Props) {

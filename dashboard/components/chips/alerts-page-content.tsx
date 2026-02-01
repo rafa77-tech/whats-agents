@@ -53,10 +53,10 @@ const typeOptions: { value: ChipAlertType; label: string }[] = [
 ]
 
 const severityConfig: Record<ChipAlertSeverity, { color: string; bgColor: string }> = {
-  critico: { color: 'text-red-600', bgColor: 'bg-red-100' },
-  alerta: { color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  atencao: { color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
-  info: { color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  critico: { color: 'text-status-error-foreground', bgColor: 'bg-status-error' },
+  alerta: { color: 'text-status-warning-foreground', bgColor: 'bg-status-warning' },
+  atencao: { color: 'text-status-warning-foreground', bgColor: 'bg-status-warning' },
+  info: { color: 'text-status-info-foreground', bgColor: 'bg-status-info' },
 }
 
 export function AlertsPageContent() {
@@ -145,17 +145,17 @@ export function AlertsPageContent() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <nav className="mb-2 text-sm text-gray-500">
-            <Link href={'/chips' as Route} className="flex items-center gap-1 hover:text-gray-700">
+          <nav className="mb-2 text-sm text-muted-foreground">
+            <Link href={'/chips' as Route} className="flex items-center gap-1 hover:text-foreground">
               <ChevronLeft className="h-4 w-4" />
               Voltar para Pool de Chips
             </Link>
           </nav>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
             <AlertTriangle className="h-6 w-6" />
             Alertas
           </h1>
-          <p className="mt-1 text-sm text-gray-600">Gerencie alertas do pool de chips</p>
+          <p className="mt-1 text-sm text-muted-foreground">Gerencie alertas do pool de chips</p>
         </div>
 
         <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
@@ -173,8 +173,8 @@ export function AlertsPageContent() {
             <Card
               key={severity.value}
               className={cn(
-                'cursor-pointer transition-colors hover:border-gray-300',
-                filters.severity === severity.value && 'border-gray-400'
+                'cursor-pointer transition-colors hover:border-border/80',
+                filters.severity === severity.value && 'border-accent-foreground/40'
               )}
               onClick={() =>
                 handleSeverityChange(filters.severity === severity.value ? 'all' : severity.value)
@@ -182,7 +182,7 @@ export function AlertsPageContent() {
             >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{severity.label}</span>
+                  <span className="text-sm text-muted-foreground">{severity.label}</span>
                   <Badge className={cn(config.bgColor, config.color)}>{count}</Badge>
                 </div>
                 <div className={cn('mt-1 text-2xl font-bold', config.color)}>{count}</div>
@@ -194,7 +194,7 @@ export function AlertsPageContent() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <Filter className="h-4 w-4 text-gray-500" />
+        <Filter className="h-4 w-4 text-muted-foreground" />
 
         <Select value={(filters.severity as string) || 'all'} onValueChange={handleSeverityChange}>
           <SelectTrigger className="w-40">
@@ -245,9 +245,9 @@ export function AlertsPageContent() {
       {alerts.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <CheckCircle className="mx-auto mb-4 h-12 w-12 text-green-500" />
-            <h3 className="mb-2 text-lg font-semibold text-gray-900">Nenhum alerta encontrado</h3>
-            <p className="text-gray-500">
+            <CheckCircle className="mx-auto mb-4 h-12 w-12 text-status-success-solid" />
+            <h3 className="mb-2 text-lg font-semibold text-foreground">Nenhum alerta encontrado</h3>
+            <p className="text-muted-foreground">
               {filters.resolved === false
                 ? 'Não há alertas pendentes. Ótimo trabalho!'
                 : 'Nenhum alerta corresponde aos filtros selecionados.'}
@@ -265,7 +265,7 @@ export function AlertsPageContent() {
       {/* Pagination */}
       {response && response.total > 20 && (
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted-foreground">
             Mostrando {alerts.length} de {response.total} alertas
           </span>
           <div className="flex gap-2">

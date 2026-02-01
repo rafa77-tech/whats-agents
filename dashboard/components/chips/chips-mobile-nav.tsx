@@ -32,10 +32,10 @@ export function ChipsMobileNav() {
   }
 
   return (
-    <div className="fixed left-0 right-0 top-0 z-50 border-b border-gray-200 bg-white lg:hidden">
+    <div className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-card lg:hidden">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
-          <Cpu className="h-5 w-5 text-blue-600" />
+          <Cpu className="h-5 w-5 text-primary" />
           <span className="font-semibold">Pool de Chips</span>
         </div>
 
@@ -48,7 +48,7 @@ export function ChipsMobileNav() {
           <SheetContent side="left" className="w-64">
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2">
-                <Cpu className="h-5 w-5 text-blue-600" />
+                <Cpu className="h-5 w-5 text-primary" />
                 Pool de Chips
               </SheetTitle>
             </SheetHeader>
@@ -63,8 +63,8 @@ export function ChipsMobileNav() {
                     className={cn(
                       'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium',
                       isActive(item.href, item.exact)
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground hover:bg-muted/50'
                     )}
                   >
                     <Icon className="h-5 w-5" />
@@ -76,7 +76,7 @@ export function ChipsMobileNav() {
             <div className="absolute bottom-4 left-4">
               <Link
                 href={'/dashboard' as Route}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="text-sm text-muted-foreground hover:text-foreground"
                 onClick={() => setOpen(false)}
               >
                 ← Voltar ao Dashboard

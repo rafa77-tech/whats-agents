@@ -13,7 +13,7 @@ export function ChipsPageSkeleton() {
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <Skeleton className="h-4 w-32" />
-          <h1 className="text-2xl font-bold text-gray-900">Pool de Chips</h1>
+          <h1 className="text-2xl font-bold text-foreground">Pool de Chips</h1>
           <Skeleton className="h-4 w-64" />
         </div>
         <div className="flex gap-3">

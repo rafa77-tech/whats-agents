@@ -18,38 +18,38 @@ export function QueueStatusPanel({ queue }: QueueStatusPanelProps) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <div className="rounded-lg bg-gray-50 p-4 text-center">
-            <div className="flex items-center justify-center gap-2 text-gray-500">
+          <div className="rounded-lg bg-status-neutral p-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
               <MessageSquare className="h-4 w-4" />
               <span className="text-xs">Pendentes</span>
             </div>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{queue?.pendentes || 0}</p>
+            <p className="mt-1 text-2xl font-bold text-foreground">{queue?.pendentes || 0}</p>
           </div>
 
-          <div className="rounded-lg bg-blue-50 p-4 text-center">
-            <div className="flex items-center justify-center gap-2 text-blue-500">
+          <div className="rounded-lg bg-status-info p-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-status-info-foreground">
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs">Processando</span>
             </div>
-            <p className="mt-1 text-2xl font-bold text-blue-600">{queue?.processando || 0}</p>
+            <p className="mt-1 text-2xl font-bold text-status-info-foreground">{queue?.processando || 0}</p>
           </div>
 
-          <div className="rounded-lg bg-green-50 p-4 text-center">
-            <div className="flex items-center justify-center gap-2 text-green-500">
+          <div className="rounded-lg bg-status-success p-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-status-success-foreground">
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs">Processadas/h</span>
             </div>
-            <p className="mt-1 text-2xl font-bold text-green-600">
+            <p className="mt-1 text-2xl font-bold text-status-success-foreground">
               {queue?.processadasPorHora !== undefined ? queue.processadasPorHora : '-'}
             </p>
           </div>
 
-          <div className="rounded-lg bg-gray-50 p-4 text-center">
-            <div className="flex items-center justify-center gap-2 text-gray-500">
+          <div className="rounded-lg bg-status-neutral p-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
               <Clock className="h-4 w-4" />
               <span className="text-xs">Tempo Medio</span>
             </div>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
+            <p className="mt-1 text-2xl font-bold text-foreground">
               {formatTempoMedio(queue?.tempoMedioMs)}
             </p>
           </div>

@@ -24,15 +24,15 @@ interface ChipListTableProps {
 const statusConfig: Record<string, { label: string; className: string }> = {
   active: {
     label: 'Active',
-    className: 'bg-green-100 text-green-700 border-green-200',
+    className: 'bg-status-success text-status-success-foreground border-status-success-border',
   },
   ready: {
     label: 'Ready',
-    className: 'bg-blue-100 text-blue-700 border-blue-200',
+    className: 'bg-status-info text-status-info-foreground border-status-info-border',
   },
   warming: {
     label: 'Warming',
-    className: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    className: 'bg-status-warning text-status-warning-foreground border-status-warning-border',
   },
   degraded: {
     label: 'Degraded',
@@ -40,44 +40,44 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   },
   paused: {
     label: 'Paused',
-    className: 'bg-gray-100 text-gray-700 border-gray-200',
+    className: 'bg-status-neutral text-status-neutral-foreground border-border',
   },
   banned: {
     label: 'Banned',
-    className: 'bg-red-100 text-red-700 border-red-200',
+    className: 'bg-status-error text-status-error-foreground border-status-error-border',
   },
   provisioned: {
     label: 'Prov.',
-    className: 'bg-gray-100 text-gray-600 border-gray-200',
+    className: 'bg-status-neutral text-muted-foreground border-border',
   },
   pending: {
     label: 'Pending',
-    className: 'bg-gray-100 text-gray-600 border-gray-200',
+    className: 'bg-status-neutral text-muted-foreground border-border',
   },
   cancelled: {
     label: 'Cancelled',
-    className: 'bg-gray-100 text-gray-400 border-gray-200',
+    className: 'bg-status-neutral text-muted-foreground/70 border-border',
   },
   offline: {
     label: 'Offline',
-    className: 'bg-red-100 text-red-700 border-red-200',
+    className: 'bg-status-error text-status-error-foreground border-status-error-border',
   },
 }
 
 const defaultStatusConfig = {
   label: 'Unknown',
-  className: 'bg-gray-100 text-gray-600 border-gray-200',
+  className: 'bg-status-neutral text-muted-foreground border-border',
 }
 
 const trustColors: Record<string, string> = {
-  verde: 'text-green-600 bg-green-100',
-  amarelo: 'text-yellow-600 bg-yellow-100',
+  verde: 'text-status-success-foreground bg-status-success',
+  amarelo: 'text-status-warning-foreground bg-status-warning',
   laranja: 'text-orange-600 bg-orange-100',
-  vermelho: 'text-red-600 bg-red-100',
+  vermelho: 'text-status-error-foreground bg-status-error',
   critico: 'text-red-800 bg-red-200',
 }
 
-const defaultTrustColor = 'text-gray-600 bg-gray-100'
+const defaultTrustColor = 'text-muted-foreground bg-status-neutral'
 
 function TrustBadge({ score, level }: { score: number; level: TrustLevel }) {
   const colorClass = trustColors[level] || defaultTrustColor
@@ -112,7 +112,7 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-gray-700">Chips Detalhados</h4>
+        <h4 className="text-sm font-medium text-foreground/80">Chips Detalhados</h4>
         {showViewAll && (
           <Link href={'/chips' as Route}>
             <Button variant="ghost" size="sm" className="text-sm">
@@ -126,7 +126,7 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
       <div className="overflow-hidden rounded-lg border">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-50">
+            <TableRow className="bg-muted/50">
               <TableHead className="w-[120px]">Numero</TableHead>
               <TableHead className="w-[90px]">Status</TableHead>
               <TableHead className="w-[70px]">Trust</TableHead>
@@ -141,7 +141,7 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
             {displayedChips.map((chip) => (
               <TableRow
                 key={chip.id}
-                className={`cursor-pointer hover:bg-gray-50 ${chip.hasActiveAlert ? 'bg-red-50 hover:bg-red-100' : ''}`}
+                className={`cursor-pointer hover:bg-muted/50 ${chip.hasActiveAlert ? 'bg-status-error/10 hover:bg-status-error/20' : ''}`}
               >
                 <TableCell className="font-medium">
                   <Link href={`/chips/${chip.id}` as Route} className="block">
@@ -160,7 +160,7 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
                 </TableCell>
                 <TableCell>
                   <Link href={`/chips/${chip.id}` as Route} className="block">
-                    <span className="text-gray-600">
+                    <span className="text-muted-foreground">
                       {chip.messagesToday}/{chip.dailyLimit}
                     </span>
                   </Link>
@@ -171,16 +171,16 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
                       <span
                         className={
                           chip.responseRate >= 90
-                            ? 'text-green-600'
+                            ? 'text-status-success-foreground'
                             : chip.responseRate >= 80
-                              ? 'text-yellow-600'
-                              : 'text-red-600'
+                              ? 'text-status-warning-foreground'
+                              : 'text-status-error-foreground'
                         }
                       >
                         {chip.responseRate.toFixed(1)}%
                       </span>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-muted-foreground/70">-</span>
                     )}
                   </Link>
                 </TableCell>
@@ -188,7 +188,7 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
                   <Link href={`/chips/${chip.id}` as Route} className="block">
                     <span
                       className={
-                        chip.errorsLast24h > 0 ? 'font-medium text-red-600' : 'text-gray-400'
+                        chip.errorsLast24h > 0 ? 'font-medium text-status-error-foreground' : 'text-muted-foreground/70'
                       }
                     >
                       {chip.errorsLast24h}
@@ -203,15 +203,15 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
                         <span className="text-xs">{chip.alertMessage}</span>
                       </div>
                     ) : chip.warmingDay ? (
-                      <span className="text-xs text-blue-600">Dia {chip.warmingDay}/21</span>
+                      <span className="text-xs text-status-info-foreground">Dia {chip.warmingDay}/21</span>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-muted-foreground/70">-</span>
                     )}
                   </Link>
                 </TableCell>
                 <TableCell>
                   <Link href={`/chips/${chip.id}` as Route}>
-                    <ChevronRight className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/70 hover:text-muted-foreground" />
                   </Link>
                 </TableCell>
               </TableRow>

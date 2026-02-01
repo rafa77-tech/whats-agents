@@ -18,10 +18,10 @@ export function QualityMetricCard({
     <Card>
       <CardContent className={cn('flex items-center justify-between p-4', colors.bg)}>
         <div>
-          <p className="text-sm text-gray-500">{title}</p>
+          <p className="text-sm text-muted-foreground">{title}</p>
           <p className={cn('text-2xl font-bold', colors.text)}>
             {value}
-            {suffix && <span className="text-lg font-normal text-gray-500">{suffix}</span>}
+            {suffix && <span className="text-lg font-normal text-muted-foreground">{suffix}</span>}
           </p>
         </div>
         <Icon className={cn('h-8 w-8', colors.icon)} />

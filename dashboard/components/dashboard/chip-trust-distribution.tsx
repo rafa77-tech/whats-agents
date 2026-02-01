@@ -7,21 +7,21 @@ interface ChipTrustDistributionProps {
 }
 
 const trustConfig: Record<string, { label: string; range: string; color: string }> = {
-  verde: { label: 'Verde', range: '75+', color: 'bg-green-500' },
-  amarelo: { label: 'Amarelo', range: '50-74', color: 'bg-yellow-500' },
+  verde: { label: 'Verde', range: '75+', color: 'bg-status-success-solid' },
+  amarelo: { label: 'Amarelo', range: '50-74', color: 'bg-status-warning-solid' },
   laranja: { label: 'Laranja', range: '35-49', color: 'bg-orange-500' },
-  vermelho: { label: 'Vermelho', range: '<35', color: 'bg-red-500' },
-  critico: { label: 'Crítico', range: '<20', color: 'bg-red-700' },
+  vermelho: { label: 'Vermelho', range: '<35', color: 'bg-status-error-solid' },
+  critico: { label: 'Critico', range: '<20', color: 'bg-red-700' },
 }
 
-const defaultConfig = { label: 'Desconhecido', range: '-', color: 'bg-gray-500' }
+const defaultConfig = { label: 'Desconhecido', range: '-', color: 'bg-muted-foreground' }
 
 export function ChipTrustDistribution({ distribution = [] }: ChipTrustDistributionProps) {
   const maxCount = Math.max(...distribution.map((d) => d.count), 1)
 
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium text-gray-700">Trust Level</h4>
+      <h4 className="text-sm font-medium text-foreground/80">Trust Level</h4>
       <div className="space-y-2">
         {distribution.map((item) => {
           const config = trustConfig[item.level] || defaultConfig
@@ -29,10 +29,10 @@ export function ChipTrustDistribution({ distribution = [] }: ChipTrustDistributi
 
           return (
             <div key={item.level} className="flex items-center gap-3">
-              <div className="w-24 text-sm text-gray-600">
+              <div className="w-24 text-sm text-muted-foreground">
                 {config.label} ({config.range})
               </div>
-              <div className="h-4 flex-1 overflow-hidden rounded-full bg-gray-100">
+              <div className="h-4 flex-1 overflow-hidden rounded-full bg-muted">
                 <div
                   className={`h-full ${config.color} rounded-full transition-all`}
                   style={{ width: `${barWidth}%` }}

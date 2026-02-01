@@ -1,413 +1,1003 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jull.ia Design System</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <header class="ds-section">
-      <div class="brand">
-        <div class="brand-mark"><img src="logo.png" alt="Jull.ia" /></div>
-        <div>
-          <div class="brand-name">Jull.ia Design System</div>
-          <div class="brand-tag">Escalista virtual AI autonoma</div>
-        </div>
-      </div>
-    </header>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    <section class="ds-section">
-      <div class="ds-title">Cores</div>
-      <div class="ds-subtitle">Paleta principal e neutros.</div>
-      <div class="color-grid">
-        <div class="swatch">
-          <div class="block" style="background: var(--primary)"></div>
-          <strong>Primary</strong>
-          <span>#ff1200</span>
-        </div>
-        <div class="swatch">
-          <div class="block" style="background: var(--accent)"></div>
-          <strong>Accent</strong>
-          <span>#ff0080</span>
-        </div>
-        <div class="swatch">
-          <div class="block" style="background: var(--support)"></div>
-          <strong>Support</strong>
-          <span>#972627</span>
-        </div>
-        <div class="swatch">
-          <div class="block" style="background: var(--alert)"></div>
-          <strong>Alert</strong>
-          <span>#e00319</span>
-        </div>
-        <div class="swatch">
-          <div class="block" style="background: var(--black)"></div>
-          <strong>Black</strong>
-          <span>#000000</span>
-        </div>
-        <div class="swatch">
-          <div class="block" style="background: var(--gray-500)"></div>
-          <strong>Gray</strong>
-          <span>#bababa</span>
-        </div>
-      </div>
-    </section>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            color: #0a0e27;
+            line-height: 1.6;
+        }
 
-    <section class="ds-section">
-      <div class="ds-title">Tipografia</div>
-      <div class="ds-subtitle">Inter para titulos e corpo.</div>
-      <div class="type-grid">
-        <div class="type-sample type-h1">Inter SemiBold - H1 28px</div>
-        <div class="type-sample type-h2">Inter SemiBold - H2 22px</div>
-        <div class="type-sample type-body">Inter Regular - Body 16px</div>
-        <div class="type-sample type-small">Inter Regular - Small 13px</div>
-      </div>
-    </section>
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 32px;
+        }
 
-    <section class="ds-section">
-      <div class="ds-title">Tokens</div>
-      <div class="ds-subtitle">Espacamento, raio, sombra e grid.</div>
-      <div class="token-grid">
-        <div class="token">Spacing: 4 / 8 / 16 / 24 / 32 / 48</div>
-        <div class="token">Radius: 10 / 14 / 18</div>
-        <div class="token">Shadow: sm 0 1px 2px, md 0 8px 24px</div>
-        <div class="token">Grid: 12 colunas, max 1280px</div>
-      </div>
-    </section>
+        header {
+            background: linear-gradient(135deg, #ff0080 0%, #e00319 100%);
+            color: white;
+            padding: 60px 32px;
+            margin-bottom: 60px;
+            border-radius: 12px;
+        }
 
-    <section class="ds-section">
-      <div class="ds-title">Componentes basicos</div>
-      <div class="ds-subtitle">Botoes, badges, inputs, cards.</div>
-      <div class="component-grid">
-        <div>
-          <div class="card-title">Botoes</div>
-          <div class="component-row">
-            <button class="btn primary">Primary</button>
-            <button class="btn">Default</button>
-            <button class="btn ghost">Ghost</button>
-            <button class="btn danger">Danger</button>
-          </div>
-        </div>
-        <div>
-          <div class="card-title">Badges</div>
-          <div class="component-row">
-            <span class="badge">Ativo</span>
-            <span class="badge muted">Pausado</span>
-            <span class="badge danger">Critico</span>
-          </div>
-        </div>
-        <div>
-          <div class="card-title">Inputs</div>
-          <div class="component-row">
-            <input class="search" placeholder="Buscar..." />
-            <select class="select">
-              <option>Status</option>
-              <option>Ativo</option>
-              <option>Pausado</option>
-            </select>
-            <input class="date" type="date" />
-          </div>
-        </div>
-        <div>
-          <div class="card-title">Cards</div>
-          <div class="component-row">
-            <div class="card-demo">
-              <div class="card-title">Resumo</div>
-              <div class="kpi">88.5</div>
-              <div class="muted">Trust score medio</div>
-              <button class="btn ghost small">Ver detalhes</button>
+        header h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        header p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+
+        .section {
+            margin-bottom: 80px;
+        }
+
+        .section-title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .subsection {
+            margin-bottom: 48px;
+        }
+
+        .subsection-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #0a0e27;
+        }
+
+        /* Colors Section */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .color-card {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .color-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-swatch {
+            height: 120px;
+            width: 100%;
+        }
+
+        .color-info {
+            padding: 16px;
+            background: #f8f9fa;
+        }
+
+        .color-name {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .color-value {
+            font-size: 12px;
+            color: #6b7280;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        /* Typography Section */
+        .typography-example {
+            margin-bottom: 32px;
+            padding: 24px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #ff0080;
+        }
+
+        .typography-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #ff0080;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .typography-sample {
+            margin-bottom: 12px;
+        }
+
+        .h1 { font-size: 48px; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+        .h2 { font-size: 36px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+        .h3 { font-size: 24px; font-weight: 600; line-height: 1.3; }
+        .h4 { font-size: 20px; font-weight: 600; line-height: 1.4; }
+        .body-regular { font-size: 16px; font-weight: 400; line-height: 1.5; }
+        .body-small { font-size: 14px; font-weight: 400; line-height: 1.5; }
+
+        /* Components Section */
+        .component-showcase {
+            background: #f8f9fa;
+            padding: 32px;
+            border-radius: 12px;
+            margin-bottom: 32px;
+        }
+
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+        }
+
+        /* Buttons */
+        .button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-block;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .button-primary {
+            background-color: #ff0080;
+            color: white;
+        }
+
+        .button-primary:hover {
+            background-color: #e6007a;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .button-primary:active {
+            background-color: #cc006d;
+        }
+
+        .button-secondary {
+            background-color: #f8f9fa;
+            color: #0a0e27;
+            border: 1px solid #e5e7eb;
+        }
+
+        .button-secondary:hover {
+            background-color: #f3f4f6;
+        }
+
+        .button-outline {
+            background-color: transparent;
+            color: #ff0080;
+            border: 2px solid #ff0080;
+        }
+
+        .button-outline:hover {
+            background-color: #fdf2f8;
+        }
+
+        .button-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .button-large {
+            padding: 16px 32px;
+            font-size: 18px;
+        }
+
+        /* Cards */
+        .card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .card-description {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        /* Inputs */
+        .input {
+            background-color: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 12px 16px;
+            font-size: 16px;
+            font-family: 'Inter', sans-serif;
+            width: 100%;
+            max-width: 300px;
+            transition: all 0.2s ease;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #ff0080;
+            box-shadow: 0 0 0 3px rgba(255, 0, 128, 0.1);
+        }
+
+        /* Badges */
+        .badge {
+            background-color: #fdf2f8;
+            color: #ff0080;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-success {
+            background-color: #d1fae5;
+            color: #10b981;
+        }
+
+        .badge-warning {
+            background-color: #fef3c7;
+            color: #f59e0b;
+        }
+
+        .badge-error {
+            background-color: #fee2e2;
+            color: #ef4444;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            margin-bottom: 16px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .alert-success {
+            background-color: #d1fae5;
+            border-color: #10b981;
+            color: #047857;
+        }
+
+        .alert-warning {
+            background-color: #fef3c7;
+            border-color: #f59e0b;
+            color: #b45309;
+        }
+
+        .alert-error {
+            background-color: #fee2e2;
+            border-color: #ef4444;
+            color: #dc2626;
+        }
+
+        .alert-info {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+            color: #1d4ed8;
+        }
+
+        .alert-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-bottom: 24px;
+        }
+
+        .progress-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #ff0080;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Spacing Grid */
+        .spacing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 24px;
+        }
+
+        .spacing-item {
+            text-align: center;
+        }
+
+        .spacing-box {
+            background-color: #ff0080;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .spacing-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+        }
+
+        /* Border Radius Grid */
+        .radius-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 24px;
+        }
+
+        .radius-item {
+            text-align: center;
+        }
+
+        .radius-box {
+            width: 100%;
+            height: 100px;
+            background-color: #ff0080;
+            margin-bottom: 12px;
+        }
+
+        .radius-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+        }
+
+        /* Shadows Grid */
+        .shadow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .shadow-item {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .shadow-box {
+            width: 100%;
+            height: 80px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .shadow-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 32px;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Code Block */
+        .code-block {
+            background-color: #0a0e27;
+            color: #e5e7eb;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 24px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        /* Navigation */
+        nav {
+            background: white;
+            padding: 16px 32px;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 32px;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #0a0e27;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        nav a:hover {
+            color: #ff0080;
+        }
+
+        .logo {
+            font-weight: 700;
+            color: #ff0080;
+            font-size: 18px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            header {
+                padding: 32px 16px;
+            }
+
+            header h1 {
+                font-size: 32px;
+            }
+
+            .color-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .component-grid {
+                grid-template-columns: 1fr;
+            }
+
+            nav ul {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><span class="logo">Jull.ia Design System</span></li>
+            <li><a href="#colors">Cores</a></li>
+            <li><a href="#typography">Tipografia</a></li>
+            <li><a href="#components">Componentes</a></li>
+            <li><a href="#spacing">Espaçamento</a></li>
+            <li><a href="#shadows">Sombras</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Jull.ia Design System</h1>
+            <p>Sistema de design completo para a plataforma de comunicação inteligente com médicos</p>
+        </header>
+
+        <!-- Colors Section -->
+        <section class="section" id="colors">
+            <h2 class="section-title">Paleta de Cores</h2>
+
+            <div class="subsection">
+                <h3 class="subsection-title">Cores Principais</h3>
+                <div class="color-grid">
+                    <div class="color-card">
+                        <div class="color-swatch" style="background-color: #ff0080;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Primary (Rosa)</div>
+                            <div class="color-value">#ff0080</div>
+                            <div class="color-value">rgb(255, 0, 128)</div>
+                        </div>
+                    </div>
+                    <div class="color-card">
+                        <div class="color-swatch" style="background-color: #e00319;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Accent (Vermelho)</div>
+                            <div class="color-value">#e00319</div>
+                            <div class="color-value">rgb(224, 3, 25)</div>
+                        </div>
+                    </div>
+                    <div class="color-card">
+                        <div class="color-swatch" style="background-color: #0a0e27;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Foreground</div>
+                            <div class="color-value">#0a0e27</div>
+                            <div class="color-value">rgb(10, 14, 39)</div>
+                        </div>
+                    </div>
+                    <div class="color-card">
+                        <div class="color-swatch" style="background-color: #ffffff; border: 1px solid #e5e7eb;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Background</div>
+                            <div class="color-value">#ffffff</div>
+                            <div class="color-value">rgb(255, 255, 255)</div>
+                        </div>
+                    </div>
+                    <div class="color-card">
+                        <div class="color-swatch" style="background-color: #f8f9fa;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Surface</div>
+                            <div class="color-value">#f8f9fa</div>
+                            <div class="color-value">rgb(248, 249, 250)</div>
+                        </div>
+                    </div>
+                    <div class="color-card">
+                        <div class="color-swatch" style="background-color: #e5e7eb;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Border</div>
+                            <div class="color-value">#e5e7eb</div>
+                            <div class="color-value">rgb(229, 231, 235)</div>
+                        </div>
+                    </div>
+                    <div class="color-card">
+                        <div class="color-swatch" style="background-color: #10b981;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Success</div>
+                            <div class="color-value">#10b981</div>
+                            <div class="color-value">rgb(16, 185, 129)</div>
+                        </div>
+                    </div>
+                    <div class="color-card">
+                        <div class="color-swatch" style="background-color: #f59e0b;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Warning</div>
+                            <div class="color-value">#f59e0b</div>
+                            <div class="color-value">rgb(245, 158, 11)</div>
+                        </div>
+                    </div>
+                    <div class="color-card">
+                        <div class="color-swatch" style="background-color: #ef4444;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Error</div>
+                            <div class="color-value">#ef4444</div>
+                            <div class="color-value">rgb(239, 68, 68)</div>
+                        </div>
+                    </div>
+                    <div class="color-card">
+                        <div class="color-swatch" style="background-color: #6b7280;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Muted</div>
+                            <div class="color-value">#6b7280</div>
+                            <div class="color-value">rgb(107, 114, 128)</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-demo">
-              <div class="card-title">Alertas</div>
-              <div class="headline">1 alerta critico</div>
-              <div class="muted">connection_lost detectado</div>
-              <button class="btn primary">Resolver</button>
+        </section>
+
+        <!-- Typography Section -->
+        <section class="section" id="typography">
+            <h2 class="section-title">Tipografia</h2>
+
+            <div class="subsection">
+                <h3 class="subsection-title">Estilos de Texto</h3>
+                
+                <div class="typography-example">
+                    <div class="typography-label">Heading 1</div>
+                    <div class="typography-sample h1">Comunique-se com Médicos de forma Inteligente</div>
+                    <div class="color-value">48px • Weight 700 • Line Height 1.2</div>
+                </div>
+
+                <div class="typography-example">
+                    <div class="typography-label">Heading 2</div>
+                    <div class="typography-sample h2">Seção Principal do Dashboard</div>
+                    <div class="color-value">36px • Weight 700 • Line Height 1.2</div>
+                </div>
+
+                <div class="typography-example">
+                    <div class="typography-label">Heading 3</div>
+                    <div class="typography-sample h3">Subtítulo de Seção</div>
+                    <div class="color-value">24px • Weight 600 • Line Height 1.3</div>
+                </div>
+
+                <div class="typography-example">
+                    <div class="typography-label">Body Regular</div>
+                    <div class="typography-sample body-regular">Este é um parágrafo de texto corpo padrão. Usado para conteúdo principal da página, descrições e textos longos que precisam de boa legibilidade.</div>
+                    <div class="color-value">16px • Weight 400 • Line Height 1.5</div>
+                </div>
+
+                <div class="typography-example">
+                    <div class="typography-label">Body Small</div>
+                    <div class="typography-sample body-small">Este é um texto corpo pequeno. Usado para labels, captions e textos secundários.</div>
+                    <div class="color-value">14px • Weight 400 • Line Height 1.5</div>
+                </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </section>
+        </section>
 
-    <section class="ds-section">
-      <div class="ds-title">Formularios completos</div>
-      <div class="ds-subtitle">Inputs, textarea, toggle, checkbox e radio.</div>
-      <div class="form-grid">
-        <div class="form-field">
-          <label>Nome da campanha</label>
-          <input class="input" placeholder="Ex: Plantao Noturno" />
-        </div>
-        <div class="form-field">
-          <label>Descricao</label>
-          <textarea class="textarea" rows="3" placeholder="Objetivo da campanha..."></textarea>
-        </div>
-        <div class="form-field inline">
-          <label>Modo piloto</label>
-          <label class="switch">
-            <input type="checkbox" checked />
-            <span></span>
-          </label>
-        </div>
-        <div class="form-field">
-          <label>Especialidade</label>
-          <div class="control-row">
-            <label class="checkbox">
-              <input type="checkbox" checked />
-              <span></span>
-              Clinica Medica
-            </label>
-            <label class="checkbox">
-              <input type="checkbox" />
-              <span></span>
-              Pediatria
-            </label>
-          </div>
-        </div>
-        <div class="form-field">
-          <label>Prioridade</label>
-          <div class="control-row">
-            <label class="radio">
-              <input type="radio" name="prio" checked />
-              <span></span>
-              Alta
-            </label>
-            <label class="radio">
-              <input type="radio" name="prio" />
-              <span></span>
-              Media
-            </label>
-            <label class="radio">
-              <input type="radio" name="prio" />
-              <span></span>
-              Baixa
-            </label>
-          </div>
-        </div>
-      </div>
-    </section>
+        <!-- Components Section -->
+        <section class="section" id="components">
+            <h2 class="section-title">Componentes</h2>
 
-    <section class="ds-section">
-      <div class="ds-title">Navegacao</div>
-      <div class="ds-subtitle">Breadcrumbs, tabs, pagination.</div>
-      <div class="component-row">
-        <div class="breadcrumbs">
-          <span>Home</span>
-          <span>/</span>
-          <span>Campanhas</span>
-          <span>/</span>
-          <span class="active">Detalhe</span>
-        </div>
-      </div>
-      <div class="tabs">
-        <button class="tab active">Visao</button>
-        <button class="tab">Audiencia</button>
-        <button class="tab">Mensagens</button>
-        <button class="tab">Historico</button>
-      </div>
-      <div class="pagination">
-        <button class="btn ghost small">Anterior</button>
-        <span class="page">1</span>
-        <span class="page active">2</span>
-        <span class="page">3</span>
-        <button class="btn ghost small">Proximo</button>
-      </div>
-    </section>
+            <!-- Buttons -->
+            <div class="subsection">
+                <h3 class="subsection-title">Botões</h3>
+                <div class="component-showcase">
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;">
+                        <button class="button button-primary">Botão Primário</button>
+                        <button class="button button-secondary">Botão Secundário</button>
+                        <button class="button button-outline">Botão Outline</button>
+                    </div>
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;">
+                        <button class="button button-primary button-small">Pequeno</button>
+                        <button class="button button-primary">Regular</button>
+                        <button class="button button-primary button-large">Grande</button>
+                    </div>
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                        <button class="button button-primary" disabled>Desabilitado</button>
+                        <button class="button button-secondary" disabled>Desabilitado</button>
+                    </div>
+                </div>
+            </div>
 
-    <section class="ds-section">
-      <div class="ds-title">Estados</div>
-      <div class="ds-subtitle">Empty, loading, success, error.</div>
-      <div class="state-grid">
-        <div class="state-card">
-          <div class="state-title">Empty</div>
-          <div class="muted">Nenhum dado encontrado.</div>
-          <button class="btn ghost small">Adicionar</button>
-        </div>
-        <div class="state-card">
-          <div class="state-title">Loading</div>
-          <div class="loader"></div>
-          <div class="muted">Atualizando dados...</div>
-        </div>
-        <div class="state-card">
-          <div class="state-title">Success</div>
-          <div class="pill success">Atualizado</div>
-          <div class="muted">Tudo certo.</div>
-        </div>
-        <div class="state-card">
-          <div class="state-title">Error</div>
-          <div class="pill danger">Falha</div>
-          <div class="muted">Nao foi possivel concluir.</div>
-        </div>
-      </div>
-    </section>
+            <!-- Cards -->
+            <div class="subsection">
+                <h3 class="subsection-title">Cards</h3>
+                <div class="component-grid">
+                    <div class="card">
+                        <div class="card-title">Título do Card</div>
+                        <div class="card-description">Este é um exemplo de card com título, descrição e conteúdo. Cards são usados para agrupar informações relacionadas.</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Outro Card</div>
+                        <div class="card-description">Cards podem conter diferentes tipos de conteúdo: texto, imagens, botões e outros componentes.</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Mais um Card</div>
+                        <div class="card-description">Use cards para criar layouts limpos e organizados com boa hierarquia visual.</div>
+                    </div>
+                </div>
+            </div>
 
-    <section class="ds-section">
-      <div class="ds-title">Feedback</div>
-      <div class="ds-subtitle">Toast, modal, drawer, popover.</div>
-      <div class="feedback-grid">
-        <div class="toast">
-          <strong>Salvo com sucesso</strong>
-          <span class="muted">Alteracoes aplicadas.</span>
-        </div>
-        <div class="popover">
-          <div class="card-title">Popover</div>
-          <div class="muted">Informacao contextual.</div>
-        </div>
-        <div class="drawer">
-          <div class="drawer-header">
-            <div class="card-title">Drawer</div>
-            <button class="btn ghost small">Fechar</button>
-          </div>
-          <div class="muted">Detalhes rapidos.</div>
-        </div>
-        <div class="modal">
-          <div class="modal-header">
-            <div class="headline">Confirmar acao</div>
-            <button class="btn ghost small">X</button>
-          </div>
-          <div class="muted">Tem certeza que deseja continuar?</div>
-          <div class="component-row">
-            <button class="btn ghost">Cancelar</button>
-            <button class="btn primary">Confirmar</button>
-          </div>
-        </div>
-      </div>
-    </section>
+            <!-- Inputs -->
+            <div class="subsection">
+                <h3 class="subsection-title">Campos de Entrada</h3>
+                <div class="component-showcase">
+                    <input type="text" class="input" placeholder="Campo de texto padrão">
+                    <br><br>
+                    <input type="email" class="input" placeholder="Campo de email">
+                    <br><br>
+                    <input type="password" class="input" placeholder="Campo de senha">
+                    <br><br>
+                    <input type="text" class="input" placeholder="Campo desabilitado" disabled>
+                </div>
+            </div>
 
-    <section class="ds-section">
-      <div class="ds-title">Data display</div>
-      <div class="ds-subtitle">KPIs, charts e tabelas.</div>
-      <div class="grid-4">
-        <div class="metric">
-          <div class="metric-label">Taxa resposta</div>
-          <div class="metric-value">98%</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Conversao</div>
-          <div class="metric-value">12%</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Latencia</div>
-          <div class="metric-value">1.6s</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Fila</div>
-          <div class="metric-value">4</div>
-        </div>
-      </div>
-      <div class="chart-card">
-        <div class="card-title">Tendencia 7d</div>
-        <svg class="spark" viewBox="0 0 200 60" preserveAspectRatio="none">
-          <polyline points="0,40 30,28 60,36 90,20 120,26 150,18 180,22 200,10" />
-        </svg>
-      </div>
-      <div class="table-card">
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Categoria</th>
-              <th>Ultima execucao</th>
-              <th>Status</th>
-              <th>Acoes</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Processar Campanhas</td>
-              <td>critical</td>
-              <td>41s atras</td>
-              <td><span class="badge">Sucesso</span></td>
-              <td><button class="btn ghost small">Ver</button></td>
-            </tr>
-            <tr>
-              <td>Snapshot de Chips</td>
-              <td>daily</td>
-              <td>11h atras</td>
-              <td><span class="badge muted">Pausado</span></td>
-              <td><button class="btn ghost small">Reativar</button></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+            <!-- Badges -->
+            <div class="subsection">
+                <h3 class="subsection-title">Badges</h3>
+                <div class="component-showcase">
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <span class="badge">Badge Padrão</span>
+                        <span class="badge badge-success">Sucesso</span>
+                        <span class="badge badge-warning">Aviso</span>
+                        <span class="badge badge-error">Erro</span>
+                    </div>
+                </div>
+            </div>
 
-    <section class="ds-section">
-      <div class="ds-title">Tabela avancada</div>
-      <div class="ds-subtitle">Filtros, bulk actions e SLA.</div>
-      <div class="table-card">
-        <div class="table-toolbar">
-          <div class="bulk-actions">
-            <span class="bulk-chip">3 selecionados</span>
-            <button class="btn ghost small">Pausar</button>
-            <button class="btn ghost small">Exportar</button>
-          </div>
-          <div class="component-row">
-            <input class="search" placeholder="Buscar" />
-            <select class="select">
-              <option>Status</option>
-              <option>Ativo</option>
-              <option>Pausado</option>
-            </select>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th><input type="checkbox" checked /></th>
-              <th>Fila</th>
-              <th>Responsavel</th>
-              <th>SLA</th>
-              <th>Status</th>
-              <th>Acoes</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><input type="checkbox" checked /></td>
-              <td>Conversas criticas</td>
-              <td>Equipe A</td>
-              <td><span class="sla">12 min</span></td>
-              <td><span class="badge danger">Risco</span></td>
-              <td><button class="btn ghost small">Abrir</button></td>
-            </tr>
-            <tr>
-              <td><input type="checkbox" checked /></td>
-              <td>Campanhas pausadas</td>
-              <td>Equipe B</td>
-              <td><span class="sla">45 min</span></td>
-              <td><span class="badge muted">Pendente</span></td>
-              <td><button class="btn ghost small">Abrir</button></td>
-            </tr>
-            <tr>
-              <td><input type="checkbox" /></td>
-              <td>Chips com alerta</td>
-              <td>Suporte</td>
-              <td><span class="sla">2h</span></td>
-              <td><span class="badge">Ativo</span></td>
-              <td><button class="btn ghost small">Abrir</button></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+            <!-- Alerts -->
+            <div class="subsection">
+                <h3 class="subsection-title">Alertas</h3>
+                <div class="component-showcase">
+                    <div class="alert alert-success">
+                        <div class="alert-icon">✓</div>
+                        <div>Operação realizada com sucesso! Seus dados foram salvos.</div>
+                    </div>
+                    <div class="alert alert-warning">
+                        <div class="alert-icon">⚠</div>
+                        <div>Atenção! Verifique as informações antes de prosseguir.</div>
+                    </div>
+                    <div class="alert alert-error">
+                        <div class="alert-icon">✕</div>
+                        <div>Erro! Ocorreu um problema ao processar sua solicitação.</div>
+                    </div>
+                    <div class="alert alert-info">
+                        <div class="alert-icon">ℹ</div>
+                        <div>Informação: Esta é uma mensagem informativa para o usuário.</div>
+                    </div>
+                </div>
+            </div>
 
-    <section class="ds-section">
-      <div class="ds-title">Multi-select</div>
-      <div class="ds-subtitle">Tags selecionadas e input livre.</div>
-      <div class="multi-select">
-        <span>Clinica Medica</span>
-        <span>Pediatria</span>
-        <span>Ortopedia</span>
-        <input class="input" placeholder="Adicionar" />
-      </div>
-    </section>
+            <!-- Progress Bars -->
+            <div class="subsection">
+                <h3 class="subsection-title">Barras de Progresso</h3>
+                <div class="component-showcase">
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Taxa de Resposta</span>
+                            <span>75%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 75%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Taxa de Entrega</span>
+                            <span>90%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 90%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Taxa de Conversão</span>
+                            <span>45%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 45%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <section class="ds-section">
-      <div class="ds-title">Tema</div>
-      <div class="ds-subtitle">Aplique a classe <code>dark</code> no body para ver o modo escuro.</div>
-      <div class="component-row">
-        <button class="btn" onclick="document.body.classList.toggle('dark')">Alternar dark</button>
-      </div>
-    </section>
-  </body>
+        <!-- Spacing Section -->
+        <section class="section" id="spacing">
+            <h2 class="section-title">Espaçamento</h2>
+            <div class="spacing-grid">
+                <div class="spacing-item">
+                    <div class="spacing-box" style="height: 4px;"></div>
+                    <div class="spacing-label">XS (4px)</div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-box" style="height: 8px;"></div>
+                    <div class="spacing-label">SM (8px)</div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-box" style="height: 12px;"></div>
+                    <div class="spacing-label">MD (12px)</div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-box" style="height: 16px;"></div>
+                    <div class="spacing-label">LG (16px)</div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-box" style="height: 24px;"></div>
+                    <div class="spacing-label">XL (24px)</div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-box" style="height: 32px;"></div>
+                    <div class="spacing-label">2XL (32px)</div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-box" style="height: 48px;"></div>
+                    <div class="spacing-label">3XL (48px)</div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-box" style="height: 64px;"></div>
+                    <div class="spacing-label">4XL (64px)</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Border Radius Section -->
+        <section class="section">
+            <h2 class="section-title">Border Radius</h2>
+            <div class="radius-grid">
+                <div class="radius-item">
+                    <div class="radius-box" style="border-radius: 0px;"></div>
+                    <div class="radius-label">None (0px)</div>
+                </div>
+                <div class="radius-item">
+                    <div class="radius-box" style="border-radius: 4px;"></div>
+                    <div class="radius-label">SM (4px)</div>
+                </div>
+                <div class="radius-item">
+                    <div class="radius-box" style="border-radius: 8px;"></div>
+                    <div class="radius-label">MD (8px)</div>
+                </div>
+                <div class="radius-item">
+                    <div class="radius-box" style="border-radius: 12px;"></div>
+                    <div class="radius-label">LG (12px)</div>
+                </div>
+                <div class="radius-item">
+                    <div class="radius-box" style="border-radius: 16px;"></div>
+                    <div class="radius-label">XL (16px)</div>
+                </div>
+                <div class="radius-item">
+                    <div class="radius-box" style="border-radius: 9999px;"></div>
+                    <div class="radius-label">Full (9999px)</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Shadows Section -->
+        <section class="section" id="shadows">
+            <h2 class="section-title">Sombras</h2>
+            <div class="shadow-grid">
+                <div class="shadow-item">
+                    <div class="shadow-box" style="box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);"></div>
+                    <div class="shadow-label">Shadow SM</div>
+                </div>
+                <div class="shadow-item">
+                    <div class="shadow-box" style="box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);"></div>
+                    <div class="shadow-label">Shadow MD</div>
+                </div>
+                <div class="shadow-item">
+                    <div class="shadow-box" style="box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);"></div>
+                    <div class="shadow-label">Shadow LG</div>
+                </div>
+                <div class="shadow-item">
+                    <div class="shadow-box" style="box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);"></div>
+                    <div class="shadow-label">Shadow XL</div>
+                </div>
+                <div class="shadow-item">
+                    <div class="shadow-box" style="box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);"></div>
+                    <div class="shadow-label">Shadow 2XL</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Breakpoints Section -->
+        <section class="section">
+            <h2 class="section-title">Breakpoints</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dispositivo</th>
+                        <th>Breakpoint</th>
+                        <th>Descrição</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Mobile</td>
+                        <td>640px</td>
+                        <td>Smartphones e dispositivos pequenos</td>
+                    </tr>
+                    <tr>
+                        <td>Tablet</td>
+                        <td>1024px</td>
+                        <td>Tablets e dispositivos médios</td>
+                    </tr>
+                    <tr>
+                        <td>Desktop</td>
+                        <td>1280px</td>
+                        <td>Desktops e telas grandes</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Font Sizes Section -->
+        <section class="section">
+            <h2 class="section-title">Tamanhos de Fonte</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Token</th>
+                        <th>Tamanho</th>
+                        <th>Uso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>xs</td>
+                        <td>12px</td>
+                        <td>Labels, badges, captions</td>
+                    </tr>
+                    <tr>
+                        <td>sm</td>
+                        <td>14px</td>
+                        <td>Texto pequeno, ajuda</td>
+                    </tr>
+                    <tr>
+                        <td>base</td>
+                        <td>16px</td>
+                        <td>Corpo padrão</td>
+                    </tr>
+                    <tr>
+                        <td>lg</td>
+                        <td>18px</td>
+                        <td>Subtítulos</td>
+                    </tr>
+                    <tr>
+                        <td>xl</td>
+                        <td>20px</td>
+                        <td>Títulos pequenos</td>
+                    </tr>
+                    <tr>
+                        <td>2xl</td>
+                        <td>24px</td>
+                        <td>Títulos médios (H4)</td>
+                    </tr>
+                    <tr>
+                        <td>3xl</td>
+                        <td>30px</td>
+                        <td>Títulos grandes (H3)</td>
+                    </tr>
+                    <tr>
+                        <td>4xl</td>
+                        <td>36px</td>
+                        <td>Títulos muito grandes (H2)</td>
+                    </tr>
+                    <tr>
+                        <td>5xl</td>
+                        <td>48px</td>
+                        <td>Títulos principais (H1)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Footer -->
+        <footer style="padding: 60px 0; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280;">
+            <p>Jull.ia Design System v1.0.0 • © 2026 Jull.ia</p>
+        </footer>
+    </div>
+</body>
 </html>

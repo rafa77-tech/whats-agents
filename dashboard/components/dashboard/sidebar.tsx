@@ -64,13 +64,13 @@ export function Sidebar() {
   return (
     <div className="flex h-full flex-col">
       {/* Logo */}
-      <div className="flex items-center gap-3 border-b border-gray-200 px-6 py-5">
+      <div className="flex items-center gap-3 border-b border-border px-6 py-5">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-revoluna-400">
           <span className="text-lg font-bold text-white">J</span>
         </div>
         <div>
-          <h1 className="font-bold text-gray-900">Julia</h1>
-          <p className="text-xs text-gray-500">Dashboard</p>
+          <h1 className="font-bold text-foreground">Julia</h1>
+          <p className="text-xs text-muted-foreground">Dashboard</p>
         </div>
       </div>
 
@@ -90,11 +90,11 @@ export function Sidebar() {
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-revoluna-50 text-revoluna-700'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
               <item.icon
-                className={cn('h-5 w-5', isActive ? 'text-revoluna-400' : 'text-gray-400')}
+                className={cn('h-5 w-5', isActive ? 'text-revoluna-400' : 'text-muted-foreground/70')}
               />
               {item.name}
             </Link>
@@ -103,9 +103,9 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 p-4">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100">
-          <Power className="h-5 w-5 text-gray-400" />
+      <div className="border-t border-border p-4">
+        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted">
+          <Power className="h-5 w-5 text-muted-foreground/70" />
           Sair
         </button>
       </div>

@@ -85,12 +85,12 @@ export function ChipsModuleSidebar() {
   }
 
   return (
-    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 lg:bg-white">
+    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-border lg:bg-card">
       {/* Header */}
-      <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-4">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-4">
         <Link
           href={'/dashboard' as Route}
-          className="flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-gray-900"
+          className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ChevronLeft className="h-4 w-4" />
           Dashboard
@@ -100,8 +100,8 @@ export function ChipsModuleSidebar() {
       {/* Title */}
       <div className="px-4 py-4">
         <div className="flex items-center gap-2">
-          <Cpu className="h-5 w-5 text-blue-600" />
-          <h2 className="font-semibold text-gray-900">Pool de Chips</h2>
+          <Cpu className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold text-foreground">Pool de Chips</h2>
         </div>
       </div>
 
@@ -118,11 +118,11 @@ export function ChipsModuleSidebar() {
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                 active
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               )}
             >
-              <Icon className={cn('h-5 w-5', active ? 'text-blue-600' : 'text-gray-400')} />
+              <Icon className={cn('h-5 w-5', active ? 'text-primary' : 'text-muted-foreground')} />
               <span className="flex-1">{item.title}</span>
               {item.showBadge && criticalAlerts > 0 && (
                 <Badge variant="destructive" className="h-5 min-w-[20px] px-1.5">
@@ -135,8 +135,8 @@ export function ChipsModuleSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 px-4 py-4">
-        <p className="text-xs text-gray-500">Sistema Julia v2.0</p>
+      <div className="border-t border-border px-4 py-4">
+        <p className="text-xs text-muted-foreground">Sistema Julia v2.0</p>
       </div>
     </aside>
   )

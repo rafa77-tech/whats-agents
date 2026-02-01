@@ -28,33 +28,33 @@ const severityConfig: Record<
 > = {
   critical: {
     icon: AlertCircle,
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200',
-    iconColor: 'text-red-500',
-    textColor: 'text-red-800',
+    bgColor: 'bg-status-error/10',
+    borderColor: 'border-status-error-border',
+    iconColor: 'text-status-error-solid',
+    textColor: 'text-status-error-foreground',
   },
   warning: {
     icon: AlertTriangle,
-    bgColor: 'bg-yellow-50',
-    borderColor: 'border-yellow-200',
-    iconColor: 'text-yellow-500',
-    textColor: 'text-yellow-800',
+    bgColor: 'bg-status-warning/10',
+    borderColor: 'border-status-warning-border',
+    iconColor: 'text-status-warning-solid',
+    textColor: 'text-status-warning-foreground',
   },
   info: {
     icon: Info,
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    iconColor: 'text-blue-500',
-    textColor: 'text-blue-800',
+    bgColor: 'bg-status-info/10',
+    borderColor: 'border-status-info-border',
+    iconColor: 'text-status-info-solid',
+    textColor: 'text-status-info-foreground',
   },
 }
 
 const defaultSeverityConfig = {
   icon: Info,
-  bgColor: 'bg-gray-50',
-  borderColor: 'border-gray-200',
-  iconColor: 'text-gray-500',
-  textColor: 'text-gray-800',
+  bgColor: 'bg-muted/50',
+  borderColor: 'border-border',
+  iconColor: 'text-muted-foreground',
+  textColor: 'text-foreground',
 }
 
 export function AlertItem({ alert }: AlertItemProps) {
@@ -70,7 +70,7 @@ export function AlertItem({ alert }: AlertItemProps) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <h4 className={`text-sm font-medium ${config.textColor}`}>{title}</h4>
-            <span className="whitespace-nowrap text-xs text-gray-500">
+            <span className="whitespace-nowrap text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(createdAt), {
                 addSuffix: true,
                 locale: ptBR,
@@ -78,7 +78,7 @@ export function AlertItem({ alert }: AlertItemProps) {
             </span>
           </div>
 
-          <p className="mt-0.5 text-sm text-gray-600">{message}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{message}</p>
 
           {actionUrl && (
             <Button variant="ghost" size="sm" className="mt-2 h-7 px-2 text-xs" asChild>

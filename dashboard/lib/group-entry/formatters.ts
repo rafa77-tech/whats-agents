@@ -24,7 +24,7 @@ export function getLinkStatusLabel(status: string): string {
  * Retorna a cor do badge para um status de link
  */
 export function getLinkStatusBadgeColor(status: string): string {
-  return LINK_STATUS_BADGE_COLORS[status as LinkStatus] || 'bg-gray-100 text-gray-800'
+  return LINK_STATUS_BADGE_COLORS[status as LinkStatus] || 'bg-status-neutral text-status-neutral-foreground'
 }
 
 /**
@@ -38,7 +38,7 @@ export function getQueueStatusLabel(status: string): string {
  * Retorna a cor do badge para um status da fila
  */
 export function getQueueStatusBadgeColor(status: string): string {
-  return QUEUE_STATUS_BADGE_COLORS[status as QueueItemStatus] || 'bg-gray-100 text-gray-800'
+  return QUEUE_STATUS_BADGE_COLORS[status as QueueItemStatus] || 'bg-status-neutral text-status-neutral-foreground'
 }
 
 /**
@@ -77,9 +77,9 @@ export function calculateCapacityPercentage(used: number, total: number): number
  * Retorna a cor da barra de capacidade baseada na porcentagem
  */
 export function getCapacityColor(percentage: number): string {
-  if (percentage >= CAPACITY_DANGER_THRESHOLD) return 'bg-red-500'
-  if (percentage >= CAPACITY_WARNING_THRESHOLD) return 'bg-yellow-500'
-  return 'bg-green-500'
+  if (percentage >= CAPACITY_DANGER_THRESHOLD) return 'bg-status-error-solid'
+  if (percentage >= CAPACITY_WARNING_THRESHOLD) return 'bg-status-warning-solid'
+  return 'bg-status-success-solid'
 }
 
 /**

@@ -49,24 +49,24 @@ export const METRIC_CARD_COLORS: Record<
   { bg: string; text: string; icon: string }
 > = {
   green: {
-    bg: 'bg-green-50',
-    text: 'text-green-600',
-    icon: 'text-green-400',
+    bg: 'bg-status-success/20',
+    text: 'text-status-success-foreground',
+    icon: 'text-status-success-foreground/70',
   },
   yellow: {
-    bg: 'bg-yellow-50',
-    text: 'text-yellow-600',
-    icon: 'text-yellow-400',
+    bg: 'bg-status-warning/20',
+    text: 'text-status-warning-foreground',
+    icon: 'text-status-warning-foreground/70',
   },
   blue: {
-    bg: 'bg-blue-50',
-    text: 'text-blue-600',
-    icon: 'text-blue-400',
+    bg: 'bg-status-info/20',
+    text: 'text-status-info-foreground',
+    icon: 'text-status-info-foreground/70',
   },
   red: {
-    bg: 'bg-red-50',
-    text: 'text-red-600',
-    icon: 'text-red-400',
+    bg: 'bg-status-error/20',
+    text: 'text-status-error-foreground',
+    icon: 'text-status-error-foreground/70',
   },
 }
 
@@ -74,10 +74,10 @@ export const METRIC_CARD_COLORS: Record<
  * Classes de cor para badges de status de sugestao
  */
 export const SUGGESTION_STATUS_COLORS: Record<SuggestionStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  approved: 'bg-blue-100 text-blue-800',
-  rejected: 'bg-red-100 text-red-800',
-  implemented: 'bg-green-100 text-green-800',
+  pending: 'bg-status-warning text-status-warning-foreground',
+  approved: 'bg-status-info text-status-info-foreground',
+  rejected: 'bg-status-error text-status-error-foreground',
+  implemented: 'bg-status-success text-status-success-foreground',
 }
 
 /**
@@ -95,8 +95,8 @@ export const SUGGESTION_STATUS_LABELS: Record<SuggestionStatus, string> = {
  */
 export const SUGGESTION_TYPE_COLORS: Record<SuggestionType, string> = {
   tom: 'bg-purple-100 text-purple-800',
-  resposta: 'bg-blue-100 text-blue-800',
-  abertura: 'bg-green-100 text-green-800',
+  resposta: 'bg-status-info text-status-info-foreground',
+  abertura: 'bg-status-success text-status-success-foreground',
   objecao: 'bg-orange-100 text-orange-800',
 }
 

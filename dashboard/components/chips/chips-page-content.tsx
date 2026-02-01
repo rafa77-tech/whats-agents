@@ -173,15 +173,15 @@ export function ChipsPageContent() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <nav className="mb-1 text-sm text-gray-500">
-            <Link href={'/dashboard' as Route} className="hover:text-gray-700">
+          <nav className="mb-1 text-sm text-muted-foreground">
+            <Link href={'/dashboard' as Route} className="hover:text-foreground">
               Dashboard
             </Link>
             <span className="mx-2">/</span>
-            <span className="text-gray-900">Chips</span>
+            <span className="text-foreground">Chips</span>
           </nav>
-          <h1 className="text-2xl font-bold text-gray-900">Pool de Chips</h1>
-          <p className="mt-1 text-sm text-gray-600">Gerencie os chips WhatsApp do sistema Julia</p>
+          <h1 className="text-2xl font-bold text-foreground">Pool de Chips</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Gerencie os chips WhatsApp do sistema Julia</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -259,7 +259,7 @@ export function ChipsPageContent() {
       {/* Status Counters */}
       {poolStatus && (
         <div>
-          <h3 className="mb-3 text-sm font-medium text-gray-500">Distribuicao por Status</h3>
+          <h3 className="mb-3 text-sm font-medium text-muted-foreground">Distribuicao por Status</h3>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
             {displayStatusOrder.map((status) => {
               const count = poolStatus.byStatus[status] || 0
@@ -290,13 +290,13 @@ export function ChipsPageContent() {
       )}
 
       {/* Chips Table Section */}
-      <div className="rounded-lg border border-gray-200 bg-white">
-        <div className="border-b border-gray-200 p-4">
-          <h3 className="text-lg font-semibold text-gray-900">Chips do Pool</h3>
-          <p className="mt-1 text-sm text-gray-500">{total} chips encontrados</p>
+      <div className="rounded-lg border border-border bg-card">
+        <div className="border-b border-border p-4">
+          <h3 className="text-lg font-semibold text-foreground">Chips do Pool</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{total} chips encontrados</p>
         </div>
 
-        <div className="border-b border-gray-200 p-4">
+        <div className="border-b border-border p-4">
           <ChipsFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
 

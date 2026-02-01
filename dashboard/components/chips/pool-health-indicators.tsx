@@ -34,41 +34,41 @@ const healthStatusConfig: Record<
   }
 > = {
   healthy: {
-    color: 'bg-green-50 border-green-200',
+    color: 'bg-status-success/10 border-status-success-border',
     icon: CheckCircle,
-    iconColor: 'text-green-500',
+    iconColor: 'text-status-success-solid',
     label: 'Saudável',
-    labelColor: 'bg-green-100 text-green-800',
+    labelColor: 'bg-status-success text-status-success-foreground',
   },
   attention: {
-    color: 'bg-blue-50 border-blue-200',
+    color: 'bg-status-info/10 border-status-info-border',
     icon: Info,
-    iconColor: 'text-blue-500',
+    iconColor: 'text-status-info-solid',
     label: 'Atenção',
-    labelColor: 'bg-blue-100 text-blue-800',
+    labelColor: 'bg-status-info text-status-info-foreground',
   },
   warning: {
-    color: 'bg-yellow-50 border-yellow-200',
+    color: 'bg-status-warning/10 border-status-warning-border',
     icon: AlertCircle,
-    iconColor: 'text-yellow-500',
+    iconColor: 'text-status-warning-solid',
     label: 'Alerta',
-    labelColor: 'bg-yellow-100 text-yellow-800',
+    labelColor: 'bg-status-warning text-status-warning-foreground',
   },
   critical: {
-    color: 'bg-red-50 border-red-200',
+    color: 'bg-status-error/10 border-status-error-border',
     icon: XCircle,
-    iconColor: 'text-red-500',
+    iconColor: 'text-status-error-solid',
     label: 'Crítico',
-    labelColor: 'bg-red-100 text-red-800',
+    labelColor: 'bg-status-error text-status-error-foreground',
   },
 }
 
 const defaultHealthConfig = {
-  color: 'bg-gray-50 border-gray-200',
+  color: 'bg-muted/50 border-muted',
   icon: Info,
-  iconColor: 'text-gray-500',
+  iconColor: 'text-muted-foreground',
   label: 'Desconhecido',
-  labelColor: 'bg-gray-100 text-gray-800',
+  labelColor: 'bg-status-neutral text-status-neutral-foreground',
 }
 
 const issueTypeConfig: Record<
@@ -77,44 +77,44 @@ const issueTypeConfig: Record<
 > = {
   trust_dropping: {
     icon: TrendingDown,
-    color: 'text-orange-500',
-    bgColor: 'bg-orange-50',
+    color: 'text-status-warning-foreground',
+    bgColor: 'bg-status-warning/10',
   },
   high_errors: {
     icon: XCircle,
-    color: 'text-red-500',
-    bgColor: 'bg-red-50',
+    color: 'text-status-error-solid',
+    bgColor: 'bg-status-error/10',
   },
   low_capacity: {
     icon: Battery,
-    color: 'text-yellow-500',
-    bgColor: 'bg-yellow-50',
+    color: 'text-status-warning-solid',
+    bgColor: 'bg-status-warning/10',
   },
   stale_chips: {
     icon: Clock,
-    color: 'text-gray-500',
-    bgColor: 'bg-gray-50',
+    color: 'text-muted-foreground',
+    bgColor: 'bg-muted/50',
   },
   ban_risk: {
     icon: AlertTriangle,
-    color: 'text-red-600',
-    bgColor: 'bg-red-50',
+    color: 'text-status-error-foreground',
+    bgColor: 'bg-status-error/10',
   },
 }
 
 const defaultIssueTypeConfig = {
   icon: AlertCircle,
-  color: 'text-gray-500',
-  bgColor: 'bg-gray-50',
+  color: 'text-muted-foreground',
+  bgColor: 'bg-muted/50',
 }
 
 const severityBadgeConfig: Record<string, string> = {
-  info: 'bg-blue-100 text-blue-800',
-  warning: 'bg-yellow-100 text-yellow-800',
-  critical: 'bg-red-100 text-red-800',
+  info: 'bg-status-info text-status-info-foreground',
+  warning: 'bg-status-warning text-status-warning-foreground',
+  critical: 'bg-status-error text-status-error-foreground',
 }
 
-const defaultSeverityBadge = 'bg-gray-100 text-gray-800'
+const defaultSeverityBadge = 'bg-status-neutral text-status-neutral-foreground'
 
 interface PoolHealthIndicatorsProps {
   className?: string
@@ -148,12 +148,12 @@ export function PoolHealthIndicators({ className }: PoolHealthIndicatorsProps) {
     return (
       <Card className={cn('animate-pulse', className)}>
         <CardHeader>
-          <div className="h-6 w-48 rounded bg-gray-200" />
+          <div className="h-6 w-48 rounded bg-muted" />
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="h-16 rounded bg-gray-200" />
-            <div className="h-16 rounded bg-gray-200" />
+            <div className="h-16 rounded bg-muted" />
+            <div className="h-16 rounded bg-muted" />
           </div>
         </CardContent>
       </Card>
@@ -162,15 +162,15 @@ export function PoolHealthIndicators({ className }: PoolHealthIndicatorsProps) {
 
   if (error || !health) {
     return (
-      <Card className={cn('border-gray-200', className)}>
+      <Card className={cn('border-border', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <AlertTriangle className="h-5 w-5 text-gray-400" />
+            <AlertTriangle className="h-5 w-5 text-muted-foreground" />
             Saúde do Pool
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500">{error || 'Dados indisponíveis'}</p>
+          <p className="text-sm text-muted-foreground">{error || 'Dados indisponíveis'}</p>
         </CardContent>
       </Card>
     )
@@ -191,20 +191,20 @@ export function PoolHealthIndicators({ className }: PoolHealthIndicatorsProps) {
         </div>
         <div className="mt-2 flex items-center gap-4">
           <div className="text-2xl font-bold">{health.score}/100</div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-muted-foreground">
             Atualizado em {new Date(health.lastUpdated).toLocaleTimeString('pt-BR')}
           </div>
         </div>
       </CardHeader>
       <CardContent>
         {health.issues.length === 0 ? (
-          <div className="flex items-center gap-2 text-green-600">
+          <div className="flex items-center gap-2 text-status-success-foreground">
             <CheckCircle className="h-4 w-4" />
             <span className="text-sm">Nenhum problema identificado</span>
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm font-medium text-gray-600">
+            <p className="text-sm font-medium text-muted-foreground">
               {health.issues.length} problema{health.issues.length > 1 ? 's' : ''} identificado
               {health.issues.length > 1 ? 's' : ''}
             </p>
@@ -229,14 +229,14 @@ function HealthIssueCard({ issue }: HealthIssueCardProps) {
   const IssueIcon = typeConfig.icon
 
   return (
-    <div className={cn('rounded-lg border p-3', typeConfig.bgColor, 'border-gray-200')}>
+    <div className={cn('rounded-lg border p-3', typeConfig.bgColor, 'border-border')}>
       <div className="flex items-start gap-3">
-        <div className={cn('rounded-md p-1.5', 'bg-white')}>
+        <div className={cn('rounded-md p-1.5', 'bg-background')}>
           <IssueIcon className={cn('h-4 w-4', typeConfig.color)} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center justify-between gap-2">
-            <span className="text-sm font-medium text-gray-900">{issue.message}</span>
+            <span className="text-sm font-medium text-foreground">{issue.message}</span>
             <Badge
               className={cn(
                 'shrink-0',
@@ -250,14 +250,14 @@ function HealthIssueCard({ issue }: HealthIssueCardProps) {
                   : 'Info'}
             </Badge>
           </div>
-          <div className="flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>
               {issue.affectedChips} chip{issue.affectedChips > 1 ? 's' : ''} afetado
               {issue.affectedChips > 1 ? 's' : ''}
             </span>
           </div>
           {issue.recommendation && (
-            <p className="mt-2 rounded bg-white/50 p-2 text-xs text-gray-600">
+            <p className="mt-2 rounded bg-background/50 p-2 text-xs text-muted-foreground">
               <strong>Recomendação:</strong> {issue.recommendation}
             </p>
           )}

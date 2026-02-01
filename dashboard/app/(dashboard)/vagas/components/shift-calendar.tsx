@@ -132,23 +132,23 @@ export function ShiftCalendar({
       {/* Legend */}
       <div className="mt-4 flex flex-wrap gap-4 border-t pt-4 text-xs">
         <div className="flex items-center gap-1">
-          <div className="h-2 w-2 rounded-full bg-green-500" />
+          <div className="h-2 w-2 rounded-full bg-status-success-solid" />
           <span>Aberta</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-2 w-2 rounded-full bg-yellow-500" />
+          <div className="h-2 w-2 rounded-full bg-status-warning-solid" />
           <span>Reservada</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-2 w-2 rounded-full bg-blue-500" />
+          <div className="h-2 w-2 rounded-full bg-status-info-solid" />
           <span>Confirmada</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-2 w-2 rounded-full bg-red-500" />
+          <div className="h-2 w-2 rounded-full bg-status-error-solid" />
           <span>Cancelada</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-2 w-2 rounded-full bg-gray-500" />
+          <div className="h-2 w-2 rounded-full bg-muted-foreground" />
           <span>Realizada</span>
         </div>
       </div>

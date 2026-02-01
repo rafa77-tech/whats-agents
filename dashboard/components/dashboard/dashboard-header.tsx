@@ -31,32 +31,32 @@ export function DashboardHeader({
   const isDegraded = juliaStatus === 'degraded'
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-6 py-4">
+    <div className="flex items-center justify-between rounded-lg border border-border bg-card px-6 py-4">
       <div className="flex items-center gap-6">
         {/* Status Julia */}
         <div className="flex items-center gap-2">
           <span
             className={`h-3 w-3 rounded-full ${
               isOnline
-                ? 'animate-pulse bg-green-500'
+                ? 'animate-pulse bg-status-success-solid'
                 : isDegraded
-                  ? 'animate-pulse bg-yellow-500'
-                  : 'bg-red-500'
+                  ? 'animate-pulse bg-status-warning-solid'
+                  : 'bg-status-error-solid'
             }`}
           />
-          <span className="font-medium text-gray-900">
+          <span className="font-medium text-foreground">
             Julia {isOnline ? 'Online' : isDegraded ? 'Degraded' : 'Offline'}
           </span>
         </div>
 
         {/* Separador */}
-        <div className="h-6 w-px bg-gray-200" />
+        <div className="h-6 w-px bg-border" />
 
         {/* Ultimo Heartbeat */}
         {lastHeartbeat && (
-          <div className="text-sm text-gray-500" suppressHydrationWarning>
+          <div className="text-sm text-muted-foreground" suppressHydrationWarning>
             Ultimo:{' '}
-            <span className="text-gray-700">
+            <span className="text-foreground/80">
               {formatDistanceToNow(lastHeartbeat, {
                 addSuffix: true,
                 locale: ptBR,
@@ -66,18 +66,18 @@ export function DashboardHeader({
         )}
 
         {/* Separador */}
-        <div className="h-6 w-px bg-gray-200" />
+        <div className="h-6 w-px bg-border" />
 
         {/* Uptime */}
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-muted-foreground">
           Uptime 30d:{' '}
           <span
             className={`font-medium ${
               uptime30d >= 99
-                ? 'text-green-600'
+                ? 'text-status-success-foreground'
                 : uptime30d >= 95
-                  ? 'text-yellow-600'
-                  : 'text-red-600'
+                  ? 'text-status-warning-foreground'
+                  : 'text-status-error-foreground'
             }`}
           >
             {uptime30d.toFixed(1)}%
@@ -91,7 +91,7 @@ export function DashboardHeader({
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
             title="Atualizar dados"
             aria-label="Atualizar dados"
           >

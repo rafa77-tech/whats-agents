@@ -38,7 +38,7 @@ function getMetaStatus(
 function MetaIndicator({ status }: { status: 'success' | 'warning' | 'error' }) {
   if (status === 'success') {
     return (
-      <Badge className="border-green-200 bg-green-100 text-green-700">
+      <Badge className="border-status-success-border bg-status-success text-status-success-foreground">
         <Check className="mr-1 h-3 w-3" />
         Meta
       </Badge>
@@ -46,14 +46,14 @@ function MetaIndicator({ status }: { status: 'success' | 'warning' | 'error' }) 
   }
   if (status === 'warning') {
     return (
-      <Badge className="border-yellow-200 bg-yellow-100 text-yellow-700">
+      <Badge className="border-status-warning-border bg-status-warning text-status-warning-foreground">
         <AlertTriangle className="mr-1 h-3 w-3" />
         Atencao
       </Badge>
     )
   }
   return (
-    <Badge className="border-red-200 bg-red-100 text-red-700">
+    <Badge className="border-status-error-border bg-status-error text-status-error-foreground">
       <X className="mr-1 h-3 w-3" />
       Abaixo
     </Badge>
@@ -69,7 +69,7 @@ function ComparisonBadge({ current, previous }: { current: number; previous: num
 
   if (isNeutral) {
     return (
-      <span className="flex items-center text-sm text-gray-500">
+      <span className="flex items-center text-sm text-muted-foreground">
         <Minus className="mr-1 h-3 w-3" />
         Estavel
       </span>
@@ -77,7 +77,7 @@ function ComparisonBadge({ current, previous }: { current: number; previous: num
   }
 
   return (
-    <span className={`flex items-center text-sm ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+    <span className={`flex items-center text-sm ${isPositive ? 'text-status-success-foreground' : 'text-status-error-foreground'}`}>
       {isPositive ? (
         <TrendingUp className="mr-1 h-3 w-3" />
       ) : (
@@ -96,19 +96,19 @@ export function MetricCard({ data }: MetricCardProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-gray-500">{label}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-end justify-between">
           <div>
             <div className="text-3xl font-bold">{formatValue(value, unit)}</div>
-            <div className="mt-1 text-sm text-gray-500">Meta: {formatValue(meta, unit)}</div>
+            <div className="mt-1 text-sm text-muted-foreground">Meta: {formatValue(meta, unit)}</div>
           </div>
           <MetaIndicator status={status} />
         </div>
 
         <div className="mt-4 flex items-center justify-between border-t pt-4">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted-foreground">
             vs sem. ant: {formatValue(previousValue, unit)}
           </span>
           <ComparisonBadge current={value} previous={previousValue} />

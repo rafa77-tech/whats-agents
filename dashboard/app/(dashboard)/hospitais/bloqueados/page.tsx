@@ -158,8 +158,8 @@ export default function HospitaisBloqueadosPage() {
       </div>
 
       {/* Alerta informativo */}
-      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-        <p className="text-sm text-yellow-800">
+      <div className="rounded-lg border border-status-warning-border bg-status-warning p-4">
+        <p className="text-sm text-status-warning-foreground">
           Quando um hospital e bloqueado, suas vagas sao movidas para uma tabela separada. Julia
           automaticamente deixa de ver e ofertar essas vagas. Ao desbloquear, vagas futuras sao
           restauradas.
@@ -168,8 +168,8 @@ export default function HospitaisBloqueadosPage() {
 
       {/* Erro */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="rounded-lg border border-status-error-border bg-status-error p-4">
+          <p className="text-sm text-status-error-foreground">{error}</p>
         </div>
       )}
 
@@ -310,8 +310,8 @@ export default function HospitaisBloqueadosPage() {
                           variant="outline"
                           className={
                             registro.status === 'bloqueado'
-                              ? 'border-red-200 bg-red-50 text-red-700'
-                              : 'border-green-200 bg-green-50 text-green-700'
+                              ? 'border-status-error-border bg-status-error text-status-error-foreground'
+                              : 'border-status-success-border bg-status-success text-status-success-foreground'
                           }
                         >
                           {registro.status === 'bloqueado' ? 'Bloqueado' : 'Desbloqueado'}

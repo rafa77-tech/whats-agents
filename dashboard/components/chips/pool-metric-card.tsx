@@ -24,10 +24,10 @@ interface PoolMetricCardProps {
 }
 
 const statusStyles = {
-  success: 'border-l-4 border-l-green-500',
-  warning: 'border-l-4 border-l-yellow-500',
-  danger: 'border-l-4 border-l-red-500',
-  neutral: 'border-l-4 border-l-gray-300',
+  success: 'border-l-4 border-l-status-success-solid',
+  warning: 'border-l-4 border-l-status-warning-solid',
+  danger: 'border-l-4 border-l-status-error-solid',
+  neutral: 'border-l-4 border-l-border',
 }
 
 export function PoolMetricCard({
@@ -39,21 +39,21 @@ export function PoolMetricCard({
   status = 'neutral',
 }: PoolMetricCardProps) {
   return (
-    <div className={cn('rounded-lg border border-gray-200 bg-white p-5', statusStyles[status])}>
+    <div className={cn('rounded-lg border border-border bg-card p-5', statusStyles[status])}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
-          {subtitle && <p className="mt-1 text-xs text-gray-400">{subtitle}</p>}
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
+          {subtitle && <p className="mt-1 text-xs text-muted-foreground/70">{subtitle}</p>}
           {trend && (
             <div
               className={cn(
                 'mt-2 flex items-center gap-1 text-sm',
                 trend.direction === 'up'
-                  ? 'text-green-600'
+                  ? 'text-status-success-foreground'
                   : trend.direction === 'down'
-                    ? 'text-red-600'
-                    : 'text-gray-500'
+                    ? 'text-status-error-foreground'
+                    : 'text-muted-foreground'
               )}
             >
               {trend.direction === 'up' && <TrendingUp className="h-4 w-4" />}
@@ -63,11 +63,11 @@ export function PoolMetricCard({
                 {trend.direction === 'up' ? '+' : trend.direction === 'down' ? '-' : ''}
                 {Math.abs(trend.value)}%
               </span>
-              {trend.label && <span className="text-gray-400">{trend.label}</span>}
+              {trend.label && <span className="text-muted-foreground/70">{trend.label}</span>}
             </div>
           )}
         </div>
-        <div className="text-gray-400">{icon}</div>
+        <div className="text-muted-foreground">{icon}</div>
       </div>
     </div>
   )

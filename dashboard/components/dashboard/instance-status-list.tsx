@@ -9,26 +9,26 @@ interface InstanceStatusListProps {
 export function InstanceStatusList({ instances }: InstanceStatusListProps) {
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium text-gray-700">Instancias WhatsApp</h4>
+      <h4 className="text-sm font-medium text-foreground/80">Instancias WhatsApp</h4>
       <div className="space-y-1">
         {instances.map((instance) => (
           <div
             key={instance.name}
-            className="flex items-center justify-between rounded bg-gray-50 px-2 py-1.5"
+            className="flex items-center justify-between rounded bg-secondary px-2 py-1.5"
           >
             <div className="flex items-center gap-2">
               <span
                 className={`h-2 w-2 rounded-full ${
                   instance.status === 'online'
-                    ? 'bg-green-500'
+                    ? 'bg-status-success-solid'
                     : instance.status === 'warming'
-                      ? 'bg-yellow-500'
-                      : 'bg-red-500'
+                      ? 'bg-status-warning-solid'
+                      : 'bg-status-error-solid'
                 }`}
               />
               <span className="text-sm font-medium">{instance.name}</span>
             </div>
-            <span className="text-sm text-gray-500">{instance.messagesToday} msgs</span>
+            <span className="text-sm text-muted-foreground">{instance.messagesToday} msgs</span>
           </div>
         ))}
       </div>

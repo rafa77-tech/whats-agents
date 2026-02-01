@@ -30,29 +30,29 @@ interface ChipsTableProps {
 }
 
 const statusBadgeVariants: Record<string, string> = {
-  active: 'bg-green-100 text-green-800 border-green-200',
-  ready: 'bg-blue-100 text-blue-800 border-blue-200',
-  warming: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  degraded: 'bg-orange-100 text-orange-800 border-orange-200',
-  paused: 'bg-gray-100 text-gray-800 border-gray-200',
-  banned: 'bg-red-100 text-red-800 border-red-200',
-  provisioned: 'bg-purple-100 text-purple-800 border-purple-200',
-  pending: 'bg-gray-100 text-gray-600 border-gray-200',
-  cancelled: 'bg-gray-50 text-gray-500 border-gray-200',
-  offline: 'bg-red-100 text-red-800 border-red-200',
+  active: 'bg-status-success text-status-success-foreground border-status-success-border',
+  ready: 'bg-status-info text-status-info-foreground border-status-info-border',
+  warming: 'bg-status-warning text-status-warning-foreground border-status-warning-border',
+  degraded: 'bg-status-warning text-status-warning-foreground border-status-warning-border',
+  paused: 'bg-status-neutral text-status-neutral-foreground border-muted',
+  banned: 'bg-status-error text-status-error-foreground border-status-error-border',
+  provisioned: 'bg-status-info text-status-info-foreground border-status-info-border',
+  pending: 'bg-status-neutral text-muted-foreground border-muted',
+  cancelled: 'bg-muted/50 text-muted-foreground border-muted',
+  offline: 'bg-status-error text-status-error-foreground border-status-error-border',
 }
 
-const defaultBadgeVariant = 'bg-gray-100 text-gray-600 border-gray-200'
+const defaultBadgeVariant = 'bg-status-neutral text-muted-foreground border-muted'
 
 const trustLevelColors: Record<string, string> = {
-  verde: 'text-green-600',
-  amarelo: 'text-yellow-600',
-  laranja: 'text-orange-600',
-  vermelho: 'text-red-600',
-  critico: 'text-gray-600',
+  verde: 'text-trust-verde-foreground',
+  amarelo: 'text-trust-amarelo-foreground',
+  laranja: 'text-trust-laranja-foreground',
+  vermelho: 'text-trust-vermelho-foreground',
+  critico: 'text-trust-critico-foreground',
 }
 
-const defaultTrustColor = 'text-gray-600'
+const defaultTrustColor = 'text-muted-foreground'
 
 const statusLabels: Record<string, string> = {
   active: 'Ativo',
@@ -90,10 +90,10 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200">
+    <div className="overflow-hidden rounded-lg border border-border">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-50">
+          <TableRow className="bg-muted/50">
             <TableHead className="w-12">
               <Checkbox
                 checked={allSelected}
@@ -116,7 +116,7 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
         <TableBody>
           {chips.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="py-8 text-center text-gray-500">
+              <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
                 Nenhum chip encontrado
               </TableCell>
             </TableRow>
@@ -125,8 +125,8 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
               <TableRow
                 key={chip.id}
                 className={cn(
-                  'cursor-pointer hover:bg-gray-50',
-                  selectedIds.includes(chip.id) && 'bg-blue-50'
+                  'cursor-pointer hover:bg-muted/50',
+                  selectedIds.includes(chip.id) && 'bg-accent/50'
                 )}
                 onClick={() => onRowClick?.(chip)}
               >
@@ -139,9 +139,9 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-400" />
+                    <Phone className="h-4 w-4 text-muted-foreground" />
                     <span className="font-mono text-sm">{chip.telefone}</span>
-                    {chip.hasActiveAlert && <AlertTriangle className="h-4 w-4 text-orange-500" />}
+                    {chip.hasActiveAlert && <AlertTriangle className="h-4 w-4 text-status-warning-foreground" />}
                   </div>
                 </TableCell>
                 <TableCell>
@@ -166,7 +166,7 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm capitalize text-gray-600">
+                  <span className="text-sm capitalize text-muted-foreground">
                     {chip.warmupPhase?.replace(/_/g, ' ') || '-'}
                   </span>
                 </TableCell>
@@ -179,7 +179,7 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
                   <span
                     className={cn(
                       'text-sm',
-                      chip.responseRate >= 30 ? 'text-green-600' : 'text-red-600'
+                      chip.responseRate >= 30 ? 'text-status-success-foreground' : 'text-status-error-foreground'
                     )}
                   >
                     {chip.responseRate.toFixed(1)}%
@@ -189,7 +189,7 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
                   <span
                     className={cn(
                       'text-sm',
-                      chip.errorsLast24h > 5 ? 'text-red-600' : 'text-gray-600'
+                      chip.errorsLast24h > 5 ? 'text-status-error-foreground' : 'text-muted-foreground'
                     )}
                   >
                     {chip.errorsLast24h}
@@ -197,7 +197,7 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
                 </TableCell>
                 <TableCell>
                   <Link href={`/chips/${chip.id}` as Route} onClick={(e) => e.stopPropagation()}>
-                    <ChevronRight className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                   </Link>
                 </TableCell>
               </TableRow>

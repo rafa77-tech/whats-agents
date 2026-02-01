@@ -237,7 +237,7 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
                   onChange={handlePhoneChange}
                   disabled={loading}
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Inclua o codigo do pais (55) e DDD. Ex: 5511999999999
                 </p>
               </div>
@@ -251,11 +251,11 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
                   onChange={(e) => setInstanceName(e.target.value)}
                   disabled={loading}
                 />
-                <p className="text-xs text-gray-500">Se vazio, sera gerado como julia_TELEFONE</p>
+                <p className="text-xs text-muted-foreground">Se vazio, sera gerado como julia_TELEFONE</p>
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-600">
+                <div className="flex items-center gap-2 rounded-md bg-status-error/10 p-3 text-sm text-status-error-foreground">
                   <AlertCircle className="h-4 w-4" />
                   {error}
                 </div>
@@ -295,7 +295,7 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
 
             <div className="flex flex-col items-center space-y-4 py-4">
               {qrCode ? (
-                <div className="rounded-lg border-2 border-gray-200 bg-white p-4">
+                <div className="rounded-lg border-2 border-border bg-card p-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`data:image/png;base64,${qrCode}`}
@@ -304,23 +304,23 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
                   />
                 </div>
               ) : (
-                <div className="flex h-64 w-64 items-center justify-center rounded-lg border-2 border-dashed border-gray-300">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                <div className="flex h-64 w-64 items-center justify-center rounded-lg border-2 border-dashed border-muted">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
               )}
 
               <div className="text-center">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Instancia: <span className="font-medium">{createdInstanceName}</span>
                 </p>
                 <p className="mt-1 flex items-center justify-center gap-2 text-sm">
                   <span
                     className={`h-2 w-2 rounded-full ${
                       qrState === 'open'
-                        ? 'bg-green-500'
+                        ? 'bg-status-success-solid'
                         : qrState === 'connecting'
-                          ? 'bg-yellow-500'
-                          : 'bg-gray-400'
+                          ? 'bg-status-warning-solid'
+                          : 'bg-muted-foreground'
                     }`}
                   />
                   {qrState === 'open'
@@ -332,13 +332,13 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
               </div>
 
               {pairingCode && (
-                <div className="rounded-lg bg-gray-100 px-4 py-2 text-center">
-                  <p className="text-xs text-gray-500">Codigo de pareamento</p>
+                <div className="rounded-lg bg-muted px-4 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">Codigo de pareamento</p>
                   <p className="font-mono text-lg font-bold">{pairingCode}</p>
                 </div>
               )}
 
-              <p className="text-center text-xs text-gray-400">
+              <p className="text-center text-xs text-muted-foreground">
                 O QR code e atualizado automaticamente a cada 20 segundos
               </p>
             </div>
@@ -355,37 +355,37 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
         {step === 'success' && (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-green-600">
+              <DialogTitle className="flex items-center gap-2 text-status-success-foreground">
                 <CheckCircle2 className="h-5 w-5" />
                 Instancia Conectada
               </DialogTitle>
             </DialogHeader>
 
             <div className="flex flex-col items-center space-y-4 py-6">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-status-success">
+                <CheckCircle2 className="h-8 w-8 text-status-success-foreground" />
               </div>
 
               <div className="text-center">
                 <p className="text-lg font-medium">WhatsApp conectado com sucesso!</p>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-muted-foreground">
                   O chip esta pronto para entrar em fase de aquecimento.
                 </p>
               </div>
 
-              <div className="w-full rounded-lg bg-gray-50 p-4">
+              <div className="w-full rounded-lg bg-muted/50 p-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Instancia:</span>
+                    <span className="text-muted-foreground">Instancia:</span>
                     <span className="font-medium">{createdInstanceName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Telefone:</span>
+                    <span className="text-muted-foreground">Telefone:</span>
                     <span className="font-medium">{formatPhoneDisplay(telefone)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Status:</span>
-                    <span className="font-medium text-green-600">Conectado</span>
+                    <span className="text-muted-foreground">Status:</span>
+                    <span className="font-medium text-status-success-foreground">Conectado</span>
                   </div>
                 </div>
               </div>

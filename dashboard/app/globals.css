@@ -63,6 +63,55 @@
 
     --state-document: 217 91% 60%; /* blue-600 document icon */
     --state-audio: 160 84% 39%; /* emerald-600 audio icon */
+
+    /* Semantic status colors - for badges, alerts, indicators */
+    --status-success: 142 76% 91%; /* green-100 */
+    --status-success-foreground: 142 76% 26%; /* green-800 */
+    --status-success-border: 142 76% 80%; /* green-200 */
+    --status-success-solid: 142 71% 45%; /* green-600 */
+    --status-success-solid-hover: 142 76% 36%; /* green-700 */
+
+    --status-warning: 48 96% 89%; /* yellow-100 */
+    --status-warning-foreground: 46 93% 24%; /* yellow-800 */
+    --status-warning-border: 48 96% 77%; /* yellow-200 */
+    --status-warning-solid: 45 93% 47%; /* yellow-500 */
+    --status-warning-solid-hover: 45 93% 41%; /* yellow-600 */
+
+    --status-error: 0 93% 94%; /* red-100 */
+    --status-error-foreground: 0 74% 42%; /* red-700 */
+    --status-error-border: 0 93% 85%; /* red-200 */
+    --status-error-solid: 0 72% 51%; /* red-600 */
+    --status-error-solid-hover: 0 74% 42%; /* red-700 */
+
+    --status-info: 214 95% 93%; /* blue-100 */
+    --status-info-foreground: 221 83% 35%; /* blue-800 */
+    --status-info-border: 213 93% 84%; /* blue-200 */
+    --status-info-solid: 217 91% 60%; /* blue-500 */
+    --status-info-solid-hover: 221 83% 53%; /* blue-600 */
+
+    --status-neutral: 220 13% 95%; /* gray-100 */
+    --status-neutral-foreground: 215 14% 34%; /* gray-600 */
+    --status-neutral-border: 220 13% 87%; /* gray-200 */
+    --status-neutral-solid: 215 14% 34%; /* gray-600 */
+
+    /* Trust levels - for chip status */
+    --trust-verde: 142 76% 91%;
+    --trust-verde-foreground: 142 76% 26%;
+    --trust-verde-solid: 142 71% 45%;
+
+    --trust-amarelo: 48 96% 89%;
+    --trust-amarelo-foreground: 46 93% 24%;
+    --trust-amarelo-solid: 45 93% 47%;
+
+    --trust-laranja: 25 95% 53%;
+    --trust-laranja-foreground: 21 90% 48%;
+
+    --trust-vermelho: 0 93% 94%;
+    --trust-vermelho-foreground: 0 74% 42%;
+    --trust-vermelho-solid: 0 72% 51%;
+
+    --trust-critico: 0 93% 88%;
+    --trust-critico-foreground: 0 74% 30%;
   }
 
   .dark {
@@ -123,6 +172,55 @@
 
     --state-document: 217 91% 65%;
     --state-audio: 160 84% 50%;
+
+    /* Semantic status colors - dark mode */
+    --status-success: 142 76% 20%;
+    --status-success-foreground: 142 76% 80%;
+    --status-success-border: 142 76% 30%;
+    --status-success-solid: 142 71% 45%;
+    --status-success-solid-hover: 142 71% 55%;
+
+    --status-warning: 46 93% 20%;
+    --status-warning-foreground: 48 96% 80%;
+    --status-warning-border: 46 93% 30%;
+    --status-warning-solid: 45 93% 47%;
+    --status-warning-solid-hover: 45 93% 55%;
+
+    --status-error: 0 74% 20%;
+    --status-error-foreground: 0 93% 80%;
+    --status-error-border: 0 74% 30%;
+    --status-error-solid: 0 72% 51%;
+    --status-error-solid-hover: 0 72% 60%;
+
+    --status-info: 221 83% 20%;
+    --status-info-foreground: 214 95% 80%;
+    --status-info-border: 221 83% 30%;
+    --status-info-solid: 217 91% 60%;
+    --status-info-solid-hover: 217 91% 70%;
+
+    --status-neutral: 215 14% 20%;
+    --status-neutral-foreground: 220 13% 80%;
+    --status-neutral-border: 215 14% 30%;
+    --status-neutral-solid: 215 14% 60%;
+
+    /* Trust levels - dark mode */
+    --trust-verde: 142 76% 20%;
+    --trust-verde-foreground: 142 76% 80%;
+    --trust-verde-solid: 142 71% 45%;
+
+    --trust-amarelo: 46 93% 20%;
+    --trust-amarelo-foreground: 48 96% 80%;
+    --trust-amarelo-solid: 45 93% 47%;
+
+    --trust-laranja: 25 95% 30%;
+    --trust-laranja-foreground: 25 95% 70%;
+
+    --trust-vermelho: 0 74% 20%;
+    --trust-vermelho-foreground: 0 93% 80%;
+    --trust-vermelho-solid: 0 72% 51%;
+
+    --trust-critico: 0 74% 15%;
+    --trust-critico-foreground: 0 93% 75%;
   }
 }
 

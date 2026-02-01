@@ -253,9 +253,9 @@ export function HealthPageContent() {
               <Badge
                 className={cn(
                   'text-sm',
-                  data?.status === 'healthy' && 'bg-green-100 text-green-800',
-                  data?.status === 'degraded' && 'bg-yellow-100 text-yellow-800',
-                  data?.status === 'critical' && 'bg-red-100 text-red-800'
+                  data?.status === 'healthy' && 'bg-status-success text-status-success-foreground',
+                  data?.status === 'degraded' && 'bg-status-warning text-status-warning-foreground',
+                  data?.status === 'critical' && 'bg-status-error text-status-error-foreground'
                 )}
               >
                 {data?.status === 'healthy' && 'HEALTHY'}
@@ -279,20 +279,20 @@ export function HealthPageContent() {
                 key={service.name}
                 className={cn(
                   'flex items-center gap-2 rounded-lg px-4 py-2',
-                  service.status === 'ok' && 'bg-green-50',
-                  service.status === 'warn' && 'bg-yellow-50',
-                  service.status === 'error' && 'bg-red-50'
+                  service.status === 'ok' && 'bg-status-success/20',
+                  service.status === 'warn' && 'bg-status-warning/20',
+                  service.status === 'error' && 'bg-status-error/20'
                 )}
               >
-                {service.status === 'ok' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                {service.status === 'warn' && <AlertTriangle className="h-4 w-4 text-yellow-600" />}
-                {service.status === 'error' && <XCircle className="h-4 w-4 text-red-600" />}
+                {service.status === 'ok' && <CheckCircle2 className="h-4 w-4 text-status-success-foreground" />}
+                {service.status === 'warn' && <AlertTriangle className="h-4 w-4 text-status-warning-foreground" />}
+                {service.status === 'error' && <XCircle className="h-4 w-4 text-status-error-foreground" />}
                 <span
                   className={cn(
                     'text-sm font-medium',
-                    service.status === 'ok' && 'text-green-800',
-                    service.status === 'warn' && 'text-yellow-800',
-                    service.status === 'error' && 'text-red-800'
+                    service.status === 'ok' && 'text-status-success-foreground',
+                    service.status === 'warn' && 'text-status-warning-foreground',
+                    service.status === 'error' && 'text-status-error-foreground'
                   )}
                 >
                   {service.name}

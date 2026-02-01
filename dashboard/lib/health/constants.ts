@@ -12,28 +12,29 @@ import type {
 
 /**
  * Cores para status de saúde (gauge e badges)
+ * Note: stroke and bg use hex values because they are used directly in SVG/canvas rendering
  */
 export const HEALTH_STATUS_COLORS: Record<
   HealthStatus,
   { stroke: string; bg: string; text: string; badge: string }
 > = {
   healthy: {
-    stroke: '#22c55e',
-    bg: '#dcfce7',
-    text: 'text-green-600',
-    badge: 'bg-green-100 text-green-800',
+    stroke: '#22c55e', // green-500
+    bg: '#dcfce7', // green-100
+    text: 'text-status-success-foreground',
+    badge: 'bg-status-success text-status-success-foreground',
   },
   degraded: {
-    stroke: '#eab308',
-    bg: '#fef9c3',
-    text: 'text-yellow-600',
-    badge: 'bg-yellow-100 text-yellow-800',
+    stroke: '#eab308', // yellow-500
+    bg: '#fef9c3', // yellow-100
+    text: 'text-status-warning-foreground',
+    badge: 'bg-status-warning text-status-warning-foreground',
   },
   critical: {
-    stroke: '#ef4444',
-    bg: '#fee2e2',
-    text: 'text-red-600',
-    badge: 'bg-red-100 text-red-800',
+    stroke: '#ef4444', // red-500
+    bg: '#fee2e2', // red-100
+    text: 'text-status-error-foreground',
+    badge: 'bg-status-error text-status-error-foreground',
   },
 }
 
@@ -53,9 +54,9 @@ export const SERVICE_STATUS_COLORS: Record<
   ServiceStatusType,
   { bg: string; text: string; icon: string }
 > = {
-  ok: { bg: 'bg-green-50', text: 'text-green-800', icon: 'text-green-600' },
-  warn: { bg: 'bg-yellow-50', text: 'text-yellow-800', icon: 'text-yellow-600' },
-  error: { bg: 'bg-red-50', text: 'text-red-800', icon: 'text-red-600' },
+  ok: { bg: 'bg-status-success/20', text: 'text-status-success-foreground', icon: 'text-status-success-foreground' },
+  warn: { bg: 'bg-status-warning/20', text: 'text-status-warning-foreground', icon: 'text-status-warning-foreground' },
+  error: { bg: 'bg-status-error/20', text: 'text-status-error-foreground', icon: 'text-status-error-foreground' },
 }
 
 /**
@@ -66,25 +67,25 @@ export const ALERT_SEVERITY_COLORS: Record<
   { bg: string; border: string; text: string; badge: string; icon: string }
 > = {
   critical: {
-    bg: 'bg-red-50',
-    border: 'border-red-200',
-    text: 'text-red-600',
-    badge: 'bg-red-100 text-red-800',
-    icon: 'text-red-500',
+    bg: 'bg-status-error/20',
+    border: 'border-status-error-border',
+    text: 'text-status-error-foreground',
+    badge: 'bg-status-error text-status-error-foreground',
+    icon: 'text-status-error-foreground',
   },
   warn: {
-    bg: 'bg-yellow-50',
-    border: 'border-yellow-200',
-    text: 'text-yellow-600',
-    badge: 'bg-yellow-100 text-yellow-800',
-    icon: 'text-yellow-500',
+    bg: 'bg-status-warning/20',
+    border: 'border-status-warning-border',
+    text: 'text-status-warning-foreground',
+    badge: 'bg-status-warning text-status-warning-foreground',
+    icon: 'text-status-warning-foreground',
   },
   info: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    text: 'text-blue-600',
-    badge: 'bg-blue-100 text-blue-800',
-    icon: 'text-blue-500',
+    bg: 'bg-status-info/20',
+    border: 'border-status-info-border',
+    text: 'text-status-info-foreground',
+    badge: 'bg-status-info text-status-info-foreground',
+    icon: 'text-status-info-foreground',
   },
 }
 
@@ -114,22 +115,22 @@ export const CIRCUIT_STATE_COLORS: Record<
   { bg: string; border: string; indicator: string; badge: string }
 > = {
   CLOSED: {
-    bg: 'bg-green-50/50',
-    border: 'border-green-200',
-    indicator: 'bg-green-500',
-    badge: 'bg-green-100 text-green-800',
+    bg: 'bg-status-success/10',
+    border: 'border-status-success-border',
+    indicator: 'bg-status-success-solid',
+    badge: 'bg-status-success text-status-success-foreground',
   },
   HALF_OPEN: {
-    bg: 'bg-yellow-50/50',
-    border: 'border-yellow-200',
-    indicator: 'bg-yellow-500',
-    badge: 'bg-yellow-100 text-yellow-800',
+    bg: 'bg-status-warning/10',
+    border: 'border-status-warning-border',
+    indicator: 'bg-status-warning-solid',
+    badge: 'bg-status-warning text-status-warning-foreground',
   },
   OPEN: {
-    bg: 'bg-red-50/50',
-    border: 'border-red-200',
-    indicator: 'bg-red-500',
-    badge: 'bg-red-100 text-red-800',
+    bg: 'bg-status-error/10',
+    border: 'border-status-error-border',
+    indicator: 'bg-status-error-solid',
+    badge: 'bg-status-error text-status-error-foreground',
   },
 }
 
@@ -174,9 +175,9 @@ export const PROGRESS_THRESHOLDS = {
  * Cores para progress bar por percentual
  */
 export const PROGRESS_COLORS = {
-  SAFE: 'bg-green-500',
-  WARNING: 'bg-yellow-500',
-  DANGER: 'bg-red-500',
+  SAFE: 'bg-status-success-solid',
+  WARNING: 'bg-status-warning-solid',
+  DANGER: 'bg-status-error-solid',
 }
 
 /**

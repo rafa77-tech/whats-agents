@@ -7,19 +7,19 @@ interface ChipStatusCountersProps {
 }
 
 const statusConfig: Record<string, { label: string; bgColor: string; textColor: string }> = {
-  active: { label: 'Active', bgColor: 'bg-green-100', textColor: 'text-green-700' },
-  ready: { label: 'Ready', bgColor: 'bg-blue-100', textColor: 'text-blue-700' },
-  warming: { label: 'Warming', bgColor: 'bg-yellow-100', textColor: 'text-yellow-700' },
+  active: { label: 'Active', bgColor: 'bg-status-success', textColor: 'text-status-success-foreground' },
+  ready: { label: 'Ready', bgColor: 'bg-status-info', textColor: 'text-status-info-foreground' },
+  warming: { label: 'Warming', bgColor: 'bg-status-warning', textColor: 'text-status-warning-foreground' },
   degraded: { label: 'Degraded', bgColor: 'bg-orange-100', textColor: 'text-orange-700' },
-  banned: { label: 'Banned', bgColor: 'bg-red-100', textColor: 'text-red-700' },
-  provisioned: { label: 'Provisioned', bgColor: 'bg-gray-100', textColor: 'text-gray-700' },
-  pending: { label: 'Pending', bgColor: 'bg-gray-100', textColor: 'text-gray-700' },
-  paused: { label: 'Paused', bgColor: 'bg-gray-100', textColor: 'text-gray-700' },
-  cancelled: { label: 'Cancelled', bgColor: 'bg-gray-100', textColor: 'text-gray-700' },
-  offline: { label: 'Offline', bgColor: 'bg-red-100', textColor: 'text-red-700' },
+  banned: { label: 'Banned', bgColor: 'bg-status-error', textColor: 'text-status-error-foreground' },
+  provisioned: { label: 'Provisioned', bgColor: 'bg-status-neutral', textColor: 'text-status-neutral-foreground' },
+  pending: { label: 'Pending', bgColor: 'bg-status-neutral', textColor: 'text-status-neutral-foreground' },
+  paused: { label: 'Paused', bgColor: 'bg-status-neutral', textColor: 'text-status-neutral-foreground' },
+  cancelled: { label: 'Cancelled', bgColor: 'bg-status-neutral', textColor: 'text-status-neutral-foreground' },
+  offline: { label: 'Offline', bgColor: 'bg-status-error', textColor: 'text-status-error-foreground' },
 }
 
-const defaultConfig = { label: 'Unknown', bgColor: 'bg-gray-100', textColor: 'text-gray-700' }
+const defaultConfig = { label: 'Unknown', bgColor: 'bg-status-neutral', textColor: 'text-status-neutral-foreground' }
 
 export function ChipStatusCounters({ counts = [] }: ChipStatusCountersProps) {
   // Filtrar apenas status relevantes
@@ -28,7 +28,7 @@ export function ChipStatusCounters({ counts = [] }: ChipStatusCountersProps) {
 
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium text-gray-700">Status do Pool</h4>
+      <h4 className="text-sm font-medium text-foreground/80">Status do Pool</h4>
       <div className="grid grid-cols-4 gap-2">
         {filteredCounts.map((item) => {
           const config = statusConfig[item.status] || defaultConfig

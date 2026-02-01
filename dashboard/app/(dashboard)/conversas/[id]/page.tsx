@@ -100,7 +100,7 @@ export default function ConversationDetailPage() {
             <div className="flex items-center gap-2">
               <h1 className="truncate font-semibold">{cliente.nome}</h1>
               {conversation.controlled_by === 'human' && (
-                <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs text-yellow-800">
+                <span className="rounded bg-status-warning px-2 py-0.5 text-xs text-status-warning-foreground">
                   Handoff
                 </span>
               )}

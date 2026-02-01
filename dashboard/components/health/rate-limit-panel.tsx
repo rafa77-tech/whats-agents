@@ -37,7 +37,7 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
               {hourly.used}/{hourly.limit} ({hourlyPercentage}%)
             </span>
           </div>
-          <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
+          <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
             <div
               className={cn(
                 'h-full transition-all duration-500',
@@ -47,7 +47,7 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
             />
           </div>
           {shouldShowRateLimitWarning(hourlyPercentage) && (
-            <p className="mt-1 text-xs text-yellow-600">
+            <p className="mt-1 text-xs text-status-warning-foreground">
               Proximo do limite horario ({100 - hourlyPercentage}% restante)
             </p>
           )}
@@ -61,7 +61,7 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
               {daily.used}/{daily.limit} ({dailyPercentage}%)
             </span>
           </div>
-          <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
+          <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
             <div
               className={cn(
                 'h-full transition-all duration-500',
@@ -71,7 +71,7 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
             />
           </div>
           {shouldShowRateLimitWarning(dailyPercentage) && (
-            <p className="mt-1 text-xs text-yellow-600">
+            <p className="mt-1 text-xs text-status-warning-foreground">
               Proximo do limite diario ({100 - dailyPercentage}% restante)
             </p>
           )}

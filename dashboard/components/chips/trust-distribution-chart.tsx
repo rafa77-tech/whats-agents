@@ -19,11 +19,11 @@ const trustLevelConfig: Record<
   TrustLevelExtended,
   { label: string; color: string; bgColor: string }
 > = {
-  verde: { label: 'Verde (80-100)', color: 'bg-green-500', bgColor: 'bg-green-100' },
-  amarelo: { label: 'Amarelo (60-79)', color: 'bg-yellow-500', bgColor: 'bg-yellow-100' },
-  laranja: { label: 'Laranja (40-59)', color: 'bg-orange-500', bgColor: 'bg-orange-100' },
-  vermelho: { label: 'Vermelho (20-39)', color: 'bg-red-500', bgColor: 'bg-red-100' },
-  critico: { label: 'Critico (0-19)', color: 'bg-gray-500', bgColor: 'bg-gray-100' },
+  verde: { label: 'Verde (80-100)', color: 'bg-trust-verde-solid', bgColor: 'bg-trust-verde' },
+  amarelo: { label: 'Amarelo (60-79)', color: 'bg-trust-amarelo-solid', bgColor: 'bg-trust-amarelo' },
+  laranja: { label: 'Laranja (40-59)', color: 'bg-trust-laranja-solid', bgColor: 'bg-trust-laranja' },
+  vermelho: { label: 'Vermelho (20-39)', color: 'bg-trust-vermelho-solid', bgColor: 'bg-trust-vermelho' },
+  critico: { label: 'Critico (0-19)', color: 'bg-trust-critico-solid', bgColor: 'bg-trust-critico' },
 }
 
 const displayOrder: TrustLevelExtended[] = ['verde', 'amarelo', 'laranja', 'vermelho', 'critico']
@@ -44,18 +44,18 @@ export function TrustDistributionChart({ distribution, total }: TrustDistributio
   }, [distribution, total])
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
+    <div className="rounded-lg border border-border bg-card p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Distribuicao de Trust Score</h3>
+        <h3 className="text-lg font-semibold text-foreground">Distribuicao de Trust Score</h3>
         <div className="text-sm">
           <span
             className={cn(
               'font-medium',
               healthyPercentage >= 70
-                ? 'text-green-600'
+                ? 'text-status-success-foreground'
                 : healthyPercentage >= 50
-                  ? 'text-yellow-600'
-                  : 'text-red-600'
+                  ? 'text-status-warning-foreground'
+                  : 'text-status-error-foreground'
             )}
           >
             {healthyPercentage.toFixed(1)}% saudaveis
@@ -65,7 +65,7 @@ export function TrustDistributionChart({ distribution, total }: TrustDistributio
 
       {/* Stacked bar */}
       <div className="mb-6">
-        <div className="flex h-8 overflow-hidden rounded-full bg-gray-100">
+        <div className="flex h-8 overflow-hidden rounded-full bg-muted">
           {data.map(
             ({ level, percentage, config }) =>
               percentage > 0 && (
@@ -86,8 +86,8 @@ export function TrustDistributionChart({ distribution, total }: TrustDistributio
           <div key={level} className="flex items-center gap-2">
             <div className={cn('h-3 w-3 rounded-full', config.color)} />
             <div>
-              <p className="text-sm font-medium text-gray-900">{count}</p>
-              <p className="text-xs text-gray-500">{config.label.split(' ')[0]}</p>
+              <p className="text-sm font-medium text-foreground">{count}</p>
+              <p className="text-xs text-muted-foreground">{config.label.split(' ')[0]}</p>
             </div>
           </div>
         ))}

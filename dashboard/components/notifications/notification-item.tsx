@@ -31,17 +31,17 @@ const ICONS: Record<NotificationType, LucideIcon> = {
 }
 
 const PRIORITY_COLORS: Record<NotificationPriority, string> = {
-  low: 'text-gray-400',
-  medium: 'text-blue-500',
-  high: 'text-yellow-500',
-  critical: 'text-red-500',
+  low: 'text-muted-foreground',
+  medium: 'text-status-info-foreground',
+  high: 'text-status-warning-foreground',
+  critical: 'text-status-error-foreground',
 }
 
 const PRIORITY_BG: Record<NotificationPriority, string> = {
-  low: 'bg-gray-100 dark:bg-gray-800',
-  medium: 'bg-blue-50 dark:bg-blue-900/20',
-  high: 'bg-yellow-50 dark:bg-yellow-900/20',
-  critical: 'bg-red-50 dark:bg-red-900/20',
+  low: 'bg-status-neutral dark:bg-status-neutral',
+  medium: 'bg-status-info/20 dark:bg-status-info/20',
+  high: 'bg-status-warning/20 dark:bg-status-warning/20',
+  critical: 'bg-status-error/20 dark:bg-status-error/20',
 }
 
 interface Props {
@@ -93,7 +93,7 @@ export function NotificationItem({ notification, compact = false, onClose, onMar
         onClick={handleClick}
         className={cn(
           'w-full p-3 text-left transition-colors hover:bg-muted',
-          !notification.read && 'bg-blue-50/50 dark:bg-blue-900/10'
+          !notification.read && 'bg-status-info/30 dark:bg-status-info/10'
         )}
       >
         <div className="flex gap-3">
@@ -107,7 +107,7 @@ export function NotificationItem({ notification, compact = false, onClose, onMar
             <p className="truncate text-xs text-muted-foreground">{notification.body}</p>
             <p className="mt-1 text-xs text-muted-foreground">{timeAgo}</p>
           </div>
-          {!notification.read && <Circle className="mt-1.5 h-2 w-2 fill-blue-500 text-blue-500" />}
+          {!notification.read && <Circle className="mt-1.5 h-2 w-2 fill-status-info-solid text-status-info-solid" />}
         </div>
       </button>
     )
@@ -119,7 +119,7 @@ export function NotificationItem({ notification, compact = false, onClose, onMar
       className={cn(
         'w-full rounded-lg p-4 text-left transition-colors',
         PRIORITY_BG[notification.priority],
-        !notification.read && 'ring-1 ring-blue-200 dark:ring-blue-800'
+        !notification.read && 'ring-1 ring-status-info-border dark:ring-status-info-border'
       )}
     >
       <div className="flex gap-4">
@@ -138,7 +138,7 @@ export function NotificationItem({ notification, compact = false, onClose, onMar
               {notification.title}
             </p>
             {!notification.read && (
-              <Circle className="mt-1.5 h-2 w-2 flex-shrink-0 fill-blue-500 text-blue-500" />
+              <Circle className="mt-1.5 h-2 w-2 flex-shrink-0 fill-status-info-solid text-status-info-solid" />
             )}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{notification.body}</p>

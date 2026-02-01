@@ -35,46 +35,46 @@ const interactionTypeConfig: Record<
 > = {
   conversa_individual: {
     icon: MessageSquare,
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-50',
+    color: 'text-status-info-solid',
+    bgColor: 'bg-status-info/10',
     label: 'Conversa',
   },
   mensagem_grupo: {
     icon: Users,
-    color: 'text-purple-500',
-    bgColor: 'bg-purple-50',
+    color: 'text-status-info-foreground',
+    bgColor: 'bg-status-info/10',
     label: 'Mensagem em Grupo',
   },
   entrada_grupo: {
     icon: UserPlus,
-    color: 'text-green-500',
-    bgColor: 'bg-green-50',
+    color: 'text-status-success-solid',
+    bgColor: 'bg-status-success/10',
     label: 'Entrada em Grupo',
   },
   midia_enviada: {
     icon: Image,
-    color: 'text-orange-500',
-    bgColor: 'bg-orange-50',
+    color: 'text-status-warning-solid',
+    bgColor: 'bg-status-warning/10',
     label: 'Mídia Enviada',
   },
   erro: {
     icon: AlertCircle,
-    color: 'text-red-500',
-    bgColor: 'bg-red-50',
+    color: 'text-status-error-solid',
+    bgColor: 'bg-status-error/10',
     label: 'Erro',
   },
   warmup_par: {
     icon: Heart,
-    color: 'text-pink-500',
-    bgColor: 'bg-pink-50',
+    color: 'text-status-info-foreground',
+    bgColor: 'bg-status-info/10',
     label: 'Warmup Par',
   },
 }
 
 const defaultInteractionConfig = {
   icon: MessageSquare,
-  color: 'text-gray-500',
-  bgColor: 'bg-gray-50',
+  color: 'text-muted-foreground',
+  bgColor: 'bg-muted/50',
   label: 'Interação',
 }
 
@@ -104,12 +104,12 @@ export function ChipInteractionsTimeline({ chipId, initialData }: ChipInteractio
       <CardHeader>
         <CardTitle className="flex items-center justify-between text-base">
           <span>Interações Recentes</span>
-          <span className="text-sm font-normal text-gray-500">{initialData.total} total</span>
+          <span className="text-sm font-normal text-muted-foreground">{initialData.total} total</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {interactions.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">Nenhuma interação registrada</div>
+          <div className="py-8 text-center text-muted-foreground">Nenhuma interação registrada</div>
         ) : (
           <div className="space-y-1">
             {interactions.map((interaction, index) => (
@@ -166,7 +166,7 @@ function InteractionItem({
         >
           <Icon className={cn('h-4 w-4', config.color)} />
         </div>
-        {!isLast && <div className="my-1 w-0.5 flex-1 bg-gray-200" />}
+        {!isLast && <div className="my-1 w-0.5 flex-1 bg-muted" />}
       </div>
 
       {/* Content */}
@@ -174,16 +174,16 @@ function InteractionItem({
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-900">{config.label}</span>
+              <span className="text-sm font-medium text-foreground">{config.label}</span>
               {!interaction.success && (
                 <Badge variant="destructive" className="text-xs">
                   Falhou
                 </Badge>
               )}
             </div>
-            <p className="mt-0.5 text-sm text-gray-600">{interaction.description}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">{interaction.description}</p>
           </div>
-          <span className="whitespace-nowrap text-xs text-gray-500">
+          <span className="whitespace-nowrap text-xs text-muted-foreground">
             {formatTimestamp(interaction.timestamp)}
           </span>
         </div>

@@ -44,12 +44,12 @@ interface PedidoAjuda {
 const statusConfig = {
   pendente: {
     label: 'Pendente',
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    color: 'bg-status-warning text-status-warning-foreground border-status-warning-border',
     icon: Clock,
   },
   respondido: {
     label: 'Respondido',
-    color: 'bg-green-100 text-green-800 border-green-200',
+    color: 'bg-status-success text-status-success-foreground border-status-success-border',
     icon: CheckCircle2,
   },
   timeout: {
@@ -59,7 +59,7 @@ const statusConfig = {
   },
   cancelado: {
     label: 'Cancelado',
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    color: 'bg-status-neutral text-status-neutral-foreground border-muted',
     icon: HelpCircle,
   },
 }
@@ -199,14 +199,14 @@ export default function CanalAjudaPage() {
 
       {/* Alerta de pendentes */}
       {tab === 'pendentes' && pendentesCount > 0 && (
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+        <div className="rounded-lg border border-status-warning-border bg-status-warning p-4">
           <div className="flex items-center gap-2">
-            <HelpCircle className="h-5 w-5 text-yellow-600" />
-            <span className="font-medium text-yellow-800">
+            <HelpCircle className="h-5 w-5 text-status-warning-foreground" />
+            <span className="font-medium text-status-warning-foreground">
               {pendentesCount} pedido(s) aguardando resposta
             </span>
           </div>
-          <p className="mt-1 text-sm text-yellow-700">
+          <p className="mt-1 text-sm text-status-warning-foreground/90">
             Medicos estao esperando. Responda para Julia continuar a conversa.
           </p>
         </div>
@@ -308,7 +308,7 @@ function PedidoCard({
   const isPending = pedido.status === 'pendente' || pedido.status === 'timeout'
 
   return (
-    <Card className={isPending ? 'border-yellow-200 bg-white' : 'bg-white'}>
+    <Card className={isPending ? 'border-status-warning-border bg-white' : 'bg-white'}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -348,8 +348,8 @@ function PedidoCard({
         )}
 
         {/* Pergunta */}
-        <div className="rounded-lg bg-gray-50 p-4">
-          <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
+        <div className="rounded-lg bg-muted/50 p-4">
+          <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
             <MessageSquare className="h-4 w-4" />
             <span>Pergunta do medico:</span>
           </div>
@@ -366,8 +366,8 @@ function PedidoCard({
 
         {/* Resposta (se ja respondido) */}
         {pedido.resposta && pedido.respondido_em && (
-          <div className="rounded-lg bg-green-50 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm text-green-700">
+          <div className="rounded-lg bg-status-success p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm text-status-success-foreground">
               <CheckCircle2 className="h-4 w-4" />
               <span>Respondido em {format(new Date(pedido.respondido_em), 'dd/MM HH:mm')}</span>
             </div>

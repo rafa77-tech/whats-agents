@@ -21,14 +21,14 @@ export function CapacityBar({ used, total }: CapacityBarProps) {
         </span>
         <span className="text-sm text-gray-500">{percentage}%</span>
       </div>
-      <div className="h-4 w-full overflow-hidden rounded-full bg-gray-200">
+      <div className="h-4 w-full overflow-hidden rounded-full bg-muted">
         <div
           className={cn('h-full transition-all duration-500', colorClass)}
           style={{ width: `${percentage}%` }}
         />
       </div>
       {showWarning && (
-        <p className="mt-1 text-xs text-yellow-600">
+        <p className="mt-1 text-xs text-status-warning-foreground">
           Capacidade quase no limite. Considere adicionar mais chips.
         </p>
       )}

@@ -69,10 +69,10 @@ export function ConfigPageContent() {
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-6">
-        <div className="h-8 w-48 rounded bg-gray-200" />
+        <div className="h-8 w-48 rounded bg-muted" />
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-32 rounded bg-gray-200" />
+            <div key={i} className="h-32 rounded bg-muted" />
           ))}
         </div>
       </div>
@@ -82,8 +82,8 @@ export function ConfigPageContent() {
   if (!config) {
     return (
       <div className="py-12 text-center">
-        <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-        <p className="text-gray-500">{error || 'Configurações não disponíveis'}</p>
+        <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+        <p className="text-muted-foreground">{error || 'Configurações não disponíveis'}</p>
       </div>
     )
   }
@@ -93,13 +93,13 @@ export function ConfigPageContent() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <nav className="mb-2 text-sm text-gray-500">
-            <Link href={'/chips' as Route} className="flex items-center gap-1 hover:text-gray-700">
+          <nav className="mb-2 text-sm text-muted-foreground">
+            <Link href={'/chips' as Route} className="flex items-center gap-1 hover:text-foreground">
               <ChevronLeft className="h-4 w-4" />
               Voltar para Pool de Chips
             </Link>
           </nav>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
             <Settings className="h-6 w-6" />
             Configurações do Pool
           </h1>
@@ -122,10 +122,10 @@ export function ConfigPageContent() {
 
       {/* Status messages */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-600">{error}</div>
+        <div className="rounded-lg border border-status-error-border bg-status-error/10 p-4 text-status-error-foreground">{error}</div>
       )}
       {success && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-green-600">
+        <div className="rounded-lg border border-status-success-border bg-status-success/10 p-4 text-status-success-foreground">
           Configurações salvas com sucesso!
         </div>
       )}
@@ -218,7 +218,7 @@ export function ConfigPageContent() {
           <div className="flex items-center justify-between">
             <div>
               <Label>Promoção Automática</Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Promover chips automaticamente quando atingirem critérios
               </p>
             </div>
@@ -230,7 +230,7 @@ export function ConfigPageContent() {
           <div className="flex items-center justify-between">
             <div>
               <Label>Rebaixamento Automático</Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Rebaixar chips automaticamente quando trust cair
               </p>
             </div>
@@ -303,8 +303,8 @@ export function ConfigPageContent() {
                   className={cn(
                     'rounded-md px-3 py-1 text-sm font-medium transition-colors',
                     config.operatingDays.includes(index)
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-status-info text-status-info-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   )}
                 >
                   {day}

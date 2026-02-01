@@ -33,10 +33,10 @@ const activityTypeLabels: Record<ScheduledActivityType, string> = {
 }
 
 const statusConfig: Record<ActivityStatus, { label: string; color: string; icon: typeof Clock }> = {
-  planejada: { label: 'Planejada', color: 'bg-blue-100 text-blue-800', icon: Clock },
-  executada: { label: 'Executada', color: 'bg-green-100 text-green-800', icon: CheckCircle },
-  falhou: { label: 'Falhou', color: 'bg-red-100 text-red-800', icon: XCircle },
-  cancelada: { label: 'Cancelada', color: 'bg-gray-100 text-gray-800', icon: XCircle },
+  planejada: { label: 'Planejada', color: 'bg-status-info text-status-info-foreground', icon: Clock },
+  executada: { label: 'Executada', color: 'bg-status-success text-status-success-foreground', icon: CheckCircle },
+  falhou: { label: 'Falhou', color: 'bg-status-error text-status-error-foreground', icon: XCircle },
+  cancelada: { label: 'Cancelada', color: 'bg-status-neutral text-status-neutral-foreground', icon: XCircle },
 }
 
 export function WarmupPageContent() {
@@ -75,13 +75,13 @@ export function WarmupPageContent() {
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-6">
-        <div className="h-8 w-48 rounded bg-gray-200" />
+        <div className="h-8 w-48 rounded bg-muted" />
         <div className="grid grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 rounded bg-gray-200" />
+            <div key={i} className="h-24 rounded bg-muted" />
           ))}
         </div>
-        <div className="h-96 rounded bg-gray-200" />
+        <div className="h-96 rounded bg-muted" />
       </div>
     )
   }
@@ -91,17 +91,17 @@ export function WarmupPageContent() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <nav className="mb-2 text-sm text-gray-500">
-            <Link href={'/chips' as Route} className="flex items-center gap-1 hover:text-gray-700">
+          <nav className="mb-2 text-sm text-muted-foreground">
+            <Link href={'/chips' as Route} className="flex items-center gap-1 hover:text-foreground">
               <ChevronLeft className="h-4 w-4" />
               Voltar para Pool de Chips
             </Link>
           </nav>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
             <Flame className="h-6 w-6" />
             Warmup de Atividades
           </h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-muted-foreground">
             Visualize e monitore as atividades de warmup agendadas
           </p>
         </div>
@@ -111,7 +111,7 @@ export function WarmupPageContent() {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="rounded-md border border-gray-200 px-3 py-2 text-sm"
+            className="rounded-md border border-border px-3 py-2 text-sm"
           />
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={cn('mr-2 h-4 w-4', isRefreshing && 'animate-spin')} />
@@ -125,25 +125,25 @@ export function WarmupPageContent() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="p-4">
-              <div className="mb-1 text-sm text-gray-600">Planejadas</div>
-              <div className="text-2xl font-bold text-blue-600">{stats.totalPlanned}</div>
+              <div className="mb-1 text-sm text-muted-foreground">Planejadas</div>
+              <div className="text-2xl font-bold text-status-info-foreground">{stats.totalPlanned}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="mb-1 text-sm text-gray-600">Executadas</div>
-              <div className="text-2xl font-bold text-green-600">{stats.totalExecuted}</div>
+              <div className="mb-1 text-sm text-muted-foreground">Executadas</div>
+              <div className="text-2xl font-bold text-status-success-foreground">{stats.totalExecuted}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="mb-1 text-sm text-gray-600">Falhas</div>
-              <div className="text-2xl font-bold text-red-600">{stats.totalFailed}</div>
+              <div className="mb-1 text-sm text-muted-foreground">Falhas</div>
+              <div className="text-2xl font-bold text-status-error-foreground">{stats.totalFailed}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="mb-1 text-sm text-gray-600">Taxa de Sucesso</div>
+              <div className="mb-1 text-sm text-muted-foreground">Taxa de Sucesso</div>
               <div className="text-2xl font-bold">
                 {stats.totalExecuted + stats.totalFailed > 0
                   ? (
@@ -169,14 +169,14 @@ export function WarmupPageContent() {
               {(Object.keys(stats.byType) as ScheduledActivityType[]).map((type) => {
                 const data = stats.byType[type]
                 return (
-                  <div key={type} className="rounded-lg bg-gray-50 p-3">
-                    <div className="mb-1 text-xs text-gray-500">{activityTypeLabels[type]}</div>
+                  <div key={type} className="rounded-lg bg-muted/50 p-3">
+                    <div className="mb-1 text-xs text-muted-foreground">{activityTypeLabels[type]}</div>
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-semibold">{data.executed}</span>
-                      <span className="text-xs text-gray-400">/ {data.planned}</span>
+                      <span className="text-xs text-muted-foreground">/ {data.planned}</span>
                     </div>
                     {data.failed > 0 && (
-                      <div className="mt-1 text-xs text-red-500">{data.failed} falhas</div>
+                      <div className="mt-1 text-xs text-status-error-foreground">{data.failed} falhas</div>
                     )}
                   </div>
                 )
@@ -193,7 +193,7 @@ export function WarmupPageContent() {
         </CardHeader>
         <CardContent>
           {activities.length === 0 ? (
-            <p className="py-8 text-center text-gray-500">
+            <p className="py-8 text-center text-muted-foreground">
               Nenhuma atividade agendada para esta data.
             </p>
           ) : (
@@ -204,24 +204,24 @@ export function WarmupPageContent() {
                 return (
                   <div
                     key={activity.id}
-                    className="flex items-center justify-between rounded-lg bg-gray-50 p-3"
+                    className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
                   >
                     <div className="flex items-center gap-3">
                       <Icon
                         className={cn(
                           'h-4 w-4',
                           activity.status === 'executada'
-                            ? 'text-green-500'
+                            ? 'text-status-success-solid'
                             : activity.status === 'falhou'
-                              ? 'text-red-500'
-                              : 'text-blue-500'
+                              ? 'text-status-error-solid'
+                              : 'text-status-info-solid'
                         )}
                       />
                       <div>
                         <div className="text-sm font-medium">
                           {activityTypeLabels[activity.type]}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-muted-foreground">
                           {activity.chipTelefone} •{' '}
                           {new Date(activity.scheduledAt).toLocaleTimeString('pt-BR', {
                             hour: '2-digit',
@@ -233,7 +233,7 @@ export function WarmupPageContent() {
                     <div className="flex items-center gap-2">
                       <Badge className={config.color}>{config.label}</Badge>
                       {activity.errorMessage && (
-                        <span className="max-w-32 truncate text-xs text-red-500">
+                        <span className="max-w-32 truncate text-xs text-status-error-foreground">
                           {activity.errorMessage}
                         </span>
                       )}

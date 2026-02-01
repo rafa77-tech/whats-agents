@@ -56,22 +56,22 @@ interface Campanha {
 const statusConfig = {
   rascunho: {
     label: 'Rascunho',
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    color: 'bg-status-neutral text-status-neutral-foreground border-muted',
     icon: FileEdit,
   },
   agendada: {
     label: 'Agendada',
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    color: 'bg-status-info text-status-info-foreground border-status-info-border',
     icon: Clock,
   },
   ativa: {
     label: 'Ativa',
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    color: 'bg-status-warning text-status-warning-foreground border-status-warning-border',
     icon: Play,
   },
   concluida: {
     label: 'Concluida',
-    color: 'bg-green-100 text-green-800 border-green-200',
+    color: 'bg-status-success text-status-success-foreground border-status-success-border',
     icon: CheckCircle2,
   },
   pausada: {
@@ -81,7 +81,7 @@ const statusConfig = {
   },
   cancelada: {
     label: 'Cancelada',
-    color: 'bg-red-100 text-red-800 border-red-200',
+    color: 'bg-status-error text-status-error-foreground border-status-error-border',
     icon: Trash2,
   },
 }
@@ -165,8 +165,8 @@ export default function CampanhasPage() {
 
       {/* Erro */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="rounded-lg border border-status-error-border bg-status-error p-4">
+          <p className="text-sm text-status-error-foreground">{error}</p>
         </div>
       )}
 

@@ -125,15 +125,15 @@ export function MonitorPageContent() {
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-6">
-        <div className="h-8 w-48 rounded bg-gray-200" />
-        <div className="h-32 rounded bg-gray-200" />
+        <div className="h-8 w-48 rounded bg-muted" />
+        <div className="h-32 rounded bg-muted" />
         <div className="grid grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 rounded bg-gray-200" />
+            <div key={i} className="h-24 rounded bg-muted" />
           ))}
         </div>
-        <div className="h-12 rounded bg-gray-200" />
-        <div className="h-96 rounded bg-gray-200" />
+        <div className="h-12 rounded bg-muted" />
+        <div className="h-96 rounded bg-muted" />
       </div>
     )
   }
@@ -143,18 +143,18 @@ export function MonitorPageContent() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
             <Activity className="h-6 w-6" />
             Monitor do Sistema
           </h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-muted-foreground">
             Monitoramento em tempo real dos jobs e saude do sistema
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {lastUpdate && (
-            <span className="text-xs text-gray-500" suppressHydrationWarning>
+            <span className="text-xs text-muted-foreground" suppressHydrationWarning>
               Atualizado: {lastUpdate.toLocaleTimeString('pt-BR')}
             </span>
           )}
@@ -178,12 +178,12 @@ export function MonitorPageContent() {
       {/* Alerts Banner (if any critical) */}
       {overview?.alerts.criticalStale.length ? (
         <section aria-label="Alertas">
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <div className="flex items-center gap-2 font-medium text-red-800">
+          <div className="rounded-lg border border-status-error-border bg-status-error p-4">
+            <div className="flex items-center gap-2 font-medium text-status-error-foreground">
               <Activity className="h-5 w-5" />
               {overview.alerts.criticalStale.length} job(s) critico(s) atrasado(s)
             </div>
-            <div className="mt-2 text-sm text-red-700">
+            <div className="mt-2 text-sm text-status-error-foreground">
               {getJobDisplayNames(overview.alerts.criticalStale).join(', ')}
             </div>
           </div>

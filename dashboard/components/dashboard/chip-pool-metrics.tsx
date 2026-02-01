@@ -29,13 +29,13 @@ function MetricItem({
     format === 'percent' ? `${value.toFixed(1)}%` : value.toLocaleString('pt-BR')
 
   return (
-    <div className="rounded-lg bg-gray-50 p-3 text-center">
-      <div className="text-lg font-bold text-gray-900">{formattedValue}</div>
-      <div className="mb-1 text-xs text-gray-500">{label}</div>
+    <div className="rounded-lg bg-secondary p-3 text-center">
+      <div className="text-lg font-bold text-foreground">{formattedValue}</div>
+      <div className="mb-1 text-xs text-muted-foreground">{label}</div>
       {Math.abs(diff) >= 1 && (
         <div
           className={`flex items-center justify-center text-xs ${
-            isGood ? 'text-green-600' : 'text-red-600'
+            isGood ? 'text-status-success-foreground' : 'text-status-error-foreground'
           }`}
         >
           {isPositive ? (
@@ -65,7 +65,7 @@ const defaultMetrics: ChipPoolAggregatedMetrics = {
 export function ChipPoolMetricsComponent({ metrics = defaultMetrics }: ChipPoolMetricsProps) {
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium text-gray-700">Metricas Agregadas (periodo)</h4>
+      <h4 className="text-sm font-medium text-foreground/80">Metricas Agregadas (periodo)</h4>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <MetricItem
           label="Msgs Enviadas"

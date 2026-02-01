@@ -18,19 +18,19 @@ interface StatusCounterCardProps {
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  active: { label: 'Ativos', color: 'text-green-700', bgColor: 'bg-green-50' },
-  ready: { label: 'Prontos', color: 'text-blue-700', bgColor: 'bg-blue-50' },
-  warming: { label: 'Aquecendo', color: 'text-yellow-700', bgColor: 'bg-yellow-50' },
-  degraded: { label: 'Degradados', color: 'text-orange-700', bgColor: 'bg-orange-50' },
-  paused: { label: 'Pausados', color: 'text-gray-700', bgColor: 'bg-gray-50' },
-  banned: { label: 'Banidos', color: 'text-red-700', bgColor: 'bg-red-50' },
-  provisioned: { label: 'Provisionados', color: 'text-purple-700', bgColor: 'bg-purple-50' },
-  pending: { label: 'Pendentes', color: 'text-gray-700', bgColor: 'bg-gray-50' },
-  cancelled: { label: 'Cancelados', color: 'text-gray-500', bgColor: 'bg-gray-100' },
-  offline: { label: 'Offline', color: 'text-red-700', bgColor: 'bg-red-50' },
+  active: { label: 'Ativos', color: 'text-status-success-foreground', bgColor: 'bg-status-success/10' },
+  ready: { label: 'Prontos', color: 'text-status-info-foreground', bgColor: 'bg-status-info/10' },
+  warming: { label: 'Aquecendo', color: 'text-status-warning-foreground', bgColor: 'bg-status-warning/10' },
+  degraded: { label: 'Degradados', color: 'text-status-warning-foreground', bgColor: 'bg-status-warning/10' },
+  paused: { label: 'Pausados', color: 'text-status-neutral-foreground', bgColor: 'bg-muted/50' },
+  banned: { label: 'Banidos', color: 'text-status-error-foreground', bgColor: 'bg-status-error/10' },
+  provisioned: { label: 'Provisionados', color: 'text-status-info-foreground', bgColor: 'bg-status-info/10' },
+  pending: { label: 'Pendentes', color: 'text-status-neutral-foreground', bgColor: 'bg-muted/50' },
+  cancelled: { label: 'Cancelados', color: 'text-muted-foreground', bgColor: 'bg-muted' },
+  offline: { label: 'Offline', color: 'text-status-error-foreground', bgColor: 'bg-status-error/10' },
 }
 
-const defaultConfig = { label: 'Desconhecido', color: 'text-gray-700', bgColor: 'bg-gray-50' }
+const defaultConfig = { label: 'Desconhecido', color: 'text-status-neutral-foreground', bgColor: 'bg-muted/50' }
 
 export function StatusCounterCard({
   status,
@@ -46,7 +46,7 @@ export function StatusCounterCard({
       <div className="flex items-center justify-between">
         <span className={cn('text-sm font-medium', config.color)}>{config.label}</span>
         {percentage !== undefined && (
-          <span className="text-xs text-gray-500">{percentage.toFixed(1)}%</span>
+          <span className="text-xs text-muted-foreground">{percentage.toFixed(1)}%</span>
         )}
       </div>
       <div className="mt-2 flex items-baseline gap-2">
@@ -56,10 +56,10 @@ export function StatusCounterCard({
             className={cn(
               'text-sm',
               trend === 'up'
-                ? 'text-green-600'
+                ? 'text-status-success-foreground'
                 : trend === 'down'
-                  ? 'text-red-600'
-                  : 'text-gray-500'
+                  ? 'text-status-error-foreground'
+                  : 'text-muted-foreground'
             )}
           >
             {trend === 'up' ? '+' : trend === 'down' ? '-' : ''}

@@ -70,40 +70,40 @@ const STATUS_CONFIG: Record<
 > = {
   running: {
     icon: Loader2,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
+    color: 'text-status-info-foreground',
+    bgColor: 'bg-status-info',
     label: 'Executando',
     priority: 1,
   },
   error: {
     icon: XCircle,
-    color: 'text-red-600',
-    bgColor: 'bg-red-100',
+    color: 'text-status-error-foreground',
+    bgColor: 'bg-status-error',
     label: 'Erro',
     priority: 2,
   },
   timeout: {
     icon: Clock,
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-100',
+    color: 'text-status-warning-foreground',
+    bgColor: 'bg-status-warning',
     label: 'Timeout',
     priority: 3,
   },
   success: {
     icon: CheckCircle,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
+    color: 'text-status-success-foreground',
+    bgColor: 'bg-status-success',
     label: 'Sucesso',
     priority: 4,
   },
 }
 
 const CATEGORY_COLORS: Record<JobCategory, string> = {
-  critical: 'bg-red-100 text-red-700',
-  frequent: 'bg-blue-100 text-blue-700',
+  critical: 'bg-status-error text-status-error-foreground',
+  frequent: 'bg-status-info text-status-info-foreground',
   hourly: 'bg-purple-100 text-purple-700',
-  daily: 'bg-green-100 text-green-700',
-  weekly: 'bg-gray-100 text-gray-700',
+  daily: 'bg-status-success text-status-success-foreground',
+  weekly: 'bg-status-neutral text-status-neutral-foreground',
 }
 
 const CATEGORY_PRIORITY: Record<JobCategory, number> = {
@@ -151,12 +151,12 @@ function SortableHeader({
 
   return (
     <TableHead
-      className={cn('cursor-pointer select-none hover:bg-gray-50', className)}
+      className={cn('cursor-pointer select-none hover:bg-muted/50', className)}
       onClick={() => onSort(column)}
     >
       <div className="flex items-center gap-1">
         {children}
-        <Icon className={cn('h-4 w-4', isActive ? 'text-gray-900' : 'text-gray-400')} />
+        <Icon className={cn('h-4 w-4', isActive ? 'text-foreground' : 'text-muted-foreground')} />
       </div>
     </TableHead>
   )
@@ -275,7 +275,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
         <CardContent>
           <div className="animate-pulse space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-12 rounded bg-gray-200" />
+              <div key={i} className="h-12 rounded bg-muted" />
             ))}
           </div>
         </CardContent>
@@ -290,7 +290,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
           <CardTitle className="text-lg">
             Jobs do Sistema
             {jobs && (
-              <span className="ml-2 text-sm font-normal text-gray-500">({jobs.length} jobs)</span>
+              <span className="ml-2 text-sm font-normal text-muted-foreground">({jobs.length} jobs)</span>
             )}
           </CardTitle>
         </CardHeader>
@@ -352,7 +352,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
             <TableBody>
               {sortedJobs?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-gray-500">
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                     Nenhum job encontrado com os filtros aplicados.
                   </TableCell>
                 </TableRow>
@@ -362,18 +362,18 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                   const StatusIcon = statusConfig?.icon || Clock
 
                   return (
-                    <TableRow key={job.name} className="hover:bg-gray-50">
+                    <TableRow key={job.name} className="hover:bg-muted/50">
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {job.isCritical && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span>
-                                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                                  <AlertTriangle className="h-4 w-4 text-status-error-solid" />
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent side="top">
-                                <p>Job Crítico</p>
+                                <p>Job Critico</p>
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -381,7 +381,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span>
-                                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                  <AlertTriangle className="h-4 w-4 text-status-warning-solid" />
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent side="top">
@@ -391,7 +391,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                           )}
                           <div className="cursor-pointer" onClick={() => onJobClick(job.name)}>
                             <div className="font-medium">{job.displayName}</div>
-                            <div className="text-xs text-gray-500">{job.description}</div>
+                            <div className="text-xs text-muted-foreground">{job.description}</div>
                           </div>
                         </div>
                       </TableCell>
@@ -402,7 +402,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                       </TableCell>
                       <TableCell suppressHydrationWarning>
                         <div className="text-sm">{formatTimeAgo(job.lastRun)}</div>
-                        <div className="text-xs text-gray-400">{job.scheduleDescription}</div>
+                        <div className="text-xs text-muted-foreground">{job.scheduleDescription}</div>
                       </TableCell>
                       <TableCell>
                         {statusConfig ? (
@@ -424,9 +424,9 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <span className="text-green-600">{job.success24h}</span>
-                          <span className="text-gray-400">/</span>
-                          <span className={job.errors24h > 0 ? 'text-red-600' : 'text-gray-400'}>
+                          <span className="text-status-success-foreground">{job.success24h}</span>
+                          <span className="text-muted-foreground">/</span>
+                          <span className={job.errors24h > 0 ? 'text-status-error-foreground' : 'text-muted-foreground'}>
                             {job.errors24h}
                           </span>
                         </div>
@@ -451,8 +451,8 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                                     className={cn(
                                       'h-3.5 w-3.5',
                                       job.lastStatus === 'running'
-                                        ? 'text-gray-300'
-                                        : 'text-green-600'
+                                        ? 'text-muted-foreground/50'
+                                        : 'text-status-success-foreground'
                                     )}
                                   />
                                 </Button>
@@ -483,8 +483,8 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                                     className={cn(
                                       'h-3.5 w-3.5',
                                       job.lastStatus !== 'running' && job.lastStatus !== 'success'
-                                        ? 'text-gray-300'
-                                        : 'text-yellow-600'
+                                        ? 'text-muted-foreground/50'
+                                        : 'text-status-warning-foreground'
                                     )}
                                   />
                                 </Button>
@@ -506,7 +506,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                                     openDialog('delete', job)
                                   }}
                                 >
-                                  <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                                  <Trash2 className="h-3.5 w-3.5 text-status-error-solid" />
                                 </Button>
                               </span>
                             </TooltipTrigger>
@@ -520,7 +520,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                             className="h-7 w-7 p-0"
                             onClick={() => onJobClick(job.name)}
                           >
-                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </div>
                       </TableCell>
@@ -550,14 +550,14 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
             </AlertDialogDescription>
           </AlertDialogHeader>
           {actionError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{actionError}</div>
+            <div className="rounded-md bg-status-error p-3 text-sm text-status-error-foreground">{actionError}</div>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isActionLoading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => handleAction('run')}
               disabled={isActionLoading}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-status-success-solid hover:bg-status-success-solid-hover"
             >
               {isActionLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -586,14 +586,14 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
             </AlertDialogDescription>
           </AlertDialogHeader>
           {actionError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{actionError}</div>
+            <div className="rounded-md bg-status-error p-3 text-sm text-status-error-foreground">{actionError}</div>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isActionLoading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => handleAction('pause')}
               disabled={isActionLoading}
-              className="bg-yellow-600 hover:bg-yellow-700"
+              className="bg-status-warning-solid hover:bg-status-warning-solid-hover"
             >
               {isActionLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -625,7 +625,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                 </p>
                 <p className="mt-4">
                   Para confirmar, digite o nome do job:{' '}
-                  <code className="rounded bg-gray-100 px-2 py-1 text-sm font-bold">
+                  <code className="rounded bg-muted px-2 py-1 text-sm font-bold">
                     {dialogState.job?.displayName}
                   </code>
                 </p>
@@ -640,14 +640,14 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
             </AlertDialogDescription>
           </AlertDialogHeader>
           {actionError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{actionError}</div>
+            <div className="rounded-md bg-status-error p-3 text-sm text-status-error-foreground">{actionError}</div>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isActionLoading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => handleAction('delete')}
               disabled={isActionLoading || !canConfirmDelete}
-              className="bg-red-600 hover:bg-red-700 disabled:bg-red-300"
+              className="bg-status-error-solid hover:bg-status-error-solid-hover disabled:opacity-50"
             >
               {isActionLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

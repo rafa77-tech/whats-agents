@@ -91,25 +91,25 @@ export function CriticalAlertsBanner() {
   }
 
   return (
-    <div className="mb-6 rounded-lg border border-red-300 bg-red-50 p-4">
+    <div className="mb-6 rounded-lg border border-status-error-border bg-status-error p-4">
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
+          <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-status-error-foreground" />
           <div>
-            <h3 className="font-medium text-red-800">ALERTAS CRITICOS ({alerts.length})</h3>
+            <h3 className="font-medium text-status-error-foreground">ALERTAS CRITICOS ({alerts.length})</h3>
             <ul className="mt-2 space-y-1">
               {alerts.slice(0, 3).map((alert) => (
-                <li key={alert.id} className="text-sm text-red-700">
-                  • {alert.message}
+                <li key={alert.id} className="text-sm text-status-error-foreground/90">
+                  - {alert.message}
                 </li>
               ))}
               {alerts.length > 3 && (
-                <li className="text-sm text-red-600">+ {alerts.length - 3} mais alertas</li>
+                <li className="text-sm text-status-error-foreground/80">+ {alerts.length - 3} mais alertas</li>
               )}
             </ul>
             <Link
               href="/health"
-              className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-red-700 hover:text-red-800"
+              className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-status-error-foreground hover:text-status-error-foreground/80"
             >
               Ver detalhes no Health Center
               <ExternalLink className="h-3 w-3" />
@@ -119,7 +119,7 @@ export function CriticalAlertsBanner() {
         <Button
           variant="ghost"
           size="sm"
-          className="text-red-600 hover:text-red-800"
+          className="text-status-error-foreground hover:text-status-error-foreground/80"
           onClick={() => setDismissed(true)}
         >
           <X className="h-4 w-4" />

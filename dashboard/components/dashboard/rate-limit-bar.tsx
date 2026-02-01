@@ -7,9 +7,9 @@ interface RateLimitBarProps {
 }
 
 function getProgressColor(percentage: number): string {
-  if (percentage < 50) return 'bg-green-500'
-  if (percentage < 80) return 'bg-yellow-500'
-  return 'bg-red-500'
+  if (percentage < 50) return 'bg-status-success-solid'
+  if (percentage < 80) return 'bg-status-warning-solid'
+  return 'bg-status-error-solid'
 }
 
 export function RateLimitBar({ data }: RateLimitBarProps) {
@@ -19,12 +19,12 @@ export function RateLimitBar({ data }: RateLimitBarProps) {
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
-        <span className="text-gray-600">{label}</span>
+        <span className="text-muted-foreground">{label}</span>
         <span className="font-medium">
           {current}/{max}
         </span>
       </div>
-      <div className="h-2 rounded-full bg-gray-200">
+      <div className="h-2 rounded-full bg-muted">
         <div
           className={`h-full rounded-full transition-all ${getProgressColor(percentage)}`}
           style={{ width: `${Math.min(percentage, 100)}%` }}

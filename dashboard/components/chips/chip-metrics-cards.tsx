@@ -111,8 +111,8 @@ export function ChipMetricsCards({ metrics }: ChipMetricsCardsProps) {
             )
 
             return (
-              <div key={item.label} className="rounded-lg bg-gray-50 p-3">
-                <div className="mb-1 text-sm text-gray-500">{item.label}</div>
+              <div key={item.label} className="rounded-lg bg-muted/50 p-3">
+                <div className="mb-1 text-sm text-muted-foreground">{item.label}</div>
                 <div className="flex items-center justify-between">
                   <span className="text-xl font-semibold">
                     {formatValue(typeof item.value === 'number' ? item.value : 0, item.format)}
@@ -144,7 +144,7 @@ function TrendIndicator({
   isPositive: boolean
 }) {
   const Icon = direction === 'up' ? TrendingUp : TrendingDown
-  const colorClass = isPositive ? 'text-green-500' : 'text-red-500'
+  const colorClass = isPositive ? 'text-status-success-solid' : 'text-status-error-solid'
 
   return (
     <div className={cn('flex items-center gap-1 text-sm', colorClass)}>

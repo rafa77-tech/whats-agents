@@ -128,6 +128,67 @@ module.exports = {
           document: 'hsl(var(--state-document))',
           audio: 'hsl(var(--state-audio))',
         },
+        status: {
+          success: {
+            DEFAULT: 'hsl(var(--status-success))',
+            foreground: 'hsl(var(--status-success-foreground))',
+            border: 'hsl(var(--status-success-border))',
+            solid: 'hsl(var(--status-success-solid))',
+            'solid-hover': 'hsl(var(--status-success-solid-hover))',
+          },
+          warning: {
+            DEFAULT: 'hsl(var(--status-warning))',
+            foreground: 'hsl(var(--status-warning-foreground))',
+            border: 'hsl(var(--status-warning-border))',
+            solid: 'hsl(var(--status-warning-solid))',
+            'solid-hover': 'hsl(var(--status-warning-solid-hover))',
+          },
+          error: {
+            DEFAULT: 'hsl(var(--status-error))',
+            foreground: 'hsl(var(--status-error-foreground))',
+            border: 'hsl(var(--status-error-border))',
+            solid: 'hsl(var(--status-error-solid))',
+            'solid-hover': 'hsl(var(--status-error-solid-hover))',
+          },
+          info: {
+            DEFAULT: 'hsl(var(--status-info))',
+            foreground: 'hsl(var(--status-info-foreground))',
+            border: 'hsl(var(--status-info-border))',
+            solid: 'hsl(var(--status-info-solid))',
+            'solid-hover': 'hsl(var(--status-info-solid-hover))',
+          },
+          neutral: {
+            DEFAULT: 'hsl(var(--status-neutral))',
+            foreground: 'hsl(var(--status-neutral-foreground))',
+            border: 'hsl(var(--status-neutral-border))',
+            solid: 'hsl(var(--status-neutral-solid))',
+          },
+        },
+        trust: {
+          verde: {
+            DEFAULT: 'hsl(var(--trust-verde))',
+            foreground: 'hsl(var(--trust-verde-foreground))',
+            solid: 'hsl(var(--trust-verde-solid))',
+          },
+          amarelo: {
+            DEFAULT: 'hsl(var(--trust-amarelo))',
+            foreground: 'hsl(var(--trust-amarelo-foreground))',
+            solid: 'hsl(var(--trust-amarelo-solid))',
+          },
+          laranja: {
+            DEFAULT: 'hsl(var(--trust-laranja))',
+            foreground: 'hsl(var(--trust-laranja-foreground))',
+          },
+          vermelho: {
+            DEFAULT: 'hsl(var(--trust-vermelho))',
+            foreground: 'hsl(var(--trust-vermelho-foreground))',
+            solid: 'hsl(var(--trust-vermelho-solid))',
+          },
+          critico: {
+            DEFAULT: 'hsl(var(--trust-critico))',
+            foreground: 'hsl(var(--trust-critico-foreground))',
+          },
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

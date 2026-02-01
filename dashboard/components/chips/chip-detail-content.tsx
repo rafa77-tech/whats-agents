@@ -42,29 +42,29 @@ interface ChipDetailContentProps {
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  provisioned: { label: 'Provisionado', color: 'bg-gray-100 text-gray-800' },
-  pending: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
-  warming: { label: 'Aquecendo', color: 'bg-blue-100 text-blue-800' },
-  ready: { label: 'Pronto', color: 'bg-green-100 text-green-800' },
-  active: { label: 'Ativo', color: 'bg-emerald-100 text-emerald-800' },
-  degraded: { label: 'Degradado', color: 'bg-orange-100 text-orange-800' },
-  paused: { label: 'Pausado', color: 'bg-gray-100 text-gray-800' },
-  banned: { label: 'Banido', color: 'bg-red-100 text-red-800' },
-  cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
-  offline: { label: 'Offline', color: 'bg-red-100 text-red-800' },
+  provisioned: { label: 'Provisionado', color: 'bg-status-neutral text-status-neutral-foreground' },
+  pending: { label: 'Pendente', color: 'bg-status-warning text-status-warning-foreground' },
+  warming: { label: 'Aquecendo', color: 'bg-status-info text-status-info-foreground' },
+  ready: { label: 'Pronto', color: 'bg-status-success text-status-success-foreground' },
+  active: { label: 'Ativo', color: 'bg-state-ai text-state-ai-foreground' },
+  degraded: { label: 'Degradado', color: 'bg-status-warning text-status-warning-foreground' },
+  paused: { label: 'Pausado', color: 'bg-status-neutral text-status-neutral-foreground' },
+  banned: { label: 'Banido', color: 'bg-status-error text-status-error-foreground' },
+  cancelled: { label: 'Cancelado', color: 'bg-status-error text-status-error-foreground' },
+  offline: { label: 'Offline', color: 'bg-status-error text-status-error-foreground' },
 }
 
-const defaultStatusConfig = { label: 'Desconhecido', color: 'bg-gray-100 text-gray-800' }
+const defaultStatusConfig = { label: 'Desconhecido', color: 'bg-status-neutral text-status-neutral-foreground' }
 
 const trustLevelConfig: Record<string, { color: string }> = {
-  verde: { color: 'bg-green-100 text-green-800' },
-  amarelo: { color: 'bg-yellow-100 text-yellow-800' },
-  laranja: { color: 'bg-orange-100 text-orange-800' },
-  vermelho: { color: 'bg-red-100 text-red-800' },
-  critico: { color: 'bg-red-200 text-red-900' },
+  verde: { color: 'bg-trust-verde text-trust-verde-foreground' },
+  amarelo: { color: 'bg-trust-amarelo text-trust-amarelo-foreground' },
+  laranja: { color: 'bg-trust-laranja text-trust-laranja-foreground' },
+  vermelho: { color: 'bg-trust-vermelho text-trust-vermelho-foreground' },
+  critico: { color: 'bg-trust-critico text-trust-critico-foreground' },
 }
 
-const defaultTrustConfig = { color: 'bg-gray-100 text-gray-800' }
+const defaultTrustConfig = { color: 'bg-status-neutral text-status-neutral-foreground' }
 
 const warmupPhaseLabels: Record<WarmupPhase, string> = {
   repouso: 'Repouso',
@@ -129,11 +129,11 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
   if (error || !chip) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <AlertTriangle className="mb-4 h-12 w-12 text-gray-400" />
-        <h2 className="mb-2 text-lg font-semibold text-gray-900">
+        <AlertTriangle className="mb-4 h-12 w-12 text-muted-foreground" />
+        <h2 className="mb-2 text-lg font-semibold text-foreground">
           {error || 'Chip não encontrado'}
         </h2>
-        <p className="mb-4 text-gray-500">Não foi possível carregar os detalhes deste chip.</p>
+        <p className="mb-4 text-muted-foreground">Não foi possível carregar os detalhes deste chip.</p>
         <Button variant="outline" onClick={() => router.push('/chips' as Route)}>
           <ChevronLeft className="mr-2 h-4 w-4" />
           Voltar para lista
@@ -150,15 +150,15 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <nav className="mb-2 text-sm text-gray-500">
-            <Link href={'/chips' as Route} className="flex items-center gap-1 hover:text-gray-700">
+          <nav className="mb-2 text-sm text-muted-foreground">
+            <Link href={'/chips' as Route} className="flex items-center gap-1 hover:text-foreground">
               <ChevronLeft className="h-4 w-4" />
               Voltar para Pool de Chips
             </Link>
           </nav>
           <div className="flex items-center gap-3">
-            <Phone className="h-6 w-6 text-gray-400" />
-            <h1 className="text-2xl font-bold text-gray-900">{chip.telefone}</h1>
+            <Phone className="h-6 w-6 text-muted-foreground" />
+            <h1 className="text-2xl font-bold text-foreground">{chip.telefone}</h1>
           </div>
           <div className="mt-2 flex items-center gap-2">
             <Badge className={statusCfg.color}>{statusCfg.label}</Badge>
@@ -187,19 +187,19 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-4">
-            <div className="mb-1 flex items-center gap-2 text-gray-500">
+            <div className="mb-1 flex items-center gap-2 text-muted-foreground">
               <MessageSquare className="h-4 w-4" />
               <span className="text-sm">Mensagens Hoje</span>
             </div>
             <div className="text-2xl font-bold">
               {chip.messagesToday}{' '}
-              <span className="text-sm font-normal text-gray-500">/ {chip.dailyLimit}</span>
+              <span className="text-sm font-normal text-muted-foreground">/ {chip.dailyLimit}</span>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="mb-1 flex items-center gap-2 text-gray-500">
+            <div className="mb-1 flex items-center gap-2 text-muted-foreground">
               <Activity className="h-4 w-4" />
               <span className="text-sm">Taxa de Resposta</span>
             </div>
@@ -208,7 +208,7 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="mb-1 flex items-center gap-2 text-gray-500">
+            <div className="mb-1 flex items-center gap-2 text-muted-foreground">
               <TrendingUp className="h-4 w-4" />
               <span className="text-sm">Taxa de Entrega</span>
             </div>
@@ -217,11 +217,11 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="mb-1 flex items-center gap-2 text-gray-500">
+            <div className="mb-1 flex items-center gap-2 text-muted-foreground">
               <AlertTriangle className="h-4 w-4" />
               <span className="text-sm">Erros (24h)</span>
             </div>
-            <div className={cn('text-2xl font-bold', chip.errorsLast24h > 5 && 'text-red-600')}>
+            <div className={cn('text-2xl font-bold', chip.errorsLast24h > 5 && 'text-status-error-foreground')}>
               {chip.errorsLast24h}
             </div>
           </CardContent>
@@ -284,8 +284,8 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
 function InfoRow({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex justify-between text-sm">
-      <span className="text-gray-500">{label}</span>
-      <span className="font-medium text-gray-900">{value}</span>
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-foreground">{value}</span>
     </div>
   )
 }

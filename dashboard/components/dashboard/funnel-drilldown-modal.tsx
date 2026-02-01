@@ -191,7 +191,7 @@ export function FunnelDrilldownModal({
 
         {/* Busca */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
           <Input
             placeholder="Buscar por nome..."
             value={search}
@@ -201,7 +201,7 @@ export function FunnelDrilldownModal({
           {search && (
             <button
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground"
               aria-label="Limpar busca"
             >
               <X className="h-4 w-4" />
@@ -213,9 +213,9 @@ export function FunnelDrilldownModal({
         <div className="relative flex-1 overflow-auto rounded-lg border">
           {/* Overlay de loading durante paginacao */}
           {loading && !isInitialLoad && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
-              <div className="rounded-lg bg-white px-4 py-2 shadow-lg">
-                <span className="text-sm text-gray-600">Carregando...</span>
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+              <div className="rounded-lg bg-card px-4 py-2 shadow-lg">
+                <span className="text-sm text-muted-foreground">Carregando...</span>
               </div>
             </div>
           )}
@@ -238,7 +238,7 @@ export function FunnelDrilldownModal({
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center">
                     <div className="space-y-2">
-                      <p className="text-gray-500">
+                      <p className="text-muted-foreground">
                         Nenhum medico encontrado para &quot;{debouncedSearch}&quot;
                       </p>
                       <Button variant="outline" size="sm" onClick={clearSearch}>
@@ -249,7 +249,7 @@ export function FunnelDrilldownModal({
                 </TableRow>
               ) : data?.items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-gray-500">
+                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                     Nenhum medico neste estagio
                   </TableCell>
                 </TableRow>
@@ -259,30 +259,30 @@ export function FunnelDrilldownModal({
                     <TableRow
                       key={item.id}
                       className={cn(
-                        'cursor-pointer hover:bg-gray-50',
-                        expandedRow === (item.conversaId || item.id) && 'bg-blue-50'
+                        'cursor-pointer hover:bg-muted/50',
+                        expandedRow === (item.conversaId || item.id) && 'bg-status-info/10'
                       )}
                       onClick={() => toggleExpand(item.conversaId || item.id)}
                     >
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {expandedRow === (item.conversaId || item.id) ? (
-                            <ChevronUp className="h-4 w-4 text-gray-400" />
+                            <ChevronUp className="h-4 w-4 text-muted-foreground/70" />
                           ) : (
-                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                            <ChevronDown className="h-4 w-4 text-muted-foreground/70" />
                           )}
                           {item.nome}
                         </div>
                       </TableCell>
-                      <TableCell className="text-gray-600">{item.telefone || '-'}</TableCell>
-                      <TableCell className="text-gray-600">{item.especialidade}</TableCell>
-                      <TableCell className="text-gray-500">
+                      <TableCell className="text-muted-foreground">{item.telefone || '-'}</TableCell>
+                      <TableCell className="text-muted-foreground">{item.especialidade}</TableCell>
+                      <TableCell className="text-muted-foreground">
                         {formatDistanceToNow(new Date(item.ultimoContato), {
                           addSuffix: true,
                           locale: ptBR,
                         })}
                       </TableCell>
-                      <TableCell className="text-gray-600">{item.chipName}</TableCell>
+                      <TableCell className="text-muted-foreground">{item.chipName}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         {item.chatwootUrl ? (
                           <Button variant="ghost" size="sm" asChild>
@@ -291,24 +291,24 @@ export function FunnelDrilldownModal({
                             </a>
                           </Button>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          <span className="text-muted-foreground/70">-</span>
                         )}
                       </TableCell>
                     </TableRow>
                     {/* Mensagens expandidas */}
                     {expandedRow === (item.conversaId || item.id) && (
                       <TableRow key={`${item.id}-messages`}>
-                        <TableCell colSpan={6} className="bg-gray-50 p-0">
+                        <TableCell colSpan={6} className="bg-muted/50 p-0">
                           <div className="max-h-80 overflow-y-auto p-4">
                             {loadingMessages === (item.conversaId || item.id) ? (
                               <div className="flex items-center justify-center py-4">
-                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-                                <span className="ml-2 text-sm text-gray-500">
+                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-status-info-solid border-t-transparent" />
+                                <span className="ml-2 text-sm text-muted-foreground">
                                   Carregando mensagens...
                                 </span>
                               </div>
                             ) : messages[item.conversaId || item.id]?.length === 0 ? (
-                              <div className="py-4 text-center text-sm text-gray-500">
+                              <div className="py-4 text-center text-sm text-muted-foreground">
                                 Nenhuma mensagem encontrada
                               </div>
                             ) : (
@@ -325,8 +325,8 @@ export function FunnelDrilldownModal({
                                       className={cn(
                                         'max-w-[80%] rounded-lg px-3 py-2',
                                         msg.isFromJulia
-                                          ? 'bg-blue-500 text-white'
-                                          : 'border bg-white text-gray-800 shadow-sm'
+                                          ? 'bg-status-info-solid text-white'
+                                          : 'border bg-card text-foreground shadow-sm'
                                       )}
                                     >
                                       <div className="mb-1 flex items-center gap-2">
@@ -339,7 +339,7 @@ export function FunnelDrilldownModal({
                                       <div
                                         className={cn(
                                           'mt-1 text-xs',
-                                          msg.isFromJulia ? 'text-blue-100' : 'text-gray-400'
+                                          msg.isFromJulia ? 'text-blue-100' : 'text-muted-foreground/70'
                                         )}
                                       >
                                         {format(new Date(msg.timestamp), "dd/MM 'às' HH:mm", {
@@ -365,7 +365,7 @@ export function FunnelDrilldownModal({
         {/* Paginacao */}
         {data && data.total > 0 && (
           <div className="flex items-center justify-between border-t pt-4">
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               Mostrando {startItem}-{endItem} de {data.total} medicos
             </div>
             {totalPages > 1 && (
@@ -379,7 +379,7 @@ export function FunnelDrilldownModal({
                   <ChevronLeft className="mr-1 h-4 w-4" />
                   Anterior
                 </Button>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-muted-foreground">
                   {page} / {totalPages}
                 </span>
                 <Button

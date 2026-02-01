@@ -32,13 +32,13 @@ const typeConfig: Record<
 > = {
   fechamento: {
     icon: CheckCircle,
-    bgColor: 'bg-green-100',
-    iconColor: 'text-green-600',
+    bgColor: 'bg-status-success',
+    iconColor: 'text-status-success-foreground',
   },
   handoff: {
     icon: RefreshCw,
-    bgColor: 'bg-blue-100',
-    iconColor: 'text-blue-600',
+    bgColor: 'bg-status-info',
+    iconColor: 'text-status-info-foreground',
   },
   campanha: {
     icon: Send,
@@ -47,13 +47,13 @@ const typeConfig: Record<
   },
   resposta: {
     icon: MessageSquare,
-    bgColor: 'bg-green-100',
-    iconColor: 'text-green-600',
+    bgColor: 'bg-status-success',
+    iconColor: 'text-status-success-foreground',
   },
   chip: {
     icon: Award,
-    bgColor: 'bg-yellow-100',
-    iconColor: 'text-yellow-600',
+    bgColor: 'bg-status-warning',
+    iconColor: 'text-status-warning-foreground',
   },
   alerta: {
     icon: AlertTriangle,
@@ -64,8 +64,8 @@ const typeConfig: Record<
 
 const defaultTypeConfig = {
   icon: MessageSquare,
-  bgColor: 'bg-gray-100',
-  iconColor: 'text-gray-600',
+  bgColor: 'bg-status-neutral',
+  iconColor: 'text-muted-foreground',
 }
 
 export function ActivityItem({ event }: ActivityItemProps) {
@@ -78,7 +78,7 @@ export function ActivityItem({ event }: ActivityItemProps) {
   return (
     <div className="flex items-start gap-3 py-2">
       {/* Timestamp */}
-      <span className="w-12 pt-0.5 text-xs text-gray-400">{time}</span>
+      <span className="w-12 pt-0.5 text-xs text-muted-foreground/70">{time}</span>
 
       {/* Icon */}
       <div className={`rounded-full p-1.5 ${config.bgColor}`}>
@@ -87,8 +87,8 @@ export function ActivityItem({ event }: ActivityItemProps) {
 
       {/* Content */}
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-gray-700">
-          {chipName && <span className="font-medium text-gray-900">{chipName} </span>}
+        <p className="text-sm text-foreground/80">
+          {chipName && <span className="font-medium text-foreground">{chipName} </span>}
           {message}
         </p>
       </div>

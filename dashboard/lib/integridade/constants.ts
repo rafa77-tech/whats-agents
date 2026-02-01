@@ -12,22 +12,22 @@ export const KPI_STATUS_COLORS: Record<
   { border: string; text: string; bg: string; icon: string }
 > = {
   good: {
-    border: 'border-green-200',
-    text: 'text-green-600',
-    bg: 'bg-green-100',
-    icon: 'text-green-600',
+    border: 'border-status-success-border',
+    text: 'text-status-success-foreground',
+    bg: 'bg-status-success',
+    icon: 'text-status-success-foreground',
   },
   warn: {
-    border: 'border-yellow-200',
-    text: 'text-yellow-600',
-    bg: 'bg-yellow-100',
-    icon: 'text-yellow-600',
+    border: 'border-status-warning-border',
+    text: 'text-status-warning-foreground',
+    bg: 'bg-status-warning',
+    icon: 'text-status-warning-foreground',
   },
   bad: {
-    border: 'border-red-200',
-    text: 'text-red-600',
-    bg: 'bg-red-100',
-    icon: 'text-red-600',
+    border: 'border-status-error-border',
+    text: 'text-status-error-foreground',
+    bg: 'bg-status-error',
+    icon: 'text-status-error-foreground',
   },
 }
 
@@ -39,22 +39,22 @@ export const ANOMALY_SEVERITY_COLORS: Record<
   { bg: string; text: string; icon: string; badge: string }
 > = {
   high: {
-    bg: 'bg-red-50',
-    text: 'text-red-800',
-    icon: 'text-red-500',
-    badge: 'bg-red-100 text-red-800',
+    bg: 'bg-status-error/20',
+    text: 'text-status-error-foreground',
+    icon: 'text-status-error-foreground',
+    badge: 'bg-status-error text-status-error-foreground',
   },
   medium: {
-    bg: 'bg-yellow-50',
-    text: 'text-yellow-800',
-    icon: 'text-yellow-500',
-    badge: 'bg-yellow-100 text-yellow-800',
+    bg: 'bg-status-warning/20',
+    text: 'text-status-warning-foreground',
+    icon: 'text-status-warning-foreground',
+    badge: 'bg-status-warning text-status-warning-foreground',
   },
   low: {
-    bg: 'bg-blue-50',
-    text: 'text-blue-800',
-    icon: 'text-blue-500',
-    badge: 'bg-blue-100 text-blue-800',
+    bg: 'bg-status-info/20',
+    text: 'text-status-info-foreground',
+    icon: 'text-status-info-foreground',
+    badge: 'bg-status-info text-status-info-foreground',
   },
 }
 
@@ -81,14 +81,14 @@ export const ANOMALY_SEVERITY_ORDER: Record<AnomalySeverity, number> = {
  */
 export const ANOMALY_RESOLUTION_COLORS = {
   resolvida: {
-    bg: 'bg-green-100',
-    text: 'text-green-800',
-    icon: 'text-green-500',
+    bg: 'bg-status-success',
+    text: 'text-status-success-foreground',
+    icon: 'text-status-success-foreground',
   },
   aberta: {
-    bg: 'bg-yellow-100',
-    text: 'text-yellow-800',
-    icon: 'text-yellow-500',
+    bg: 'bg-status-warning',
+    text: 'text-status-warning-foreground',
+    icon: 'text-status-warning-foreground',
   },
 }
 
@@ -136,9 +136,9 @@ export const PROGRESS_THRESHOLDS = {
  * Cores para barras de progresso
  */
 export const PROGRESS_COLORS = {
-  GOOD: 'bg-green-500',
-  WARN: 'bg-yellow-500',
-  BAD: 'bg-red-500',
+  GOOD: 'bg-status-success-solid',
+  WARN: 'bg-status-warning-solid',
+  BAD: 'bg-status-error-solid',
 }
 
 /**

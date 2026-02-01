@@ -212,12 +212,12 @@ export default function SistemaPage() {
       </div>
 
       {/* Card principal do Modo Piloto */}
-      <Card className={status?.pilot_mode ? 'border-yellow-300' : 'border-green-300'}>
+      <Card className={status?.pilot_mode ? 'border-status-warning-border' : 'border-status-success-border'}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Shield
-                className={`h-8 w-8 ${status?.pilot_mode ? 'text-yellow-500' : 'text-green-500'}`}
+                className={`h-8 w-8 ${status?.pilot_mode ? 'text-status-warning-foreground' : 'text-status-success-foreground'}`}
               />
               <div>
                 <CardTitle className="text-xl">Modo Piloto</CardTitle>
@@ -230,8 +230,8 @@ export default function SistemaPage() {
                 variant="outline"
                 className={
                   status?.pilot_mode
-                    ? 'border-yellow-300 bg-yellow-100 text-yellow-800'
-                    : 'border-green-300 bg-green-100 text-green-800'
+                    ? 'border-status-warning-border bg-status-warning text-status-warning-foreground'
+                    : 'border-status-success-border bg-status-success text-status-success-foreground'
                 }
               >
                 {status?.pilot_mode ? 'ATIVO' : 'DESATIVADO'}
@@ -249,23 +249,23 @@ export default function SistemaPage() {
 
         <CardContent className="space-y-4">
           {status?.pilot_mode ? (
-            <div className="rounded-lg bg-yellow-50 p-4">
-              <div className="mb-2 flex items-center gap-2 text-yellow-800">
+            <div className="rounded-lg bg-status-warning p-4">
+              <div className="mb-2 flex items-center gap-2 text-status-warning-foreground">
                 <AlertTriangle className="h-5 w-5" />
                 <span className="font-medium">Modo seguro ativo</span>
               </div>
-              <p className="text-sm text-yellow-700">
+              <p className="text-sm text-status-warning-foreground/90">
                 Julia esta em modo piloto. Acoes autonomas estao desabilitadas. Ela so responde
                 quando acionada por campanhas manuais ou mensagens de medicos.
               </p>
             </div>
           ) : (
-            <div className="rounded-lg bg-green-50 p-4">
-              <div className="mb-2 flex items-center gap-2 text-green-800">
+            <div className="rounded-lg bg-status-success p-4">
+              <div className="mb-2 flex items-center gap-2 text-status-success-foreground">
                 <Zap className="h-5 w-5" />
                 <span className="font-medium">Julia autonoma</span>
               </div>
-              <p className="text-sm text-green-700">
+              <p className="text-sm text-status-success-foreground/90">
                 Julia esta operando de forma autonoma. Ela identifica oportunidades e age
                 proativamente conforme as regras configuradas.
               </p>
@@ -414,8 +414,8 @@ export default function SistemaPage() {
                         variant="outline"
                         className={
                           config.uso_atual.horario_permitido
-                            ? 'border-green-300 bg-green-100 text-green-800'
-                            : 'border-yellow-300 bg-yellow-100 text-yellow-800'
+                            ? 'border-status-success-border bg-status-success text-status-success-foreground'
+                            : 'border-status-warning-border bg-status-warning text-status-warning-foreground'
                         }
                       >
                         {config.uso_atual.horario_permitido
@@ -529,7 +529,7 @@ export default function SistemaPage() {
             <AlertDialogAction
               onClick={() => handleToggle(false)}
               disabled={updating}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-status-success-solid hover:bg-status-success-solid-hover"
             >
               {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Desativar Modo Piloto'}
             </AlertDialogAction>
@@ -573,7 +573,7 @@ export default function SistemaPage() {
               }
               disabled={updating}
               className={
-                featureDialog?.action === 'enable' ? 'bg-green-600 hover:bg-green-700' : ''
+                featureDialog?.action === 'enable' ? 'bg-status-success-solid hover:bg-status-success-solid-hover' : ''
               }
             >
               {updating ? (
@@ -614,28 +614,28 @@ function FeatureToggleCard({
     <div
       className={`rounded-lg border p-3 ${
         isEffectivelyEnabled
-          ? 'border-green-200 bg-green-50'
+          ? 'border-status-success-border bg-status-success'
           : isPilotMode
-            ? 'border-yellow-200 bg-yellow-50/50'
-            : 'border-gray-200 bg-gray-50'
+            ? 'border-status-warning-border bg-status-warning/50'
+            : 'border-muted bg-status-neutral'
       }`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isEffectivelyEnabled ? (
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <CheckCircle2 className="h-4 w-4 text-status-success-foreground" />
           ) : isPilotMode ? (
-            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            <AlertTriangle className="h-4 w-4 text-status-warning-foreground" />
           ) : (
-            <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
+            <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />
           )}
           <span
             className={`font-medium ${
               isEffectivelyEnabled
-                ? 'text-green-800'
+                ? 'text-status-success-foreground'
                 : isPilotMode
-                  ? 'text-yellow-700'
-                  : 'text-gray-500'
+                  ? 'text-status-warning-foreground'
+                  : 'text-muted-foreground'
             }`}
           >
             {title}
@@ -653,10 +653,10 @@ function FeatureToggleCard({
       <p
         className={`mt-1 text-xs ${
           isEffectivelyEnabled
-            ? 'text-green-600'
+            ? 'text-status-success-foreground/80'
             : isPilotMode
-              ? 'text-yellow-600'
-              : 'text-gray-400'
+              ? 'text-status-warning-foreground/80'
+              : 'text-muted-foreground'
         }`}
       >
         {description}

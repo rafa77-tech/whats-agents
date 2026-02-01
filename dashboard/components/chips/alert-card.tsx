@@ -49,31 +49,31 @@ interface AlertCardProps {
 
 const severityConfig: Record<string, { color: string; bgColor: string; borderColor: string }> = {
   critico: {
-    color: 'text-red-600',
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200',
+    color: 'text-status-error-foreground',
+    bgColor: 'bg-status-error/10',
+    borderColor: 'border-status-error-border',
   },
   alerta: {
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-orange-200',
+    color: 'text-status-warning-foreground',
+    bgColor: 'bg-status-warning/10',
+    borderColor: 'border-status-warning-border',
   },
   atencao: {
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-50',
-    borderColor: 'border-yellow-200',
+    color: 'text-status-warning-foreground',
+    bgColor: 'bg-status-warning/10',
+    borderColor: 'border-status-warning-border',
   },
   info: {
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
+    color: 'text-status-info-foreground',
+    bgColor: 'bg-status-info/10',
+    borderColor: 'border-status-info-border',
   },
 }
 
 const defaultSeverityConfig = {
-  color: 'text-gray-600',
-  bgColor: 'bg-gray-50',
-  borderColor: 'border-gray-200',
+  color: 'text-muted-foreground',
+  bgColor: 'bg-muted/50',
+  borderColor: 'border-muted',
 }
 
 const typeConfig: Record<string, { icon: typeof AlertTriangle; label: string }> = {
@@ -123,18 +123,18 @@ export function AlertCard({ alert, onResolved }: AlertCardProps) {
   const Icon = type.icon
 
   return (
-    <Card className={cn('border', alert.resolvedAt ? 'bg-gray-50' : severity.borderColor)}>
+    <Card className={cn('border', alert.resolvedAt ? 'bg-muted/50' : severity.borderColor)}>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           {/* Icon */}
           <div
             className={cn(
               'shrink-0 rounded-full p-2',
-              alert.resolvedAt ? 'bg-gray-100' : severity.bgColor
+              alert.resolvedAt ? 'bg-muted' : severity.bgColor
             )}
           >
             {alert.resolvedAt ? (
-              <CheckCircle className="h-5 w-5 text-gray-500" />
+              <CheckCircle className="h-5 w-5 text-muted-foreground" />
             ) : (
               <Icon className={cn('h-5 w-5', severity.color)} />
             )}
@@ -144,11 +144,11 @@ export function AlertCard({ alert, onResolved }: AlertCardProps) {
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex items-start justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-medium text-gray-900">{alert.title}</h3>
+                <h3 className="font-medium text-foreground">{alert.title}</h3>
                 <Badge
                   className={cn(
                     alert.resolvedAt
-                      ? 'bg-gray-100 text-gray-600'
+                      ? 'bg-muted text-muted-foreground'
                       : cn(severity.bgColor, severity.color)
                   )}
                 >
@@ -158,24 +158,24 @@ export function AlertCard({ alert, onResolved }: AlertCardProps) {
                   {type.label}
                 </Badge>
               </div>
-              <span className="whitespace-nowrap text-xs text-gray-500">
+              <span className="whitespace-nowrap text-xs text-muted-foreground">
                 {formatTimestamp(alert.createdAt)}
               </span>
             </div>
 
-            <p className="mb-2 text-sm text-gray-600">{alert.message}</p>
+            <p className="mb-2 text-sm text-muted-foreground">{alert.message}</p>
 
             {alert.recommendation && !alert.resolvedAt && (
-              <p className="mb-2 rounded bg-gray-50 p-2 text-sm text-gray-500">
+              <p className="mb-2 rounded bg-muted/50 p-2 text-sm text-muted-foreground">
                 <strong>Recomendação:</strong> {alert.recommendation}
               </p>
             )}
 
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 text-xs text-gray-500">
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <Link
                   href={`/chips/${alert.chipId}` as Route}
-                  className="flex items-center gap-1 hover:text-gray-700"
+                  className="flex items-center gap-1 hover:text-foreground"
                 >
                   <Phone className="h-3 w-3" />
                   {alert.chipTelefone}
@@ -230,7 +230,7 @@ export function AlertCard({ alert, onResolved }: AlertCardProps) {
               )}
 
               {alert.resolvedAt && (
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-muted-foreground">
                   Resolvido em {new Date(alert.resolvedAt).toLocaleString('pt-BR')}
                   {alert.resolvedBy && ` por ${alert.resolvedBy}`}
                 </div>
@@ -238,7 +238,7 @@ export function AlertCard({ alert, onResolved }: AlertCardProps) {
             </div>
 
             {alert.resolvedAt && alert.resolutionNotes && (
-              <p className="mt-2 rounded bg-green-50 p-2 text-sm text-gray-500">
+              <p className="mt-2 rounded bg-status-success/10 p-2 text-sm text-muted-foreground">
                 <strong>Resolução:</strong> {alert.resolutionNotes}
               </p>
             )}

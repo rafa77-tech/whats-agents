@@ -41,8 +41,8 @@ export function ChipsPagination({
   const canGoForward = page < totalPages
 
   return (
-    <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
-      <div className="flex items-center gap-2 text-sm text-gray-600">
+    <div className="flex items-center justify-between border-t border-border px-4 py-3">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>Exibindo</span>
         <Select value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
           <SelectTrigger className="h-8 w-20">
@@ -60,7 +60,7 @@ export function ChipsPagination({
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-600">
+        <span className="text-sm text-muted-foreground">
           {startItem}-{endItem} de {total}
         </span>
 

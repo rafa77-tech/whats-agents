@@ -253,8 +253,8 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
         </CardHeader>
         <CardContent className="space-y-2">
           {error && (
-            <div className="mb-2 rounded-md border border-red-200 bg-red-50 p-3">
-              <div className="flex items-center gap-2 text-red-600">
+            <div className="mb-2 rounded-md border border-status-error-border bg-status-error/10 p-3">
+              <div className="flex items-center gap-2 text-status-error-foreground">
                 <AlertTriangle className="h-4 w-4" />
                 <span className="text-sm">{error}</span>
               </div>
@@ -283,10 +283,10 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
             <div
               className={`rounded-md border p-3 ${
                 connectionResult.includes('Conectado!')
-                  ? 'border-green-200 bg-green-50 text-green-700'
+                  ? 'border-status-success-border bg-status-success/10 text-status-success-foreground'
                   : connectionResult.includes('Conectado')
-                    ? 'border-blue-200 bg-blue-50 text-blue-700'
-                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                    ? 'border-status-info-border bg-status-info/10 text-status-info-foreground'
+                    : 'border-status-warning-border bg-status-warning/10 text-status-warning-foreground'
               }`}
             >
               <p className="text-sm">{connectionResult}</p>
@@ -308,7 +308,7 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
 
           {/* Standard actions */}
           {availableActions.length === 0 && !canShowQRCode ? (
-            <p className="py-2 text-sm text-gray-500">
+            <p className="py-2 text-sm text-muted-foreground">
               Nenhuma ação disponível para este chip no momento.
             </p>
           ) : (
@@ -333,12 +333,12 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
 
           {/* Status info for banned chips */}
           {chip.status === 'banned' && (
-            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3">
-              <div className="flex items-start gap-2 text-amber-700">
+            <div className="mt-4 rounded-md border border-status-warning-border bg-status-warning/10 p-3">
+              <div className="flex items-start gap-2 text-status-warning-foreground">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
                   <span className="text-sm font-medium">Chip Banido</span>
-                  <p className="mt-1 text-xs text-amber-600">
+                  <p className="mt-1 text-xs opacity-80">
                     Se o chip voltou a funcionar após recurso, use &quot;Reativar Chip&quot; acima.
                   </p>
                 </div>
@@ -348,12 +348,12 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
 
           {/* Status info for cancelled chips */}
           {chip.status === 'cancelled' && (
-            <div className="mt-4 rounded-md border border-gray-200 bg-gray-50 p-3">
-              <div className="flex items-start gap-2 text-gray-600">
+            <div className="mt-4 rounded-md border border-border bg-muted/50 p-3">
+              <div className="flex items-start gap-2 text-muted-foreground">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
                   <span className="text-sm font-medium">Chip Cancelado</span>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs opacity-80">
                     Use &quot;Reativar Chip&quot; para voltar a usar este número.
                   </p>
                 </div>
@@ -363,12 +363,12 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
 
           {/* Status info for pending chips */}
           {chip.status === 'pending' && (
-            <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3">
-              <div className="flex items-start gap-2 text-blue-700">
+            <div className="mt-4 rounded-md border border-status-info-border bg-status-info/10 p-3">
+              <div className="flex items-start gap-2 text-status-info-foreground">
                 <QrCode className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
                   <span className="text-sm font-medium">Aguardando Conexão</span>
-                  <p className="mt-1 text-xs text-blue-600">
+                  <p className="mt-1 text-xs opacity-80">
                     Clique em &quot;Gerar QR Code&quot; para conectar o WhatsApp.
                   </p>
                 </div>
@@ -378,10 +378,10 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
 
           {/* Warmup info */}
           {chip.status === 'warming' && chip.warmupPhase && (
-            <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3">
-              <span className="text-sm text-blue-700">Em aquecimento - Dia {chip.warmingDay}</span>
+            <div className="mt-4 rounded-md border border-status-info-border bg-status-info/10 p-3">
+              <span className="text-sm text-status-info-foreground">Em aquecimento - Dia {chip.warmingDay}</span>
               {chip.trustScore < 70 && (
-                <p className="mt-1 text-xs text-blue-600">
+                <p className="mt-1 text-xs text-status-info-foreground opacity-80">
                   Trust score precisa ser &ge; 70 para promoção
                 </p>
               )}
@@ -453,15 +453,15 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
 
           <div className="flex flex-col items-center gap-4 py-4">
             {isLoadingQR && !qrCodeData && (
-              <div className="flex h-64 w-64 items-center justify-center rounded-lg border bg-gray-50">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              <div className="flex h-64 w-64 items-center justify-center rounded-lg border bg-muted/50">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             )}
 
             {qrError && (
-              <div className="flex h-64 w-64 flex-col items-center justify-center rounded-lg border border-red-200 bg-red-50 p-4 text-center">
-                <AlertTriangle className="mb-2 h-8 w-8 text-red-400" />
-                <p className="text-sm text-red-600">{qrError}</p>
+              <div className="flex h-64 w-64 flex-col items-center justify-center rounded-lg border border-status-error-border bg-status-error/10 p-4 text-center">
+                <AlertTriangle className="mb-2 h-8 w-8 text-status-error-foreground" />
+                <p className="text-sm text-status-error-foreground">{qrError}</p>
                 <Button variant="outline" size="sm" className="mt-4" onClick={fetchQRCode}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Tentar novamente
@@ -470,10 +470,10 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
             )}
 
             {connectionState === 'open' && (
-              <div className="flex h-64 w-64 flex-col items-center justify-center rounded-lg border border-green-200 bg-green-50 p-4 text-center">
-                <CheckCircle2 className="mb-2 h-12 w-12 text-green-500" />
-                <p className="font-medium text-green-700">Conectado!</p>
-                <p className="mt-1 text-sm text-green-600">WhatsApp pareado com sucesso.</p>
+              <div className="flex h-64 w-64 flex-col items-center justify-center rounded-lg border border-status-success-border bg-status-success/10 p-4 text-center">
+                <CheckCircle2 className="mb-2 h-12 w-12 text-status-success-solid" />
+                <p className="font-medium text-status-success-foreground">Conectado!</p>
+                <p className="mt-1 text-sm text-status-success-foreground opacity-80">WhatsApp pareado com sucesso.</p>
               </div>
             )}
 
@@ -486,21 +486,21 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
                   className="h-64 w-64 rounded-lg border"
                 />
                 {pairingCode && (
-                  <div className="rounded-md bg-gray-100 px-4 py-2 text-center">
-                    <p className="text-xs text-gray-500">Código de pareamento</p>
+                  <div className="rounded-md bg-muted px-4 py-2 text-center">
+                    <p className="text-xs text-muted-foreground">Código de pareamento</p>
                     <p className="font-mono text-lg font-bold tracking-wider">{pairingCode}</p>
                   </div>
                 )}
-                <p className="text-center text-xs text-gray-500">
+                <p className="text-center text-xs text-muted-foreground">
                   O QR Code será atualizado automaticamente a cada 10 segundos.
                 </p>
               </>
             )}
 
             {!qrCodeData && !qrError && !isLoadingQR && connectionState !== 'open' && (
-              <div className="flex h-64 w-64 flex-col items-center justify-center rounded-lg border bg-gray-50 p-4 text-center">
-                <QrCode className="mb-2 h-8 w-8 text-gray-400" />
-                <p className="text-sm text-gray-500">Aguardando QR Code...</p>
+              <div className="flex h-64 w-64 flex-col items-center justify-center rounded-lg border bg-muted/50 p-4 text-center">
+                <QrCode className="mb-2 h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Aguardando QR Code...</p>
                 <Button variant="outline" size="sm" className="mt-4" onClick={fetchQRCode}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Gerar QR Code

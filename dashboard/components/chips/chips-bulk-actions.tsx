@@ -117,14 +117,14 @@ export function ChipsBulkActions({
       <div
         className={cn(
           'fixed bottom-6 left-1/2 z-50 -translate-x-1/2',
-          'rounded-lg border border-gray-200 bg-white shadow-lg',
+          'rounded-lg border border-border bg-card shadow-lg',
           'flex items-center gap-3 px-4 py-3',
           'transition-all duration-200'
         )}
       >
         {/* Selection count */}
-        <div className="flex items-center gap-2 border-r border-gray-200 pr-3">
-          <span className="text-sm font-medium text-gray-900">
+        <div className="flex items-center gap-2 border-r border-border pr-3">
+          <span className="text-sm font-medium text-foreground">
             {selectedIds.length} chip{selectedIds.length > 1 ? 's' : ''} selecionado
             {selectedIds.length > 1 ? 's' : ''}
           </span>
@@ -141,12 +141,12 @@ export function ChipsBulkActions({
 
         {/* Results feedback */}
         {results && (
-          <div className="flex items-center gap-2 border-r border-gray-200 pr-3">
+          <div className="flex items-center gap-2 border-r border-border pr-3">
             {results.success > 0 && (
-              <span className="text-sm text-green-600">{results.success} sucesso</span>
+              <span className="text-sm text-status-success-foreground">{results.success} sucesso</span>
             )}
             {results.failed > 0 && (
-              <span className="text-sm text-red-600">
+              <span className="text-sm text-status-error-foreground">
                 {results.failed} falha{results.failed > 1 ? 's' : ''}
               </span>
             )}

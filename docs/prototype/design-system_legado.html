@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jull.ia Design System</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="ds-section">
+      <div class="brand">
+        <div class="brand-mark"><img src="logo.png" alt="Jull.ia" /></div>
+        <div>
+          <div class="brand-name">Jull.ia Design System</div>
+          <div class="brand-tag">Escalista virtual AI autonoma</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="ds-section">
+      <div class="ds-title">Cores</div>
+      <div class="ds-subtitle">Paleta principal e neutros.</div>
+      <div class="color-grid">
+        <div class="swatch">
+          <div class="block" style="background: var(--primary)"></div>
+          <strong>Primary</strong>
+          <span>#ff1200</span>
+        </div>
+        <div class="swatch">
+          <div class="block" style="background: var(--accent)"></div>
+          <strong>Accent</strong>
+          <span>#ff0080</span>
+        </div>
+        <div class="swatch">
+          <div class="block" style="background: var(--support)"></div>
+          <strong>Support</strong>
+          <span>#972627</span>
+        </div>
+        <div class="swatch">
+          <div class="block" style="background: var(--alert)"></div>
+          <strong>Alert</strong>
+          <span>#e00319</span>
+        </div>
+        <div class="swatch">
+          <div class="block" style="background: var(--black)"></div>
+          <strong>Black</strong>
+          <span>#000000</span>
+        </div>
+        <div class="swatch">
+          <div class="block" style="background: var(--gray-500)"></div>
+          <strong>Gray</strong>
+          <span>#bababa</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <div class="ds-title">Tipografia</div>
+      <div class="ds-subtitle">Inter para titulos e corpo.</div>
+      <div class="type-grid">
+        <div class="type-sample type-h1">Inter SemiBold - H1 28px</div>
+        <div class="type-sample type-h2">Inter SemiBold - H2 22px</div>
+        <div class="type-sample type-body">Inter Regular - Body 16px</div>
+        <div class="type-sample type-small">Inter Regular - Small 13px</div>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <div class="ds-title">Tokens</div>
+      <div class="ds-subtitle">Espacamento, raio, sombra e grid.</div>
+      <div class="token-grid">
+        <div class="token">Spacing: 4 / 8 / 16 / 24 / 32 / 48</div>
+        <div class="token">Radius: 10 / 14 / 18</div>
+        <div class="token">Shadow: sm 0 1px 2px, md 0 8px 24px</div>
+        <div class="token">Grid: 12 colunas, max 1280px</div>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <div class="ds-title">Componentes basicos</div>
+      <div class="ds-subtitle">Botoes, badges, inputs, cards.</div>
+      <div class="component-grid">
+        <div>
+          <div class="card-title">Botoes</div>
+          <div class="component-row">
+            <button class="btn primary">Primary</button>
+            <button class="btn">Default</button>
+            <button class="btn ghost">Ghost</button>
+            <button class="btn danger">Danger</button>
+          </div>
+        </div>
+        <div>
+          <div class="card-title">Badges</div>
+          <div class="component-row">
+            <span class="badge">Ativo</span>
+            <span class="badge muted">Pausado</span>
+            <span class="badge danger">Critico</span>
+          </div>
+        </div>
+        <div>
+          <div class="card-title">Inputs</div>
+          <div class="component-row">
+            <input class="search" placeholder="Buscar..." />
+            <select class="select">
+              <option>Status</option>
+              <option>Ativo</option>
+              <option>Pausado</option>
+            </select>
+            <input class="date" type="date" />
+          </div>
+        </div>
+        <div>
+          <div class="card-title">Cards</div>
+          <div class="component-row">
+            <div class="card-demo">
+              <div class="card-title">Resumo</div>
+              <div class="kpi">88.5</div>
+              <div class="muted">Trust score medio</div>
+              <button class="btn ghost small">Ver detalhes</button>
+            </div>
+            <div class="card-demo">
+              <div class="card-title">Alertas</div>
+              <div class="headline">1 alerta critico</div>
+              <div class="muted">connection_lost detectado</div>
+              <button class="btn primary">Resolver</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <div class="ds-title">Formularios completos</div>
+      <div class="ds-subtitle">Inputs, textarea, toggle, checkbox e radio.</div>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>Nome da campanha</label>
+          <input class="input" placeholder="Ex: Plantao Noturno" />
+        </div>
+        <div class="form-field">
+          <label>Descricao</label>
+          <textarea class="textarea" rows="3" placeholder="Objetivo da campanha..."></textarea>
+        </div>
+        <div class="form-field inline">
+          <label>Modo piloto</label>
+          <label class="switch">
+            <input type="checkbox" checked />
+            <span></span>
+          </label>
+        </div>
+        <div class="form-field">
+          <label>Especialidade</label>
+          <div class="control-row">
+            <label class="checkbox">
+              <input type="checkbox" checked />
+              <span></span>
+              Clinica Medica
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" />
+              <span></span>
+              Pediatria
+            </label>
+          </div>
+        </div>
+        <div class="form-field">
+          <label>Prioridade</label>
+          <div class="control-row">
+            <label class="radio">
+              <input type="radio" name="prio" checked />
+              <span></span>
+              Alta
+            </label>
+            <label class="radio">
+              <input type="radio" name="prio" />
+              <span></span>
+              Media
+            </label>
+            <label class="radio">
+              <input type="radio" name="prio" />
+              <span></span>
+              Baixa
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <div class="ds-title">Navegacao</div>
+      <div class="ds-subtitle">Breadcrumbs, tabs, pagination.</div>
+      <div class="component-row">
+        <div class="breadcrumbs">
+          <span>Home</span>
+          <span>/</span>
+          <span>Campanhas</span>
+          <span>/</span>
+          <span class="active">Detalhe</span>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active">Visao</button>
+        <button class="tab">Audiencia</button>
+        <button class="tab">Mensagens</button>
+        <button class="tab">Historico</button>
+      </div>
+      <div class="pagination">
+        <button class="btn ghost small">Anterior</button>
+        <span class="page">1</span>
+        <span class="page active">2</span>
+        <span class="page">3</span>
+        <button class="btn ghost small">Proximo</button>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <div class="ds-title">Estados</div>
+      <div class="ds-subtitle">Empty, loading, success, error.</div>
+      <div class="state-grid">
+        <div class="state-card">
+          <div class="state-title">Empty</div>
+          <div class="muted">Nenhum dado encontrado.</div>
+          <button class="btn ghost small">Adicionar</button>
+        </div>
+        <div class="state-card">
+          <div class="state-title">Loading</div>
+          <div class="loader"></div>
+          <div class="muted">Atualizando dados...</div>
+        </div>
+        <div class="state-card">
+          <div class="state-title">Success</div>
+          <div class="pill success">Atualizado</div>
+          <div class="muted">Tudo certo.</div>
+        </div>
+        <div class="state-card">
+          <div class="state-title">Error</div>
+          <div class="pill danger">Falha</div>
+          <div class="muted">Nao foi possivel concluir.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <div class="ds-title">Feedback</div>
+      <div class="ds-subtitle">Toast, modal, drawer, popover.</div>
+      <div class="feedback-grid">
+        <div class="toast">
+          <strong>Salvo com sucesso</strong>
+          <span class="muted">Alteracoes aplicadas.</span>
+        </div>
+        <div class="popover">
+          <div class="card-title">Popover</div>
+          <div class="muted">Informacao contextual.</div>
+        </div>
+        <div class="drawer">
+          <div class="drawer-header">
+            <div class="card-title">Drawer</div>
+            <button class="btn ghost small">Fechar</button>
+          </div>
+          <div class="muted">Detalhes rapidos.</div>
+        </div>
+        <div class="modal">
+          <div class="modal-header">
+            <div class="headline">Confirmar acao</div>
+            <button class="btn ghost small">X</button>
+          </div>
+          <div class="muted">Tem certeza que deseja continuar?</div>
+          <div class="component-row">
+            <button class="btn ghost">Cancelar</button>
+            <button class="btn primary">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <div class="ds-title">Data display</div>
+      <div class="ds-subtitle">KPIs, charts e tabelas.</div>
+      <div class="grid-4">
+        <div class="metric">
+          <div class="metric-label">Taxa resposta</div>
+          <div class="metric-value">98%</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Conversao</div>
+          <div class="metric-value">12%</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Latencia</div>
+          <div class="metric-value">1.6s</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Fila</div>
+          <div class="metric-value">4</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Tendencia 7d</div>
+        <svg class="spark" viewBox="0 0 200 60" preserveAspectRatio="none">
+          <polyline points="0,40 30,28 60,36 90,20 120,26 150,18 180,22 200,10" />
+        </svg>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Categoria</th>
+              <th>Ultima execucao</th>
+              <th>Status</th>
+              <th>Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Processar Campanhas</td>
+              <td>critical</td>
+              <td>41s atras</td>
+              <td><span class="badge">Sucesso</span></td>
+              <td><button class="btn ghost small">Ver</button></td>
+            </tr>
+            <tr>
+              <td>Snapshot de Chips</td>
+              <td>daily</td>
+              <td>11h atras</td>
+              <td><span class="badge muted">Pausado</span></td>
+              <td><button class="btn ghost small">Reativar</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <div class="ds-title">Tabela avancada</div>
+      <div class="ds-subtitle">Filtros, bulk actions e SLA.</div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <div class="bulk-actions">
+            <span class="bulk-chip">3 selecionados</span>
+            <button class="btn ghost small">Pausar</button>
+            <button class="btn ghost small">Exportar</button>
+          </div>
+          <div class="component-row">
+            <input class="search" placeholder="Buscar" />
+            <select class="select">
+              <option>Status</option>
+              <option>Ativo</option>
+              <option>Pausado</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" checked /></th>
+              <th>Fila</th>
+              <th>Responsavel</th>
+              <th>SLA</th>
+              <th>Status</th>
+              <th>Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="checkbox" checked /></td>
+              <td>Conversas criticas</td>
+              <td>Equipe A</td>
+              <td><span class="sla">12 min</span></td>
+              <td><span class="badge danger">Risco</span></td>
+              <td><button class="btn ghost small">Abrir</button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" checked /></td>
+              <td>Campanhas pausadas</td>
+              <td>Equipe B</td>
+              <td><span class="sla">45 min</span></td>
+              <td><span class="badge muted">Pendente</span></td>
+              <td><button class="btn ghost small">Abrir</button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td>Chips com alerta</td>
+              <td>Suporte</td>
+              <td><span class="sla">2h</span></td>
+              <td><span class="badge">Ativo</span></td>
+              <td><button class="btn ghost small">Abrir</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <div class="ds-title">Multi-select</div>
+      <div class="ds-subtitle">Tags selecionadas e input livre.</div>
+      <div class="multi-select">
+        <span>Clinica Medica</span>
+        <span>Pediatria</span>
+        <span>Ortopedia</span>
+        <input class="input" placeholder="Adicionar" />
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <div class="ds-title">Tema</div>
+      <div class="ds-subtitle">Aplique a classe <code>dark</code> no body para ver o modo escuro.</div>
+      <div class="component-row">
+        <button class="btn" onclick="document.body.classList.toggle('dark')">Alternar dark</button>
+      </div>
+    </section>
+  </body>
+</html>

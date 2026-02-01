@@ -27,15 +27,15 @@ const STATUS_CONFIG: Record<
     label: string
   }
 > = {
-  running: { icon: Loader2, color: 'text-blue-600', bgColor: 'bg-blue-100', label: 'Executando' },
+  running: { icon: Loader2, color: 'text-status-info-foreground', bgColor: 'bg-status-info', label: 'Executando' },
   success: {
     icon: CheckCircle,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
+    color: 'text-status-success-foreground',
+    bgColor: 'bg-status-success',
     label: 'Sucesso',
   },
-  error: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100', label: 'Erro' },
-  timeout: { icon: Clock, color: 'text-yellow-600', bgColor: 'bg-yellow-100', label: 'Timeout' },
+  error: { icon: XCircle, color: 'text-status-error-foreground', bgColor: 'bg-status-error', label: 'Erro' },
+  timeout: { icon: Clock, color: 'text-status-warning-foreground', bgColor: 'bg-status-warning', label: 'Timeout' },
 }
 
 export function JobDetailModal({ open, onOpenChange, jobName }: JobDetailModalProps) {
@@ -94,9 +94,9 @@ export function JobDetailModal({ open, onOpenChange, jobName }: JobDetailModalPr
           </DialogTitle>
           {jobDef && (
             <div className="space-y-2">
-              <p className="text-sm text-gray-500">{getCronDescription(jobDef.schedule)}</p>
+              <p className="text-sm text-muted-foreground">{getCronDescription(jobDef.schedule)}</p>
               {jobDef.helpText && (
-                <div className="rounded-md bg-blue-50 p-3 text-sm text-blue-800">
+                <div className="rounded-md bg-status-info p-3 text-sm text-status-info-foreground">
                   {jobDef.helpText}
                 </div>
               )}
@@ -106,7 +106,7 @@ export function JobDetailModal({ open, onOpenChange, jobName }: JobDetailModalPr
 
         <div className="space-y-4">
           {/* Header com total */}
-          <div className="flex items-center justify-between text-sm text-gray-500">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>{total} execucoes encontradas</span>
             <span>Pagina {page}</span>
           </div>
@@ -115,10 +115,10 @@ export function JobDetailModal({ open, onOpenChange, jobName }: JobDetailModalPr
           <ScrollArea className="h-[400px]">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : executions.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">Nenhuma execucao encontrada.</div>
+              <div className="py-8 text-center text-muted-foreground">Nenhuma execucao encontrada.</div>
             ) : (
               <div className="space-y-2">
                 {executions.map((exec) => {
@@ -138,24 +138,24 @@ export function JobDetailModal({ open, onOpenChange, jobName }: JobDetailModalPr
                             />
                             {config.label}
                           </Badge>
-                          <span className="text-sm text-gray-500" suppressHydrationWarning>
+                          <span className="text-sm text-muted-foreground" suppressHydrationWarning>
                             {new Date(exec.startedAt).toLocaleString('pt-BR')}
                           </span>
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-muted-foreground">
                           {exec.durationMs ? `${exec.durationMs}ms` : '-'}
                         </div>
                       </div>
 
                       {/* Detalhes adicionais */}
-                      <div className="mt-2 flex gap-4 text-xs text-gray-400">
+                      <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
                         {exec.itemsProcessed !== null && <span>Itens: {exec.itemsProcessed}</span>}
                         {exec.responseCode !== null && <span>HTTP: {exec.responseCode}</span>}
                       </div>
 
                       {/* Erro */}
                       {exec.error && (
-                        <div className="mt-2 rounded bg-red-50 p-2 text-xs text-red-600">
+                        <div className="mt-2 rounded bg-status-error p-2 text-xs text-status-error-foreground">
                           {exec.error}
                         </div>
                       )}
