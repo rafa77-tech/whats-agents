@@ -10,6 +10,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { ConversationFilters } from './components/conversation-filters'
 import { ChatSidebar, type ConversationItem } from './components/chat-sidebar'
 import { ChatPanel } from './components/chat-panel'
+import { NewConversationDialog } from './components/new-conversation-dialog'
 import { cn } from '@/lib/utils'
 
 interface Filters {
@@ -125,6 +126,26 @@ export default function ConversasPage() {
     }
   }
 
+  const handleNewConversation = async (phone: string, doctorId?: string) => {
+    try {
+      const response = await fetch('/api/conversas/new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, doctor_id: doctorId }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        // Refresh conversations list
+        await fetchConversations()
+        // Select the new/existing conversation
+        setSelectedId(result.conversation_id)
+      }
+    } catch (err) {
+      console.error('Failed to start conversation:', err)
+    }
+  }
+
   const activeFiltersCount = Object.values(filters).filter(Boolean).length
   const selectedChip = chips.find((c) => c.id === selectedChipId)
   const totalConversations = selectedChipId
@@ -164,9 +185,12 @@ export default function ConversasPage() {
                 Inbox Unificada
               </span>
             </div>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400">
-              {chips.length} chips • {totalConversations} conversas
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                {chips.length} chips • {totalConversations} conversas
+              </span>
+              <NewConversationDialog onStart={handleNewConversation} />
+            </div>
           </div>
         </div>
 

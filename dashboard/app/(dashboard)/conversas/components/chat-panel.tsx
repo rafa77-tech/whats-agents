@@ -13,13 +13,12 @@ import {
   CheckCheck,
   Hand,
   RotateCcw,
-  Send,
   Loader2,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Textarea } from '@/components/ui/textarea'
+import { MessageInput } from './message-input'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,11 +55,8 @@ interface Props {
 export function ChatPanel({ conversationId, onControlChange }: Props) {
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [loading, setLoading] = useState(true)
   const [changingControl, setChangingControl] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [messageText, setMessageText] = useState('')
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
 
   // Scroll to bottom instantly (no animation)
@@ -99,10 +95,6 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
       if (response.ok) {
         await fetchConversation()
         onControlChange?.()
-        // Focus textarea when taking control
-        if (newControl === 'human') {
-          setTimeout(() => textareaRef.current?.focus(), 100)
-        }
       }
     } catch (err) {
       console.error('Failed to change control:', err)
@@ -111,33 +103,27 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
     }
   }
 
-  const handleSendMessage = async () => {
-    if (!messageText.trim() || sending) return
-
-    setSending(true)
+  const handleSendMessage = async (message: string, attachment?: { type: string; file: File }) => {
     try {
+      // For now, only text is supported
+      // TODO: Implement media sending via Evolution API
+      if (attachment) {
+        console.log('Attachment:', attachment.type, attachment.file.name)
+        // Future: upload to storage, send via Evolution API
+      }
+
       const response = await fetch(`/api/conversas/${conversationId}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messageText.trim() }),
+        body: JSON.stringify({ message }),
       })
 
       if (response.ok) {
-        setMessageText('')
         await fetchConversation()
-        setTimeout(() => scrollToBottom(false), 100) // smooth scroll for new messages
+        setTimeout(() => scrollToBottom(false), 100)
       }
     } catch (err) {
       console.error('Failed to send message:', err)
-    } finally {
-      setSending(false)
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
     }
   }
 
@@ -390,28 +376,10 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
       {/* Footer - Message Input or Status */}
       {isHandoff ? (
         <div className="border-t bg-background p-3">
-          <div className="flex gap-2">
-            <Textarea
-              ref={textareaRef}
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)"
-              className="min-h-[44px] max-h-[120px] resize-none"
-              rows={1}
-            />
-            <Button
-              onClick={handleSendMessage}
-              disabled={sending || !messageText.trim()}
-              className="h-auto bg-emerald-600 px-4 hover:bg-emerald-700"
-            >
-              {sending ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
+          <MessageInput
+            onSend={handleSendMessage}
+            placeholder="Digite sua mensagem... (Enter para enviar)"
+          />
           <p className="mt-2 text-center text-xs text-muted-foreground">
             Voce esta no controle desta conversa.{' '}
             <button
