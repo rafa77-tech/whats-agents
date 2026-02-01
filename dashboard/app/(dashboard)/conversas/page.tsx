@@ -176,22 +176,15 @@ export default function ConversasPage() {
     <div className="flex h-full overflow-hidden">
       {/* Left Sidebar - Conversation List */}
       <div className="flex h-full w-full flex-col border-r bg-background md:w-[380px] lg:w-[420px]">
-        {/* Chip Selector Header */}
-        <div className="border-b bg-emerald-50 px-3 py-2 dark:bg-emerald-950/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Smartphone className="h-4 w-4 text-emerald-600" />
-              <span className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
-                Inbox Unificada
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                {chips.length} chips • {totalConversations} conversas
-              </span>
-              <NewConversationDialog onStart={handleNewConversation} />
-            </div>
+        {/* Header */}
+        <div className="flex items-center justify-between border-b bg-emerald-50 px-3 py-2 dark:bg-emerald-950/30">
+          <div className="flex items-center gap-2">
+            <Smartphone className="h-4 w-4 text-emerald-600" />
+            <span className="text-xs text-emerald-600 dark:text-emerald-400">
+              {chips.length} chips • {totalConversations} conversas
+            </span>
           </div>
+          <NewConversationDialog onStart={handleNewConversation} />
         </div>
 
         {/* Chip Pills */}

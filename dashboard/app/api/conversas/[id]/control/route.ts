@@ -2,12 +2,14 @@
  * API: POST /api/conversas/[id]/control
  *
  * Alterna o controle da conversa entre Julia e humano.
+ * Chama o backend Python para atualizar.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,22 +24,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       )
     }
 
-    const supabase = createAdminClient()
+    // Call Python backend
+    const response = await fetch(`${API_URL}/dashboard/conversations/${id}/control`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ controlled_by }),
+    })
 
-    const { error } = await supabase
-      .from('conversations')
-      .update({
-        controlled_by,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
+    const result = await response.json()
 
-    if (error) {
-      console.error('Erro ao atualizar controle:', error)
-      throw error
+    if (!response.ok) {
+      console.error('Backend error:', result)
+      return NextResponse.json(
+        { error: result.detail || 'Erro ao atualizar controle' },
+        { status: response.status }
+      )
     }
 
-    return NextResponse.json({ success: true, controlled_by })
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Erro ao atualizar controle:', error)
     return NextResponse.json({ error: 'Erro ao atualizar controle' }, { status: 500 })

@@ -105,22 +105,48 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
 
   const handleSendMessage = async (message: string, attachment?: { type: string; file: File }) => {
     try {
-      // For now, only text is supported
-      // TODO: Implement media sending via Evolution API
+      let mediaUrl: string | undefined
+      let mediaType: string | undefined
+
+      // Upload attachment if present
       if (attachment) {
-        console.log('Attachment:', attachment.type, attachment.file.name)
-        // Future: upload to storage, send via Evolution API
+        const formData = new FormData()
+        formData.append('file', attachment.file)
+        formData.append('type', attachment.type)
+
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!uploadResponse.ok) {
+          console.error('Failed to upload file')
+          return
+        }
+
+        const uploadResult = await uploadResponse.json()
+        mediaUrl = uploadResult.url
+        mediaType = attachment.type
       }
 
+      // Send message (with or without media)
       const response = await fetch(`/api/conversas/${conversationId}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({
+          message: message || undefined,
+          media_url: mediaUrl,
+          media_type: mediaType,
+          caption: message || undefined,
+        }),
       })
 
       if (response.ok) {
         await fetchConversation()
         setTimeout(() => scrollToBottom(false), 100)
+      } else {
+        const error = await response.json()
+        console.error('Failed to send message:', error)
       }
     } catch (err) {
       console.error('Failed to send message:', err)
