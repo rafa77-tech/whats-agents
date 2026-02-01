@@ -2,9 +2,17 @@
 
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Bot, UserCheck, CheckCheck } from 'lucide-react'
+import { Bot, UserCheck, CheckCheck, Smartphone } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+
+export interface ChipInfo {
+  id: string
+  telefone: string
+  instance_name: string
+  status: string
+  trust_level: string
+}
 
 export interface ConversationItem {
   id: string
@@ -15,6 +23,7 @@ export interface ConversationItem {
   last_message?: string
   last_message_at?: string
   unread_count: number
+  chip?: ChipInfo | null
 }
 
 interface Props {
@@ -23,6 +32,15 @@ interface Props {
   onSelect: (id: string) => void
   hasMore?: boolean
   onLoadMore?: () => void
+}
+
+function formatPhone(phone: string): string {
+  // Format as (11) 9xxxx-xxxx
+  const cleaned = phone.replace(/\D/g, '').slice(-11)
+  if (cleaned.length === 11) {
+    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
+  }
+  return phone.slice(-11)
 }
 
 export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLoadMore }: Props) {
@@ -76,7 +94,6 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
 
               <div className="mt-0.5 flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-1">
-                  {/* Message status indicator */}
                   {conversation.last_message && (
                     <>
                       <CheckCheck className="h-3.5 w-3.5 flex-shrink-0 text-blue-500" />
@@ -106,6 +123,16 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
                   )}
                 </div>
               </div>
+
+              {/* Chip info */}
+              {conversation.chip && (
+                <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Smartphone className="h-3 w-3" />
+                  <span className="truncate">
+                    {conversation.chip.instance_name} • {formatPhone(conversation.chip.telefone)}
+                  </span>
+                </div>
+              )}
             </div>
           </button>
         )
