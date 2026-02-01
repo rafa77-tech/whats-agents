@@ -232,7 +232,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
             <AvatarFallback
               className={cn(
                 'text-sm font-medium',
-                isHandoff ? 'bg-yellow-100 text-yellow-700' : 'bg-emerald-100 text-emerald-700'
+                isHandoff ? 'bg-state-handoff text-state-handoff-foreground' : 'bg-state-ai text-state-ai-foreground'
               )}
             >
               {initials}
@@ -243,7 +243,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
             <div className="flex items-center gap-2">
               <span className="font-medium">{cliente.nome}</span>
               {isHandoff && (
-                <span className="flex items-center gap-1 rounded bg-yellow-100 px-1.5 py-0.5 text-xs font-medium text-yellow-700">
+                <span className="flex items-center gap-1 rounded bg-state-handoff px-1.5 py-0.5 text-xs font-medium text-state-handoff-foreground">
                   <UserCheck className="h-3 w-3" />
                   Handoff
                 </span>
@@ -264,7 +264,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
               size="sm"
               onClick={() => handleControlChange('ai')}
               disabled={changingControl}
-              className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+              className="gap-2 border-state-ai-border text-state-ai-foreground hover:bg-state-ai-hover"
             >
               {changingControl ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -279,7 +279,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
               size="sm"
               onClick={() => handleControlChange('human')}
               disabled={changingControl}
-              className="gap-2 border-yellow-200 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800"
+              className="gap-2 border-state-handoff-border text-state-handoff-foreground hover:bg-state-handoff-hover"
             >
               {changingControl ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -361,13 +361,13 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
                           className={cn(
                             'relative max-w-[70%] rounded-lg px-3 py-2 shadow-sm',
                             isOutgoing
-                              ? 'rounded-tr-none bg-emerald-100 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100'
+                              ? 'rounded-tr-none bg-state-message-out text-state-message-out-foreground'
                               : 'rounded-tl-none bg-white dark:bg-slate-800'
                           )}
                         >
                           {/* Sender indicator for outgoing */}
                           {isOutgoing && (
-                            <div className="mb-1 flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            <div className="mb-1 flex items-center gap-1 text-xs font-medium text-state-message-out-muted">
                               <Bot className="h-3 w-3" />
                               Julia
                             </div>
@@ -384,7 +384,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
                             )}
                           >
                             <span className="text-[10px] text-muted-foreground">{time}</span>
-                            {isOutgoing && <CheckCheck className="h-3 w-3 text-blue-500" />}
+                            {isOutgoing && <CheckCheck className="h-3 w-3 text-state-unread" />}
                           </div>
                         </div>
                       </div>
@@ -411,22 +411,22 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
             <button
               onClick={() => handleControlChange('ai')}
               disabled={changingControl}
-              className="text-emerald-600 hover:underline"
+              className="text-state-ai-muted hover:underline"
             >
               Devolver para Julia
             </button>
           </p>
         </div>
       ) : (
-        <div className="border-t bg-emerald-50 px-4 py-3 dark:bg-emerald-950/30">
+        <div className="border-t bg-state-ai px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
-              <Bot className="h-5 w-5 text-emerald-600" />
+              <Bot className="h-5 w-5 text-state-ai-muted" />
               <div>
-                <span className="font-medium text-emerald-800 dark:text-emerald-200">
+                <span className="font-medium text-state-ai-foreground">
                   Julia esta respondendo
                 </span>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                <p className="text-xs text-state-ai-muted">
                   Respostas automaticas ativas
                 </p>
               </div>
@@ -435,7 +435,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
               size="sm"
               onClick={() => handleControlChange('human')}
               disabled={changingControl}
-              className="gap-2 bg-yellow-500 text-white hover:bg-yellow-600"
+              className="gap-2 bg-state-handoff-button text-white hover:bg-state-handoff-button-hover"
             >
               {changingControl ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

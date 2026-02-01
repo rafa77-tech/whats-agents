@@ -179,12 +179,12 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
             />
           ) : attachment.type === 'audio' ? (
             <div className="flex items-center gap-2 text-sm">
-              <Mic className="h-5 w-5 text-emerald-600" />
+              <Mic className="h-5 w-5 text-state-audio" />
               <span>Audio gravado</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-sm">
-              <FileText className="h-5 w-5 text-blue-600" />
+              <FileText className="h-5 w-5 text-state-document" />
               <span className="max-w-[200px] truncate">{attachment.file.name}</span>
             </div>
           )}
@@ -201,21 +201,21 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
 
       {/* Recording indicator */}
       {isRecording && (
-        <div className="flex items-center gap-3 rounded-lg bg-red-50 p-2 dark:bg-red-950/30">
-          <div className="h-3 w-3 animate-pulse rounded-full bg-red-500" />
-          <span className="text-sm font-medium text-red-700 dark:text-red-300">
+        <div className="flex items-center gap-3 rounded-lg bg-state-recording p-2">
+          <div className="h-3 w-3 animate-pulse rounded-full bg-state-recording-dot" />
+          <span className="text-sm font-medium text-state-recording-foreground">
             Gravando {formatTime(recordingTime)}
           </span>
           <div className="ml-auto flex gap-1">
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-red-600 hover:bg-red-100 hover:text-red-700"
+              className="h-8 text-state-recording-foreground hover:bg-state-recording-hover"
               onClick={cancelRecording}
             >
               Cancelar
             </Button>
-            <Button size="sm" className="h-8 bg-red-600 hover:bg-red-700" onClick={stopRecording}>
+            <Button size="sm" className="h-8 bg-state-recording-button hover:bg-state-recording-button-hover" onClick={stopRecording}>
               <StopCircle className="mr-1 h-4 w-4" />
               Parar
             </Button>
@@ -309,7 +309,7 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
           <Button
             onClick={handleSend}
             disabled={sending || disabled || isRecording}
-            className="h-10 w-10 shrink-0 bg-emerald-600 p-0 hover:bg-emerald-700"
+            className="h-10 w-10 shrink-0 bg-state-ai-button p-0 hover:bg-state-ai-button-hover"
           >
             {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </Button>
@@ -322,7 +322,7 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
             onClick={isRecording ? stopRecording : startRecording}
           >
             <Mic
-              className={cn('h-5 w-5', isRecording ? 'text-red-500' : 'text-muted-foreground')}
+              className={cn('h-5 w-5', isRecording ? 'text-state-recording-dot' : 'text-muted-foreground')}
             />
           </Button>
         )}

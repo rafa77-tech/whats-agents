@@ -30,7 +30,7 @@ export function ConversationCard({ conversation }: Props) {
   const getStatusBadge = () => {
     if (conversation.controlled_by === 'human') {
       return (
-        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+        <Badge variant="secondary" className="bg-state-handoff text-state-handoff-foreground">
           <UserCheck className="mr-1 h-3 w-3" />
           Handoff
         </Badge>
@@ -38,7 +38,7 @@ export function ConversationCard({ conversation }: Props) {
     }
     if (conversation.status === 'active') {
       return (
-        <Badge className="bg-green-100 text-green-800">
+        <Badge className="bg-state-ai text-state-ai-foreground">
           <Bot className="mr-1 h-3 w-3" />
           Julia
         </Badge>
@@ -65,7 +65,7 @@ export function ConversationCard({ conversation }: Props) {
     <Card
       className={cn(
         'cursor-pointer transition-colors hover:bg-muted/50',
-        conversation.unread_count > 0 && 'border-l-4 border-l-blue-500'
+        conversation.unread_count > 0 && 'border-l-4 border-l-state-unread-border'
       )}
       onClick={() => router.push(`/conversas/${conversation.id}`)}
     >
@@ -95,8 +95,8 @@ export function ConversationCard({ conversation }: Props) {
 
             {conversation.unread_count > 0 && (
               <div className="mt-2 flex items-center gap-1">
-                <MessageCircle className="h-3 w-3 text-blue-500" />
-                <span className="text-xs font-medium text-blue-500">
+                <MessageCircle className="h-3 w-3 text-state-unread" />
+                <span className="text-xs font-medium text-state-unread">
                   {conversation.unread_count} nao lida
                   {conversation.unread_count > 1 && 's'}
                 </span>

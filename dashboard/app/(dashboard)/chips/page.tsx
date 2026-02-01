@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function ChipsPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-secondary">
       <div className="mx-auto max-w-[1600px] p-6">
         <Suspense fallback={<ChipsPageSkeleton />}>
           <ChipsPageContent />

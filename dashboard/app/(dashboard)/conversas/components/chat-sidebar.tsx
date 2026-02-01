@@ -69,7 +69,7 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
               <AvatarFallback
                 className={cn(
                   'text-sm font-medium',
-                  isHandoff ? 'bg-yellow-100 text-yellow-700' : 'bg-emerald-100 text-emerald-700'
+                  isHandoff ? 'bg-state-handoff text-state-handoff-foreground' : 'bg-state-ai text-state-ai-foreground'
                 )}
               >
                 {initials}
@@ -87,7 +87,7 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
                 <div className="flex min-w-0 items-center gap-1">
                   {conversation.last_message && (
                     <>
-                      <CheckCheck className="h-3.5 w-3.5 flex-shrink-0 text-blue-500" />
+                      <CheckCheck className="h-3.5 w-3.5 flex-shrink-0 text-state-unread" />
                       <span className="truncate text-sm text-muted-foreground">
                         {conversation.last_message}
                       </span>
@@ -98,17 +98,17 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
                 {/* Badges */}
                 <div className="flex flex-shrink-0 items-center gap-1">
                   {isHandoff ? (
-                    <span className="flex items-center gap-0.5 rounded bg-yellow-100 px-1.5 py-0.5 text-[10px] font-medium text-yellow-700">
+                    <span className="flex items-center gap-0.5 rounded bg-state-handoff px-1.5 py-0.5 text-[10px] font-medium text-state-handoff-foreground">
                       <UserCheck className="h-3 w-3" />
                     </span>
                   ) : (
-                    <span className="flex items-center gap-0.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                    <span className="flex items-center gap-0.5 rounded bg-state-ai px-1.5 py-0.5 text-[10px] font-medium text-state-ai-foreground">
                       <Bot className="h-3 w-3" />
                     </span>
                   )}
 
                   {conversation.unread_count > 0 && (
-                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-emerald-500 px-1.5 text-xs font-medium text-white">
+                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-state-ai-button px-1.5 text-xs font-medium text-white">
                       {conversation.unread_count}
                     </span>
                   )}

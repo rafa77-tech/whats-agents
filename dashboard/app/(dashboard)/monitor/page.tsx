@@ -16,22 +16,22 @@ export const metadata: Metadata = {
 function MonitorSkeleton() {
   return (
     <div className="animate-pulse space-y-6">
-      <div className="h-8 w-48 rounded bg-gray-200" />
-      <div className="h-32 rounded bg-gray-200" />
+      <div className="h-8 w-48 rounded bg-muted" />
+      <div className="h-32 rounded bg-muted" />
       <div className="grid grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-24 rounded bg-gray-200" />
+          <div key={i} className="h-24 rounded bg-muted" />
         ))}
       </div>
-      <div className="h-12 rounded bg-gray-200" />
-      <div className="h-96 rounded bg-gray-200" />
+      <div className="h-12 rounded bg-muted" />
+      <div className="h-96 rounded bg-muted" />
     </div>
   )
 }
 
 export default function MonitorPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-secondary">
       <div className="mx-auto max-w-[1600px] p-6">
         <Suspense fallback={<MonitorSkeleton />}>
           <MonitorPageContent />

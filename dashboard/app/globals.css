@@ -30,6 +30,39 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+
+    /* Semantic state colors */
+    --state-handoff: 48 96% 89%; /* yellow-100 bg */
+    --state-handoff-foreground: 46 93% 24%; /* yellow-800 text */
+    --state-handoff-border: 48 96% 83%; /* yellow-200 border */
+    --state-handoff-hover: 48 100% 96%; /* yellow-50 hover */
+    --state-handoff-button: 45 93% 47%; /* yellow-500 button bg */
+    --state-handoff-button-hover: 45 93% 41%; /* yellow-600 button hover */
+
+    --state-ai: 152 76% 91%; /* emerald-100 bg */
+    --state-ai-foreground: 155 79% 25%; /* emerald-800 text */
+    --state-ai-border: 149 80% 85%; /* emerald-200 border */
+    --state-ai-hover: 152 81% 96%; /* emerald-50 hover */
+    --state-ai-button: 160 84% 39%; /* emerald-600 button bg */
+    --state-ai-button-hover: 162 93% 31%; /* emerald-700 button hover */
+    --state-ai-muted: 160 60% 45%; /* emerald-600 muted text */
+
+    --state-recording: 0 93% 97%; /* red-50 bg */
+    --state-recording-foreground: 0 74% 42%; /* red-700 text */
+    --state-recording-dot: 0 84% 60%; /* red-500 dot */
+    --state-recording-button: 0 72% 51%; /* red-600 button bg */
+    --state-recording-button-hover: 0 74% 42%; /* red-700 button hover */
+    --state-recording-hover: 0 93% 94%; /* red-100 hover */
+
+    --state-unread: 217 91% 60%; /* blue-500 */
+    --state-unread-border: 217 91% 60%; /* blue-500 border */
+
+    --state-message-out: 152 76% 91%; /* emerald-100 message bg */
+    --state-message-out-foreground: 155 79% 15%; /* emerald-900 message text */
+    --state-message-out-muted: 155 79% 25%; /* emerald-700 muted text */
+
+    --state-document: 217 91% 60%; /* blue-600 document icon */
+    --state-audio: 160 84% 39%; /* emerald-600 audio icon */
   }
 
   .dark {
@@ -57,6 +90,39 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* Semantic state colors - dark mode */
+    --state-handoff: 46 93% 20%; /* darker yellow bg */
+    --state-handoff-foreground: 48 96% 89%; /* lighter yellow text */
+    --state-handoff-border: 46 93% 30%;
+    --state-handoff-hover: 46 93% 15%;
+    --state-handoff-button: 45 93% 47%;
+    --state-handoff-button-hover: 45 93% 55%;
+
+    --state-ai: 162 93% 15%; /* darker emerald bg */
+    --state-ai-foreground: 152 76% 80%; /* lighter emerald text */
+    --state-ai-border: 160 84% 25%;
+    --state-ai-hover: 162 93% 10%;
+    --state-ai-button: 160 84% 39%;
+    --state-ai-button-hover: 160 84% 45%;
+    --state-ai-muted: 160 60% 60%;
+
+    --state-recording: 0 74% 15%; /* darker red bg */
+    --state-recording-foreground: 0 93% 80%; /* lighter red text */
+    --state-recording-dot: 0 84% 60%;
+    --state-recording-button: 0 72% 51%;
+    --state-recording-button-hover: 0 72% 60%;
+    --state-recording-hover: 0 74% 20%;
+
+    --state-unread: 217 91% 65%;
+    --state-unread-border: 217 91% 65%;
+
+    --state-message-out: 162 93% 15%; /* darker emerald message bg */
+    --state-message-out-foreground: 152 76% 91%; /* lighter emerald text */
+    --state-message-out-muted: 152 76% 70%;
+
+    --state-document: 217 91% 65%;
+    --state-audio: 160 84% 50%;
   }
 }
 

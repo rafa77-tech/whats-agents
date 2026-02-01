@@ -102,7 +102,7 @@ export function NewConversationDialog({ onStart, trigger }: Props) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button size="sm" className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+          <Button size="sm" className="gap-2 bg-state-ai-button hover:bg-state-ai-button-hover">
             <MessageSquarePlus className="h-4 w-4" />
             <span className="hidden sm:inline">Nova Conversa</span>
           </Button>
@@ -155,7 +155,7 @@ export function NewConversationDialog({ onStart, trigger }: Props) {
                         loading && 'opacity-50'
                       )}
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-state-ai text-state-ai-foreground">
                         <User className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -224,7 +224,7 @@ export function NewConversationDialog({ onStart, trigger }: Props) {
             <Button
               onClick={handleStartWithPhone}
               disabled={loading || phone.replace(/\D/g, '').length < 10}
-              className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700"
+              className="w-full gap-2 bg-state-ai-button hover:bg-state-ai-button-hover"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
