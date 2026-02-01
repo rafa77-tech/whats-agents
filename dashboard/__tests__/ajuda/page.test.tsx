@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, cleanup, waitForElementToBeRemoved } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import CanalAjudaPage from '@/app/(dashboard)/ajuda/page'
@@ -13,7 +13,7 @@ vi.mock('@/hooks/use-toast', () => ({
 // Store original fetch
 const originalFetch = global.fetch
 
-// Mock fetch with URL handling
+// Mock fetch with URL handling - returns immediately
 function setupMockFetch(options: { pedidos?: unknown[] }) {
   const mockFn = vi.fn().mockImplementation((url: string) => {
     if (typeof url === 'string' && url.includes('/api/ajuda')) {
@@ -40,20 +40,39 @@ global.Audio = MockAudio as unknown as typeof Audio
 describe('CanalAjudaPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  afterEach(() => {
-    cleanup()
+    // Reset fetch to original before each test
     global.fetch = originalFetch
   })
 
-  it('shows loading state initially', () => {
-    // Never resolves to keep loading state
-    global.fetch = vi.fn().mockImplementation(() => new Promise(() => {}))
+  afterEach(async () => {
+    cleanup()
+    global.fetch = originalFetch
+    // Allow any pending promises to settle
+    await new Promise(resolve => setTimeout(resolve, 0))
+  })
+
+  it('shows loading state initially', async () => {
+    // Use a delayed promise that we can control
+    let resolvePromise: (value: unknown) => void
+    const delayedPromise = new Promise((resolve) => {
+      resolvePromise = resolve
+    })
+
+    global.fetch = vi.fn().mockImplementation(() => delayedPromise)
 
     render(<CanalAjudaPage />)
 
+    // Check loading state is shown
     expect(document.querySelector('.animate-spin')).toBeInTheDocument()
+
+    // Now resolve the promise to clean up
+    resolvePromise!({
+      ok: true,
+      json: () => Promise.resolve([]),
+    })
+
+    // Wait for cleanup
+    await new Promise(resolve => setTimeout(resolve, 10))
   })
 
   it('renders page title and description', () => {
@@ -65,13 +84,18 @@ describe('CanalAjudaPage', () => {
     expect(screen.getByText('Perguntas que Julia nao soube responder')).toBeInTheDocument()
   })
 
-  // TODO: Fix async data loading in test - skipped to unblock CI
-  it.skip('shows empty state when no pending requests', async () => {
+  it('shows empty state when no pending requests', async () => {
     setupMockFetch({ pedidos: [] })
 
     render(<CanalAjudaPage />)
 
-    expect(await screen.findByText('Tudo em dia!', {}, { timeout: 10000 })).toBeInTheDocument()
+    // Wait for "Tudo em dia!" to appear (loading must complete)
+    await waitFor(
+      () => {
+        expect(screen.getByText('Tudo em dia!')).toBeInTheDocument()
+      },
+      { timeout: 5000 }
+    )
 
     expect(screen.getByText('Nenhum pedido pendente no momento.')).toBeInTheDocument()
   })
@@ -94,7 +118,12 @@ describe('CanalAjudaPage', () => {
 
     render(<CanalAjudaPage />)
 
-    expect(await screen.findByText('Dr. Carlos', {}, { timeout: 10000 })).toBeInTheDocument()
+    await waitFor(
+      () => {
+        expect(screen.getByText('Dr. Carlos')).toBeInTheDocument()
+      },
+      { timeout: 5000 }
+    )
 
     expect(screen.getByText('Tem estacionamento?')).toBeInTheDocument()
   })
@@ -137,7 +166,12 @@ describe('CanalAjudaPage', () => {
 
     render(<CanalAjudaPage />)
 
-    expect(await screen.findByText('2', {}, { timeout: 10000 })).toBeInTheDocument()
+    await waitFor(
+      () => {
+        expect(screen.getByText('2')).toBeInTheDocument()
+      },
+      { timeout: 5000 }
+    )
   })
 
   it('shows alert when there are pending requests', async () => {
@@ -155,13 +189,15 @@ describe('CanalAjudaPage', () => {
 
     render(<CanalAjudaPage />)
 
-    expect(
-      await screen.findByText('1 pedido(s) aguardando resposta', {}, { timeout: 10000 })
-    ).toBeInTheDocument()
+    await waitFor(
+      () => {
+        expect(screen.getByText('1 pedido(s) aguardando resposta')).toBeInTheDocument()
+      },
+      { timeout: 5000 }
+    )
   })
 
-  // TODO: Fix async data loading in test - skipped to unblock CI
-  it.skip('shows Responder button for pending requests', async () => {
+  it('shows Responder button for pending requests', async () => {
     setupMockFetch({
       pedidos: [
         {
@@ -176,35 +212,59 @@ describe('CanalAjudaPage', () => {
 
     render(<CanalAjudaPage />)
 
-    expect(await screen.findByText('Responder', {}, { timeout: 10000 })).toBeInTheDocument()
+    // First wait for content to load (doctor name appears)
+    await waitFor(
+      () => {
+        expect(screen.getByText('Dr. Test')).toBeInTheDocument()
+      },
+      { timeout: 5000 }
+    )
+
+    // Now check for Responder button
+    expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument()
   })
 
-  // TODO: Fix async data loading in test - skipped to unblock CI
-  it.skip('shows response form when clicking Responder', async () => {
+  it('shows response form when clicking Responder', async () => {
+    const user = userEvent.setup()
+
     setupMockFetch({
       pedidos: [
         {
           id: '1',
+          conversa_id: 'conv-1',
+          cliente_id: 'cli-1',
           pergunta_original: 'Tem estacionamento?',
           status: 'pendente',
           criado_em: new Date().toISOString(),
-          clientes: { nome: 'Dr. Carlos', telefone: '11999999999' },
+          clientes: { nome: 'Dr. Pedro', telefone: '11999999999' },
+          hospitais: { nome: 'Hospital X' },
         },
       ],
     })
 
     render(<CanalAjudaPage />)
 
-    // Wait for Responder button
-    const responderButton = await screen.findByText('Responder', {}, { timeout: 10000 })
+    // First wait for content to load (doctor name appears)
+    await waitFor(
+      () => {
+        expect(screen.getByText('Dr. Pedro')).toBeInTheDocument()
+      },
+      { timeout: 5000 }
+    )
 
-    fireEvent.click(responderButton)
+    // Now get the Responder button and click it
+    const responderButton = screen.getByRole('button', { name: 'Responder' })
+    await user.click(responderButton)
 
-    expect(
-      await screen.findByPlaceholderText(/Digite sua resposta/, {}, { timeout: 5000 })
-    ).toBeInTheDocument()
+    // Wait for form to appear
+    await waitFor(
+      () => {
+        expect(screen.getByPlaceholderText(/Digite sua resposta/)).toBeInTheDocument()
+      },
+      { timeout: 5000 }
+    )
 
-    expect(screen.getByText('Enviar Resposta')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Enviar Resposta/ })).toBeInTheDocument()
   })
 
   it('shows Atualizar button', async () => {
@@ -212,7 +272,12 @@ describe('CanalAjudaPage', () => {
 
     render(<CanalAjudaPage />)
 
-    expect(await screen.findByText('Atualizar', {}, { timeout: 5000 })).toBeInTheDocument()
+    await waitFor(
+      () => {
+        expect(screen.getByText('Atualizar')).toBeInTheDocument()
+      },
+      { timeout: 5000 }
+    )
   })
 
   it('shows sound toggle', async () => {
@@ -220,7 +285,13 @@ describe('CanalAjudaPage', () => {
 
     render(<CanalAjudaPage />)
 
-    expect(await screen.findByText('Som', {}, { timeout: 5000 })).toBeInTheDocument()
+    await waitFor(
+      () => {
+        expect(screen.getByText('Som')).toBeInTheDocument()
+      },
+      { timeout: 5000 }
+    )
+
     expect(screen.getByRole('switch')).toBeInTheDocument()
   })
 
@@ -248,7 +319,7 @@ describe('CanalAjudaPage', () => {
       () => {
         expect(screen.getAllByRole('tab').length).toBe(2)
       },
-      { timeout: 10000 }
+      { timeout: 5000 }
     )
 
     // Switch to todos tab
@@ -256,8 +327,11 @@ describe('CanalAjudaPage', () => {
     await user.click(tabs[1] as Element)
 
     // Wait for content to appear
-    expect(
-      await screen.findByText('Sim, o hospital tem estacionamento proprio.', {}, { timeout: 10000 })
-    ).toBeInTheDocument()
+    await waitFor(
+      () => {
+        expect(screen.getByText('Sim, o hospital tem estacionamento proprio.')).toBeInTheDocument()
+      },
+      { timeout: 5000 }
+    )
   })
 })
