@@ -23,7 +23,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { useAuth } from '@/hooks/use-auth'
 
 interface Doctor {
   id: string
@@ -47,23 +46,14 @@ const FUNNEL_STATUSES = [
 
 export function DoctorActions({ doctor, onRefresh }: Props) {
   const router = useRouter()
-  const { session, user } = useAuth()
   const [loading, setLoading] = useState(false)
 
-  const canEdit = user?.role && ['operator', 'manager', 'admin'].includes(user.role)
-
   const handleFunnelChange = async (status: string) => {
-    if (!session?.access_token) return
-
     setLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      await fetch(`${apiUrl}/dashboard/doctors/${doctor.id}/funnel`, {
+      await fetch(`/api/medicos/${doctor.id}/funnel`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       })
       onRefresh()
@@ -75,17 +65,11 @@ export function DoctorActions({ doctor, onRefresh }: Props) {
   }
 
   const handleOptOutToggle = async () => {
-    if (!session?.access_token) return
-
     setLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      await fetch(`${apiUrl}/dashboard/doctors/${doctor.id}/opt-out`, {
+      await fetch(`/api/medicos/${doctor.id}/opt-out`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ opt_out: !doctor.opt_out }),
       })
       onRefresh()
@@ -94,16 +78,6 @@ export function DoctorActions({ doctor, onRefresh }: Props) {
     } finally {
       setLoading(false)
     }
-  }
-
-  if (!canEdit) {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          Voce precisa de permissao de Operador para realizar acoes
-        </CardContent>
-      </Card>
-    )
   }
 
   return (
@@ -191,7 +165,6 @@ export function DoctorActions({ doctor, onRefresh }: Props) {
             variant="outline"
             className="w-full"
             onClick={() => {
-              // TODO: Navigate to active conversation or create new
               router.push('/conversas')
             }}
           >

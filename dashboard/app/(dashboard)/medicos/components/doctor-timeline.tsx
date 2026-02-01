@@ -5,7 +5,6 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { MessageCircle, Send, UserCheck, type LucideIcon } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
 
 interface TimelineEvent {
@@ -34,20 +33,12 @@ interface Props {
 }
 
 export function DoctorTimeline({ doctorId }: Props) {
-  const { session } = useAuth()
   const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState<TimelineEvent[]>([])
 
   const fetchTimeline = useCallback(async () => {
-    if (!session?.access_token) return
-
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const response = await fetch(`${apiUrl}/dashboard/doctors/${doctorId}/timeline`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const response = await fetch(`/api/medicos/${doctorId}/timeline`)
 
       if (response.ok) {
         const result = await response.json()
@@ -58,7 +49,7 @@ export function DoctorTimeline({ doctorId }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, doctorId])
+  }, [doctorId])
 
   useEffect(() => {
     fetchTimeline()
