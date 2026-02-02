@@ -154,8 +154,14 @@ async def send_text_message(request: SendTextRequest):
             raise HTTPException(500, f"Falha ao enviar: {result.error}")
 
         # Registrar interacao
+        # Usar cliente_id da conversa diretamente, mais confiavel que o join
+        cliente_id = conversation.get("cliente_id") or cliente.get("id")
+        if not cliente_id:
+            logger.error(f"cliente_id nao encontrado para conversa {request.conversation_id}")
+            raise HTTPException(500, "Cliente nao encontrado para esta conversa")
+
         interacao = await _record_interaction(
-            cliente_id=cliente.get("id"),
+            cliente_id=cliente_id,
             conteudo=request.message,
         )
 
@@ -220,9 +226,15 @@ async def send_media_message(request: SendMediaRequest):
             raise HTTPException(500, f"Falha ao enviar: {result.error}")
 
         # Registrar interacao
+        # Usar cliente_id da conversa diretamente, mais confiavel que o join
+        cliente_id = conversation.get("cliente_id") or cliente.get("id")
+        if not cliente_id:
+            logger.error(f"cliente_id nao encontrado para conversa {request.conversation_id}")
+            raise HTTPException(500, "Cliente nao encontrado para esta conversa")
+
         conteudo = request.caption or f"[{request.media_type}]"
         interacao = await _record_interaction(
-            cliente_id=cliente.get("id"),
+            cliente_id=cliente_id,
             conteudo=conteudo,
             tipo_midia=request.media_type,
             media_url=request.media_url,
