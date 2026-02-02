@@ -71,22 +71,22 @@ describe('CircuitBreakersPanel', () => {
   })
 
   describe('State Badge Styling', () => {
-    it('CLOSED badge has green styling', () => {
+    it('CLOSED badge has success styling', () => {
       render(<CircuitBreakersPanel circuits={mockCircuits} onReset={mockOnReset} />)
       const closedBadge = screen.getByText('CLOSED')
-      expect(closedBadge).toHaveClass('bg-green-100', 'text-green-800')
+      expect(closedBadge).toHaveClass('bg-status-success', 'text-status-success-foreground')
     })
 
-    it('HALF_OPEN badge has yellow styling', () => {
+    it('HALF_OPEN badge has warning styling', () => {
       render(<CircuitBreakersPanel circuits={mockCircuits} onReset={mockOnReset} />)
       const halfOpenBadge = screen.getByText('HALF_OPEN')
-      expect(halfOpenBadge).toHaveClass('bg-yellow-100', 'text-yellow-800')
+      expect(halfOpenBadge).toHaveClass('bg-status-warning', 'text-status-warning-foreground')
     })
 
-    it('OPEN badge has red styling', () => {
+    it('OPEN badge has error styling', () => {
       render(<CircuitBreakersPanel circuits={mockCircuits} onReset={mockOnReset} />)
       const openBadge = screen.getByText('OPEN')
-      expect(openBadge).toHaveClass('bg-red-100', 'text-red-800')
+      expect(openBadge).toHaveClass('bg-status-error', 'text-status-error-foreground')
     })
   })
 
@@ -197,32 +197,35 @@ describe('CircuitBreakersPanel', () => {
   })
 
   describe('Circuit Row Styling', () => {
-    it('CLOSED circuits have green background', () => {
+    it('CLOSED circuits have success background', () => {
       const closedOnly = [{ name: 'test', state: 'CLOSED' as const, failures: 0, threshold: 5 }]
       const { container } = render(
         <CircuitBreakersPanel circuits={closedOnly} onReset={mockOnReset} />
       )
-      const row = container.querySelector('.bg-green-50\\/50')
+      // Component uses bg-status-success/10 for CLOSED state
+      const row = container.querySelector('.bg-status-success\\/10')
       expect(row).toBeInTheDocument()
     })
 
-    it('HALF_OPEN circuits have yellow background', () => {
+    it('HALF_OPEN circuits have warning background', () => {
       const halfOpenOnly = [
         { name: 'test', state: 'HALF_OPEN' as const, failures: 2, threshold: 5 },
       ]
       const { container } = render(
         <CircuitBreakersPanel circuits={halfOpenOnly} onReset={mockOnReset} />
       )
-      const row = container.querySelector('.bg-yellow-50\\/50')
+      // Component uses bg-status-warning/10 for HALF_OPEN state
+      const row = container.querySelector('.bg-status-warning\\/10')
       expect(row).toBeInTheDocument()
     })
 
-    it('OPEN circuits have red background', () => {
+    it('OPEN circuits have error background', () => {
       const openOnly = [{ name: 'test', state: 'OPEN' as const, failures: 5, threshold: 5 }]
       const { container } = render(
         <CircuitBreakersPanel circuits={openOnly} onReset={mockOnReset} />
       )
-      const row = container.querySelector('.bg-red-50\\/50')
+      // Component uses bg-status-error/10 for OPEN state
+      const row = container.querySelector('.bg-status-error\\/10')
       expect(row).toBeInTheDocument()
     })
   })

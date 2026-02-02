@@ -130,22 +130,23 @@ describe('QueueStatusPanel', () => {
       expect(statCards).toHaveLength(4)
     })
 
-    it('has gray background for pendentes card', () => {
+    it('has neutral background for pendentes and tempo medio cards', () => {
       const { container } = render(<QueueStatusPanel queue={mockQueue} />)
-      const grayCards = container.querySelectorAll('.bg-gray-50')
-      expect(grayCards.length).toBeGreaterThanOrEqual(2)
+      // Component uses bg-status-neutral for pendentes and tempo medio cards
+      const neutralCards = container.querySelectorAll('.bg-status-neutral')
+      expect(neutralCards.length).toBeGreaterThanOrEqual(2)
     })
 
-    it('has blue background for processando card', () => {
+    it('has info background for processando card', () => {
       const { container } = render(<QueueStatusPanel queue={mockQueue} />)
-      const blueCard = container.querySelector('.bg-blue-50')
-      expect(blueCard).toBeInTheDocument()
+      const infoCard = container.querySelector('.bg-status-info')
+      expect(infoCard).toBeInTheDocument()
     })
 
-    it('has green background for processadas card', () => {
+    it('has success background for processadas card', () => {
       const { container } = render(<QueueStatusPanel queue={mockQueue} />)
-      const greenCard = container.querySelector('.bg-green-50')
-      expect(greenCard).toBeInTheDocument()
+      const successCard = container.querySelector('.bg-status-success')
+      expect(successCard).toBeInTheDocument()
     })
   })
 

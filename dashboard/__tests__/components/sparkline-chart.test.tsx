@@ -78,47 +78,47 @@ describe('SparklineChart', () => {
   })
 
   describe('trend color logic', () => {
-    it('should apply green color when trend is good and going up', () => {
+    it('should apply success color when trend is good and going up', () => {
       const { container } = render(
         <SparklineChart metric={{ ...baseMetric, trend: 'up', trendIsGood: true }} />
       )
       const icon = container.querySelector('svg')
-      expect(icon).toHaveClass('text-green-500')
+      expect(icon).toHaveClass('text-status-success-foreground')
     })
 
-    it('should apply red color when trend is up but not good', () => {
+    it('should apply error color when trend is up but not good', () => {
       // e.g., costs going up is bad
       const { container } = render(
         <SparklineChart metric={{ ...baseMetric, trend: 'up', trendIsGood: false }} />
       )
       const icon = container.querySelector('svg')
-      expect(icon).toHaveClass('text-red-500')
+      expect(icon).toHaveClass('text-status-error-foreground')
     })
 
-    it('should apply green color when trend is down and that is good', () => {
+    it('should apply success color when trend is down and that is good', () => {
       // e.g., response time going down is good
       const { container } = render(
         <SparklineChart metric={{ ...baseMetric, trend: 'down', trendIsGood: true }} />
       )
       const icon = container.querySelector('svg')
-      expect(icon).toHaveClass('text-green-500')
+      expect(icon).toHaveClass('text-status-success-foreground')
     })
 
-    it('should apply red color when trend is down and that is bad', () => {
+    it('should apply error color when trend is down and that is bad', () => {
       // e.g., response rate going down is bad
       const { container } = render(
         <SparklineChart metric={{ ...baseMetric, trend: 'down', trendIsGood: false }} />
       )
       const icon = container.querySelector('svg')
-      expect(icon).toHaveClass('text-red-500')
+      expect(icon).toHaveClass('text-status-error-foreground')
     })
 
-    it('should apply gray color for stable trend', () => {
+    it('should apply muted color for stable trend', () => {
       const { container } = render(
         <SparklineChart metric={{ ...baseMetric, trend: 'stable', trendIsGood: true }} />
       )
       const icon = container.querySelector('svg')
-      expect(icon).toHaveClass('text-gray-400')
+      expect(icon).toHaveClass('text-muted-foreground')
     })
   })
 

@@ -24,22 +24,22 @@ describe('KPI_STATUS_COLORS', () => {
     expect(KPI_STATUS_COLORS).toHaveProperty('bad')
   })
 
-  it('good status has green colors', () => {
-    expect(KPI_STATUS_COLORS.good.border).toContain('green')
-    expect(KPI_STATUS_COLORS.good.text).toContain('green')
-    expect(KPI_STATUS_COLORS.good.bg).toContain('green')
+  it('good status has success semantic colors', () => {
+    expect(KPI_STATUS_COLORS.good.border).toContain('status-success')
+    expect(KPI_STATUS_COLORS.good.text).toContain('status-success')
+    expect(KPI_STATUS_COLORS.good.bg).toContain('status-success')
   })
 
-  it('warn status has yellow colors', () => {
-    expect(KPI_STATUS_COLORS.warn.border).toContain('yellow')
-    expect(KPI_STATUS_COLORS.warn.text).toContain('yellow')
-    expect(KPI_STATUS_COLORS.warn.bg).toContain('yellow')
+  it('warn status has warning semantic colors', () => {
+    expect(KPI_STATUS_COLORS.warn.border).toContain('status-warning')
+    expect(KPI_STATUS_COLORS.warn.text).toContain('status-warning')
+    expect(KPI_STATUS_COLORS.warn.bg).toContain('status-warning')
   })
 
-  it('bad status has red colors', () => {
-    expect(KPI_STATUS_COLORS.bad.border).toContain('red')
-    expect(KPI_STATUS_COLORS.bad.text).toContain('red')
-    expect(KPI_STATUS_COLORS.bad.bg).toContain('red')
+  it('bad status has error semantic colors', () => {
+    expect(KPI_STATUS_COLORS.bad.border).toContain('status-error')
+    expect(KPI_STATUS_COLORS.bad.text).toContain('status-error')
+    expect(KPI_STATUS_COLORS.bad.bg).toContain('status-error')
   })
 
   it('all statuses have required properties', () => {
@@ -59,19 +59,19 @@ describe('ANOMALY_SEVERITY_COLORS', () => {
     expect(ANOMALY_SEVERITY_COLORS).toHaveProperty('low')
   })
 
-  it('high severity has red colors', () => {
-    expect(ANOMALY_SEVERITY_COLORS.high.icon).toContain('red')
-    expect(ANOMALY_SEVERITY_COLORS.high.badge).toContain('red')
+  it('high severity has error semantic colors', () => {
+    expect(ANOMALY_SEVERITY_COLORS.high.icon).toContain('status-error')
+    expect(ANOMALY_SEVERITY_COLORS.high.badge).toContain('status-error')
   })
 
-  it('medium severity has yellow colors', () => {
-    expect(ANOMALY_SEVERITY_COLORS.medium.icon).toContain('yellow')
-    expect(ANOMALY_SEVERITY_COLORS.medium.badge).toContain('yellow')
+  it('medium severity has warning semantic colors', () => {
+    expect(ANOMALY_SEVERITY_COLORS.medium.icon).toContain('status-warning')
+    expect(ANOMALY_SEVERITY_COLORS.medium.badge).toContain('status-warning')
   })
 
-  it('low severity has blue colors', () => {
-    expect(ANOMALY_SEVERITY_COLORS.low.icon).toContain('blue')
-    expect(ANOMALY_SEVERITY_COLORS.low.badge).toContain('blue')
+  it('low severity has info semantic colors', () => {
+    expect(ANOMALY_SEVERITY_COLORS.low.icon).toContain('status-info')
+    expect(ANOMALY_SEVERITY_COLORS.low.badge).toContain('status-info')
   })
 
   it('all severities have required properties', () => {
@@ -110,14 +110,14 @@ describe('ANOMALY_SEVERITY_ORDER', () => {
 })
 
 describe('ANOMALY_RESOLUTION_COLORS', () => {
-  it('resolvida has green colors', () => {
-    expect(ANOMALY_RESOLUTION_COLORS.resolvida.bg).toContain('green')
-    expect(ANOMALY_RESOLUTION_COLORS.resolvida.text).toContain('green')
+  it('resolvida has success semantic colors', () => {
+    expect(ANOMALY_RESOLUTION_COLORS.resolvida.bg).toContain('status-success')
+    expect(ANOMALY_RESOLUTION_COLORS.resolvida.text).toContain('status-success')
   })
 
-  it('aberta has yellow colors', () => {
-    expect(ANOMALY_RESOLUTION_COLORS.aberta.bg).toContain('yellow')
-    expect(ANOMALY_RESOLUTION_COLORS.aberta.text).toContain('yellow')
+  it('aberta has warning semantic colors', () => {
+    expect(ANOMALY_RESOLUTION_COLORS.aberta.bg).toContain('status-warning')
+    expect(ANOMALY_RESOLUTION_COLORS.aberta.text).toContain('status-warning')
   })
 })
 
@@ -169,10 +169,10 @@ describe('PROGRESS_THRESHOLDS', () => {
 })
 
 describe('PROGRESS_COLORS', () => {
-  it('has correct color classes', () => {
-    expect(PROGRESS_COLORS.GOOD).toContain('green')
-    expect(PROGRESS_COLORS.WARN).toContain('yellow')
-    expect(PROGRESS_COLORS.BAD).toContain('red')
+  it('has correct semantic color classes', () => {
+    expect(PROGRESS_COLORS.GOOD).toContain('status-success')
+    expect(PROGRESS_COLORS.WARN).toContain('status-warning')
+    expect(PROGRESS_COLORS.BAD).toContain('status-error')
   })
 })
 

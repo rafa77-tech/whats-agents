@@ -24,10 +24,10 @@ describe('Conversas Constants', () => {
   })
 
   describe('CONVERSATION_STATUS_COLORS', () => {
-    it('deve ter cores para status principais', () => {
-      expect(CONVERSATION_STATUS_COLORS.ativa).toContain('green')
-      expect(CONVERSATION_STATUS_COLORS.pausada).toContain('yellow')
-      expect(CONVERSATION_STATUS_COLORS.encerrada).toContain('gray')
+    it('deve ter cores semanticas para status principais', () => {
+      expect(CONVERSATION_STATUS_COLORS.ativa).toContain('status-success')
+      expect(CONVERSATION_STATUS_COLORS.pausada).toContain('status-warning')
+      expect(CONVERSATION_STATUS_COLORS.encerrada).toContain('status-neutral')
     })
   })
 
@@ -39,9 +39,9 @@ describe('Conversas Constants', () => {
   })
 
   describe('CONTROLLED_BY_COLORS', () => {
-    it('deve ter cores corretas', () => {
-      expect(CONTROLLED_BY_COLORS.ai).toContain('blue')
-      expect(CONTROLLED_BY_COLORS.human).toContain('purple')
+    it('deve ter cores semanticas corretas', () => {
+      expect(CONTROLLED_BY_COLORS.ai).toContain('status-info')
+      expect(CONTROLLED_BY_COLORS.human).toContain('accent')
     })
   })
 

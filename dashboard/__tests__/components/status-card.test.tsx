@@ -41,21 +41,21 @@ describe('StatusCard', () => {
       expect(screen.queryByText(/%/)).not.toBeInTheDocument()
     })
 
-    it('should show positive trend with green color', () => {
+    it('should show positive trend with success color', () => {
       const { container } = render(
         <StatusCard {...defaultProps} trend={{ value: 15, positive: true }} />
       )
       expect(screen.getByText('15%')).toBeInTheDocument()
-      const trendDiv = container.querySelector('.text-green-600')
+      const trendDiv = container.querySelector('.text-status-success-foreground')
       expect(trendDiv).toBeInTheDocument()
     })
 
-    it('should show negative trend with red color', () => {
+    it('should show negative trend with error color', () => {
       const { container } = render(
         <StatusCard {...defaultProps} trend={{ value: 10, positive: false }} />
       )
       expect(screen.getByText('10%')).toBeInTheDocument()
-      const trendDiv = container.querySelector('.text-red-600')
+      const trendDiv = container.querySelector('.text-status-error-foreground')
       expect(trendDiv).toBeInTheDocument()
     })
 

@@ -89,13 +89,13 @@ describe('FunnelStageComponent', () => {
   })
 
   describe('color selection by stage id', () => {
-    it('should apply blue colors for enviadas stage', () => {
+    it('should apply info colors for enviadas stage', () => {
       render(<FunnelStageComponent {...defaultProps} stage={{ ...baseStage, id: 'enviadas' }} />)
       const label = screen.getByText('Enviadas:')
-      expect(label).toHaveClass('text-blue-700')
+      expect(label).toHaveClass('text-status-info-foreground')
     })
 
-    it('should apply blue colors for entregues stage', () => {
+    it('should apply info colors for entregues stage', () => {
       render(
         <FunnelStageComponent
           {...defaultProps}
@@ -103,10 +103,10 @@ describe('FunnelStageComponent', () => {
         />
       )
       const label = screen.getByText('Entregues:')
-      expect(label).toHaveClass('text-blue-700')
+      expect(label).toHaveClass('text-status-info-foreground')
     })
 
-    it('should apply green colors for respostas stage', () => {
+    it('should apply success colors for respostas stage', () => {
       render(
         <FunnelStageComponent
           {...defaultProps}
@@ -114,10 +114,10 @@ describe('FunnelStageComponent', () => {
         />
       )
       const label = screen.getByText('Respostas:')
-      expect(label).toHaveClass('text-green-700')
+      expect(label).toHaveClass('text-status-success-foreground')
     })
 
-    it('should apply yellow colors for interesse stage', () => {
+    it('should apply warning colors for interesse stage', () => {
       render(
         <FunnelStageComponent
           {...defaultProps}
@@ -125,10 +125,10 @@ describe('FunnelStageComponent', () => {
         />
       )
       const label = screen.getByText('Interesse:')
-      expect(label).toHaveClass('text-yellow-700')
+      expect(label).toHaveClass('text-status-warning-foreground')
     })
 
-    it('should apply emerald colors for fechadas stage', () => {
+    it('should apply success colors for fechadas stage', () => {
       render(
         <FunnelStageComponent
           {...defaultProps}
@@ -136,10 +136,10 @@ describe('FunnelStageComponent', () => {
         />
       )
       const label = screen.getByText('Fechadas:')
-      expect(label).toHaveClass('text-emerald-700')
+      expect(label).toHaveClass('text-status-success-foreground')
     })
 
-    it('should apply default blue colors for unknown stage', () => {
+    it('should apply default info colors for unknown stage', () => {
       render(
         <FunnelStageComponent
           {...defaultProps}
@@ -147,7 +147,7 @@ describe('FunnelStageComponent', () => {
         />
       )
       const label = screen.getByText('Unknown:')
-      expect(label).toHaveClass('text-blue-700')
+      expect(label).toHaveClass('text-status-info-foreground')
     })
   })
 

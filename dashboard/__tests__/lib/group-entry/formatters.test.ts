@@ -34,16 +34,16 @@ describe('getLinkStatusLabel', () => {
 
 describe('getLinkStatusBadgeColor', () => {
   it('returns correct color for each status', () => {
-    expect(getLinkStatusBadgeColor('pending')).toBe('bg-gray-100 text-gray-800')
-    expect(getLinkStatusBadgeColor('validated')).toBe('bg-blue-100 text-blue-800')
-    expect(getLinkStatusBadgeColor('scheduled')).toBe('bg-yellow-100 text-yellow-800')
-    expect(getLinkStatusBadgeColor('processed')).toBe('bg-green-100 text-green-800')
-    expect(getLinkStatusBadgeColor('failed')).toBe('bg-red-100 text-red-800')
+    expect(getLinkStatusBadgeColor('pending')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getLinkStatusBadgeColor('validated')).toBe('bg-status-info text-status-info-foreground')
+    expect(getLinkStatusBadgeColor('scheduled')).toBe('bg-status-warning text-status-warning-foreground')
+    expect(getLinkStatusBadgeColor('processed')).toBe('bg-status-success text-status-success-foreground')
+    expect(getLinkStatusBadgeColor('failed')).toBe('bg-status-error text-status-error-foreground')
   })
 
   it('returns default color for unknown status', () => {
-    expect(getLinkStatusBadgeColor('unknown')).toBe('bg-gray-100 text-gray-800')
-    expect(getLinkStatusBadgeColor('')).toBe('bg-gray-100 text-gray-800')
+    expect(getLinkStatusBadgeColor('unknown')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getLinkStatusBadgeColor('')).toBe('bg-status-neutral text-status-neutral-foreground')
   })
 })
 
@@ -60,12 +60,12 @@ describe('getQueueStatusLabel', () => {
 
 describe('getQueueStatusBadgeColor', () => {
   it('returns correct color for each status', () => {
-    expect(getQueueStatusBadgeColor('queued')).toBe('bg-yellow-100 text-yellow-800')
-    expect(getQueueStatusBadgeColor('processing')).toBe('bg-blue-100 text-blue-800')
+    expect(getQueueStatusBadgeColor('queued')).toBe('bg-status-warning text-status-warning-foreground')
+    expect(getQueueStatusBadgeColor('processing')).toBe('bg-status-info text-status-info-foreground')
   })
 
   it('returns default color for unknown status', () => {
-    expect(getQueueStatusBadgeColor('unknown')).toBe('bg-gray-100 text-gray-800')
+    expect(getQueueStatusBadgeColor('unknown')).toBe('bg-status-neutral text-status-neutral-foreground')
   })
 })
 
@@ -118,21 +118,21 @@ describe('calculateCapacityPercentage', () => {
 
 describe('getCapacityColor', () => {
   it('returns green for low usage', () => {
-    expect(getCapacityColor(0)).toBe('bg-green-500')
-    expect(getCapacityColor(50)).toBe('bg-green-500')
-    expect(getCapacityColor(79)).toBe('bg-green-500')
+    expect(getCapacityColor(0)).toBe('bg-status-success-solid')
+    expect(getCapacityColor(50)).toBe('bg-status-success-solid')
+    expect(getCapacityColor(79)).toBe('bg-status-success-solid')
   })
 
   it('returns yellow for warning level', () => {
-    expect(getCapacityColor(80)).toBe('bg-yellow-500')
-    expect(getCapacityColor(85)).toBe('bg-yellow-500')
-    expect(getCapacityColor(89)).toBe('bg-yellow-500')
+    expect(getCapacityColor(80)).toBe('bg-status-warning-solid')
+    expect(getCapacityColor(85)).toBe('bg-status-warning-solid')
+    expect(getCapacityColor(89)).toBe('bg-status-warning-solid')
   })
 
   it('returns red for danger level', () => {
-    expect(getCapacityColor(90)).toBe('bg-red-500')
-    expect(getCapacityColor(95)).toBe('bg-red-500')
-    expect(getCapacityColor(100)).toBe('bg-red-500')
+    expect(getCapacityColor(90)).toBe('bg-status-error-solid')
+    expect(getCapacityColor(95)).toBe('bg-status-error-solid')
+    expect(getCapacityColor(100)).toBe('bg-status-error-solid')
   })
 })
 

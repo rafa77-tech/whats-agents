@@ -225,14 +225,14 @@ describe('ChipsTable', () => {
       const chip = { ...mockChip, trustLevel: 'verde' as TrustLevel }
       render(<ChipsTable {...defaultProps} chips={[chip]} />)
       const scoreElement = screen.getByText('85')
-      expect(scoreElement).toHaveClass('text-green-600')
+      expect(scoreElement).toHaveClass('text-trust-verde-foreground')
     })
 
     it('should apply red color for vermelho trust level', () => {
       const chip = { ...mockChip, trustLevel: 'vermelho' as TrustLevel, trustScore: 30 }
       render(<ChipsTable {...defaultProps} chips={[chip]} />)
       const scoreElement = screen.getByText('30')
-      expect(scoreElement).toHaveClass('text-red-600')
+      expect(scoreElement).toHaveClass('text-trust-vermelho-foreground')
     })
   })
 
@@ -240,14 +240,14 @@ describe('ChipsTable', () => {
     it('should apply green color for response rate >= 30%', () => {
       render(<ChipsTable {...defaultProps} />)
       const rateElement = screen.getByText('35.5%')
-      expect(rateElement).toHaveClass('text-green-600')
+      expect(rateElement).toHaveClass('text-status-success-foreground')
     })
 
     it('should apply red color for response rate < 30%', () => {
       const chip = { ...mockChip, responseRate: 25.0 }
       render(<ChipsTable {...defaultProps} chips={[chip]} />)
       const rateElement = screen.getByText('25.0%')
-      expect(rateElement).toHaveClass('text-red-600')
+      expect(rateElement).toHaveClass('text-status-error-foreground')
     })
   })
 
@@ -256,13 +256,13 @@ describe('ChipsTable', () => {
       const chip = { ...mockChip, errorsLast24h: 10 }
       render(<ChipsTable {...defaultProps} chips={[chip]} />)
       const errorsElement = screen.getByText('10')
-      expect(errorsElement).toHaveClass('text-red-600')
+      expect(errorsElement).toHaveClass('text-status-error-foreground')
     })
 
     it('should apply gray color for errors <= 5', () => {
       render(<ChipsTable {...defaultProps} />)
       const errorsElement = screen.getByText('2')
-      expect(errorsElement).toHaveClass('text-gray-600')
+      expect(errorsElement).toHaveClass('text-muted-foreground')
     })
   })
 })

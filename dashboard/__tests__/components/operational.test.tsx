@@ -38,16 +38,16 @@ describe('InstanceStatusList', () => {
     expect(screen.getByText('100 msgs')).toBeInTheDocument()
   })
 
-  it('should show green indicator for online instances', () => {
+  it('should show success indicator for online instances', () => {
     render(<InstanceStatusList instances={mockInstances} />)
-    const greenIndicators = document.querySelectorAll('.bg-green-500')
-    expect(greenIndicators.length).toBe(2) // Julia01 and Julia03 are online
+    const successIndicators = document.querySelectorAll('.bg-status-success-solid')
+    expect(successIndicators.length).toBe(2) // Julia01 and Julia03 are online
   })
 
-  it('should show red indicator for offline instances', () => {
+  it('should show error indicator for offline instances', () => {
     render(<InstanceStatusList instances={mockInstances} />)
-    const redIndicators = document.querySelectorAll('.bg-red-500')
-    expect(redIndicators.length).toBe(1) // Julia02 is offline
+    const errorIndicators = document.querySelectorAll('.bg-status-error-solid')
+    expect(errorIndicators.length).toBe(1) // Julia02 is offline
   })
 
   it('should render empty list when no instances', () => {

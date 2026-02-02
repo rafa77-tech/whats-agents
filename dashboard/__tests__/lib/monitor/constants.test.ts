@@ -27,11 +27,11 @@ describe('Monitor Constants', () => {
   })
 
   describe('JOB_STATUS_COLORS', () => {
-    it('deve ter cores para todos os status', () => {
-      expect(JOB_STATUS_COLORS.running).toContain('blue')
-      expect(JOB_STATUS_COLORS.success).toContain('green')
-      expect(JOB_STATUS_COLORS.error).toContain('red')
-      expect(JOB_STATUS_COLORS.timeout).toContain('yellow')
+    it('deve ter cores semanticas para todos os status', () => {
+      expect(JOB_STATUS_COLORS.running).toContain('status-info')
+      expect(JOB_STATUS_COLORS.success).toContain('status-success')
+      expect(JOB_STATUS_COLORS.error).toContain('status-error')
+      expect(JOB_STATUS_COLORS.timeout).toContain('status-warning')
     })
   })
 
@@ -44,10 +44,10 @@ describe('Monitor Constants', () => {
   })
 
   describe('SYSTEM_HEALTH_COLORS', () => {
-    it('deve ter cores para todos os status', () => {
-      expect(SYSTEM_HEALTH_COLORS.healthy).toContain('green')
-      expect(SYSTEM_HEALTH_COLORS.degraded).toContain('yellow')
-      expect(SYSTEM_HEALTH_COLORS.critical).toContain('red')
+    it('deve ter cores semanticas para todos os status', () => {
+      expect(SYSTEM_HEALTH_COLORS.healthy).toContain('status-success')
+      expect(SYSTEM_HEALTH_COLORS.degraded).toContain('status-warning')
+      expect(SYSTEM_HEALTH_COLORS.critical).toContain('status-error')
     })
   })
 

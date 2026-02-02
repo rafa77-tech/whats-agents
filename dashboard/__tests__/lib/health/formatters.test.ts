@@ -48,21 +48,21 @@ describe('formatTempoMedio', () => {
 
 describe('getProgressColor', () => {
   it('returns green for low percentages', () => {
-    expect(getProgressColor(0)).toBe('bg-green-500')
-    expect(getProgressColor(50)).toBe('bg-green-500')
-    expect(getProgressColor(69)).toBe('bg-green-500')
+    expect(getProgressColor(0)).toBe('bg-status-success-solid')
+    expect(getProgressColor(50)).toBe('bg-status-success-solid')
+    expect(getProgressColor(69)).toBe('bg-status-success-solid')
   })
 
   it('returns yellow for warning percentages', () => {
-    expect(getProgressColor(70)).toBe('bg-yellow-500')
-    expect(getProgressColor(80)).toBe('bg-yellow-500')
-    expect(getProgressColor(89)).toBe('bg-yellow-500')
+    expect(getProgressColor(70)).toBe('bg-status-warning-solid')
+    expect(getProgressColor(80)).toBe('bg-status-warning-solid')
+    expect(getProgressColor(89)).toBe('bg-status-warning-solid')
   })
 
   it('returns red for danger percentages', () => {
-    expect(getProgressColor(90)).toBe('bg-red-500')
-    expect(getProgressColor(95)).toBe('bg-red-500')
-    expect(getProgressColor(100)).toBe('bg-red-500')
+    expect(getProgressColor(90)).toBe('bg-status-error-solid')
+    expect(getProgressColor(95)).toBe('bg-status-error-solid')
+    expect(getProgressColor(100)).toBe('bg-status-error-solid')
   })
 })
 
@@ -105,19 +105,19 @@ describe('getHealthStatusColors', () => {
   it('returns green colors for healthy', () => {
     const colors = getHealthStatusColors('healthy')
     expect(colors.stroke).toBe('#22c55e')
-    expect(colors.text).toContain('green')
+    expect(colors.text).toContain('status-success')
   })
 
   it('returns yellow colors for degraded', () => {
     const colors = getHealthStatusColors('degraded')
     expect(colors.stroke).toBe('#eab308')
-    expect(colors.text).toContain('yellow')
+    expect(colors.text).toContain('status-warning')
   })
 
   it('returns red colors for critical', () => {
     const colors = getHealthStatusColors('critical')
     expect(colors.stroke).toBe('#ef4444')
-    expect(colors.text).toContain('red')
+    expect(colors.text).toContain('status-error')
   })
 })
 
@@ -136,36 +136,36 @@ describe('getHealthStatusLabel', () => {
 describe('getHealthStatusColors', () => {
   it('returns default colors for unknown status', () => {
     const colors = getHealthStatusColors('unknown' as any)
-    expect(colors.text).toContain('gray')
-    expect(colors.badge).toContain('gray')
+    expect(colors.text).toContain('status-neutral')
+    expect(colors.badge).toContain('status-neutral')
   })
 })
 
 describe('getServiceStatusColors', () => {
   it('returns colors for all statuses', () => {
-    expect(getServiceStatusColors('ok').bg).toContain('green')
-    expect(getServiceStatusColors('warn').bg).toContain('yellow')
-    expect(getServiceStatusColors('error').bg).toContain('red')
+    expect(getServiceStatusColors('ok').bg).toContain('status-success')
+    expect(getServiceStatusColors('warn').bg).toContain('status-warning')
+    expect(getServiceStatusColors('error').bg).toContain('status-error')
   })
 
   it('returns default colors for unknown status', () => {
     const colors = getServiceStatusColors('unknown' as any)
-    expect(colors.bg).toContain('gray')
-    expect(colors.text).toContain('gray')
+    expect(colors.bg).toContain('status-neutral')
+    expect(colors.text).toContain('status-neutral')
   })
 })
 
 describe('getAlertSeverityColors', () => {
   it('returns colors for all severities', () => {
-    expect(getAlertSeverityColors('critical').bg).toContain('red')
-    expect(getAlertSeverityColors('warn').bg).toContain('yellow')
-    expect(getAlertSeverityColors('info').bg).toContain('blue')
+    expect(getAlertSeverityColors('critical').bg).toContain('status-error')
+    expect(getAlertSeverityColors('warn').bg).toContain('status-warning')
+    expect(getAlertSeverityColors('info').bg).toContain('status-info')
   })
 
   it('returns default colors for unknown severity', () => {
     const colors = getAlertSeverityColors('unknown' as any)
-    expect(colors.bg).toContain('gray')
-    expect(colors.border).toContain('gray')
+    expect(colors.bg).toContain('status-neutral')
+    expect(colors.border).toContain('status-neutral')
   })
 })
 
@@ -183,17 +183,17 @@ describe('getAlertSeverityLabel', () => {
 
 describe('getCircuitStateColors', () => {
   it('returns colors for all states', () => {
-    expect(getCircuitStateColors('CLOSED').indicator).toContain('green')
-    expect(getCircuitStateColors('HALF_OPEN').indicator).toContain('yellow')
-    expect(getCircuitStateColors('OPEN').indicator).toContain('red')
+    expect(getCircuitStateColors('CLOSED').indicator).toContain('status-success')
+    expect(getCircuitStateColors('HALF_OPEN').indicator).toContain('status-warning')
+    expect(getCircuitStateColors('OPEN').indicator).toContain('status-error')
   })
 
   it('returns default colors for unknown states', () => {
     const colors = getCircuitStateColors('UNKNOWN_STATE' as any)
-    expect(colors.bg).toContain('gray')
-    expect(colors.border).toContain('gray')
-    expect(colors.indicator).toContain('gray')
-    expect(colors.badge).toContain('gray')
+    expect(colors.bg).toContain('status-neutral')
+    expect(colors.border).toContain('status-neutral')
+    expect(colors.indicator).toContain('status-neutral')
+    expect(colors.badge).toContain('status-neutral')
   })
 })
 

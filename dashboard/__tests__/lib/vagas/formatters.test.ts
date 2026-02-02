@@ -67,33 +67,33 @@ describe('parseShiftDate', () => {
 
 describe('getStatusBadgeColor', () => {
   it('returns correct color for each status', () => {
-    expect(getStatusBadgeColor('aberta')).toBe('bg-green-100 text-green-800')
-    expect(getStatusBadgeColor('reservada')).toBe('bg-yellow-100 text-yellow-800')
-    expect(getStatusBadgeColor('confirmada')).toBe('bg-blue-100 text-blue-800')
-    expect(getStatusBadgeColor('cancelada')).toBe('bg-red-100 text-red-800')
-    expect(getStatusBadgeColor('realizada')).toBe('bg-gray-100 text-gray-800')
-    expect(getStatusBadgeColor('fechada')).toBe('bg-gray-100 text-gray-800')
+    expect(getStatusBadgeColor('aberta')).toBe('bg-status-success text-status-success-foreground')
+    expect(getStatusBadgeColor('reservada')).toBe('bg-status-warning text-status-warning-foreground')
+    expect(getStatusBadgeColor('confirmada')).toBe('bg-status-info text-status-info-foreground')
+    expect(getStatusBadgeColor('cancelada')).toBe('bg-status-error text-status-error-foreground')
+    expect(getStatusBadgeColor('realizada')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getStatusBadgeColor('fechada')).toBe('bg-status-neutral text-status-neutral-foreground')
   })
 
   it('returns default color for unknown status', () => {
-    expect(getStatusBadgeColor('unknown')).toBe('bg-gray-100 text-gray-800')
-    expect(getStatusBadgeColor('')).toBe('bg-gray-100 text-gray-800')
+    expect(getStatusBadgeColor('unknown')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getStatusBadgeColor('')).toBe('bg-status-neutral text-status-neutral-foreground')
   })
 })
 
 describe('getStatusIndicatorColor', () => {
   it('returns correct indicator color for each status', () => {
-    expect(getStatusIndicatorColor('aberta')).toBe('bg-green-500')
-    expect(getStatusIndicatorColor('reservada')).toBe('bg-yellow-500')
-    expect(getStatusIndicatorColor('confirmada')).toBe('bg-blue-500')
-    expect(getStatusIndicatorColor('cancelada')).toBe('bg-red-500')
-    expect(getStatusIndicatorColor('realizada')).toBe('bg-gray-500')
-    expect(getStatusIndicatorColor('fechada')).toBe('bg-gray-500')
+    expect(getStatusIndicatorColor('aberta')).toBe('bg-status-success-solid')
+    expect(getStatusIndicatorColor('reservada')).toBe('bg-status-warning-solid')
+    expect(getStatusIndicatorColor('confirmada')).toBe('bg-status-info-solid')
+    expect(getStatusIndicatorColor('cancelada')).toBe('bg-status-error-solid')
+    expect(getStatusIndicatorColor('realizada')).toBe('bg-status-neutral-solid')
+    expect(getStatusIndicatorColor('fechada')).toBe('bg-status-neutral-solid')
   })
 
   it('returns default color for unknown status', () => {
-    expect(getStatusIndicatorColor('unknown')).toBe('bg-gray-500')
-    expect(getStatusIndicatorColor('')).toBe('bg-gray-500')
+    expect(getStatusIndicatorColor('unknown')).toBe('bg-status-neutral-solid')
+    expect(getStatusIndicatorColor('')).toBe('bg-status-neutral-solid')
   })
 })
 

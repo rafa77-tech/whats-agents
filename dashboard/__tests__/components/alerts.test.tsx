@@ -37,8 +37,8 @@ describe('AlertItem', () => {
       title: 'Alerta Critico',
     }
     render(<AlertItem alert={criticalAlert} />)
-    // The root container has the bg color
-    const container = document.querySelector('.bg-red-50')
+    // Component uses bg-status-error/10 for critical severity
+    const container = document.querySelector('.bg-status-error\\/10')
     expect(container).toBeInTheDocument()
   })
 
@@ -49,7 +49,8 @@ describe('AlertItem', () => {
       title: 'Alerta Warning',
     }
     render(<AlertItem alert={warningAlert} />)
-    const container = document.querySelector('.bg-yellow-50')
+    // Component uses bg-status-warning/10 for warning severity
+    const container = document.querySelector('.bg-status-warning\\/10')
     expect(container).toBeInTheDocument()
   })
 
@@ -60,7 +61,8 @@ describe('AlertItem', () => {
       title: 'Alerta Info',
     }
     render(<AlertItem alert={infoAlert} />)
-    const container = document.querySelector('.bg-blue-50')
+    // Component uses bg-status-info/10 for info severity
+    const container = document.querySelector('.bg-status-info\\/10')
     expect(container).toBeInTheDocument()
   })
 

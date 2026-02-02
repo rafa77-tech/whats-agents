@@ -50,9 +50,9 @@ describe('MessageInput', () => {
     await user.type(textarea, 'Hello')
 
     // Should show send button (with Send icon) instead of mic button
-    // We can detect this by looking for the bg-emerald-600 class on a button
+    // We can detect this by looking for the bg-state-ai-button semantic token class on a button
     const buttons = screen.getAllByRole('button')
-    const sendButton = buttons.find((btn) => btn.classList.contains('bg-emerald-600'))
+    const sendButton = buttons.find((btn) => btn.classList.contains('bg-state-ai-button'))
     expect(sendButton).toBeDefined()
   })
 
@@ -63,9 +63,9 @@ describe('MessageInput', () => {
     const textarea = screen.getByPlaceholderText(/digite sua mensagem/i)
     await user.type(textarea, 'Hello world')
 
-    // Find send button by its emerald styling
+    // Find send button by its semantic state-ai-button styling
     const buttons = screen.getAllByRole('button')
-    const sendButton = buttons.find((btn) => btn.classList.contains('bg-emerald-600'))
+    const sendButton = buttons.find((btn) => btn.classList.contains('bg-state-ai-button'))
     expect(sendButton).toBeDefined()
 
     if (sendButton) {

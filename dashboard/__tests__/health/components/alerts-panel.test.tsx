@@ -103,12 +103,13 @@ describe('AlertsPanel', () => {
       const { container } = render(<AlertsPanel alerts={mixedAlerts} />)
       const alertItems = container.querySelectorAll('.rounded-lg.border.p-3')
 
-      // First alert should be critical (red background)
-      expect(alertItems[0]).toHaveClass('bg-red-50')
-      // Second should be warn (yellow)
-      expect(alertItems[1]).toHaveClass('bg-yellow-50')
-      // Third should be info (blue)
-      expect(alertItems[2]).toHaveClass('bg-blue-50')
+      // Component uses bg-status-{severity}/20 for alert backgrounds
+      // First alert should be critical (error background)
+      expect(alertItems[0]).toHaveClass('bg-status-error/20')
+      // Second should be warn (warning)
+      expect(alertItems[1]).toHaveClass('bg-status-warning/20')
+      // Third should be info (info)
+      expect(alertItems[2]).toHaveClass('bg-status-info/20')
     })
   })
 
@@ -162,18 +163,18 @@ describe('AlertsPanel', () => {
   })
 
   describe('Styling', () => {
-    it('applies red border when critical alerts exist', () => {
+    it('applies error border when critical alerts exist', () => {
       const { container } = render(<AlertsPanel alerts={mockAlerts} />)
-      const card = container.querySelector('.border-red-200')
+      const card = container.querySelector('.border-status-error-border')
       expect(card).toBeInTheDocument()
     })
 
-    it('does not apply red border when no critical alerts', () => {
+    it('does not apply error border when no critical alerts', () => {
       const nonCriticalAlerts = [
         { id: '1', tipo: 'test', severity: 'warn' as const, message: 'Warn', source: 'test' },
       ]
       const { container } = render(<AlertsPanel alerts={nonCriticalAlerts} />)
-      const card = container.querySelector('.border-red-200')
+      const card = container.querySelector('.border-status-error-border')
       expect(card).not.toBeInTheDocument()
     })
   })

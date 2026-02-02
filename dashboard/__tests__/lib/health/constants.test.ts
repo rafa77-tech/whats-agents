@@ -36,19 +36,19 @@ describe('HEALTH_STATUS_COLORS', () => {
     })
   })
 
-  it('healthy uses green colors', () => {
+  it('healthy uses success semantic colors', () => {
     expect(HEALTH_STATUS_COLORS.healthy.stroke).toContain('22c55e')
-    expect(HEALTH_STATUS_COLORS.healthy.text).toContain('green')
+    expect(HEALTH_STATUS_COLORS.healthy.text).toContain('status-success')
   })
 
-  it('degraded uses yellow colors', () => {
+  it('degraded uses warning semantic colors', () => {
     expect(HEALTH_STATUS_COLORS.degraded.stroke).toContain('eab308')
-    expect(HEALTH_STATUS_COLORS.degraded.text).toContain('yellow')
+    expect(HEALTH_STATUS_COLORS.degraded.text).toContain('status-warning')
   })
 
-  it('critical uses red colors', () => {
+  it('critical uses error semantic colors', () => {
     expect(HEALTH_STATUS_COLORS.critical.stroke).toContain('ef4444')
-    expect(HEALTH_STATUS_COLORS.critical.text).toContain('red')
+    expect(HEALTH_STATUS_COLORS.critical.text).toContain('status-error')
   })
 })
 
@@ -140,16 +140,16 @@ describe('CIRCUIT_STATE_COLORS', () => {
     })
   })
 
-  it('CLOSED uses green colors', () => {
-    expect(CIRCUIT_STATE_COLORS.CLOSED.indicator).toContain('green')
+  it('CLOSED uses success semantic colors', () => {
+    expect(CIRCUIT_STATE_COLORS.CLOSED.indicator).toContain('status-success')
   })
 
-  it('HALF_OPEN uses yellow colors', () => {
-    expect(CIRCUIT_STATE_COLORS.HALF_OPEN.indicator).toContain('yellow')
+  it('HALF_OPEN uses warning semantic colors', () => {
+    expect(CIRCUIT_STATE_COLORS.HALF_OPEN.indicator).toContain('status-warning')
   })
 
-  it('OPEN uses red colors', () => {
-    expect(CIRCUIT_STATE_COLORS.OPEN.indicator).toContain('red')
+  it('OPEN uses error semantic colors', () => {
+    expect(CIRCUIT_STATE_COLORS.OPEN.indicator).toContain('status-error')
   })
 })
 
@@ -231,10 +231,10 @@ describe('PROGRESS_THRESHOLDS', () => {
 })
 
 describe('PROGRESS_COLORS', () => {
-  it('has colors for all levels', () => {
-    expect(PROGRESS_COLORS.SAFE).toContain('green')
-    expect(PROGRESS_COLORS.WARNING).toContain('yellow')
-    expect(PROGRESS_COLORS.DANGER).toContain('red')
+  it('has semantic colors for all levels', () => {
+    expect(PROGRESS_COLORS.SAFE).toContain('status-success')
+    expect(PROGRESS_COLORS.WARNING).toContain('status-warning')
+    expect(PROGRESS_COLORS.DANGER).toContain('status-error')
   })
 })
 

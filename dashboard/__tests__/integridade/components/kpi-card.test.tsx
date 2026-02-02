@@ -54,82 +54,82 @@ describe('KpiCard', () => {
   })
 
   describe('Status Styling', () => {
-    it('applies green border for good status', () => {
+    it('applies success border for good status', () => {
       const { container } = render(
         <KpiCard title="Test" value={85} icon={Activity} status="good" />
       )
-      const card = container.querySelector('.border-green-200')
+      const card = container.querySelector('.border-status-success-border')
       expect(card).toBeInTheDocument()
     })
 
-    it('applies yellow border for warn status', () => {
+    it('applies warning border for warn status', () => {
       const { container } = render(
         <KpiCard title="Test" value={65} icon={Activity} status="warn" />
       )
-      const card = container.querySelector('.border-yellow-200')
+      const card = container.querySelector('.border-status-warning-border')
       expect(card).toBeInTheDocument()
     })
 
-    it('applies red border for bad status', () => {
+    it('applies error border for bad status', () => {
       const { container } = render(<KpiCard title="Test" value={30} icon={Activity} status="bad" />)
-      const card = container.querySelector('.border-red-200')
+      const card = container.querySelector('.border-status-error-border')
       expect(card).toBeInTheDocument()
     })
 
-    it('applies green text to value for good status', () => {
+    it('applies success text to value for good status', () => {
       render(<KpiCard title="Test" value={85} icon={Activity} status="good" />)
       const valueElement = screen.getByText('85')
-      expect(valueElement).toHaveClass('text-green-600')
+      expect(valueElement).toHaveClass('text-status-success-foreground')
     })
 
-    it('applies yellow text to value for warn status', () => {
+    it('applies warning text to value for warn status', () => {
       render(<KpiCard title="Test" value={65} icon={Activity} status="warn" />)
       const valueElement = screen.getByText('65')
-      expect(valueElement).toHaveClass('text-yellow-600')
+      expect(valueElement).toHaveClass('text-status-warning-foreground')
     })
 
-    it('applies red text to value for bad status', () => {
+    it('applies error text to value for bad status', () => {
       render(<KpiCard title="Test" value={30} icon={Activity} status="bad" />)
       const valueElement = screen.getByText('30')
-      expect(valueElement).toHaveClass('text-red-600')
+      expect(valueElement).toHaveClass('text-status-error-foreground')
     })
   })
 
   describe('Icon Background', () => {
-    it('applies green background for good status', () => {
+    it('applies success background for good status', () => {
       const { container } = render(
         <KpiCard title="Test" value={85} icon={Activity} status="good" />
       )
-      const iconBg = container.querySelector('.bg-green-100')
+      const iconBg = container.querySelector('.bg-status-success')
       expect(iconBg).toBeInTheDocument()
     })
 
-    it('applies yellow background for warn status', () => {
+    it('applies warning background for warn status', () => {
       const { container } = render(
         <KpiCard title="Test" value={65} icon={Activity} status="warn" />
       )
-      const iconBg = container.querySelector('.bg-yellow-100')
+      const iconBg = container.querySelector('.bg-status-warning')
       expect(iconBg).toBeInTheDocument()
     })
 
-    it('applies red background for bad status', () => {
+    it('applies error background for bad status', () => {
       const { container } = render(<KpiCard title="Test" value={30} icon={Activity} status="bad" />)
-      const iconBg = container.querySelector('.bg-red-100')
+      const iconBg = container.querySelector('.bg-status-error')
       expect(iconBg).toBeInTheDocument()
     })
   })
 
   describe('Trend Styling', () => {
-    it('applies green text for positive trend', () => {
+    it('applies success text for positive trend', () => {
       render(<KpiCard title="Test" value={50} icon={Clock} status="good" trend={10} />)
       const trendElement = screen.getByText('+10% vs ontem')
-      expect(trendElement).toHaveClass('text-green-600')
+      expect(trendElement).toHaveClass('text-status-success-foreground')
     })
 
-    it('applies red text for negative trend', () => {
+    it('applies error text for negative trend', () => {
       render(<KpiCard title="Test" value={50} icon={Clock} status="bad" trend={-10} />)
       const trendElement = screen.getByText('-10% vs ontem')
-      expect(trendElement).toHaveClass('text-red-600')
+      expect(trendElement).toHaveClass('text-status-error-foreground')
     })
   })
 

@@ -7,20 +7,20 @@ import { describe, expect, it } from 'vitest'
 import { ComparisonIndicator } from '@/components/dashboard/comparison-indicator'
 
 describe('ComparisonIndicator', () => {
-  it('should render positive change with green color', () => {
+  it('should render positive change with success color', () => {
     render(<ComparisonIndicator current={120} previous={100} />)
 
     const indicator = screen.getByText('+20%')
     expect(indicator).toBeInTheDocument()
-    expect(indicator).toHaveClass('text-green-600')
+    expect(indicator).toHaveClass('text-status-success-foreground')
   })
 
-  it('should render negative change with red color', () => {
+  it('should render negative change with error color', () => {
     render(<ComparisonIndicator current={80} previous={100} />)
 
     const indicator = screen.getByText('-20%')
     expect(indicator).toBeInTheDocument()
-    expect(indicator).toHaveClass('text-red-600')
+    expect(indicator).toHaveClass('text-status-error-foreground')
   })
 
   it('should render neutral for small changes', () => {
@@ -28,7 +28,7 @@ describe('ComparisonIndicator', () => {
 
     const indicator = screen.getByText('0%')
     expect(indicator).toBeInTheDocument()
-    expect(indicator).toHaveClass('text-gray-400')
+    expect(indicator).toHaveClass('text-muted-foreground')
   })
 
   it('should invert colors when lesserIsBetter is true', () => {
@@ -36,14 +36,14 @@ describe('ComparisonIndicator', () => {
     render(<ComparisonIndicator current={80} previous={100} lesserIsBetter />)
 
     const indicator = screen.getByText('-20%')
-    expect(indicator).toHaveClass('text-green-600')
+    expect(indicator).toHaveClass('text-status-success-foreground')
   })
 
   it('should show increase as negative when lesserIsBetter', () => {
     render(<ComparisonIndicator current={120} previous={100} lesserIsBetter />)
 
     const indicator = screen.getByText('+20%')
-    expect(indicator).toHaveClass('text-red-600')
+    expect(indicator).toHaveClass('text-status-error-foreground')
   })
 
   it('should hide value when showValue is false', () => {

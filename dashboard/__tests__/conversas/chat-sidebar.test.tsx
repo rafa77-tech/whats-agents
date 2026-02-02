@@ -83,16 +83,16 @@ describe('ChatSidebar', () => {
     render(<ChatSidebar conversations={mockConversations} selectedId={null} onSelect={vi.fn()} />)
 
     // The human-controlled conversation shows UserCheck icon which renders as an SVG
-    // We can verify this by checking for the yellow background in badges
+    // We can verify this by checking for the handoff state background in badges
     const buttons = screen.getAllByRole('button')
     const humanControlledButton = buttons.find((btn) =>
       btn.textContent?.includes('Dra. Maria Santos')
     )
     expect(humanControlledButton).toBeDefined()
 
-    // Check that the handoff badge has yellow styling
-    const yellowBadge = humanControlledButton?.querySelector('.bg-yellow-100')
-    expect(yellowBadge).toBeInTheDocument()
+    // Check that the handoff badge has semantic state-handoff styling
+    const handoffBadge = humanControlledButton?.querySelector('.bg-state-handoff')
+    expect(handoffBadge).toBeInTheDocument()
   })
 
   it('shows chip info when available', () => {

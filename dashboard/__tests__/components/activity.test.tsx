@@ -57,37 +57,38 @@ describe('ActivityItem', () => {
   describe('activity types styling', () => {
     it('should render fechamento with green icon', () => {
       render(<ActivityItem event={{ ...baseEvent, type: 'fechamento' }} />)
-      const iconContainer = document.querySelector('.bg-green-100')
+      const iconContainer = document.querySelector('.bg-status-success')
       expect(iconContainer).toBeInTheDocument()
     })
 
     it('should render handoff with blue icon', () => {
       render(<ActivityItem event={{ ...baseEvent, type: 'handoff' }} />)
-      const iconContainer = document.querySelector('.bg-blue-100')
+      const iconContainer = document.querySelector('.bg-status-info')
       expect(iconContainer).toBeInTheDocument()
     })
 
-    it('should render campanha with purple icon', () => {
+    it('should render campanha with accent color icon', () => {
       render(<ActivityItem event={{ ...baseEvent, type: 'campanha' }} />)
-      const iconContainer = document.querySelector('.bg-purple-100')
+      // Component uses bg-accent/20 for campanha type
+      const iconContainer = document.querySelector('.bg-accent\\/20')
       expect(iconContainer).toBeInTheDocument()
     })
 
     it('should render resposta with green icon', () => {
       render(<ActivityItem event={{ ...baseEvent, type: 'resposta' }} />)
-      const iconContainer = document.querySelector('.bg-green-100')
+      const iconContainer = document.querySelector('.bg-status-success')
       expect(iconContainer).toBeInTheDocument()
     })
 
     it('should render chip with yellow icon', () => {
       render(<ActivityItem event={{ ...baseEvent, type: 'chip' }} />)
-      const iconContainer = document.querySelector('.bg-yellow-100')
+      const iconContainer = document.querySelector('.bg-status-warning')
       expect(iconContainer).toBeInTheDocument()
     })
 
     it('should render alerta with orange icon', () => {
       render(<ActivityItem event={{ ...baseEvent, type: 'alerta' }} />)
-      const iconContainer = document.querySelector('.bg-orange-100')
+      const iconContainer = document.querySelector('.bg-trust-laranja')
       expect(iconContainer).toBeInTheDocument()
     })
   })

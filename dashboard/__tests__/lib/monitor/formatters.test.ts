@@ -184,19 +184,19 @@ describe('Monitor Formatters', () => {
   })
 
   describe('getHealthScoreColor', () => {
-    it('deve retornar verde para score >= 80', () => {
-      expect(getHealthScoreColor(80)).toContain('green')
-      expect(getHealthScoreColor(100)).toContain('green')
+    it('deve retornar success para score >= 80', () => {
+      expect(getHealthScoreColor(80)).toContain('status-success')
+      expect(getHealthScoreColor(100)).toContain('status-success')
     })
 
-    it('deve retornar amarelo para score >= 50', () => {
-      expect(getHealthScoreColor(50)).toContain('yellow')
-      expect(getHealthScoreColor(79)).toContain('yellow')
+    it('deve retornar warning para score >= 50', () => {
+      expect(getHealthScoreColor(50)).toContain('status-warning')
+      expect(getHealthScoreColor(79)).toContain('status-warning')
     })
 
-    it('deve retornar vermelho para score < 50', () => {
-      expect(getHealthScoreColor(49)).toContain('red')
-      expect(getHealthScoreColor(0)).toContain('red')
+    it('deve retornar error para score < 50', () => {
+      expect(getHealthScoreColor(49)).toContain('status-error')
+      expect(getHealthScoreColor(0)).toContain('status-error')
     })
   })
 })

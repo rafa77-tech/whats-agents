@@ -111,18 +111,18 @@ describe('Dashboard Constants', () => {
   })
 
   describe('JULIA_STATUS_COLORS', () => {
-    it('deve ter cores para todos os status', () => {
-      expect(JULIA_STATUS_COLORS.online).toContain('green')
-      expect(JULIA_STATUS_COLORS.offline).toContain('red')
-      expect(JULIA_STATUS_COLORS.degraded).toContain('yellow')
+    it('deve ter cores semanticas para todos os status', () => {
+      expect(JULIA_STATUS_COLORS.online).toContain('status-success')
+      expect(JULIA_STATUS_COLORS.offline).toContain('status-error')
+      expect(JULIA_STATUS_COLORS.degraded).toContain('status-warning')
     })
   })
 
   describe('ALERT_SEVERITY_COLORS', () => {
-    it('deve ter cores para todas as severidades', () => {
-      expect(ALERT_SEVERITY_COLORS.critical).toContain('red')
-      expect(ALERT_SEVERITY_COLORS.warning).toContain('yellow')
-      expect(ALERT_SEVERITY_COLORS.info).toContain('blue')
+    it('deve ter cores semanticas para todas as severidades', () => {
+      expect(ALERT_SEVERITY_COLORS.critical).toContain('status-error')
+      expect(ALERT_SEVERITY_COLORS.warning).toContain('status-warning')
+      expect(ALERT_SEVERITY_COLORS.info).toContain('status-info')
     })
   })
 })

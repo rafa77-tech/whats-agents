@@ -39,19 +39,19 @@ describe('DashboardHeader', () => {
 
   it('should show green indicator for online status', () => {
     render(<DashboardHeader {...defaultProps} juliaStatus="online" />)
-    const indicator = document.querySelector('.bg-green-500')
+    const indicator = document.querySelector('.bg-status-success-solid')
     expect(indicator).toBeInTheDocument()
   })
 
   it('should show red indicator for offline status', () => {
     render(<DashboardHeader {...defaultProps} juliaStatus="offline" />)
-    const indicator = document.querySelector('.bg-red-500')
+    const indicator = document.querySelector('.bg-status-error-solid')
     expect(indicator).toBeInTheDocument()
   })
 
   it('should show yellow indicator for degraded status', () => {
     render(<DashboardHeader {...defaultProps} juliaStatus="degraded" />)
-    const indicator = document.querySelector('.bg-yellow-500')
+    const indicator = document.querySelector('.bg-status-warning-solid')
     expect(indicator).toBeInTheDocument()
   })
 
@@ -62,17 +62,17 @@ describe('DashboardHeader', () => {
 
   it('should show green uptime color when >= 99%', () => {
     render(<DashboardHeader {...defaultProps} uptime30d={99.5} />)
-    expect(screen.getByText('99.5%')).toHaveClass('text-green-600')
+    expect(screen.getByText('99.5%')).toHaveClass('text-status-success-foreground')
   })
 
   it('should show yellow uptime color when between 95% and 99%', () => {
     render(<DashboardHeader {...defaultProps} uptime30d={97.0} />)
-    expect(screen.getByText('97.0%')).toHaveClass('text-yellow-600')
+    expect(screen.getByText('97.0%')).toHaveClass('text-status-warning-foreground')
   })
 
   it('should show red uptime color when < 95%', () => {
     render(<DashboardHeader {...defaultProps} uptime30d={90.0} />)
-    expect(screen.getByText('90.0%')).toHaveClass('text-red-600')
+    expect(screen.getByText('90.0%')).toHaveClass('text-status-error-foreground')
   })
 
   it('should render period selector', () => {
@@ -198,7 +198,7 @@ describe('QualityMetricCard', () => {
     render(<QualityMetricCard data={improvedMetric} />)
     // Trend should be green (improvement) since lower is better with lt operator
     const trend = screen.getByText(/-33%/)
-    expect(trend).toHaveClass('text-green-600')
+    expect(trend).toHaveClass('text-status-success-foreground')
   })
 
   it('should not show trend when diff is less than 1%', () => {

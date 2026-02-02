@@ -32,11 +32,11 @@ describe('Chips Constants', () => {
   })
 
   describe('CHIP_STATUS_COLORS', () => {
-    it('deve ter cores para todos os status', () => {
-      expect(CHIP_STATUS_COLORS.active).toContain('emerald')
-      expect(CHIP_STATUS_COLORS.warming).toContain('yellow')
-      expect(CHIP_STATUS_COLORS.banned).toContain('red')
-      expect(CHIP_STATUS_COLORS.ready).toContain('green')
+    it('deve ter cores semanticas para todos os status', () => {
+      expect(CHIP_STATUS_COLORS.active).toContain('state-ai')
+      expect(CHIP_STATUS_COLORS.warming).toContain('status-warning')
+      expect(CHIP_STATUS_COLORS.banned).toContain('status-error')
+      expect(CHIP_STATUS_COLORS.ready).toContain('status-success')
     })
   })
 
@@ -51,12 +51,12 @@ describe('Chips Constants', () => {
   })
 
   describe('TRUST_LEVEL_COLORS', () => {
-    it('deve ter cores para todos os niveis', () => {
-      expect(TRUST_LEVEL_COLORS.verde).toContain('green')
-      expect(TRUST_LEVEL_COLORS.amarelo).toContain('yellow')
-      expect(TRUST_LEVEL_COLORS.laranja).toContain('orange')
-      expect(TRUST_LEVEL_COLORS.vermelho).toContain('red')
-      expect(TRUST_LEVEL_COLORS.critico).toContain('red')
+    it('deve ter cores semanticas para todos os niveis', () => {
+      expect(TRUST_LEVEL_COLORS.verde).toContain('status-success')
+      expect(TRUST_LEVEL_COLORS.amarelo).toContain('status-warning')
+      expect(TRUST_LEVEL_COLORS.laranja).toContain('trust-laranja')
+      expect(TRUST_LEVEL_COLORS.vermelho).toContain('status-error')
+      expect(TRUST_LEVEL_COLORS.critico).toContain('trust-critico')
     })
   })
 
@@ -86,11 +86,11 @@ describe('Chips Constants', () => {
   })
 
   describe('ALERT_SEVERITY_COLORS', () => {
-    it('deve ter cores para todas as severidades', () => {
-      expect(ALERT_SEVERITY_COLORS.critico).toContain('red')
-      expect(ALERT_SEVERITY_COLORS.alerta).toContain('orange')
-      expect(ALERT_SEVERITY_COLORS.atencao).toContain('yellow')
-      expect(ALERT_SEVERITY_COLORS.info).toContain('blue')
+    it('deve ter cores semanticas para todas as severidades', () => {
+      expect(ALERT_SEVERITY_COLORS.critico).toContain('status-error')
+      expect(ALERT_SEVERITY_COLORS.alerta).toContain('trust-laranja')
+      expect(ALERT_SEVERITY_COLORS.atencao).toContain('status-warning')
+      expect(ALERT_SEVERITY_COLORS.info).toContain('status-info')
     })
   })
 

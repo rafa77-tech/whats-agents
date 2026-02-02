@@ -59,41 +59,48 @@ describe('StatusCounterCard', () => {
   describe('status styling', () => {
     it('should apply active status color', () => {
       const { container } = render(<StatusCounterCard status="active" count={10} percentage={20} />)
-      expect(container.querySelector('.bg-green-50')).toBeInTheDocument()
+      // Component uses bg-status-success/10 for active status
+      expect(container.querySelector('.bg-status-success\\/10')).toBeInTheDocument()
     })
 
     it('should apply banned status color', () => {
       const { container } = render(<StatusCounterCard status="banned" count={5} percentage={10} />)
-      expect(container.querySelector('.bg-red-50')).toBeInTheDocument()
+      // Component uses bg-status-error/10 for banned status
+      expect(container.querySelector('.bg-status-error\\/10')).toBeInTheDocument()
     })
 
     it('should apply warming status color', () => {
       const { container } = render(
         <StatusCounterCard status="warming" count={15} percentage={30} />
       )
-      expect(container.querySelector('.bg-yellow-50')).toBeInTheDocument()
+      // Component uses bg-status-warning/10 for warming status
+      expect(container.querySelector('.bg-status-warning\\/10')).toBeInTheDocument()
     })
 
     it('should apply ready status color', () => {
       const { container } = render(<StatusCounterCard status="ready" count={20} percentage={40} />)
-      expect(container.querySelector('.bg-blue-50')).toBeInTheDocument()
+      // Component uses bg-status-info/10 for ready status
+      expect(container.querySelector('.bg-status-info\\/10')).toBeInTheDocument()
     })
 
     it('should apply degraded status color', () => {
       const { container } = render(<StatusCounterCard status="degraded" count={3} percentage={6} />)
-      expect(container.querySelector('.bg-orange-50')).toBeInTheDocument()
+      // Component uses bg-status-warning/10 for degraded status (same as warming)
+      expect(container.querySelector('.bg-status-warning\\/10')).toBeInTheDocument()
     })
 
     it('should apply paused status color', () => {
       const { container } = render(<StatusCounterCard status="paused" count={8} percentage={16} />)
-      expect(container.querySelector('.bg-gray-50')).toBeInTheDocument()
+      // Component uses bg-muted/50 for paused status
+      expect(container.querySelector('.bg-muted\\/50')).toBeInTheDocument()
     })
 
     it('should apply provisioned status color', () => {
       const { container } = render(
         <StatusCounterCard status="provisioned" count={12} percentage={24} />
       )
-      expect(container.querySelector('.bg-purple-50')).toBeInTheDocument()
+      // Component uses bg-status-info/10 for provisioned status
+      expect(container.querySelector('.bg-status-info\\/10')).toBeInTheDocument()
     })
   })
 
@@ -131,7 +138,7 @@ describe('StatusCounterCard', () => {
         <StatusCounterCard status="active" count={25} percentage={50} trend="up" trendValue={5} />
       )
       const trendElement = screen.getByText('+5')
-      expect(trendElement).toHaveClass('text-green-600')
+      expect(trendElement).toHaveClass('text-status-success-foreground')
     })
 
     it('should apply red color for down trend', () => {
@@ -139,7 +146,7 @@ describe('StatusCounterCard', () => {
         <StatusCounterCard status="active" count={25} percentage={50} trend="down" trendValue={5} />
       )
       const trendElement = screen.getByText('-5')
-      expect(trendElement).toHaveClass('text-red-600')
+      expect(trendElement).toHaveClass('text-status-error-foreground')
     })
   })
 

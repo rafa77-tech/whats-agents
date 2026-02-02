@@ -40,9 +40,10 @@ describe('LINK_STATUS_BADGE_COLORS', () => {
     expect(LINK_STATUS_BADGE_COLORS).toHaveProperty('failed')
   })
 
-  it('has valid Tailwind classes', () => {
+  it('has semantic token classes', () => {
     Object.values(LINK_STATUS_BADGE_COLORS).forEach((color) => {
-      expect(color).toMatch(/^bg-\w+-\d+ text-\w+-\d+$/)
+      expect(color).toMatch(/^bg-status-\w+/)
+      expect(color).toMatch(/text-status-\w+-foreground/)
     })
   })
 })

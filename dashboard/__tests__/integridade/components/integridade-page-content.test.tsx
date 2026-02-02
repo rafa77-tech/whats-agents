@@ -202,8 +202,8 @@ describe('IntegridadePageContent', () => {
       render(<IntegridadePageContent />)
 
       expect(screen.getByText('Anomalias Abertas')).toBeInTheDocument()
-      // Value is shown within the card - find it via yellow text color
-      const abertasValue = screen.getByText('2', { selector: '.text-yellow-600' })
+      // Value is shown within the card - find it via warning text color
+      const abertasValue = screen.getByText('2', { selector: '.text-status-warning-foreground' })
       expect(abertasValue).toBeInTheDocument()
     })
 
@@ -211,8 +211,8 @@ describe('IntegridadePageContent', () => {
       render(<IntegridadePageContent />)
 
       expect(screen.getByText('Violacoes')).toBeInTheDocument()
-      // Value is shown within the card - find it via red text color
-      const violacoesValue = screen.getByText('2', { selector: '.text-red-600' })
+      // Value is shown within the card - find it via error text color
+      const violacoesValue = screen.getByText('2', { selector: '.text-status-error-foreground' })
       expect(violacoesValue).toBeInTheDocument()
     })
 
@@ -475,9 +475,9 @@ describe('IntegridadePageContent', () => {
 
       const { container } = render(<IntegridadePageContent />)
 
-      // Health Score card should have green border
-      const greenBorder = container.querySelector('.border-green-200')
-      expect(greenBorder).toBeInTheDocument()
+      // Health Score card should have success border
+      const successBorder = container.querySelector('.border-status-success-border')
+      expect(successBorder).toBeInTheDocument()
     })
 
     it('applies warn status for medium health score', () => {
@@ -486,8 +486,8 @@ describe('IntegridadePageContent', () => {
 
       const { container } = render(<IntegridadePageContent />)
 
-      const yellowBorder = container.querySelector('.border-yellow-200')
-      expect(yellowBorder).toBeInTheDocument()
+      const warningBorder = container.querySelector('.border-status-warning-border')
+      expect(warningBorder).toBeInTheDocument()
     })
 
     it('applies bad status for low health score', () => {
@@ -496,8 +496,8 @@ describe('IntegridadePageContent', () => {
 
       const { container } = render(<IntegridadePageContent />)
 
-      const redBorder = container.querySelector('.border-red-200')
-      expect(redBorder).toBeInTheDocument()
+      const errorBorder = container.querySelector('.border-status-error-border')
+      expect(errorBorder).toBeInTheDocument()
     })
   })
 })

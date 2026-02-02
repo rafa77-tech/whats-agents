@@ -44,29 +44,29 @@ describe('getInitials', () => {
 
 describe('getStageColor', () => {
   it('returns correct color for Portuguese stages', () => {
-    expect(getStageColor('novo')).toBe('bg-gray-100 text-gray-800')
-    expect(getStageColor('respondeu')).toBe('bg-blue-100 text-blue-800')
-    expect(getStageColor('negociando')).toBe('bg-yellow-100 text-yellow-800')
-    expect(getStageColor('convertido')).toBe('bg-green-100 text-green-800')
-    expect(getStageColor('perdido')).toBe('bg-red-100 text-red-800')
+    expect(getStageColor('novo')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getStageColor('respondeu')).toBe('bg-status-info text-status-info-foreground')
+    expect(getStageColor('negociando')).toBe('bg-status-warning text-status-warning-foreground')
+    expect(getStageColor('convertido')).toBe('bg-status-success text-status-success-foreground')
+    expect(getStageColor('perdido')).toBe('bg-status-error text-status-error-foreground')
   })
 
   it('returns correct color for English stages', () => {
-    expect(getStageColor('prospecting')).toBe('bg-gray-100 text-gray-800')
-    expect(getStageColor('engaged')).toBe('bg-blue-100 text-blue-800')
-    expect(getStageColor('negotiating')).toBe('bg-yellow-100 text-yellow-800')
-    expect(getStageColor('converted')).toBe('bg-green-100 text-green-800')
-    expect(getStageColor('lost')).toBe('bg-red-100 text-red-800')
+    expect(getStageColor('prospecting')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getStageColor('engaged')).toBe('bg-status-info text-status-info-foreground')
+    expect(getStageColor('negotiating')).toBe('bg-status-warning text-status-warning-foreground')
+    expect(getStageColor('converted')).toBe('bg-status-success text-status-success-foreground')
+    expect(getStageColor('lost')).toBe('bg-status-error text-status-error-foreground')
   })
 
   it('returns default color for unknown stage', () => {
-    expect(getStageColor('unknown')).toBe('bg-gray-100 text-gray-800')
-    expect(getStageColor('')).toBe('bg-gray-100 text-gray-800')
+    expect(getStageColor('unknown')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getStageColor('')).toBe('bg-status-neutral text-status-neutral-foreground')
   })
 
   it('returns default color for null/undefined', () => {
-    expect(getStageColor(null)).toBe('bg-gray-100 text-gray-800')
-    expect(getStageColor(undefined)).toBe('bg-gray-100 text-gray-800')
+    expect(getStageColor(null)).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getStageColor(undefined)).toBe('bg-status-neutral text-status-neutral-foreground')
   })
 })
 
@@ -99,14 +99,14 @@ describe('getStageLabel', () => {
 
 describe('getEventColor', () => {
   it('returns correct color for each event type', () => {
-    expect(getEventColor('message_sent')).toBe('bg-blue-100 text-blue-600')
-    expect(getEventColor('message_received')).toBe('bg-green-100 text-green-600')
-    expect(getEventColor('handoff')).toBe('bg-orange-100 text-orange-600')
+    expect(getEventColor('message_sent')).toBe('bg-status-info text-status-info-foreground')
+    expect(getEventColor('message_received')).toBe('bg-status-success text-status-success-foreground')
+    expect(getEventColor('handoff')).toBe('bg-status-warning text-status-warning-foreground')
   })
 
   it('returns default color for unknown event type', () => {
-    expect(getEventColor('unknown')).toBe('bg-gray-100 text-gray-600')
-    expect(getEventColor('')).toBe('bg-gray-100 text-gray-600')
+    expect(getEventColor('unknown')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getEventColor('')).toBe('bg-status-neutral text-status-neutral-foreground')
   })
 })
 

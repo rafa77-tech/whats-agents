@@ -57,28 +57,28 @@ describe('PoolMetricCard', () => {
     it('should apply success status styling', () => {
       const { container } = render(<PoolMetricCard {...defaultProps} status="success" />)
       // Success status should have green left border
-      expect(container.querySelector('.border-l-green-500')).toBeInTheDocument()
+      expect(container.querySelector('.border-l-status-success-solid')).toBeInTheDocument()
     })
 
     it('should apply warning status styling', () => {
       const { container } = render(<PoolMetricCard {...defaultProps} status="warning" />)
-      expect(container.querySelector('.border-l-yellow-500')).toBeInTheDocument()
+      expect(container.querySelector('.border-l-status-warning-solid')).toBeInTheDocument()
     })
 
     it('should apply danger status styling', () => {
       const { container } = render(<PoolMetricCard {...defaultProps} status="danger" />)
-      expect(container.querySelector('.border-l-red-500')).toBeInTheDocument()
+      expect(container.querySelector('.border-l-status-error-solid')).toBeInTheDocument()
     })
 
     it('should apply neutral status styling', () => {
       const { container } = render(<PoolMetricCard {...defaultProps} status="neutral" />)
-      expect(container.querySelector('.border-l-gray-300')).toBeInTheDocument()
+      expect(container.querySelector('.border-l-border')).toBeInTheDocument()
     })
 
     it('should default to neutral status when not specified', () => {
       const { status: _status, ...propsWithoutStatus } = defaultProps
       const { container } = render(<PoolMetricCard {...propsWithoutStatus} />)
-      expect(container.querySelector('.border-l-gray-300')).toBeInTheDocument()
+      expect(container.querySelector('.border-l-border')).toBeInTheDocument()
     })
   })
 
@@ -111,19 +111,19 @@ describe('PoolMetricCard', () => {
     it('should apply green color for up trend', () => {
       render(<PoolMetricCard {...defaultProps} trend={{ direction: 'up', value: 15 }} />)
       const trendElement = screen.getByText('+15%').closest('div')
-      expect(trendElement).toHaveClass('text-green-600')
+      expect(trendElement).toHaveClass('text-status-success-foreground')
     })
 
     it('should apply red color for down trend', () => {
       render(<PoolMetricCard {...defaultProps} trend={{ direction: 'down', value: 10 }} />)
       const trendElement = screen.getByText('-10%').closest('div')
-      expect(trendElement).toHaveClass('text-red-600')
+      expect(trendElement).toHaveClass('text-status-error-foreground')
     })
 
     it('should apply gray color for stable trend', () => {
       render(<PoolMetricCard {...defaultProps} trend={{ direction: 'stable', value: 0 }} />)
       const trendElement = screen.getByText('0%').closest('div')
-      expect(trendElement).toHaveClass('text-gray-500')
+      expect(trendElement).toHaveClass('text-muted-foreground')
     })
   })
 })

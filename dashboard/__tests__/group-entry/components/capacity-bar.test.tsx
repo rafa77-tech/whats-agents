@@ -58,21 +58,21 @@ describe('CapacityBar', () => {
     expect(progressBar).toBeInTheDocument()
   })
 
-  it('applies green color for low usage', () => {
+  it('applies success color for low usage', () => {
     const { container } = render(<CapacityBar used={50} total={100} />)
-    const progressBar = container.querySelector('.bg-green-500')
+    const progressBar = container.querySelector('.bg-status-success-solid')
     expect(progressBar).toBeInTheDocument()
   })
 
-  it('applies yellow color for warning level (80-89%)', () => {
+  it('applies warning color for warning level (80-89%)', () => {
     const { container } = render(<CapacityBar used={85} total={100} />)
-    const progressBar = container.querySelector('.bg-yellow-500')
+    const progressBar = container.querySelector('.bg-status-warning-solid')
     expect(progressBar).toBeInTheDocument()
   })
 
-  it('applies red color for danger level (90%+)', () => {
+  it('applies error color for danger level (90%+)', () => {
     const { container } = render(<CapacityBar used={95} total={100} />)
-    const progressBar = container.querySelector('.bg-red-500')
+    const progressBar = container.querySelector('.bg-status-error-solid')
     expect(progressBar).toBeInTheDocument()
   })
 })

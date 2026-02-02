@@ -62,22 +62,22 @@ describe('HealthGauge', () => {
   })
 
   describe('Text Styling', () => {
-    it('applies green text for healthy status', () => {
+    it('applies success text for healthy status', () => {
       render(<HealthGauge score={90} status="healthy" />)
       const scoreElement = screen.getByText('90')
-      expect(scoreElement).toHaveClass('text-green-600')
+      expect(scoreElement).toHaveClass('text-status-success-foreground')
     })
 
-    it('applies yellow text for degraded status', () => {
+    it('applies warning text for degraded status', () => {
       render(<HealthGauge score={60} status="degraded" />)
       const scoreElement = screen.getByText('60')
-      expect(scoreElement).toHaveClass('text-yellow-600')
+      expect(scoreElement).toHaveClass('text-status-warning-foreground')
     })
 
-    it('applies red text for critical status', () => {
+    it('applies error text for critical status', () => {
       render(<HealthGauge score={20} status="critical" />)
       const scoreElement = screen.getByText('20')
-      expect(scoreElement).toHaveClass('text-red-600')
+      expect(scoreElement).toHaveClass('text-status-error-foreground')
     })
   })
 

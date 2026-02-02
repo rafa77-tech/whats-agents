@@ -13,58 +13,58 @@ import { type RateLimitData } from '@/types/dashboard'
 
 describe('RateLimitBar', () => {
   describe('getProgressColor - CRITICAL BUSINESS LOGIC', () => {
-    it('should show GREEN when usage is below 50%', () => {
+    it('should show SUCCESS when usage is below 50%', () => {
       const data: RateLimitData = { current: 10, max: 100, label: 'Msgs/hora' }
       const { container } = render(<RateLimitBar data={data} />)
 
-      const progressBar = container.querySelector('.bg-green-500')
+      const progressBar = container.querySelector('.bg-status-success-solid')
       expect(progressBar).toBeInTheDocument()
     })
 
-    it('should show GREEN at exactly 49%', () => {
+    it('should show SUCCESS at exactly 49%', () => {
       const data: RateLimitData = { current: 49, max: 100, label: 'Msgs/hora' }
       const { container } = render(<RateLimitBar data={data} />)
 
-      expect(container.querySelector('.bg-green-500')).toBeInTheDocument()
-      expect(container.querySelector('.bg-yellow-500')).not.toBeInTheDocument()
+      expect(container.querySelector('.bg-status-success-solid')).toBeInTheDocument()
+      expect(container.querySelector('.bg-status-warning-solid')).not.toBeInTheDocument()
     })
 
-    it('should show YELLOW when usage is between 50% and 79%', () => {
+    it('should show WARNING when usage is between 50% and 79%', () => {
       const data: RateLimitData = { current: 50, max: 100, label: 'Msgs/hora' }
       const { container } = render(<RateLimitBar data={data} />)
 
-      expect(container.querySelector('.bg-yellow-500')).toBeInTheDocument()
-      expect(container.querySelector('.bg-green-500')).not.toBeInTheDocument()
+      expect(container.querySelector('.bg-status-warning-solid')).toBeInTheDocument()
+      expect(container.querySelector('.bg-status-success-solid')).not.toBeInTheDocument()
     })
 
-    it('should show YELLOW at exactly 79%', () => {
+    it('should show WARNING at exactly 79%', () => {
       const data: RateLimitData = { current: 79, max: 100, label: 'Msgs/hora' }
       const { container } = render(<RateLimitBar data={data} />)
 
-      expect(container.querySelector('.bg-yellow-500')).toBeInTheDocument()
-      expect(container.querySelector('.bg-red-500')).not.toBeInTheDocument()
+      expect(container.querySelector('.bg-status-warning-solid')).toBeInTheDocument()
+      expect(container.querySelector('.bg-status-error-solid')).not.toBeInTheDocument()
     })
 
-    it('should show RED when usage is 80% or above - DANGER ZONE', () => {
+    it('should show ERROR when usage is 80% or above - DANGER ZONE', () => {
       const data: RateLimitData = { current: 80, max: 100, label: 'Msgs/hora' }
       const { container } = render(<RateLimitBar data={data} />)
 
-      expect(container.querySelector('.bg-red-500')).toBeInTheDocument()
-      expect(container.querySelector('.bg-yellow-500')).not.toBeInTheDocument()
+      expect(container.querySelector('.bg-status-error-solid')).toBeInTheDocument()
+      expect(container.querySelector('.bg-status-warning-solid')).not.toBeInTheDocument()
     })
 
-    it('should show RED at 100%', () => {
+    it('should show ERROR at 100%', () => {
       const data: RateLimitData = { current: 100, max: 100, label: 'Msgs/hora' }
       const { container } = render(<RateLimitBar data={data} />)
 
-      expect(container.querySelector('.bg-red-500')).toBeInTheDocument()
+      expect(container.querySelector('.bg-status-error-solid')).toBeInTheDocument()
     })
 
-    it('should show RED when over limit (>100%)', () => {
+    it('should show ERROR when over limit (>100%)', () => {
       const data: RateLimitData = { current: 120, max: 100, label: 'Msgs/hora' }
       const { container } = render(<RateLimitBar data={data} />)
 
-      expect(container.querySelector('.bg-red-500')).toBeInTheDocument()
+      expect(container.querySelector('.bg-status-error-solid')).toBeInTheDocument()
     })
   })
 
@@ -117,14 +117,14 @@ describe('RateLimitBar', () => {
       const data: RateLimitData = { current: 0, max: 100, label: 'Msgs/hora' }
       const { container } = render(<RateLimitBar data={data} />)
 
-      expect(container.querySelector('.bg-green-500')).toBeInTheDocument()
+      expect(container.querySelector('.bg-status-success-solid')).toBeInTheDocument()
     })
 
     it('should handle very small percentages', () => {
       const data: RateLimitData = { current: 1, max: 1000, label: 'Msgs/hora' }
       const { container } = render(<RateLimitBar data={data} />)
 
-      expect(container.querySelector('.bg-green-500')).toBeInTheDocument()
+      expect(container.querySelector('.bg-status-success-solid')).toBeInTheDocument()
     })
   })
 })

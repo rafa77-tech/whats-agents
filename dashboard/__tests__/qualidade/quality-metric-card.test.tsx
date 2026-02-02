@@ -25,39 +25,40 @@ describe('QualityMetricCard', () => {
     expect(screen.getByText('/5')).toBeInTheDocument()
   })
 
-  it('deve aplicar classes de cor verde', () => {
+  it('deve aplicar classes de cor verde (status-success)', () => {
     const { container } = render(
       <QualityMetricCard title="Test" value={0} icon={CheckCircle2} color="green" />
     )
 
-    const cardContent = container.querySelector('.bg-green-50')
+    // Semantic token bg-status-success/20 contains "/" which is escaped in CSS as bg-status-success\/20
+    const cardContent = container.querySelector('[class*="bg-status-success"]')
     expect(cardContent).toBeInTheDocument()
   })
 
-  it('deve aplicar classes de cor amarela', () => {
+  it('deve aplicar classes de cor amarela (status-warning)', () => {
     const { container } = render(
       <QualityMetricCard title="Test" value={0} icon={ClipboardList} color="yellow" />
     )
 
-    const cardContent = container.querySelector('.bg-yellow-50')
+    const cardContent = container.querySelector('[class*="bg-status-warning"]')
     expect(cardContent).toBeInTheDocument()
   })
 
-  it('deve aplicar classes de cor azul', () => {
+  it('deve aplicar classes de cor azul (status-info)', () => {
     const { container } = render(
       <QualityMetricCard title="Test" value={0} icon={Star} color="blue" />
     )
 
-    const cardContent = container.querySelector('.bg-blue-50')
+    const cardContent = container.querySelector('[class*="bg-status-info"]')
     expect(cardContent).toBeInTheDocument()
   })
 
-  it('deve aplicar classes de cor vermelha', () => {
+  it('deve aplicar classes de cor vermelha (status-error)', () => {
     const { container } = render(
       <QualityMetricCard title="Test" value={0} icon={CheckCircle2} color="red" />
     )
 
-    const cardContent = container.querySelector('.bg-red-50')
+    const cardContent = container.querySelector('[class*="bg-status-error"]')
     expect(cardContent).toBeInTheDocument()
   })
 

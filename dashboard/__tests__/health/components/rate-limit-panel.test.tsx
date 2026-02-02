@@ -97,30 +97,33 @@ describe('RateLimitPanel', () => {
   })
 
   describe('Progress Bar Colors', () => {
-    it('shows green progress for low usage', () => {
+    it('shows success progress for low usage', () => {
       const { container } = render(<RateLimitPanel rateLimit={mockRateLimit} />)
-      const greenBars = container.querySelectorAll('.bg-green-500')
-      expect(greenBars.length).toBeGreaterThanOrEqual(2)
+      // Component uses bg-status-success-solid for progress bars
+      const successBars = container.querySelectorAll('.bg-status-success-solid')
+      expect(successBars.length).toBeGreaterThanOrEqual(2)
     })
 
-    it('shows yellow progress for medium usage (70-89%)', () => {
+    it('shows warning progress for medium usage (70-89%)', () => {
       const mediumUsage = {
         hourly: { used: 15, limit: 20 }, // 75%
         daily: { used: 80, limit: 100 }, // 80%
       }
       const { container } = render(<RateLimitPanel rateLimit={mediumUsage} />)
-      const yellowBars = container.querySelectorAll('.bg-yellow-500')
-      expect(yellowBars.length).toBeGreaterThanOrEqual(2)
+      // Component uses bg-status-warning-solid for progress bars
+      const warningBars = container.querySelectorAll('.bg-status-warning-solid')
+      expect(warningBars.length).toBeGreaterThanOrEqual(2)
     })
 
-    it('shows red progress for high usage (>= 90%)', () => {
+    it('shows error progress for high usage (>= 90%)', () => {
       const highUsage = {
         hourly: { used: 19, limit: 20 }, // 95%
         daily: { used: 95, limit: 100 }, // 95%
       }
       const { container } = render(<RateLimitPanel rateLimit={highUsage} />)
-      const redBars = container.querySelectorAll('.bg-red-500')
-      expect(redBars.length).toBeGreaterThanOrEqual(2)
+      // Component uses bg-status-error-solid for progress bars
+      const errorBars = container.querySelectorAll('.bg-status-error-solid')
+      expect(errorBars.length).toBeGreaterThanOrEqual(2)
     })
   })
 

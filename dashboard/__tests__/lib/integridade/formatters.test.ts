@@ -22,25 +22,25 @@ import {
 import type { Anomaly, AnomalySeverity } from '@/lib/integridade'
 
 describe('getKpiStatusColors', () => {
-  it('returns green colors for good status', () => {
+  it('returns success semantic colors for good status', () => {
     const colors = getKpiStatusColors('good')
-    expect(colors.border).toContain('green')
-    expect(colors.text).toContain('green')
+    expect(colors.border).toContain('status-success')
+    expect(colors.text).toContain('status-success')
   })
 
-  it('returns yellow colors for warn status', () => {
+  it('returns warning semantic colors for warn status', () => {
     const colors = getKpiStatusColors('warn')
-    expect(colors.border).toContain('yellow')
-    expect(colors.text).toContain('yellow')
+    expect(colors.border).toContain('status-warning')
+    expect(colors.text).toContain('status-warning')
   })
 
-  it('returns red colors for bad status', () => {
+  it('returns error semantic colors for bad status', () => {
     const colors = getKpiStatusColors('bad')
-    expect(colors.border).toContain('red')
-    expect(colors.text).toContain('red')
+    expect(colors.border).toContain('status-error')
+    expect(colors.text).toContain('status-error')
   })
 
-  it('returns default colors for unknown status', () => {
+  it('returns gray fallback colors for unknown status', () => {
     const colors = getKpiStatusColors('unknown' as any)
     expect(colors.border).toContain('gray')
     expect(colors.text).toContain('gray')
@@ -48,25 +48,25 @@ describe('getKpiStatusColors', () => {
 })
 
 describe('getAnomalySeverityColors', () => {
-  it('returns red colors for high severity', () => {
+  it('returns error semantic colors for high severity', () => {
     const colors = getAnomalySeverityColors('high')
-    expect(colors.icon).toContain('red')
-    expect(colors.badge).toContain('red')
+    expect(colors.icon).toContain('status-error')
+    expect(colors.badge).toContain('status-error')
   })
 
-  it('returns yellow colors for medium severity', () => {
+  it('returns warning semantic colors for medium severity', () => {
     const colors = getAnomalySeverityColors('medium')
-    expect(colors.icon).toContain('yellow')
-    expect(colors.badge).toContain('yellow')
+    expect(colors.icon).toContain('status-warning')
+    expect(colors.badge).toContain('status-warning')
   })
 
-  it('returns blue colors for low severity', () => {
+  it('returns info semantic colors for low severity', () => {
     const colors = getAnomalySeverityColors('low')
-    expect(colors.icon).toContain('blue')
-    expect(colors.badge).toContain('blue')
+    expect(colors.icon).toContain('status-info')
+    expect(colors.badge).toContain('status-info')
   })
 
-  it('returns default colors for unknown severity', () => {
+  it('returns gray fallback colors for unknown severity', () => {
     const colors = getAnomalySeverityColors('unknown' as any)
     expect(colors.icon).toContain('gray')
     expect(colors.badge).toContain('gray')
@@ -92,16 +92,16 @@ describe('getAnomalySeverityLabel', () => {
 })
 
 describe('getAnomalyResolutionColors', () => {
-  it('returns green colors for resolved', () => {
+  it('returns success semantic colors for resolved', () => {
     const colors = getAnomalyResolutionColors(true)
-    expect(colors.bg).toContain('green')
-    expect(colors.text).toContain('green')
+    expect(colors.bg).toContain('status-success')
+    expect(colors.text).toContain('status-success')
   })
 
-  it('returns yellow colors for open', () => {
+  it('returns warning semantic colors for open', () => {
     const colors = getAnomalyResolutionColors(false)
-    expect(colors.bg).toContain('yellow')
-    expect(colors.text).toContain('yellow')
+    expect(colors.bg).toContain('status-warning')
+    expect(colors.text).toContain('status-warning')
   })
 })
 
@@ -175,21 +175,21 @@ describe('getTimeToFillStatus', () => {
 })
 
 describe('getProgressColor', () => {
-  it('returns green for percentage >= 80', () => {
-    expect(getProgressColor(80)).toContain('green')
-    expect(getProgressColor(100)).toContain('green')
+  it('returns success semantic color for percentage >= 80', () => {
+    expect(getProgressColor(80)).toContain('status-success')
+    expect(getProgressColor(100)).toContain('status-success')
   })
 
-  it('returns yellow for percentage between 60 and 79', () => {
-    expect(getProgressColor(60)).toContain('yellow')
-    expect(getProgressColor(70)).toContain('yellow')
-    expect(getProgressColor(79)).toContain('yellow')
+  it('returns warning semantic color for percentage between 60 and 79', () => {
+    expect(getProgressColor(60)).toContain('status-warning')
+    expect(getProgressColor(70)).toContain('status-warning')
+    expect(getProgressColor(79)).toContain('status-warning')
   })
 
-  it('returns red for percentage < 60', () => {
-    expect(getProgressColor(59)).toContain('red')
-    expect(getProgressColor(30)).toContain('red')
-    expect(getProgressColor(0)).toContain('red')
+  it('returns error semantic color for percentage < 60', () => {
+    expect(getProgressColor(59)).toContain('status-error')
+    expect(getProgressColor(30)).toContain('status-error')
+    expect(getProgressColor(0)).toContain('status-error')
   })
 })
 

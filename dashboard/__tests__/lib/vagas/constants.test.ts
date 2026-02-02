@@ -18,9 +18,10 @@ describe('STATUS_BADGE_COLORS', () => {
     })
   })
 
-  it('has consistent format for all colors', () => {
+  it('uses semantic token classes', () => {
     Object.values(STATUS_BADGE_COLORS).forEach((color) => {
-      expect(color).toMatch(/^bg-\w+-\d+ text-\w+-\d+$/)
+      expect(color).toMatch(/^bg-status-\w+/)
+      expect(color).toMatch(/text-status-\w+-foreground/)
     })
   })
 })
@@ -33,9 +34,9 @@ describe('STATUS_INDICATOR_COLORS', () => {
     })
   })
 
-  it('has consistent format for all colors', () => {
+  it('uses semantic token classes', () => {
     Object.values(STATUS_INDICATOR_COLORS).forEach((color) => {
-      expect(color).toMatch(/^bg-\w+-\d+$/)
+      expect(color).toMatch(/^bg-status-\w+-solid$/)
     })
   })
 })

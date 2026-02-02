@@ -26,9 +26,9 @@ describe('STAGE_COLORS', () => {
     })
   })
 
-  it('has consistent format for all colors', () => {
+  it('has consistent semantic token format for all colors', () => {
     Object.values(STAGE_COLORS).forEach((color) => {
-      expect(color).toMatch(/^bg-\w+-\d+ text-\w+-\d+$/)
+      expect(color).toMatch(/^bg-status-\w+(-\w+)? text-status-\w+(-\w+)?$/)
     })
   })
 })
@@ -113,9 +113,9 @@ describe('EVENT_COLORS', () => {
     expect(EVENT_COLORS.handoff).toBeDefined()
   })
 
-  it('has consistent format for all colors', () => {
+  it('has consistent semantic token format for all colors', () => {
     Object.values(EVENT_COLORS).forEach((color) => {
-      expect(color).toMatch(/^bg-\w+-\d+ text-\w+-\d+$/)
+      expect(color).toMatch(/^bg-status-\w+(-\w+)? text-status-\w+(-\w+)?$/)
     })
   })
 

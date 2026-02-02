@@ -31,8 +31,8 @@ export function getInitials(nome: string | undefined | null): string {
  * @returns String de classes CSS
  */
 export function getStageColor(stage: string | undefined | null): string {
-  if (!stage) return 'bg-gray-100 text-gray-800'
-  return STAGE_COLORS[stage] || 'bg-gray-100 text-gray-800'
+  if (!stage) return 'bg-status-neutral text-status-neutral-foreground'
+  return STAGE_COLORS[stage] || 'bg-status-neutral text-status-neutral-foreground'
 }
 
 /**
@@ -51,7 +51,7 @@ export function getStageLabel(stage: string | undefined | null): string {
  * @returns String de classes CSS
  */
 export function getEventColor(eventType: string): string {
-  return EVENT_COLORS[eventType as TimelineEventType] || 'bg-gray-100 text-gray-600'
+  return EVENT_COLORS[eventType as TimelineEventType] || 'bg-status-neutral text-status-neutral-foreground'
 }
 
 /**

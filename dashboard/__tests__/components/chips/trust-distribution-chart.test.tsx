@@ -104,7 +104,7 @@ describe('TrustDistributionChart', () => {
       }
       render(<TrustDistributionChart distribution={distribution} total={100} />)
       const healthyElement = screen.getByText('80.0% saudaveis')
-      expect(healthyElement).toHaveClass('text-green-600')
+      expect(healthyElement).toHaveClass('text-status-success-foreground')
     })
 
     it('should apply yellow color when >= 50% and < 70%', () => {
@@ -117,7 +117,7 @@ describe('TrustDistributionChart', () => {
       }
       render(<TrustDistributionChart distribution={distribution} total={100} />)
       const healthyElement = screen.getByText('60.0% saudaveis')
-      expect(healthyElement).toHaveClass('text-yellow-600')
+      expect(healthyElement).toHaveClass('text-status-warning-foreground')
     })
 
     it('should apply red color when < 50%', () => {
@@ -130,7 +130,7 @@ describe('TrustDistributionChart', () => {
       }
       render(<TrustDistributionChart distribution={distribution} total={100} />)
       const healthyElement = screen.getByText('40.0% saudaveis')
-      expect(healthyElement).toHaveClass('text-red-600')
+      expect(healthyElement).toHaveClass('text-status-error-foreground')
     })
   })
 

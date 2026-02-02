@@ -71,28 +71,28 @@ export function calculatePercentage(used: number, limit: number): number {
 const DEFAULT_HEALTH_COLORS = {
   stroke: '#9ca3af',
   bg: '#f3f4f6',
-  text: 'text-gray-600',
-  badge: 'bg-gray-100 text-gray-800',
+  text: 'text-status-neutral-foreground',
+  badge: 'bg-status-neutral text-status-neutral-foreground',
 }
 
 /**
  * Cores padrão para status de serviço desconhecido
  */
 const DEFAULT_SERVICE_COLORS = {
-  bg: 'bg-gray-50',
-  text: 'text-gray-800',
-  icon: 'text-gray-600',
+  bg: 'bg-status-neutral',
+  text: 'text-status-neutral-foreground',
+  icon: 'text-status-neutral-foreground',
 }
 
 /**
  * Cores padrão para severidade de alerta desconhecida
  */
 const DEFAULT_ALERT_COLORS = {
-  bg: 'bg-gray-50',
-  border: 'border-gray-200',
-  text: 'text-gray-600',
-  badge: 'bg-gray-100 text-gray-800',
-  icon: 'text-gray-500',
+  bg: 'bg-status-neutral',
+  border: 'border-status-neutral',
+  text: 'text-status-neutral-foreground',
+  badge: 'bg-status-neutral text-status-neutral-foreground',
+  icon: 'text-status-neutral-foreground',
 }
 
 /**
@@ -159,10 +159,10 @@ export function getAlertSeverityLabel(severity: AlertSeverity | string): string 
  * Cores padrão para estados de circuit breaker desconhecidos
  */
 const DEFAULT_CIRCUIT_COLORS = {
-  bg: 'bg-gray-50/50',
-  border: 'border-gray-200',
-  indicator: 'bg-gray-500',
-  badge: 'bg-gray-100 text-gray-800',
+  bg: 'bg-status-neutral/50',
+  border: 'border-status-neutral',
+  indicator: 'bg-status-neutral-solid',
+  badge: 'bg-status-neutral text-status-neutral-foreground',
 }
 
 /**

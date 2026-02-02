@@ -33,7 +33,7 @@ export function parseShiftDate(dateString: string): Date {
  * @returns String de classes CSS
  */
 export function getStatusBadgeColor(status: string): string {
-  return STATUS_BADGE_COLORS[status as ShiftStatus] || 'bg-gray-100 text-gray-800'
+  return STATUS_BADGE_COLORS[status as ShiftStatus] || 'bg-status-neutral text-status-neutral-foreground'
 }
 
 /**
@@ -42,7 +42,7 @@ export function getStatusBadgeColor(status: string): string {
  * @returns String de classes CSS
  */
 export function getStatusIndicatorColor(status: string): string {
-  return STATUS_INDICATOR_COLORS[status as ShiftStatus] || 'bg-gray-500'
+  return STATUS_INDICATOR_COLORS[status as ShiftStatus] || 'bg-status-neutral-solid'
 }
 
 /**
