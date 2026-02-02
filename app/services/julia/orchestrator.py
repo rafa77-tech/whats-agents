@@ -2,6 +2,7 @@
 Julia Orchestrator - Orquestra geração de resposta.
 
 Sprint 31 - S31.E2.5
+Sprint 44 - T02.3: Integração com Summarizer
 
 Esta é a função principal refatorada, com < 100 linhas.
 Delega para componentes especializados.
@@ -77,18 +78,25 @@ async def gerar_resposta_julia_v2(
         policy_decision, capabilities_gate, mode_info
     )
 
-    # 3. Montar system prompt
+    # 4. Montar histórico com summarization (Sprint 44 T02.3)
+    historico_raw = contexto.get("historico_raw", [])
+    history, resumo_conversa = await context_builder.converter_historico_com_summarization(
+        historico_raw,
+        conversa_id=conversa.get("id"),
+        incluir=incluir_historico,
+    )
+
+    # 3. Montar system prompt (após summarization para incluir resumo)
+    # Se houve summarization, adicionar resumo ao conhecimento
+    conhecimento_com_resumo = conhecimento
+    if resumo_conversa:
+        conhecimento_com_resumo = f"{conhecimento}\n\n### Contexto da conversa anterior:\n{resumo_conversa}" if conhecimento else f"### Contexto da conversa anterior:\n{resumo_conversa}"
+
     system_prompt = await context_builder.montar_system_prompt(
         contexto=contexto,
         medico=medico,
-        conhecimento_dinamico=conhecimento,
+        conhecimento_dinamico=conhecimento_com_resumo,
         policy_constraints=constraints,
-    )
-
-    # 4. Montar histórico
-    history = context_builder.converter_historico(
-        contexto.get("historico_raw", []),
-        incluir=incluir_historico,
     )
 
     # 5. Filtrar tools

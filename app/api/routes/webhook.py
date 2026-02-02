@@ -16,9 +16,10 @@ from app.pipeline.base import ProcessorResult
 router = APIRouter(prefix="/webhook", tags=["Webhooks"])
 logger = logging.getLogger(__name__)
 
-# Semaforo para limitar processamento simultaneo de mensagens
+# Sprint 44 T06.1: Semáforo configurável para processamento simultâneo
 # Evita sobrecarga da Evolution API e timeouts em cascata
-_semaforo_processamento = asyncio.Semaphore(2)  # Maximo 2 mensagens simultaneas
+# Sprint 44 T02.6: Usar configuração centralizada
+_semaforo_processamento = asyncio.Semaphore(settings.PIPELINE_MAX_CONCURRENT)
 
 
 @router.post("/evolution")
@@ -52,13 +53,11 @@ async def evolution_webhook(
             message_id = _extrair_message_id(data)
 
             if message_id:
-                # Verificar se já foi processado
-                if await _mensagem_ja_processada(message_id):
+                # Sprint 44 T01.1: Operação ATÔMICA de verificação e marcação
+                # Elimina race condition entre verificar e marcar
+                if not await _marcar_se_nao_processada(message_id):
                     logger.debug(f"Mensagem {message_id} já processada, ignorando duplicata")
                     return JSONResponse({"status": "ignored", "reason": "duplicate"})
-
-                # Marcar como processada ANTES de iniciar (evita race condition)
-                await _marcar_mensagem_processada(message_id)
 
             # Sprint 26 E02: Passar instance para o pipeline (multi-chip)
             data["_evolution_instance"] = instance
@@ -88,8 +87,37 @@ def _extrair_message_id(data: dict) -> str | None:
         return None
 
 
+async def _marcar_se_nao_processada(message_id: str) -> bool:
+    """
+    Sprint 44 T01.1: Operação ATÔMICA para marcar mensagem como processada.
+
+    Usa Redis SETNX (SET if Not eXists) para evitar race condition.
+
+    Returns:
+        True se marcou (primeira vez), False se já existia (duplicata)
+    """
+    from app.services.redis import redis_client
+    try:
+        # SETNX é atômico - só retorna True se a key não existia
+        result = await redis_client.set(
+            f"evolution:msg:{message_id}",
+            "1",
+            nx=True,  # SET if Not eXists
+            ex=300    # TTL 5 minutos
+        )
+        return result is not None
+    except Exception as e:
+        logger.warning(f"Erro ao marcar mensagem (permitindo processamento): {e}")
+        # Em caso de erro Redis, permitir processamento
+        # (melhor processar duplicata que perder mensagem)
+        return True
+
+
 async def _mensagem_ja_processada(message_id: str) -> bool:
-    """Verifica se mensagem já foi processada (cache Redis)."""
+    """
+    DEPRECATED: Use _marcar_se_nao_processada() para operação atômica.
+    Mantido para compatibilidade.
+    """
     from app.services.redis import cache_get_json
     try:
         result = await cache_get_json(f"evolution:msg:{message_id}")
@@ -99,7 +127,10 @@ async def _mensagem_ja_processada(message_id: str) -> bool:
 
 
 async def _marcar_mensagem_processada(message_id: str):
-    """Marca mensagem como processada (TTL 5 min)."""
+    """
+    DEPRECATED: Use _marcar_se_nao_processada() para operação atômica.
+    Mantido para compatibilidade.
+    """
     from app.services.redis import cache_set_json
     try:
         await cache_set_json(f"evolution:msg:{message_id}", {"processed": True}, ttl=300)

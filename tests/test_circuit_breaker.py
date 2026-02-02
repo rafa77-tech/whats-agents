@@ -195,8 +195,10 @@ class TestCircuitBreaker:
         assert cb.falhas_consecutivas == 0
 
     @pytest.mark.asyncio
-    async def test_timeout_conta_como_falha(self):
-        """Timeout deve ser contado como falha."""
+    async def test_timeout_nao_conta_como_falha(self):
+        """Sprint 36 T02.3: Timeout NÃO deve ser contado como falha para abrir circuit."""
+        from app.services.circuit_breaker import ErrorType
+
         cb = CircuitBreaker(nome="test", falhas_para_abrir=1, timeout_segundos=0.1)
 
         async def funcao_lenta():
@@ -206,8 +208,10 @@ class TestCircuitBreaker:
         with pytest.raises(asyncio.TimeoutError):
             await cb.executar(funcao_lenta)
 
-        assert cb.falhas_consecutivas == 1
-        assert cb.estado == CircuitState.OPEN
+        # Timeout é registrado mas NÃO incrementa falhas (decisão de design Sprint 36)
+        assert cb.falhas_consecutivas == 0
+        assert cb.estado == CircuitState.CLOSED  # Circuit não abre por timeout
+        assert cb.ultimo_erro_tipo == ErrorType.TIMEOUT
 
     def test_status_retorna_info_correta(self):
         """Status deve retornar informações corretas."""

@@ -1,5 +1,6 @@
 /**
  * Step 2 - Audiencia - Sprint 34 E03
+ * Updated: Chips exclusion support
  */
 
 'use client'
@@ -14,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ChevronDown, Smartphone, Ban } from 'lucide-react'
 import { type CampanhaFormData } from './types'
 
 interface FiltroOption {
@@ -23,16 +24,31 @@ interface FiltroOption {
   count: number
 }
 
+interface ChipOption {
+  id: string
+  telefone: string
+  instance_name: string
+  status: string
+  trust_level: string
+  pode_prospectar: boolean
+}
+
 interface StepAudienciaProps {
   formData: CampanhaFormData
   updateField: <K extends keyof CampanhaFormData>(field: K, value: CampanhaFormData[K]) => void
-  toggleArrayItem: (field: 'especialidades' | 'regioes' | 'status_cliente', item: string) => void
+  toggleArrayItem: (
+    field: 'especialidades' | 'regioes' | 'status_cliente' | 'chips_excluidos',
+    item: string
+  ) => void
 }
 
 export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAudienciaProps) {
   const [especialidadesOptions, setEspecialidadesOptions] = useState<FiltroOption[]>([])
   const [estadosOptions, setEstadosOptions] = useState<FiltroOption[]>([])
+  const [chipsOptions, setChipsOptions] = useState<ChipOption[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingChips, setLoadingChips] = useState(true)
+  const [chipsOpen, setChipsOpen] = useState(false)
 
   useEffect(() => {
     const carregarFiltros = async () => {
@@ -51,7 +67,23 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
       }
     }
 
+    const carregarChips = async () => {
+      try {
+        const res = await fetch('/api/chips')
+        const data = await res.json()
+
+        if (res.ok && data.data) {
+          setChipsOptions(data.data)
+        }
+      } catch (err) {
+        console.error('Erro ao carregar chips:', err)
+      } finally {
+        setLoadingChips(false)
+      }
+    }
+
     carregarFiltros()
+    carregarChips()
   }, [])
 
   return (
@@ -141,6 +173,83 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
             </>
           )}
         </p>
+      </div>
+
+      {/* Chips Exclusion Section */}
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setChipsOpen(!chipsOpen)}
+          className="flex w-full items-center justify-between rounded-lg border p-4 hover:bg-gray-50"
+        >
+          <div className="flex items-center gap-2">
+            <Smartphone className="h-4 w-4 text-gray-500" />
+            <span className="font-medium">Excluir chips da campanha</span>
+            {formData.chips_excluidos.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {formData.chips_excluidos.length} excluido
+                {formData.chips_excluidos.length > 1 ? 's' : ''}
+              </Badge>
+            )}
+          </div>
+          <ChevronDown
+            className={`h-4 w-4 text-gray-500 transition-transform ${chipsOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+        {chipsOpen && (
+          <div className="rounded-lg border p-4">
+            <p className="mb-3 text-sm text-gray-600">
+              Selecione chips que <strong>NAO</strong> devem ser usados para enviar mensagens desta
+              campanha.
+            </p>
+            {loadingChips ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando chips...
+              </div>
+            ) : chipsOptions.length === 0 ? (
+              <p className="text-sm text-gray-400">Nenhum chip disponivel</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {chipsOptions.map((chip) => {
+                  const isExcluded = formData.chips_excluidos.includes(chip.id)
+                  const displayName = chip.instance_name || chip.telefone?.slice(-4) || chip.id
+                  const trustColor =
+                    chip.trust_level === 'verde'
+                      ? 'bg-green-100 text-green-800'
+                      : chip.trust_level === 'amarelo'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : chip.trust_level === 'laranja'
+                          ? 'bg-orange-100 text-orange-800'
+                          : 'bg-red-100 text-red-800'
+
+                  return (
+                    <Badge
+                      key={chip.id}
+                      variant={isExcluded ? 'destructive' : 'outline'}
+                      className={`cursor-pointer ${isExcluded ? '' : 'hover:bg-gray-100'}`}
+                      onClick={() => toggleArrayItem('chips_excluidos', chip.id)}
+                    >
+                      {isExcluded && <Ban className="mr-1 h-3 w-3" />}
+                      {displayName}
+                      <span className={`ml-1 rounded px-1 text-xs ${trustColor}`}>
+                        {chip.trust_level}
+                      </span>
+                    </Badge>
+                  )
+                })}
+              </div>
+            )}
+            {formData.chips_excluidos.length > 0 && (
+              <p className="mt-3 text-xs text-orange-600">
+                {formData.chips_excluidos.length} chip
+                {formData.chips_excluidos.length > 1 ? 's' : ''} excluido
+                {formData.chips_excluidos.length > 1 ? 's' : ''} - mensagens serao enviadas apenas
+                pelos demais chips
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

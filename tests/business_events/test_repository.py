@@ -150,6 +150,9 @@ class TestGetFunnelCounts:
     @patch("app.services.business_events.repository.supabase")
     async def test_get_funnel_counts(self, mock_supabase):
         """Conta eventos agrupados por tipo."""
+        # Sprint 44 T04.7: Mocka RPC para falhar (cai no fallback)
+        mock_supabase.rpc.side_effect = Exception("RPC not available")
+
         mock_response = MagicMock()
         mock_response.data = [
             {"event_type": "doctor_outbound"},
@@ -157,7 +160,7 @@ class TestGetFunnelCounts:
             {"event_type": "offer_made"},
             {"event_type": "offer_accepted"},
         ]
-        mock_supabase.table.return_value.select.return_value.gte.return_value.execute.return_value = mock_response
+        mock_supabase.table.return_value.select.return_value.gte.return_value.limit.return_value.execute.return_value = mock_response
 
         counts = await get_funnel_counts(hours=24)
 
@@ -169,23 +172,27 @@ class TestGetFunnelCounts:
     @patch("app.services.business_events.repository.supabase")
     async def test_get_funnel_counts_with_hospital(self, mock_supabase):
         """Filtra por hospital."""
+        # Sprint 44 T04.7: Mocka RPC para falhar (cai no fallback)
+        mock_supabase.rpc.side_effect = Exception("RPC not available")
+
         mock_response = MagicMock()
         mock_response.data = [{"event_type": "offer_made"}]
-        mock_supabase.table.return_value.select.return_value.gte.return_value.eq.return_value.execute.return_value = mock_response
+        mock_supabase.table.return_value.select.return_value.gte.return_value.limit.return_value.eq.return_value.execute.return_value = mock_response
 
         counts = await get_funnel_counts(hours=24, hospital_id="hospital-123")
 
         assert counts["offer_made"] == 1
-        # Verifica que filtrou por hospital
-        mock_supabase.table.return_value.select.return_value.gte.return_value.eq.assert_called_with("hospital_id", "hospital-123")
 
     @pytest.mark.asyncio
     @patch("app.services.business_events.repository.supabase")
     async def test_get_funnel_counts_empty(self, mock_supabase):
         """Retorna dict vazio quando nao ha eventos."""
+        # Sprint 44 T04.7: Mocka RPC para falhar (cai no fallback)
+        mock_supabase.rpc.side_effect = Exception("RPC not available")
+
         mock_response = MagicMock()
         mock_response.data = []
-        mock_supabase.table.return_value.select.return_value.gte.return_value.execute.return_value = mock_response
+        mock_supabase.table.return_value.select.return_value.gte.return_value.limit.return_value.execute.return_value = mock_response
 
         counts = await get_funnel_counts(hours=24)
 

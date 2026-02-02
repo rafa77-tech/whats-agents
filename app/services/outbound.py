@@ -92,6 +92,7 @@ async def _enviar_via_multi_chip(
     ctx: "OutboundContext",
     simular_digitacao: bool = False,
     tempo_digitacao: float = None,
+    chips_excluidos: Optional[list] = None,
 ) -> dict:
     """
     Envia mensagem usando o sistema multi-chip.
@@ -104,6 +105,7 @@ async def _enviar_via_multi_chip(
         ctx: Contexto do envio
         simular_digitacao: Se deve simular digitacao
         tempo_digitacao: Tempo de digitacao
+        chips_excluidos: Lista de chip IDs a excluir da seleção (ex: campanha)
 
     Returns:
         Dict com resultado do envio
@@ -113,11 +115,12 @@ async def _enviar_via_multi_chip(
 
     tipo_mensagem = _determinar_tipo_mensagem(ctx)
 
-    # Selecionar chip
+    # Selecionar chip (excluindo chips da campanha se configurado)
     chip = await chip_selector.selecionar_chip(
         tipo_mensagem=tipo_mensagem,
         conversa_id=ctx.conversation_id,
         telefone_destino=telefone,
+        excluir_chips=chips_excluidos,
     )
 
     if not chip:
@@ -403,6 +406,7 @@ async def send_outbound_message(
     ctx: OutboundContext,
     simular_digitacao: bool = False,
     tempo_digitacao: Optional[float] = None,
+    chips_excluidos: Optional[list] = None,
 ) -> OutboundResult:
     """
     Envia mensagem outbound com verificação de guardrails.
@@ -422,6 +426,7 @@ async def send_outbound_message(
         ctx: Contexto completo do envio (obrigatório)
         simular_digitacao: Se True, mostra "digitando" antes de enviar
         tempo_digitacao: Tempo de digitação em segundos (opcional)
+        chips_excluidos: Lista de chip IDs a excluir da seleção (ex: campanha)
 
     Returns:
         OutboundResult com outcome detalhado (SENT, BLOCKED_*, DEDUPED, FAILED_*)
@@ -546,6 +551,7 @@ async def send_outbound_message(
                     ctx=ctx,
                     simular_digitacao=simular_digitacao,
                     tempo_digitacao=tempo_digitacao,
+                    chips_excluidos=chips_excluidos,
                 )
 
                 if not multi_result.get("fallback"):

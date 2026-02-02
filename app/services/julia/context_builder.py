@@ -2,6 +2,7 @@
 Context Builder - Monta contexto para geração de resposta.
 
 Sprint 31 - S31.E2.2
+Sprint 44 - T02.3: Integração com Summarizer
 
 Responsabilidades:
 - Buscar conhecimento dinâmico (RAG)
@@ -9,9 +10,10 @@ Responsabilidades:
 - Montar system prompt
 - Converter histórico para formato de messages
 - Filtrar tools por capabilities
+- Sumarizar conversas longas (Sprint 44)
 """
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
 from app.core.prompts import montar_prompt_julia
 from app.services.conhecimento import OrquestradorConhecimento
@@ -19,6 +21,7 @@ from app.services.interacao import converter_historico_para_messages
 from app.services.conversation_mode.prompts import get_micro_confirmation_prompt
 
 from .models import JuliaContext, PolicyContext
+from .summarizer import sumarizar_se_necessario
 
 logger = logging.getLogger(__name__)
 
@@ -215,6 +218,49 @@ class ContextBuilder:
             return []
 
         return converter_historico_para_messages(historico_raw)
+
+    async def converter_historico_com_summarization(
+        self,
+        historico_raw: List[Dict],
+        conversa_id: Optional[str] = None,
+        incluir: bool = True,
+    ) -> Tuple[List[Dict[str, str]], str]:
+        """
+        Sprint 44 T02.3: Converte histórico com sumarização para conversas longas.
+
+        Para conversas com muitas mensagens:
+        1. Sumariza as mensagens antigas
+        2. Mantém as recentes completas
+        3. Injeta resumo como primeira mensagem do sistema
+
+        Args:
+            historico_raw: Lista de interações do banco
+            conversa_id: ID da conversa (para logging)
+            incluir: Se deve incluir o histórico
+
+        Returns:
+            Tupla (messages, resumo):
+            - messages: Lista no formato Claude
+            - resumo: String com resumo (vazia se não precisou)
+        """
+        if not incluir or not historico_raw:
+            return [], ""
+
+        # Tentar sumarizar se necessário
+        resumo, msgs_para_converter = await sumarizar_se_necessario(
+            historico_raw, conversa_id
+        )
+
+        # Converter mensagens (todas ou apenas recentes)
+        messages = converter_historico_para_messages(msgs_para_converter)
+
+        if resumo:
+            logger.info(
+                f"[ContextBuilder] T02.3: Conversa {conversa_id} sumarizada: "
+                f"{len(historico_raw)} msgs -> resumo + {len(msgs_para_converter)} recentes"
+            )
+
+        return messages, resumo
 
     def filtrar_tools(
         self,

@@ -2,6 +2,7 @@
 Chip Orchestrator - Gerenciamento do pool de chips.
 
 Sprint 26 - E01
+Sprint 44 - T03.1: Distributed Lock para ciclo de orquestração
 
 Responsavel por:
 - Manter pool saudavel (producao, ready, warming)
@@ -18,6 +19,7 @@ from typing import Optional, List, Dict
 from app.services.supabase import supabase
 from app.services.salvy.client import salvy_client
 from app.services.slack import enviar_slack
+from app.core.distributed_lock import DistributedLock, LockNotAcquiredError
 
 logger = logging.getLogger(__name__)
 
@@ -620,56 +622,67 @@ class ChipOrchestrator:
         """
         Executa um ciclo completo de verificacao.
 
+        Sprint 44 T03.1: Usa distributed lock para evitar execução
+        simultânea em múltiplos workers/processos.
+
         Ordem:
-        1. Carregar config
-        2. Verificar e substituir degradados
-        3. Verificar promocoes warming -> ready
-        4. Verificar promocoes ready -> active
-        5. Verificar provisioning
-        6. Log status
+        1. Adquirir lock distribuído
+        2. Carregar config
+        3. Verificar e substituir degradados
+        4. Verificar promocoes warming -> ready
+        5. Verificar promocoes ready -> active
+        6. Verificar provisioning
+        7. Log status
         """
-        logger.debug("[Orchestrator] Iniciando ciclo")
-
+        # Sprint 44 T03.1: Lock distribuído para evitar execução simultânea
         try:
-            # 1. Carregar config
-            await self.carregar_config()
-
-            # 2. Verificar chips degradados e substituir
-            degradados = await self.verificar_chips_degradados()
-            for chip in degradados:
-                await self.substituir_chip(chip)
-
-            # 3. Verificar promocoes warming -> ready
-            await self.verificar_promocoes_warming_ready()
-
-            # 4. Verificar promocoes ready -> active
-            await self.verificar_promocoes_ready_active()
-
-            # 5. Verificar provisioning
-            await self.verificar_provisioning()
-
-            # 6. Log status
-            status = await self.obter_status_pool()
-            logger.info(
-                f"[Orchestrator] Pool: "
-                f"producao={status['producao']['count']}/{status['producao']['min']}, "
-                f"ready={status['ready']['count']}/{status['ready']['min']}, "
-                f"warming={status['warming']['count']}/{status['warming']['buffer']}, "
-                f"saude={status['saude']}"
-            )
-
-            # Alertar se saude nao ok
-            if status["saude"] == "critico":
-                await notificar_slack(
-                    f":rotating_light: *Pool em estado CRITICO*\n"
-                    f"- Producao: {status['producao']['count']}/{status['producao']['min']}\n"
-                    f"- Ready: {status['ready']['count']}/{status['ready']['min']}\n"
-                    f"- Warming: {status['warming']['count']}/{status['warming']['buffer']}",
-                    canal="alertas"
-                )
-
+            async with DistributedLock("chip_orchestrator_cycle", timeout=300):
+                await self._executar_ciclo_impl()
+        except LockNotAcquiredError:
+            logger.info("[Orchestrator] Outro processo já está executando o ciclo")
         except Exception as e:
             logger.error(f"[Orchestrator] Erro no ciclo: {e}")
+
+    async def _executar_ciclo_impl(self):
+        """Implementação do ciclo (chamada protegida pelo lock)."""
+        logger.debug("[Orchestrator] Iniciando ciclo")
+
+        # 1. Carregar config
+        await self.carregar_config()
+
+        # 2. Verificar chips degradados e substituir
+        degradados = await self.verificar_chips_degradados()
+        for chip in degradados:
+            await self.substituir_chip(chip)
+
+        # 3. Verificar promocoes warming -> ready
+        await self.verificar_promocoes_warming_ready()
+
+        # 4. Verificar promocoes ready -> active
+        await self.verificar_promocoes_ready_active()
+
+        # 5. Verificar provisioning
+        await self.verificar_provisioning()
+
+        # 6. Log status
+        status = await self.obter_status_pool()
+        logger.info(
+            f"[Orchestrator] Pool: "
+            f"producao={status['producao']['count']}/{status['producao']['min']}, "
+            f"ready={status['ready']['count']}/{status['ready']['min']}, "
+            f"warming={status['warming']['count']}/{status['warming']['buffer']}, "
+            f"saude={status['saude']}"
+        )
+
+        # Alertar se saude nao ok
+        if status["saude"] == "critico":
+            await notificar_slack(
+                f":rotating_light: *Pool em estado CRITICO*\n"
+                f"- Producao: {status['producao']['count']}/{status['producao']['min']}\n"
+                f"- Ready: {status['ready']['count']}/{status['ready']['min']}\n"
+                f"- Warming: {status['warming']['count']}/{status['warming']['buffer']}",
+                canal="alertas"
+            )
 
     async def iniciar(self, intervalo_segundos: int = 60):
         """

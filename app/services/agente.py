@@ -5,12 +5,14 @@ Sprint 15: Integração com Policy Engine para decisões determinísticas.
 Sprint 16: Retorna policy_decision_id para fechamento do ciclo.
 Sprint 17: Emissão de eventos offer_made, offer_teaser_sent (E04).
 Sprint 29: Conversation Mode + Capabilities Gate (3 camadas de proteção).
+Sprint 44: T02.1 - Global timeout para geração de resposta.
 
 GUARDRAIL CRÍTICO: Julia é INTERMEDIÁRIA
 - Não negocia valores
 - Não confirma reservas
 - Conecta médico com responsável da vaga
 """
+import asyncio
 import random
 import logging
 from dataclasses import dataclass, field
@@ -77,6 +79,13 @@ from app.services.conversation_mode import (
 from app.services.conversation_mode.prompts import get_micro_confirmation_prompt
 
 logger = logging.getLogger(__name__)
+
+# Sprint 44 T02.1: Timeout global para geração de resposta
+# Evita loops infinitos no tool calling e garante resposta em tempo finito
+# Sprint 44 T02.6: Usar configuração centralizada
+from app.core.config import settings
+TIMEOUT_GERACAO_RESPOSTA = settings.LLM_LOOP_TIMEOUT_SEGUNDOS
+RESPOSTA_TIMEOUT_FALLBACK = "Desculpa, tive um probleminha aqui. Pode repetir?"
 
 # Padrões que indicam resposta incompleta (mesma lógica do Slack)
 PADROES_RESPOSTA_INCOMPLETA = [
@@ -196,6 +205,10 @@ async def gerar_resposta_julia(
     """
     Gera resposta da Julia para uma mensagem.
 
+    Sprint 44 T02.1: Wrapper com timeout global para evitar loops infinitos.
+    Sprint 44 T02.2: Validação de resposta com guardrails.
+    Sprint 44 T06.4: Cache de respostas LLM.
+
     Args:
         mensagem: Mensagem do medico
         contexto: Contexto montado (medico, historico, vagas, etc)
@@ -212,6 +225,87 @@ async def gerar_resposta_julia(
 
     Returns:
         Texto da resposta gerada
+    """
+    # Sprint 44 T02.2: Import do response validator
+    from app.services.conversation_mode.response_validator import (
+        validar_resposta_julia as validar_resposta,
+        get_fallback_response,
+    )
+    # Sprint 44 T06.4: Import do cache LLM
+    from app.services.llm.cache import get_cached_response, cache_response
+
+    # Sprint 44 T06.4: Verificar cache antes de chamar LLM
+    # Só usa cache se não estiver usando tools (respostas com tools são dinâmicas)
+    if not usar_tools:
+        cached = await get_cached_response(mensagem, contexto)
+        if cached:
+            logger.debug(f"[Cache] Usando resposta cacheada para: {mensagem[:50]}...")
+            return cached
+
+    try:
+        resposta = await asyncio.wait_for(
+            _gerar_resposta_julia_impl(
+                mensagem=mensagem,
+                contexto=contexto,
+                medico=medico,
+                conversa=conversa,
+                incluir_historico=incluir_historico,
+                usar_tools=usar_tools,
+                policy_decision=policy_decision,
+                capabilities_gate=capabilities_gate,
+                mode_info=mode_info,
+                llm_provider=llm_provider,
+            ),
+            timeout=TIMEOUT_GERACAO_RESPOSTA
+        )
+
+        # Sprint 44 T02.2: Validar resposta antes de retornar
+        conversation_mode = mode_info.mode.value if mode_info else "unknown"
+        conversa_id = conversa.get("id") if conversa else None
+
+        valida, violacao = validar_resposta(
+            resposta=resposta,
+            mode=conversation_mode,
+            conversa_id=conversa_id,
+        )
+
+        if not valida:
+            logger.warning(
+                f"Resposta violou guardrail '{violacao}' em modo {conversation_mode}, "
+                f"usando fallback. Conversa: {conversa_id}"
+            )
+            return get_fallback_response(violacao)
+
+        # Sprint 44 T06.4: Cachear resposta válida (se não usou tools)
+        if not usar_tools:
+            await cache_response(mensagem, contexto, resposta)
+
+        return resposta
+
+    except asyncio.TimeoutError:
+        logger.error(
+            f"Timeout ao gerar resposta ({TIMEOUT_GERACAO_RESPOSTA}s) "
+            f"para mensagem: {mensagem[:50]}..."
+        )
+        return RESPOSTA_TIMEOUT_FALLBACK
+
+
+async def _gerar_resposta_julia_impl(
+    mensagem: str,
+    contexto: dict,
+    medico: dict,
+    conversa: dict,
+    incluir_historico: bool = True,
+    usar_tools: bool = True,
+    policy_decision: PolicyDecision = None,
+    capabilities_gate: CapabilitiesGate = None,
+    mode_info: ModeInfo = None,
+    llm_provider: LLMProvider = None,
+) -> str:
+    """
+    Implementação interna da geração de resposta.
+
+    Sprint 44 T02.1: Separada para permitir timeout no wrapper.
     """
     # E03: Detectar situação e buscar conhecimento relevante
     conhecimento_dinamico = ""

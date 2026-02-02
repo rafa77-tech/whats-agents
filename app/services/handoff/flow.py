@@ -387,3 +387,78 @@ async def resolver_handoff(
     except Exception as e:
         logger.error(f"Erro ao resolver handoff: {e}", exc_info=True)
         return None
+
+
+# Sprint 44 T01.7: Retry com backoff exponencial para notificação
+
+async def _notificar_com_retry(
+    conversa: dict,
+    handoff: dict,
+    conversa_id: str,
+    max_tentativas: int = 3
+) -> bool:
+    """
+    Notifica handoff no Slack com retry e backoff exponencial.
+
+    Args:
+        conversa: Dados da conversa
+        handoff: Dados do handoff criado
+        conversa_id: ID da conversa
+        max_tentativas: Número máximo de tentativas
+
+    Returns:
+        True se notificou com sucesso, False se todas falharam
+    """
+    import asyncio
+    import random
+
+    for tentativa in range(max_tentativas):
+        try:
+            await notificar_handoff(conversa, handoff)
+            logger.info(f"Handoff {handoff['id']} notificado no Slack (tentativa {tentativa + 1})")
+            return True
+        except Exception as e:
+            logger.warning(
+                f"Tentativa {tentativa + 1}/{max_tentativas} de notificação Slack falhou: {e}"
+            )
+            if tentativa < max_tentativas - 1:
+                # Sprint 44 T06.8: Backoff exponencial com jitter
+                # Base: 2s, 4s, 8s + jitter de até 25%
+                base_delay = 2 ** tentativa
+                jitter = base_delay * random.uniform(0, 0.25)
+                await asyncio.sleep(base_delay + jitter)
+
+    logger.error(
+        f"Todas as {max_tentativas} tentativas de notificação falharam para handoff {handoff['id']}"
+    )
+    return False
+
+
+async def _criar_alerta_handoff_sem_notificacao(
+    conversa_id: str,
+    handoff_id: str
+) -> None:
+    """
+    Cria alerta crítico quando handoff não foi notificado.
+
+    O alerta fica registrado no banco para ser monitorado pelo dashboard
+    e pelo sistema de alertas.
+    """
+    from datetime import timezone
+
+    try:
+        supabase.table("system_alerts").insert({
+            "tipo": "handoff_sem_notificacao",
+            "severidade": "critical",
+            "mensagem": f"Handoff criado mas notificação Slack falhou. Conversa {conversa_id} aguarda atendimento.",
+            "metadata": {
+                "conversa_id": conversa_id,
+                "handoff_id": handoff_id,
+            },
+            "resolvido": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }).execute()
+        logger.info(f"Alerta de handoff sem notificação criado para conversa {conversa_id}")
+    except Exception as e:
+        # Último recurso: logar erro mas não falhar
+        logger.error(f"Erro ao criar alerta de handoff sem notificação: {e}")

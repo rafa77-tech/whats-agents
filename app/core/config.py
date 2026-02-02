@@ -252,6 +252,22 @@ class Settings(BaseSettings):
     MAX_MSGS_POR_DIA: int = 100
     HORARIO_INICIO: str = "08:00"
     HORARIO_FIM: str = "20:00"
+    RATE_LIMIT_INTERVALO_MIN: int = 45  # Segundos entre mensagens (min)
+    RATE_LIMIT_INTERVALO_MAX: int = 180  # Segundos entre mensagens (max)
+
+    # LLM Settings (Sprint 44 T02.6)
+    LLM_MAX_TOKENS: int = 300  # Máximo de tokens por resposta
+    LLM_MAX_TOOL_ITERATIONS: int = 3  # Máximo de iterações de tool calling
+    LLM_TIMEOUT_SEGUNDOS: int = 30  # Timeout para chamadas individuais
+    LLM_LOOP_TIMEOUT_SEGUNDOS: int = 60  # Timeout global para loop de tools
+
+    # Pipeline Settings (Sprint 44 T02.6)
+    PIPELINE_MAX_CONCURRENT: int = 10  # Semáforo de processamento webhook
+
+    # Cache Settings (Sprint 44 T02.6)
+    CACHE_TTL_LLM_RESPONSE: int = 3600  # 1 hora para respostas LLM
+    CACHE_TTL_PROMPTS: int = 300  # 5 minutos para prompts
+    CACHE_TTL_CONTEXTO: int = 60  # 1 minuto para contexto
 
     # Empresa
     NOME_EMPRESA: str = "Revoluna"

@@ -118,9 +118,11 @@ async def processar_vagas_vencidas(
 
     # Buscar vagas reservadas vencidas
     # Precisamos combinar data + hora_inicio + hora_fim para calcular fim real
+    # Sprint 44 T04.5: Adicionado limite para evitar queries sem bound
     result = supabase.table("vagas") \
         .select("id, data, hora_inicio, hora_fim, hospital_id, cliente_id") \
         .eq("status", "reservada") \
+        .limit(1000) \
         .execute()
 
     if not result.data:

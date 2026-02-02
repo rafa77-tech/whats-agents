@@ -21,6 +21,7 @@ export interface CampanhaFormData {
   especialidades: string[]
   regioes: string[]
   status_cliente: string[]
+  chips_excluidos: string[] // IDs de chips a NAO usar nesta campanha
 
   // Step 3 - Mensagem
   corpo: string
@@ -40,6 +41,7 @@ export const INITIAL_FORM_DATA: CampanhaFormData = {
   especialidades: [],
   regioes: [],
   status_cliente: [],
+  chips_excluidos: [],
   corpo: '',
   tom: 'amigavel',
   agendar: false,

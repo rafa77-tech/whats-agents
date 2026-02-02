@@ -77,6 +77,14 @@ from .legacy import (
     client,
 )
 
+# Sprint 44 T06.4: Cache de respostas
+from .cache import (
+    get_cached_response,
+    cache_response,
+    invalidar_cache_medico,
+    obter_metricas_cache,
+)
+
 __all__ = [
     # Protocol
     "LLMProvider",
@@ -113,4 +121,9 @@ __all__ = [
     "gerar_resposta_complexa",
     "get_anthropic_client",
     "client",
+    # Cache (Sprint 44 T06.4)
+    "get_cached_response",
+    "cache_response",
+    "invalidar_cache_medico",
+    "obter_metricas_cache",
 ]
