@@ -52,7 +52,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       telefone: string
     } | null
 
-    // Fetch messages (interacoes) for this conversation's client
+    // Fetch messages (interacoes) for this conversation
+    // Buscar por conversation_id (coluna correta na tabela interacoes)
     const { data: interacoes, error: msgError } = await supabase
       .from('interacoes')
       .select(
@@ -64,7 +65,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         created_at
       `
       )
-      .eq('cliente_id', conversation.cliente_id)
+      .eq('conversation_id', id)
       .order('created_at', { ascending: true })
       .limit(100)
 

@@ -96,6 +96,7 @@ async def _get_conversation_with_chip(conversation_id: str) -> dict:
 
 
 async def _record_interaction(
+    conversation_id: str,
     cliente_id: str,
     conteudo: str,
     tipo: str = "saida",
@@ -104,6 +105,7 @@ async def _record_interaction(
 ) -> dict:
     """Registra interacao no banco."""
     data = {
+        "conversation_id": conversation_id,
         "cliente_id": cliente_id,
         "origem": "dashboard",
         "tipo": tipo,
@@ -161,6 +163,7 @@ async def send_text_message(request: SendTextRequest):
             raise HTTPException(500, "Cliente nao encontrado para esta conversa")
 
         interacao = await _record_interaction(
+            conversation_id=request.conversation_id,
             cliente_id=cliente_id,
             conteudo=request.message,
         )
@@ -234,6 +237,7 @@ async def send_media_message(request: SendMediaRequest):
 
         conteudo = request.caption or f"[{request.media_type}]"
         interacao = await _record_interaction(
+            conversation_id=request.conversation_id,
             cliente_id=cliente_id,
             conteudo=conteudo,
             tipo_midia=request.media_type,
