@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    /* Paleta Jull.ia */
+    /* Paleta Jull.ia - Design System Aligned */
     --background: 0 0% 100%; /* #FFFFFF */
-    --foreground: 0 0% 0%; /* #000000 */
+    --foreground: 233 59% 10%; /* #0a0e27 navy */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
+    --card-foreground: 233 59% 10%; /* #0a0e27 navy */
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
-    --primary: 4 100% 50%; /* #FF1200 */
+    --popover-foreground: 233 59% 10%; /* #0a0e27 navy */
+    --primary: 330 100% 50%; /* #ff0080 rosa - cor principal */
     --primary-foreground: 0 0% 100%; /* #FFFFFF */
-    --secondary: 0 0% 97%; /* #F7F7F7 */
-    --secondary-foreground: 0 0% 0%;
-    --muted: 0 0% 93%; /* #EEEEEE */
-    --muted-foreground: 0 0% 29%; /* #4A4A4A */
-    --accent: 330 100% 50%; /* #FF0080 */
+    --secondary: 210 17% 98%; /* #f8f9fa surface */
+    --secondary-foreground: 233 59% 10%;
+    --muted: 220 14% 96%; /* #f3f4f6 */
+    --muted-foreground: 220 9% 46%; /* #6b7280 */
+    --accent: 354 97% 44%; /* #e00319 vermelho - cor de accent */
     --accent-foreground: 0 0% 100%;
-    --destructive: 354 97% 45%; /* #E00319 */
+    --destructive: 0 84% 60%; /* #ef4444 red-500 */
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 87%; /* #DDDDDD */
-    --input: 0 0% 87%;
-    --ring: 4 100% 50%;
+    --border: 220 13% 91%; /* #e5e7eb */
+    --input: 220 13% 91%;
+    --ring: 330 100% 50%; /* Igual ao primary */
     --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -117,25 +117,26 @@
   }
 
   .dark {
-    --background: 0 0% 6%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 8%;
+    /* Dark mode - Design System Aligned */
+    --background: 233 59% 4%; /* Versão escura do navy */
+    --foreground: 0 0% 98%; /* #fafafa */
+    --card: 233 59% 6%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 8%;
+    --popover: 233 59% 6%;
     --popover-foreground: 0 0% 98%;
-    --primary: 4 100% 50%;
+    --primary: 330 100% 50%; /* #ff0080 rosa - mantido */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 14%;
+    --secondary: 233 59% 10%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 70%;
-    --accent: 330 100% 50%;
+    --muted: 233 59% 15%;
+    --muted-foreground: 220 9% 70%;
+    --accent: 354 97% 44%; /* #e00319 vermelho - mantido */
     --accent-foreground: 0 0% 100%;
-    --destructive: 354 97% 45%;
+    --destructive: 0 84% 60%; /* #ef4444 */
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 4 100% 50%;
+    --border: 233 59% 15%;
+    --input: 233 59% 15%;
+    --ring: 330 100% 50%; /* Igual ao primary */
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -254,4 +255,9 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Jull.ia Brand Gradient */
+.bg-jullia-gradient {
+  background: linear-gradient(135deg, hsl(330 100% 50%) 0%, hsl(354 97% 44%) 100%);
 }
