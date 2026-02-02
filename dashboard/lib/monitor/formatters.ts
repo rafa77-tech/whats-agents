@@ -153,7 +153,7 @@ export function formatHealthScore(score: number): string {
 }
 
 export function getHealthScoreColor(score: number): string {
-  if (score >= 80) return 'text-green-600'
-  if (score >= 50) return 'text-yellow-600'
-  return 'text-red-600'
+  if (score >= 80) return 'text-status-success-solid'
+  if (score >= 50) return 'text-status-warning-solid'
+  return 'text-status-error-solid'
 }

@@ -131,14 +131,14 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
               onDrop={handleDrop}
               className={cn(
                 'flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors',
-                dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300',
-                file && 'border-green-500 bg-green-50'
+                dragActive ? 'border-status-info-solid bg-status-info' : 'border-gray-300',
+                file && 'border-status-success-solid bg-status-success'
               )}
             >
               {file ? (
                 <>
-                  <CheckCircle2 className="h-8 w-8 text-green-500" />
-                  <p className="mt-2 text-sm font-medium text-green-700">{file.name}</p>
+                  <CheckCircle2 className="h-8 w-8 text-status-success-foreground" />
+                  <p className="mt-2 text-sm font-medium text-status-success-foreground">{file.name}</p>
                   <Button variant="link" size="sm" onClick={handleRemoveFile}>
                     Remover
                   </Button>
@@ -148,7 +148,7 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
                   <Upload className="h-8 w-8 text-gray-400" />
                   <p className="mt-2 text-sm text-gray-600">Arraste um arquivo CSV ou Excel aqui</p>
                   <label className="mt-2 cursor-pointer">
-                    <span className="text-sm text-blue-600 hover:underline">
+                    <span className="text-sm text-status-info-foreground hover:underline">
                       ou selecione um arquivo
                     </span>
                     <input
@@ -190,24 +190,24 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
                 </div>
                 <div>
                   <span className="text-gray-500">Validos:</span>{' '}
-                  <span className="font-medium text-green-600">{result.valid}</span>
+                  <span className="font-medium text-status-success-foreground">{result.valid}</span>
                 </div>
                 <div>
                   <span className="text-gray-500">Duplicados:</span>{' '}
-                  <span className="font-medium text-yellow-600">{result.duplicates}</span>
+                  <span className="font-medium text-status-warning-foreground">{result.duplicates}</span>
                 </div>
                 <div>
                   <span className="text-gray-500">Invalidos:</span>{' '}
-                  <span className="font-medium text-red-600">{result.invalid}</span>
+                  <span className="font-medium text-status-error-foreground">{result.invalid}</span>
                 </div>
               </div>
             </div>
 
             {/* Errors */}
             {result.errors.length > 0 && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                <h4 className="mb-2 text-sm font-medium text-red-700">Erros:</h4>
-                <div className="max-h-24 overflow-y-auto text-xs text-red-600">
+              <div className="rounded-lg border border-status-error-border bg-status-error p-3">
+                <h4 className="mb-2 text-sm font-medium text-status-error-foreground">Erros:</h4>
+                <div className="max-h-24 overflow-y-auto text-xs text-status-error-foreground">
                   {result.errors.map((err, i) => (
                     <p key={i}>
                       Linha {err.line}: {err.error}

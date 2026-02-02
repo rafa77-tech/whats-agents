@@ -71,7 +71,7 @@ export function MessageBubble({ message }: Props) {
           </span>
           {isOutgoing &&
             (message.metadata?.read ? (
-              <CheckCheck className="h-3 w-3 text-blue-400" />
+              <CheckCheck className="h-3 w-3 text-status-info-solid" />
             ) : message.metadata?.delivered ? (
               <CheckCheck className="h-3 w-3" />
             ) : (

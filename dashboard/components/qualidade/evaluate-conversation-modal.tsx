@@ -39,7 +39,7 @@ function RatingInput({ label, value, onChange }: RatingInputProps) {
             <Star
               className={cn(
                 'h-5 w-5 transition-colors',
-                n <= value ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+                n <= value ? 'fill-status-warning-solid text-status-warning-solid' : 'text-gray-300'
               )}
             />
           </button>
@@ -102,7 +102,7 @@ export function EvaluateConversationModal({
                   className={cn(
                     'rounded-lg p-3 text-sm',
                     msg.remetente === 'julia'
-                      ? 'ml-4 bg-blue-100 text-blue-900'
+                      ? 'ml-4 bg-status-info text-status-info-foreground'
                       : 'mr-4 bg-white text-gray-900'
                   )}
                 >

@@ -290,7 +290,7 @@ export default function EditarCampanhaPage() {
         </div>
         <Card>
           <CardContent className="py-12 text-center">
-            <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-yellow-500" />
+            <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-status-warning-solid" />
             <p className="text-lg font-medium">{error}</p>
             <Button className="mt-4" asChild>
               <Link href={`/campanhas/${params.id}`}>Voltar</Link>
@@ -439,8 +439,8 @@ export default function EditarCampanhaPage() {
               </div>
             </div>
             {agendarPara ? (
-              <div className="rounded-lg bg-blue-50 p-3">
-                <p className="text-sm text-blue-700">
+              <div className="rounded-lg bg-status-info p-3">
+                <p className="text-sm text-status-info-foreground">
                   <Calendar className="mr-1 inline h-4 w-4" />
                   Campanha agendada para{' '}
                   <strong>

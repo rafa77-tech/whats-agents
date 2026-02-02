@@ -139,8 +139,8 @@ export function EditScheduleModal({ currentConfig, onClose, onSave }: EditSchedu
             </div>
           </div>
 
-          <div className="rounded-lg bg-blue-50 p-3">
-            <p className="text-xs text-blue-700">
+          <div className="rounded-lg bg-status-info p-3">
+            <p className="text-xs text-status-info-foreground">
               Julia so enviara mensagens proativas dentro deste horario. Respostas a medicos
               funcionam 24/7.
             </p>

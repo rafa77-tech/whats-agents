@@ -75,8 +75,8 @@ export default function ResetPasswordPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-revoluna-50 to-revoluna-100">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle className="h-8 w-8 text-green-600" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-status-success">
+            <CheckCircle className="h-8 w-8 text-status-success-foreground" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Senha atualizada!</h1>
           <p className="mt-2 text-gray-500">Redirecionando para o dashboard...</p>
@@ -98,8 +98,8 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={handleResetPassword} className="space-y-5">
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="rounded-lg border border-status-error-border bg-status-error p-3">
+              <p className="text-sm text-status-error-foreground">{error}</p>
             </div>
           )}
 

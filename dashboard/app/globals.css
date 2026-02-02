@@ -103,15 +103,17 @@
     --trust-amarelo-foreground: 46 93% 24%;
     --trust-amarelo-solid: 45 93% 47%;
 
-    --trust-laranja: 25 95% 53%;
-    --trust-laranja-foreground: 21 90% 48%;
+    --trust-laranja: 33 100% 90%;
+    --trust-laranja-foreground: 21 90% 40%;
+    --trust-laranja-solid: 25 95% 53%;
 
     --trust-vermelho: 0 93% 94%;
     --trust-vermelho-foreground: 0 74% 42%;
     --trust-vermelho-solid: 0 72% 51%;
 
-    --trust-critico: 0 93% 88%;
-    --trust-critico-foreground: 0 74% 30%;
+    --trust-critico: 0 74% 25%;
+    --trust-critico-foreground: 0 93% 90%;
+    --trust-critico-solid: 0 74% 35%;
   }
 
   .dark {
@@ -214,6 +216,7 @@
 
     --trust-laranja: 25 95% 30%;
     --trust-laranja-foreground: 25 95% 70%;
+    --trust-laranja-solid: 25 95% 53%;
 
     --trust-vermelho: 0 74% 20%;
     --trust-vermelho-foreground: 0 93% 80%;
@@ -221,6 +224,7 @@
 
     --trust-critico: 0 74% 15%;
     --trust-critico-foreground: 0 93% 75%;
+    --trust-critico-solid: 0 74% 35%;
   }
 }
 

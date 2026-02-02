@@ -72,8 +72,8 @@ export function IntegridadePageContent() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <XCircle className="mx-auto h-8 w-8 text-red-400" />
-          <p className="mt-2 text-sm text-red-600">{error}</p>
+          <XCircle className="mx-auto h-8 w-8 text-status-error-foreground" />
+          <p className="mt-2 text-sm text-status-error-foreground">{error}</p>
           <Button onClick={fetchData} variant="outline" className="mt-4">
             Tentar novamente
           </Button>
@@ -100,7 +100,7 @@ export function IntegridadePageContent() {
 
       {/* Error Banner */}
       {error && (
-        <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-red-800">
+        <div className="flex items-center gap-2 rounded-lg bg-status-error p-3 text-status-error-foreground">
           <AlertTriangle className="h-5 w-5" />
           <span>{error}</span>
         </div>
@@ -137,18 +137,18 @@ export function IntegridadePageContent() {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-sm text-gray-500">Anomalias Abertas</p>
-              <p className="text-2xl font-bold text-yellow-600">{data?.anomalias.abertas || 0}</p>
+              <p className="text-2xl font-bold text-status-warning-foreground">{data?.anomalias.abertas || 0}</p>
             </div>
-            <AlertTriangle className="h-8 w-8 text-yellow-400" />
+            <AlertTriangle className="h-8 w-8 text-status-warning-foreground" />
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-sm text-gray-500">Violacoes</p>
-              <p className="text-2xl font-bold text-red-600">{data?.violacoes || 0}</p>
+              <p className="text-2xl font-bold text-status-error-foreground">{data?.violacoes || 0}</p>
             </div>
-            <XCircle className="h-8 w-8 text-red-400" />
+            <XCircle className="h-8 w-8 text-status-error-foreground" />
           </CardContent>
         </Card>
         <Card>
@@ -245,7 +245,7 @@ export function IntegridadePageContent() {
                 </Table>
               ) : (
                 <div className="py-8 text-center text-gray-500">
-                  <CheckCircle2 className="mx-auto h-8 w-8 text-green-400" />
+                  <CheckCircle2 className="mx-auto h-8 w-8 text-status-success-foreground" />
                   <p className="mt-2">Nenhuma anomalia encontrada</p>
                 </div>
               )}
@@ -297,16 +297,16 @@ export function IntegridadePageContent() {
                       data.kpis.recommendations.map((rec, idx) => (
                         <div
                           key={idx}
-                          className="flex items-start gap-2 rounded-lg bg-yellow-50 p-3"
+                          className="flex items-start gap-2 rounded-lg bg-status-warning p-3"
                         >
-                          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-600" />
-                          <p className="text-sm text-yellow-800">{rec}</p>
+                          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-status-warning-foreground" />
+                          <p className="text-sm text-status-warning-foreground">{rec}</p>
                         </div>
                       ))
                     ) : (
-                      <div className="flex items-start gap-2 rounded-lg bg-green-50 p-3">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
-                        <p className="text-sm text-green-800">
+                      <div className="flex items-start gap-2 rounded-lg bg-status-success p-3">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-status-success-foreground" />
+                        <p className="text-sm text-status-success-foreground">
                           Nenhuma recomendacao no momento. Sistema saudavel!
                         </p>
                       </div>

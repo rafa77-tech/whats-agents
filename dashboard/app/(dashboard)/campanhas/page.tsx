@@ -76,7 +76,7 @@ const statusConfig = {
   },
   pausada: {
     label: 'Pausada',
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    color: 'bg-trust-laranja text-trust-laranja-foreground border-trust-laranja',
     icon: Pause,
   },
   cancelada: {
@@ -179,7 +179,7 @@ export default function CampanhasPage() {
                 <p className="text-sm text-gray-500">Campanhas Ativas</p>
                 <p className="text-2xl font-bold">{ativasCount}</p>
               </div>
-              <Megaphone className="h-8 w-8 text-blue-500" />
+              <Megaphone className="h-8 w-8 text-status-info-solid" />
             </div>
           </CardContent>
         </Card>
@@ -193,7 +193,7 @@ export default function CampanhasPage() {
                   {campanhas.reduce((acc, c) => acc + (c.enviados || 0), 0)}
                 </p>
               </div>
-              <Send className="h-8 w-8 text-green-500" />
+              <Send className="h-8 w-8 text-status-success-solid" />
             </div>
           </CardContent>
         </Card>
@@ -207,7 +207,7 @@ export default function CampanhasPage() {
                   {campanhas.reduce((acc, c) => acc + (c.entregues || 0), 0)}
                 </p>
               </div>
-              <CheckCircle2 className="h-8 w-8 text-blue-500" />
+              <CheckCircle2 className="h-8 w-8 text-status-info-solid" />
             </div>
           </CardContent>
         </Card>
@@ -221,7 +221,7 @@ export default function CampanhasPage() {
                   {campanhas.reduce((acc, c) => acc + (c.respondidos || 0), 0)}
                 </p>
               </div>
-              <MessageSquare className="h-8 w-8 text-purple-500" />
+              <MessageSquare className="h-8 w-8 text-accent" />
             </div>
           </CardContent>
         </Card>
@@ -231,7 +231,7 @@ export default function CampanhasPage() {
         <TabsList>
           <TabsTrigger value="ativas">
             Ativas
-            {ativasCount > 0 && <Badge className="ml-2 bg-blue-500">{ativasCount}</Badge>}
+            {ativasCount > 0 && <Badge className="ml-2 bg-status-info-solid">{ativasCount}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="historico">Historico</TabsTrigger>
         </TabsList>
@@ -347,7 +347,7 @@ function CampanhaCard({ campanha, onUpdate: _onUpdate, readOnly }: CampanhaCardP
                       Duplicar
                     </DropdownMenuItem>
                     {campanha.status === 'rascunho' && (
-                      <DropdownMenuItem className="text-red-600">
+                      <DropdownMenuItem className="text-destructive">
                         <Trash2 className="mr-2 h-4 w-4" />
                         Excluir
                       </DropdownMenuItem>

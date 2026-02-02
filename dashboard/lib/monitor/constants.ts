@@ -23,10 +23,10 @@ export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
 }
 
 export const JOB_STATUS_COLORS: Record<JobStatus, string> = {
-  running: 'bg-blue-100 text-blue-800',
-  success: 'bg-green-100 text-green-800',
-  error: 'bg-red-100 text-red-800',
-  timeout: 'bg-yellow-100 text-yellow-800',
+  running: 'bg-status-info text-status-info-foreground',
+  success: 'bg-status-success text-status-success-foreground',
+  error: 'bg-status-error text-status-error-foreground',
+  timeout: 'bg-status-warning text-status-warning-foreground',
 }
 
 export const SYSTEM_HEALTH_LABELS: Record<SystemHealthStatus, string> = {
@@ -36,9 +36,9 @@ export const SYSTEM_HEALTH_LABELS: Record<SystemHealthStatus, string> = {
 }
 
 export const SYSTEM_HEALTH_COLORS: Record<SystemHealthStatus, string> = {
-  healthy: 'text-green-600',
-  degraded: 'text-yellow-600',
-  critical: 'text-red-600',
+  healthy: 'text-status-success-solid',
+  degraded: 'text-status-warning-solid',
+  critical: 'text-status-error-solid',
 }
 
 // ============================================

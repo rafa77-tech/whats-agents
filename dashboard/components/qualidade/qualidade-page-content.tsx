@@ -40,8 +40,8 @@ export function QualidadePageContent() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <XCircle className="mx-auto h-8 w-8 text-red-400" />
-          <p className="mt-2 text-sm text-red-600">{error}</p>
+          <XCircle className="mx-auto h-8 w-8 text-status-error-solid" />
+          <p className="mt-2 text-sm text-status-error-solid">{error}</p>
           <Button onClick={refresh} variant="outline" className="mt-4">
             Tentar novamente
           </Button>
@@ -103,7 +103,7 @@ export function QualidadePageContent() {
               <p className="text-2xl font-bold">{metrics?.pendentes ?? 0} novas</p>
             </div>
             <div className="flex items-center gap-3">
-              <MessageSquare className="h-8 w-8 text-blue-400" />
+              <MessageSquare className="h-8 w-8 text-status-info-solid" />
               <Button
                 size="sm"
                 onClick={() => setActiveTab('conversas')}
@@ -121,7 +121,7 @@ export function QualidadePageContent() {
               <p className="text-2xl font-bold">- aguardando</p>
             </div>
             <div className="flex items-center gap-3">
-              <Lightbulb className="h-8 w-8 text-yellow-400" />
+              <Lightbulb className="h-8 w-8 text-status-warning-solid" />
               <Button size="sm" variant="outline" onClick={() => setActiveTab('sugestoes')}>
                 Ver Sugestoes
               </Button>
@@ -145,10 +145,10 @@ export function QualidadePageContent() {
               {metrics.padroesViolados.slice(0, MAX_PATTERNS_DISPLAYED).map((p) => (
                 <div
                   key={p.padrao}
-                  className="flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-sm"
+                  className="flex items-center gap-1 rounded-full bg-status-error px-3 py-1 text-sm"
                 >
-                  <AlertTriangle className="h-3 w-3 text-red-600" />
-                  <span className="text-red-700">
+                  <AlertTriangle className="h-3 w-3 text-status-error-foreground" />
+                  <span className="text-status-error-foreground">
                     {p.padrao} ({p.count})
                   </span>
                 </div>

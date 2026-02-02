@@ -42,8 +42,8 @@ const typeConfig: Record<
   },
   campanha: {
     icon: Send,
-    bgColor: 'bg-purple-100',
-    iconColor: 'text-purple-600',
+    bgColor: 'bg-accent/20',
+    iconColor: 'text-accent',
   },
   resposta: {
     icon: MessageSquare,
@@ -57,8 +57,8 @@ const typeConfig: Record<
   },
   alerta: {
     icon: AlertTriangle,
-    bgColor: 'bg-orange-100',
-    iconColor: 'text-orange-600',
+    bgColor: 'bg-trust-laranja',
+    iconColor: 'text-trust-laranja-foreground',
   },
 }
 

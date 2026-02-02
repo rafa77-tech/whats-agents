@@ -59,7 +59,7 @@ export function KPICards({ data }: Props) {
               <div
                 className={cn(
                   'mt-1 flex items-center text-xs',
-                  isPositive ? 'text-green-600' : 'text-red-600'
+                  isPositive ? 'text-status-success-foreground' : 'text-status-error-foreground'
                 )}
               >
                 <ChangeIcon className="mr-1 h-3 w-3" />

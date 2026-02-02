@@ -123,12 +123,12 @@ export function EditRateLimitModal({ currentConfig, onClose, onSave }: EditRateL
           </div>
 
           {isHighRisk && (
-            <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-3">
-              <div className="flex items-center gap-2 text-yellow-800">
+            <div className="rounded-lg border border-status-warning-border bg-status-warning p-3">
+              <div className="flex items-center gap-2 text-status-warning-foreground">
                 <AlertTriangle className="h-4 w-4" />
                 <span className="text-sm font-medium">Atencao</span>
               </div>
-              <p className="mt-1 text-xs text-yellow-700">
+              <p className="mt-1 text-xs text-status-warning-foreground">
                 Limites muito altos ou intervalos muito curtos podem causar ban do WhatsApp.
               </p>
             </div>

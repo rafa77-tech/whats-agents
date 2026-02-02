@@ -60,9 +60,9 @@ Use {{hospital}} para o hospital da vaga.`}
       </div>
 
       {formData.corpo && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-          <p className="mb-2 text-sm font-medium text-green-800">Preview:</p>
-          <p className="whitespace-pre-wrap text-sm text-green-700">
+        <div className="rounded-lg border border-status-success-border bg-status-success p-4">
+          <p className="mb-2 text-sm font-medium text-status-success-foreground">Preview:</p>
+          <p className="whitespace-pre-wrap text-sm text-status-success-foreground">
             {formData.corpo
               .replace('{{nome}}', 'Dr. Carlos')
               .replace('{{especialidade}}', 'Cardiologia')

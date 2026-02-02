@@ -26,7 +26,7 @@ export function WizardSteps({ currentStep }: WizardStepsProps) {
               className={cn(
                 'flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors',
                 isActive && 'border-primary bg-primary text-white',
-                isCompleted && 'border-green-500 bg-green-500 text-white',
+                isCompleted && 'border-status-success-solid bg-status-success-solid text-white',
                 !isActive && !isCompleted && 'border-gray-300 text-gray-400'
               )}
             >

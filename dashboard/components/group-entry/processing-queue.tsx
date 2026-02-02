@@ -160,7 +160,7 @@ export function ProcessingQueue({ onUpdate }: ProcessingQueueProps) {
                             {actionLoading === item.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <X className="h-4 w-4 text-red-500" />
+                              <X className="h-4 w-4 text-status-error-foreground" />
                             )}
                           </Button>
                         </>

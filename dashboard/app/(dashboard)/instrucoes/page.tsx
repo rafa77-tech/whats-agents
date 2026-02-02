@@ -212,8 +212,8 @@ export default function InstrucoesPage() {
       </div>
 
       {/* Alerta informativo */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <p className="text-sm text-blue-800">
+      <div className="rounded-lg border border-status-info-border bg-status-info p-4">
+        <p className="text-sm text-status-info-foreground">
           Instrucoes sao regras especificas que Julia segue em conversas. Por exemplo: margens de
           negociacao para vagas, regras especiais para hospitais ou informacoes sobre medicos.
         </p>
@@ -221,8 +221,8 @@ export default function InstrucoesPage() {
 
       {/* Erro */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="rounded-lg border border-status-error-border bg-status-error p-4">
+          <p className="text-sm text-status-error-foreground">{error}</p>
         </div>
       )}
 
@@ -345,7 +345,7 @@ function DiretrizesTable({ diretrizes, loading, onCancelar, showActions }: Diret
                 <TableCell>
                   {diretriz.expira_em ? (
                     <span
-                      className={new Date(diretriz.expira_em) < new Date() ? 'text-red-500' : ''}
+                      className={new Date(diretriz.expira_em) < new Date() ? 'text-status-error-solid' : ''}
                     >
                       {format(new Date(diretriz.expira_em), 'dd/MM HH:mm')}
                     </span>
@@ -363,7 +363,7 @@ function DiretrizesTable({ diretrizes, loading, onCancelar, showActions }: Diret
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuItem
-                          className="text-red-600"
+                          className="text-status-error-solid"
                           onClick={() => onCancelar(diretriz)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />

@@ -101,7 +101,7 @@ const STATUS_CONFIG: Record<
 const CATEGORY_COLORS: Record<JobCategory, string> = {
   critical: 'bg-status-error text-status-error-foreground',
   frequent: 'bg-status-info text-status-info-foreground',
-  hourly: 'bg-purple-100 text-purple-700',
+  hourly: 'bg-accent/20 text-accent',
   daily: 'bg-status-success text-status-success-foreground',
   weekly: 'bg-status-neutral text-status-neutral-foreground',
 }
@@ -613,7 +613,7 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-600">Remover Job</AlertDialogTitle>
+            <AlertDialogTitle className="text-status-error-solid">Remover Job</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div>
                 <p>

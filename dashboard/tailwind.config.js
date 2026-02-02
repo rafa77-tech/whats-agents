@@ -178,6 +178,7 @@ module.exports = {
           laranja: {
             DEFAULT: 'hsl(var(--trust-laranja))',
             foreground: 'hsl(var(--trust-laranja-foreground))',
+            solid: 'hsl(var(--trust-laranja-solid))',
           },
           vermelho: {
             DEFAULT: 'hsl(var(--trust-vermelho))',
@@ -187,6 +188,7 @@ module.exports = {
           critico: {
             DEFAULT: 'hsl(var(--trust-critico))',
             foreground: 'hsl(var(--trust-critico-foreground))',
+            solid: 'hsl(var(--trust-critico-solid))',
           },
         },
       },

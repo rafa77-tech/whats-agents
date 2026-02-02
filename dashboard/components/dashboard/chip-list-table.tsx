@@ -36,7 +36,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   },
   degraded: {
     label: 'Degraded',
-    className: 'bg-orange-100 text-orange-700 border-orange-200',
+    className: 'bg-trust-laranja text-trust-laranja-foreground border-trust-laranja',
   },
   paused: {
     label: 'Paused',
@@ -72,9 +72,9 @@ const defaultStatusConfig = {
 const trustColors: Record<string, string> = {
   verde: 'text-status-success-foreground bg-status-success',
   amarelo: 'text-status-warning-foreground bg-status-warning',
-  laranja: 'text-orange-600 bg-orange-100',
-  vermelho: 'text-status-error-foreground bg-status-error',
-  critico: 'text-red-800 bg-red-200',
+  laranja: 'text-trust-laranja-foreground bg-trust-laranja',
+  vermelho: 'text-trust-vermelho-foreground bg-trust-vermelho',
+  critico: 'text-trust-critico-foreground bg-trust-critico',
 }
 
 const defaultTrustColor = 'text-muted-foreground bg-status-neutral'
@@ -198,7 +198,7 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
                 <TableCell>
                   <Link href={`/chips/${chip.id}` as Route} className="block">
                     {chip.hasActiveAlert ? (
-                      <div className="flex items-center gap-1 text-orange-600">
+                      <div className="flex items-center gap-1 text-trust-laranja-foreground">
                         <AlertTriangle className="h-4 w-4" />
                         <span className="text-xs">{chip.alertMessage}</span>
                       </div>

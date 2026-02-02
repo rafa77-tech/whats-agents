@@ -15,10 +15,10 @@ export const CONVERSATION_STATUS_LABELS: Record<string, string> = {
 }
 
 export const CONVERSATION_STATUS_COLORS: Record<string, string> = {
-  ativa: 'bg-green-100 text-green-800',
-  pausada: 'bg-yellow-100 text-yellow-800',
-  encerrada: 'bg-gray-100 text-gray-800',
-  arquivada: 'bg-gray-50 text-gray-500',
+  ativa: 'bg-status-success text-status-success-foreground',
+  pausada: 'bg-status-warning text-status-warning-foreground',
+  encerrada: 'bg-status-neutral text-status-neutral-foreground',
+  arquivada: 'bg-status-neutral/50 text-status-neutral-foreground/70',
 }
 
 // ============================================
@@ -31,7 +31,7 @@ export const CONTROLLED_BY_LABELS = {
 } as const
 
 export const CONTROLLED_BY_COLORS = {
-  ai: 'bg-blue-100 text-blue-800',
+  ai: 'bg-status-info text-status-info-foreground',
   human: 'bg-purple-100 text-purple-800',
 } as const
 

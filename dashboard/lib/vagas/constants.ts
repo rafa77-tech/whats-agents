@@ -8,24 +8,24 @@ import type { ShiftStatus } from './types'
  * Cores de badge por status (estilo claro para cards)
  */
 export const STATUS_BADGE_COLORS: Record<ShiftStatus, string> = {
-  aberta: 'bg-green-100 text-green-800',
-  reservada: 'bg-yellow-100 text-yellow-800',
-  confirmada: 'bg-blue-100 text-blue-800',
-  cancelada: 'bg-red-100 text-red-800',
-  realizada: 'bg-gray-100 text-gray-800',
-  fechada: 'bg-gray-100 text-gray-800',
+  aberta: 'bg-status-success text-status-success-foreground',
+  reservada: 'bg-status-warning text-status-warning-foreground',
+  confirmada: 'bg-status-info text-status-info-foreground',
+  cancelada: 'bg-status-error text-status-error-foreground',
+  realizada: 'bg-status-neutral text-status-neutral-foreground',
+  fechada: 'bg-status-neutral text-status-neutral-foreground',
 }
 
 /**
  * Cores de indicador por status (estilo sólido para calendário)
  */
 export const STATUS_INDICATOR_COLORS: Record<ShiftStatus, string> = {
-  aberta: 'bg-green-500',
-  reservada: 'bg-yellow-500',
-  confirmada: 'bg-blue-500',
-  cancelada: 'bg-red-500',
-  realizada: 'bg-gray-500',
-  fechada: 'bg-gray-500',
+  aberta: 'bg-status-success-solid',
+  reservada: 'bg-status-warning-solid',
+  confirmada: 'bg-status-info-solid',
+  cancelada: 'bg-status-error-solid',
+  realizada: 'bg-status-neutral-solid',
+  fechada: 'bg-status-neutral-solid',
 }
 
 /**

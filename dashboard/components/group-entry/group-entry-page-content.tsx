@@ -105,8 +105,8 @@ export function GroupEntryPageContent() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <XCircle className="mx-auto h-8 w-8 text-red-400" />
-          <p className="mt-2 text-sm text-red-600">{error}</p>
+          <XCircle className="mx-auto h-8 w-8 text-status-error-foreground" />
+          <p className="mt-2 text-sm text-status-error-foreground">{error}</p>
           <Button onClick={refresh} variant="outline" className="mt-4">
             Tentar novamente
           </Button>
@@ -153,7 +153,7 @@ export function GroupEntryPageContent() {
               <p className="text-2xl font-bold">{data?.links.total || 0}</p>
               <p className="text-xs text-gray-400">{data?.links.pending || 0} pendentes</p>
             </div>
-            <LinkIcon className="h-8 w-8 text-blue-400" />
+            <LinkIcon className="h-8 w-8 text-status-info-foreground" />
           </CardContent>
         </Card>
         <Card>
@@ -163,7 +163,7 @@ export function GroupEntryPageContent() {
               <p className="text-2xl font-bold">{data?.queue.queued || 0}</p>
               <p className="text-xs text-gray-400">{data?.queue.processing || 0} processando</p>
             </div>
-            <Clock className="h-8 w-8 text-yellow-400" />
+            <Clock className="h-8 w-8 text-status-warning-foreground" />
           </CardContent>
         </Card>
         <Card>
@@ -171,16 +171,16 @@ export function GroupEntryPageContent() {
             <div>
               <p className="text-sm text-gray-500">Processados Hoje</p>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-bold text-green-600">
+                <span className="text-xl font-bold text-status-success-foreground">
                   {data?.processedToday.success || 0}
                 </span>
                 <span className="text-gray-400">/</span>
-                <span className="text-xl font-bold text-red-600">
+                <span className="text-xl font-bold text-status-error-foreground">
                   {data?.processedToday.failed || 0}
                 </span>
               </div>
             </div>
-            <Users className="h-8 w-8 text-green-400" />
+            <Users className="h-8 w-8 text-status-success-foreground" />
           </CardContent>
         </Card>
       </div>

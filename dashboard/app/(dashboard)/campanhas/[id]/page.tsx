@@ -139,32 +139,32 @@ interface ClienteBusca extends AudienciaCliente {
 const statusConfig = {
   rascunho: {
     label: 'Rascunho',
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    color: 'bg-status-neutral text-status-neutral-foreground border-muted',
     icon: FileEdit,
   },
   agendada: {
     label: 'Agendada',
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    color: 'bg-status-info text-status-info-foreground border-status-info-border',
     icon: Clock,
   },
   ativa: {
     label: 'Ativa',
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    color: 'bg-status-warning text-status-warning-foreground border-status-warning-border',
     icon: Play,
   },
   concluida: {
     label: 'Concluida',
-    color: 'bg-green-100 text-green-800 border-green-200',
+    color: 'bg-status-success text-status-success-foreground border-status-success-border',
     icon: CheckCircle2,
   },
   pausada: {
     label: 'Pausada',
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    color: 'bg-trust-laranja text-trust-laranja-foreground border-trust-laranja',
     icon: Pause,
   },
   cancelada: {
     label: 'Cancelada',
-    color: 'bg-red-100 text-red-800 border-red-200',
+    color: 'bg-status-error text-status-error-foreground border-status-error-border',
     icon: XCircle,
   },
 }
@@ -173,11 +173,11 @@ const envioStatusConfig: Record<
   string,
   { label: string; color: string; icon: typeof CheckCircle2 }
 > = {
-  pendente: { label: 'Pendente', color: 'text-gray-500', icon: Clock },
-  enviado: { label: 'Enviado', color: 'text-blue-500', icon: Send },
-  entregue: { label: 'Entregue', color: 'text-green-500', icon: CheckCircle2 },
-  visualizado: { label: 'Visualizado', color: 'text-purple-500', icon: Eye },
-  falhou: { label: 'Falhou', color: 'text-red-500', icon: XCircle },
+  pendente: { label: 'Pendente', color: 'text-muted-foreground', icon: Clock },
+  enviado: { label: 'Enviado', color: 'text-status-info-foreground', icon: Send },
+  entregue: { label: 'Entregue', color: 'text-status-success-foreground', icon: CheckCircle2 },
+  visualizado: { label: 'Visualizado', color: 'text-accent', icon: Eye },
+  falhou: { label: 'Falhou', color: 'text-status-error-foreground', icon: XCircle },
 }
 
 const tipoCampanhaLabels: Record<string, string> = {
@@ -510,7 +510,7 @@ export default function CampanhaDetalhesPage() {
         </div>
         <Card>
           <CardContent className="py-12 text-center">
-            <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-yellow-500" />
+            <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-status-warning-solid" />
             <p className="text-lg font-medium">{error || 'Campanha nao encontrada'}</p>
             <Button className="mt-4" asChild>
               <Link href="/campanhas">Voltar para Campanhas</Link>
@@ -547,7 +547,7 @@ export default function CampanhaDetalhesPage() {
               {campanha.categoria && ` - ${campanha.categoria}`}
             </p>
             {campanha.agendar_para && (
-              <p className="mt-1 flex items-center gap-1 text-sm text-blue-600">
+              <p className="mt-1 flex items-center gap-1 text-sm text-status-info-solid">
                 <Calendar className="h-4 w-4" />
                 Agendada para{' '}
                 {format(new Date(campanha.agendar_para), "EEEE, d 'de' MMMM 'às' HH:mm", {
@@ -715,7 +715,7 @@ export default function CampanhaDetalhesPage() {
                 <p className="text-sm text-gray-500">Enviados</p>
                 <p className="text-2xl font-bold">{campanha.metricas.enviados}</p>
               </div>
-              <Send className="h-8 w-8 text-blue-500" />
+              <Send className="h-8 w-8 text-status-info-solid" />
             </div>
           </CardContent>
         </Card>
@@ -734,7 +734,7 @@ export default function CampanhaDetalhesPage() {
                   )}
                 </p>
               </div>
-              <CheckCircle2 className="h-8 w-8 text-green-500" />
+              <CheckCircle2 className="h-8 w-8 text-status-success-solid" />
             </div>
           </CardContent>
         </Card>
@@ -753,7 +753,7 @@ export default function CampanhaDetalhesPage() {
                   )}
                 </p>
               </div>
-              <Eye className="h-8 w-8 text-purple-500" />
+              <Eye className="h-8 w-8 text-accent" />
             </div>
           </CardContent>
         </Card>
@@ -763,9 +763,9 @@ export default function CampanhaDetalhesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Falhas</p>
-                <p className="text-2xl font-bold text-red-600">{campanha.metricas.falhas}</p>
+                <p className="text-2xl font-bold text-status-error-foreground">{campanha.metricas.falhas}</p>
               </div>
-              <XCircle className="h-8 w-8 text-red-500" />
+              <XCircle className="h-8 w-8 text-status-error-solid" />
             </div>
           </CardContent>
         </Card>
@@ -849,7 +849,7 @@ export default function CampanhaDetalhesPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-yellow-500" />
+              <Sparkles className="h-5 w-5 text-status-warning-solid" />
               Mensagens de Abertura
             </CardTitle>
             <CardDescription>
@@ -997,7 +997,7 @@ export default function CampanhaDetalhesPage() {
                       {audiencia.clientes.map((cliente) => (
                         <TableRow
                           key={cliente.id}
-                          className={selectedClientes.has(cliente.id) ? 'bg-blue-50' : ''}
+                          className={selectedClientes.has(cliente.id) ? 'bg-muted/50' : ''}
                         >
                           {campanha.status === 'rascunho' && (
                             <TableCell>
@@ -1039,7 +1039,7 @@ export default function CampanhaDetalhesPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+                                className="h-8 w-8 text-status-error-foreground hover:bg-status-error hover:text-status-error-foreground"
                                 onClick={() => removerMedico(cliente.id)}
                                 disabled={audienciaActionLoading === cliente.id}
                               >
@@ -1234,7 +1234,7 @@ export default function CampanhaDetalhesPage() {
                         <TableCell>{cliente.especialidade || '-'}</TableCell>
                         <TableCell>
                           {cliente.na_campanha ? (
-                            <span className="text-sm text-green-600">Na campanha</span>
+                            <span className="text-sm text-status-success-foreground">Na campanha</span>
                           ) : (
                             <Button
                               variant="outline"

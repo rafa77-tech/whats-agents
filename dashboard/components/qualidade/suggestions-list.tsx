@@ -133,7 +133,7 @@ export function SuggestionsList() {
                             {actionLoading === sug.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <X className="h-4 w-4 text-red-500" />
+                              <X className="h-4 w-4 text-status-error-solid" />
                             )}
                           </Button>
                           <Button
@@ -145,7 +145,7 @@ export function SuggestionsList() {
                             {actionLoading === sug.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <Check className="h-4 w-4 text-green-500" />
+                              <Check className="h-4 w-4 text-status-success-solid" />
                             )}
                           </Button>
                         </div>

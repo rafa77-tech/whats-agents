@@ -339,7 +339,9 @@ export function FunnelDrilldownModal({
                                       <div
                                         className={cn(
                                           'mt-1 text-xs',
-                                          msg.isFromJulia ? 'text-blue-100' : 'text-muted-foreground/70'
+                                          msg.isFromJulia
+                                            ? 'text-status-info-foreground/70'
+                                            : 'text-muted-foreground/70'
                                         )}
                                       >
                                         {format(new Date(msg.timestamp), "dd/MM 'às' HH:mm", {

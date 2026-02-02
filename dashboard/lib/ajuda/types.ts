@@ -58,12 +58,12 @@ export interface StatusConfig {
 export const STATUS_CONFIG: Record<PedidoAjudaStatus, StatusConfig> = {
   pendente: {
     label: 'Pendente',
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    color: 'bg-status-warning text-status-warning-foreground border-status-warning-border',
     icon: 'Clock',
   },
   respondido: {
     label: 'Respondido',
-    color: 'bg-green-100 text-green-800 border-green-200',
+    color: 'bg-status-success text-status-success-foreground border-status-success-border',
     icon: 'CheckCircle2',
   },
   timeout: {
@@ -73,7 +73,7 @@ export const STATUS_CONFIG: Record<PedidoAjudaStatus, StatusConfig> = {
   },
   cancelado: {
     label: 'Cancelado',
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    color: 'bg-status-neutral text-status-neutral-foreground border-status-neutral-border',
     icon: 'HelpCircle',
   },
 }

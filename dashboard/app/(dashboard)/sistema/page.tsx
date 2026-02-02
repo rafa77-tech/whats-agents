@@ -277,7 +277,7 @@ export default function SistemaPage() {
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm font-medium text-gray-700">Features Autonomas</h3>
               {status?.pilot_mode && (
-                <span className="text-xs text-yellow-600">
+                <span className="text-xs text-status-warning-solid">
                   Desative o Modo Piloto para controlar individualmente
                 </span>
               )}
@@ -512,7 +512,7 @@ export default function SistemaPage() {
             <AlertDialogTitle>Desativar Modo Piloto?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div>
-                <div className="mb-4 flex items-center gap-2 text-yellow-600">
+                <div className="mb-4 flex items-center gap-2 text-status-warning-solid">
                   <AlertTriangle className="h-5 w-5" />
                   <span className="font-medium">Atencao: acao significativa</span>
                 </div>

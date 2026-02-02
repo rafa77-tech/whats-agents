@@ -362,7 +362,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
                             'relative max-w-[70%] rounded-lg px-3 py-2 shadow-sm',
                             isOutgoing
                               ? 'rounded-tr-none bg-state-message-out text-state-message-out-foreground'
-                              : 'rounded-tl-none bg-white dark:bg-slate-800'
+                              : 'rounded-tl-none bg-card'
                           )}
                         >
                           {/* Sender indicator for outgoing */}

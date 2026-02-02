@@ -95,12 +95,12 @@ export function ConversationsList() {
                     <TableCell>{conv.mensagens}</TableCell>
                     <TableCell>
                       {conv.avaliada ? (
-                        <Badge className="bg-green-100 text-green-800">
+                        <Badge className="bg-status-success text-status-success-foreground">
                           <CheckCircle2 className="mr-1 h-3 w-3" />
                           Avaliada
                         </Badge>
                       ) : (
-                        <Badge className="bg-yellow-100 text-yellow-800">Pendente</Badge>
+                        <Badge className="bg-status-warning text-status-warning-foreground">Pendente</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-sm text-gray-500">

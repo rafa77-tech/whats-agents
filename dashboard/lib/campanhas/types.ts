@@ -50,11 +50,11 @@ export interface EnvioStatusConfig {
 }
 
 export const ENVIO_STATUS_CONFIG: Record<EnvioStatus, EnvioStatusConfig> = {
-  pendente: { label: 'Pendente', color: 'text-gray-500', icon: 'Clock' },
-  enviado: { label: 'Enviado', color: 'text-blue-500', icon: 'Send' },
-  entregue: { label: 'Entregue', color: 'text-green-500', icon: 'CheckCircle2' },
+  pendente: { label: 'Pendente', color: 'text-status-neutral-foreground', icon: 'Clock' },
+  enviado: { label: 'Enviado', color: 'text-status-info-solid', icon: 'Send' },
+  entregue: { label: 'Entregue', color: 'text-status-success-solid', icon: 'CheckCircle2' },
   visualizado: { label: 'Visualizado', color: 'text-purple-500', icon: 'Eye' },
-  falhou: { label: 'Falhou', color: 'text-red-500', icon: 'XCircle' },
+  falhou: { label: 'Falhou', color: 'text-status-error-solid', icon: 'XCircle' },
 }
 
 // ============================================
@@ -113,22 +113,22 @@ export interface CampanhaStatusConfig {
 export const CAMPANHA_STATUS_CONFIG: Record<CampanhaStatus, CampanhaStatusConfig> = {
   rascunho: {
     label: 'Rascunho',
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    color: 'bg-status-neutral text-status-neutral-foreground border-status-neutral-border',
     icon: 'FileEdit',
   },
   agendada: {
     label: 'Agendada',
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    color: 'bg-status-info text-status-info-foreground border-status-info-border',
     icon: 'Clock',
   },
   ativa: {
     label: 'Ativa',
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    color: 'bg-status-warning text-status-warning-foreground border-status-warning-border',
     icon: 'Play',
   },
   concluida: {
     label: 'Concluida',
-    color: 'bg-green-100 text-green-800 border-green-200',
+    color: 'bg-status-success text-status-success-foreground border-status-success-border',
     icon: 'CheckCircle2',
   },
   pausada: {
@@ -138,7 +138,7 @@ export const CAMPANHA_STATUS_CONFIG: Record<CampanhaStatus, CampanhaStatusConfig
   },
   cancelada: {
     label: 'Cancelada',
-    color: 'bg-red-100 text-red-800 border-red-200',
+    color: 'bg-status-error text-status-error-foreground border-status-error-border',
     icon: 'XCircle',
   },
 }

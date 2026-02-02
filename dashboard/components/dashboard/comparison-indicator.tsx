@@ -2,7 +2,7 @@
  * Comparison Indicator Component - Sprint 33 E15
  *
  * Reusable component showing trend with color-coded icon and percentage.
- * Green for positive trends, red for negative, gray for neutral.
+ * Success for positive trends, error for negative, muted for neutral.
  */
 
 'use client'
@@ -13,6 +13,7 @@ import {
   getTrendStatus,
   formatChange,
 } from '@/lib/dashboard/calculations'
+import { cn } from '@/lib/utils'
 
 interface ComparisonIndicatorProps {
   current: number
@@ -42,16 +43,10 @@ export function ComparisonIndicator({
   }
 
   const statusConfig = {
-    positive: {
-      color: 'text-green-600',
-    },
-    negative: {
-      color: 'text-red-600',
-    },
-    neutral: {
-      color: 'text-gray-400',
-    },
-  }
+    positive: 'text-status-success-foreground',
+    negative: 'text-status-error-foreground',
+    neutral: 'text-muted-foreground',
+  } as const
 
   const config = statusConfig[status]
   const Icon = getIcon()
@@ -61,7 +56,7 @@ export function ComparisonIndicator({
   }
 
   return (
-    <span className={`flex items-center gap-1 ${config.color} ${textSize}`}>
+    <span className={cn('flex items-center gap-1', config, textSize)}>
       <Icon className={iconSize} />
       {showValue && formatChange(change)}
     </span>

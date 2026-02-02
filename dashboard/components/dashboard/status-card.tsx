@@ -13,7 +13,7 @@ interface StatusCardProps {
 
 export function StatusCard({ title, value, icon: Icon, trend }: StatusCardProps) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 lg:p-6">
+    <div className="rounded-xl border border-border bg-card p-4 lg:p-6">
       <div className="flex items-start justify-between">
         <div className="rounded-lg bg-revoluna-50 p-2">
           <Icon className="h-5 w-5 text-revoluna-400" />
@@ -22,7 +22,7 @@ export function StatusCard({ title, value, icon: Icon, trend }: StatusCardProps)
           <div
             className={cn(
               'flex items-center gap-1 text-sm font-medium',
-              trend.positive ? 'text-green-600' : 'text-red-600'
+              trend.positive ? 'text-status-success-foreground' : 'text-status-error-foreground'
             )}
           >
             {trend.positive ? (
@@ -35,8 +35,8 @@ export function StatusCard({ title, value, icon: Icon, trend }: StatusCardProps)
         )}
       </div>
       <div className="mt-4">
-        <p className="text-2xl font-bold text-gray-900 lg:text-3xl">{value}</p>
-        <p className="mt-1 text-sm text-gray-500">{title}</p>
+        <p className="text-2xl font-bold text-foreground lg:text-3xl">{value}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{title}</p>
       </div>
     </div>
   )

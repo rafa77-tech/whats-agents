@@ -93,7 +93,7 @@ export function AnomalyDetailModal({ anomaly, onClose, onResolve }: AnomalyDetai
 
           {/* Status */}
           {anomaly.resolvida ? (
-            <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-green-800">
+            <div className="flex items-center gap-2 rounded-lg bg-status-success p-3 text-status-success-foreground">
               <CheckCircle2 className="h-5 w-5" />
               <span>Esta anomalia ja foi resolvida</span>
             </div>

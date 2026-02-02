@@ -54,7 +54,7 @@ const statusConfig = {
   },
   timeout: {
     label: 'Timeout',
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    color: 'bg-trust-laranja text-trust-laranja-foreground border-trust-laranja',
     icon: Clock,
   },
   cancelado: {
@@ -216,7 +216,7 @@ export default function CanalAjudaPage() {
         <TabsList>
           <TabsTrigger value="pendentes">
             Pendentes
-            {pendentesCount > 0 && <Badge className="ml-2 bg-yellow-500">{pendentesCount}</Badge>}
+            {pendentesCount > 0 && <Badge className="ml-2 bg-status-warning-solid">{pendentesCount}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="todos">Todos</TabsTrigger>
         </TabsList>
@@ -228,7 +228,7 @@ export default function CanalAjudaPage() {
             </div>
           ) : pedidos.length === 0 ? (
             <div className="rounded-lg border bg-white py-12 text-center">
-              <CheckCircle2 className="mx-auto mb-4 h-12 w-12 text-green-500" />
+              <CheckCircle2 className="mx-auto mb-4 h-12 w-12 text-status-success-solid" />
               <p className="text-lg font-medium">Tudo em dia!</p>
               <p className="text-gray-500">Nenhum pedido pendente no momento.</p>
             </div>

@@ -39,9 +39,9 @@ const stageColors: Record<string, { bg: string; border: string; text: string }> 
     text: 'text-status-warning-foreground',
   },
   fechadas: {
-    bg: 'bg-state-ai',
-    border: 'border-emerald-300',
-    text: 'text-emerald-700',
+    bg: 'bg-status-success',
+    border: 'border-status-success-border',
+    text: 'text-status-success-foreground',
   },
 }
 

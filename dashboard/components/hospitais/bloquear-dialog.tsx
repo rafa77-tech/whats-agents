@@ -187,9 +187,9 @@ export function BloquearHospitalDialog({
 
           {/* Alerta de impacto */}
           {selectedHospital && (selectedHospital.vagas_abertas ?? 0) > 0 && (
-            <div className="flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-yellow-600" />
-              <p className="text-sm text-yellow-800">
+            <div className="flex items-start gap-2 rounded-lg border border-status-warning-border bg-status-warning p-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-status-warning-foreground" />
+              <p className="text-sm text-status-warning-foreground">
                 Este hospital tem{' '}
                 <strong>{selectedHospital.vagas_abertas} vaga(s) aberta(s)</strong> que serao
                 movidas para a tabela de bloqueados.

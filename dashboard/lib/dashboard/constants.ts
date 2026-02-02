@@ -114,13 +114,13 @@ export const QUALITY_CONFIG = {
 // ============================================
 
 export const JULIA_STATUS_COLORS = {
-  online: 'text-green-600 bg-green-100',
-  offline: 'text-red-600 bg-red-100',
-  degraded: 'text-yellow-600 bg-yellow-100',
+  online: 'text-status-success-solid bg-status-success',
+  offline: 'text-status-error-solid bg-status-error',
+  degraded: 'text-status-warning-solid bg-status-warning',
 } as const
 
 export const ALERT_SEVERITY_COLORS = {
-  critical: 'bg-red-100 text-red-800 border-red-200',
-  warning: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  info: 'bg-blue-100 text-blue-800 border-blue-200',
+  critical: 'bg-status-error text-status-error-foreground border-status-error-border',
+  warning: 'bg-status-warning text-status-warning-foreground border-status-warning-border',
+  info: 'bg-status-info text-status-info-foreground border-status-info-border',
 } as const

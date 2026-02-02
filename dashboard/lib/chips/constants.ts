@@ -29,16 +29,16 @@ export const CHIP_STATUS_LABELS: Record<ChipStatus, string> = {
 }
 
 export const CHIP_STATUS_COLORS: Record<ChipStatus, string> = {
-  provisioned: 'bg-gray-100 text-gray-800',
-  pending: 'bg-blue-100 text-blue-800',
-  warming: 'bg-yellow-100 text-yellow-800',
-  ready: 'bg-green-100 text-green-800',
+  provisioned: 'bg-status-neutral text-status-neutral-foreground',
+  pending: 'bg-status-info text-status-info-foreground',
+  warming: 'bg-status-warning text-status-warning-foreground',
+  ready: 'bg-status-success text-status-success-foreground',
   active: 'bg-emerald-100 text-emerald-800',
   degraded: 'bg-orange-100 text-orange-800',
-  paused: 'bg-gray-100 text-gray-600',
-  banned: 'bg-red-100 text-red-800',
-  cancelled: 'bg-red-100 text-red-600',
-  offline: 'bg-gray-200 text-gray-600',
+  paused: 'bg-status-neutral text-status-neutral-foreground/80',
+  banned: 'bg-status-error text-status-error-foreground',
+  cancelled: 'bg-status-error text-status-error-foreground/80',
+  offline: 'bg-status-neutral/80 text-status-neutral-foreground/80',
 }
 
 // ============================================
@@ -54,19 +54,19 @@ export const TRUST_LEVEL_LABELS: Record<TrustLevelExtended, string> = {
 }
 
 export const TRUST_LEVEL_COLORS: Record<TrustLevelExtended, string> = {
-  verde: 'bg-green-500',
-  amarelo: 'bg-yellow-500',
+  verde: 'bg-status-success-solid',
+  amarelo: 'bg-status-warning-solid',
   laranja: 'bg-orange-500',
-  vermelho: 'bg-red-500',
-  critico: 'bg-red-700',
+  vermelho: 'bg-status-error-solid',
+  critico: 'bg-trust-critico',
 }
 
 export const TRUST_LEVEL_TEXT_COLORS: Record<TrustLevelExtended, string> = {
-  verde: 'text-green-700',
-  amarelo: 'text-yellow-700',
+  verde: 'text-status-success-solid',
+  amarelo: 'text-status-warning-solid',
   laranja: 'text-orange-700',
-  vermelho: 'text-red-700',
-  critico: 'text-red-900',
+  vermelho: 'text-status-error-solid',
+  critico: 'text-trust-critico',
 }
 
 // ============================================
@@ -105,10 +105,10 @@ export const ALERT_SEVERITY_LABELS: Record<ChipAlertSeverity, string> = {
 }
 
 export const ALERT_SEVERITY_COLORS: Record<ChipAlertSeverity, string> = {
-  critico: 'bg-red-100 text-red-800 border-red-200',
+  critico: 'bg-status-error text-status-error-foreground border-status-error-border',
   alerta: 'bg-orange-100 text-orange-800 border-orange-200',
-  atencao: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  info: 'bg-blue-100 text-blue-800 border-blue-200',
+  atencao: 'bg-status-warning text-status-warning-foreground border-status-warning-border',
+  info: 'bg-status-info text-status-info-foreground border-status-info-border',
 }
 
 export const ALERT_TYPE_LABELS: Record<ChipAlertType, string> = {

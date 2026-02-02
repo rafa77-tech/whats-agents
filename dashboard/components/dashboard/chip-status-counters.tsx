@@ -10,7 +10,7 @@ const statusConfig: Record<string, { label: string; bgColor: string; textColor: 
   active: { label: 'Active', bgColor: 'bg-status-success', textColor: 'text-status-success-foreground' },
   ready: { label: 'Ready', bgColor: 'bg-status-info', textColor: 'text-status-info-foreground' },
   warming: { label: 'Warming', bgColor: 'bg-status-warning', textColor: 'text-status-warning-foreground' },
-  degraded: { label: 'Degraded', bgColor: 'bg-orange-100', textColor: 'text-orange-700' },
+  degraded: { label: 'Degraded', bgColor: 'bg-trust-laranja', textColor: 'text-trust-laranja-foreground' },
   banned: { label: 'Banned', bgColor: 'bg-status-error', textColor: 'text-status-error-foreground' },
   provisioned: { label: 'Provisioned', bgColor: 'bg-status-neutral', textColor: 'text-status-neutral-foreground' },
   pending: { label: 'Pending', bgColor: 'bg-status-neutral', textColor: 'text-status-neutral-foreground' },

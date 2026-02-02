@@ -10,17 +10,17 @@ import type { JourneyStage, TimelineEventType } from './types'
  */
 export const STAGE_COLORS: Record<string, string> = {
   // Português
-  novo: 'bg-gray-100 text-gray-800',
-  respondeu: 'bg-blue-100 text-blue-800',
-  negociando: 'bg-yellow-100 text-yellow-800',
-  convertido: 'bg-green-100 text-green-800',
-  perdido: 'bg-red-100 text-red-800',
+  novo: 'bg-status-neutral text-status-neutral-foreground',
+  respondeu: 'bg-status-info text-status-info-foreground',
+  negociando: 'bg-status-warning text-status-warning-foreground',
+  convertido: 'bg-status-success text-status-success-foreground',
+  perdido: 'bg-status-error text-status-error-foreground',
   // Inglês (aliases)
-  prospecting: 'bg-gray-100 text-gray-800',
-  engaged: 'bg-blue-100 text-blue-800',
-  negotiating: 'bg-yellow-100 text-yellow-800',
-  converted: 'bg-green-100 text-green-800',
-  lost: 'bg-red-100 text-red-800',
+  prospecting: 'bg-status-neutral text-status-neutral-foreground',
+  engaged: 'bg-status-info text-status-info-foreground',
+  negotiating: 'bg-status-warning text-status-warning-foreground',
+  converted: 'bg-status-success text-status-success-foreground',
+  lost: 'bg-status-error text-status-error-foreground',
 }
 
 /**
@@ -69,9 +69,9 @@ export const ESPECIALIDADE_OPTIONS = [
  * Cores de ícone por tipo de evento na timeline
  */
 export const EVENT_COLORS: Record<TimelineEventType, string> = {
-  message_sent: 'bg-blue-100 text-blue-600',
-  message_received: 'bg-green-100 text-green-600',
-  handoff: 'bg-orange-100 text-orange-600',
+  message_sent: 'bg-status-info text-status-info-foreground',
+  message_received: 'bg-status-success text-status-success-foreground',
+  handoff: 'bg-status-warning text-status-warning-foreground',
 }
 
 /**

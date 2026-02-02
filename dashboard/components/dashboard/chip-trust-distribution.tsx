@@ -9,9 +9,9 @@ interface ChipTrustDistributionProps {
 const trustConfig: Record<string, { label: string; range: string; color: string }> = {
   verde: { label: 'Verde', range: '75+', color: 'bg-status-success-solid' },
   amarelo: { label: 'Amarelo', range: '50-74', color: 'bg-status-warning-solid' },
-  laranja: { label: 'Laranja', range: '35-49', color: 'bg-orange-500' },
-  vermelho: { label: 'Vermelho', range: '<35', color: 'bg-status-error-solid' },
-  critico: { label: 'Critico', range: '<20', color: 'bg-red-700' },
+  laranja: { label: 'Laranja', range: '35-49', color: 'bg-trust-laranja-solid' },
+  vermelho: { label: 'Vermelho', range: '<35', color: 'bg-trust-vermelho-solid' },
+  critico: { label: 'Critico', range: '<20', color: 'bg-trust-critico-solid' },
 }
 
 const defaultConfig = { label: 'Desconhecido', range: '-', color: 'bg-muted-foreground' }

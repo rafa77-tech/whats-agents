@@ -46,9 +46,9 @@ export function HealthGauge({ score, status }: HealthGaugeProps) {
           <span
             className={cn(
               'text-4xl font-bold',
-              status === 'healthy' && 'text-green-600',
-              status === 'degraded' && 'text-yellow-600',
-              status === 'critical' && 'text-red-600'
+              status === 'healthy' && 'text-status-success-foreground',
+              status === 'degraded' && 'text-status-warning-foreground',
+              status === 'critical' && 'text-status-error-foreground'
             )}
           >
             {score}

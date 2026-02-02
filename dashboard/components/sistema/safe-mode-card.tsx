@@ -67,13 +67,13 @@ export function SafeModeCard({ isActive, onActivate }: SafeModeCardProps) {
 
   return (
     <>
-      <Card className={isActive ? 'border-green-300' : 'border-red-200'}>
+      <Card className={isActive ? 'border-status-success-border' : 'border-status-error-border'}>
         <CardHeader>
           <div className="flex items-center gap-3">
             {isActive ? (
-              <ShieldCheck className="h-8 w-8 text-green-500" />
+              <ShieldCheck className="h-8 w-8 text-status-success-solid" />
             ) : (
-              <ShieldAlert className="h-8 w-8 text-red-500" />
+              <ShieldAlert className="h-8 w-8 text-status-error-solid" />
             )}
             <div>
               <CardTitle>Safe Mode Emergencial</CardTitle>
@@ -82,32 +82,32 @@ export function SafeModeCard({ isActive, onActivate }: SafeModeCardProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className={`rounded-lg p-4 ${isActive ? 'bg-green-50' : 'bg-red-50'}`}>
+          <div className={`rounded-lg p-4 ${isActive ? 'bg-status-success' : 'bg-status-error'}`}>
             {isActive ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-green-800">
+                <div className="flex items-center gap-2 text-status-success-foreground">
                   <ShieldCheck className="h-5 w-5" />
                   <span className="font-medium">Safe Mode ATIVO</span>
                 </div>
-                <p className="text-sm text-green-700">
+                <p className="text-sm text-status-success-foreground">
                   Todas as operacoes autonomas estao paradas. Julia so responde mensagens de medicos
                   ja em conversa.
                 </p>
-                <Badge className="bg-green-100 text-green-800">Sistema Protegido</Badge>
+                <Badge className="bg-status-success/50 text-status-success-foreground">Sistema Protegido</Badge>
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-red-700">
+                <p className="text-sm text-status-error-foreground">
                   Para imediatamente TODAS as operacoes da Julia:
                 </p>
-                <ul className="ml-4 list-disc text-sm text-red-600">
+                <ul className="ml-4 list-disc text-sm text-status-error-foreground">
                   <li>Envio de mensagens</li>
                   <li>Processamento de fila</li>
                   <li>Jobs autonomos</li>
                   <li>Entrada em grupos</li>
                 </ul>
                 <div className="flex items-center justify-between pt-2">
-                  <Badge className="bg-yellow-100 text-yellow-800">INATIVO</Badge>
+                  <Badge className="bg-status-warning text-status-warning-foreground">INATIVO</Badge>
                   <Button variant="destructive" size="sm" onClick={() => setShowConfirm(true)}>
                     <AlertTriangle className="mr-2 h-4 w-4" />
                     ATIVAR
@@ -122,15 +122,15 @@ export function SafeModeCard({ isActive, onActivate }: SafeModeCardProps) {
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
               ATIVAR SAFE MODE?
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-4">
-                <div className="rounded-lg bg-red-50 p-3">
-                  <p className="font-medium text-red-800">ATENCAO: Acao critica</p>
-                  <p className="mt-1 text-sm text-red-700">
+                <div className="rounded-lg bg-status-error p-3">
+                  <p className="font-medium text-status-error-foreground">ATENCAO: Acao critica</p>
+                  <p className="mt-1 text-sm text-status-error-foreground">
                     Isso ira parar IMEDIATAMENTE todas as operacoes autonomas.
                   </p>
                 </div>

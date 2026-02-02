@@ -15,7 +15,7 @@ export function InfoTooltip({ content, side = 'right' }: InfoTooltipProps) {
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="ml-1 inline-flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="ml-1 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <Info className="h-4 w-4" />
             <span className="sr-only">Mais informacoes</span>

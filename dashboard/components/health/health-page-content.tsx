@@ -198,8 +198,8 @@ export function HealthPageContent() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <XCircle className="mx-auto h-8 w-8 text-red-400" />
-          <p className="mt-2 text-sm text-red-600">{error}</p>
+          <XCircle className="mx-auto h-8 w-8 text-status-error-solid" />
+          <p className="mt-2 text-sm text-status-error-solid">{error}</p>
           <Button onClick={fetchHealthData} variant="outline" className="mt-4">
             Tentar novamente
           </Button>
