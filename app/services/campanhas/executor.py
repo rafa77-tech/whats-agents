@@ -21,6 +21,7 @@ from app.services.campanhas.types import (
 )
 from app.services.fila import fila_service
 from app.services.segmentacao import segmentacao_service
+from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
 
@@ -64,10 +65,30 @@ class CampanhaExecutor:
             await campanha_repository.atualizar_status(campanha_id, StatusCampanha.CONCLUIDA)
             return True
 
-        # 5. Atualizar total de destinatarios
+        # 5. Sprint 44: Filtrar clientes que já receberam esta campanha (deduplicação)
+        clientes_ja_receberam = await self._buscar_clientes_ja_enviados(campanha_id)
+        if clientes_ja_receberam:
+            destinatarios_antes = len(destinatarios)
+            destinatarios = [
+                d for d in destinatarios
+                if d.get("id") not in clientes_ja_receberam
+            ]
+            duplicados = destinatarios_antes - len(destinatarios)
+            if duplicados > 0:
+                logger.info(
+                    f"Campanha {campanha_id}: {duplicados} destinatarios ignorados "
+                    f"(ja receberam esta campanha)"
+                )
+
+        if not destinatarios:
+            logger.info(f"Campanha {campanha_id}: todos destinatarios ja receberam")
+            await campanha_repository.atualizar_status(campanha_id, StatusCampanha.CONCLUIDA)
+            return True
+
+        # 6. Atualizar total de destinatarios
         await campanha_repository.atualizar_total_destinatarios(campanha_id, len(destinatarios))
 
-        # 6. Criar envios
+        # 7. Criar envios
         enviados = 0
         for dest in destinatarios:
             try:
@@ -77,11 +98,37 @@ class CampanhaExecutor:
             except Exception as e:
                 logger.error(f"Erro ao criar envio para {dest.get('id')}: {e}")
 
-        # 7. Atualizar contador de enviados
+        # 8. Atualizar contador de enviados
         await campanha_repository.incrementar_enviados(campanha_id, enviados)
 
         logger.info(f"Campanha {campanha_id}: {enviados}/{len(destinatarios)} envios criados")
         return True
+
+    async def _buscar_clientes_ja_enviados(self, campanha_id: int) -> set:
+        """
+        Busca IDs de clientes que já receberam esta campanha.
+
+        Args:
+            campanha_id: ID da campanha
+
+        Returns:
+            Set com IDs dos clientes que já receberam
+        """
+        try:
+            response = (
+                supabase.table("fila_mensagens")
+                .select("cliente_id")
+                .contains("metadata", {"campanha_id": str(campanha_id)})
+                .execute()
+            )
+
+            if response.data:
+                return {row["cliente_id"] for row in response.data}
+            return set()
+
+        except Exception as e:
+            logger.warning(f"Erro ao buscar clientes ja enviados: {e}")
+            return set()
 
     async def _buscar_destinatarios(self, campanha: CampanhaData) -> List[dict]:
         """
