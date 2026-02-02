@@ -295,21 +295,52 @@ async def _processar_comando_slack(event: dict):
     """
     Processa comando recebido via Slack.
 
-    Comandos suportados:
+    Sprint 47: Roteia para Helena ou Julia baseado no texto.
+
+    Helena (analytics):
+    - @bot helena como foi hoje?
+    - @bot helena status sistema
+
+    Julia (legado - comandos operacionais):
     - @julia contata <telefone/CRM>
     - @julia bloqueia <telefone/CRM>
     - @julia status
-    - @julia pausa
-    - @julia retoma
     """
-    from app.services.slack_comandos import processar_comando
+    import re
 
     try:
         texto = event.get("text", "")
         channel = event.get("channel", "")
         user = event.get("user", "")
 
-        logger.info(f"Processando comando Slack: {texto[:100]}")
+        # Remover menção do bot do texto
+        # Formato: <@U123ABC> mensagem
+        texto_limpo = re.sub(r"<@[A-Z0-9]+>\s*", "", texto).strip()
+
+        if not texto_limpo:
+            return
+
+        # Sprint 47: Detectar se é para Helena (case insensitive)
+        if "helena" in texto_limpo.lower():
+            # Remover "helena" do texto para processar
+            texto_para_helena = re.sub(
+                r"\bhelena\b", "", texto_limpo, flags=re.IGNORECASE
+            ).strip()
+
+            logger.info(f"Slack -> Helena: {texto_para_helena[:50]}...")
+
+            from app.services.helena import AgenteHelena
+
+            agente = AgenteHelena(user, channel)
+            resposta = await agente.processar_mensagem(texto_para_helena)
+
+            await _enviar_resposta_slack(channel, resposta)
+            return
+
+        # Comportamento legado: Julia no Slack
+        logger.info(f"Slack -> Julia (legado): {texto_limpo[:50]}...")
+
+        from app.services.slack_comandos import processar_comando
 
         await processar_comando(
             texto=texto,
@@ -319,6 +350,19 @@ async def _processar_comando_slack(event: dict):
 
     except Exception as e:
         logger.error(f"Erro ao processar comando Slack: {e}", exc_info=True)
+
+
+async def _enviar_resposta_slack(channel_id: str, texto: str) -> None:
+    """Envia resposta para canal Slack."""
+    from app.services.slack import enviar_slack
+
+    try:
+        await enviar_slack({
+            "channel": channel_id,
+            "text": texto,
+        })
+    except Exception as e:
+        logger.error(f"Erro ao enviar resposta Slack: {e}")
 
 
 # =============================================================================

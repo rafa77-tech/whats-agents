@@ -142,13 +142,12 @@ async def reservar_vaga(
     if vaga.get("especialidade_id"):
         await cache.invalidar(vaga["especialidade_id"])
 
-    # Notificar gestor
+    # Sprint 47: Notificação Slack removida - visualizado no dashboard
     if notificar_gestor and medico:
-        try:
-            from app.services.slack import notificar_plantao_reservado
-            await notificar_plantao_reservado(medico, vaga)
-        except Exception as e:
-            logger.error(f"Erro ao notificar Slack: {e}")
+        logger.info(
+            f"Plantão reservado para médico {medico.get('primeiro_nome', 'N/A')}",
+            extra={"vaga_id": vaga.get("id"), "cliente_id": medico.get("id")}
+        )
 
     return vaga_atualizada
 

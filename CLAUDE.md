@@ -65,6 +65,9 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 41 | Chips Ops & Health | ✅ Completa |
 | 42 | Monitor Jobs | ✅ Completa |
 | 43 | UX & Operacao Unificada | 📋 Planejado |
+| 44 | Correções Arquiteturais | ✅ Completa |
+| 45 | Arquitetura da Informação & Navegação | ✅ Completa |
+| 47 | Helena - Agente de Gestão Slack | ✅ Completa |
 
 ### Funcionalidades Implementadas
 
@@ -119,6 +122,13 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 - [x] Multi-Julia Orchestration
 - [x] Chip Activator para VPS
 - [x] Integração Salvy (números virtuais)
+
+**Helena - Agente de Analytics (Sprint 47):**
+- [x] Agente Helena exclusivo para Slack
+- [x] 5 tools pré-definidas (metricas, status, handoffs)
+- [x] SQL dinâmico seguro (SELECT only, LIMIT ≤ 100)
+- [x] Session manager com TTL 30 min
+- [x] Notificações Slack removidas (dashboard substituiu)
 
 ### Contexto de Mercado (Crítico)
 
@@ -539,6 +549,26 @@ Pipeline em `.github/workflows/dashboard-ci.yml`:
 - Deploy automático para Railway (apenas main)
 
 **Thresholds:** 70% cobertura | 90% accessibility | 70% performance
+
+### Navegação (Sprint 45)
+
+O dashboard usa navegação agrupada em 6 seções semânticas:
+
+| Seção | Páginas |
+|-------|---------|
+| (sem label) | Dashboard |
+| Operações | Conversas, Campanhas, Vagas, Instruções |
+| Cadastros | Médicos, Hospitais |
+| WhatsApp | Chips (módulo), Grupos (/chips/grupos) |
+| Monitoramento | Monitor, Health, Integridade, Métricas |
+| Qualidade | Avaliações, Auditoria |
+| (footer) | Sistema, Ajuda |
+
+**Command Palette:** `Cmd+K` (Mac) ou `Ctrl+K` (Windows) para busca global.
+
+**Mobile:** Bottom nav com 5 itens (Home, Conversas, Campanhas, Chips, Menu) + drawer com navegação completa.
+
+**Documentação detalhada:** `docs/arquitetura/navegacao-dashboard.md`
 
 ---
 

@@ -405,53 +405,21 @@ async def confirmar_plantao_nao_ocorreu(
 
 
 # =============================================================================
-# Notificação Slack
+# Sprint 47: Notificação Slack removida
 # =============================================================================
 
 async def _enviar_notificacao_slack(vaga_id: str) -> bool:
     """
-    Envia notificação Slack para confirmação de plantão.
+    Sprint 47: Notificação Slack removida.
+
+    Confirmações de plantão são visualizadas no dashboard.
+    Mantida assinatura para compatibilidade.
     """
-    from app.services.slack import notificar_confirmacao_plantao
-
-    try:
-        # Buscar dados completos da vaga
-        result = supabase.table("vagas") \
-            .select("""
-                id, data, hora_inicio, hora_fim, valor,
-                hospitais(nome),
-                especialidades(nome),
-                clientes(nome, telefone)
-            """) \
-            .eq("id", vaga_id) \
-            .single() \
-            .execute()
-
-        if not result.data:
-            logger.warning(f"Vaga {vaga_id} não encontrada para notificação")
-            return False
-
-        vaga = result.data
-        hospital = vaga.get("hospitais", {}) or {}
-        especialidade = vaga.get("especialidades", {}) or {}
-        cliente = vaga.get("clientes", {}) or {}
-
-        await notificar_confirmacao_plantao(
-            vaga_id=vaga_id,
-            data=vaga.get("data", ""),
-            horario=f"{vaga.get('hora_inicio', '')} - {vaga.get('hora_fim', '')}",
-            valor=vaga.get("valor", 0),
-            hospital=hospital.get("nome", "N/A"),
-            especialidade=especialidade.get("nome", "N/A"),
-            medico_nome=cliente.get("nome"),
-            medico_telefone=cliente.get("telefone")
-        )
-
-        return True
-
-    except Exception as e:
-        logger.error(f"Erro ao enviar notificação Slack: {e}")
-        return False
+    logger.info(
+        f"Plantão {vaga_id} aguardando confirmação (visualizar no dashboard)",
+        extra={"vaga_id": vaga_id}
+    )
+    return True
 
 
 # =============================================================================
