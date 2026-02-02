@@ -40,7 +40,8 @@ class Settings(BaseSettings):
     # Multi-Chip (Sprint 26 E02)
     # Habilita selecao inteligente de chips para envio de mensagens
     # Quando False, usa EVOLUTION_INSTANCE fixa (fallback legado)
-    MULTI_CHIP_ENABLED: bool = False
+    # Sprint 44: Habilitado por padrão para rastreamento de origem das mensagens
+    MULTI_CHIP_ENABLED: bool = True
 
     # Modo Piloto (Sprint 32 E03)
     # Quando True, desabilita ações autônomas (Discovery, Oferta, Reativação, Feedback automáticos)

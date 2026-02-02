@@ -85,11 +85,17 @@ async def _processar_mensagem(mensagem: dict) -> str:
     metadata = mensagem.get("metadata") or {}
     chips_excluidos = metadata.get("chips_excluidos")
 
+    # Sprint 44: Buscar ou criar conversa ANTES do envio para multi-chip registrar métricas
+    conversa_id = mensagem.get("conversa_id")
+    if not conversa_id:
+        conversa = await buscar_ou_criar_conversa(cliente_id)
+        conversa_id = conversa["id"] if conversa else None
+
     # Enviar mensagem com GUARDRAIL
     try:
         ctx = criar_contexto_followup(
             cliente_id=cliente_id,
-            conversation_id=mensagem.get("conversa_id"),
+            conversation_id=conversa_id,  # Agora sempre tem conversa_id
         )
         result = await send_outbound_message(
             telefone=telefone,
@@ -111,13 +117,6 @@ async def _processar_mensagem(mensagem: dict) -> str:
 
         await fila_service.marcar_enviada(mensagem_id)
 
-        # Buscar ou criar conversa para registrar interação
-        conversa_id = mensagem.get("conversa_id")
-        if not conversa_id:
-            # Sprint 44: Criar conversa para mensagens de campanha
-            conversa = await buscar_ou_criar_conversa(cliente_id)
-            conversa_id = conversa["id"] if conversa else None
-
         # Salvar interação
         if conversa_id:
             # Sprint 41: Extrair chip_id do resultado
@@ -129,7 +128,7 @@ async def _processar_mensagem(mensagem: dict) -> str:
                 tipo="saida",
                 conteudo=mensagem["conteudo"],
                 autor_tipo="julia",
-                chip_id=chip_id,  # Sprint 41
+                chip_id=chip_id,
             )
 
         logger.info(f"Mensagem {mensagem_id} enviada para {telefone}")
