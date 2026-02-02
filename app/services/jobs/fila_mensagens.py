@@ -10,6 +10,7 @@ from app.services.supabase import supabase
 from app.services.fila import fila_service
 from app.services.interacao import salvar_interacao
 from app.services.outbound import send_outbound_message, criar_contexto_followup
+from app.services.conversa import buscar_ou_criar_conversa
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,10 @@ async def _processar_mensagem(mensagem: dict) -> str:
         await fila_service.marcar_erro(mensagem_id, "Cliente ID nao encontrado")
         return "erro"
 
+    # Extrair chips_excluidos do metadata (campanha pode configurar)
+    metadata = mensagem.get("metadata") or {}
+    chips_excluidos = metadata.get("chips_excluidos")
+
     # Enviar mensagem com GUARDRAIL
     try:
         ctx = criar_contexto_followup(
@@ -91,6 +96,7 @@ async def _processar_mensagem(mensagem: dict) -> str:
             texto=mensagem["conteudo"],
             ctx=ctx,
             simular_digitacao=True,
+            chips_excluidos=chips_excluidos,
         )
 
         if result.blocked:
@@ -105,13 +111,20 @@ async def _processar_mensagem(mensagem: dict) -> str:
 
         await fila_service.marcar_enviada(mensagem_id)
 
-        # Salvar interacao se tiver conversa
-        if mensagem.get("conversa_id"):
+        # Buscar ou criar conversa para registrar interação
+        conversa_id = mensagem.get("conversa_id")
+        if not conversa_id:
+            # Sprint 44: Criar conversa para mensagens de campanha
+            conversa = await buscar_ou_criar_conversa(cliente_id)
+            conversa_id = conversa["id"] if conversa else None
+
+        # Salvar interação
+        if conversa_id:
             # Sprint 41: Extrair chip_id do resultado
             chip_id = result.chip_id if hasattr(result, 'chip_id') else None
 
             await salvar_interacao(
-                conversa_id=mensagem["conversa_id"],
+                conversa_id=conversa_id,
                 cliente_id=cliente_id,
                 tipo="saida",
                 conteudo=mensagem["conteudo"],
