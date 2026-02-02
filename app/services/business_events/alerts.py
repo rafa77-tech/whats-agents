@@ -14,7 +14,7 @@ from enum import Enum
 
 from app.services.supabase import supabase
 from app.services.redis import redis_client
-from app.services.slack import enviar_slack
+# Sprint 47: enviar_slack removido - alertas agora são apenas logados
 
 logger = logging.getLogger(__name__)
 
@@ -507,25 +507,30 @@ def _format_slack_message(alert: Alert) -> dict:
 
 async def send_alert_to_slack(alert: Alert) -> bool:
     """
-    Envia alerta para Slack.
+    Loga alerta de negócio (Slack removido Sprint 47).
+
+    Alertas são logados e persistidos no banco.
+    O dashboard é responsável por exibir alertas.
 
     Args:
-        alert: Alerta a enviar
+        alert: Alerta a logar
 
     Returns:
-        True se enviado com sucesso
+        True (sempre sucesso pois apenas loga)
     """
-    try:
-        message = _format_slack_message(alert)
-        result = await enviar_slack(message)
-
-        if result:
-            logger.info(f"Alerta enviado ao Slack: {alert.title}")
-        return result
-
-    except Exception as e:
-        logger.error(f"Erro ao enviar alerta ao Slack: {e}")
-        return False
+    nivel_log = logger.critical if alert.severity == AlertSeverity.CRITICAL else logger.warning
+    nivel_log(
+        f"Business Alert [{alert.severity.value.upper()}] {alert.title}: {alert.description}",
+        extra={
+            "alert_type": alert.alert_type.value,
+            "severity": alert.severity.value,
+            "hospital_id": alert.hospital_id,
+            "hospital_name": alert.hospital_name,
+            "current_value": alert.current_value,
+            "baseline_value": alert.baseline_value,
+        }
+    )
+    return True
 
 
 # =============================================================================

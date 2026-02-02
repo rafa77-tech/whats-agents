@@ -23,23 +23,19 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 
 from app.services.supabase import supabase
-from app.services.slack import enviar_slack
 
 logger = logging.getLogger(__name__)
 
 
 async def notificar_slack(mensagem: str, canal: str = "operacoes") -> bool:
-    """Helper para enviar notificacao Slack."""
-    emoji = ":robot_face:" if canal == "operacoes" else ":rotating_light:"
-    try:
-        return await enviar_slack({
-            "text": mensagem,
-            "username": "Julia Health Monitor",
-            "icon_emoji": emoji,
-        })
-    except Exception as e:
-        logger.warning(f"[HealthMonitor] Erro ao notificar Slack: {e}")
-        return False
+    """
+    Loga mensagem de health monitor (Slack removido Sprint 47).
+
+    Notificações são logadas e visualizadas no dashboard.
+    """
+    log_fn = logger.warning if canal == "alertas" else logger.info
+    log_fn(f"[HealthMonitor] {mensagem}")
+    return True
 
 
 class HealthMonitor:

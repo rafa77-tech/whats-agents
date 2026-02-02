@@ -18,24 +18,21 @@ from typing import Optional, List, Dict
 
 from app.services.supabase import supabase
 from app.services.salvy.client import salvy_client
-from app.services.slack import enviar_slack
 from app.core.distributed_lock import DistributedLock, LockNotAcquiredError
 
 logger = logging.getLogger(__name__)
 
 
 async def notificar_slack(mensagem: str, canal: str = "operacoes") -> bool:
-    """Helper para enviar notificacao Slack."""
-    emoji = ":robot_face:" if canal == "operacoes" else ":rotating_light:"
-    try:
-        return await enviar_slack({
-            "text": mensagem,
-            "username": "Julia Orchestrator",
-            "icon_emoji": emoji,
-        })
-    except Exception as e:
-        logger.warning(f"[Orchestrator] Erro ao notificar Slack: {e}")
-        return False
+    """
+    Loga mensagem de orquestração (Slack removido Sprint 47).
+
+    Notificações são logadas e visualizadas no dashboard.
+    """
+    nivel = "warning" if canal == "alertas" else "info"
+    log_fn = logger.warning if canal == "alertas" else logger.info
+    log_fn(f"[Orchestrator] {mensagem}")
+    return True
 
 
 class ChipOrchestrator:

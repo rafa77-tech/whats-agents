@@ -12,8 +12,8 @@ import logging
 
 from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
-from app.services.slack import enviar_slack
 from app.services.redis import cache_get_json, cache_set_json
+# Sprint 47: enviar_slack removido - alertas agora são apenas logados
 
 logger = logging.getLogger(__name__)
 
@@ -289,22 +289,23 @@ async def verificar_alertas() -> List[Dict]:
 
 
 async def enviar_alerta_slack(alerta: Dict):
-    """Envia alerta para Slack."""
-    cor = CORES_SEVERIDADE.get(alerta["severidade"], "#607D8B")
+    """
+    Loga alerta (notificação Slack removida Sprint 47).
 
-    mensagem = {
-        "text": f"⚠️ Alerta: {alerta['tipo']}",
-        "attachments": [{
-            "color": cor,
-            "fields": [
-                {"title": "Descrição", "value": alerta["mensagem"], "short": False},
-                {"title": "Severidade", "value": alerta["severidade"], "short": True},
-                {"title": "Horário", "value": agora_brasilia().strftime("%H:%M"), "short": True},
-            ]
-        }]
+    Alertas agora são apenas logados e salvos no banco.
+    O dashboard é responsável por exibir alertas.
+    """
+    nivel_log = {
+        "info": logger.info,
+        "warning": logger.warning,
+        "error": logger.error,
+        "critical": logger.critical,
     }
-
-    await enviar_slack(mensagem)
+    log_fn = nivel_log.get(alerta["severidade"], logger.warning)
+    log_fn(
+        f"Alerta [{alerta['severidade'].upper()}] {alerta['tipo']}: {alerta['mensagem']}",
+        extra={"alerta_tipo": alerta["tipo"], "severidade": alerta["severidade"]}
+    )
 
 
 async def _verificar_cooldown_alerta(tipo: str, severidade: str) -> bool:
@@ -418,23 +419,22 @@ async def alertar_circuit_breaker_aberto(
     falhas: int,
     ultimo_erro: str,
 ) -> None:
-    """Alerta quando circuit breaker abre."""
+    """
+    Loga alerta de circuit breaker (notificação Slack removida Sprint 47).
+
+    Alertas críticos são logados e podem ser visualizados no dashboard.
+    """
     from app.core.logging import get_trace_id
 
-    alerta = {
-        "tipo": "circuit_breaker_aberto",
-        "mensagem": f"Circuit breaker do *{servico}* abriu após {falhas} falhas consecutivas.\n\nÚltimo erro: _{ultimo_erro[:200]}_",
-        "severidade": "critical",
-        "valor": falhas,
-    }
-
-    # Bypass cooldown para circuit breaker (urgente)
-    await enviar_alerta_slack(alerta)
-    await _registrar_envio_alerta(alerta["tipo"])
-
-    logger.warning(
-        f"Circuit breaker aberto: {servico}",
-        extra={"trace_id": get_trace_id(), "servico": servico, "falhas": falhas}
+    logger.critical(
+        f"Circuit breaker aberto: {servico} - {falhas} falhas consecutivas",
+        extra={
+            "trace_id": get_trace_id(),
+            "servico": servico,
+            "falhas": falhas,
+            "ultimo_erro": ultimo_erro[:200],
+            "alerta_tipo": "circuit_breaker_aberto",
+        }
     )
 
 
@@ -443,19 +443,20 @@ async def alertar_handoff_sem_notificacao(
     handoff_id: str,
     motivo: str,
 ) -> None:
-    """Alerta quando handoff não conseguiu ser notificado."""
-    alerta = {
-        "tipo": "handoff_sem_notificacao",
-        "mensagem": f"⚠️ *Handoff criado mas notificação falhou!*\n\n• Conversa: `{conversa_id[:8]}...`\n• Handoff: `{handoff_id[:8]}...`\n• Motivo: {motivo[:200]}\n\n*Médico pode estar esperando resposta!*",
-        "severidade": "critical",
-        "valor": 1,
-    }
+    """
+    Loga alerta de handoff sem notificação (Slack removido Sprint 47).
 
-    # Bypass cooldown (urgente)
-    await enviar_alerta_slack(alerta)
-    await _registrar_envio_alerta(alerta["tipo"])
-
-    logger.error(f"Handoff sem notificação: {handoff_id[:8]}")
+    Handoffs são monitorados pelo dashboard.
+    """
+    logger.critical(
+        f"Handoff criado sem notificação - conversa {conversa_id[:8]} aguarda atendimento",
+        extra={
+            "conversa_id": conversa_id,
+            "handoff_id": handoff_id,
+            "motivo": motivo[:200],
+            "alerta_tipo": "handoff_sem_notificacao",
+        }
+    )
 
 
 async def alertar_llm_timeout(
@@ -463,20 +464,20 @@ async def alertar_llm_timeout(
     telefone: str,
     tempo_segundos: float,
 ) -> None:
-    """Alerta quando LLM não responde no tempo esperado."""
+    """
+    Loga alerta de LLM timeout (Slack removido Sprint 47).
+    """
     from app.core.logging import mask_phone
 
-    alerta = {
-        "tipo": "llm_timeout",
-        "mensagem": f"LLM timeout após {tempo_segundos:.1f}s.\n\n• Telefone: {mask_phone(telefone)}\n• Conversa: `{conversa_id[:8]}...`\n\n_Resposta de fallback foi enviada._",
-        "severidade": "warning",
-        "valor": tempo_segundos,
-    }
-
-    # Verificar cooldown (não tão urgente)
-    if await _verificar_cooldown_alerta(alerta["tipo"], alerta["severidade"]):
-        await enviar_alerta_slack(alerta)
-        await _registrar_envio_alerta(alerta["tipo"])
+    logger.warning(
+        f"LLM timeout após {tempo_segundos:.1f}s - conversa {conversa_id[:8]}",
+        extra={
+            "conversa_id": conversa_id,
+            "telefone_masked": mask_phone(telefone),
+            "tempo_segundos": tempo_segundos,
+            "alerta_tipo": "llm_timeout",
+        }
+    )
 
 
 async def alertar_database_error(
@@ -484,17 +485,16 @@ async def alertar_database_error(
     erro: str,
     tabela: str = None,
 ) -> None:
-    """Alerta quando há erro crítico no banco."""
-    alerta = {
-        "tipo": "database_error",
-        "mensagem": f"Erro crítico no banco de dados!\n\n• Operação: *{operacao}*\n• Tabela: {tabela or 'N/A'}\n• Erro: _{erro[:300]}_",
-        "severidade": "critical",
-        "valor": 1,
-    }
-
-    if await _verificar_cooldown_alerta(alerta["tipo"], alerta["severidade"]):
-        await enviar_alerta_slack(alerta)
-        await _registrar_envio_alerta(alerta["tipo"])
-
-    logger.error(f"Database error: {operacao} - {erro[:100]}")
+    """
+    Loga alerta de erro de banco (Slack removido Sprint 47).
+    """
+    logger.error(
+        f"Database error: {operacao} - {erro[:100]}",
+        extra={
+            "operacao": operacao,
+            "tabela": tabela or "N/A",
+            "erro": erro[:300],
+            "alerta_tipo": "database_error",
+        }
+    )
 

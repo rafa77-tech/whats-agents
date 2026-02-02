@@ -3,8 +3,9 @@ Servicos Slack.
 
 Modulo principal para integracao com Slack.
 Sprint 10 - S10.E2.1, S10.E2.2
+Sprint 47 - Helena: Funcoes de notificacao removidas
 """
-# Re-export funcoes de notificacao do arquivo slack.py original
+# Re-export funcoes do arquivo slack.py original
 # Workaround para conflito de namespace (diretorio slack/ vs arquivo slack.py)
 import sys
 import importlib.util
@@ -17,15 +18,15 @@ _spec = importlib.util.spec_from_file_location(
 _slack_notifications = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_slack_notifications)
 
+# Sprint 47: Apenas enviar_slack mantido (usado por Helena)
 enviar_slack = _slack_notifications.enviar_slack
-notificar_plantao_reservado = _slack_notifications.notificar_plantao_reservado
-notificar_handoff = _slack_notifications.notificar_handoff
-notificar_handoff_resolvido = _slack_notifications.notificar_handoff_resolvido
-notificar_erro = _slack_notifications.notificar_erro
-# Sprint 18 - Controle de notificações
+# Sprint 18 - Controle de notificações (mantido para compatibilidade)
 is_notifications_enabled = _slack_notifications.is_notifications_enabled
 set_notifications_enabled = _slack_notifications.set_notifications_enabled
 get_notifications_status = _slack_notifications.get_notifications_status
+
+# Sprint 47: Funções de notificação removidas
+# notificar_plantao_reservado, notificar_handoff, notificar_handoff_resolvido, notificar_erro
 
 from .agent import AgenteSlack, processar_mensagem_slack
 
@@ -80,13 +81,9 @@ from .formatter import (
 )
 
 __all__ = [
-    # Notifications (from slack.py)
+    # Sprint 47: Apenas enviar_slack mantido (usado por Helena)
     "enviar_slack",
     "enviar_mensagem_slack",
-    "notificar_plantao_reservado",
-    "notificar_handoff",
-    "notificar_handoff_resolvido",
-    "notificar_erro",
     # Sprint 18 - Controle de notificações
     "is_notifications_enabled",
     "set_notifications_enabled",
