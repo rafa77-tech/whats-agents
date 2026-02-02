@@ -8,6 +8,7 @@ from datetime import datetime
 import logging
 from typing import Optional
 
+from app.core.timezone import agora_utc
 from app.core.tasks import safe_create_task
 from app.services.supabase import supabase
 from app.services.slack import notificar_handoff
@@ -79,7 +80,7 @@ async def iniciar_handoff(
         supabase.table("conversations").update({
             "controlled_by": "human",
             "escalation_reason": motivo,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": agora_utc().isoformat()
         }).eq("id", conversa_id).execute()
 
         logger.info(f"Conversa {conversa_id} atualizada para controle humano")
@@ -118,11 +119,20 @@ async def iniciar_handoff(
             name="emit_handoff_created"
         )
 
-        # 5. Notificar gestor no Slack
-        try:
-            await notificar_handoff(conversa, handoff)
-        except Exception as e:
-            logger.error(f"Erro ao notificar Slack: {e}")
+        # 5. Notificar gestor no Slack (Sprint 44 T01.7: retry com fallback)
+        notificado = await _notificar_com_retry(conversa, handoff, conversa_id)
+
+        if not notificado:
+            # Fallback crítico: criar alerta no sistema
+            logger.critical(
+                f"HANDOFF SEM NOTIFICAÇÃO - Conversa {conversa_id} aguarda atendimento humano! "
+                f"Handoff ID: {handoff['id']}"
+            )
+            # Criar alerta no banco para monitoramento
+            safe_create_task(
+                _criar_alerta_handoff_sem_notificacao(conversa_id, handoff["id"]),
+                name="alert_handoff_sem_notificacao"
+            )
 
         return handoff
 
@@ -295,7 +305,7 @@ async def finalizar_handoff(
         supabase.table("conversations").update({
             "controlled_by": "ai",
             "escalation_reason": None,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": agora_utc().isoformat()
         }).eq("id", conversa_id).execute()
 
         logger.info(f"Conversa {conversa_id} retornada para controle IA")
@@ -316,7 +326,7 @@ async def finalizar_handoff(
             supabase.table("handoffs")
             .update({
                 "status": "resolvido",
-                "resolvido_em": datetime.utcnow().isoformat(),
+                "resolvido_em": agora_utc().isoformat(),
                 "resolvido_por": resolvido_por,
                 "notas": notas
             })
@@ -362,7 +372,7 @@ async def resolver_handoff(
     try:
         update_data = {
             "status": "resolvido",
-            "resolvido_em": datetime.utcnow().isoformat()
+            "resolvido_em": agora_utc().isoformat()
         }
 
         if resolvido_por:
@@ -387,3 +397,74 @@ async def resolver_handoff(
     except Exception as e:
         logger.error(f"Erro ao resolver handoff: {e}", exc_info=True)
         return None
+
+
+# Sprint 44 T01.7: Retry com backoff exponencial para notificação
+
+async def _notificar_com_retry(
+    conversa: dict,
+    handoff: dict,
+    conversa_id: str,
+    max_tentativas: int = 3
+) -> bool:
+    """
+    Notifica handoff no Slack com retry e backoff exponencial.
+
+    Args:
+        conversa: Dados da conversa
+        handoff: Dados do handoff criado
+        conversa_id: ID da conversa
+        max_tentativas: Número máximo de tentativas
+
+    Returns:
+        True se notificou com sucesso, False se todas falharam
+    """
+    import asyncio
+
+    for tentativa in range(max_tentativas):
+        try:
+            await notificar_handoff(conversa, handoff)
+            logger.info(f"Handoff {handoff['id']} notificado no Slack (tentativa {tentativa + 1})")
+            return True
+        except Exception as e:
+            logger.warning(
+                f"Tentativa {tentativa + 1}/{max_tentativas} de notificação Slack falhou: {e}"
+            )
+            if tentativa < max_tentativas - 1:
+                # Backoff exponencial: 2s, 4s, 8s...
+                await asyncio.sleep(2 ** tentativa)
+
+    logger.error(
+        f"Todas as {max_tentativas} tentativas de notificação falharam para handoff {handoff['id']}"
+    )
+    return False
+
+
+async def _criar_alerta_handoff_sem_notificacao(
+    conversa_id: str,
+    handoff_id: str
+) -> None:
+    """
+    Cria alerta crítico quando handoff não foi notificado.
+
+    O alerta fica registrado no banco para ser monitorado pelo dashboard
+    e pelo sistema de alertas.
+    """
+    from datetime import timezone
+
+    try:
+        supabase.table("system_alerts").insert({
+            "tipo": "handoff_sem_notificacao",
+            "severidade": "critical",
+            "mensagem": f"Handoff criado mas notificação Slack falhou. Conversa {conversa_id} aguarda atendimento.",
+            "metadata": {
+                "conversa_id": conversa_id,
+                "handoff_id": handoff_id,
+            },
+            "resolvido": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }).execute()
+        logger.info(f"Alerta de handoff sem notificação criado para conversa {conversa_id}")
+    except Exception as e:
+        # Último recurso: logar erro mas não falhar
+        logger.error(f"Erro ao criar alerta de handoff sem notificação: {e}")

@@ -15,6 +15,7 @@ from typing import Optional, Tuple
 from enum import Enum
 from dataclasses import dataclass, asdict
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.briefing_analyzer import (
     AnaliseResult,
@@ -117,7 +118,7 @@ class BriefingAprovacaoService:
         Returns:
             ID do registro criado
         """
-        agora = datetime.now()
+        agora = agora_brasilia()
         expira = agora + timedelta(hours=24)
 
         data = {
@@ -154,7 +155,7 @@ class BriefingAprovacaoService:
         Returns:
             BriefingPendente ou None
         """
-        agora = datetime.now().isoformat()
+        agora = agora_brasilia().isoformat()
 
         result = supabase.table("briefings_pendentes")\
             .select("*")\
@@ -213,7 +214,7 @@ class BriefingAprovacaoService:
                 briefing.doc_id,
                 formatar_plano_para_documento(briefing.plano).replace(
                     "Aguardando aprovacao",
-                    f"Aprovado em {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+                    f"Aprovado em {agora_brasilia().strftime('%d/%m/%Y %H:%M')}"
                 )
             )
             await adicionar_linha_historico(briefing.doc_id, "Plano aprovado", "-")
@@ -274,7 +275,7 @@ class BriefingAprovacaoService:
         """Atualiza status de um briefing."""
         supabase.table("briefings_pendentes").update({
             "status": status.value,
-            "atualizado_em": datetime.now().isoformat()
+            "atualizado_em": agora_brasilia().isoformat()
         }).eq("id", briefing_id).execute()
 
     def _dict_para_analise(self, data: dict) -> AnaliseResult:

@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, time
 from enum import Enum
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.warmer.trust_score import TrustScoreEngine
 
@@ -45,7 +46,7 @@ class AtividadeAgendada:
         if self.dados is None:
             self.dados = {}
         if self.horario is None:
-            self.horario = datetime.now()
+            self.horario = agora_brasilia()
 
 
 # Configuração de atividades por fase
@@ -244,7 +245,7 @@ class WarmingScheduler:
             Lista de atividades agendadas
         """
         if data is None:
-            data = datetime.now()
+            data = agora_brasilia()
 
         # Buscar dados do chip
         result = supabase.table("chips").select(
@@ -353,7 +354,7 @@ class WarmingScheduler:
         Returns:
             Lista de atividades ordenadas por horário
         """
-        agora = datetime.now()
+        agora = agora_brasilia()
 
         query = supabase.table("warmup_schedule").select("*").eq(
             "status", "agendada"
@@ -402,7 +403,7 @@ class WarmingScheduler:
 
         supabase.table("warmup_schedule").update({
             "status": status,
-            "executed_at": datetime.now().isoformat(),
+            "executed_at": agora_brasilia().isoformat(),
             "resultado": resultado or {},
         }).eq("id", atividade_id).execute()
 
@@ -449,7 +450,7 @@ class WarmingScheduler:
             Dict com estatísticas
         """
         if data is None:
-            data = datetime.now()
+            data = agora_brasilia()
 
         inicio_dia = data.replace(hour=0, minute=0, second=0)
         fim_dia = data.replace(hour=23, minute=59, second=59)

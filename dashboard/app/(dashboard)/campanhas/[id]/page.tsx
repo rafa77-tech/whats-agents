@@ -67,15 +67,15 @@ interface Cliente {
 }
 
 interface Envio {
-  id: number
+  id: string | number
   cliente_id: string
   status: string
   conteudo_enviado: string
   created_at: string
-  enviado_em?: string
-  entregue_em?: string
-  visualizado_em?: string
-  falhou_em?: string
+  enviado_em?: string | null
+  entregue_em?: string | null
+  visualizado_em?: string | null
+  falhou_em?: string | null
   clientes: Cliente | null
 }
 

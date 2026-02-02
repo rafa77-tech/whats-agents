@@ -17,6 +17,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from app.core.timezone import agora_utc
 from .types import ConversationMode, ModeInfo
 from .intents import IntentDetector, DetectedIntent
 from .proposer import TransitionProposer, TransitionProposal
@@ -177,7 +178,7 @@ class ModeRouter:
             return ModeInfo(
                 conversa_id=conversa_id,
                 mode=validation.final_mode,
-                updated_at=datetime.utcnow(),
+                updated_at=agora_utc(),
                 updated_reason=validation.reason,
             )
 
@@ -201,7 +202,7 @@ class ModeRouter:
             return ModeInfo(
                 conversa_id=conversa_id,
                 mode=validation.final_mode,
-                updated_at=datetime.utcnow(),
+                updated_at=agora_utc(),
                 updated_reason=validation.reason,
             )
 

@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 
+from app.core.timezone import agora_utc
 from app.services.campanhas.types import (
     AudienceFilters,
     CampanhaData,
@@ -63,7 +64,7 @@ class CampanhaRepository:
         Returns:
             Lista de campanhas agendadas
         """
-        agora = agora or datetime.utcnow()
+        agora = agora or agora_utc()
 
         try:
             response = (
@@ -205,15 +206,15 @@ class CampanhaRepository:
         """
         data = {
             "status": novo_status.value,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": agora_utc().isoformat(),
         }
 
         # Adicionar timestamps especificos
         if novo_status == StatusCampanha.ATIVA:
-            data["iniciada_em"] = datetime.utcnow().isoformat()
+            data["iniciada_em"] = agora_utc().isoformat()
             data["started_at"] = data["iniciada_em"]
         elif novo_status == StatusCampanha.CONCLUIDA:
-            data["concluida_em"] = datetime.utcnow().isoformat()
+            data["concluida_em"] = agora_utc().isoformat()
             data["completed_at"] = data["concluida_em"]
 
         try:
@@ -254,7 +255,7 @@ class CampanhaRepository:
             # Atualizar
             supabase.table(self.TABLE).update({
                 "enviados": atual + quantidade,
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": agora_utc().isoformat(),
             }).eq("id", campanha_id).execute()
 
             return True
@@ -281,7 +282,7 @@ class CampanhaRepository:
         try:
             supabase.table(self.TABLE).update({
                 "total_destinatarios": total,
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": agora_utc().isoformat(),
             }).eq("id", campanha_id).execute()
 
             return True
@@ -309,7 +310,7 @@ class CampanhaRepository:
         Returns:
             True se atualizado com sucesso
         """
-        data = {"updated_at": datetime.utcnow().isoformat()}
+        data = {"updated_at": agora_utc().isoformat()}
 
         if enviados is not None:
             data["enviados"] = enviados

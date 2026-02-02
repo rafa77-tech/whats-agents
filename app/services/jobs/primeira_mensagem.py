@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
+from app.core.timezone import agora_utc
 from app.services.supabase import supabase
 from app.services.agente import gerar_resposta_julia, enviar_resposta
 from app.services.contexto import montar_contexto_completo
@@ -206,7 +207,7 @@ async def _sincronizar_chatwoot(cliente_id: str, telefone: str) -> None:
 async def _atualizar_cliente_apos_envio(cliente_id: str) -> None:
     """Atualiza dados do cliente apos envio."""
     supabase.table("clientes").update({
-        "ultima_mensagem_data": datetime.utcnow().isoformat(),
+        "ultima_mensagem_data": agora_utc().isoformat(),
         "ultima_mensagem_tipo": "outbound",
         "stage_jornada": "prospectado"
     }).eq("id", cliente_id).execute()

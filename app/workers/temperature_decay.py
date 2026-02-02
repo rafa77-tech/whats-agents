@@ -11,6 +11,7 @@ Sprint 15 - Policy Engine
 import logging
 from datetime import datetime, timedelta
 
+from app.core.timezone import agora_utc
 from app.services.supabase import supabase
 from app.services.policy.state_update import StateUpdate
 from app.services.policy.repository import (
@@ -37,7 +38,7 @@ async def decay_all_temperatures(batch_size: int = 100) -> int:
     """
     logger.info("Iniciando job de decay de temperatura...")
 
-    now = datetime.utcnow()
+    now = agora_utc()
 
     try:
         # Buscar estados que precisam de decay
@@ -82,7 +83,7 @@ async def expire_cooling_off() -> int:
     """
     logger.info("Verificando cooling_off expirados...")
 
-    now = datetime.utcnow().isoformat()
+    now = agora_utc().isoformat()
 
     try:
         response = (
@@ -152,7 +153,7 @@ async def update_lifecycle_stages() -> int:
     """
     logger.info("Verificando lifecycle stages...")
 
-    now = datetime.utcnow()
+    now = agora_utc()
     churned_cutoff = (now - timedelta(days=90)).isoformat()  # 90 dias sem atividade
 
     try:
@@ -203,7 +204,7 @@ async def run_daily_maintenance() -> dict:
             "decayed": decayed,
             "expired_cooling_off": expired,
             "churned": churned,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
         logger.info(

@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.warmer.trust_score import (
     calcular_trust_score,
@@ -181,7 +182,7 @@ class WarmingOrchestrator:
         # Iniciar na fase setup
         supabase.table("chips").update({
             "fase_warmup": FaseWarmup.SETUP.value,
-            "warmup_iniciado_em": datetime.now().isoformat(),
+            "warmup_iniciado_em": agora_brasilia().isoformat(),
         }).eq("id", chip_id).execute()
 
         # Calcular trust score inicial
@@ -228,7 +229,7 @@ class WarmingOrchestrator:
         # Atualizar status
         supabase.table("chips").update({
             "fase_warmup": FaseWarmup.REPOUSO.value,
-            "warmup_pausado_em": datetime.now().isoformat(),
+            "warmup_pausado_em": agora_brasilia().isoformat(),
             "warmup_motivo_pausa": motivo,
         }).eq("id", chip_id).execute()
 
@@ -331,7 +332,7 @@ class WarmingOrchestrator:
         # Atualizar chip
         supabase.table("chips").update({
             "fase_warmup": nova_fase,
-            "ultima_transicao": datetime.now().isoformat(),
+            "ultima_transicao": agora_brasilia().isoformat(),
         }).eq("id", chip_id).execute()
 
         # Registrar transição

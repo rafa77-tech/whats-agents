@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from typing import Tuple, Optional
 from enum import Enum
 
+from app.core.timezone import agora_brasilia
 from app.services.redis import redis_client
 from app.core.config import settings, DatabaseConfig
 
@@ -66,7 +67,7 @@ async def verificar_horario_permitido() -> Tuple[bool, str]:
     Returns:
         (permitido, motivo)
     """
-    agora = datetime.now()
+    agora = agora_brasilia()
 
     # Verificar dia da semana
     if agora.weekday() not in DIAS_PERMITIDOS:
@@ -86,10 +87,12 @@ async def verificar_limite_hora() -> Tuple[bool, int]:
     """
     Verifica limite de mensagens por hora.
 
+    Sprint 44 T01.2: Fail-closed com fallback para Supabase.
+
     Returns:
         (dentro_limite, msgs_enviadas)
     """
-    chave = f"rate:hora:{datetime.now().strftime('%Y%m%d%H')}"
+    chave = f"rate:hora:{agora_brasilia().strftime('%Y%m%d%H')}"
 
     try:
         count = await redis_client.get(chave)
@@ -97,18 +100,26 @@ async def verificar_limite_hora() -> Tuple[bool, int]:
 
         return count < LIMITE_POR_HORA, count
     except Exception as e:
-        logger.error(f"Erro ao verificar limite hora: {e}")
-        return True, 0  # Em caso de erro, permitir
+        logger.warning(f"Redis falhou ao verificar limite hora, tentando fallback: {e}")
+        # Sprint 44 T01.2: Tentar fallback Supabase
+        try:
+            return await _fallback_verificar_limite_hora()
+        except Exception as e2:
+            logger.error(f"Fallback Supabase também falhou: {e2}")
+            # FAIL-CLOSED: bloqueia se ambos falharem
+            return False, 0
 
 
 async def verificar_limite_dia() -> Tuple[bool, int]:
     """
     Verifica limite de mensagens por dia.
 
+    Sprint 44 T01.2: Fail-closed com fallback para Supabase.
+
     Returns:
         (dentro_limite, msgs_enviadas)
     """
-    chave = f"rate:dia:{datetime.now().strftime('%Y%m%d')}"
+    chave = f"rate:dia:{agora_brasilia().strftime('%Y%m%d')}"
 
     try:
         count = await redis_client.get(chave)
@@ -116,13 +127,21 @@ async def verificar_limite_dia() -> Tuple[bool, int]:
 
         return count < LIMITE_POR_DIA, count
     except Exception as e:
-        logger.error(f"Erro ao verificar limite dia: {e}")
-        return True, 0
+        logger.warning(f"Redis falhou ao verificar limite dia, tentando fallback: {e}")
+        # Sprint 44 T01.2: Tentar fallback Supabase
+        try:
+            return await _fallback_verificar_limite_dia()
+        except Exception as e2:
+            logger.error(f"Fallback Supabase também falhou: {e2}")
+            # FAIL-CLOSED: bloqueia se ambos falharem
+            return False, 0
 
 
 async def verificar_intervalo_minimo(telefone: str) -> Tuple[bool, int]:
     """
     Verifica se passou tempo suficiente desde última mensagem para este número.
+
+    Sprint 44 T01.2: Fail-closed em caso de erro.
 
     Returns:
         (pode_enviar, segundos_restantes)
@@ -135,7 +154,7 @@ async def verificar_intervalo_minimo(telefone: str) -> Tuple[bool, int]:
             return True, 0
 
         ultimo_ts = float(ultimo)
-        agora = datetime.now().timestamp()
+        agora = agora_brasilia().timestamp()
         diferenca = agora - ultimo_ts
 
         if diferenca < INTERVALO_MIN_SEGUNDOS:
@@ -145,7 +164,9 @@ async def verificar_intervalo_minimo(telefone: str) -> Tuple[bool, int]:
         return True, 0
     except Exception as e:
         logger.error(f"Erro ao verificar intervalo: {e}")
-        return True, 0
+        # Sprint 44 T01.2: FAIL-CLOSED - bloqueia em caso de erro
+        # Evita envio rápido que parece comportamento de bot
+        return False, INTERVALO_MIN_SEGUNDOS
 
 
 async def registrar_envio(telefone: str) -> None:
@@ -154,7 +175,7 @@ async def registrar_envio(telefone: str) -> None:
     Incrementa contadores e registra timestamp.
     """
     try:
-        agora = datetime.now()
+        agora = agora_brasilia()
 
         # Incrementar contador por hora (expira em 2 horas)
         chave_hora = f"rate:hora:{agora.strftime('%Y%m%d%H')}"
@@ -230,7 +251,7 @@ async def obter_estatisticas() -> dict:
     Retorna estatísticas de uso atual.
     """
     try:
-        agora = datetime.now()
+        agora = agora_brasilia()
 
         chave_hora = f"rate:hora:{agora.strftime('%Y%m%d%H')}"
         chave_dia = f"rate:dia:{agora.strftime('%Y%m%d')}"
@@ -270,7 +291,7 @@ async def verificar_limite_cliente(cliente_id: str) -> Tuple[bool, int]:
     Returns:
         (dentro_limite, msgs_enviadas)
     """
-    chave = f"rate:cliente:{cliente_id}:{datetime.now().strftime('%Y%m%d%H')}"
+    chave = f"rate:cliente:{cliente_id}:{agora_brasilia().strftime('%Y%m%d%H')}"
 
     try:
         count = await redis_client.get(chave)
@@ -306,15 +327,16 @@ async def _fallback_verificar_limite_cliente(cliente_id: str) -> Tuple[bool, int
         return count < LIMITE_POR_CLIENTE_HORA, count
 
     except Exception as e:
-        logger.warning(f"[rate_limiter] Fallback Supabase também falhou: {e}")
-        return True, 0  # Em caso de falha total, permitir
+        logger.error(f"[rate_limiter] Fallback Supabase também falhou: {e}")
+        # Sprint 44 T01.2: FAIL-CLOSED - bloqueia em caso de falha total
+        return False, 0
 
 
 async def registrar_envio_cliente(cliente_id: str) -> None:
     """
     Sprint 36 - T04.1: Registra envio para rate limiting por cliente.
     """
-    chave = f"rate:cliente:{cliente_id}:{datetime.now().strftime('%Y%m%d%H')}"
+    chave = f"rate:cliente:{cliente_id}:{agora_brasilia().strftime('%Y%m%d%H')}"
 
     try:
         await redis_client.incr(chave)
@@ -340,7 +362,7 @@ async def verificar_limite_tipo(
         (dentro_limite, msgs_enviadas, limite_tipo)
     """
     limite = LIMITES_POR_TIPO.get(tipo, LIMITE_POR_HORA)
-    chave = f"rate:tipo:{tipo.value}:{datetime.now().strftime('%Y%m%d%H')}"
+    chave = f"rate:tipo:{tipo.value}:{agora_brasilia().strftime('%Y%m%d%H')}"
 
     try:
         count = await redis_client.get(chave)
@@ -356,7 +378,7 @@ async def registrar_envio_tipo(tipo: TipoMensagem) -> None:
     """
     Sprint 36 - T04.2: Registra envio para rate limiting por tipo.
     """
-    chave = f"rate:tipo:{tipo.value}:{datetime.now().strftime('%Y%m%d%H')}"
+    chave = f"rate:tipo:{tipo.value}:{agora_brasilia().strftime('%Y%m%d%H')}"
 
     try:
         await redis_client.incr(chave)

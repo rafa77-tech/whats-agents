@@ -8,7 +8,7 @@ e criar planos de acao estruturados.
 """
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 from dataclasses import dataclass, field, asdict
 from enum import Enum
@@ -16,6 +16,7 @@ from enum import Enum
 from anthropic import Anthropic
 
 from app.core.config import settings
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ class AnaliseResult:
     # Identificacao
     doc_id: str
     doc_nome: str
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    timestamp: str = field(default_factory=lambda: agora_brasilia().isoformat())
 
     # Entendimento
     resumo_demanda: str = ""
@@ -257,7 +258,7 @@ async def _buscar_dados_contexto() -> str:
 
         # Taxa de resposta geral (ultimos 7 dias)
         from datetime import timedelta
-        uma_semana = (datetime.now() - timedelta(days=7)).isoformat()
+        uma_semana = (agora_brasilia() - timedelta(days=7)).isoformat()
         resp = supabase.table("interacoes").select("id", count="exact").gte("created_at", uma_semana).execute()
         interacoes_semana = resp.count or 0
         contexto_partes.append(f"- Interacoes na ultima semana: {interacoes_semana}")
@@ -436,7 +437,7 @@ def formatar_plano_para_documento(analise: AnaliseResult) -> str:
 
     # Header
     linhas.append("## Plano da Julia")
-    linhas.append(f"*Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}*")
+    linhas.append(f"*Gerado em: {agora_brasilia().strftime('%d/%m/%Y %H:%M')}*")
     linhas.append("*Status: Aguardando aprovacao*")
     linhas.append("")
 

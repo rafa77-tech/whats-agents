@@ -13,6 +13,7 @@ from typing import List, Optional
 from dataclasses import dataclass
 from uuid import uuid4
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.slack import enviar_slack
 
@@ -216,7 +217,7 @@ async def notify_anomalies_slack(
                 "title": "Resultado da Reconciliacao Bidirecional",
                 "fields": fields,
                 "footer": "Sprint 18 - Data Integrity",
-                "ts": int(datetime.now().timestamp()),
+                "ts": int(agora_brasilia().timestamp()),
             }
         ],
     }

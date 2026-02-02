@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.core.timezone import agora_utc
 from app.core.logging import get_logger
 from app.services.supabase import supabase
 
@@ -134,7 +135,7 @@ async def set_pilot_mode(request: PilotModeRequest) -> PilotModeResponse:
             {
                 "key": "PILOT_MODE",
                 "value": str(request.pilot_mode).lower(),
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": agora_utc().isoformat(),
                 "updated_by": request.changed_by,
             },
             on_conflict="key",
@@ -199,7 +200,7 @@ async def set_feature_status(
             {
                 "key": config_key,
                 "value": str(request.enabled).lower(),
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": agora_utc().isoformat(),
                 "updated_by": request.changed_by,
             },
             on_conflict="key",

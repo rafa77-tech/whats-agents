@@ -6,8 +6,11 @@ com prompts especificos e logica de inferencia.
 """
 import re
 import logging
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
+
+from app.core.timezone import agora_brasilia
 
 logger = logging.getLogger(__name__)
 
@@ -371,15 +374,13 @@ def extrair_data(texto: str) -> str | None:
     Returns:
         Data em formato ISO ou None
     """
-    from datetime import datetime, timedelta
-
     texto_lower = texto.lower()
 
     # Hoje, amanha, etc
     if "hoje" in texto_lower:
-        return datetime.now().strftime("%Y-%m-%d")
+        return agora_brasilia().strftime("%Y-%m-%d")
     if "amanha" in texto_lower or "amanhã" in texto_lower:
-        return (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+        return (agora_brasilia() + timedelta(days=1)).strftime("%Y-%m-%d")
 
     # Dia especifico: "dia 15", "15/12", "15 de dezembro"
     padroes = [
@@ -404,12 +405,12 @@ def extrair_data(texto: str) -> str | None:
                         "maio": 5, "junho": 6, "julho": 7, "agosto": 8,
                         "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12
                     }
-                    mes = meses.get(grupos[1], datetime.now().month)
+                    mes = meses.get(grupos[1], agora_brasilia().month)
             else:
-                mes = datetime.now().month
+                mes = agora_brasilia().month
 
-            ano = datetime.now().year
-            if mes < datetime.now().month:
+            ano = agora_brasilia().year
+            if mes < agora_brasilia().month:
                 ano += 1  # Proximo ano se mes ja passou
 
             try:

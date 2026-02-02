@@ -11,6 +11,7 @@ Sprint 15 - Policy Engine
 from datetime import datetime
 from typing import Optional
 
+from app.core.timezone import agora_utc
 from .types import (
     DoctorState, PolicyDecision, PrimaryAction, Tone,
     PermissionState, ObjectionSeverity, LifecycleStage,
@@ -46,7 +47,7 @@ def rule_cooling_off(state: DoctorState, **kwargs) -> Optional[PolicyDecision]:
     """
     if state.permission_state == PermissionState.COOLING_OFF:
         if state.cooling_off_until:
-            now = datetime.utcnow()
+            now = agora_utc()
             # Converter se for string
             until = state.cooling_off_until
             if isinstance(until, str):
@@ -212,7 +213,7 @@ def rule_silence_reactivation(
         except ValueError:
             return None
 
-    now = datetime.utcnow()
+    now = agora_utc()
     days_since_outbound = (now - last_out).days
 
     # Julia falou por último?

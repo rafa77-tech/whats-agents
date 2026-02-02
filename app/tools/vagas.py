@@ -6,6 +6,7 @@ Sprint 31 - S31.E5: Refatorado para usar services
 import logging
 from typing import Any
 
+from app.core.timezone import agora_brasilia
 from app.services.vagas import (
     buscar_vaga_por_id,
     buscar_vagas_compativeis,
@@ -509,7 +510,7 @@ async def handle_reservar_plantao(
     elif re.match(r'^\d{2}/\d{2}$', data_plantao):
         from datetime import datetime
         partes = data_plantao.split('/')
-        ano = datetime.now().year
+        ano = agora_brasilia().year
         data_normalizada = f"{ano}-{partes[1]}-{partes[0]}"
 
     logger.info(f"handle_reservar_plantao: data_normalizada={data_normalizada}")

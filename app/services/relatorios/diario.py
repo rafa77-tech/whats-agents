@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict
 import logging
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.slack import enviar_slack
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 async def gerar_relatorio_diario() -> Dict:
     """Gera relatorio do dia anterior."""
-    ontem = datetime.now() - timedelta(days=1)
+    ontem = agora_brasilia() - timedelta(days=1)
     inicio = ontem.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     fim = ontem.replace(hour=23, minute=59, second=59, microsecond=0).isoformat()
 
