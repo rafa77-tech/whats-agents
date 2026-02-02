@@ -58,6 +58,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
   const [loading, setLoading] = useState(true)
   const [changingControl, setChangingControl] = useState(false)
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
+  const [sendError, setSendError] = useState<string | null>(null)
 
   // Scroll to bottom instantly (no animation)
   const scrollToBottom = useCallback((instant = true) => {
@@ -104,6 +105,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
   }
 
   const handleSendMessage = async (message: string, attachment?: { type: string; file: File }) => {
+    setSendError(null)
     try {
       let mediaUrl: string | undefined
       let mediaType: string | undefined
@@ -120,7 +122,8 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
         })
 
         if (!uploadResponse.ok) {
-          console.error('Failed to upload file')
+          const uploadError = await uploadResponse.json().catch(() => ({ error: 'Erro ao fazer upload' }))
+          setSendError(uploadError.error || 'Erro ao fazer upload do arquivo')
           return
         }
 
@@ -145,11 +148,13 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
         await fetchConversation()
         setTimeout(() => scrollToBottom(false), 100)
       } else {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }))
         console.error('Failed to send message:', error)
+        setSendError(error.error || error.detail || `Erro ${response.status}: ${response.statusText}`)
       }
     } catch (err) {
       console.error('Failed to send message:', err)
+      setSendError(err instanceof Error ? err.message : 'Erro de conexao ao enviar mensagem')
     }
   }
 
@@ -402,6 +407,17 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
       {/* Footer - Message Input or Status */}
       {isHandoff ? (
         <div className="border-t bg-background p-3">
+          {sendError && (
+            <div className="mb-2 flex items-center justify-between rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <span>{sendError}</span>
+              <button
+                onClick={() => setSendError(null)}
+                className="ml-2 text-destructive hover:text-destructive/80"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <MessageInput
             onSend={handleSendMessage}
             placeholder="Digite sua mensagem... (Enter para enviar)"
