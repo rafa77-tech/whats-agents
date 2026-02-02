@@ -68,7 +68,7 @@ export const STATUS_CONFIG: Record<PedidoAjudaStatus, StatusConfig> = {
   },
   timeout: {
     label: 'Timeout',
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    color: 'bg-trust-laranja text-trust-laranja-foreground border-trust-laranja',
     icon: 'Clock',
   },
   cancelado: {

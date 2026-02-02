@@ -53,7 +53,7 @@ export const ENVIO_STATUS_CONFIG: Record<EnvioStatus, EnvioStatusConfig> = {
   pendente: { label: 'Pendente', color: 'text-status-neutral-foreground', icon: 'Clock' },
   enviado: { label: 'Enviado', color: 'text-status-info-solid', icon: 'Send' },
   entregue: { label: 'Entregue', color: 'text-status-success-solid', icon: 'CheckCircle2' },
-  visualizado: { label: 'Visualizado', color: 'text-purple-500', icon: 'Eye' },
+  visualizado: { label: 'Visualizado', color: 'text-accent', icon: 'Eye' },
   falhou: { label: 'Falhou', color: 'text-status-error-solid', icon: 'XCircle' },
 }
 
@@ -133,7 +133,7 @@ export const CAMPANHA_STATUS_CONFIG: Record<CampanhaStatus, CampanhaStatusConfig
   },
   pausada: {
     label: 'Pausada',
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    color: 'bg-trust-laranja text-trust-laranja-foreground border-trust-laranja',
     icon: 'Pause',
   },
   cancelada: {

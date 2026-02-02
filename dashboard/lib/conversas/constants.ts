@@ -32,7 +32,7 @@ export const CONTROLLED_BY_LABELS = {
 
 export const CONTROLLED_BY_COLORS = {
   ai: 'bg-status-info text-status-info-foreground',
-  human: 'bg-purple-100 text-purple-800',
+  human: 'bg-accent/20 text-accent',
 } as const
 
 // ============================================

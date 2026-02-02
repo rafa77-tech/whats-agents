@@ -33,8 +33,8 @@ export const CHIP_STATUS_COLORS: Record<ChipStatus, string> = {
   pending: 'bg-status-info text-status-info-foreground',
   warming: 'bg-status-warning text-status-warning-foreground',
   ready: 'bg-status-success text-status-success-foreground',
-  active: 'bg-emerald-100 text-emerald-800',
-  degraded: 'bg-orange-100 text-orange-800',
+  active: 'bg-state-ai text-state-ai-foreground',
+  degraded: 'bg-trust-laranja text-trust-laranja-foreground',
   paused: 'bg-status-neutral text-status-neutral-foreground/80',
   banned: 'bg-status-error text-status-error-foreground',
   cancelled: 'bg-status-error text-status-error-foreground/80',
@@ -56,7 +56,7 @@ export const TRUST_LEVEL_LABELS: Record<TrustLevelExtended, string> = {
 export const TRUST_LEVEL_COLORS: Record<TrustLevelExtended, string> = {
   verde: 'bg-status-success-solid',
   amarelo: 'bg-status-warning-solid',
-  laranja: 'bg-orange-500',
+  laranja: 'bg-trust-laranja-solid',
   vermelho: 'bg-status-error-solid',
   critico: 'bg-trust-critico',
 }
@@ -64,7 +64,7 @@ export const TRUST_LEVEL_COLORS: Record<TrustLevelExtended, string> = {
 export const TRUST_LEVEL_TEXT_COLORS: Record<TrustLevelExtended, string> = {
   verde: 'text-status-success-solid',
   amarelo: 'text-status-warning-solid',
-  laranja: 'text-orange-700',
+  laranja: 'text-trust-laranja-foreground',
   vermelho: 'text-status-error-solid',
   critico: 'text-trust-critico',
 }
@@ -106,7 +106,7 @@ export const ALERT_SEVERITY_LABELS: Record<ChipAlertSeverity, string> = {
 
 export const ALERT_SEVERITY_COLORS: Record<ChipAlertSeverity, string> = {
   critico: 'bg-status-error text-status-error-foreground border-status-error-border',
-  alerta: 'bg-orange-100 text-orange-800 border-orange-200',
+  alerta: 'bg-trust-laranja text-trust-laranja-foreground border-trust-laranja',
   atencao: 'bg-status-warning text-status-warning-foreground border-status-warning-border',
   info: 'bg-status-info text-status-info-foreground border-status-info-border',
 }

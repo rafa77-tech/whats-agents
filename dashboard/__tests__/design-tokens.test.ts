@@ -13,7 +13,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 // Directories to scan for design token violations
-const SCAN_DIRECTORIES = ['app', 'components']
+const SCAN_DIRECTORIES = ['app', 'components', 'lib']
 
 // Files/directories to ignore
 const IGNORE_PATTERNS = [

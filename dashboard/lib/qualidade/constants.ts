@@ -94,10 +94,10 @@ export const SUGGESTION_STATUS_LABELS: Record<SuggestionStatus, string> = {
  * Classes de cor para badges de tipo de sugestao
  */
 export const SUGGESTION_TYPE_COLORS: Record<SuggestionType, string> = {
-  tom: 'bg-purple-100 text-purple-800',
+  tom: 'bg-accent/20 text-accent',
   resposta: 'bg-status-info text-status-info-foreground',
   abertura: 'bg-status-success text-status-success-foreground',
-  objecao: 'bg-orange-100 text-orange-800',
+  objecao: 'bg-trust-laranja text-trust-laranja-foreground',
 }
 
 // =============================================================================
