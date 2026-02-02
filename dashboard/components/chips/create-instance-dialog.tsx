@@ -251,7 +251,9 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
                   onChange={(e) => setInstanceName(e.target.value)}
                   disabled={loading}
                 />
-                <p className="text-xs text-muted-foreground">Se vazio, sera gerado como julia_TELEFONE</p>
+                <p className="text-xs text-muted-foreground">
+                  Se vazio, sera gerado como julia_TELEFONE
+                </p>
               </div>
 
               {error && (

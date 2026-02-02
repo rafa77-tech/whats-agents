@@ -143,7 +143,9 @@ export function ChipsBulkActions({
         {results && (
           <div className="flex items-center gap-2 border-r border-border pr-3">
             {results.success > 0 && (
-              <span className="text-sm text-status-success-foreground">{results.success} sucesso</span>
+              <span className="text-sm text-status-success-foreground">
+                {results.success} sucesso
+              </span>
             )}
             {results.failed > 0 && (
               <span className="text-sm text-status-error-foreground">

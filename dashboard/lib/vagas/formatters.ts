@@ -33,7 +33,9 @@ export function parseShiftDate(dateString: string): Date {
  * @returns String de classes CSS
  */
 export function getStatusBadgeColor(status: string): string {
-  return STATUS_BADGE_COLORS[status as ShiftStatus] || 'bg-status-neutral text-status-neutral-foreground'
+  return (
+    STATUS_BADGE_COLORS[status as ShiftStatus] || 'bg-status-neutral text-status-neutral-foreground'
+  )
 }
 
 /**

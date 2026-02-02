@@ -94,7 +94,10 @@ export function Sidebar() {
               )}
             >
               <item.icon
-                className={cn('h-5 w-5', isActive ? 'text-revoluna-400' : 'text-muted-foreground/70')}
+                className={cn(
+                  'h-5 w-5',
+                  isActive ? 'text-revoluna-400' : 'text-muted-foreground/70'
+                )}
               />
               {item.name}
             </Link>

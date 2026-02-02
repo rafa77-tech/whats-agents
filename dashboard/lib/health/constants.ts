@@ -54,9 +54,21 @@ export const SERVICE_STATUS_COLORS: Record<
   ServiceStatusType,
   { bg: string; text: string; icon: string }
 > = {
-  ok: { bg: 'bg-status-success/20', text: 'text-status-success-foreground', icon: 'text-status-success-foreground' },
-  warn: { bg: 'bg-status-warning/20', text: 'text-status-warning-foreground', icon: 'text-status-warning-foreground' },
-  error: { bg: 'bg-status-error/20', text: 'text-status-error-foreground', icon: 'text-status-error-foreground' },
+  ok: {
+    bg: 'bg-status-success/20',
+    text: 'text-status-success-foreground',
+    icon: 'text-status-success-foreground',
+  },
+  warn: {
+    bg: 'bg-status-warning/20',
+    text: 'text-status-warning-foreground',
+    icon: 'text-status-warning-foreground',
+  },
+  error: {
+    bg: 'bg-status-error/20',
+    text: 'text-status-error-foreground',
+    icon: 'text-status-error-foreground',
+  },
 }
 
 /**

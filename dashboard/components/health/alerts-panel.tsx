@@ -50,23 +50,37 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <AlertTriangle
-              className={cn('h-5 w-5', criticalCount > 0 ? 'text-status-error-foreground' : 'text-status-warning-foreground')}
+              className={cn(
+                'h-5 w-5',
+                criticalCount > 0
+                  ? 'text-status-error-foreground'
+                  : 'text-status-warning-foreground'
+              )}
             />
             Alertas Ativos: {alerts.length}
           </CardTitle>
           <div className="flex gap-2">
             {criticalCount > 0 && (
-              <Badge variant="outline" className="border-status-error-border text-status-error-foreground">
+              <Badge
+                variant="outline"
+                className="border-status-error-border text-status-error-foreground"
+              >
                 {criticalCount} critico{criticalCount > 1 ? 's' : ''}
               </Badge>
             )}
             {warnCount > 0 && (
-              <Badge variant="outline" className="border-status-warning-border text-status-warning-foreground">
+              <Badge
+                variant="outline"
+                className="border-status-warning-border text-status-warning-foreground"
+              >
                 {warnCount} alerta{warnCount > 1 ? 's' : ''}
               </Badge>
             )}
             {infoCount > 0 && (
-              <Badge variant="outline" className="border-status-info-border text-status-info-foreground">
+              <Badge
+                variant="outline"
+                className="border-status-info-border text-status-info-foreground"
+              >
                 {infoCount} info
               </Badge>
             )}

@@ -68,10 +68,14 @@ describe('parseShiftDate', () => {
 describe('getStatusBadgeColor', () => {
   it('returns correct color for each status', () => {
     expect(getStatusBadgeColor('aberta')).toBe('bg-status-success text-status-success-foreground')
-    expect(getStatusBadgeColor('reservada')).toBe('bg-status-warning text-status-warning-foreground')
+    expect(getStatusBadgeColor('reservada')).toBe(
+      'bg-status-warning text-status-warning-foreground'
+    )
     expect(getStatusBadgeColor('confirmada')).toBe('bg-status-info text-status-info-foreground')
     expect(getStatusBadgeColor('cancelada')).toBe('bg-status-error text-status-error-foreground')
-    expect(getStatusBadgeColor('realizada')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getStatusBadgeColor('realizada')).toBe(
+      'bg-status-neutral text-status-neutral-foreground'
+    )
     expect(getStatusBadgeColor('fechada')).toBe('bg-status-neutral text-status-neutral-foreground')
   })
 

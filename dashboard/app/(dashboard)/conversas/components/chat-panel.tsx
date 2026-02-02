@@ -122,7 +122,9 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
         })
 
         if (!uploadResponse.ok) {
-          const uploadError = await uploadResponse.json().catch(() => ({ error: 'Erro ao fazer upload' }))
+          const uploadError = await uploadResponse
+            .json()
+            .catch(() => ({ error: 'Erro ao fazer upload' }))
           setSendError(uploadError.error || 'Erro ao fazer upload do arquivo')
           return
         }
@@ -150,7 +152,9 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
       } else {
         const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }))
         console.error('Failed to send message:', error)
-        setSendError(error.error || error.detail || `Erro ${response.status}: ${response.statusText}`)
+        setSendError(
+          error.error || error.detail || `Erro ${response.status}: ${response.statusText}`
+        )
       }
     } catch (err) {
       console.error('Failed to send message:', err)
@@ -237,7 +241,9 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
             <AvatarFallback
               className={cn(
                 'text-sm font-medium',
-                isHandoff ? 'bg-state-handoff text-state-handoff-foreground' : 'bg-state-ai text-state-ai-foreground'
+                isHandoff
+                  ? 'bg-state-handoff text-state-handoff-foreground'
+                  : 'bg-state-ai text-state-ai-foreground'
               )}
             >
               {initials}
@@ -439,12 +445,8 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
             <div className="flex items-center gap-2 text-sm">
               <Bot className="h-5 w-5 text-state-ai-muted" />
               <div>
-                <span className="font-medium text-state-ai-foreground">
-                  Julia esta respondendo
-                </span>
-                <p className="text-xs text-state-ai-muted">
-                  Respostas automaticas ativas
-                </p>
+                <span className="font-medium text-state-ai-foreground">Julia esta respondendo</span>
+                <p className="text-xs text-state-ai-muted">Respostas automaticas ativas</p>
               </div>
             </div>
             <Button

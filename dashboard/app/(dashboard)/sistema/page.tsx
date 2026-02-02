@@ -212,7 +212,11 @@ export default function SistemaPage() {
       </div>
 
       {/* Card principal do Modo Piloto */}
-      <Card className={status?.pilot_mode ? 'border-status-warning-border' : 'border-status-success-border'}>
+      <Card
+        className={
+          status?.pilot_mode ? 'border-status-warning-border' : 'border-status-success-border'
+        }
+      >
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -573,7 +577,9 @@ export default function SistemaPage() {
               }
               disabled={updating}
               className={
-                featureDialog?.action === 'enable' ? 'bg-status-success-solid hover:bg-status-success-solid-hover' : ''
+                featureDialog?.action === 'enable'
+                  ? 'bg-status-success-solid hover:bg-status-success-solid-hover'
+                  : ''
               }
             >
               {updating ? (

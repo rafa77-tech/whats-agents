@@ -96,7 +96,9 @@ export function CriticalAlertsBanner() {
         <div className="flex items-start gap-3">
           <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-status-error-foreground" />
           <div>
-            <h3 className="font-medium text-status-error-foreground">ALERTAS CRITICOS ({alerts.length})</h3>
+            <h3 className="font-medium text-status-error-foreground">
+              ALERTAS CRITICOS ({alerts.length})
+            </h3>
             <ul className="mt-2 space-y-1">
               {alerts.slice(0, 3).map((alert) => (
                 <li key={alert.id} className="text-sm text-status-error-foreground/90">
@@ -104,7 +106,9 @@ export function CriticalAlertsBanner() {
                 </li>
               ))}
               {alerts.length > 3 && (
-                <li className="text-sm text-status-error-foreground/80">+ {alerts.length - 3} mais alertas</li>
+                <li className="text-sm text-status-error-foreground/80">
+                  + {alerts.length - 3} mais alertas
+                </li>
               )}
             </ul>
             <Link

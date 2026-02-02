@@ -141,7 +141,9 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <span className="font-mono text-sm">{chip.telefone}</span>
-                    {chip.hasActiveAlert && <AlertTriangle className="h-4 w-4 text-status-warning-foreground" />}
+                    {chip.hasActiveAlert && (
+                      <AlertTriangle className="h-4 w-4 text-status-warning-foreground" />
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>
@@ -179,7 +181,9 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
                   <span
                     className={cn(
                       'text-sm',
-                      chip.responseRate >= 30 ? 'text-status-success-foreground' : 'text-status-error-foreground'
+                      chip.responseRate >= 30
+                        ? 'text-status-success-foreground'
+                        : 'text-status-error-foreground'
                     )}
                   >
                     {chip.responseRate.toFixed(1)}%
@@ -189,7 +193,9 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
                   <span
                     className={cn(
                       'text-sm',
-                      chip.errorsLast24h > 5 ? 'text-status-error-foreground' : 'text-muted-foreground'
+                      chip.errorsLast24h > 5
+                        ? 'text-status-error-foreground'
+                        : 'text-muted-foreground'
                     )}
                   >
                     {chip.errorsLast24h}

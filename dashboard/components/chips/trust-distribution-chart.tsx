@@ -20,10 +20,26 @@ const trustLevelConfig: Record<
   { label: string; color: string; bgColor: string }
 > = {
   verde: { label: 'Verde (80-100)', color: 'bg-trust-verde-solid', bgColor: 'bg-trust-verde' },
-  amarelo: { label: 'Amarelo (60-79)', color: 'bg-trust-amarelo-solid', bgColor: 'bg-trust-amarelo' },
-  laranja: { label: 'Laranja (40-59)', color: 'bg-trust-laranja-solid', bgColor: 'bg-trust-laranja' },
-  vermelho: { label: 'Vermelho (20-39)', color: 'bg-trust-vermelho-solid', bgColor: 'bg-trust-vermelho' },
-  critico: { label: 'Critico (0-19)', color: 'bg-trust-critico-solid', bgColor: 'bg-trust-critico' },
+  amarelo: {
+    label: 'Amarelo (60-79)',
+    color: 'bg-trust-amarelo-solid',
+    bgColor: 'bg-trust-amarelo',
+  },
+  laranja: {
+    label: 'Laranja (40-59)',
+    color: 'bg-trust-laranja-solid',
+    bgColor: 'bg-trust-laranja',
+  },
+  vermelho: {
+    label: 'Vermelho (20-39)',
+    color: 'bg-trust-vermelho-solid',
+    bgColor: 'bg-trust-vermelho',
+  },
+  critico: {
+    label: 'Critico (0-19)',
+    color: 'bg-trust-critico-solid',
+    bgColor: 'bg-trust-critico',
+  },
 }
 
 const displayOrder: TrustLevelExtended[] = ['verde', 'amarelo', 'laranja', 'vermelho', 'critico']

@@ -181,7 +181,9 @@ export function ChipsPageContent() {
             <span className="text-foreground">Chips</span>
           </nav>
           <h1 className="text-2xl font-bold text-foreground">Pool de Chips</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Gerencie os chips WhatsApp do sistema Julia</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Gerencie os chips WhatsApp do sistema Julia
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -259,7 +261,9 @@ export function ChipsPageContent() {
       {/* Status Counters */}
       {poolStatus && (
         <div>
-          <h3 className="mb-3 text-sm font-medium text-muted-foreground">Distribuicao por Status</h3>
+          <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+            Distribuicao por Status
+          </h3>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
             {displayStatusOrder.map((status) => {
               const count = poolStatus.byStatus[status] || 0

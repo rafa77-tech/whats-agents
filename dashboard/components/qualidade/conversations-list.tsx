@@ -100,7 +100,9 @@ export function ConversationsList() {
                           Avaliada
                         </Badge>
                       ) : (
-                        <Badge className="bg-status-warning text-status-warning-foreground">Pendente</Badge>
+                        <Badge className="bg-status-warning text-status-warning-foreground">
+                          Pendente
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-sm text-gray-500">

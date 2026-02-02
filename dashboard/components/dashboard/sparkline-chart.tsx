@@ -27,7 +27,11 @@ export function SparklineChart({ metric }: SparklineChartProps) {
 
   // Determinar cor da linha baseado na tendencia
   const lineColor =
-    trend === 'stable' ? CHART_COLORS.neutral : trendIsGood ? CHART_COLORS.success : CHART_COLORS.error
+    trend === 'stable'
+      ? CHART_COLORS.neutral
+      : trendIsGood
+        ? CHART_COLORS.success
+        : CHART_COLORS.error
 
   // Icone de tendencia
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus

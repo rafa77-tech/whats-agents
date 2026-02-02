@@ -27,15 +27,30 @@ const STATUS_CONFIG: Record<
     label: string
   }
 > = {
-  running: { icon: Loader2, color: 'text-status-info-foreground', bgColor: 'bg-status-info', label: 'Executando' },
+  running: {
+    icon: Loader2,
+    color: 'text-status-info-foreground',
+    bgColor: 'bg-status-info',
+    label: 'Executando',
+  },
   success: {
     icon: CheckCircle,
     color: 'text-status-success-foreground',
     bgColor: 'bg-status-success',
     label: 'Sucesso',
   },
-  error: { icon: XCircle, color: 'text-status-error-foreground', bgColor: 'bg-status-error', label: 'Erro' },
-  timeout: { icon: Clock, color: 'text-status-warning-foreground', bgColor: 'bg-status-warning', label: 'Timeout' },
+  error: {
+    icon: XCircle,
+    color: 'text-status-error-foreground',
+    bgColor: 'bg-status-error',
+    label: 'Erro',
+  },
+  timeout: {
+    icon: Clock,
+    color: 'text-status-warning-foreground',
+    bgColor: 'bg-status-warning',
+    label: 'Timeout',
+  },
 }
 
 export function JobDetailModal({ open, onOpenChange, jobName }: JobDetailModalProps) {
@@ -118,7 +133,9 @@ export function JobDetailModal({ open, onOpenChange, jobName }: JobDetailModalPr
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : executions.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground">Nenhuma execucao encontrada.</div>
+              <div className="py-8 text-center text-muted-foreground">
+                Nenhuma execucao encontrada.
+              </div>
             ) : (
               <div className="space-y-2">
                 {executions.map((exec) => {

@@ -284,9 +284,15 @@ export function HealthPageContent() {
                   service.status === 'error' && 'bg-status-error/20'
                 )}
               >
-                {service.status === 'ok' && <CheckCircle2 className="h-4 w-4 text-status-success-foreground" />}
-                {service.status === 'warn' && <AlertTriangle className="h-4 w-4 text-status-warning-foreground" />}
-                {service.status === 'error' && <XCircle className="h-4 w-4 text-status-error-foreground" />}
+                {service.status === 'ok' && (
+                  <CheckCircle2 className="h-4 w-4 text-status-success-foreground" />
+                )}
+                {service.status === 'warn' && (
+                  <AlertTriangle className="h-4 w-4 text-status-warning-foreground" />
+                )}
+                {service.status === 'error' && (
+                  <XCircle className="h-4 w-4 text-status-error-foreground" />
+                )}
                 <span
                   className={cn(
                     'text-sm font-medium',

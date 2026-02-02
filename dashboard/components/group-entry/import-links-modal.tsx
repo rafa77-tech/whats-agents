@@ -138,7 +138,9 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
               {file ? (
                 <>
                   <CheckCircle2 className="h-8 w-8 text-status-success-foreground" />
-                  <p className="mt-2 text-sm font-medium text-status-success-foreground">{file.name}</p>
+                  <p className="mt-2 text-sm font-medium text-status-success-foreground">
+                    {file.name}
+                  </p>
                   <Button variant="link" size="sm" onClick={handleRemoveFile}>
                     Remover
                   </Button>
@@ -194,7 +196,9 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
                 </div>
                 <div>
                   <span className="text-gray-500">Duplicados:</span>{' '}
-                  <span className="font-medium text-status-warning-foreground">{result.duplicates}</span>
+                  <span className="font-medium text-status-warning-foreground">
+                    {result.duplicates}
+                  </span>
                 </div>
                 <div>
                   <span className="text-gray-500">Invalidos:</span>{' '}

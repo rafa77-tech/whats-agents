@@ -29,7 +29,12 @@ export function KpiCard({ title, value, suffix, icon: Icon, status, trend }: Kpi
               {suffix && <span className="text-sm text-gray-400">{suffix}</span>}
             </div>
             {trend !== undefined && (
-              <p className={cn('mt-1 text-xs', trend >= 0 ? 'text-status-success-foreground' : 'text-status-error-foreground')}>
+              <p
+                className={cn(
+                  'mt-1 text-xs',
+                  trend >= 0 ? 'text-status-success-foreground' : 'text-status-error-foreground'
+                )}
+              >
                 {trend >= 0 ? '+' : ''}
                 {trend}% vs ontem
               </p>

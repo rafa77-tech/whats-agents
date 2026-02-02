@@ -93,7 +93,9 @@ export function SafeModeCard({ isActive, onActivate }: SafeModeCardProps) {
                   Todas as operacoes autonomas estao paradas. Julia so responde mensagens de medicos
                   ja em conversa.
                 </p>
-                <Badge className="bg-status-success/50 text-status-success-foreground">Sistema Protegido</Badge>
+                <Badge className="bg-status-success/50 text-status-success-foreground">
+                  Sistema Protegido
+                </Badge>
               </div>
             ) : (
               <div className="space-y-3">
@@ -107,7 +109,9 @@ export function SafeModeCard({ isActive, onActivate }: SafeModeCardProps) {
                   <li>Entrada em grupos</li>
                 </ul>
                 <div className="flex items-center justify-between pt-2">
-                  <Badge className="bg-status-warning text-status-warning-foreground">INATIVO</Badge>
+                  <Badge className="bg-status-warning text-status-warning-foreground">
+                    INATIVO
+                  </Badge>
                   <Button variant="destructive" size="sm" onClick={() => setShowConfirm(true)}>
                     <AlertTriangle className="mr-2 h-4 w-4" />
                     ATIVAR

@@ -18,19 +18,47 @@ interface StatusCounterCardProps {
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  active: { label: 'Ativos', color: 'text-status-success-foreground', bgColor: 'bg-status-success/10' },
+  active: {
+    label: 'Ativos',
+    color: 'text-status-success-foreground',
+    bgColor: 'bg-status-success/10',
+  },
   ready: { label: 'Prontos', color: 'text-status-info-foreground', bgColor: 'bg-status-info/10' },
-  warming: { label: 'Aquecendo', color: 'text-status-warning-foreground', bgColor: 'bg-status-warning/10' },
-  degraded: { label: 'Degradados', color: 'text-status-warning-foreground', bgColor: 'bg-status-warning/10' },
+  warming: {
+    label: 'Aquecendo',
+    color: 'text-status-warning-foreground',
+    bgColor: 'bg-status-warning/10',
+  },
+  degraded: {
+    label: 'Degradados',
+    color: 'text-status-warning-foreground',
+    bgColor: 'bg-status-warning/10',
+  },
   paused: { label: 'Pausados', color: 'text-status-neutral-foreground', bgColor: 'bg-muted/50' },
-  banned: { label: 'Banidos', color: 'text-status-error-foreground', bgColor: 'bg-status-error/10' },
-  provisioned: { label: 'Provisionados', color: 'text-status-info-foreground', bgColor: 'bg-status-info/10' },
+  banned: {
+    label: 'Banidos',
+    color: 'text-status-error-foreground',
+    bgColor: 'bg-status-error/10',
+  },
+  provisioned: {
+    label: 'Provisionados',
+    color: 'text-status-info-foreground',
+    bgColor: 'bg-status-info/10',
+  },
   pending: { label: 'Pendentes', color: 'text-status-neutral-foreground', bgColor: 'bg-muted/50' },
   cancelled: { label: 'Cancelados', color: 'text-muted-foreground', bgColor: 'bg-muted' },
-  offline: { label: 'Offline', color: 'text-status-error-foreground', bgColor: 'bg-status-error/10' },
+  offline: {
+    label: 'Offline',
+    color: 'text-status-error-foreground',
+    bgColor: 'bg-status-error/10',
+  },
 }
 
-const defaultConfig = { label: 'Desconhecido', color: 'text-status-neutral-foreground', bgColor: 'bg-muted/50' }
+const defaultConfig = {
+  label: 'Desconhecido',
+  color: 'text-status-neutral-foreground',
+  bgColor: 'bg-muted/50',
+}
 
 export function StatusCounterCard({
   status,

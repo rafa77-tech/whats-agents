@@ -36,13 +36,33 @@ const trustLevelThresholds = [
 
 const eventTypeConfig: Record<string, { icon: typeof TrendingUp; color: string; bgColor: string }> =
   {
-    increase: { icon: TrendingUp, color: 'text-status-success-solid', bgColor: 'bg-status-success/10' },
-    decrease: { icon: TrendingDown, color: 'text-status-error-solid', bgColor: 'bg-status-error/10' },
-    phase_change: { icon: RefreshCw, color: 'text-status-info-solid', bgColor: 'bg-status-info/10' },
-    alert: { icon: AlertTriangle, color: 'text-status-warning-solid', bgColor: 'bg-status-warning/10' },
+    increase: {
+      icon: TrendingUp,
+      color: 'text-status-success-solid',
+      bgColor: 'bg-status-success/10',
+    },
+    decrease: {
+      icon: TrendingDown,
+      color: 'text-status-error-solid',
+      bgColor: 'bg-status-error/10',
+    },
+    phase_change: {
+      icon: RefreshCw,
+      color: 'text-status-info-solid',
+      bgColor: 'bg-status-info/10',
+    },
+    alert: {
+      icon: AlertTriangle,
+      color: 'text-status-warning-solid',
+      bgColor: 'bg-status-warning/10',
+    },
   }
 
-const defaultEventConfig = { icon: AlertTriangle, color: 'text-muted-foreground', bgColor: 'bg-muted/50' }
+const defaultEventConfig = {
+  icon: AlertTriangle,
+  color: 'text-muted-foreground',
+  bgColor: 'bg-muted/50',
+}
 
 export function ChipTrustChart({ history }: ChipTrustChartProps) {
   const chartData = useMemo(() => {
@@ -76,9 +96,15 @@ export function ChipTrustChart({ history }: ChipTrustChartProps) {
           <Badge
             className={cn(
               currentScore >= 80 && 'bg-trust-verde text-trust-verde-foreground',
-              currentScore >= 60 && currentScore < 80 && 'bg-trust-amarelo text-trust-amarelo-foreground',
-              currentScore >= 40 && currentScore < 60 && 'bg-trust-laranja text-trust-laranja-foreground',
-              currentScore >= 20 && currentScore < 40 && 'bg-trust-vermelho text-trust-vermelho-foreground',
+              currentScore >= 60 &&
+                currentScore < 80 &&
+                'bg-trust-amarelo text-trust-amarelo-foreground',
+              currentScore >= 40 &&
+                currentScore < 60 &&
+                'bg-trust-laranja text-trust-laranja-foreground',
+              currentScore >= 20 &&
+                currentScore < 40 &&
+                'bg-trust-vermelho text-trust-vermelho-foreground',
               currentScore < 20 && 'bg-trust-critico text-trust-critico-foreground'
             )}
           >
@@ -164,7 +190,11 @@ function TrustEventItem({ event }: { event: TrustEvent }) {
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
           <span>{new Date(event.timestamp).toLocaleString('pt-BR')}</span>
           <span>•</span>
-          <span className={cn(isPositive ? 'text-status-success-foreground' : 'text-status-error-foreground')}>
+          <span
+            className={cn(
+              isPositive ? 'text-status-success-foreground' : 'text-status-error-foreground'
+            )}
+          >
             {isPositive ? '+' : ''}
             {scoreDiff} ({event.scoreBefore} → {event.scoreAfter})
           </span>

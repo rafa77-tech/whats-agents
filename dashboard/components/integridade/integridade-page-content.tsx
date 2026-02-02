@@ -137,7 +137,9 @@ export function IntegridadePageContent() {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-sm text-gray-500">Anomalias Abertas</p>
-              <p className="text-2xl font-bold text-status-warning-foreground">{data?.anomalias.abertas || 0}</p>
+              <p className="text-2xl font-bold text-status-warning-foreground">
+                {data?.anomalias.abertas || 0}
+              </p>
             </div>
             <AlertTriangle className="h-8 w-8 text-status-warning-foreground" />
           </CardContent>
@@ -146,7 +148,9 @@ export function IntegridadePageContent() {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-sm text-gray-500">Violacoes</p>
-              <p className="text-2xl font-bold text-status-error-foreground">{data?.violacoes || 0}</p>
+              <p className="text-2xl font-bold text-status-error-foreground">
+                {data?.violacoes || 0}
+              </p>
             </div>
             <XCircle className="h-8 w-8 text-status-error-foreground" />
           </CardContent>

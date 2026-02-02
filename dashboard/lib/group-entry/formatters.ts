@@ -24,7 +24,10 @@ export function getLinkStatusLabel(status: string): string {
  * Retorna a cor do badge para um status de link
  */
 export function getLinkStatusBadgeColor(status: string): string {
-  return LINK_STATUS_BADGE_COLORS[status as LinkStatus] || 'bg-status-neutral text-status-neutral-foreground'
+  return (
+    LINK_STATUS_BADGE_COLORS[status as LinkStatus] ||
+    'bg-status-neutral text-status-neutral-foreground'
+  )
 }
 
 /**
@@ -38,7 +41,10 @@ export function getQueueStatusLabel(status: string): string {
  * Retorna a cor do badge para um status da fila
  */
 export function getQueueStatusBadgeColor(status: string): string {
-  return QUEUE_STATUS_BADGE_COLORS[status as QueueItemStatus] || 'bg-status-neutral text-status-neutral-foreground'
+  return (
+    QUEUE_STATUS_BADGE_COLORS[status as QueueItemStatus] ||
+    'bg-status-neutral text-status-neutral-foreground'
+  )
 }
 
 /**

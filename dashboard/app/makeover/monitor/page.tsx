@@ -50,7 +50,7 @@ export default function MakeoverMonitorPage() {
             <div className="text-xs uppercase tracking-widest text-muted-foreground">
               {item.label}
             </div>
-            <div className="mt-2 font-display text-2xl">{item.value}</div>
+            <div className="font-display mt-2 text-2xl">{item.value}</div>
           </div>
         ))}
       </section>

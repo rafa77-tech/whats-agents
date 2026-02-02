@@ -77,7 +77,9 @@ function ComparisonBadge({ current, previous }: { current: number; previous: num
   }
 
   return (
-    <span className={`flex items-center text-sm ${isPositive ? 'text-status-success-foreground' : 'text-status-error-foreground'}`}>
+    <span
+      className={`flex items-center text-sm ${isPositive ? 'text-status-success-foreground' : 'text-status-error-foreground'}`}
+    >
       {isPositive ? (
         <TrendingUp className="mr-1 h-3 w-3" />
       ) : (
@@ -102,7 +104,9 @@ export function MetricCard({ data }: MetricCardProps) {
         <div className="flex items-end justify-between">
           <div>
             <div className="text-3xl font-bold">{formatValue(value, unit)}</div>
-            <div className="mt-1 text-sm text-muted-foreground">Meta: {formatValue(meta, unit)}</div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              Meta: {formatValue(meta, unit)}
+            </div>
           </div>
           <MetaIndicator status={status} />
         </div>

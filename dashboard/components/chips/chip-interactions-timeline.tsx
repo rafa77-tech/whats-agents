@@ -104,7 +104,9 @@ export function ChipInteractionsTimeline({ chipId, initialData }: ChipInteractio
       <CardHeader>
         <CardTitle className="flex items-center justify-between text-base">
           <span>Interações Recentes</span>
-          <span className="text-sm font-normal text-muted-foreground">{initialData.total} total</span>
+          <span className="text-sm font-normal text-muted-foreground">
+            {initialData.total} total
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent>

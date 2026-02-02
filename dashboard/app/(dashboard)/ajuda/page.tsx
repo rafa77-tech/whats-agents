@@ -216,7 +216,9 @@ export default function CanalAjudaPage() {
         <TabsList>
           <TabsTrigger value="pendentes">
             Pendentes
-            {pendentesCount > 0 && <Badge className="ml-2 bg-status-warning-solid">{pendentesCount}</Badge>}
+            {pendentesCount > 0 && (
+              <Badge className="ml-2 bg-status-warning-solid">{pendentesCount}</Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="todos">Todos</TabsTrigger>
         </TabsList>

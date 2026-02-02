@@ -51,7 +51,10 @@ export function getStageLabel(stage: string | undefined | null): string {
  * @returns String de classes CSS
  */
 export function getEventColor(eventType: string): string {
-  return EVENT_COLORS[eventType as TimelineEventType] || 'bg-status-neutral text-status-neutral-foreground'
+  return (
+    EVENT_COLORS[eventType as TimelineEventType] ||
+    'bg-status-neutral text-status-neutral-foreground'
+  )
 }
 
 /**

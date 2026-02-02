@@ -54,7 +54,10 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   offline: { label: 'Offline', color: 'bg-status-error text-status-error-foreground' },
 }
 
-const defaultStatusConfig = { label: 'Desconhecido', color: 'bg-status-neutral text-status-neutral-foreground' }
+const defaultStatusConfig = {
+  label: 'Desconhecido',
+  color: 'bg-status-neutral text-status-neutral-foreground',
+}
 
 const trustLevelConfig: Record<string, { color: string }> = {
   verde: { color: 'bg-trust-verde text-trust-verde-foreground' },
@@ -133,7 +136,9 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
         <h2 className="mb-2 text-lg font-semibold text-foreground">
           {error || 'Chip não encontrado'}
         </h2>
-        <p className="mb-4 text-muted-foreground">Não foi possível carregar os detalhes deste chip.</p>
+        <p className="mb-4 text-muted-foreground">
+          Não foi possível carregar os detalhes deste chip.
+        </p>
         <Button variant="outline" onClick={() => router.push('/chips' as Route)}>
           <ChevronLeft className="mr-2 h-4 w-4" />
           Voltar para lista
@@ -151,7 +156,10 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <nav className="mb-2 text-sm text-muted-foreground">
-            <Link href={'/chips' as Route} className="flex items-center gap-1 hover:text-foreground">
+            <Link
+              href={'/chips' as Route}
+              className="flex items-center gap-1 hover:text-foreground"
+            >
               <ChevronLeft className="h-4 w-4" />
               Voltar para Pool de Chips
             </Link>
@@ -221,7 +229,12 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
               <AlertTriangle className="h-4 w-4" />
               <span className="text-sm">Erros (24h)</span>
             </div>
-            <div className={cn('text-2xl font-bold', chip.errorsLast24h > 5 && 'text-status-error-foreground')}>
+            <div
+              className={cn(
+                'text-2xl font-bold',
+                chip.errorsLast24h > 5 && 'text-status-error-foreground'
+              )}
+            >
               {chip.errorsLast24h}
             </div>
           </CardContent>

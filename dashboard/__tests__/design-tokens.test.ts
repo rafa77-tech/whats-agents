@@ -16,13 +16,7 @@ import * as path from 'path'
 const SCAN_DIRECTORIES = ['app', 'components', 'lib']
 
 // Files/directories to ignore
-const IGNORE_PATTERNS = [
-  'node_modules',
-  '.next',
-  '__tests__',
-  'globals.css',
-  'tailwind.config',
-]
+const IGNORE_PATTERNS = ['node_modules', '.next', '__tests__', 'globals.css', 'tailwind.config']
 
 // Hardcoded color patterns that should NOT be used
 // These are raw Tailwind color utilities that bypass our design tokens

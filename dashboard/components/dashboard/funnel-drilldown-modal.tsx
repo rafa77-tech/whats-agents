@@ -274,7 +274,9 @@ export function FunnelDrilldownModal({
                           {item.nome}
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{item.telefone || '-'}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {item.telefone || '-'}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{item.especialidade}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDistanceToNow(new Date(item.ultimoContato), {

@@ -107,7 +107,9 @@ export function NotificationItem({ notification, compact = false, onClose, onMar
             <p className="truncate text-xs text-muted-foreground">{notification.body}</p>
             <p className="mt-1 text-xs text-muted-foreground">{timeAgo}</p>
           </div>
-          {!notification.read && <Circle className="mt-1.5 h-2 w-2 fill-status-info-solid text-status-info-solid" />}
+          {!notification.read && (
+            <Circle className="mt-1.5 h-2 w-2 fill-status-info-solid text-status-info-solid" />
+          )}
         </div>
       </button>
     )

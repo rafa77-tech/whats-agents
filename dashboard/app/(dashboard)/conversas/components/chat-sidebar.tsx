@@ -69,7 +69,9 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
               <AvatarFallback
                 className={cn(
                   'text-sm font-medium',
-                  isHandoff ? 'bg-state-handoff text-state-handoff-foreground' : 'bg-state-ai text-state-ai-foreground'
+                  isHandoff
+                    ? 'bg-state-handoff text-state-handoff-foreground'
+                    : 'bg-state-ai text-state-ai-foreground'
                 )}
               >
                 {initials}

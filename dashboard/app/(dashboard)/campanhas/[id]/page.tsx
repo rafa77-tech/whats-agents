@@ -763,7 +763,9 @@ export default function CampanhaDetalhesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Falhas</p>
-                <p className="text-2xl font-bold text-status-error-foreground">{campanha.metricas.falhas}</p>
+                <p className="text-2xl font-bold text-status-error-foreground">
+                  {campanha.metricas.falhas}
+                </p>
               </div>
               <XCircle className="h-8 w-8 text-status-error-solid" />
             </div>
@@ -1234,7 +1236,9 @@ export default function CampanhaDetalhesPage() {
                         <TableCell>{cliente.especialidade || '-'}</TableCell>
                         <TableCell>
                           {cliente.na_campanha ? (
-                            <span className="text-sm text-status-success-foreground">Na campanha</span>
+                            <span className="text-sm text-status-success-foreground">
+                              Na campanha
+                            </span>
                           ) : (
                             <Button
                               variant="outline"

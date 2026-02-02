@@ -188,7 +188,9 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
                   <Link href={`/chips/${chip.id}` as Route} className="block">
                     <span
                       className={
-                        chip.errorsLast24h > 0 ? 'font-medium text-status-error-foreground' : 'text-muted-foreground/70'
+                        chip.errorsLast24h > 0
+                          ? 'font-medium text-status-error-foreground'
+                          : 'text-muted-foreground/70'
                       }
                     >
                       {chip.errorsLast24h}
@@ -203,7 +205,9 @@ export function ChipListTable({ chips, maxItems = 5, showViewAll = true }: ChipL
                         <span className="text-xs">{chip.alertMessage}</span>
                       </div>
                     ) : chip.warmingDay ? (
-                      <span className="text-xs text-status-info-foreground">Dia {chip.warmingDay}/21</span>
+                      <span className="text-xs text-status-info-foreground">
+                        Dia {chip.warmingDay}/21
+                      </span>
                     ) : (
                       <span className="text-muted-foreground/70">-</span>
                     )}

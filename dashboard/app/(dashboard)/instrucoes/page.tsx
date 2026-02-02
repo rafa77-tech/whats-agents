@@ -345,7 +345,9 @@ function DiretrizesTable({ diretrizes, loading, onCancelar, showActions }: Diret
                 <TableCell>
                   {diretriz.expira_em ? (
                     <span
-                      className={new Date(diretriz.expira_em) < new Date() ? 'text-status-error-solid' : ''}
+                      className={
+                        new Date(diretriz.expira_em) < new Date() ? 'text-status-error-solid' : ''
+                      }
                     >
                       {format(new Date(diretriz.expira_em), 'dd/MM HH:mm')}
                     </span>

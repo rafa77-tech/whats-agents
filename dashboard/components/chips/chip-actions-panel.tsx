@@ -379,7 +379,9 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
           {/* Warmup info */}
           {chip.status === 'warming' && chip.warmupPhase && (
             <div className="mt-4 rounded-md border border-status-info-border bg-status-info/10 p-3">
-              <span className="text-sm text-status-info-foreground">Em aquecimento - Dia {chip.warmingDay}</span>
+              <span className="text-sm text-status-info-foreground">
+                Em aquecimento - Dia {chip.warmingDay}
+              </span>
               {chip.trustScore < 70 && (
                 <p className="mt-1 text-xs text-status-info-foreground opacity-80">
                   Trust score precisa ser &ge; 70 para promoção
@@ -473,7 +475,9 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
               <div className="flex h-64 w-64 flex-col items-center justify-center rounded-lg border border-status-success-border bg-status-success/10 p-4 text-center">
                 <CheckCircle2 className="mb-2 h-12 w-12 text-status-success-solid" />
                 <p className="font-medium text-status-success-foreground">Conectado!</p>
-                <p className="mt-1 text-sm text-status-success-foreground opacity-80">WhatsApp pareado com sucesso.</p>
+                <p className="mt-1 text-sm text-status-success-foreground opacity-80">
+                  WhatsApp pareado com sucesso.
+                </p>
               </div>
             )}
 

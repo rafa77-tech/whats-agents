@@ -290,7 +290,9 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
           <CardTitle className="text-lg">
             Jobs do Sistema
             {jobs && (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">({jobs.length} jobs)</span>
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({jobs.length} jobs)
+              </span>
             )}
           </CardTitle>
         </CardHeader>
@@ -402,7 +404,9 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                       </TableCell>
                       <TableCell suppressHydrationWarning>
                         <div className="text-sm">{formatTimeAgo(job.lastRun)}</div>
-                        <div className="text-xs text-muted-foreground">{job.scheduleDescription}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {job.scheduleDescription}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {statusConfig ? (
@@ -426,7 +430,13 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
                         <div className="flex items-center gap-1">
                           <span className="text-status-success-foreground">{job.success24h}</span>
                           <span className="text-muted-foreground">/</span>
-                          <span className={job.errors24h > 0 ? 'text-status-error-foreground' : 'text-muted-foreground'}>
+                          <span
+                            className={
+                              job.errors24h > 0
+                                ? 'text-status-error-foreground'
+                                : 'text-muted-foreground'
+                            }
+                          >
                             {job.errors24h}
                           </span>
                         </div>
@@ -550,7 +560,9 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
             </AlertDialogDescription>
           </AlertDialogHeader>
           {actionError && (
-            <div className="rounded-md bg-status-error p-3 text-sm text-status-error-foreground">{actionError}</div>
+            <div className="rounded-md bg-status-error p-3 text-sm text-status-error-foreground">
+              {actionError}
+            </div>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isActionLoading}>Cancelar</AlertDialogCancel>
@@ -586,7 +598,9 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
             </AlertDialogDescription>
           </AlertDialogHeader>
           {actionError && (
-            <div className="rounded-md bg-status-error p-3 text-sm text-status-error-foreground">{actionError}</div>
+            <div className="rounded-md bg-status-error p-3 text-sm text-status-error-foreground">
+              {actionError}
+            </div>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isActionLoading}>Cancelar</AlertDialogCancel>
@@ -640,7 +654,9 @@ export function JobsTable({ jobs, isLoading, onJobClick, onJobAction }: JobsTabl
             </AlertDialogDescription>
           </AlertDialogHeader>
           {actionError && (
-            <div className="rounded-md bg-status-error p-3 text-sm text-status-error-foreground">{actionError}</div>
+            <div className="rounded-md bg-status-error p-3 text-sm text-status-error-foreground">
+              {actionError}
+            </div>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isActionLoading}>Cancelar</AlertDialogCancel>

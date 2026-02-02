@@ -100,7 +100,9 @@ describe('getStageLabel', () => {
 describe('getEventColor', () => {
   it('returns correct color for each event type', () => {
     expect(getEventColor('message_sent')).toBe('bg-status-info text-status-info-foreground')
-    expect(getEventColor('message_received')).toBe('bg-status-success text-status-success-foreground')
+    expect(getEventColor('message_received')).toBe(
+      'bg-status-success text-status-success-foreground'
+    )
     expect(getEventColor('handoff')).toBe('bg-status-warning text-status-warning-foreground')
   })
 

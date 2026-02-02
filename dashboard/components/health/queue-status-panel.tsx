@@ -31,7 +31,9 @@ export function QueueStatusPanel({ queue }: QueueStatusPanelProps) {
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs">Processando</span>
             </div>
-            <p className="mt-1 text-2xl font-bold text-status-info-foreground">{queue?.processando || 0}</p>
+            <p className="mt-1 text-2xl font-bold text-status-info-foreground">
+              {queue?.processando || 0}
+            </p>
           </div>
 
           <div className="rounded-lg bg-status-success p-4 text-center">

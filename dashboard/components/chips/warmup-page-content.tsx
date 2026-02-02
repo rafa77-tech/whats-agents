@@ -33,10 +33,22 @@ const activityTypeLabels: Record<ScheduledActivityType, string> = {
 }
 
 const statusConfig: Record<ActivityStatus, { label: string; color: string; icon: typeof Clock }> = {
-  planejada: { label: 'Planejada', color: 'bg-status-info text-status-info-foreground', icon: Clock },
-  executada: { label: 'Executada', color: 'bg-status-success text-status-success-foreground', icon: CheckCircle },
+  planejada: {
+    label: 'Planejada',
+    color: 'bg-status-info text-status-info-foreground',
+    icon: Clock,
+  },
+  executada: {
+    label: 'Executada',
+    color: 'bg-status-success text-status-success-foreground',
+    icon: CheckCircle,
+  },
   falhou: { label: 'Falhou', color: 'bg-status-error text-status-error-foreground', icon: XCircle },
-  cancelada: { label: 'Cancelada', color: 'bg-status-neutral text-status-neutral-foreground', icon: XCircle },
+  cancelada: {
+    label: 'Cancelada',
+    color: 'bg-status-neutral text-status-neutral-foreground',
+    icon: XCircle,
+  },
 }
 
 export function WarmupPageContent() {
@@ -92,7 +104,10 @@ export function WarmupPageContent() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <nav className="mb-2 text-sm text-muted-foreground">
-            <Link href={'/chips' as Route} className="flex items-center gap-1 hover:text-foreground">
+            <Link
+              href={'/chips' as Route}
+              className="flex items-center gap-1 hover:text-foreground"
+            >
               <ChevronLeft className="h-4 w-4" />
               Voltar para Pool de Chips
             </Link>
@@ -126,19 +141,25 @@ export function WarmupPageContent() {
           <Card>
             <CardContent className="p-4">
               <div className="mb-1 text-sm text-muted-foreground">Planejadas</div>
-              <div className="text-2xl font-bold text-status-info-foreground">{stats.totalPlanned}</div>
+              <div className="text-2xl font-bold text-status-info-foreground">
+                {stats.totalPlanned}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <div className="mb-1 text-sm text-muted-foreground">Executadas</div>
-              <div className="text-2xl font-bold text-status-success-foreground">{stats.totalExecuted}</div>
+              <div className="text-2xl font-bold text-status-success-foreground">
+                {stats.totalExecuted}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <div className="mb-1 text-sm text-muted-foreground">Falhas</div>
-              <div className="text-2xl font-bold text-status-error-foreground">{stats.totalFailed}</div>
+              <div className="text-2xl font-bold text-status-error-foreground">
+                {stats.totalFailed}
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -170,13 +191,17 @@ export function WarmupPageContent() {
                 const data = stats.byType[type]
                 return (
                   <div key={type} className="rounded-lg bg-muted/50 p-3">
-                    <div className="mb-1 text-xs text-muted-foreground">{activityTypeLabels[type]}</div>
+                    <div className="mb-1 text-xs text-muted-foreground">
+                      {activityTypeLabels[type]}
+                    </div>
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-semibold">{data.executed}</span>
                       <span className="text-xs text-muted-foreground">/ {data.planned}</span>
                     </div>
                     {data.failed > 0 && (
-                      <div className="mt-1 text-xs text-status-error-foreground">{data.failed} falhas</div>
+                      <div className="mt-1 text-xs text-status-error-foreground">
+                        {data.failed} falhas
+                      </div>
                     )}
                   </div>
                 )

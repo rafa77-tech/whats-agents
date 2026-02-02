@@ -92,7 +92,11 @@ export function JobsStatsCards({ stats, isLoading }: JobsStatsCardsProps) {
             ? 'text-status-warning-foreground'
             : 'text-status-error-foreground',
       bgColor:
-        stats.staleJobs === 0 ? 'bg-status-success' : stats.staleJobs <= 2 ? 'bg-status-warning' : 'bg-status-error',
+        stats.staleJobs === 0
+          ? 'bg-status-success'
+          : stats.staleJobs <= 2
+            ? 'bg-status-warning'
+            : 'bg-status-error',
     },
   ]
 

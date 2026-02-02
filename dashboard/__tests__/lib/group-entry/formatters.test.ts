@@ -34,15 +34,23 @@ describe('getLinkStatusLabel', () => {
 
 describe('getLinkStatusBadgeColor', () => {
   it('returns correct color for each status', () => {
-    expect(getLinkStatusBadgeColor('pending')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getLinkStatusBadgeColor('pending')).toBe(
+      'bg-status-neutral text-status-neutral-foreground'
+    )
     expect(getLinkStatusBadgeColor('validated')).toBe('bg-status-info text-status-info-foreground')
-    expect(getLinkStatusBadgeColor('scheduled')).toBe('bg-status-warning text-status-warning-foreground')
-    expect(getLinkStatusBadgeColor('processed')).toBe('bg-status-success text-status-success-foreground')
+    expect(getLinkStatusBadgeColor('scheduled')).toBe(
+      'bg-status-warning text-status-warning-foreground'
+    )
+    expect(getLinkStatusBadgeColor('processed')).toBe(
+      'bg-status-success text-status-success-foreground'
+    )
     expect(getLinkStatusBadgeColor('failed')).toBe('bg-status-error text-status-error-foreground')
   })
 
   it('returns default color for unknown status', () => {
-    expect(getLinkStatusBadgeColor('unknown')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getLinkStatusBadgeColor('unknown')).toBe(
+      'bg-status-neutral text-status-neutral-foreground'
+    )
     expect(getLinkStatusBadgeColor('')).toBe('bg-status-neutral text-status-neutral-foreground')
   })
 })
@@ -60,12 +68,18 @@ describe('getQueueStatusLabel', () => {
 
 describe('getQueueStatusBadgeColor', () => {
   it('returns correct color for each status', () => {
-    expect(getQueueStatusBadgeColor('queued')).toBe('bg-status-warning text-status-warning-foreground')
-    expect(getQueueStatusBadgeColor('processing')).toBe('bg-status-info text-status-info-foreground')
+    expect(getQueueStatusBadgeColor('queued')).toBe(
+      'bg-status-warning text-status-warning-foreground'
+    )
+    expect(getQueueStatusBadgeColor('processing')).toBe(
+      'bg-status-info text-status-info-foreground'
+    )
   })
 
   it('returns default color for unknown status', () => {
-    expect(getQueueStatusBadgeColor('unknown')).toBe('bg-status-neutral text-status-neutral-foreground')
+    expect(getQueueStatusBadgeColor('unknown')).toBe(
+      'bg-status-neutral text-status-neutral-foreground'
+    )
   })
 })
 

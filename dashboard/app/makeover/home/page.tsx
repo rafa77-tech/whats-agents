@@ -25,7 +25,7 @@ export default function MakeoverHomePage() {
           <div className="text-xs uppercase tracking-widest text-muted-foreground">
             Saude do sistema
           </div>
-          <div className="mt-3 font-display text-3xl">95/100</div>
+          <div className="font-display mt-3 text-3xl">95/100</div>
           <div className="mt-2 text-sm text-muted-foreground">Sem incidentes criticos ativos.</div>
           <button className="mt-4 rounded-md border border-border px-3 py-2 text-xs">
             Ver Health
@@ -71,7 +71,7 @@ export default function MakeoverHomePage() {
             <div className="text-xs uppercase tracking-widest text-muted-foreground">
               Proxima acao
             </div>
-            <div className="mt-2 font-display text-2xl">Resolver alerta de conexao perdida</div>
+            <div className="font-display mt-2 text-2xl">Resolver alerta de conexao perdida</div>
             <div className="text-sm text-muted-foreground">
               Chip zapi-revoluna desconectado ha 10h.
             </div>
@@ -88,7 +88,7 @@ export default function MakeoverHomePage() {
             <div className="text-xs uppercase tracking-widest text-muted-foreground">
               {kpi.label}
             </div>
-            <div className="mt-2 font-display text-2xl">{kpi.value}</div>
+            <div className="font-display mt-2 text-2xl">{kpi.value}</div>
             <div className="text-xs text-muted-foreground">{kpi.delta}</div>
           </div>
         ))}

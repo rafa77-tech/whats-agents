@@ -215,7 +215,11 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
             >
               Cancelar
             </Button>
-            <Button size="sm" className="h-8 bg-state-recording-button hover:bg-state-recording-button-hover" onClick={stopRecording}>
+            <Button
+              size="sm"
+              className="h-8 bg-state-recording-button hover:bg-state-recording-button-hover"
+              onClick={stopRecording}
+            >
               <StopCircle className="mr-1 h-4 w-4" />
               Parar
             </Button>
@@ -322,7 +326,10 @@ export function MessageInput({ onSend, disabled, placeholder }: Props) {
             onClick={isRecording ? stopRecording : startRecording}
           >
             <Mic
-              className={cn('h-5 w-5', isRecording ? 'text-state-recording-dot' : 'text-muted-foreground')}
+              className={cn(
+                'h-5 w-5',
+                isRecording ? 'text-state-recording-dot' : 'text-muted-foreground'
+              )}
             />
           </Button>
         )}
