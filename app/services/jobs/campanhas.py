@@ -8,6 +8,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 
+from app.core.timezone import agora_utc
 from app.services.campanhas import campanha_executor, campanha_repository
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ async def processar_campanhas_agendadas() -> ResultadoCampanhas:
     Returns:
         ResultadoCampanhas com estatisticas
     """
-    agora = datetime.utcnow()
+    agora = agora_utc()
 
     # Buscar campanhas prontas usando o repository
     campanhas = await campanha_repository.listar_agendadas(agora)

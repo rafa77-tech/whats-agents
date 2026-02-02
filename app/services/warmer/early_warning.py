@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class Alerta:
 
     def __post_init__(self):
         if self.created_at is None:
-            self.created_at = datetime.now()
+            self.created_at = agora_brasilia()
 
 
 # Thresholds para detecção
@@ -486,7 +487,7 @@ class EarlyWarningSystem:
         supabase.table("chip_alerts").update({
             "status": "resolvido",
             "resolucao": resolucao,
-            "resolved_at": datetime.now().isoformat(),
+            "resolved_at": agora_brasilia().isoformat(),
         }).eq("id", alerta_id).execute()
 
         logger.info(f"[EarlyWarning] Alerta {alerta_id} resolvido: {resolucao}")

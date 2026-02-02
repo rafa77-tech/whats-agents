@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from app.core.timezone import agora_utc
 from app.services.supabase import supabase
 from app.services.redis import cache_get_json, cache_set_json, cache_delete
 from .types import (
@@ -212,7 +213,7 @@ async def resolve_objection(cliente_id: str) -> bool:
     - Ação pendente foi concluída
     """
     return await save_doctor_state_updates(cliente_id, {
-        "objection_resolved_at": datetime.utcnow().isoformat(),
+        "objection_resolved_at": agora_utc().isoformat(),
     })
 
 

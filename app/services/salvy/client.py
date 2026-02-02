@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from app.core.config import settings
+from app.core.timezone import agora_brasilia
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +73,7 @@ class SalvyClient:
                 headers=self.headers,
                 json={
                     "areaCode": ddd,
-                    "name": nome or f"julia-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                    "name": nome or f"julia-{agora_brasilia().strftime('%Y%m%d%H%M%S')}",
                 },
                 timeout=30,
             )

@@ -24,6 +24,7 @@ from typing import Optional
 from dataclasses import dataclass
 
 from app.core.config import DatabaseConfig
+from app.core.timezone import agora_brasilia
 
 logger = logging.getLogger(__name__)
 
@@ -304,7 +305,7 @@ async def listar_documentos(folder_id: Optional[str] = None, force_refresh: bool
 
     # Verificar cache
     if not force_refresh and _docs_cache_time:
-        if datetime.now() - _docs_cache_time < timedelta(minutes=DOCS_CACHE_TTL_MINUTES):
+        if agora_brasilia() - _docs_cache_time < timedelta(minutes=DOCS_CACHE_TTL_MINUTES):
             if folder in _docs_cache:
                 logger.debug(f"Usando cache de documentos ({len(_docs_cache[folder])} docs)")
                 return _docs_cache[folder]
@@ -341,7 +342,7 @@ async def listar_documentos(folder_id: Optional[str] = None, force_refresh: bool
 
         # Atualizar cache
         _docs_cache[folder] = docs
-        _docs_cache_time = datetime.now()
+        _docs_cache_time = agora_brasilia()
 
         logger.info(f"Listados {len(docs)} documentos na pasta de briefings")
         return docs
@@ -408,7 +409,7 @@ async def ler_documento(doc_id: str) -> Optional[DocContent]:
         secao_plano = _detectar_secao_plano(conteudo)
 
         # Tentar buscar metadata do Drive, mas nao falhar se nao conseguir
-        ultima_mod = datetime.now()
+        ultima_mod = agora_brasilia()
         url = f"https://docs.google.com/document/d/{doc_id}/edit"
 
         try:
@@ -714,7 +715,7 @@ async def adicionar_linha_historico(doc_id: str, acao: str, resultado: str) -> b
         True se sucesso
     """
     try:
-        agora = datetime.now()
+        agora = agora_brasilia()
         linha = f"| {agora.strftime('%d/%m')} | {agora.strftime('%H:%M')} | {acao} | {resultado} |\n"
 
         doc = await ler_documento(doc_id)

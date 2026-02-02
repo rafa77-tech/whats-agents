@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from enum import Enum
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.redis import redis_client
 
@@ -426,7 +427,7 @@ async def desbloquear_cliente(
 
         # 2. Limpar rate limit do cliente no Redis
         try:
-            hora = datetime.now().strftime('%Y%m%d%H')
+            hora = agora_brasilia().strftime('%Y%m%d%H')
             chave = f"rate:cliente:{cliente_id}:{hora}"
             await redis_client.delete(chave)
         except Exception as e:

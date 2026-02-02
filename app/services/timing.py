@@ -35,12 +35,12 @@ def calcular_delay_resposta(
 
     Args:
         mensagem: Mensagem recebida
-        hora_atual: Hora atual (opcional, usa datetime.now() se None)
+        hora_atual: Hora atual (opcional, usa agora_brasilia() se None)
 
     Returns:
         Delay em segundos (20-120s tipicamente)
     """
-    hora_atual = hora_atual or datetime.now()
+    hora_atual = hora_atual or agora_brasilia()
     base_delay = 1  # Mínimo 1 segundo (Sprint 29: agilidade máxima)
 
     # Fator: tamanho da mensagem

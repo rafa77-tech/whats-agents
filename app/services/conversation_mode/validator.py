@@ -19,6 +19,8 @@ from enum import Enum
 from typing import Optional, Union
 from dateutil.parser import parse as parse_datetime
 
+from app.core.timezone import agora_utc
+
 
 def _ensure_datetime(value: Optional[Union[datetime, str]]) -> Optional[datetime]:
     """Converte string ISO para datetime se necessário."""
@@ -115,7 +117,7 @@ class TransitionValidator:
         # 3. Verificar cooldown
         last_trans_dt = _ensure_datetime(last_transition_at)
         if last_trans_dt:
-            minutes_since = (datetime.utcnow() - last_trans_dt.replace(tzinfo=None)).total_seconds() / 60
+            minutes_since = (agora_utc() - last_trans_dt.replace(tzinfo=None)).total_seconds() / 60
             if minutes_since < TRANSITION_COOLDOWN_MINUTES:
                 return ValidationResult(
                     decision=TransitionDecision.REJECT,
@@ -159,7 +161,7 @@ class TransitionValidator:
         # Verificar timeout
         pending_at_dt = _ensure_datetime(pending_transition_at)
         if pending_at_dt:
-            minutes_since = (datetime.utcnow() - pending_at_dt.replace(tzinfo=None)).total_seconds() / 60
+            minutes_since = (agora_utc() - pending_at_dt.replace(tzinfo=None)).total_seconds() / 60
             if minutes_since > PENDING_TRANSITION_TIMEOUT_MINUTES:
                 logger.info(
                     f"Pending expirada após {minutes_since:.1f}min"

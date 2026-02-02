@@ -9,16 +9,13 @@ V2 - Slack baixo ruido (31/12/2025):
 from datetime import datetime, timedelta
 from typing import List, Dict
 import logging
-from zoneinfo import ZoneInfo
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.slack import enviar_slack
 from app.services.redis import cache_get_json, cache_set_json
 
 logger = logging.getLogger(__name__)
-
-# Timezone do Brasil
-TZ_SP = ZoneInfo("America/Sao_Paulo")
 
 # V2: Configuracao de janela operacional e cooldown
 ALERTAS_CONFIG = {
@@ -74,7 +71,7 @@ CORES_SEVERIDADE = {
 async def verificar_taxa_handoff() -> List[Dict]:
     """Verifica se taxa de handoff está alta."""
     config = ALERTAS["taxa_handoff_alta"]
-    desde = (datetime.now() - timedelta(minutes=config["janela_minutos"])).isoformat()
+    desde = (agora_brasilia() - timedelta(minutes=config["janela_minutos"])).isoformat()
 
     try:
         # Buscar conversas e handoffs
@@ -113,7 +110,7 @@ async def verificar_taxa_handoff() -> List[Dict]:
 async def verificar_tempo_resposta() -> List[Dict]:
     """Verifica se tempo médio de resposta está alto."""
     config = ALERTAS["tempo_resposta_alto"]
-    desde = (datetime.now() - timedelta(minutes=config["janela_minutos"])).isoformat()
+    desde = (agora_brasilia() - timedelta(minutes=config["janela_minutos"])).isoformat()
 
     try:
         # Buscar métricas de conversa
@@ -146,7 +143,7 @@ async def verificar_tempo_resposta() -> List[Dict]:
 async def verificar_score_qualidade() -> List[Dict]:
     """Verifica se score de qualidade está baixo."""
     config = ALERTAS["score_qualidade_baixo"]
-    desde = (datetime.now() - timedelta(minutes=config["janela_minutos"])).isoformat()
+    desde = (agora_brasilia() - timedelta(minutes=config["janela_minutos"])).isoformat()
 
     try:
         # Buscar avaliações recentes
@@ -187,11 +184,11 @@ async def verificar_atividade() -> List[Dict]:
     Isso evita falsos positivos fora do horario ou quando ninguem mandou msg.
     """
     config = ALERTAS["sem_respostas"]
-    desde = (datetime.now() - timedelta(minutes=config["janela_minutos"])).isoformat()
+    desde = (agora_brasilia() - timedelta(minutes=config["janela_minutos"])).isoformat()
 
     try:
         # V2: Verificar janela operacional primeiro
-        agora_sp = datetime.now(TZ_SP)
+        agora_sp = agora_brasilia()
         hora_atual = agora_sp.hour
         janela = ALERTAS_CONFIG["janela_operacional"]
 
@@ -302,7 +299,7 @@ async def enviar_alerta_slack(alerta: Dict):
             "fields": [
                 {"title": "Descrição", "value": alerta["mensagem"], "short": False},
                 {"title": "Severidade", "value": alerta["severidade"], "short": True},
-                {"title": "Horário", "value": datetime.now().strftime("%H:%M"), "short": True},
+                {"title": "Horário", "value": agora_brasilia().strftime("%H:%M"), "short": True},
             ]
         }]
     }
@@ -328,7 +325,7 @@ async def _verificar_cooldown_alerta(tipo: str, severidade: str) -> bool:
         cooldown_min = ALERTAS_CONFIG["cooldown_por_severidade"].get(severidade, 30)
         cooldown = timedelta(minutes=cooldown_min)
 
-        if datetime.now() - ultimo_envio < cooldown:
+        if agora_brasilia() - ultimo_envio < cooldown:
             logger.debug(f"Alerta {tipo} em cooldown ({cooldown_min}min)")
             return False
 
@@ -343,7 +340,7 @@ async def _registrar_envio_alerta(tipo: str):
     cache_key = f"alerta:cooldown:{tipo}"
     try:
         await cache_set_json(cache_key, {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": agora_brasilia().isoformat(),
             "tipo": tipo
         }, ttl=7200)  # 2 horas
     except Exception as e:

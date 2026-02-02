@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Optional, Union
 from dateutil.parser import parse as parse_datetime
 
+from app.core.timezone import agora_utc
 from .types import ConversationMode
 
 
@@ -150,7 +151,7 @@ class TransitionProposer:
         # Regra: Silêncio >= 7 dias → REATIVACAO
         last_msg_dt = _ensure_datetime(last_message_at)
         if last_msg_dt:
-            days_since = (datetime.utcnow() - last_msg_dt.replace(tzinfo=None)).days
+            days_since = (agora_utc() - last_msg_dt.replace(tzinfo=None)).days
             if days_since >= SILENCE_DAYS_FOR_REACTIVATION:
                 if current_mode != ConversationMode.REATIVACAO:
                     return TransitionProposal(

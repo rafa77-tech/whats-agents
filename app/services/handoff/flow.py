@@ -8,6 +8,7 @@ from datetime import datetime
 import logging
 from typing import Optional
 
+from app.core.timezone import agora_utc
 from app.core.tasks import safe_create_task
 from app.services.supabase import supabase
 from app.services.slack import notificar_handoff
@@ -79,7 +80,7 @@ async def iniciar_handoff(
         supabase.table("conversations").update({
             "controlled_by": "human",
             "escalation_reason": motivo,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": agora_utc().isoformat()
         }).eq("id", conversa_id).execute()
 
         logger.info(f"Conversa {conversa_id} atualizada para controle humano")
@@ -118,11 +119,20 @@ async def iniciar_handoff(
             name="emit_handoff_created"
         )
 
-        # 5. Notificar gestor no Slack
-        try:
-            await notificar_handoff(conversa, handoff)
-        except Exception as e:
-            logger.error(f"Erro ao notificar Slack: {e}")
+        # 5. Notificar gestor no Slack (Sprint 44 T01.7: retry com fallback)
+        notificado = await _notificar_com_retry(conversa, handoff, conversa_id)
+
+        if not notificado:
+            # Fallback crítico: criar alerta no sistema
+            logger.critical(
+                f"HANDOFF SEM NOTIFICAÇÃO - Conversa {conversa_id} aguarda atendimento humano! "
+                f"Handoff ID: {handoff['id']}"
+            )
+            # Criar alerta no banco para monitoramento
+            safe_create_task(
+                _criar_alerta_handoff_sem_notificacao(conversa_id, handoff["id"]),
+                name="alert_handoff_sem_notificacao"
+            )
 
         return handoff
 
@@ -295,7 +305,7 @@ async def finalizar_handoff(
         supabase.table("conversations").update({
             "controlled_by": "ai",
             "escalation_reason": None,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": agora_utc().isoformat()
         }).eq("id", conversa_id).execute()
 
         logger.info(f"Conversa {conversa_id} retornada para controle IA")
@@ -316,7 +326,7 @@ async def finalizar_handoff(
             supabase.table("handoffs")
             .update({
                 "status": "resolvido",
-                "resolvido_em": datetime.utcnow().isoformat(),
+                "resolvido_em": agora_utc().isoformat(),
                 "resolvido_por": resolvido_por,
                 "notas": notas
             })
@@ -362,7 +372,7 @@ async def resolver_handoff(
     try:
         update_data = {
             "status": "resolvido",
-            "resolvido_em": datetime.utcnow().isoformat()
+            "resolvido_em": agora_utc().isoformat()
         }
 
         if resolvido_por:

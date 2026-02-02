@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from app.core.timezone import agora_utc
 from app.services.supabase import supabase
 from .types import ConversationMode, ModeInfo
 
@@ -74,7 +75,7 @@ async def set_conversation_mode(
     try:
         update_data = {
             "conversation_mode": mode.value,
-            "mode_updated_at": datetime.utcnow().isoformat(),
+            "mode_updated_at": agora_utc().isoformat(),
             "mode_updated_reason": reason,
             # Limpa pending quando transiciona
             "pending_transition": None,
@@ -129,7 +130,7 @@ async def set_pending_transition(
             supabase.table("conversations")
             .update({
                 "pending_transition": pending_mode.value,
-                "pending_transition_at": datetime.utcnow().isoformat(),
+                "pending_transition_at": agora_utc().isoformat(),
             })
             .eq("id", conversa_id)
             .execute()

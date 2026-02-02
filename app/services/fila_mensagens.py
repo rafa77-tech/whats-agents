@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.timing import proximo_horario_comercial
 from app.services.outbound import send_outbound_message, criar_contexto_followup
@@ -59,7 +60,7 @@ async def processar_fila_mensagens():
 
     Executar via cron a cada minuto.
     """
-    agora = datetime.now()
+    agora = agora_brasilia()
 
     try:
         # Buscar mensagens prontas para envio
@@ -139,7 +140,7 @@ async def processar_fila_mensagens():
                 # Marcar como enviada
                 supabase.table("fila_mensagens").update({
                     "status": "enviada",
-                    "enviada_em": datetime.now().isoformat()
+                    "enviada_em": agora_brasilia().isoformat()
                 }).eq("id", msg["id"]).execute()
 
                 logger.info(f"Mensagem agendada {msg['id']} enviada com sucesso")

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import logging
 
+from app.core.timezone import agora_utc
 from app.services.supabase import supabase
 from app.core.metrics import metrics
 
@@ -258,7 +259,7 @@ async def atualizar_sugestao(sugestao_id: str, status: str):
     try:
         atualizacao = {"status": status}
         if status == "implementada":
-            atualizacao["implementada_em"] = datetime.utcnow().isoformat()
+            atualizacao["implementada_em"] = agora_utc().isoformat()
 
         response = (
             supabase.table("sugestoes_prompt")

@@ -12,6 +12,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
+from app.core.timezone import agora_utc
 from app.services.classificacao.severity_mapper import (
     map_severity, is_opt_out, ObjectionSeverity
 )
@@ -41,7 +42,7 @@ class StateUpdate:
             Dict com campos a atualizar no banco
         """
         updates = {
-            "last_inbound_at": datetime.utcnow().isoformat(),
+            "last_inbound_at": agora_utc().isoformat(),
         }
 
         # === TEMPERATURA ===
@@ -84,7 +85,7 @@ class StateUpdate:
                 updates["permission_state"] = PermissionState.OPTED_OUT.value
                 updates["active_objection"] = "opt_out"
                 updates["objection_severity"] = ObjectionSeverity.GRAVE.value
-                updates["objection_detected_at"] = datetime.utcnow().isoformat()
+                updates["objection_detected_at"] = agora_utc().isoformat()
                 # Limpar cooling_off se tinha
                 updates["cooling_off_until"] = None
                 logger.warning(f"OPT-OUT detectado para {state.cliente_id}")
@@ -92,17 +93,17 @@ class StateUpdate:
             # Objeção grave (não opt-out) → cooling_off
             elif severity == ObjectionSeverity.GRAVE:
                 updates["permission_state"] = PermissionState.COOLING_OFF.value
-                updates["cooling_off_until"] = (datetime.utcnow() + timedelta(days=7)).isoformat()
+                updates["cooling_off_until"] = (agora_utc() + timedelta(days=7)).isoformat()
                 updates["active_objection"] = tipo
                 updates["objection_severity"] = severity.value
-                updates["objection_detected_at"] = datetime.utcnow().isoformat()
+                updates["objection_detected_at"] = agora_utc().isoformat()
                 logger.warning(f"Objeção GRAVE para {state.cliente_id}: {tipo}")
 
             # Objeção não-grave → registrar mas não mudar permission
             else:
                 updates["active_objection"] = tipo
                 updates["objection_severity"] = severity.value
-                updates["objection_detected_at"] = datetime.utcnow().isoformat()
+                updates["objection_detected_at"] = agora_utc().isoformat()
                 logger.info(f"Objeção {severity.value} para {state.cliente_id}: {tipo}")
 
         # IMPORTANTE: NÃO limpar objeção se não detectou nova
@@ -131,7 +132,7 @@ class StateUpdate:
             Dict com campos a atualizar
         """
         updates = {
-            "last_outbound_at": datetime.utcnow().isoformat(),
+            "last_outbound_at": agora_utc().isoformat(),
             "last_outbound_actor": actor,
             "contact_count_7d": state.contact_count_7d + 1,
         }
@@ -163,7 +164,7 @@ class StateUpdate:
         Returns:
             Dict com campos a atualizar (vazio se nada a fazer)
         """
-        now = now or datetime.utcnow()
+        now = now or agora_utc()
 
         # Não decair opt-out
         if state.permission_state == PermissionState.OPTED_OUT:
@@ -230,7 +231,7 @@ class StateUpdate:
         logger.info(f"Objeção resolvida para {state.cliente_id}: {state.active_objection}")
 
         return {
-            "objection_resolved_at": datetime.utcnow().isoformat(),
+            "objection_resolved_at": agora_utc().isoformat(),
             # NÃO limpa active_objection - mantém histórico
             # NÃO limpa objection_severity - mantém histórico
         }

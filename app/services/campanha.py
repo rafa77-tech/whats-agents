@@ -29,6 +29,7 @@ import warnings
 from datetime import datetime, timedelta
 from typing import Optional
 
+from app.core.timezone import agora_brasilia, agora_utc
 from app.services.supabase import supabase
 from app.services.outbound import send_outbound_message, criar_contexto_campanha
 from app.core.piloto_config import piloto_config
@@ -53,7 +54,7 @@ class ControladorEnvio:
             DeprecationWarning,
             stacklevel=2
         )
-        agora = datetime.now()
+        agora = agora_brasilia()
 
         # Verificar horário
         if agora.hour < piloto_config.HORA_INICIO or agora.hour >= piloto_config.HORA_FIM:
@@ -98,7 +99,7 @@ class ControladorEnvio:
 
     async def proximo_horario_disponivel(self) -> datetime:
         """Retorna próximo horário disponível para envio."""
-        agora = datetime.now()
+        agora = agora_brasilia()
 
         # Se fora do horário, ir para próximo dia útil às 8h
         if agora.hour >= piloto_config.HORA_FIM:
@@ -271,12 +272,12 @@ async def executar_campanha(campanha_id: str):
             # Atualizar envio
             supabase.table("envios_campanha").update({
                 "status": "enviado",
-                "enviado_em": datetime.utcnow().isoformat()
+                "enviado_em": agora_utc().isoformat()
             }).eq("id", envio["id"]).execute()
 
             # Marcar médico
             supabase.table("clientes").update({
-                "primeiro_contato_em": datetime.utcnow().isoformat()
+                "primeiro_contato_em": agora_utc().isoformat()
             }).eq("id", medico["id"]).execute()
 
             logger.info(f"Primeiro contato enviado para {medico.get('primeiro_nome', 'N/A')}")
@@ -325,6 +326,21 @@ async def criar_envios_campanha(campanha_id: str):
 
     # Buscar destinatários
     destinatarios = await segmentacao_service.buscar_segmento(filtros, limite=10000)
+
+    # Sprint 44 T01.5: Filtrar opted-out ANTES de enfileirar
+    # Isso evita envio de mensagens para médicos que pediram para sair
+    destinatarios_filtrados = [
+        d for d in destinatarios
+        if not d.get("opted_out") and not d.get("optado_saida")
+    ]
+
+    opted_out_count = len(destinatarios) - len(destinatarios_filtrados)
+    if opted_out_count > 0:
+        logger.info(
+            f"Campanha {campanha_id}: {opted_out_count} destinatários filtrados por opt-out"
+        )
+
+    destinatarios = destinatarios_filtrados
 
     # Criar envio para cada destinatário
     tipo_campanha = campanha.get("tipo_campanha", "campanha")
@@ -449,7 +465,7 @@ async def enviar_mensagem_prospeccao(
                     "cliente_id": cliente_id,
                     "status": "enviado",
                     "tipo": "primeiro_contato",
-                    "enviado_em": datetime.utcnow().isoformat(),
+                    "enviado_em": agora_utc().isoformat(),
                     "metadata": {
                         "mensagens_enviadas": len(mensagens),
                         "abertura_variada": usar_aberturas_variadas

@@ -8,6 +8,8 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Any
 
+from app.core.timezone import agora_utc
+
 logger = logging.getLogger(__name__)
 
 
@@ -56,7 +58,7 @@ class MetricsCollector:
         """Registra tempo de execução."""
         self.tempos[nome].append({
             "tempo": tempo,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": agora_utc().isoformat()
         })
         # Manter apenas últimos 1000
         if len(self.tempos[nome]) > 1000:
