@@ -40,7 +40,7 @@ export function useCampanhaForm() {
   )
 
   const toggleArrayItem = useCallback(
-    (field: 'especialidades' | 'regioes' | 'status_cliente', item: string) => {
+    (field: 'especialidades' | 'regioes' | 'status_cliente' | 'chips_excluidos', item: string) => {
       setFormData((prev) => {
         const array = prev[field]
         if (array.includes(item)) {
@@ -84,6 +84,10 @@ export function useCampanhaForm() {
   }, [loadDraft])
 
   const buildPayload = useCallback(() => {
+    // Chips excluídos vão sempre no payload (mesmo se audiência for 'todos')
+    const chipsExcluidos =
+      formData.chips_excluidos.length > 0 ? formData.chips_excluidos : undefined
+
     return {
       nome_template: formData.nome_template,
       tipo_campanha: formData.tipo_campanha,
@@ -97,8 +101,12 @@ export function useCampanhaForm() {
               especialidades: formData.especialidades,
               regioes: formData.regioes,
               status_cliente: formData.status_cliente,
+              chips_excluidos: chipsExcluidos,
             }
-          : {},
+          : {
+              chips_excluidos: chipsExcluidos,
+            },
+      chips_excluidos: chipsExcluidos, // Também no nível raiz para compatibilidade
       agendar_para:
         formData.agendar && formData.agendar_para
           ? new Date(formData.agendar_para).toISOString()

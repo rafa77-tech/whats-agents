@@ -48,6 +48,10 @@ class CriarCampanhaRequest(BaseModel):
         description="Data/hora para agendamento"
     )
     pode_ofertar: bool = Field(default=True, description="Se pode ofertar vagas")
+    chips_excluidos: Optional[List[str]] = Field(
+        default=None,
+        description="IDs de chips a NAO usar nesta campanha"
+    )
 
 
 class CampanhaResponse(BaseModel):
@@ -94,6 +98,7 @@ async def criar_campanha(dados: CriarCampanhaRequest):
         regioes=dados.regioes or [],
         especialidades=dados.especialidades or [],
         quantidade_alvo=dados.quantidade_alvo,
+        chips_excluidos=dados.chips_excluidos or [],
     )
 
     # Criar campanha usando o repository

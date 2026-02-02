@@ -42,6 +42,20 @@ from .tool_executor import ToolExecutor, get_tool_executor, get_julia_tools
 # Response Handler
 from .response_handler import ResponseHandler, get_response_handler, resposta_parece_incompleta
 
+# Summarizer (Sprint 44 T02.3)
+from .summarizer import (
+    sumarizar_se_necessario,
+    formatar_contexto_com_resumo,
+    obter_metricas_summarizer,
+)
+
+# Event Emitter (Sprint 44 T02.4)
+from .event_emitter import (
+    emitir_offer_events,
+    emitir_fallback_event,
+    emitir_policy_effect_event,
+)
+
 # Orchestrator
 from .orchestrator import gerar_resposta_julia_v2
 
@@ -70,4 +84,12 @@ __all__ = [
     "ResponseHandler",
     "get_response_handler",
     "resposta_parece_incompleta",
+    # Summarizer (Sprint 44 T02.3)
+    "sumarizar_se_necessario",
+    "formatar_contexto_com_resumo",
+    "obter_metricas_summarizer",
+    # Event Emitter (Sprint 44 T02.4)
+    "emitir_offer_events",
+    "emitir_fallback_event",
+    "emitir_policy_effect_event",
 ]

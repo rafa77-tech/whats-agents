@@ -4,6 +4,7 @@ Servico de fila de mensagens agendadas.
 Sprint 23 E01 - Adiciona suporte a outcome detalhado.
 Sprint 36 - T01.1: Timeout para mensagens travadas
 Sprint 36 - T01.2: Cancelar mensagens antigas
+Sprint 44 T03.5: Dead Letter Queue para mensagens falhadas
 """
 from datetime import datetime, timezone, timedelta
 from typing import Optional, TYPE_CHECKING
@@ -259,15 +260,207 @@ class FilaService:
             logger.info(f"Retry agendado para mensagem {mensagem_id} (tentativa {nova_tentativa})")
             return True
         else:
-            # Esgotou tentativas
+            # Esgotou tentativas - mover para DLQ
             supabase.table("fila_mensagens").update({
                 "status": "erro",
                 "tentativas": nova_tentativa,
                 "erro": erro
             }).eq("id", mensagem_id).execute()
-            
-            logger.error(f"Mensagem {mensagem_id} falhou após {nova_tentativa} tentativas")
+
+            # Sprint 44 T03.5: Mover para Dead Letter Queue
+            await self._mover_para_dlq(mensagem_id, nova_tentativa, erro)
+
+            logger.error(f"Mensagem {mensagem_id} falhou após {nova_tentativa} tentativas - movida para DLQ")
             return False
+
+    async def _mover_para_dlq(
+        self,
+        mensagem_id: str,
+        tentativas: int,
+        erro: str
+    ) -> bool:
+        """
+        Sprint 44 T03.5: Move mensagem falhada para Dead Letter Queue.
+
+        Args:
+            mensagem_id: ID da mensagem original
+            tentativas: Número de tentativas realizadas
+            erro: Último erro registrado
+
+        Returns:
+            True se moveu com sucesso
+        """
+        try:
+            # Buscar dados completos da mensagem original
+            msg_resp = supabase.table("fila_mensagens").select(
+                "*, clientes(telefone, primeiro_nome)"
+            ).eq("id", mensagem_id).single().execute()
+
+            if not msg_resp.data:
+                logger.warning(f"[DLQ] Mensagem {mensagem_id} não encontrada")
+                return False
+
+            msg = msg_resp.data
+
+            # Inserir na DLQ
+            dlq_data = {
+                "mensagem_original_id": mensagem_id,
+                "cliente_id": msg.get("cliente_id"),
+                "conversa_id": msg.get("conversa_id"),
+                "conteudo": msg.get("conteudo"),
+                "tipo": msg.get("tipo"),
+                "prioridade": msg.get("prioridade"),
+                "tentativas": tentativas,
+                "ultimo_erro": erro,
+                "outcome": msg.get("outcome"),
+                "outcome_reason_code": msg.get("outcome_reason_code"),
+                "metadata": msg.get("metadata", {}),
+                "original_created_at": msg.get("created_at"),
+            }
+
+            supabase.table("fila_mensagens_dlq").insert(dlq_data).execute()
+
+            logger.info(
+                f"[DLQ] Mensagem {mensagem_id} movida para Dead Letter Queue",
+                extra={
+                    "mensagem_id": mensagem_id,
+                    "tentativas": tentativas,
+                    "erro": erro[:100] if erro else None,
+                }
+            )
+            return True
+
+        except Exception as e:
+            # DLQ não deve quebrar o fluxo principal
+            logger.error(f"[DLQ] Erro ao mover mensagem {mensagem_id}: {e}")
+            return False
+
+    async def listar_dlq(
+        self,
+        limite: int = 50,
+        apenas_nao_reprocessadas: bool = True
+    ) -> list[dict]:
+        """
+        Sprint 44 T03.5: Lista mensagens na Dead Letter Queue.
+
+        Args:
+            limite: Máximo de mensagens a retornar
+            apenas_nao_reprocessadas: Se True, filtra apenas não reprocessadas
+
+        Returns:
+            Lista de mensagens na DLQ
+        """
+        query = supabase.table("fila_mensagens_dlq").select(
+            "*, clientes(telefone, primeiro_nome)"
+        )
+
+        if apenas_nao_reprocessadas:
+            query = query.eq("reprocessado", False)
+
+        response = query.order(
+            "movido_para_dlq_em", desc=True
+        ).limit(limite).execute()
+
+        return response.data or []
+
+    async def reprocessar_da_dlq(
+        self,
+        dlq_id: str,
+        usuario: str = "system"
+    ) -> Optional[dict]:
+        """
+        Sprint 44 T03.5: Reprocessa mensagem da DLQ.
+
+        Args:
+            dlq_id: ID da entrada na DLQ
+            usuario: Quem está reprocessando
+
+        Returns:
+            Nova mensagem enfileirada ou None se erro
+        """
+        try:
+            # Buscar entrada da DLQ
+            dlq_resp = supabase.table("fila_mensagens_dlq").select(
+                "*"
+            ).eq("id", dlq_id).single().execute()
+
+            if not dlq_resp.data:
+                logger.warning(f"[DLQ] Entrada {dlq_id} não encontrada")
+                return None
+
+            dlq = dlq_resp.data
+
+            if dlq.get("reprocessado"):
+                logger.warning(f"[DLQ] Entrada {dlq_id} já foi reprocessada")
+                return None
+
+            # Criar nova mensagem na fila
+            nova_msg = await self.enfileirar(
+                cliente_id=dlq["cliente_id"],
+                conteudo=dlq["conteudo"],
+                tipo=dlq.get("tipo", "reprocessamento"),
+                conversa_id=dlq.get("conversa_id"),
+                prioridade=dlq.get("prioridade", 5),
+                metadata={
+                    **dlq.get("metadata", {}),
+                    "reprocessado_de_dlq": dlq_id,
+                }
+            )
+
+            if nova_msg:
+                # Marcar DLQ como reprocessada
+                supabase.table("fila_mensagens_dlq").update({
+                    "reprocessado": True,
+                    "reprocessado_em": datetime.now(timezone.utc).isoformat(),
+                    "reprocessado_por": usuario,
+                }).eq("id", dlq_id).execute()
+
+                logger.info(
+                    f"[DLQ] Mensagem {dlq_id} reprocessada como {nova_msg['id']}",
+                    extra={"dlq_id": dlq_id, "nova_mensagem_id": nova_msg["id"]}
+                )
+
+            return nova_msg
+
+        except Exception as e:
+            logger.error(f"[DLQ] Erro ao reprocessar {dlq_id}: {e}")
+            return None
+
+    async def obter_metricas_dlq(self) -> dict:
+        """
+        Sprint 44 T03.5: Obtém métricas da Dead Letter Queue.
+
+        Returns:
+            {
+                'total': int,
+                'nao_reprocessadas': int,
+                'por_outcome': {outcome: count},
+                'ultimas_24h': int,
+            }
+        """
+        agora = datetime.now(timezone.utc)
+        ontem = (agora - timedelta(hours=24)).isoformat()
+
+        # Total
+        total = supabase.table("fila_mensagens_dlq").select(
+            "id", count="exact"
+        ).execute()
+
+        # Não reprocessadas
+        nao_reprocessadas = supabase.table("fila_mensagens_dlq").select(
+            "id", count="exact"
+        ).eq("reprocessado", False).execute()
+
+        # Últimas 24h
+        ultimas_24h = supabase.table("fila_mensagens_dlq").select(
+            "id", count="exact"
+        ).gte("movido_para_dlq_em", ontem).execute()
+
+        return {
+            "total": total.count or 0,
+            "nao_reprocessadas": nao_reprocessadas.count or 0,
+            "ultimas_24h": ultimas_24h.count or 0,
+        }
 
     async def resetar_mensagens_travadas(self, timeout_minutos: int = 60) -> int:
         """
@@ -304,13 +497,17 @@ class FilaService:
 
             if tentativas >= max_tentativas:
                 # Esgotou tentativas - marcar como erro
+                erro_msg = f"Timeout após {timeout_minutos}min (tentativa {tentativas})"
                 supabase.table("fila_mensagens").update({
                     "status": "erro",
                     "tentativas": tentativas,
-                    "erro": f"Timeout após {timeout_minutos}min (tentativa {tentativas})",
+                    "erro": erro_msg,
                     "outcome": "FAILED_TIMEOUT",
                     "outcome_at": agora.isoformat(),
                 }).eq("id", msg["id"]).execute()
+
+                # Sprint 44 T03.5: Mover para DLQ
+                await self._mover_para_dlq(msg["id"], tentativas, erro_msg)
             else:
                 # Ainda tem tentativas - resetar para pendente
                 supabase.table("fila_mensagens").update({

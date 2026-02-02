@@ -3,13 +3,26 @@ Configuração de logging estruturado.
 
 Em produção: JSON para facilitar parsing por ferramentas de log
 Em desenvolvimento: Formato legível para humanos
+
+Sprint 44 T07.1-T07.3: Melhorias de observabilidade
+- Adicionado trace_id via contextvars
+- Função mask_phone para padronizar mascaramento
+- Context manager para injetar contexto
 """
 import logging
 import sys
 import os
 import json
+import uuid
+from contextvars import ContextVar
+from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
+
+# Sprint 44 T07.3: Context vars para trace_id e outros contextos
+_trace_id: ContextVar[str] = ContextVar("trace_id", default="")
+_cliente_id: ContextVar[str] = ContextVar("cliente_id", default="")
+_conversa_id: ContextVar[str] = ContextVar("conversa_id", default="")
 
 
 class JSONFormatter(logging.Formatter):
@@ -25,6 +38,17 @@ class JSONFormatter(logging.Formatter):
             "function": record.funcName,
             "line": record.lineno,
         }
+
+        # Sprint 44 T07.3: Adicionar contexto via contextvars
+        trace_id = _trace_id.get()
+        if trace_id:
+            log_data["trace_id"] = trace_id
+        cliente_id = _cliente_id.get()
+        if cliente_id:
+            log_data["cliente_id"] = cliente_id
+        conversa_id = _conversa_id.get()
+        if conversa_id:
+            log_data["conversa_id"] = conversa_id
 
         # Adicionar exception info se existir
         if record.exc_info:
@@ -113,3 +137,115 @@ def setup_logging():
 
 # Chamar no startup
 setup_logging()
+
+
+# =============================================================================
+# Sprint 44 T07.2-T07.3: Funções de utilidade para logging
+# =============================================================================
+
+def mask_phone(telefone: str) -> str:
+    """
+    Mascara telefone para logs: 5511...1234
+
+    Sprint 44 T07.2: Padronizar mascaramento de telefone.
+
+    Args:
+        telefone: Número de telefone
+
+    Returns:
+        Telefone mascarado para segurança
+    """
+    if not telefone:
+        return "****"
+    if len(telefone) >= 8:
+        return f"{telefone[:4]}...{telefone[-4:]}"
+    return "****"
+
+
+def generate_trace_id() -> str:
+    """Gera um novo trace_id único."""
+    return str(uuid.uuid4())[:8]
+
+
+def set_trace_id(trace_id: Optional[str] = None) -> str:
+    """
+    Define trace_id no contexto atual.
+
+    Args:
+        trace_id: ID a usar, ou None para gerar automaticamente
+
+    Returns:
+        O trace_id definido
+    """
+    tid = trace_id or generate_trace_id()
+    _trace_id.set(tid)
+    return tid
+
+
+def get_trace_id() -> str:
+    """Retorna o trace_id atual."""
+    return _trace_id.get()
+
+
+def set_log_context(
+    cliente_id: Optional[str] = None,
+    conversa_id: Optional[str] = None,
+    trace_id: Optional[str] = None,
+) -> None:
+    """
+    Define contexto para todos os logs subsequentes.
+
+    Sprint 44 T07.3: Injetar contexto via contextvars.
+
+    Args:
+        cliente_id: ID do cliente
+        conversa_id: ID da conversa
+        trace_id: ID de trace (opcional, gera se não fornecido)
+    """
+    if trace_id is not None or not _trace_id.get():
+        _trace_id.set(trace_id or generate_trace_id())
+    if cliente_id is not None:
+        _cliente_id.set(cliente_id)
+    if conversa_id is not None:
+        _conversa_id.set(conversa_id)
+
+
+@contextmanager
+def log_context(
+    cliente_id: Optional[str] = None,
+    conversa_id: Optional[str] = None,
+    trace_id: Optional[str] = None,
+):
+    """
+    Context manager para definir contexto de logging temporário.
+
+    Usage:
+        with log_context(cliente_id="123", conversa_id="456"):
+            logger.info("Esta mensagem terá cliente_id e conversa_id")
+
+    Args:
+        cliente_id: ID do cliente
+        conversa_id: ID da conversa
+        trace_id: ID de trace
+    """
+    # Salvar valores anteriores
+    old_trace = _trace_id.get()
+    old_cliente = _cliente_id.get()
+    old_conversa = _conversa_id.get()
+
+    try:
+        # Definir novos valores
+        set_log_context(cliente_id, conversa_id, trace_id)
+        yield
+    finally:
+        # Restaurar valores anteriores
+        _trace_id.set(old_trace)
+        _cliente_id.set(old_cliente)
+        _conversa_id.set(old_conversa)
+
+
+def clear_log_context() -> None:
+    """Limpa todo o contexto de logging."""
+    _trace_id.set("")
+    _cliente_id.set("")
+    _conversa_id.set("")

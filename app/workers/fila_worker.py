@@ -3,6 +3,7 @@ Worker para processar fila de mensagens.
 
 Sprint 23 E01 - Registra outcome detalhado para cada envio.
 Sprint 36 - T01.3: Circuit breaker no fila_worker.
+Sprint 44 T03.4: Idempotência via Redis SETNX.
 """
 import asyncio
 import logging
@@ -14,12 +15,64 @@ from app.services.rate_limiter import pode_enviar
 from app.services.outbound import send_outbound_message, criar_contexto_followup, criar_contexto_campanha
 from app.services.guardrails import SendOutcome
 from app.services.circuit_breaker import circuit_evolution, CircuitState
+from app.services.redis import redis_client
 
 logger = logging.getLogger(__name__)
+
+# Sprint 44 T03.4: TTL para lock de idempotência (5 minutos)
+_IDEMPOTENCY_TTL_SEGUNDOS = 300
 
 # Sprint 36 - T01.3: Controle de alertas
 _ultimo_alerta_circuit: Optional[datetime] = None
 _ALERTA_COOLDOWN_SEGUNDOS = 300  # 5 minutos entre alertas
+
+
+async def _adquirir_lock_idempotencia(mensagem_id: str) -> bool:
+    """
+    Sprint 44 T03.4: Adquire lock de idempotência para mensagem.
+
+    Usa Redis SETNX para garantir que apenas um worker processe
+    cada mensagem, mesmo em cenário de múltiplas instâncias.
+
+    Args:
+        mensagem_id: ID da mensagem na fila
+
+    Returns:
+        True se adquiriu lock, False se já está sendo processada
+    """
+    key = f"fila:processing:{mensagem_id}"
+
+    try:
+        # SETNX com TTL - retorna True se setou, False se já existe
+        acquired = await redis_client.set(
+            key,
+            "processing",
+            nx=True,  # Only set if not exists
+            ex=_IDEMPOTENCY_TTL_SEGUNDOS
+        )
+        return bool(acquired)
+
+    except Exception as e:
+        logger.warning(
+            f"[FilaWorker] T03.4: Erro Redis idempotência, prosseguindo: {e}"
+        )
+        # Em caso de erro Redis, prossegue (fallback graceful)
+        return True
+
+
+async def _liberar_lock_idempotencia(mensagem_id: str) -> None:
+    """
+    Sprint 44 T03.4: Libera lock de idempotência após processamento.
+
+    Args:
+        mensagem_id: ID da mensagem na fila
+    """
+    key = f"fila:processing:{mensagem_id}"
+
+    try:
+        await redis_client.delete(key)
+    except Exception as e:
+        logger.warning(f"[FilaWorker] T03.4: Erro ao liberar lock: {e}")
 
 
 async def _alertar_circuit_aberto():
@@ -95,6 +148,14 @@ async def processar_fila():
                 await asyncio.sleep(5)
                 continue
 
+            # Sprint 44 T03.4: Verificar idempotência antes de processar
+            if not await _adquirir_lock_idempotencia(mensagem["id"]):
+                logger.info(
+                    f"[FilaWorker] T03.4: Mensagem {mensagem['id']} já em processamento"
+                )
+                await asyncio.sleep(1)
+                continue
+
             # Verificar rate limiting
             cliente_id = mensagem.get("cliente_id")
             if cliente_id and not await pode_enviar(cliente_id):
@@ -103,6 +164,8 @@ async def processar_fila():
                     mensagem["id"],
                     "Rate limit atingido"
                 )
+                # Sprint 44 T03.4: Liberar lock antes de continue
+                await _liberar_lock_idempotencia(mensagem["id"])
                 await asyncio.sleep(10)
                 continue
 
@@ -118,6 +181,8 @@ async def processar_fila():
                     outcome=SendOutcome.FAILED_VALIDATION,
                     outcome_reason_code="telefone_nao_encontrado",
                 )
+                # Sprint 44 T03.4: Liberar lock antes de continue
+                await _liberar_lock_idempotencia(mensagem["id"])
                 continue
 
             # Criar contexto apropriado baseado no tipo e metadata
@@ -181,6 +246,9 @@ async def processar_fila():
                     f"{result.outcome.value} - {result.error}"
                 )
 
+            # Sprint 44 T03.4: Liberar lock após processamento
+            await _liberar_lock_idempotencia(mensagem["id"])
+
             # Delay entre envios
             await asyncio.sleep(5)
 
@@ -193,6 +261,8 @@ async def processar_fila():
                     outcome=SendOutcome.FAILED_PROVIDER,
                     outcome_reason_code=f"worker_exception:{str(e)[:100]}",
                 )
+                # Sprint 44 T03.4: Liberar lock em caso de exceção
+                await _liberar_lock_idempotencia(mensagem["id"])
             await asyncio.sleep(10)
 
 

@@ -202,10 +202,25 @@ async def get_funnel_counts(
     since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
 
     try:
+        # Sprint 44 T04.5/T04.7: Usar RPC para contagens se disponível
+        # Fallback para query com limite
+        try:
+            response = supabase.rpc(
+                "get_event_counts",
+                {"p_hours": hours}
+            ).execute()
+
+            if response.data:
+                return {row["event_type"]: row["count"] for row in response.data}
+        except Exception:
+            pass  # Fallback para query tradicional
+
+        # Fallback com limite
         query = (
             supabase.table("business_events")
             .select("event_type")
             .gte("ts", since)
+            .limit(10000)  # Sprint 44 T04.5: Limite de segurança
         )
 
         if hospital_id:

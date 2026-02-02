@@ -408,3 +408,93 @@ async def _verificar_alertas_business_events():
     except Exception as e:
         logger.error(f"Erro ao verificar alertas de business events: {e}")
 
+
+# =============================================================================
+# Sprint 44 T07.5: Alertas de Infraestrutura Crítica
+# =============================================================================
+
+async def alertar_circuit_breaker_aberto(
+    servico: str,
+    falhas: int,
+    ultimo_erro: str,
+) -> None:
+    """Alerta quando circuit breaker abre."""
+    from app.core.logging import get_trace_id
+
+    alerta = {
+        "tipo": "circuit_breaker_aberto",
+        "mensagem": f"Circuit breaker do *{servico}* abriu após {falhas} falhas consecutivas.\n\nÚltimo erro: _{ultimo_erro[:200]}_",
+        "severidade": "critical",
+        "valor": falhas,
+    }
+
+    # Bypass cooldown para circuit breaker (urgente)
+    await enviar_alerta_slack(alerta)
+    await _registrar_envio_alerta(alerta["tipo"])
+
+    logger.warning(
+        f"Circuit breaker aberto: {servico}",
+        extra={"trace_id": get_trace_id(), "servico": servico, "falhas": falhas}
+    )
+
+
+async def alertar_handoff_sem_notificacao(
+    conversa_id: str,
+    handoff_id: str,
+    motivo: str,
+) -> None:
+    """Alerta quando handoff não conseguiu ser notificado."""
+    alerta = {
+        "tipo": "handoff_sem_notificacao",
+        "mensagem": f"⚠️ *Handoff criado mas notificação falhou!*\n\n• Conversa: `{conversa_id[:8]}...`\n• Handoff: `{handoff_id[:8]}...`\n• Motivo: {motivo[:200]}\n\n*Médico pode estar esperando resposta!*",
+        "severidade": "critical",
+        "valor": 1,
+    }
+
+    # Bypass cooldown (urgente)
+    await enviar_alerta_slack(alerta)
+    await _registrar_envio_alerta(alerta["tipo"])
+
+    logger.error(f"Handoff sem notificação: {handoff_id[:8]}")
+
+
+async def alertar_llm_timeout(
+    conversa_id: str,
+    telefone: str,
+    tempo_segundos: float,
+) -> None:
+    """Alerta quando LLM não responde no tempo esperado."""
+    from app.core.logging import mask_phone
+
+    alerta = {
+        "tipo": "llm_timeout",
+        "mensagem": f"LLM timeout após {tempo_segundos:.1f}s.\n\n• Telefone: {mask_phone(telefone)}\n• Conversa: `{conversa_id[:8]}...`\n\n_Resposta de fallback foi enviada._",
+        "severidade": "warning",
+        "valor": tempo_segundos,
+    }
+
+    # Verificar cooldown (não tão urgente)
+    if await _verificar_cooldown_alerta(alerta["tipo"], alerta["severidade"]):
+        await enviar_alerta_slack(alerta)
+        await _registrar_envio_alerta(alerta["tipo"])
+
+
+async def alertar_database_error(
+    operacao: str,
+    erro: str,
+    tabela: str = None,
+) -> None:
+    """Alerta quando há erro crítico no banco."""
+    alerta = {
+        "tipo": "database_error",
+        "mensagem": f"Erro crítico no banco de dados!\n\n• Operação: *{operacao}*\n• Tabela: {tabela or 'N/A'}\n• Erro: _{erro[:300]}_",
+        "severidade": "critical",
+        "valor": 1,
+    }
+
+    if await _verificar_cooldown_alerta(alerta["tipo"], alerta["severidade"]):
+        await enviar_alerta_slack(alerta)
+        await _registrar_envio_alerta(alerta["tipo"])
+
+    logger.error(f"Database error: {operacao} - {erro[:100]}")
+

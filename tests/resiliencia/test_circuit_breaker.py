@@ -77,15 +77,20 @@ class TestCircuitClaude:
     """Testes para circuit breaker da Claude API."""
     
     @pytest.mark.asyncio
-    async def test_timeout_conta_como_falha(self):
-        """Timeout na API do Claude conta como falha."""
+    async def test_timeout_nao_conta_como_falha(self):
+        """Sprint 36 T02.3: Timeout NÃO conta como falha para abrir circuit."""
         async def func_lenta():
             await asyncio.sleep(100)  # Nunca completa
-        
+
         with pytest.raises(asyncio.TimeoutError):
             await circuit_claude.executar(func_lenta)
-        
-        assert circuit_claude.falhas_consecutivas == 1
+
+        # Timeout é registrado mas não incrementa falhas_consecutivas
+        assert circuit_claude.falhas_consecutivas == 0
+        # Mas ultima_falha é atualizada e tipo é registrado
+        assert circuit_claude.ultima_falha is not None
+        from app.services.circuit_breaker import ErrorType
+        assert circuit_claude.ultimo_erro_tipo == ErrorType.TIMEOUT
     
     @pytest.mark.asyncio
     async def test_recuperacao_apos_sucesso(self):
@@ -105,11 +110,11 @@ class TestCircuitClaude:
         # Abrir circuit
         circuit_claude.estado = CircuitState.OPEN
         circuit_claude.ultima_falha = None  # Simular que passou tempo suficiente
-        
-        # Mock datetime para simular tempo passado
-        from datetime import datetime, timedelta
-        circuit_claude.ultima_falha = datetime.now() - timedelta(seconds=61)
-        
+
+        # Usar datetime timezone-aware para compatibilidade
+        from datetime import datetime, timedelta, timezone
+        circuit_claude.ultima_falha = datetime.now(timezone.utc) - timedelta(seconds=61)
+
         # Verificar transição
         circuit_claude._verificar_transicao_half_open()
         assert circuit_claude.estado == CircuitState.HALF_OPEN

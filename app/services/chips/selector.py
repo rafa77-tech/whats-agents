@@ -22,11 +22,13 @@ Considera:
 """
 
 import logging
-from typing import Optional, List, Dict, Literal
+from typing import Optional, List, Dict, Literal, Tuple
 from datetime import datetime, timedelta, timezone
 
 from app.services.supabase import supabase
 from app.services.chips.circuit_breaker import ChipCircuitBreaker, CircuitState
+# Sprint 44 T01.8: Import Redis para reserva atômica
+from app.services.redis import redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -381,6 +383,158 @@ class ChipSelector:
             chips,
             key=lambda c: (c.get("_uso_hora", 0), -(c.get("trust_score", 0)))
         )[0]
+
+    async def _reservar_slot_atomico(self, chip: Dict) -> bool:
+        """
+        Sprint 44 T01.8: Reserva slot de envio atomicamente via Redis INCR.
+
+        Resolve race condition onde múltiplos workers podem selecionar o mesmo chip
+        simultaneamente, ultrapassando o limite.
+
+        Args:
+            chip: Dict com dados do chip (id, limite_hora)
+
+        Returns:
+            True se reserva bem sucedida, False se chip atingiu limite
+        """
+        chip_id = chip["id"]
+        limite_hora = chip.get("limite_hora", 20)
+
+        # Key com granularidade de hora (YYYYMMDDHH)
+        hora_atual = datetime.now(timezone.utc).strftime("%Y%m%d%H")
+        key = f"chip:{chip_id}:hora:{hora_atual}"
+
+        try:
+            # INCR atômico - se key não existe, cria com valor 1
+            count = await redis_client.incr(key)
+
+            # Primeira reserva da hora - definir TTL
+            if count == 1:
+                await redis_client.expire(key, 3700)  # 1h + margem
+
+            # Verificar se ainda está dentro do limite
+            if count <= limite_hora:
+                logger.debug(
+                    f"[ChipSelector] T01.8: Slot reservado para chip {chip.get('telefone', '')[-4:]}: "
+                    f"{count}/{limite_hora}"
+                )
+                return True
+            else:
+                # Excedeu limite - reverter INCR
+                await redis_client.decr(key)
+                logger.debug(
+                    f"[ChipSelector] T01.8: Chip {chip.get('telefone', '')[-4:]} atingiu limite "
+                    f"(tentativa {count}/{limite_hora}), revertendo"
+                )
+                return False
+
+        except Exception as e:
+            # Em caso de erro Redis, usar fallback sem reserva atômica
+            logger.warning(f"[ChipSelector] T01.8: Erro Redis, fallback sem atomicidade: {e}")
+            return True  # Permitir seleção, depender da verificação de banco
+
+    async def selecionar_chip_com_reserva(
+        self,
+        tipo_mensagem: TipoMensagem,
+        conversa_id: Optional[str] = None,
+        telefone_destino: Optional[str] = None,
+        excluir_chips: Optional[List[str]] = None,
+        fallback_mode: bool = False,
+    ) -> Optional[Dict]:
+        """
+        Sprint 44 T01.8: Seleciona chip com reserva atômica de slot.
+
+        Versão melhorada de selecionar_chip() que usa Redis INCR para
+        garantir atomicidade e evitar race conditions.
+
+        Args:
+            tipo_mensagem: 'prospeccao', 'followup', ou 'resposta'
+            conversa_id: ID da conversa (para continuidade)
+            telefone_destino: Telefone do destinatario
+            excluir_chips: Lista de chip_ids a excluir (já tentados)
+            fallback_mode: Se True, usa thresholds reduzidos
+
+        Returns:
+            Chip selecionado com slot reservado ou None
+        """
+        if not self.config:
+            await self.carregar_config()
+
+        excluir_chips = excluir_chips or []
+
+        # 1. Se eh resposta e tem conversa, manter no mesmo chip
+        if tipo_mensagem == "resposta" and conversa_id:
+            chip_existente = await self._buscar_chip_conversa(conversa_id)
+            if chip_existente and chip_existente.get("pode_responder"):
+                if chip_existente["id"] not in excluir_chips:
+                    # Verificar reserva atômica
+                    if await self._reservar_slot_atomico(chip_existente):
+                        logger.debug(
+                            f"[ChipSelector] T01.8: Usando chip existente com reserva: "
+                            f"{chip_existente['telefone']}"
+                        )
+                        return chip_existente
+
+        # 2. Buscar chips elegiveis
+        chips = await self._buscar_chips_elegiveis(tipo_mensagem, fallback_mode)
+
+        # Excluir chips já tentados
+        if excluir_chips:
+            chips = [c for c in chips if c["id"] not in excluir_chips]
+
+        if not chips:
+            if not fallback_mode:
+                return await self.selecionar_chip_com_reserva(
+                    tipo_mensagem=tipo_mensagem,
+                    conversa_id=conversa_id,
+                    telefone_destino=telefone_destino,
+                    excluir_chips=excluir_chips,
+                    fallback_mode=True,
+                )
+            logger.warning(f"[ChipSelector] T01.8: Nenhum chip disponível para {tipo_mensagem}")
+            return None
+
+        # 3. Verificar historico com o contato (affinity)
+        if telefone_destino:
+            chip_historico = await self._buscar_chip_historico(telefone_destino, chips)
+            if chip_historico:
+                if await self._reservar_slot_atomico(chip_historico):
+                    return chip_historico
+                # Se não conseguiu reservar, remover da lista e continuar
+                chips = [c for c in chips if c["id"] != chip_historico["id"]]
+
+        # 4. Tentar selecionar por menor uso com reserva atômica
+        # Ordenar por uso (menor primeiro), trust (maior primeiro)
+        chips_ordenados = sorted(
+            chips,
+            key=lambda c: (c.get("_uso_hora", 0), -(c.get("trust_score", 0)))
+        )
+
+        for chip in chips_ordenados:
+            if await self._reservar_slot_atomico(chip):
+                # Registrar seleção
+                await self._registrar_selecao(
+                    tipo_mensagem=tipo_mensagem,
+                    chips_elegiveis=chips,
+                    chip_selecionado=chip,
+                    motivo="menor_uso_com_reserva",
+                    conversa_id=conversa_id,
+                    telefone_destino=telefone_destino,
+                    fallback_mode=fallback_mode,
+                )
+
+                logger.debug(
+                    f"[ChipSelector] T01.8: Selecionado {chip['telefone']} "
+                    f"com reserva atômica para {tipo_mensagem}"
+                )
+                return chip
+
+        # Nenhum chip conseguiu reservar slot
+        logger.warning(
+            f"[ChipSelector] T01.8: Todos os {len(chips)} chips atingiram limite "
+            f"para {tipo_mensagem}"
+        )
+        return None
 
     async def _registrar_selecao(
         self,

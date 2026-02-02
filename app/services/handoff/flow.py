@@ -420,6 +420,7 @@ async def _notificar_com_retry(
         True se notificou com sucesso, False se todas falharam
     """
     import asyncio
+    import random
 
     for tentativa in range(max_tentativas):
         try:
@@ -431,8 +432,11 @@ async def _notificar_com_retry(
                 f"Tentativa {tentativa + 1}/{max_tentativas} de notificação Slack falhou: {e}"
             )
             if tentativa < max_tentativas - 1:
-                # Backoff exponencial: 2s, 4s, 8s...
-                await asyncio.sleep(2 ** tentativa)
+                # Sprint 44 T06.8: Backoff exponencial com jitter
+                # Base: 2s, 4s, 8s + jitter de até 25%
+                base_delay = 2 ** tentativa
+                jitter = base_delay * random.uniform(0, 0.25)
+                await asyncio.sleep(base_delay + jitter)
 
     logger.error(
         f"Todas as {max_tentativas} tentativas de notificação falharam para handoff {handoff['id']}"

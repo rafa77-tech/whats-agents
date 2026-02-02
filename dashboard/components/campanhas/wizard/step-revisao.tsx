@@ -61,6 +61,18 @@ export function StepRevisao({ formData, updateField }: StepRevisaoProps) {
               : `Filtrada (${formData.especialidades.length} especialidades, ${formData.regioes.length} regioes)`}
           </p>
         </div>
+
+        {formData.chips_excluidos.length > 0 && (
+          <div className="text-sm">
+            <span className="text-gray-500">Chips excluidos:</span>
+            <p className="text-orange-600">
+              {formData.chips_excluidos.length} chip
+              {formData.chips_excluidos.length > 1 ? 's' : ''} nao sera
+              {formData.chips_excluidos.length > 1 ? 'o' : ''} usado
+              {formData.chips_excluidos.length > 1 ? 's' : ''}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="border-t pt-4">

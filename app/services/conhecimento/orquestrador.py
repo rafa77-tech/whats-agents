@@ -2,8 +2,11 @@
 Orquestrador de detectores de situação.
 
 Coordena os 3 detectores e busca conhecimento relevante.
+
+Sprint 44 T02.7: Adicionado tracing detalhado para debugging.
 """
 import logging
+import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -48,9 +51,12 @@ class OrquestradorConhecimento:
         stage: str = "novo",
         tem_vagas_oferecidas: bool = False,
         dias_inativo: int = 0,
+        conversa_id: str = None,
     ) -> ContextoSituacao:
         """
         Analisa situação completa e busca conhecimento relevante.
+
+        Sprint 44 T02.7: Adicionado tracing detalhado para debugging.
 
         Args:
             mensagem: Última mensagem do médico
@@ -59,10 +65,12 @@ class OrquestradorConhecimento:
             stage: Stage atual da jornada
             tem_vagas_oferecidas: Se já ofereceu vagas
             dias_inativo: Dias sem interação
+            conversa_id: ID da conversa (para tracing)
 
         Returns:
             ContextoSituacao com análise e conhecimento
         """
+        inicio = time.time()
         logger.info(f"Analisando situação: mensagem='{mensagem[:50]}...'")
 
         # 1. Detectar objeção
@@ -97,7 +105,6 @@ class OrquestradorConhecimento:
             objetivo=resultado_objetivo,
             mensagem=mensagem,
         )
-        logger.info(f"Conhecimento: {len(conhecimento)} chunks encontrados")
 
         # 5. Gerar resumo
         resumo = self._gerar_resumo(
@@ -105,6 +112,25 @@ class OrquestradorConhecimento:
             perfil=resultado_perfil,
             objetivo=resultado_objetivo,
             conhecimento=conhecimento,
+        )
+
+        # Sprint 44 T02.7: Log detalhado para debugging
+        tempo_ms = (time.time() - inicio) * 1000
+        logger.info(
+            "RAG analysis complete",
+            extra={
+                "conversa_id": conversa_id,
+                "chunks_encontrados": len(conhecimento),
+                "chunk_ids": [k.id for k in conhecimento[:5]] if conhecimento else [],
+                "scores": [round(k.similaridade, 3) for k in conhecimento[:5]] if conhecimento else [],
+                "objecao_detectada": resultado_objecao.tipo.value if resultado_objecao.tem_objecao else None,
+                "objecao_confianca": round(resultado_objecao.confianca, 3),
+                "perfil_detectado": resultado_perfil.perfil.value,
+                "perfil_confianca": round(resultado_perfil.confianca, 3),
+                "objetivo_detectado": resultado_objetivo.objetivo.value,
+                "objetivo_confianca": round(resultado_objetivo.confianca, 3),
+                "tempo_ms": round(tempo_ms, 2),
+            }
         )
 
         return ContextoSituacao(

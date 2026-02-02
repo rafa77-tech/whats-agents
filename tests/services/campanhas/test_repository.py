@@ -390,3 +390,28 @@ class TestTypes:
 
         assert result.regioes == []
         assert result.especialidades == []
+
+    def test_audience_filters_chips_excluidos(self):
+        """Testa campo chips_excluidos do AudienceFilters."""
+        filters = AudienceFilters(
+            regioes=["ABC"],
+            especialidades=["cardiologia"],
+            quantidade_alvo=50,
+            chips_excluidos=["chip-123", "chip-456"],
+        )
+
+        # to_dict deve incluir chips_excluidos
+        result = filters.to_dict()
+        assert result["chips_excluidos"] == ["chip-123", "chip-456"]
+
+        # from_dict deve ler chips_excluidos
+        data = {
+            "regioes": ["SP"],
+            "chips_excluidos": ["chip-abc", "chip-def"],
+        }
+        restored = AudienceFilters.from_dict(data)
+        assert restored.chips_excluidos == ["chip-abc", "chip-def"]
+
+        # from_dict com chips_excluidos ausente deve retornar lista vazia
+        empty_result = AudienceFilters.from_dict({"regioes": ["RJ"]})
+        assert empty_result.chips_excluidos == []

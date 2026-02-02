@@ -24,6 +24,12 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     print(f"👋 Encerrando {settings.APP_NAME}...")
+    # Sprint 44 T06.2: Fechar HTTP client singleton
+    try:
+        from app.services.http_client import close_http_client
+        await close_http_client()
+    except Exception as e:
+        print(f"Erro ao fechar HTTP client: {e}")
 
 
 app = FastAPI(
