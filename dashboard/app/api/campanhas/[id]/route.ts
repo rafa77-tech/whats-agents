@@ -27,8 +27,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ detail: 'Campanha nao encontrada' }, { status: 404 })
     }
 
-    // Buscar envios da campanha com dados do cliente
-    const { data: envios, error: enviosError } = await supabase
+    // Buscar envios da tabela envios (legado)
+    const { data: enviosLegacy, error: enviosError } = await supabase
       .from('envios')
       .select(
         `
@@ -55,15 +55,85 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       .limit(100)
 
     if (enviosError) {
-      console.error('Erro ao buscar envios:', enviosError)
+      console.error('Erro ao buscar envios legado:', enviosError)
     }
 
+    // Buscar mensagens da fila_mensagens (novo sistema Sprint 35+)
+    const { data: filaMensagens, error: filaError } = await supabase
+      .from('fila_mensagens')
+      .select(
+        `
+        id,
+        cliente_id,
+        status,
+        conteudo,
+        created_at,
+        enviada_em,
+        outcome,
+        clientes (
+          id,
+          primeiro_nome,
+          sobrenome,
+          telefone,
+          especialidade
+        )
+      `
+      )
+      .contains('metadata', { campanha_id: id })
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (filaError) {
+      console.error('Erro ao buscar fila_mensagens:', filaError)
+    }
+
+    // Mapear fila_mensagens para formato de envios
+    const enviosDaFila =
+      filaMensagens?.map((msg) => {
+        // Mapear status/outcome da fila para status de envio
+        // Outcomes: SENT, BLOCKED_*, FAILED_*, DEDUPED, BYPASS
+        let envioStatus = 'pendente'
+        let falhouEm: string | null = null
+
+        const outcome = msg.outcome as string | null
+
+        if (outcome === 'SENT') {
+          envioStatus = 'enviado'
+        } else if (outcome?.startsWith('BLOCKED_') || outcome?.startsWith('FAILED_')) {
+          envioStatus = 'falhou'
+          falhouEm = msg.enviada_em || msg.created_at
+        } else if (outcome === 'DEDUPED') {
+          envioStatus = 'falhou' // Deduplicado = não enviado
+          falhouEm = msg.created_at
+        } else if (msg.enviada_em) {
+          envioStatus = 'enviado'
+        } else if (msg.status === 'processando') {
+          envioStatus = 'pendente'
+        }
+
+        return {
+          id: msg.id,
+          cliente_id: msg.cliente_id,
+          status: envioStatus,
+          conteudo_enviado: msg.conteudo,
+          created_at: msg.created_at,
+          enviado_em: msg.enviada_em,
+          entregue_em: null, // Tracking de entrega vem por webhook separado
+          visualizado_em: null, // Tracking de visualização vem por webhook separado
+          falhou_em: falhouEm,
+          clientes: msg.clientes,
+        }
+      }) || []
+
+    // Combinar envios (priorizar fila_mensagens se existir)
+    const envios = enviosDaFila.length > 0 ? enviosDaFila : enviosLegacy || []
+
     // Calcular metricas
-    const totalEnvios = envios?.length || 0
-    const enviados = envios?.filter((e) => e.enviado_em).length || 0
-    const entregues = envios?.filter((e) => e.entregue_em).length || 0
-    const visualizados = envios?.filter((e) => e.visualizado_em).length || 0
-    const falhas = envios?.filter((e) => e.status === 'falhou').length || 0
+    const totalEnvios = envios.length
+    const enviados = envios.filter((e) => e.enviado_em).length
+    const entregues = envios.filter((e) => e.entregue_em).length
+    const visualizados = envios.filter((e) => e.visualizado_em).length
+    const falhas = envios.filter((e) => e.status === 'falhou').length
 
     return NextResponse.json({
       ...campanha,
