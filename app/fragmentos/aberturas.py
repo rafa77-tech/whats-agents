@@ -48,6 +48,27 @@ SAUDACOES = [
     ("s20", "Boa noite, Dr {nome}! Tudo bem?", "noite"),
 ]
 
+# Saudacoes SEM nome (para quando nao temos o nome do medico)
+# Formato: (id, texto, periodo)
+SAUDACOES_SEM_NOME = [
+    ("sn1", "Oi! Tudo bem?", None),
+    ("sn2", "E ai, td certo?", None),
+    ("sn3", "Opa! Como vai?", None),
+    ("sn4", "Oi, tudo tranquilo?", None),
+    ("sn5", "Oi!", None),
+    ("sn6", "Bom dia!", "manha"),
+    ("sn7", "Boa tarde!", "tarde"),
+    ("sn8", "Boa noite!", "noite"),
+    ("sn9", "E ai! Tudo joia?", None),
+    ("sn10", "Oi, td bem?", None),
+    ("sn11", "Opa! Blz?", None),
+    ("sn12", "Oi! Tudo certo ai?", None),
+    ("sn13", "Ola, tudo bom?", None),
+    ("sn14", "Bom dia! Como ta?", "manha"),
+    ("sn15", "Boa tarde! Td certo?", "tarde"),
+    ("sn16", "Boa noite! Tudo bem?", "noite"),
+]
+
 # Apresentacoes (segunda linha)
 # Formato: (id, texto)
 APRESENTACOES = [
@@ -106,7 +127,7 @@ def montar_abertura_completa(
     Monta abertura completa com IDs especificos ou aleatorios.
 
     Args:
-        nome: Nome do medico
+        nome: Nome do medico (pode ser None/vazio para contatos sem nome)
         saudacao_id: ID da saudacao (ou None para aleatorio)
         apresentacao_id: ID da apresentacao
         contexto_id: ID do contexto
@@ -118,14 +139,25 @@ def montar_abertura_completa(
     """
     mensagens = []
 
-    # Saudacao
-    if saudacao_id:
-        saudacao = next((s for s in SAUDACOES if s[0] == saudacao_id), None)
-    else:
-        saudacao = random.choice(SAUDACOES)
+    # Verificar se temos nome valido
+    tem_nome = nome and nome.strip() and nome.strip().lower() not in ('none', 'null', '')
 
-    if saudacao:
-        mensagens.append(saudacao[1].format(nome=nome))
+    # Saudacao - usar versao sem nome se nao temos nome
+    if tem_nome:
+        if saudacao_id:
+            saudacao = next((s for s in SAUDACOES if s[0] == saudacao_id), None)
+        else:
+            saudacao = random.choice(SAUDACOES)
+        if saudacao:
+            mensagens.append(saudacao[1].format(nome=nome.strip()))
+    else:
+        # Usar saudacao sem nome
+        if saudacao_id and saudacao_id.startswith("sn"):
+            saudacao = next((s for s in SAUDACOES_SEM_NOME if s[0] == saudacao_id), None)
+        else:
+            saudacao = random.choice(SAUDACOES_SEM_NOME)
+        if saudacao:
+            mensagens.append(saudacao[1])
 
     # Apresentacao
     if apresentacao_id:

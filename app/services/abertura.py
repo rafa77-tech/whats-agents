@@ -9,8 +9,10 @@ import random
 from datetime import datetime
 from typing import Optional
 
+from app.core.timezone import agora_brasilia, agora_utc
 from app.fragmentos.aberturas import (
     SAUDACOES,
+    SAUDACOES_SEM_NOME,
     APRESENTACOES,
     CONTEXTOS,
     GANCHOS,
@@ -42,7 +44,7 @@ async def obter_abertura(
     Returns:
         Lista de mensagens de abertura
     """
-    hora_atual = hora_atual or datetime.now()
+    hora_atual = hora_atual or agora_brasilia()
 
     # Buscar ultima abertura usada
     ultima_abertura = await _get_ultima_abertura(cliente_id)
@@ -163,7 +165,7 @@ async def _salvar_abertura_usada(
         "apresentacao": apresentacao_id,
         "contexto": contexto_id,
         "gancho": gancho_id,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": agora_utc().isoformat()
     }
 
     # Cache

@@ -105,7 +105,13 @@ class CampanhaExecutor:
         limite = campanha.audience_filters.quantidade_alvo if campanha.audience_filters else 50
 
         try:
-            return await segmentacao_service.buscar_segmento(filtros, limite=limite)
+            # Sprint 44: Usar buscar_alvos_campanha que filtra por elegibilidade
+            # (conversas ativas, cooling_off, contact_cap, etc)
+            return await segmentacao_service.buscar_alvos_campanha(
+                filtros=filtros,
+                dias_sem_contato=7,  # Não recontatar em 7 dias
+                limite=limite,
+            )
         except Exception as e:
             logger.error(f"Erro ao buscar destinatarios: {e}")
             return []
@@ -130,16 +136,23 @@ class CampanhaExecutor:
             logger.warning(f"Nao foi possivel gerar mensagem para {cliente_id}")
             return False
 
+        # Preparar metadata
+        metadata = {
+            "campanha_id": str(campanha.id),
+            "tipo_campanha": campanha.tipo_campanha.value,
+        }
+
+        # Adicionar chips excluídos se configurado
+        if campanha.audience_filters and campanha.audience_filters.chips_excluidos:
+            metadata["chips_excluidos"] = campanha.audience_filters.chips_excluidos
+
         # Enfileirar
         await fila_service.enfileirar(
             cliente_id=cliente_id,
             conteudo=mensagem,
             tipo="campanha",
             prioridade=3,  # Prioridade baixa para campanhas
-            metadata={
-                "campanha_id": str(campanha.id),
-                "tipo_campanha": campanha.tipo_campanha.value,
-            }
+            metadata=metadata,
         )
 
         return True
