@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Optional
 import logging
 
+from app.core.timezone import agora_utc
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class MetricasService:
                 supabase.table("metricas_conversa")
                 .insert({
                     "conversa_id": conversa_id,
-                    "primeira_mensagem_em": datetime.utcnow().isoformat(),
+                    "primeira_mensagem_em": agora_utc().isoformat(),
                     "total_mensagens_medico": 0,
                     "total_mensagens_julia": 0,
                     "total_mensagens_humano": 0,
@@ -57,8 +58,8 @@ class MetricasService:
 
             # Atualizar contadores
             atualizacao = {
-                "ultima_mensagem_em": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat()
+                "ultima_mensagem_em": agora_utc().isoformat(),
+                "updated_at": agora_utc().isoformat()
             }
 
             if origem == "medico":
@@ -110,7 +111,7 @@ class MetricasService:
                 primeira_mensagem = metricas.get("primeira_mensagem_em")
                 if primeira_mensagem:
                     inicio = datetime.fromisoformat(primeira_mensagem.replace('Z', '+00:00'))
-                    duracao = (datetime.utcnow() - inicio).total_seconds() / 60
+                    duracao = (agora_utc() - inicio).total_seconds() / 60
                 else:
                     duracao = 0
 
@@ -119,7 +120,7 @@ class MetricasService:
                     "houve_handoff": houve_handoff,
                     "motivo_handoff": motivo_handoff,
                     "duracao_total_minutos": duracao,
-                    "updated_at": datetime.utcnow().isoformat()
+                    "updated_at": agora_utc().isoformat()
                 }).eq("id", metricas["id"]).execute()
 
         except Exception as e:

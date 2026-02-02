@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Optional
 import logging
 
+from app.core.timezone import agora_brasilia
 from app.schemas.mensagem import MensagemRecebida
 
 logger = logging.getLogger(__name__)
@@ -155,7 +156,7 @@ def parsear_mensagem(data: dict) -> Optional[MensagemRecebida]:
                 message_id=message_id,
                 from_me=from_me,
                 tipo="outro",
-                timestamp=datetime.now(),
+                timestamp=agora_brasilia(),
                 is_status=True,
             )
 

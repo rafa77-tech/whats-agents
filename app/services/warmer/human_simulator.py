@@ -16,6 +16,8 @@ from datetime import datetime, time
 from dataclasses import dataclass
 from enum import Enum
 
+from app.core.timezone import agora_brasilia
+
 logger = logging.getLogger(__name__)
 
 
@@ -187,7 +189,7 @@ class HumanSimulator:
 
     def esta_em_horario_comercial(self) -> bool:
         """Verifica se está em horário comercial."""
-        agora = datetime.now().time()
+        agora = agora_brasilia().time()
 
         # Variação de +/- 30 minutos
         inicio_variado = time(
@@ -203,7 +205,7 @@ class HumanSimulator:
 
     def eh_dia_util(self) -> bool:
         """Verifica se é dia útil (segunda a sexta)."""
-        return datetime.now().weekday() < 5
+        return agora_brasilia().weekday() < 5
 
     def pode_enviar_agora(self) -> bool:
         """Verifica se pode enviar mensagem agora."""
@@ -323,7 +325,7 @@ class HumanSimulator:
         Returns:
             datetime do próximo momento válido
         """
-        agora = datetime.now()
+        agora = agora_brasilia()
 
         # Se pode enviar agora, retorna agora
         if self.pode_enviar_agora():

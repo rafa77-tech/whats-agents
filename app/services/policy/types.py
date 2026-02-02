@@ -8,6 +8,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
+from app.core.timezone import agora_utc
+
 
 class PermissionState(Enum):
     """Estado de permissão de contato."""
@@ -129,9 +131,9 @@ class DoctorState:
         if self.permission_state == PermissionState.OPTED_OUT:
             return False
         if self.permission_state == PermissionState.COOLING_OFF:
-            if self.cooling_off_until and datetime.utcnow() < self.cooling_off_until:
+            if self.cooling_off_until and agora_utc() < self.cooling_off_until:
                 return False
-        if self.next_allowed_at and datetime.utcnow() < self.next_allowed_at:
+        if self.next_allowed_at and agora_utc() < self.next_allowed_at:
             return False
         return True
 
@@ -139,14 +141,14 @@ class DoctorState:
         """Retorna dias desde última mensagem do médico."""
         if not self.last_inbound_at:
             return None
-        delta = datetime.utcnow() - self.last_inbound_at
+        delta = agora_utc() - self.last_inbound_at
         return delta.days
 
     def days_since_last_outbound(self) -> Optional[int]:
         """Retorna dias desde última mensagem da Julia."""
         if not self.last_outbound_at:
             return None
-        delta = datetime.utcnow() - self.last_outbound_at
+        delta = agora_utc() - self.last_outbound_at
         return delta.days
 
 

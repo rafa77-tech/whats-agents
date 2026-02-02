@@ -5,6 +5,7 @@ from typing import Optional, Literal
 import logging
 from datetime import datetime
 
+from app.core.timezone import agora_utc
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -100,7 +101,7 @@ async def buscar_ou_criar_conversa(cliente_id: str) -> Optional[dict]:
 async def atualizar_conversa(conversa_id: str, **campos) -> Optional[dict]:
     """Atualiza campos da conversa."""
     try:
-        campos["updated_at"] = datetime.utcnow().isoformat()
+        campos["updated_at"] = agora_utc().isoformat()
         response = (
             supabase.table("conversations")
             .update(campos)

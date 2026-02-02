@@ -14,6 +14,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 from typing import Optional
 
+from app.core.timezone import agora_utc
 from .capabilities import CAPABILITIES_BY_MODE
 
 logger = logging.getLogger(__name__)
@@ -73,7 +74,7 @@ def log_mode_decision(
         ModeDecisionLog com registro completo
     """
     log_entry = ModeDecisionLog(
-        timestamp=datetime.utcnow(),
+        timestamp=agora_utc(),
         conversa_id=conversa_id,
         current_mode=current_mode,
         detected_intent=detected_intent,

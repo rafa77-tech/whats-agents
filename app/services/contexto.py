@@ -1,10 +1,14 @@
 """
 Servico para montagem de contexto do agente.
+
+Sprint 44 T06.3: Paralelização de context building com asyncio.gather
 """
+import asyncio
 from datetime import datetime, timedelta
 from typing import Optional
 import logging
 
+from app.core.timezone import agora_brasilia, agora_utc
 from app.services.interacao import carregar_historico, formatar_historico_para_llm
 from app.config.especialidades import obter_config_especialidade
 from app.services.redis import cache_get_json, cache_set_json
@@ -115,7 +119,7 @@ async def verificar_handoff_recente(conversa_id: str, horas: int = 24) -> Option
         Dados do handoff se encontrado, None caso contrario
     """
     try:
-        limite_tempo = (datetime.utcnow() - timedelta(hours=horas)).isoformat()
+        limite_tempo = (agora_utc() - timedelta(hours=horas)).isoformat()
 
         response = (
             supabase.table("handoffs")
@@ -273,6 +277,8 @@ async def montar_contexto_completo(
     """
     Monta contexto completo para o agente.
 
+    Sprint 44 T06.3: Operações async paralelizadas com asyncio.gather.
+
     Args:
         medico: Dados do medico
         conversa: Dados da conversa
@@ -300,39 +306,67 @@ async def montar_contexto_completo(
             "especialidade": contexto_especialidade_str
         }, DatabaseConfig.CACHE_TTL_CONTEXTO)
 
-    # Partes dinâmicas sempre buscam (não cachear)
-    historico_raw = await carregar_historico(conversa["id"], limite=10)
+    # Sprint 44 T06.3: Paralelizar operações async independentes
+    # Cada operação é independente e pode rodar em paralelo
+    async def _carregar_memorias():
+        """Wrapper para memorias com tratamento de erro."""
+        if not mensagem_atual or not medico.get("id"):
+            return ""
+        try:
+            memorias = await enriquecer_contexto_com_memorias(
+                cliente_id=medico["id"],
+                mensagem_atual=mensagem_atual
+            )
+            if memorias:
+                logger.debug(f"Memorias RAG carregadas para medico {medico['id']}")
+            return memorias or ""
+        except Exception as e:
+            logger.warning(f"Erro ao carregar memorias RAG: {e}")
+            return ""
+
+    # Executar todas as operações async em paralelo
+    historico_raw, handoff_recente, diretrizes, contexto_memorias = await asyncio.gather(
+        carregar_historico(conversa["id"], limite=10),
+        verificar_handoff_recente(conversa["id"]),
+        carregar_diretrizes_ativas(),
+        _carregar_memorias(),
+        return_exceptions=True  # Não propaga exceções
+    )
+
+    # Tratar possíveis exceções de cada operação
+    if isinstance(historico_raw, Exception):
+        logger.error(f"Erro ao carregar histórico: {historico_raw}")
+        historico_raw = []
+
+    if isinstance(handoff_recente, Exception):
+        logger.error(f"Erro ao verificar handoff: {handoff_recente}")
+        handoff_recente = None
+
+    if isinstance(diretrizes, Exception):
+        logger.error(f"Erro ao carregar diretrizes: {diretrizes}")
+        diretrizes = {}
+
+    if isinstance(contexto_memorias, Exception):
+        logger.warning(f"Erro ao carregar memórias: {contexto_memorias}")
+        contexto_memorias = ""
+
+    # Formatar resultados
     historico = formatar_historico_para_llm(historico_raw)
 
     # Verificar se e primeira mensagem
     primeira_msg = len(historico_raw) == 0
 
     # Data/hora atual para calculo de lembretes
-    agora = datetime.now()
+    agora = agora_brasilia()
     dia_semana = DIAS_SEMANA[agora.weekday()]
 
-    # Verificar se houve handoff recente (retorno de atendimento humano)
+    # Formatar handoff se existir
     contexto_handoff = ""
-    handoff_recente = await verificar_handoff_recente(conversa["id"])
     if handoff_recente:
         contexto_handoff = formatar_contexto_handoff(handoff_recente)
 
-    # Carregar diretrizes do briefing (S7.E7.5)
-    diretrizes = await carregar_diretrizes_ativas()
+    # Formatar diretrizes
     contexto_diretrizes = formatar_contexto_diretrizes(diretrizes)
-
-    # Buscar memorias relevantes via RAG (Sprint 8 - Epic 02)
-    contexto_memorias = ""
-    if mensagem_atual and medico.get("id"):
-        try:
-            contexto_memorias = await enriquecer_contexto_com_memorias(
-                cliente_id=medico["id"],
-                mensagem_atual=mensagem_atual
-            )
-            if contexto_memorias:
-                logger.debug(f"Memorias RAG carregadas para medico {medico['id']}")
-        except Exception as e:
-            logger.warning(f"Erro ao carregar memorias RAG: {e}")
 
     return {
         "medico": contexto_medico_str,

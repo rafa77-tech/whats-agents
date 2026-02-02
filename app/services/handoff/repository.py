@@ -6,6 +6,7 @@ Sprint 10 - S10.E3.4
 from datetime import datetime, timedelta
 import logging
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -62,7 +63,7 @@ async def obter_metricas_handoff(periodo_dias: int = 30) -> dict:
         Dict com metricas agregadas
     """
     try:
-        data_inicio = (datetime.now() - timedelta(days=periodo_dias)).isoformat()
+        data_inicio = (agora_brasilia() - timedelta(days=periodo_dias)).isoformat()
 
         response = (
             supabase.table("handoffs")

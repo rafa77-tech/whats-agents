@@ -5,7 +5,9 @@ Permite que médicos solicitem parar de receber mensagens.
 import logging
 import re
 from typing import Tuple
+from datetime import datetime
 
+from app.core.timezone import agora_utc
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -92,7 +94,7 @@ async def processar_optout(cliente_id: str, telefone: str, motivo: str = "") -> 
         # Atualizar status do médico
         update_data = {
             "opted_out": True,
-            "opted_out_at": datetime.utcnow().isoformat(),
+            "opted_out_at": agora_utc().isoformat(),
         }
 
         if motivo:

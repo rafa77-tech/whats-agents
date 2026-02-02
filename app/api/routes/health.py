@@ -11,6 +11,7 @@ from datetime import datetime
 import logging
 import os
 
+from app.core.timezone import agora_utc
 from app.services.redis import verificar_conexao_redis
 from app.services.rate_limiter import obter_estatisticas
 from app.services.circuit_breaker import obter_status_circuits
@@ -176,7 +177,7 @@ async def health_check():
     """
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": agora_utc().isoformat(),
         "service": "julia-api",
     }
 
@@ -244,7 +245,7 @@ async def readiness_check():
     return {
         "status": status,
         "checks": checks,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": agora_utc().isoformat(),
     }
 
 
@@ -256,7 +257,7 @@ async def rate_limit_stats():
     stats = await obter_estatisticas()
     return {
         "rate_limit": stats,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": agora_utc().isoformat(),
     }
 
 
@@ -267,7 +268,7 @@ async def circuit_status():
     """
     return {
         "circuits": obter_status_circuits(),
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": agora_utc().isoformat(),
     }
 
 
@@ -294,7 +295,7 @@ async def whatsapp_status():
             "instance": evolution.instance,
             "state": state or "unknown",
             "details": status,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
     except Exception as e:
         return {
@@ -302,7 +303,7 @@ async def whatsapp_status():
             "instance": evolution.instance,
             "state": "error",
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
 
@@ -343,14 +344,14 @@ async def grupos_worker_health():
                 "threshold_degraded": 100,
                 "threshold_unhealthy": 500,
             },
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
     except Exception as e:
         return {
             "status": "error",
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
 
@@ -540,7 +541,7 @@ async def deep_health_check(response: Response):
             "message": "DEPLOY TO WRONG ENVIRONMENT DETECTED! ROLLBACK IMMEDIATELY!",
             "checks": checks,
             "runtime_endpoints": settings.runtime_endpoints,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
             "deploy_safe": False,
         }
 
@@ -730,7 +731,7 @@ async def deep_health_check(response: Response):
         "runtime_endpoints": settings.runtime_endpoints,
         "schema": schema_fp,
         "checks": checks,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": agora_utc().isoformat(),
         "deploy_safe": all_ok,
     }
 
@@ -764,12 +765,12 @@ async def schema_info():
             "fingerprint": schema_fp.get("fingerprint"),
             "critical_tables": CRITICAL_TABLES,
             "critical_views": CRITICAL_VIEWS,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
     except Exception as e:
         return {
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
 
@@ -839,7 +840,7 @@ async def job_executions_status():
     try:
         from datetime import timedelta
 
-        now = datetime.utcnow()
+        now = agora_utc()
 
         # Últimas 24h
         since = (now - timedelta(hours=24)).isoformat()
@@ -962,7 +963,7 @@ async def job_executions_status():
         return {
             "status": "error",
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
 
@@ -1004,7 +1005,7 @@ async def telefones_validation_status():
         "taxa_validos_pct": taxa_validos,
         "taxa_invalidos_pct": taxa_invalidos,
         "backlog_pendentes": pendentes,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": agora_utc().isoformat(),
     }
 
 
@@ -1036,7 +1037,7 @@ async def pilot_mode_status():
 
     return {
         **status,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": agora_utc().isoformat(),
     }
 
 
@@ -1172,7 +1173,7 @@ async def chips_health_status():
                 "resposta": podem_responder,
             },
             "chips": chips_status,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
     except Exception as e:
@@ -1180,7 +1181,7 @@ async def chips_health_status():
         return {
             "status": "error",
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
 
@@ -1252,7 +1253,7 @@ async def fila_health_status():
                 "erros_hora_warning": 10,
                 "idade_warning_min": 60,
             },
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
     except Exception as e:
@@ -1260,7 +1261,7 @@ async def fila_health_status():
         return {
             "status": "error",
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
 
@@ -1282,7 +1283,7 @@ async def system_alerts():
     from app.services.circuit_breaker import obter_status_circuits
 
     alerts = []
-    now = datetime.utcnow()
+    now = agora_utc()
 
     try:
         # 1. Alertas da fila
@@ -1582,7 +1583,7 @@ async def system_health_score():
                 "degraded": 40,
                 "critical": 0,
             },
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
     except Exception as e:
@@ -1592,7 +1593,7 @@ async def system_health_score():
             "level": "error",
             "error": str(e),
             "breakdown": breakdown,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
 
@@ -1633,12 +1634,12 @@ async def circuit_breaker_history(circuit_name: str = None, horas: int = 24):
             "total_transitions": len(transicoes),
             "by_circuit": by_circuit,
             "transitions": transicoes[:50],  # Últimas 50
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }
 
     except Exception as e:
         logger.error(f"[health/circuits/history] Error: {e}")
         return {
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": agora_utc().isoformat(),
         }

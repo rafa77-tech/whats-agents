@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from typing import Tuple
 
 from app.core.config import settings
+from app.core.timezone import agora_brasilia
 from app.services.whatsapp import evolution
 from app.services.slack import enviar_slack
 from app.services.redis import cache_get_json, cache_set_json
@@ -110,7 +111,7 @@ async def enviar_alerta_conexao(tipo: str, mensagem: str, detalhes: dict = None)
         cooldown = timedelta(minutes=MONITOR_CONFIG["cooldown_alerta_minutos"])
 
         # Nao enviar se mesmo tipo de alerta dentro do cooldown
-        if ultimo_tipo == tipo and datetime.now() - ultimo_tempo < cooldown:
+        if ultimo_tipo == tipo and agora_brasilia() - ultimo_tempo < cooldown:
             logger.debug(f"Alerta {tipo} em cooldown, ignorando")
             return
 
@@ -138,7 +139,7 @@ async def enviar_alerta_conexao(tipo: str, mensagem: str, detalhes: dict = None)
             "color": cor,
             "fields": [
                 {"title": "Status", "value": mensagem, "short": False},
-                {"title": "Horario", "value": datetime.now().strftime("%d/%m/%Y %H:%M:%S"), "short": True},
+                {"title": "Horario", "value": agora_brasilia().strftime("%d/%m/%Y %H:%M:%S"), "short": True},
                 {"title": "Instancia", "value": settings.EVOLUTION_INSTANCE, "short": True},
             ]
         }]
@@ -158,7 +159,7 @@ async def enviar_alerta_conexao(tipo: str, mensagem: str, detalhes: dict = None)
         # Salvar no cache
         await cache_set_json(CACHE_ULTIMO_ALERTA, {
             "tipo": tipo,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": agora_brasilia().isoformat(),
             "mensagem": mensagem
         }, ttl=3600)  # 1 hora
 
@@ -176,7 +177,7 @@ async def _incrementar_checks_falhos() -> int:
     try:
         dados = await cache_get_json(CACHE_CHECKS_FALHOS) or {"count": 0}
         dados["count"] = dados.get("count", 0) + 1
-        dados["last_check"] = datetime.now().isoformat()
+        dados["last_check"] = agora_brasilia().isoformat()
         await cache_set_json(CACHE_CHECKS_FALHOS, dados, ttl=3600)  # 1 hora
         return dados["count"]
     except Exception as e:

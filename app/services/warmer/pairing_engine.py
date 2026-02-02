@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from collections import defaultdict
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -144,7 +145,7 @@ class PairingEngine:
         Returns:
             Lista de IDs de chips pareados
         """
-        desde = datetime.now() - timedelta(hours=horas)
+        desde = agora_brasilia() - timedelta(hours=horas)
 
         result = supabase.table("chip_pairs").select(
             "chip_a_id, chip_b_id"
@@ -394,7 +395,7 @@ class PairingEngine:
         pair_id = result.data[0]["id"] if result.data else None
 
         # Atualizar último pareamento nos chips
-        agora = datetime.now().isoformat()
+        agora = agora_brasilia().isoformat()
         supabase.table("chips").update(
             {"ultimo_pareamento": agora}
         ).in_("id", [chip_a_id, chip_b_id]).execute()
@@ -419,7 +420,7 @@ class PairingEngine:
 
         supabase.table("chip_pairs").update({
             "status": status,
-            "ended_at": datetime.now().isoformat(),
+            "ended_at": agora_brasilia().isoformat(),
         }).eq("id", pair_id).execute()
 
         logger.info(f"[Pairing] Pareamento {pair_id} finalizado: {status}")

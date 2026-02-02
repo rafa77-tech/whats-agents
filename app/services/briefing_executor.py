@@ -16,6 +16,7 @@ from typing import Optional, Any
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.briefing_aprovacao import StatusAprovacao
 from app.services.briefing_analyzer import AnaliseResult, PassoPlano
@@ -197,7 +198,7 @@ class BriefingExecutor:
         resultado = ExecutionResult(
             briefing_id=briefing_id,
             doc_nome=plano.doc_nome,
-            inicio=datetime.now()
+            inicio=agora_brasilia()
         )
 
         # Atualizar status para executando
@@ -218,7 +219,7 @@ class BriefingExecutor:
                     # Continuar para proximos passos (nao abortar)
 
             # Calcular metricas finais
-            resultado.fim = datetime.now()
+            resultado.fim = agora_brasilia()
             resultado.metricas = self._calcular_metricas(resultado)
 
             # Determinar status final
@@ -255,7 +256,7 @@ class BriefingExecutor:
 
         except Exception as e:
             logger.error(f"Erro na execucao do briefing: {e}")
-            resultado.fim = datetime.now()
+            resultado.fim = agora_brasilia()
             resultado.status = StatusAprovacao.CANCELADO
             resultado.erro_global = str(e)
 
@@ -279,13 +280,13 @@ class BriefingExecutor:
             numero=passo.numero,
             descricao=passo.descricao,
             status=StatusPasso.EXECUTANDO,
-            inicio=datetime.now()
+            inicio=agora_brasilia()
         )
 
         # Se passo requer ajuda, marcar como aguardando
         if passo.requer_ajuda:
             resultado.status = StatusPasso.AGUARDANDO_AJUDA
-            resultado.fim = datetime.now()
+            resultado.fim = agora_brasilia()
             await adicionar_linha_historico(
                 doc_id,
                 f"Passo {passo.numero}: Aguardando ajuda",
@@ -300,7 +301,7 @@ class BriefingExecutor:
         if not tool_name:
             # Passo nao mapeavel - marcar como pulado
             resultado.status = StatusPasso.PULADO
-            resultado.fim = datetime.now()
+            resultado.fim = agora_brasilia()
             await adicionar_linha_historico(
                 doc_id,
                 f"Passo {passo.numero}: Pulado",
@@ -316,7 +317,7 @@ class BriefingExecutor:
             tool_result = await executar_tool(tool_name, params, self.user_id, self.channel_id)
 
             resultado.resultado = tool_result
-            resultado.fim = datetime.now()
+            resultado.fim = agora_brasilia()
 
             if tool_result.get("success"):
                 resultado.status = StatusPasso.CONCLUIDO
@@ -337,7 +338,7 @@ class BriefingExecutor:
         except Exception as e:
             resultado.status = StatusPasso.FALHOU
             resultado.erro = str(e)
-            resultado.fim = datetime.now()
+            resultado.fim = agora_brasilia()
             logger.error(f"Erro ao executar passo {passo.numero}: {e}")
 
         return resultado
@@ -372,7 +373,7 @@ class BriefingExecutor:
         try:
             supabase.table("briefings_pendentes").update({
                 "status": status.value,
-                "atualizado_em": datetime.now().isoformat()
+                "atualizado_em": agora_brasilia().isoformat()
             }).eq("id", briefing_id).execute()
         except Exception as e:
             logger.error(f"Erro ao atualizar status do briefing: {e}")

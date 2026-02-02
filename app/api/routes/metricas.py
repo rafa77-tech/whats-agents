@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 import logging
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.business_events.metrics import (
     get_funnel_metrics,
@@ -26,7 +27,7 @@ async def obter_resumo(dias: int = 7):
     """
     Retorna resumo de métricas dos últimos N dias.
     """
-    data_inicio = (datetime.now() - timedelta(days=dias)).isoformat()
+    data_inicio = (agora_brasilia() - timedelta(days=dias)).isoformat()
 
     try:
         # Total de conversas

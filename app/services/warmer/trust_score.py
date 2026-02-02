@@ -20,6 +20,7 @@ from typing import Optional
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -283,7 +284,7 @@ async def calcular_trust_score(chip_id: str) -> dict:
     update_data = {
         "trust_score": score,
         "trust_level": nivel.value,
-        "ultimo_calculo_trust": datetime.now().isoformat(),
+        "ultimo_calculo_trust": agora_brasilia().isoformat(),
         "trust_factors": {
             "idade_dias": factors.idade_dias,
             "taxa_resposta": factors.taxa_resposta,
