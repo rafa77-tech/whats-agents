@@ -63,8 +63,10 @@ async def _get_conversation_with_chip(conversation_id: str) -> dict:
     cliente = conversation.get("clientes", {})
 
     # Buscar chip associado via conversation_chips
+    # Nota: conversation_chips tem 2 FKs para chips (chip_id e migrated_from),
+    # entao precisamos especificar qual usar
     chip_result = supabase.table("conversation_chips").select(
-        "chip_id, chips(*)"
+        "chip_id, chips!conversation_chips_chip_id_fkey(*)"
     ).eq("conversation_id", conversation_id).order(
         "created_at", desc=True
     ).limit(1).execute()
