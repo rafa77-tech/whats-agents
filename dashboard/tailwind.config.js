@@ -16,6 +16,9 @@ module.exports = {
         foreground: 'hsl(var(--foreground))',
         primary: {
           DEFAULT: 'hsl(var(--primary))',
+          hover: 'hsl(var(--primary-hover))',
+          active: 'hsl(var(--primary-active))',
+          muted: 'hsl(var(--primary-muted))',
           foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {
@@ -198,8 +201,7 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['var(--font-barlow)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-fredoka)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
     },
   },

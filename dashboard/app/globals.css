@@ -12,6 +12,9 @@
     --popover: 0 0% 100%;
     --popover-foreground: 233 59% 10%; /* #0a0e27 navy */
     --primary: 330 100% 50%; /* #ff0080 rosa - cor principal */
+    --primary-hover: 330 100% 45%; /* #e6007a */
+    --primary-active: 330 100% 40%; /* #cc006d */
+    --primary-muted: 330 100% 97%; /* #fdf2f8 */
     --primary-foreground: 0 0% 100%; /* #FFFFFF */
     --secondary: 210 17% 98%; /* #f8f9fa surface */
     --secondary-foreground: 233 59% 10%;
@@ -125,6 +128,9 @@
     --popover: 233 59% 6%;
     --popover-foreground: 0 0% 98%;
     --primary: 330 100% 50%; /* #ff0080 rosa - mantido */
+    --primary-hover: 330 100% 55%; /* Mais claro no dark mode */
+    --primary-active: 330 100% 60%;
+    --primary-muted: 330 50% 15%; /* Rosa escuro para dark mode */
     --primary-foreground: 0 0% 100%;
     --secondary: 233 59% 10%;
     --secondary-foreground: 0 0% 98%;

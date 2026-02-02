@@ -1,19 +1,13 @@
 import type { Metadata, Viewport } from 'next'
-import { Barlow, Fredoka } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as SonnerToaster } from '@/components/ui/sonner'
 import './globals.css'
 
-const barlow = Barlow({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-barlow',
-})
-
-const fredoka = Fredoka({
+const inter = Inter({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-fredoka',
+  variable: '--font-inter',
 })
 
 export const metadata: Metadata = {
@@ -30,13 +24,13 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   // Note: maximumScale removed to allow user zoom (accessibility requirement)
-  themeColor: '#ff1200',
+  themeColor: '#ff0080',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={`${barlow.variable} ${fredoka.variable} font-sans`}>
+      <body className={`${inter.variable} font-sans`}>
         {children}
         <Toaster />
         <SonnerToaster position="top-right" richColors closeButton />
