@@ -208,7 +208,7 @@ async function buscarGruposDireto(
   })
 
   // Construir ranking
-  let grupos: GrupoRanking[] = gruposData.map((g) => {
+  const grupos: GrupoRanking[] = gruposData.map((g) => {
     const metricas = metricasPorGrupo.get(g.id) || {
       mensagens: 0,
       ofertas: 0,
