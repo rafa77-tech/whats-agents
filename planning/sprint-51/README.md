@@ -167,7 +167,8 @@ Campos `passou_heuristica` e `eh_oferta` nunca sao atualizados.
 - [x] Aliases normalizados para especialidades (55 inseridos)
 - [x] Heuristica salva no banco (pipeline_worker.py)
 - [x] Classificacao LLM salva no banco (pipeline_worker.py)
-- [ ] Vagas sendo importadas novamente (aguardando deploy)
+- [x] Coluna motivo_descarte adicionada (migration 03/02/2026)
+- [x] Vagas sendo importadas novamente ✅ FUNCIONANDO
 - [x] Chip 5810 protegido contra envio (tipo='listener')
 
 ### Observabilidade (P1)

@@ -1,7 +1,8 @@
 # Epic 2: Correcoes Criticas do Pipeline
 
-**Status:** 🔴 Nao Iniciada
+**Status:** ✅ CONCLUÍDO
 **Prioridade:** P0 - Bloqueante
+**Deploy:** 03/02/2026 17:17 UTC
 
 ---
 
@@ -42,8 +43,8 @@ Extraido: especialidade_raw = "Ginecologia e Obstetrícia" ✅
 
 **DoD:**
 - [x] Especialidade sendo extraida corretamente
-- [ ] Vagas passando na validacao (aguardando deploy)
-- [ ] Importacoes voltando a funcionar (aguardando deploy)
+- [x] Vagas passando na validacao
+- [x] Importacoes voltando a funcionar (deploy 03/02/2026)
 
 ---
 
