@@ -77,9 +77,8 @@ async def _liberar_lock_idempotencia(mensagem_id: str) -> None:
 
 async def _alertar_circuit_aberto():
     """
-    Sprint 36 - T01.3: Alerta via Slack quando circuit abre.
-
-    Envia alerta com cooldown para evitar spam.
+    Sprint 36 - T01.3: Alerta quando circuit abre.
+    Sprint 47: Removida notificação Slack - apenas log.
     """
     global _ultimo_alerta_circuit
 
@@ -93,25 +92,16 @@ async def _alertar_circuit_aberto():
 
     _ultimo_alerta_circuit = agora
 
-    try:
-        from app.services.slack import enviar_mensagem_slack
-
-        status = circuit_evolution.status()
-        await enviar_mensagem_slack(
-            canal="alertas",
-            texto=(
-                f":rotating_light: *Circuit Breaker Aberto - Fila Worker*\n\n"
-                f"O circuit breaker do Evolution API está aberto!\n"
-                f"- Estado: `{status['estado']}`\n"
-                f"- Falhas consecutivas: `{status['falhas_consecutivas']}`\n"
-                f"- Última falha: `{status['ultima_falha'] or 'N/A'}`\n\n"
-                f"O worker está pausado e tentará novamente em "
-                f"`{circuit_evolution.tempo_reset_segundos}s`.\n"
-                f"Verifique a Evolution API e os logs do sistema."
-            ),
-        )
-    except Exception as e:
-        logger.error(f"[FilaWorker] Erro ao enviar alerta Slack: {e}")
+    status = circuit_evolution.status()
+    logger.critical(
+        "[FilaWorker] Circuit Breaker Aberto",
+        extra={
+            "estado": status["estado"],
+            "falhas_consecutivas": status["falhas_consecutivas"],
+            "ultima_falha": status["ultima_falha"],
+            "tempo_reset": circuit_evolution.tempo_reset_segundos,
+        },
+    )
 
 
 async def processar_fila():

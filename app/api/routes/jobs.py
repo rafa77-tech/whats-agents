@@ -1390,20 +1390,11 @@ async def job_sincronizar_chips():
         resultado = await sincronizar_chips_com_evolution()
 
         # Sprint 36 T11.2: Alertar se muitas instâncias desconectadas
+        # Sprint 47: Removida notificação Slack (dashboard monitora isso agora)
         total = resultado.get("chips_conectados", 0) + resultado.get("chips_desconectados", 0)
         desconectadas = resultado.get("chips_desconectados", 0)
 
         if total > 0 and desconectadas > total * 0.3:
-            from app.services.slack import enviar_mensagem_slack
-
-            await enviar_mensagem_slack(
-                canal="alertas",
-                texto=(
-                    f":rotating_light: *Alerta de Conexão Evolution*\n"
-                    f"{desconectadas}/{total} instâncias desconectadas ({desconectadas/total*100:.0f}%)\n"
-                    f"Verificar: Evolution API e QR codes dos chips"
-                ),
-            )
             logger.warning(
                 f"[SyncChips] ALERTA: {desconectadas}/{total} instâncias desconectadas"
             )
@@ -1452,7 +1443,6 @@ async def job_monitorar_fila(
     """
     try:
         from app.services.fila import fila_service
-        from app.services.slack import enviar_mensagem_slack
 
         metricas = await fila_service.obter_metricas_fila()
 
@@ -1464,40 +1454,27 @@ async def job_monitorar_fila(
 
         # Verificar fila acumulando
         if pendentes > limite_pendentes:
-            alertas.append(
-                f":warning: Fila com {pendentes} mensagens pendentes "
-                f"(limite: {limite_pendentes})"
-            )
+            alertas.append(f"Fila com {pendentes} pendentes (limite: {limite_pendentes})")
 
         # Verificar mensagens travadas
         if idade and idade > limite_idade_minutos:
-            alertas.append(
-                f":hourglass: Mensagem mais antiga há {idade:.0f} minutos "
-                f"(limite: {limite_idade_minutos})"
-            )
+            alertas.append(f"Mensagem mais antiga há {idade:.0f} min (limite: {limite_idade_minutos})")
 
         # Verificar muitos erros
         if erros_24h > 20:
-            alertas.append(
-                f":x: {erros_24h} erros nas últimas 24h"
-            )
+            alertas.append(f"{erros_24h} erros nas últimas 24h")
 
-        # Enviar alerta se houver problemas
+        # Sprint 47: Removida notificação Slack - apenas log
         if alertas:
-            await enviar_mensagem_slack(
-                canal="alertas",
-                texto=(
-                    f":rotating_light: *Alerta de Fila de Mensagens*\n\n"
-                    + "\n".join(alertas)
-                    + f"\n\nMétricas:\n"
-                    f"- Pendentes: {pendentes}\n"
-                    f"- Processando: {metricas['processando']}\n"
-                    f"- Idade mais antiga: {idade:.0f if idade else 0} min\n"
-                    f"- Erros 24h: {erros_24h}\n\n"
-                    f"Ação: Verificar fila_worker e circuit breaker"
-                ),
+            logger.warning(
+                "[MonitorFila] Alertas detectados",
+                extra={
+                    "alertas": alertas,
+                    "pendentes": pendentes,
+                    "idade_min": idade,
+                    "erros_24h": erros_24h,
+                },
             )
-            logger.warning(f"[MonitorFila] Alertas: {alertas}")
 
         status = "warning" if alertas else "ok"
 

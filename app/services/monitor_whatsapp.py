@@ -11,7 +11,7 @@ from typing import Tuple
 from app.core.config import settings
 from app.core.timezone import agora_brasilia
 from app.services.whatsapp import evolution
-from app.services.slack import enviar_slack
+# Sprint 47: enviar_slack removido - alertas agora são apenas logados
 from app.services.redis import cache_get_json, cache_set_json
 
 logger = logging.getLogger(__name__)
@@ -96,75 +96,45 @@ async def verificar_erros_criptografia_logs() -> Tuple[bool, int]:
 
 async def enviar_alerta_conexao(tipo: str, mensagem: str, detalhes: dict = None):
     """
-    Envia alerta de conexao para o Slack.
+    Loga alerta de conexão.
+
+    Sprint 47: Removida notificação Slack - dashboard monitora conexões.
 
     Args:
         tipo: Tipo do alerta (desconectado, criptografia, reconectado)
         mensagem: Mensagem descritiva
         detalhes: Detalhes adicionais
     """
-    # Verificar cooldown
+    # Verificar cooldown para evitar spam de logs
     ultimo_alerta = await cache_get_json(CACHE_ULTIMO_ALERTA)
     if ultimo_alerta:
         ultimo_tipo = ultimo_alerta.get("tipo")
         ultimo_tempo = datetime.fromisoformat(ultimo_alerta.get("timestamp", "2000-01-01"))
         cooldown = timedelta(minutes=MONITOR_CONFIG["cooldown_alerta_minutos"])
 
-        # Nao enviar se mesmo tipo de alerta dentro do cooldown
         if ultimo_tipo == tipo and agora_brasilia() - ultimo_tempo < cooldown:
             logger.debug(f"Alerta {tipo} em cooldown, ignorando")
             return
 
-    # Definir icone e cor baseado no tipo
-    icones = {
-        "desconectado": ":rotating_light:",
-        "criptografia": ":warning:",
-        "reconectado": ":white_check_mark:",
-        "reiniciando": ":arrows_counterclockwise:",
-    }
-    cores = {
-        "desconectado": "#F44336",  # Vermelho
-        "criptografia": "#FF9800",  # Laranja
-        "reconectado": "#4CAF50",   # Verde
-        "reiniciando": "#2196F3",   # Azul
-    }
-
-    icone = icones.get(tipo, ":bell:")
-    cor = cores.get(tipo, "#607D8B")
-
-    # Montar mensagem Slack
-    slack_msg = {
-        "text": f"{icone} WhatsApp Monitor: {tipo.upper()}",
-        "attachments": [{
-            "color": cor,
-            "fields": [
-                {"title": "Status", "value": mensagem, "short": False},
-                {"title": "Horario", "value": agora_brasilia().strftime("%d/%m/%Y %H:%M:%S"), "short": True},
-                {"title": "Instancia", "value": settings.EVOLUTION_INSTANCE, "short": True},
-            ]
-        }]
-    }
-
-    if detalhes:
-        slack_msg["attachments"][0]["fields"].append({
-            "title": "Detalhes",
-            "value": str(detalhes)[:200],
-            "short": False
-        })
-
-    try:
-        await enviar_slack(slack_msg)
-        logger.info(f"Alerta de conexao enviado: {tipo}")
-
-        # Salvar no cache
-        await cache_set_json(CACHE_ULTIMO_ALERTA, {
+    # Logar alerta
+    log_level = logging.WARNING if tipo in ("desconectado", "criptografia") else logging.INFO
+    logger.log(
+        log_level,
+        f"[MonitorWhatsApp] Alerta de conexão: {tipo}",
+        extra={
             "tipo": tipo,
-            "timestamp": agora_brasilia().isoformat(),
-            "mensagem": mensagem
-        }, ttl=3600)  # 1 hora
+            "mensagem": mensagem,
+            "detalhes": detalhes,
+            "instancia": settings.EVOLUTION_INSTANCE,
+        },
+    )
 
-    except Exception as e:
-        logger.error(f"Erro ao enviar alerta Slack: {e}")
+    # Salvar no cache para cooldown
+    await cache_set_json(CACHE_ULTIMO_ALERTA, {
+        "tipo": tipo,
+        "timestamp": agora_brasilia().isoformat(),
+        "mensagem": mensagem
+    }, ttl=3600)
 
 
 async def _incrementar_checks_falhos() -> int:
