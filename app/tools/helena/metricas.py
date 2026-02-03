@@ -77,7 +77,7 @@ async def handle_metricas_periodo(
                     COUNT(DISTINCT c.id) FILTER (
                         WHERE EXISTS (
                             SELECT 1 FROM interacoes i
-                            WHERE i.conversa_id = c.id AND i.tipo = 'entrada'
+                            WHERE i.conversation_id = c.id AND i.tipo = 'entrada'
                         )
                     ) as com_resposta,
                     COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'convertida') as conversoes
@@ -164,7 +164,7 @@ async def handle_metricas_conversao(
                 SELECT
                     COUNT(DISTINCT c.id) as total_abordados,
                     COUNT(DISTINCT c.id) FILTER (
-                        WHERE EXISTS (SELECT 1 FROM interacoes i WHERE i.conversa_id = c.id AND i.tipo = 'entrada')
+                        WHERE EXISTS (SELECT 1 FROM interacoes i WHERE i.conversation_id = c.id AND i.tipo = 'entrada')
                     ) as responderam,
                     COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'convertida') as converteram,
                     COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'perdida') as perdidos

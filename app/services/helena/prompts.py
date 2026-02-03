@@ -35,8 +35,10 @@ SCHEMA_BANCO = """
 
 **interacoes** (mensagens nas conversas)
 - id: UUID (PK)
-- conversa_id: UUID (FK -> conversations)
+- conversation_id: UUID (FK -> conversations)
+- cliente_id: UUID (FK -> clientes)
 - tipo: TEXT ('entrada', 'saida')
+- direcao: TEXT ('inbound', 'outbound')
 - conteudo: TEXT
 - autor_tipo: TEXT ('cliente', 'julia', 'humano')
 - chip_id: UUID (FK -> julia_chips)
@@ -80,11 +82,12 @@ SCHEMA_BANCO = """
 
 **handoffs** (escalações para humano)
 - id: UUID (PK)
-- conversa_id: UUID (FK -> conversations)
-- motivo: TEXT
+- conversation_id: UUID (FK -> conversations)
+- reason: TEXT (motivo em inglês)
+- motivo: TEXT (motivo em português, legacy)
 - status: TEXT ('pendente', 'em_atendimento', 'resolvido')
 - created_at: TIMESTAMPTZ
-- resolved_at: TIMESTAMPTZ
+- resolvido_em: TIMESTAMPTZ
 
 **julia_chips** (instâncias WhatsApp)
 - id: UUID (PK)
@@ -97,10 +100,11 @@ SCHEMA_BANCO = """
 ### Relacionamentos Importantes
 - clientes.especialidade_id -> especialidades.id
 - conversations.cliente_id -> clientes.id
-- interacoes.conversa_id -> conversations.id
+- interacoes.conversation_id -> conversations.id
+- interacoes.cliente_id -> clientes.id
 - vagas.hospital_id -> hospitais.id
 - vagas.especialidade_id -> especialidades.id
-- handoffs.conversa_id -> conversations.id
+- handoffs.conversation_id -> conversations.id
 """
 
 SYSTEM_PROMPT_HELENA = """Você é Helena, analista de dados da Revoluna.

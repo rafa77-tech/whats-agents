@@ -40,12 +40,12 @@ SCHEMA DISPONÍVEL:
 - clientes: id, primeiro_nome, sobrenome, telefone, especialidade_id, crm, regiao, opted_out, created_at
 - especialidades: id, nome, codigo
 - conversations: id, cliente_id, status ('ativa','convertida','perdida','pausada'), controlled_by, created_at
-- interacoes: id, conversa_id, tipo ('entrada','saida'), conteudo, autor_tipo, chip_id, created_at
+- interacoes: id, conversation_id, cliente_id, tipo ('entrada','saida'), direcao ('inbound','outbound'), conteudo, autor_tipo, chip_id, created_at
 - campanhas: id, nome_template, tipo_campanha, status, total_destinatarios, enviados, entregues, respondidos
 - fila_mensagens: id, cliente_id, status, conteudo, metadata (jsonb), enviada_em, created_at
 - vagas: id, hospital_id, especialidade_id, data, periodo, valor, status
 - hospitais: id, nome, cidade, uf
-- handoffs: id, conversa_id, motivo, status, created_at, resolved_at
+- handoffs: id, conversation_id, reason, motivo, status, created_at, resolvido_em
 - julia_chips: id, instance_name, status, trust_score, messages_sent_today
 
 EXEMPLOS:

@@ -162,7 +162,7 @@ async def handle_listar_handoffs(
                     cl.telefone,
                     e.nome as especialidade
                 FROM handoffs h
-                JOIN conversations c ON c.id = h.conversa_id
+                JOIN conversations c ON c.id = h.conversation_id
                 JOIN clientes cl ON cl.id = c.cliente_id
                 LEFT JOIN especialidades e ON e.id = cl.especialidade_id
                 WHERE 1=1 {status_filter}
