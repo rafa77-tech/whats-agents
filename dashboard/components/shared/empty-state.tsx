@@ -22,9 +22,9 @@ export function EmptyState({
   return (
     <div className="flex min-h-[200px] items-center justify-center">
       <div className="text-center">
-        <Icon className="mx-auto h-8 w-8 text-gray-300" />
-        <p className="mt-2 text-sm font-medium text-gray-600">{title}</p>
-        {description && <p className="mt-1 text-xs text-gray-400">{description}</p>}
+        <Icon className="mx-auto h-8 w-8 text-muted-foreground/50" />
+        <p className="mt-2 text-sm font-medium text-foreground/80">{title}</p>
+        {description && <p className="mt-1 text-xs text-muted-foreground/70">{description}</p>}
         {action && (
           <Button onClick={action.onClick} variant="outline" size="sm" className="mt-4">
             {action.label}

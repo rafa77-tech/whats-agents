@@ -104,7 +104,7 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
                   {getSeverityIcon(alert.severity)}
                   <div>
                     <p className="text-sm font-medium">{alert.message}</p>
-                    <p className="text-xs text-gray-500">Fonte: {alert.source}</p>
+                    <p className="text-xs text-muted-foreground">Fonte: {alert.source}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -119,7 +119,7 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
             )
           })}
           {alerts.length > MAX_DISPLAYED_ALERTS && (
-            <p className="text-center text-sm text-gray-500">
+            <p className="text-center text-sm text-muted-foreground">
               + {alerts.length - MAX_DISPLAYED_ALERTS} alerta
               {alerts.length - MAX_DISPLAYED_ALERTS > 1 ? 's' : ''} adicional
               {alerts.length - MAX_DISPLAYED_ALERTS > 1 ? 'is' : ''}

@@ -59,6 +59,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     }
 
     // Buscar mensagens da fila_mensagens (novo sistema Sprint 35+)
+    // Sem limite para ver todos os envios da campanha
     const { data: filaMensagens, error: filaError } = await supabase
       .from('fila_mensagens')
       .select(
@@ -81,65 +82,85 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       )
       .contains('metadata', { campanha_id: id })
       .order('created_at', { ascending: false })
-      .limit(100)
 
     if (filaError) {
       console.error('Erro ao buscar fila_mensagens:', filaError)
     }
 
     // Mapear fila_mensagens para formato de envios
+    // IMPORTANTE: Deduplicar por cliente_id - manter apenas o envio mais recente por cliente
+    const clientesProcessados = new Set<string>()
     const enviosDaFila =
-      filaMensagens?.map((msg) => {
-        // Mapear status/outcome da fila para status de envio
-        // Outcomes: SENT, BLOCKED_*, FAILED_*, DEDUPED, BYPASS
-        let envioStatus = 'pendente'
-        let falhouEm: string | null = null
+      filaMensagens
+        ?.filter((msg) => {
+          // Deduplicar por cliente_id (array já está ordenado por created_at DESC)
+          if (clientesProcessados.has(msg.cliente_id)) {
+            return false
+          }
+          clientesProcessados.add(msg.cliente_id)
+          return true
+        })
+        .map((msg) => {
+          // Mapear status/outcome da fila para status de envio
+          // Outcomes: SENT, BLOCKED_*, FAILED_*, DEDUPED, BYPASS
+          let envioStatus = 'pendente'
+          let falhouEm: string | null = null
 
-        const outcome = msg.outcome as string | null
+          const outcome = msg.outcome as string | null
 
-        if (outcome === 'SENT') {
-          envioStatus = 'enviado'
-        } else if (outcome?.startsWith('BLOCKED_') || outcome?.startsWith('FAILED_')) {
-          envioStatus = 'falhou'
-          falhouEm = msg.enviada_em || msg.created_at
-        } else if (outcome === 'DEDUPED') {
-          envioStatus = 'falhou' // Deduplicado = não enviado
-          falhouEm = msg.created_at
-        } else if (msg.enviada_em) {
-          envioStatus = 'enviado'
-        } else if (msg.status === 'processando') {
-          envioStatus = 'pendente'
-        }
+          if (outcome === 'SENT') {
+            envioStatus = 'enviado'
+          } else if (outcome?.startsWith('BLOCKED_') || outcome?.startsWith('FAILED_')) {
+            envioStatus = 'falhou'
+            falhouEm = msg.enviada_em || msg.created_at
+          } else if (outcome === 'DEDUPED') {
+            envioStatus = 'falhou' // Deduplicado = não enviado
+            falhouEm = msg.created_at
+          } else if (msg.enviada_em) {
+            envioStatus = 'enviado'
+          } else if (msg.status === 'processando') {
+            envioStatus = 'pendente'
+          }
 
-        return {
-          id: msg.id,
-          cliente_id: msg.cliente_id,
-          status: envioStatus,
-          conteudo_enviado: msg.conteudo,
-          created_at: msg.created_at,
-          enviado_em: msg.enviada_em,
-          entregue_em: null, // Tracking de entrega vem por webhook separado
-          visualizado_em: null, // Tracking de visualização vem por webhook separado
-          falhou_em: falhouEm,
-          clientes: msg.clientes,
-        }
-      }) || []
+          return {
+            id: msg.id,
+            cliente_id: msg.cliente_id,
+            status: envioStatus,
+            conteudo_enviado: msg.conteudo,
+            created_at: msg.created_at,
+            enviado_em: msg.enviada_em,
+            entregue_em: null, // Tracking de entrega vem por webhook separado
+            visualizado_em: null, // Tracking de visualização vem por webhook separado
+            falhou_em: falhouEm,
+            clientes: msg.clientes,
+          }
+        }) || []
 
     // Combinar envios (priorizar fila_mensagens se existir)
     const envios = enviosDaFila.length > 0 ? enviosDaFila : enviosLegacy || []
 
-    // Calcular metricas
-    const totalEnvios = envios.length
-    const enviados = envios.filter((e) => e.enviado_em).length
-    const entregues = envios.filter((e) => e.entregue_em).length
+    // Calcular metricas dos envios
+    const calculatedTotal = envios.length
+    const calculatedEnviados = envios.filter((e) => e.enviado_em).length
+    const calculatedEntregues = envios.filter((e) => e.entregue_em).length
     const visualizados = envios.filter((e) => e.visualizado_em).length
     const falhas = envios.filter((e) => e.status === 'falhou').length
+
+    // Valores armazenados na campanha (mais confiáveis)
+    const storedTotal = campanha.total_destinatarios ?? 0
+    const storedEnviados = campanha.enviados ?? 0
+    const storedEntregues = campanha.entregues ?? 0
+
+    // Usar valores armazenados quando disponíveis, senão calcular
+    const total = storedTotal > 0 ? storedTotal : calculatedTotal
+    const enviados = storedEnviados > 0 ? storedEnviados : calculatedEnviados
+    const entregues = storedEntregues > 0 ? storedEntregues : calculatedEntregues
 
     return NextResponse.json({
       ...campanha,
       envios: envios || [],
       metricas: {
-        total: totalEnvios,
+        total,
         enviados,
         entregues,
         visualizados,

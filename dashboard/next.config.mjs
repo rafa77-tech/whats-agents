@@ -6,6 +6,32 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Redirects para URLs antigas do modulo de chips (Sprint 45)
+  async redirects() {
+    return [
+      {
+        source: '/chips/alertas',
+        destination: '/chips?tab=alertas',
+        permanent: true,
+      },
+      {
+        source: '/chips/grupos',
+        destination: '/grupos',
+        permanent: true,
+      },
+      {
+        source: '/chips/warmup',
+        destination: '/chips?tab=warmup',
+        permanent: true,
+      },
+      {
+        source: '/chips/configuracoes',
+        destination: '/chips?tab=configuracoes',
+        permanent: true,
+      },
+    ]
+  },
+
   // Permitir imagens do Supabase
   images: {
     remotePatterns: [

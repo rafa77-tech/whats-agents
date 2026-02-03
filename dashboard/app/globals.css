@@ -16,7 +16,7 @@
     --primary-active: 330 100% 40%; /* #cc006d */
     --primary-muted: 330 100% 97%; /* #fdf2f8 */
     --primary-foreground: 0 0% 100%; /* #FFFFFF */
-    --secondary: 210 17% 98%; /* #f8f9fa surface */
+    --secondary: 0 0% 100%; /* #ffffff - teste branco */
     --secondary-foreground: 233 59% 10%;
     --muted: 220 14% 96%; /* #f3f4f6 */
     --muted-foreground: 220 9% 46%; /* #6b7280 */
@@ -68,23 +68,26 @@
     --state-audio: 160 84% 39%; /* emerald-600 audio icon */
 
     /* Semantic status colors - for badges, alerts, indicators */
-    --status-success: 142 76% 91%; /* green-100 */
-    --status-success-foreground: 142 76% 26%; /* green-800 */
-    --status-success-border: 142 76% 80%; /* green-200 */
-    --status-success-solid: 142 71% 45%; /* green-600 */
-    --status-success-solid-hover: 142 76% 36%; /* green-700 */
+    /* Success: #10b981 (emerald-500) */
+    --status-success: 160 84% 93%; /* emerald-100 */
+    --status-success-foreground: 160 84% 25%; /* emerald-800 */
+    --status-success-border: 160 84% 80%; /* emerald-200 */
+    --status-success-solid: 160 84% 39%; /* #10b981 emerald-500 */
+    --status-success-solid-hover: 160 84% 32%; /* emerald-600 */
 
-    --status-warning: 48 96% 89%; /* yellow-100 */
-    --status-warning-foreground: 46 93% 24%; /* yellow-800 */
-    --status-warning-border: 48 96% 77%; /* yellow-200 */
-    --status-warning-solid: 45 93% 47%; /* yellow-500 */
-    --status-warning-solid-hover: 45 93% 41%; /* yellow-600 */
+    /* Warning: #f59e0b (amber-500) */
+    --status-warning: 38 92% 92%; /* amber-100 */
+    --status-warning-foreground: 38 92% 25%; /* amber-800 */
+    --status-warning-border: 38 92% 78%; /* amber-200 */
+    --status-warning-solid: 38 92% 50%; /* #f59e0b amber-500 */
+    --status-warning-solid-hover: 38 92% 42%; /* amber-600 */
 
-    --status-error: 0 93% 94%; /* red-100 */
-    --status-error-foreground: 0 74% 42%; /* red-700 */
-    --status-error-border: 0 93% 85%; /* red-200 */
-    --status-error-solid: 0 72% 51%; /* red-600 */
-    --status-error-solid-hover: 0 74% 42%; /* red-700 */
+    /* Error: #ef4444 (red-500) */
+    --status-error: 0 84% 94%; /* red-100 */
+    --status-error-foreground: 0 84% 40%; /* red-700 */
+    --status-error-border: 0 84% 85%; /* red-200 */
+    --status-error-solid: 0 84% 60%; /* #ef4444 red-500 */
+    --status-error-solid-hover: 0 84% 50%; /* red-600 */
 
     --status-info: 214 95% 93%; /* blue-100 */
     --status-info-foreground: 221 83% 35%; /* blue-800 */
@@ -266,4 +269,10 @@
 /* Jull.ia Brand Gradient */
 .bg-jullia-gradient {
   background: linear-gradient(135deg, hsl(330 100% 50%) 0%, hsl(354 97% 44%) 100%);
+}
+
+/* Sidebar white background - high specificity override */
+.sidebar-bg-white,
+.sidebar-bg-white * {
+  background-color: #ffffff !important;
 }

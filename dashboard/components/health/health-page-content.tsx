@@ -187,8 +187,8 @@ export function HealthPageContent() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-400" />
-          <p className="mt-2 text-sm text-gray-500">Carregando dados de saude...</p>
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground/70" />
+          <p className="mt-2 text-sm text-muted-foreground">Carregando dados de saude...</p>
         </div>
       </div>
     )
@@ -213,14 +213,14 @@ export function HealthPageContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Health Center</h1>
-          <p className="text-gray-500">Monitoramento consolidado de saude do sistema</p>
+          <h1 className="text-2xl font-bold text-foreground">Health Center</h1>
+          <p className="text-muted-foreground">Monitoramento consolidado de saude do sistema</p>
         </div>
         <div className="flex items-center gap-4">
           {/* Refresh interval selector */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Auto-refresh:</span>
-            <div className="flex rounded-lg border border-gray-200">
+            <span className="text-sm text-muted-foreground">Auto-refresh:</span>
+            <div className="flex rounded-lg border border-border">
               {REFRESH_INTERVALS.map((interval) => (
                 <button
                   key={interval.value}
@@ -229,7 +229,7 @@ export function HealthPageContent() {
                     'px-3 py-1.5 text-xs font-medium transition-colors',
                     refreshInterval === interval.value
                       ? 'bg-revoluna-500 text-white'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      : 'text-foreground/80 hover:bg-muted'
                   )}
                 >
                   {interval.label}
@@ -245,7 +245,7 @@ export function HealthPageContent() {
       </div>
 
       {/* Health Score */}
-      <Card className="border-2 border-gray-100">
+      <Card className="border-2 border-border">
         <CardContent className="pt-6">
           <div className="flex flex-col items-center">
             <HealthGauge score={data?.score || 0} status={data?.status || 'degraded'} />
@@ -323,7 +323,7 @@ export function HealthPageContent() {
 
       {/* Last Updated */}
       {lastUpdated && (
-        <p className="text-center text-xs text-gray-400">
+        <p className="text-center text-xs text-muted-foreground/70">
           Ultima atualizacao: {lastUpdated.toLocaleTimeString('pt-BR')}
         </p>
       )}

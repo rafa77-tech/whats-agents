@@ -10,8 +10,8 @@ export function LoadingState({ message = 'Carregando...' }: LoadingStateProps) {
   return (
     <div className="flex min-h-[200px] items-center justify-center">
       <div className="text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-400" />
-        <p className="mt-2 text-sm text-gray-500">{message}</p>
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground/70" />
+        <p className="mt-2 text-sm text-muted-foreground">{message}</p>
       </div>
     </div>
   )

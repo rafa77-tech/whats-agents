@@ -95,6 +95,8 @@ Este diretório contém o planejamento completo do projeto organizado em **Sprin
 | 41 | Chips Ops & Health | ✅ Completa |
 | 42 | Monitor Jobs | ✅ Completa |
 | 43 | UX & Operacao Unificada | 📋 Planejado |
+| 44 | Correcoes Arquiteturais | ✅ Completa |
+| 45 | Arquitetura da Informacao & Navegacao | 📋 Planejado |
 
 > **Nota:** Sprints 19-24 e 31-33 estão em planejamento futuro.
 

@@ -23,10 +23,10 @@ export function KpiCard({ title, value, suffix, icon: Icon, status, trend }: Kpi
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">{title}</p>
+            <p className="text-sm text-muted-foreground">{title}</p>
             <div className="mt-1 flex items-baseline gap-1">
               <span className={cn('text-3xl font-bold', colors.text)}>{value}</span>
-              {suffix && <span className="text-sm text-gray-400">{suffix}</span>}
+              {suffix && <span className="text-sm text-muted-foreground/70">{suffix}</span>}
             </div>
             {trend !== undefined && (
               <p

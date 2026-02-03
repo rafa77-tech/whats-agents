@@ -153,7 +153,7 @@ export function SafeModeCard({ isActive, onActivate }: SafeModeCardProps) {
                   />
                 </div>
 
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Julia continuara APENAS respondendo mensagens de medicos ja em conversa.
                 </p>
               </div>

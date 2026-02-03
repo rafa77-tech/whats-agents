@@ -150,7 +150,7 @@ export function LinksTable({ onUpdate }: LinksTableProps) {
             </SelectContent>
           </Select>
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
             <Input
               placeholder="Buscar por URL..."
               value={searchInput}
@@ -162,7 +162,7 @@ export function LinksTable({ onUpdate }: LinksTableProps) {
 
         {loading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/70" />
           </div>
         ) : links.length > 0 ? (
           <>
@@ -183,8 +183,10 @@ export function LinksTable({ onUpdate }: LinksTableProps) {
                       <code className="text-xs">{formatLinkUrl(link.url)}</code>
                     </TableCell>
                     <TableCell>{renderStatusBadge(link.status)}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{link.categoria || '-'}</TableCell>
-                    <TableCell className="text-sm text-gray-500">
+                    <TableCell className="text-sm text-muted-foreground">
+                      {link.categoria || '-'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
                       {formatDate(link.criado_em)}
                     </TableCell>
                     <TableCell className="text-right">
@@ -229,7 +231,7 @@ export function LinksTable({ onUpdate }: LinksTableProps) {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-4 flex items-center justify-between">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Pagina {page} de {totalPages}
                 </p>
                 <div className="flex gap-2">
@@ -256,8 +258,8 @@ export function LinksTable({ onUpdate }: LinksTableProps) {
             )}
           </>
         ) : (
-          <div className="py-8 text-center text-gray-500">
-            <XCircle className="mx-auto h-8 w-8 text-gray-300" />
+          <div className="py-8 text-center text-muted-foreground">
+            <XCircle className="mx-auto h-8 w-8 text-muted-foreground/50" />
             <p className="mt-2">Nenhum link encontrado</p>
           </div>
         )}

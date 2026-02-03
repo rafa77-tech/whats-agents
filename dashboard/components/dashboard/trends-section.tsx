@@ -21,7 +21,7 @@ export function TrendsSection({ data }: TrendsSectionProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-gray-500">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <TrendingUp className="h-4 w-4" />
           Tendencias ({period})
         </CardTitle>

@@ -60,33 +60,33 @@ export function AnomalyDetailModal({ anomaly, onClose, onResolve }: AnomalyDetai
           {/* Info Grid */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-gray-500">Tipo</p>
+              <p className="text-muted-foreground">Tipo</p>
               <p className="font-medium">{anomaly.tipo}</p>
             </div>
             <div>
-              <p className="text-gray-500">Severidade</p>
+              <p className="text-muted-foreground">Severidade</p>
               <Badge className={severityColors.badge}>
                 {getAnomalySeverityLabel(anomaly.severidade)}
               </Badge>
             </div>
             <div>
-              <p className="text-gray-500">Entidade</p>
+              <p className="text-muted-foreground">Entidade</p>
               <p className="font-medium">{anomaly.entidade}</p>
             </div>
             <div>
-              <p className="text-gray-500">ID</p>
+              <p className="text-muted-foreground">ID</p>
               <code className="text-xs">{anomaly.entidadeId}</code>
             </div>
             <div className="col-span-2">
-              <p className="text-gray-500">Detectada</p>
+              <p className="text-muted-foreground">Detectada</p>
               <p className="font-medium">{formatDateTimeBR(anomaly.criadaEm)}</p>
             </div>
           </div>
 
           {/* Message */}
           <div>
-            <p className="mb-1 text-sm text-gray-500">Detalhes</p>
-            <div className="rounded-lg bg-gray-50 p-3 text-sm">
+            <p className="mb-1 text-sm text-muted-foreground">Detalhes</p>
+            <div className="rounded-lg bg-muted p-3 text-sm">
               {anomaly.mensagem || 'Sem detalhes adicionais'}
             </div>
           </div>
@@ -101,7 +101,7 @@ export function AnomalyDetailModal({ anomaly, onClose, onResolve }: AnomalyDetai
             <>
               {/* Resolution Notes */}
               <div>
-                <p className="mb-1 text-sm text-gray-500">Notas de Resolucao</p>
+                <p className="mb-1 text-sm text-muted-foreground">Notas de Resolucao</p>
                 <Textarea
                   placeholder="Descreva a causa e a resolucao..."
                   value={notas}

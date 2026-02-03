@@ -15,8 +15,8 @@ export function StatusCard({ title, value, icon: Icon, trend }: StatusCardProps)
   return (
     <div className="rounded-xl border border-border bg-card p-4 lg:p-6">
       <div className="flex items-start justify-between">
-        <div className="rounded-lg bg-revoluna-50 p-2">
-          <Icon className="h-5 w-5 text-revoluna-400" />
+        <div className="rounded-lg bg-primary/10 p-2">
+          <Icon className="h-5 w-5 text-primary" />
         </div>
         {trend && (
           <div

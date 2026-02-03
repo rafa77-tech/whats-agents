@@ -32,8 +32,8 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
         {/* Hourly */}
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">Por Hora</span>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm font-medium text-foreground/80">Por Hora</span>
+            <span className="text-sm text-muted-foreground">
               {hourly.used}/{hourly.limit} ({hourlyPercentage}%)
             </span>
           </div>
@@ -56,8 +56,8 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
         {/* Daily */}
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">Por Dia</span>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm font-medium text-foreground/80">Por Dia</span>
+            <span className="text-sm text-muted-foreground">
               {daily.used}/{daily.limit} ({dailyPercentage}%)
             </span>
           </div>
@@ -77,7 +77,7 @@ export function RateLimitPanel({ rateLimit }: RateLimitPanelProps) {
           )}
         </div>
 
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-muted-foreground/70">
           Limites configurados para evitar ban do WhatsApp. Mensagens excedentes sao enfileiradas.
         </p>
       </CardContent>

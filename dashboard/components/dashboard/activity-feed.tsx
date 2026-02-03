@@ -63,7 +63,7 @@ export function ActivityFeed({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-gray-500">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Activity className="h-4 w-4" />
           Atividade Recente
         </CardTitle>
@@ -71,11 +71,11 @@ export function ActivityFeed({
       <CardContent>
         {loading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/70" />
           </div>
         ) : data?.events.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">
-            <Activity className="mx-auto mb-2 h-8 w-8 text-gray-300" />
+          <div className="py-8 text-center text-muted-foreground">
+            <Activity className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
             <p>Nenhuma atividade recente</p>
           </div>
         ) : (

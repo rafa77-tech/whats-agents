@@ -16,10 +16,10 @@ export function CapacityBar({ used, total }: CapacityBarProps) {
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-foreground">
           Capacidade: {used}/{total} grupos
         </span>
-        <span className="text-sm text-gray-500">{percentage}%</span>
+        <span className="text-sm text-muted-foreground">{percentage}%</span>
       </div>
       <div className="h-4 w-full overflow-hidden rounded-full bg-muted">
         <div

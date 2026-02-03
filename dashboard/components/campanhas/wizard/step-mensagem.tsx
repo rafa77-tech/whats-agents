@@ -53,7 +53,7 @@ Use {{hospital}} para o hospital da vaga.`}
           rows={8}
           className="font-mono text-sm"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           Variaveis disponiveis: {'{{nome}}'}, {'{{especialidade}}'}, {'{{hospital}}'},{' '}
           {'{{valor}}'}
         </p>

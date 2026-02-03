@@ -131,7 +131,9 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
               onDrop={handleDrop}
               className={cn(
                 'flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors',
-                dragActive ? 'border-status-info-solid bg-status-info' : 'border-gray-300',
+                dragActive
+                  ? 'border-status-info-solid bg-status-info'
+                  : 'border-muted-foreground/50',
                 file && 'border-status-success-solid bg-status-success'
               )}
             >
@@ -147,8 +149,10 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
                 </>
               ) : (
                 <>
-                  <Upload className="h-8 w-8 text-gray-400" />
-                  <p className="mt-2 text-sm text-gray-600">Arraste um arquivo CSV ou Excel aqui</p>
+                  <Upload className="h-8 w-8 text-muted-foreground/70" />
+                  <p className="mt-2 text-sm text-foreground/80">
+                    Arraste um arquivo CSV ou Excel aqui
+                  </p>
                   <label className="mt-2 cursor-pointer">
                     <span className="text-sm text-status-info-foreground hover:underline">
                       ou selecione um arquivo
@@ -165,9 +169,9 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
             </div>
 
             {/* Format info */}
-            <div className="rounded-lg bg-gray-50 p-3 text-sm">
-              <p className="font-medium text-gray-700">Formato esperado:</p>
-              <code className="text-xs text-gray-600">
+            <div className="rounded-lg bg-muted p-3 text-sm">
+              <p className="font-medium text-foreground">Formato esperado:</p>
+              <code className="text-xs text-foreground/80">
                 link, categoria (opcional)
                 <br />
                 https://chat.whatsapp.com/xxx, medicos
@@ -183,25 +187,25 @@ export function ImportLinksModal({ onClose, onImport }: ImportLinksModalProps) {
         ) : (
           <div className="space-y-4">
             {/* Import result */}
-            <div className="rounded-lg bg-gray-50 p-4">
+            <div className="rounded-lg bg-muted p-4">
               <h4 className="mb-3 font-medium">Resultado da Importacao</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <span className="text-gray-500">Total:</span>{' '}
+                  <span className="text-muted-foreground">Total:</span>{' '}
                   <span className="font-medium">{result.total}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Validos:</span>{' '}
+                  <span className="text-muted-foreground">Validos:</span>{' '}
                   <span className="font-medium text-status-success-foreground">{result.valid}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Duplicados:</span>{' '}
+                  <span className="text-muted-foreground">Duplicados:</span>{' '}
                   <span className="font-medium text-status-warning-foreground">
                     {result.duplicates}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Invalidos:</span>{' '}
+                  <span className="text-muted-foreground">Invalidos:</span>{' '}
                   <span className="font-medium text-status-error-foreground">{result.invalid}</span>
                 </div>
               </div>

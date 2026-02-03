@@ -160,7 +160,7 @@ export function BloquearHospitalDialog({
                           />
                           <div className="flex flex-col">
                             <span>{hospital.nome}</span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-muted-foreground">
                               {hospital.cidade} • {hospital.vagas_abertas ?? 0} vagas
                             </span>
                           </div>

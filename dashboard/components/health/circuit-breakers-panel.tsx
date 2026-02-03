@@ -91,7 +91,7 @@ export function CircuitBreakersPanel({ circuits, onReset }: CircuitBreakersPanel
                     <div className={cn('h-3 w-3 rounded-full', colors.indicator)} />
                     <div>
                       <p className="font-medium capitalize">{circuit.name}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         Falhas: {circuit.failures}/{circuit.threshold}
                       </p>
                     </div>
@@ -112,7 +112,7 @@ export function CircuitBreakersPanel({ circuits, onReset }: CircuitBreakersPanel
               )
             })}
           </div>
-          <p className="mt-4 text-xs text-gray-400">{CIRCUIT_STATE_LEGEND}</p>
+          <p className="mt-4 text-xs text-muted-foreground/70">{CIRCUIT_STATE_LEGEND}</p>
         </CardContent>
       </Card>
 

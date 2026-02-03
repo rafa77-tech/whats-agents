@@ -17,7 +17,7 @@ export function ChipPoolOverview({ data }: ChipPoolOverviewProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-gray-500">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Smartphone className="h-4 w-4" />
           Pool de Chips
         </CardTitle>

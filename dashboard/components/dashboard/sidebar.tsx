@@ -1,3 +1,10 @@
+/**
+ * Sidebar - Sprint 45
+ *
+ * Navegacao lateral do dashboard com grupos semanticos.
+ * Redesenhada com identidade visual Jull.ia.
+ */
+
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -5,6 +12,7 @@ import Link from 'next/link'
 import type { Route } from 'next'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { SidebarSection } from './sidebar-section'
 import {
   LayoutDashboard,
   Megaphone,
@@ -17,13 +25,13 @@ import {
   Activity,
   HeartPulse,
   ShieldCheck,
-  Users,
   Star,
   BarChart3,
   Briefcase,
   MessageSquare,
   Stethoscope,
   ClipboardList,
+  Users,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -33,22 +41,58 @@ interface NavItem {
   icon: LucideIcon
 }
 
-const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Metricas', href: '/metricas', icon: BarChart3 },
-  { name: 'Campanhas', href: '/campanhas', icon: Megaphone },
-  { name: 'Vagas', href: '/vagas', icon: Briefcase },
-  { name: 'Conversas', href: '/conversas', icon: MessageSquare },
-  { name: 'Medicos', href: '/medicos', icon: Stethoscope },
-  { name: 'Pool de Chips', href: '/chips', icon: Smartphone },
-  { name: 'Monitor', href: '/monitor', icon: Activity },
-  { name: 'Health Center', href: '/health', icon: HeartPulse },
-  { name: 'Integridade', href: '/integridade', icon: ShieldCheck },
-  { name: 'Grupos', href: '/grupos', icon: Users },
-  { name: 'Qualidade', href: '/qualidade', icon: Star },
-  { name: 'Auditoria', href: '/auditoria', icon: ClipboardList },
-  { name: 'Instrucoes', href: '/instrucoes', icon: FileText },
-  { name: 'Hospitais Bloqueados', href: '/hospitais/bloqueados', icon: Building2 },
+interface NavGroup {
+  label: string | null
+  items: NavItem[]
+}
+
+// Navegacao agrupada por dominio de responsabilidade
+const navigationGroups: NavGroup[] = [
+  {
+    label: null, // Dashboard fica sem label (sempre visivel no topo)
+    items: [{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }],
+  },
+  {
+    label: 'Operacoes',
+    items: [
+      { name: 'Conversas', href: '/conversas', icon: MessageSquare },
+      { name: 'Campanhas', href: '/campanhas', icon: Megaphone },
+      { name: 'Vagas', href: '/vagas', icon: Briefcase },
+      { name: 'Instrucoes', href: '/instrucoes', icon: FileText },
+    ],
+  },
+  {
+    label: 'Cadastros',
+    items: [
+      { name: 'Medicos', href: '/medicos', icon: Stethoscope },
+      { name: 'Hospitais', href: '/hospitais/bloqueados', icon: Building2 },
+      { name: 'Grupos', href: '/grupos', icon: Users },
+    ],
+  },
+  {
+    label: 'WhatsApp',
+    items: [{ name: 'Chips', href: '/chips', icon: Smartphone }],
+  },
+  {
+    label: 'Monitoramento',
+    items: [
+      { name: 'Monitor', href: '/monitor', icon: Activity },
+      { name: 'Health', href: '/health', icon: HeartPulse },
+      { name: 'Integridade', href: '/integridade', icon: ShieldCheck },
+      { name: 'Metricas', href: '/metricas', icon: BarChart3 },
+    ],
+  },
+  {
+    label: 'Qualidade',
+    items: [
+      { name: 'Avaliacoes', href: '/qualidade', icon: Star },
+      { name: 'Auditoria', href: '/auditoria', icon: ClipboardList },
+    ],
+  },
+]
+
+// Itens do footer (configuracao e ajuda)
+const footerNavigation: NavItem[] = [
   { name: 'Sistema', href: '/sistema', icon: Settings },
   { name: 'Ajuda', href: '/ajuda', icon: HelpCircle },
 ]
@@ -61,55 +105,80 @@ export function Sidebar() {
     setMounted(true)
   }, [])
 
+  const isActive = (href: string) => {
+    if (!mounted) return false
+    return pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+  }
+
+  const renderNavItem = (item: NavItem) => {
+    const active = isActive(item.href)
+
+    return (
+      <Link
+        key={item.name}
+        href={item.href as Route}
+        className={cn(
+          'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
+          active
+            ? 'bg-primary/10 text-primary'
+            : 'text-foreground/90 hover:bg-muted hover:text-foreground'
+        )}
+      >
+        <item.icon
+          className={cn(
+            'h-[18px] w-[18px] transition-colors',
+            active ? 'text-primary' : 'text-foreground/70 group-hover:text-foreground'
+          )}
+        />
+        <span className="truncate">{item.name}</span>
+        {/* Indicador de rota ativa */}
+        {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
+      </Link>
+    )
+  }
+
   return (
-    <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className="flex items-center gap-3 border-b border-border px-6 py-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-revoluna-400">
-          <span className="text-lg font-bold text-white">J</span>
+    <div className="sidebar-bg-white flex h-full flex-col">
+      {/* Header com logo Jull.ia */}
+      <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+        <div className="bg-jullia-gradient flex h-9 w-9 items-center justify-center rounded-xl shadow-sm">
+          <span className="text-base font-bold text-white">J</span>
         </div>
-        <div>
-          <h1 className="font-bold text-foreground">Julia</h1>
-          <p className="text-xs text-muted-foreground">Dashboard</p>
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold text-foreground">Jull.ia</span>
+          <span className="text-[10px] text-muted-foreground">Dashboard v2.0</span>
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {navigation.map((item) => {
-          // Only check active state after mount to prevent hydration mismatch
-          const isActive =
-            mounted &&
-            (pathname === item.href ||
-              (item.href !== '/dashboard' && pathname.startsWith(item.href)))
-          return (
-            <Link
-              key={item.name}
-              href={item.href as Route}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-revoluna-50 text-revoluna-700'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              )}
-            >
-              <item.icon
-                className={cn(
-                  'h-5 w-5',
-                  isActive ? 'text-revoluna-400' : 'text-muted-foreground/70'
-                )}
-              />
-              {item.name}
-            </Link>
+      {/* Navegacao principal com scroll */}
+      <nav className="flex-1 overflow-y-auto px-3 py-3">
+        {navigationGroups.map((group, idx) =>
+          group.label ? (
+            <SidebarSection key={group.label} label={group.label}>
+              {group.items.map(renderNavItem)}
+            </SidebarSection>
+          ) : (
+            <div key={idx} className="space-y-0.5">
+              {group.items.map(renderNavItem)}
+            </div>
           )
-        })}
+        )}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-border p-4">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted">
-          <Power className="h-5 w-5 text-muted-foreground/70" />
-          Sair
+      {/* Footer com separador visual */}
+      <div className="border-t border-border px-3 py-3">
+        <div className="space-y-0.5">{footerNavigation.map(renderNavItem)}</div>
+
+        {/* Botao de sair */}
+        <button
+          className="mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => {
+            // TODO: Implementar logout
+            console.log('Logout clicked')
+          }}
+        >
+          <Power className="h-[18px] w-[18px]" />
+          <span>Sair</span>
         </button>
       </div>
     </div>

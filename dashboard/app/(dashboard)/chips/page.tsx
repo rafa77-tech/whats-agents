@@ -1,12 +1,13 @@
 /**
- * Chips Page - Sprint 36
+ * Chips Page - Sprint 45
  *
- * Página principal do módulo de gerenciamento de chips.
+ * Pagina principal do modulo de gerenciamento de chips.
+ * Consolidada em uma unica pagina com tabs.
  */
 
 import { Suspense } from 'react'
 import { Metadata } from 'next'
-import { ChipsPageContent } from '@/components/chips/chips-page-content'
+import { ChipsUnifiedPage } from '@/components/chips/chips-unified-page'
 import { ChipsPageSkeleton } from '@/components/chips/chips-page-skeleton'
 
 export const metadata: Metadata = {
@@ -16,12 +17,8 @@ export const metadata: Metadata = {
 
 export default function ChipsPage() {
   return (
-    <div className="min-h-screen bg-secondary">
-      <div className="mx-auto max-w-[1600px] p-6">
-        <Suspense fallback={<ChipsPageSkeleton />}>
-          <ChipsPageContent />
-        </Suspense>
-      </div>
-    </div>
+    <Suspense fallback={<ChipsPageSkeleton />}>
+      <ChipsUnifiedPage />
+    </Suspense>
   )
 }

@@ -80,7 +80,7 @@ export function GroupEntryConfigModal({ onClose, onSave }: GroupEntryConfigModal
       <Dialog open onOpenChange={onClose}>
         <DialogContent>
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/70" />
           </div>
         </DialogContent>
       </Dialog>

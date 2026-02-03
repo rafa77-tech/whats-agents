@@ -16,7 +16,7 @@ export function OperationalStatus({ data }: OperationalStatusProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-gray-500">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Activity className="h-4 w-4" />
           Status Operacional
         </CardTitle>
@@ -31,14 +31,14 @@ export function OperationalStatus({ data }: OperationalStatusProps) {
         {/* Fila e LLM */}
         <div className="flex items-center justify-between border-t pt-2">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-gray-400" />
-            <span className="text-sm text-gray-600">
+            <MessageSquare className="h-4 w-4 text-muted-foreground/70" />
+            <span className="text-sm text-foreground/80">
               Fila: <span className="font-medium">{queueSize} msgs</span>
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Cpu className="h-4 w-4 text-gray-400" />
-            <span className="text-sm text-gray-600">
+            <Cpu className="h-4 w-4 text-muted-foreground/70" />
+            <span className="text-sm text-foreground/80">
               <span className="font-medium">{llmUsage.haiku}%</span> Haiku /{' '}
               <span className="font-medium">{llmUsage.sonnet}%</span> Sonnet
             </span>

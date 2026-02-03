@@ -27,7 +27,7 @@ export function WizardSteps({ currentStep }: WizardStepsProps) {
                 'flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors',
                 isActive && 'border-primary bg-primary text-white',
                 isCompleted && 'border-status-success-solid bg-status-success-solid text-white',
-                !isActive && !isCompleted && 'border-gray-300 text-gray-400'
+                !isActive && !isCompleted && 'border-border text-muted-foreground/70'
               )}
             >
               {isCompleted ? (
@@ -40,13 +40,13 @@ export function WizardSteps({ currentStep }: WizardStepsProps) {
               className={cn(
                 'ml-2 text-sm font-medium',
                 isActive && 'text-primary',
-                !isActive && 'text-gray-500'
+                !isActive && 'text-muted-foreground'
               )}
             >
               {s.title}
             </span>
             {index < WIZARD_STEPS.length - 1 && (
-              <ChevronRight className="mx-4 h-5 w-5 text-gray-300" />
+              <ChevronRight className="mx-4 h-5 w-5 text-muted-foreground/50" />
             )}
           </div>
         )

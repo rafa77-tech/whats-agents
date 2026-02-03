@@ -31,7 +31,7 @@ describe('StatusCard', () => {
       const { container } = render(<StatusCard {...defaultProps} />)
       const icon = container.querySelector('svg')
       expect(icon).toBeInTheDocument()
-      expect(icon).toHaveClass('text-revoluna-400')
+      expect(icon).toHaveClass('text-primary')
     })
   })
 

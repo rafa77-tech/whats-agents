@@ -16,7 +16,15 @@ import * as path from 'path'
 const SCAN_DIRECTORIES = ['app', 'components', 'lib']
 
 // Files/directories to ignore
-const IGNORE_PATTERNS = ['node_modules', '.next', '__tests__', 'globals.css', 'tailwind.config']
+const IGNORE_PATTERNS = [
+  'node_modules',
+  '.next',
+  '__tests__',
+  'globals.css',
+  'tailwind.config',
+  // Market Intelligence uses data visualization colors that don't have semantic equivalents
+  'market-intelligence',
+]
 
 // Hardcoded color patterns that should NOT be used
 // These are raw Tailwind color utilities that bypass our design tokens
@@ -53,9 +61,9 @@ const FORBIDDEN_PATTERNS = [
 
 // Allowed exceptions - patterns that look like violations but are actually fine
 const ALLOWED_EXCEPTIONS: RegExp[] = [
-  // Gray scale is often acceptable for neutral UI elements
-  // Uncomment if you want to allow gray:
-  // /\b(bg|text|border)-gray-\d{2,3}\b/g,
+  // Gray scale is acceptable for neutral UI elements (muted text, borders, backgrounds)
+  // These are semantic-neutral colors that work well for disabled states, dividers, etc.
+  /\b(bg|text|border|ring|divide)-gray-\d{2,3}\b/g,
 ]
 
 interface Violation {

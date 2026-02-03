@@ -17,44 +17,44 @@ interface StepRevisaoProps {
 export function StepRevisao({ formData, updateField }: StepRevisaoProps) {
   return (
     <div className="space-y-4">
-      <div className="space-y-3 rounded-lg bg-gray-50 p-4">
+      <div className="space-y-3 rounded-lg bg-card p-4">
         <h3 className="font-medium">Resumo da Campanha</h3>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-gray-500">Nome:</span>
+            <span className="text-muted-foreground">Nome:</span>
             <p className="font-medium">{formData.nome_template}</p>
           </div>
 
           <div>
-            <span className="text-gray-500">Tipo:</span>
+            <span className="text-muted-foreground">Tipo:</span>
             <p className="font-medium">
               {TIPOS_CAMPANHA.find((t) => t.value === formData.tipo_campanha)?.label}
             </p>
           </div>
 
           <div>
-            <span className="text-gray-500">Categoria:</span>
+            <span className="text-muted-foreground">Categoria:</span>
             <p className="font-medium">
               {CATEGORIAS.find((c) => c.value === formData.categoria)?.label}
             </p>
           </div>
 
           <div>
-            <span className="text-gray-500">Tom:</span>
+            <span className="text-muted-foreground">Tom:</span>
             <p className="font-medium">{TONS.find((t) => t.value === formData.tom)?.label}</p>
           </div>
         </div>
 
         {formData.objetivo && (
           <div className="text-sm">
-            <span className="text-gray-500">Objetivo:</span>
+            <span className="text-muted-foreground">Objetivo:</span>
             <p>{formData.objetivo}</p>
           </div>
         )}
 
         <div className="text-sm">
-          <span className="text-gray-500">Audiencia:</span>
+          <span className="text-muted-foreground">Audiencia:</span>
           <p>
             {formData.audiencia_tipo === 'todos'
               ? 'Todos os medicos'
@@ -64,8 +64,8 @@ export function StepRevisao({ formData, updateField }: StepRevisaoProps) {
 
         {formData.chips_excluidos.length > 0 && (
           <div className="text-sm">
-            <span className="text-gray-500">Chips excluidos:</span>
-            <p className="text-orange-600">
+            <span className="text-muted-foreground">Chips excluidos:</span>
+            <p className="text-status-warning-foreground">
               {formData.chips_excluidos.length} chip
               {formData.chips_excluidos.length > 1 ? 's' : ''} nao sera
               {formData.chips_excluidos.length > 1 ? 'o' : ''} usado
@@ -98,7 +98,7 @@ export function StepRevisao({ formData, updateField }: StepRevisaoProps) {
         )}
 
         {!formData.agendar && (
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-muted-foreground">
             A campanha sera salva como rascunho. Voce podera iniciar o envio manualmente depois.
           </p>
         )}

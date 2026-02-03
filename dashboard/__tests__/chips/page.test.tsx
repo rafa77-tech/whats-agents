@@ -1,14 +1,16 @@
 /**
  * Testes para Chips Page
+ *
+ * Sprint 45: Pagina unificada com tabs
  */
 
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import ChipsPage from '@/app/(dashboard)/chips/page'
 
-// Mock Suspense and components
-vi.mock('@/components/chips/chips-page-content', () => ({
-  ChipsPageContent: () => <div data-testid="chips-page-content">Chips Content</div>,
+// Mock ChipsUnifiedPage (componente principal usado pela pagina)
+vi.mock('@/components/chips/chips-unified-page', () => ({
+  ChipsUnifiedPage: () => <div data-testid="chips-unified-page">Chips Unified Page</div>,
 }))
 
 vi.mock('@/components/chips/chips-page-skeleton', () => ({
@@ -16,14 +18,13 @@ vi.mock('@/components/chips/chips-page-skeleton', () => ({
 }))
 
 describe('ChipsPage', () => {
-  it('deve renderizar o componente ChipsPageContent', async () => {
+  it('deve renderizar o componente ChipsUnifiedPage', async () => {
     render(<ChipsPage />)
-    expect(screen.getByTestId('chips-page-content')).toBeInTheDocument()
+    expect(screen.getByTestId('chips-unified-page')).toBeInTheDocument()
   })
 
-  it('deve renderizar dentro do container correto', () => {
+  it('deve renderizar o conteudo da pagina', () => {
     render(<ChipsPage />)
-    const container = screen.getByTestId('chips-page-content').parentElement?.parentElement
-    expect(container).toHaveClass('min-h-screen')
+    expect(screen.getByText('Chips Unified Page')).toBeInTheDocument()
   })
 })

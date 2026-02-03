@@ -109,7 +109,7 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
           <div>
             <Label className="mb-2 block">Especialidades</Label>
             {loading ? (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Carregando...
               </div>
@@ -132,7 +132,7 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
           <div>
             <Label className="mb-2 block">Estados</Label>
             {loading ? (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Carregando...
               </div>
@@ -154,8 +154,8 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
         </>
       )}
 
-      <div className="rounded-lg bg-gray-50 p-4">
-        <p className="text-sm text-gray-600">
+      <div className="rounded-lg bg-card p-4">
+        <p className="text-sm text-foreground/80">
           {formData.audiencia_tipo === 'todos' ? (
             <>A campanha sera enviada para todos os medicos cadastrados.</>
           ) : (
@@ -168,7 +168,7 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
                 <span className="ml-1 font-medium">, {formData.regioes.length} estados</span>
               )}
               {formData.especialidades.length === 0 && formData.regioes.length === 0 && (
-                <span className="text-gray-400">Nenhum filtro selecionado</span>
+                <span className="text-muted-foreground/70">Nenhum filtro selecionado</span>
               )}
             </>
           )}
@@ -180,10 +180,10 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
         <button
           type="button"
           onClick={() => setChipsOpen(!chipsOpen)}
-          className="flex w-full items-center justify-between rounded-lg border p-4 hover:bg-gray-50"
+          className="flex w-full items-center justify-between rounded-lg border p-4 hover:bg-card"
         >
           <div className="flex items-center gap-2">
-            <Smartphone className="h-4 w-4 text-gray-500" />
+            <Smartphone className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">Excluir chips da campanha</span>
             {formData.chips_excluidos.length > 0 && (
               <Badge variant="secondary" className="ml-2">
@@ -193,22 +193,22 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
             )}
           </div>
           <ChevronDown
-            className={`h-4 w-4 text-gray-500 transition-transform ${chipsOpen ? 'rotate-180' : ''}`}
+            className={`h-4 w-4 text-muted-foreground transition-transform ${chipsOpen ? 'rotate-180' : ''}`}
           />
         </button>
         {chipsOpen && (
           <div className="rounded-lg border p-4">
-            <p className="mb-3 text-sm text-gray-600">
+            <p className="mb-3 text-sm text-foreground/80">
               Selecione chips que <strong>NAO</strong> devem ser usados para enviar mensagens desta
               campanha.
             </p>
             {loadingChips ? (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Carregando chips...
               </div>
             ) : chipsOptions.length === 0 ? (
-              <p className="text-sm text-gray-400">Nenhum chip disponivel</p>
+              <p className="text-sm text-muted-foreground/70">Nenhum chip disponivel</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {chipsOptions.map((chip) => {
@@ -216,18 +216,18 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
                   const displayName = chip.instance_name || chip.telefone?.slice(-4) || chip.id
                   const trustColor =
                     chip.trust_level === 'verde'
-                      ? 'bg-green-100 text-green-800'
+                      ? 'bg-trust-verde/20 text-trust-verde'
                       : chip.trust_level === 'amarelo'
-                        ? 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-trust-amarelo/20 text-trust-amarelo'
                         : chip.trust_level === 'laranja'
-                          ? 'bg-orange-100 text-orange-800'
-                          : 'bg-red-100 text-red-800'
+                          ? 'bg-trust-laranja/20 text-trust-laranja'
+                          : 'bg-trust-vermelho/20 text-trust-vermelho'
 
                   return (
                     <Badge
                       key={chip.id}
                       variant={isExcluded ? 'destructive' : 'outline'}
-                      className={`cursor-pointer ${isExcluded ? '' : 'hover:bg-gray-100'}`}
+                      className={`cursor-pointer ${isExcluded ? '' : 'hover:bg-muted'}`}
                       onClick={() => toggleArrayItem('chips_excluidos', chip.id)}
                     >
                       {isExcluded && <Ban className="mr-1 h-3 w-3" />}
@@ -241,7 +241,7 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
               </div>
             )}
             {formData.chips_excluidos.length > 0 && (
-              <p className="mt-3 text-xs text-orange-600">
+              <p className="mt-3 text-xs text-status-warning-foreground">
                 {formData.chips_excluidos.length} chip
                 {formData.chips_excluidos.length > 1 ? 's' : ''} excluido
                 {formData.chips_excluidos.length > 1 ? 's' : ''} - mensagens serao enviadas apenas

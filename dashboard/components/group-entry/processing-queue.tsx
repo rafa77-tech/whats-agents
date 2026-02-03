@@ -107,7 +107,7 @@ export function ProcessingQueue({ onUpdate }: ProcessingQueueProps) {
       <CardContent>
         {loading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/70" />
           </div>
         ) : queue.length > 0 ? (
           <Table>
@@ -129,7 +129,7 @@ export function ProcessingQueue({ onUpdate }: ProcessingQueueProps) {
                     <code className="text-xs">{formatLinkUrl(item.link_url)}</code>
                   </TableCell>
                   <TableCell className="text-sm">{item.chip_name}</TableCell>
-                  <TableCell className="text-sm text-gray-500">
+                  <TableCell className="text-sm text-muted-foreground">
                     {formatTime(item.scheduled_at)}
                   </TableCell>
                   <TableCell>{renderStatusBadge(item.status)}</TableCell>
@@ -172,8 +172,8 @@ export function ProcessingQueue({ onUpdate }: ProcessingQueueProps) {
             </TableBody>
           </Table>
         ) : (
-          <div className="py-8 text-center text-gray-500">
-            <XCircle className="mx-auto h-8 w-8 text-gray-300" />
+          <div className="py-8 text-center text-muted-foreground">
+            <XCircle className="mx-auto h-8 w-8 text-muted-foreground/50" />
             <p className="mt-2">Nenhum item na fila</p>
           </div>
         )}

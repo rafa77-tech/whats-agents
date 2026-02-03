@@ -35,12 +35,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([])
     }
 
-    // Buscar métricas reais da tabela envios para cada campanha
+    // Buscar métricas de AMBAS as tabelas: envios (legado) e fila_mensagens (Sprint 35+)
     const campanhaIds = campanhas.map((c) => c.id)
+
+    // 1. Buscar da tabela envios (sistema legado)
     const { data: envios } = await supabase
       .from('envios')
       .select('campanha_id, enviado_em, entregue_em, visualizado_em, status')
       .in('campanha_id', campanhaIds)
+
+    // 2. Buscar da tabela fila_mensagens (Sprint 35+)
+    // Campanhas usam metadata.campanha_id para identificar mensagens
+    const { data: filaMensagens } = await supabase
+      .from('fila_mensagens')
+      .select('id, cliente_id, status, enviada_em, outcome, metadata')
 
     // Calcular métricas por campanha
     const metricasPorCampanha = new Map<
@@ -57,6 +65,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Processar envios (legado)
     if (envios) {
       for (const envio of envios) {
         const metricas = metricasPorCampanha.get(envio.campanha_id)
@@ -64,20 +73,71 @@ export async function GET(request: NextRequest) {
           metricas.total++
           if (envio.enviado_em) metricas.enviados++
           if (envio.entregue_em) metricas.entregues++
-          // respondidos seria baseado em outra lógica (ex: conversa iniciada)
         }
       }
     }
 
-    // Sobrescrever os campos armazenados com os valores calculados
+    // Processar fila_mensagens (Sprint 35+)
+    // IMPORTANTE: Deduplicar por cliente_id para evitar contar múltiplas execuções
+    if (filaMensagens) {
+      // Agrupar por campanha_id -> Set de cliente_ids processados
+      const clientesProcessadosPorCampanha = new Map<number, Set<string>>()
+
+      for (const msg of filaMensagens) {
+        // Extrair campanha_id do metadata
+        const metadata = msg.metadata as Record<string, unknown> | null
+        const campanhaIdStr = metadata?.campanha_id as string | undefined
+        if (!campanhaIdStr) continue
+
+        const campanhaId = parseInt(campanhaIdStr, 10)
+        if (isNaN(campanhaId)) continue
+
+        const metricas = metricasPorCampanha.get(campanhaId)
+        if (!metricas) continue
+
+        // Deduplicar por cliente_id
+        if (!clientesProcessadosPorCampanha.has(campanhaId)) {
+          clientesProcessadosPorCampanha.set(campanhaId, new Set())
+        }
+        const clientesProcessados = clientesProcessadosPorCampanha.get(campanhaId)!
+
+        // Se já processamos este cliente para esta campanha, pular
+        if (clientesProcessados.has(msg.cliente_id)) continue
+        clientesProcessados.add(msg.cliente_id)
+
+        metricas.total++
+        // Considerar enviada se status='enviada' ou outcome começando com SENT
+        const isEnviada =
+          msg.status === 'enviada' || (msg.outcome && String(msg.outcome).startsWith('SENT'))
+        if (isEnviada || msg.enviada_em) {
+          metricas.enviados++
+          // Para fila_mensagens, considerar entregue se foi enviada
+          // (não temos tracking de entrega nesse sistema)
+          metricas.entregues++
+        }
+      }
+    }
+
+    // Mesclar métricas calculadas com valores armazenados na campanha
+    // Prioridade: armazenado > calculado > 0
+    // (valores armazenados são mais confiáveis pois são atualizados pelo executor)
     const campanhasComMetricas = campanhas.map((campanha) => {
       const metricas = metricasPorCampanha.get(campanha.id)
+      const calculatedTotal = metricas?.total ?? 0
+      const calculatedEnviados = metricas?.enviados ?? 0
+      const calculatedEntregues = metricas?.entregues ?? 0
+
+      // Usar valores armazenados se disponíveis, senão calcular da fila
+      const storedTotal = campanha.total_destinatarios ?? 0
+      const storedEnviados = campanha.enviados ?? 0
+      const storedEntregues = campanha.entregues ?? 0
+
       return {
         ...campanha,
-        total_destinatarios: metricas?.total ?? campanha.total_destinatarios ?? 0,
-        enviados: metricas?.enviados ?? campanha.enviados ?? 0,
-        entregues: metricas?.entregues ?? campanha.entregues ?? 0,
-        respondidos: metricas?.respondidos ?? campanha.respondidos ?? 0,
+        total_destinatarios: storedTotal > 0 ? storedTotal : calculatedTotal,
+        enviados: storedEnviados > 0 ? storedEnviados : calculatedEnviados,
+        entregues: storedEntregues > 0 ? storedEntregues : calculatedEntregues,
+        respondidos: campanha.respondidos ?? metricas?.respondidos ?? 0,
       }
     })
 

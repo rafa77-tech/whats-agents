@@ -25,11 +25,11 @@ export function ConversionFunnel({ data, onStageClick }: ConversionFunnelProps) 
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-gray-500">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Filter className="h-4 w-4" />
             Funil de Conversao
           </CardTitle>
-          <span className="text-sm text-gray-400">Periodo: {period}</span>
+          <span className="text-sm text-muted-foreground/70">Periodo: {period}</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-2 py-4">

@@ -148,8 +148,14 @@ export const createCampanhaSchema = z.object({
     .object({
       data_inicio: z.string().datetime().optional(),
       data_fim: z.string().datetime().optional(),
-      horario_inicio: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-      horario_fim: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+      horario_inicio: z
+        .string()
+        .regex(/^\d{2}:\d{2}$/)
+        .optional(),
+      horario_fim: z
+        .string()
+        .regex(/^\d{2}:\d{2}$/)
+        .optional(),
     })
     .optional(),
 })

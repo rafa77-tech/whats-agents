@@ -73,7 +73,7 @@ export function EditRateLimitModal({ currentConfig, onClose, onSave }: EditRateL
                 setConfig((c) => ({ ...c, msgs_por_hora: parseInt(e.target.value) || 20 }))
               }
             />
-            <p className="mt-1 text-xs text-gray-500">Recomendado: 15-25</p>
+            <p className="mt-1 text-xs text-muted-foreground">Recomendado: 15-25</p>
           </div>
 
           <div>
@@ -88,7 +88,7 @@ export function EditRateLimitModal({ currentConfig, onClose, onSave }: EditRateL
                 setConfig((c) => ({ ...c, msgs_por_dia: parseInt(e.target.value) || 100 }))
               }
             />
-            <p className="mt-1 text-xs text-gray-500">Recomendado: 80-150</p>
+            <p className="mt-1 text-xs text-muted-foreground">Recomendado: 80-150</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -104,7 +104,7 @@ export function EditRateLimitModal({ currentConfig, onClose, onSave }: EditRateL
                   setConfig((c) => ({ ...c, intervalo_min: parseInt(e.target.value) || 45 }))
                 }
               />
-              <p className="mt-1 text-xs text-gray-500">Minimo: 30s</p>
+              <p className="mt-1 text-xs text-muted-foreground">Minimo: 30s</p>
             </div>
             <div>
               <Label htmlFor="intervalo_max">Intervalo max (s)</Label>
@@ -118,7 +118,7 @@ export function EditRateLimitModal({ currentConfig, onClose, onSave }: EditRateL
                   setConfig((c) => ({ ...c, intervalo_max: parseInt(e.target.value) || 180 }))
                 }
               />
-              <p className="mt-1 text-xs text-gray-500">Maximo: 300s</p>
+              <p className="mt-1 text-xs text-muted-foreground">Maximo: 300s</p>
             </div>
           </div>
 

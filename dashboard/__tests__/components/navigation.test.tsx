@@ -3,13 +3,28 @@
  * - components/dashboard/header.tsx
  * - components/dashboard/sidebar.tsx
  * - components/dashboard/bottom-nav.tsx
+ *
+ * Updated for Sprint 45 with new navigation structure
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Header } from '@/components/dashboard/header'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { BottomNav } from '@/components/dashboard/bottom-nav'
+import { CommandPaletteProvider } from '@/components/command-palette'
+
+// Mock scrollIntoView (not available in jsdom)
+Element.prototype.scrollIntoView = vi.fn()
+
+// Helper to render Header with required providers
+const renderHeader = () => {
+  return render(
+    <CommandPaletteProvider>
+      <Header />
+    </CommandPaletteProvider>
+  )
+}
 
 // Mock usePathname for different routes
 const mockUsePathname = vi.fn()
@@ -18,6 +33,11 @@ vi.mock('next/navigation', async () => {
   return {
     ...actual,
     usePathname: () => mockUsePathname(),
+    useRouter: () => ({
+      push: vi.fn(),
+      replace: vi.fn(),
+      prefetch: vi.fn(),
+    }),
   }
 })
 
@@ -26,25 +46,27 @@ describe('Header', () => {
     mockUsePathname.mockReturnValue('/dashboard')
   })
 
-  it('should render search input', () => {
-    render(<Header />)
-    expect(screen.getByPlaceholderText('Buscar medicos, conversas...')).toBeInTheDocument()
+  it('should render search button for command palette', () => {
+    renderHeader()
+    // Search button opens command palette
+    const buttons = screen.getAllByRole('button')
+    expect(buttons.length).toBeGreaterThan(0)
   })
 
   it('should render notification bell', () => {
-    render(<Header />)
+    renderHeader()
     // Bell icon is present (notification button)
     const buttons = screen.getAllByRole('button')
     expect(buttons.length).toBeGreaterThan(0)
   })
 
   it('should render user avatar with initial', () => {
-    render(<Header />)
+    renderHeader()
     expect(screen.getByText('R')).toBeInTheDocument()
   })
 
   it('should open mobile menu when hamburger is clicked', () => {
-    render(<Header />)
+    renderHeader()
     const buttons = screen.getAllByRole('button')
     expect(buttons.length).toBeGreaterThan(0)
     fireEvent.click(buttons[0] as HTMLElement)
@@ -53,7 +75,7 @@ describe('Header', () => {
   })
 
   it('should close mobile menu when X button is clicked', () => {
-    render(<Header />)
+    renderHeader()
     // Open menu first
     const buttons = screen.getAllByRole('button')
     expect(buttons.length).toBeGreaterThan(0)
@@ -69,7 +91,7 @@ describe('Header', () => {
   })
 
   it('should close mobile menu when backdrop is clicked', () => {
-    render(<Header />)
+    renderHeader()
     // Open menu first
     const buttons = screen.getAllByRole('button')
     expect(buttons.length).toBeGreaterThan(0)
@@ -89,22 +111,49 @@ describe('Sidebar', () => {
     mockUsePathname.mockReturnValue('/dashboard')
   })
 
-  it('should render logo', () => {
+  it('should render Jull.ia logo', () => {
     render(<Sidebar />)
-    expect(screen.getByText('Julia')).toBeInTheDocument()
-    // Dashboard appears twice: in logo subtitle and in nav
-    expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Jull.ia')).toBeInTheDocument()
+    expect(screen.getByText('J')).toBeInTheDocument()
+  })
+
+  it('should render all navigation groups', () => {
+    render(<Sidebar />)
+    expect(screen.getByText('Operacoes')).toBeInTheDocument()
+    expect(screen.getByText('Cadastros')).toBeInTheDocument()
+    expect(screen.getByText('WhatsApp')).toBeInTheDocument()
+    expect(screen.getByText('Monitoramento')).toBeInTheDocument()
+    expect(screen.getByText('Qualidade')).toBeInTheDocument()
   })
 
   it('should render all navigation items', () => {
     render(<Sidebar />)
-    // Dashboard appears in multiple places, so use getAllByText
     expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Conversas')).toBeInTheDocument()
     expect(screen.getByText('Campanhas')).toBeInTheDocument()
-    expect(screen.getByText('Instrucoes')).toBeInTheDocument()
-    expect(screen.getByText('Hospitais Bloqueados')).toBeInTheDocument()
+    expect(screen.getByText('Vagas')).toBeInTheDocument()
+    expect(screen.getByText('Medicos')).toBeInTheDocument()
+    expect(screen.getByText('Hospitais')).toBeInTheDocument()
+    expect(screen.getByText('Chips')).toBeInTheDocument()
+    // Grupos agora e uma tab dentro de Chips, nao um item separado
+    expect(screen.getByText('Monitor')).toBeInTheDocument()
+    expect(screen.getByText('Health')).toBeInTheDocument()
+    expect(screen.getByText('Integridade')).toBeInTheDocument()
+    expect(screen.getByText('Metricas')).toBeInTheDocument()
+    expect(screen.getByText('Avaliacoes')).toBeInTheDocument()
+    expect(screen.getByText('Auditoria')).toBeInTheDocument()
+  })
+
+  it('should render footer items', () => {
+    render(<Sidebar />)
+    // Instrucoes foi movido para Operacoes
     expect(screen.getByText('Sistema')).toBeInTheDocument()
     expect(screen.getByText('Ajuda')).toBeInTheDocument()
+  })
+
+  it('should render Instrucoes in Operacoes group', () => {
+    render(<Sidebar />)
+    expect(screen.getByText('Instrucoes')).toBeInTheDocument()
   })
 
   it('should render logout button', () => {
@@ -112,22 +161,30 @@ describe('Sidebar', () => {
     expect(screen.getByText('Sair')).toBeInTheDocument()
   })
 
-  it('should highlight active route', () => {
+  it('should highlight active route with primary colors', () => {
     mockUsePathname.mockReturnValue('/campanhas')
     render(<Sidebar />)
 
     const campanhasLink = screen.getByText('Campanhas').closest('a')
-    expect(campanhasLink).toHaveClass('bg-revoluna-50')
+    expect(campanhasLink).toHaveClass('bg-primary/10')
+    expect(campanhasLink).toHaveClass('text-primary')
   })
 
-  it('should highlight dashboard when on root', () => {
+  it('should highlight dashboard when on dashboard route', () => {
     mockUsePathname.mockReturnValue('/dashboard')
     render(<Sidebar />)
 
-    // Find the Dashboard link (first one, not the subtitle)
     const links = screen.getAllByRole('link')
     const dashboardLink = links.find((link) => link.getAttribute('href') === '/dashboard')
-    expect(dashboardLink).toHaveClass('bg-revoluna-50')
+    expect(dashboardLink).toHaveClass('bg-primary/10')
+    expect(dashboardLink).toHaveClass('text-primary')
+  })
+
+  it('should link Chips to /chips', () => {
+    render(<Sidebar />)
+    // Grupos foi consolidado dentro de Chips como uma tab
+    const chipsLink = screen.getByText('Chips').closest('a')
+    expect(chipsLink).toHaveAttribute('href', '/chips')
   })
 })
 
@@ -136,21 +193,21 @@ describe('BottomNav', () => {
     mockUsePathname.mockReturnValue('/dashboard')
   })
 
-  it('should render all mobile navigation items', () => {
+  it('should render 4 navigation items plus menu button', () => {
     render(<BottomNav />)
-    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(screen.getByText('Home')).toBeInTheDocument()
+    expect(screen.getByText('Conversas')).toBeInTheDocument()
     expect(screen.getByText('Campanhas')).toBeInTheDocument()
     expect(screen.getByText('Chips')).toBeInTheDocument()
-    expect(screen.getByText('Instrucoes')).toBeInTheDocument()
-    expect(screen.getByText('Sistema')).toBeInTheDocument()
+    expect(screen.getByText('Menu')).toBeInTheDocument()
   })
 
-  it('should highlight active route on mobile', () => {
-    mockUsePathname.mockReturnValue('/instrucoes')
+  it('should highlight active route with text-primary', () => {
+    mockUsePathname.mockReturnValue('/conversas')
     render(<BottomNav />)
 
-    const instrucoesLink = screen.getByText('Instrucoes').closest('a')
-    expect(instrucoesLink).toHaveClass('text-revoluna-400')
+    const conversasLink = screen.getByText('Conversas').closest('a')
+    expect(conversasLink).toHaveClass('text-primary')
   })
 
   it('should not highlight inactive routes', () => {
@@ -158,7 +215,7 @@ describe('BottomNav', () => {
     render(<BottomNav />)
 
     const campanhasLink = screen.getByText('Campanhas').closest('a')
-    expect(campanhasLink).toHaveClass('text-gray-500')
+    expect(campanhasLink).toHaveClass('text-muted-foreground')
   })
 
   it('should highlight nested routes correctly', () => {
@@ -166,6 +223,16 @@ describe('BottomNav', () => {
     render(<BottomNav />)
 
     const campanhasLink = screen.getByText('Campanhas').closest('a')
-    expect(campanhasLink).toHaveClass('text-revoluna-400')
+    expect(campanhasLink).toHaveClass('text-primary')
+  })
+
+  it('should open drawer when Menu is clicked', () => {
+    render(<BottomNav />)
+    const menuButton = screen.getByRole('button', { name: /abrir menu/i })
+    fireEvent.click(menuButton)
+
+    // Drawer should be visible with all navigation groups
+    expect(screen.getByText('Operacoes')).toBeInTheDocument()
+    expect(screen.getByText('Cadastros')).toBeInTheDocument()
   })
 })

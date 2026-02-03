@@ -29,8 +29,8 @@ export function QualidadePageContent() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-400" />
-          <p className="mt-2 text-sm text-gray-500">Carregando metricas...</p>
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground/70" />
+          <p className="mt-2 text-sm text-muted-foreground">Carregando metricas...</p>
         </div>
       </div>
     )
@@ -55,8 +55,8 @@ export function QualidadePageContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Qualidade das Conversas</h1>
-          <p className="text-gray-500">Avaliacao e gestao de qualidade das respostas</p>
+          <h1 className="text-2xl font-bold text-foreground">Qualidade das Conversas</h1>
+          <p className="text-muted-foreground">Avaliacao e gestao de qualidade das respostas</p>
         </div>
         <Button onClick={refresh} variant="outline" size="sm" disabled={loading}>
           <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
@@ -99,7 +99,7 @@ export function QualidadePageContent() {
         <Card>
           <CardContent className="flex items-center justify-between p-6">
             <div>
-              <p className="text-sm text-gray-500">Conversas para Avaliar</p>
+              <p className="text-sm text-muted-foreground">Conversas para Avaliar</p>
               <p className="text-2xl font-bold">{metrics?.pendentes ?? 0} novas</p>
             </div>
             <div className="flex items-center gap-3">
@@ -117,7 +117,7 @@ export function QualidadePageContent() {
         <Card>
           <CardContent className="flex items-center justify-between p-6">
             <div>
-              <p className="text-sm text-gray-500">Sugestoes Pendentes</p>
+              <p className="text-sm text-muted-foreground">Sugestoes Pendentes</p>
               <p className="text-2xl font-bold">- aguardando</p>
             </div>
             <div className="flex items-center gap-3">
@@ -175,24 +175,24 @@ export function QualidadePageContent() {
             <CardContent>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                  <div className="rounded-lg bg-gray-50 p-4 text-center">
-                    <p className="text-xs text-gray-500">Naturalidade</p>
+                  <div className="rounded-lg bg-card p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Naturalidade</p>
                     <p className="text-xl font-bold">-</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-4 text-center">
-                    <p className="text-xs text-gray-500">Persona</p>
+                  <div className="rounded-lg bg-card p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Persona</p>
                     <p className="text-xl font-bold">-</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-4 text-center">
-                    <p className="text-xs text-gray-500">Objetivo</p>
+                  <div className="rounded-lg bg-card p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Objetivo</p>
                     <p className="text-xl font-bold">-</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-4 text-center">
-                    <p className="text-xs text-gray-500">Satisfacao</p>
+                  <div className="rounded-lg bg-card p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Satisfacao</p>
                     <p className="text-xl font-bold">-</p>
                   </div>
                 </div>
-                <p className="text-center text-sm text-gray-500">
+                <p className="text-center text-sm text-muted-foreground">
                   Avalie conversas para gerar metricas detalhadas
                 </p>
               </div>

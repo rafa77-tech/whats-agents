@@ -1,0 +1,252 @@
+/**
+ * Warmup Tab Content - Sprint 45
+ *
+ * Conteudo da tab Warmup (sem header).
+ * Refatorado de warmup-page-content.tsx para uso com tabs.
+ */
+
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import { chipsApi } from '@/lib/api/chips'
+import {
+  ScheduledActivity,
+  SchedulerStats,
+  ActivityStatus,
+  ScheduledActivityType,
+} from '@/types/chips'
+
+const activityTypeLabels: Record<ScheduledActivityType, string> = {
+  CONVERSA_PAR: 'Conversa Par',
+  MARCAR_LIDO: 'Marcar Lido',
+  ENTRAR_GRUPO: 'Entrar Grupo',
+  ENVIAR_MIDIA: 'Enviar Midia',
+  MENSAGEM_GRUPO: 'Mensagem Grupo',
+  ATUALIZAR_PERFIL: 'Atualizar Perfil',
+}
+
+const statusConfig: Record<ActivityStatus, { label: string; color: string; icon: typeof Clock }> = {
+  planejada: {
+    label: 'Planejada',
+    color: 'bg-status-info text-status-info-foreground',
+    icon: Clock,
+  },
+  executada: {
+    label: 'Executada',
+    color: 'bg-status-success text-status-success-foreground',
+    icon: CheckCircle,
+  },
+  falhou: { label: 'Falhou', color: 'bg-status-error text-status-error-foreground', icon: XCircle },
+  cancelada: {
+    label: 'Cancelada',
+    color: 'bg-status-neutral text-status-neutral-foreground',
+    icon: XCircle,
+  },
+}
+
+export function WarmupTabContent() {
+  const [activities, setActivities] = useState<ScheduledActivity[]>([])
+  const [stats, setStats] = useState<SchedulerStats | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+
+  const fetchData = useCallback(async () => {
+    try {
+      const params = selectedDate ? { date: selectedDate, limit: 50 } : { limit: 50 }
+      const [activitiesData, statsData] = await Promise.all([
+        chipsApi.getWarmupActivities(params),
+        chipsApi.getWarmupStats(selectedDate || undefined),
+      ])
+      setActivities(activitiesData)
+      setStats(statsData)
+    } catch (error) {
+      console.error('Error fetching warmup data:', error)
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
+    }
+  }, [selectedDate])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const handleRefresh = () => {
+    setIsRefreshing(true)
+    fetchData()
+  }
+
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-6">
+        <div className="h-8 w-48 rounded bg-muted" />
+        <div className="grid grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 rounded bg-muted" />
+          ))}
+        </div>
+        <div className="h-96 rounded bg-muted" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Controls */}
+      <div className="flex items-center justify-end gap-2">
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+        />
+        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+          <RefreshCw className={cn('mr-2 h-4 w-4', isRefreshing && 'animate-spin')} />
+          Atualizar
+        </Button>
+      </div>
+
+      {/* Stats cards */}
+      {stats && (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="mb-1 text-sm text-muted-foreground">Planejadas</div>
+              <div className="text-2xl font-bold text-status-info-foreground">
+                {stats.totalPlanned}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="mb-1 text-sm text-muted-foreground">Executadas</div>
+              <div className="text-2xl font-bold text-status-success-foreground">
+                {stats.totalExecuted}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="mb-1 text-sm text-muted-foreground">Falhas</div>
+              <div className="text-2xl font-bold text-status-error-foreground">
+                {stats.totalFailed}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="mb-1 text-sm text-muted-foreground">Taxa de Sucesso</div>
+              <div className="text-2xl font-bold">
+                {stats.totalExecuted + stats.totalFailed > 0
+                  ? (
+                      (stats.totalExecuted / (stats.totalExecuted + stats.totalFailed)) *
+                      100
+                    ).toFixed(1)
+                  : 0}
+                %
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Activities by type */}
+      {stats && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Atividades por Tipo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+              {(Object.keys(stats.byType) as ScheduledActivityType[]).map((type) => {
+                const data = stats.byType[type]
+                return (
+                  <div key={type} className="rounded-lg bg-muted/50 p-3">
+                    <div className="mb-1 text-xs text-muted-foreground">
+                      {activityTypeLabels[type]}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold">{data.executed}</span>
+                      <span className="text-xs text-muted-foreground">/ {data.planned}</span>
+                    </div>
+                    {data.failed > 0 && (
+                      <div className="mt-1 text-xs text-status-error-foreground">
+                        {data.failed} falhas
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Activities list */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Atividades do Dia</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {activities.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">
+              Nenhuma atividade agendada para esta data.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {activities.map((activity) => {
+                const config = statusConfig[activity.status]
+                const Icon = config.icon
+                return (
+                  <div
+                    key={activity.id}
+                    className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon
+                        className={cn(
+                          'h-4 w-4',
+                          activity.status === 'executada'
+                            ? 'text-status-success-solid'
+                            : activity.status === 'falhou'
+                              ? 'text-status-error-solid'
+                              : 'text-status-info-solid'
+                        )}
+                      />
+                      <div>
+                        <div className="text-sm font-medium">
+                          {activityTypeLabels[activity.type]}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {activity.chipTelefone} •{' '}
+                          {new Date(activity.scheduledAt).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={config.color}>{config.label}</Badge>
+                      {activity.errorMessage && (
+                        <span className="max-w-32 truncate text-xs text-status-error-foreground">
+                          {activity.errorMessage}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

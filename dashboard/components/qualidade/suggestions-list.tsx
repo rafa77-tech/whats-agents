@@ -39,13 +39,13 @@ export function SuggestionsList() {
     useSuggestions(filterStatus)
 
   const getStatusBadge = (status: SuggestionStatus) => {
-    const colorClass = SUGGESTION_STATUS_COLORS[status] || 'bg-gray-100 text-gray-800'
+    const colorClass = SUGGESTION_STATUS_COLORS[status] || 'bg-muted text-muted-foreground'
     const label = SUGGESTION_STATUS_LABELS[status] || status
     return <Badge className={colorClass}>{label}</Badge>
   }
 
   const getTipoBadge = (tipo: SuggestionType) => {
-    const colorClass = SUGGESTION_TYPE_COLORS[tipo] || 'bg-gray-100 text-gray-800'
+    const colorClass = SUGGESTION_TYPE_COLORS[tipo] || 'bg-muted text-muted-foreground'
     return <Badge className={colorClass}>{tipo}</Badge>
   }
 
@@ -99,7 +99,7 @@ export function SuggestionsList() {
 
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/70" />
             </div>
           ) : suggestions.length > 0 ? (
             <Table>
@@ -118,7 +118,7 @@ export function SuggestionsList() {
                     <TableCell>{getTipoBadge(sug.tipo)}</TableCell>
                     <TableCell className="max-w-xs truncate">{sug.descricao}</TableCell>
                     <TableCell>{getStatusBadge(sug.status)}</TableCell>
-                    <TableCell className="text-sm text-gray-500">
+                    <TableCell className="text-sm text-muted-foreground">
                       {formatDateBR(sug.criadaEm)}
                     </TableCell>
                     <TableCell className="text-right">
@@ -156,8 +156,8 @@ export function SuggestionsList() {
               </TableBody>
             </Table>
           ) : (
-            <div className="py-8 text-center text-gray-500">
-              <XCircle className="mx-auto h-8 w-8 text-gray-300" />
+            <div className="py-8 text-center text-muted-foreground">
+              <XCircle className="mx-auto h-8 w-8 text-muted-foreground/50" />
               <p className="mt-2">Nenhuma sugestao encontrada</p>
             </div>
           )}

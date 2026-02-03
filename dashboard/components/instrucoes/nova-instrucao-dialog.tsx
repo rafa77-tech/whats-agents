@@ -259,7 +259,7 @@ export function NovaInstrucaoDialog({ open, onOpenChange, onSuccess }: NovaInstr
                   onChange={(e) => setValorMaximo(e.target.value)}
                 />
               </div>
-              <div className="text-center text-gray-400">ou</div>
+              <div className="text-center text-muted-foreground/70">ou</div>
               <div className="space-y-2">
                 <Label>Percentual maximo acima do base (%)</Label>
                 <Input
@@ -304,7 +304,9 @@ export function NovaInstrucaoDialog({ open, onOpenChange, onSuccess }: NovaInstr
               value={expiraEm}
               onChange={(e) => setExpiraEm(e.target.value)}
             />
-            <p className="text-xs text-gray-400">Deixe vazio para nao expirar automaticamente</p>
+            <p className="text-xs text-muted-foreground/70">
+              Deixe vazio para nao expirar automaticamente
+            </p>
           </div>
         </div>
 

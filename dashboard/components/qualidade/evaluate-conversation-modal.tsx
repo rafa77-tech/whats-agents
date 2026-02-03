@@ -39,7 +39,9 @@ function RatingInput({ label, value, onChange }: RatingInputProps) {
             <Star
               className={cn(
                 'h-5 w-5 transition-colors',
-                n <= value ? 'fill-status-warning-solid text-status-warning-solid' : 'text-gray-300'
+                n <= value
+                  ? 'fill-status-warning-solid text-status-warning-solid'
+                  : 'text-muted-foreground/50'
               )}
             />
           </button>
@@ -75,7 +77,7 @@ export function EvaluateConversationModal({
       <Dialog open onOpenChange={onClose}>
         <DialogContent className="max-w-3xl">
           <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/70" />
           </div>
         </DialogContent>
       </Dialog>
@@ -94,7 +96,7 @@ export function EvaluateConversationModal({
 
         <div className="grid max-h-[50vh] grid-cols-2 gap-4 overflow-hidden">
           {/* Messages */}
-          <div className="overflow-y-auto rounded-lg border bg-gray-50 p-4">
+          <div className="overflow-y-auto rounded-lg border bg-card p-4">
             <div className="space-y-3">
               {conversation?.mensagens.map((msg) => (
                 <div
@@ -103,14 +105,16 @@ export function EvaluateConversationModal({
                     'rounded-lg p-3 text-sm',
                     msg.remetente === 'julia'
                       ? 'ml-4 bg-status-info text-status-info-foreground'
-                      : 'mr-4 bg-white text-gray-900'
+                      : 'mr-4 bg-card text-foreground'
                   )}
                 >
-                  <p className="mb-1 text-xs font-medium text-gray-500">
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">
                     {msg.remetente === 'julia' ? 'Julia' : conversation.medicoNome}
                   </p>
                   <p className="whitespace-pre-wrap">{msg.conteudo}</p>
-                  <p className="mt-1 text-xs text-gray-400">{formatTimeBR(msg.criadaEm)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground/70">
+                    {formatTimeBR(msg.criadaEm)}
+                  </p>
                 </div>
               ))}
             </div>

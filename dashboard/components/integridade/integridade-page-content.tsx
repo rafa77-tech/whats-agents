@@ -61,8 +61,8 @@ export function IntegridadePageContent() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-400" />
-          <p className="mt-2 text-sm text-gray-500">Carregando dados de integridade...</p>
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground/70" />
+          <p className="mt-2 text-sm text-muted-foreground">Carregando dados de integridade...</p>
         </div>
       </div>
     )
@@ -87,8 +87,8 @@ export function IntegridadePageContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Integridade dos Dados</h1>
-          <p className="text-gray-500">Monitoramento de anomalias e saude do funil</p>
+          <h1 className="text-2xl font-bold text-foreground">Integridade dos Dados</h1>
+          <p className="text-muted-foreground">Monitoramento de anomalias e saude do funil</p>
         </div>
         <div className="flex items-center gap-2">
           <Button onClick={fetchData} variant="outline" size="sm" disabled={loading}>
@@ -136,7 +136,7 @@ export function IntegridadePageContent() {
         <Card>
           <CardContent className="flex items-center justify-between p-4">
             <div>
-              <p className="text-sm text-gray-500">Anomalias Abertas</p>
+              <p className="text-sm text-muted-foreground">Anomalias Abertas</p>
               <p className="text-2xl font-bold text-status-warning-foreground">
                 {data?.anomalias.abertas || 0}
               </p>
@@ -147,7 +147,7 @@ export function IntegridadePageContent() {
         <Card>
           <CardContent className="flex items-center justify-between p-4">
             <div>
-              <p className="text-sm text-gray-500">Violacoes</p>
+              <p className="text-sm text-muted-foreground">Violacoes</p>
               <p className="text-2xl font-bold text-status-error-foreground">
                 {data?.violacoes || 0}
               </p>
@@ -158,8 +158,8 @@ export function IntegridadePageContent() {
         <Card>
           <CardContent className="flex items-center justify-between p-4">
             <div>
-              <p className="text-sm text-gray-500">Ultima Auditoria</p>
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm text-muted-foreground">Ultima Auditoria</p>
+              <p className="text-sm font-medium text-foreground/80">
                 {data?.ultimaAuditoria ? formatDateTimeBR(data.ultimaAuditoria) : 'Nunca'}
               </p>
             </div>
@@ -225,7 +225,7 @@ export function IntegridadePageContent() {
                               {getAnomalySeverityLabel(anomaly.severidade)}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm text-gray-500">
+                          <TableCell className="text-sm text-muted-foreground">
                             {formatDateBR(anomaly.criadaEm)}
                           </TableCell>
                           <TableCell>
@@ -248,7 +248,7 @@ export function IntegridadePageContent() {
                   </TableBody>
                 </Table>
               ) : (
-                <div className="py-8 text-center text-gray-500">
+                <div className="py-8 text-center text-muted-foreground">
                   <CheckCircle2 className="mx-auto h-8 w-8 text-status-success-foreground" />
                   <p className="mt-2">Nenhuma anomalia encontrada</p>
                 </div>
@@ -277,9 +277,9 @@ export function IntegridadePageContent() {
                       const color = getProgressColor(percentage)
                       return (
                         <div key={key} className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">{label}</span>
+                          <span className="text-sm text-foreground/80">{label}</span>
                           <div className="flex items-center gap-2">
-                            <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200">
+                            <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
                               <div
                                 className={cn('h-full', color)}
                                 style={{ width: `${percentage}%` }}

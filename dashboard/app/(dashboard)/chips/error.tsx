@@ -34,7 +34,9 @@ export default function ChipsError({
         </Button>
       </div>
       {process.env.NODE_ENV === 'development' && (
-        <pre className="mt-4 max-w-lg overflow-auto rounded bg-muted p-4 text-xs">{error.message}</pre>
+        <pre className="mt-4 max-w-lg overflow-auto rounded bg-muted p-4 text-xs">
+          {error.message}
+        </pre>
       )}
     </div>
   )

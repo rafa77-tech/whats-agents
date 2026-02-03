@@ -53,7 +53,7 @@ export function HealthGauge({ score, status }: HealthGaugeProps) {
           >
             {score}
           </span>
-          <span className="text-sm text-gray-400">/100</span>
+          <span className="text-sm text-muted-foreground/70">/100</span>
         </div>
       </div>
     </div>
