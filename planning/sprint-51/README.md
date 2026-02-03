@@ -105,20 +105,27 @@ Campos `passou_heuristica` e `eh_oferta` nunca sao atualizados.
 - Identificar bugs
 - Documentar estado atual
 
-### Epic 2: Correcoes Criticas
+### Epic 2: Correcoes Criticas ✅ CONCLUIDO
 **Arquivo:** `epic-02-correcoes.md`
-- S51.E2.0: Implementar extracao de especialidades (URGENTE)
-- S51.E2.1: Corrigir atualizacao de heuristica
-- S51.E2.2: Corrigir atualizacao de classificacao LLM
-- S51.E2.3: Investigar taxa de descarte
-- S51.E2.4: Backfill de dados historicos
+- ✅ S51.E2.0: Implementar extracao de especialidades
+- ✅ S51.E2.1: Corrigir atualizacao de heuristica
+- ✅ S51.E2.2: Corrigir atualizacao de classificacao LLM
+- ✅ S51.E2.3: Corrigir normalizacao de especialidades (aliases)
+- S51.E2.4: Backfill de dados historicos (pendente)
 
-### Epic 3: Protecao do Chip de Grupos
+### Epic 3: Protecao do Chip de Grupos ✅ PARCIAL
 **Arquivo:** `epic-03-protecao-chip.md`
-- S51.E3.1: Flag de chip read-only no banco
-- S51.E3.2: Bloqueio de envio para chips de escuta
-- S51.E3.3: Alertas de tentativa de envio
-- S51.E3.4: Documentacao e treinamento
+- ✅ S51.E3.1: Chip tipo='listener', flags de envio desabilitados
+- S51.E3.2: Bloqueio no codigo (pendente)
+- S51.E3.3: Alertas de tentativa de envio (pendente)
+- S51.E3.4: Documentacao e treinamento (pendente)
+
+### Epic 6: Pipeline v3 (Planejamento) 📋
+**Arquivo:** `epic-06-pipeline-v3.md`
+- Arquitetura simplificada de 4 estagios
+- LLM unificado (classifica + extrai)
+- Dedup precoce antes de gastar tokens
+- Observabilidade completa
 
 ### Epic 4: Observabilidade e Monitoramento
 **Arquivo:** `epic-04-observabilidade.md`
@@ -156,9 +163,12 @@ Campos `passou_heuristica` e `eh_oferta` nunca sao atualizados.
 ## Definition of Done
 
 ### Correcoes (P0)
-- [ ] Especialidades sendo extraidas
-- [ ] Vagas sendo importadas novamente
-- [ ] Chip 5810 protegido contra envio
+- [x] Especialidades sendo extraidas (extrator_especialidades.py)
+- [x] Aliases normalizados para especialidades (55 inseridos)
+- [x] Heuristica salva no banco (pipeline_worker.py)
+- [x] Classificacao LLM salva no banco (pipeline_worker.py)
+- [ ] Vagas sendo importadas novamente (aguardando deploy)
+- [x] Chip 5810 protegido contra envio (tipo='listener')
 
 ### Observabilidade (P1)
 - [ ] Logs estruturados em todos os estagios
@@ -169,6 +179,10 @@ Campos `passou_heuristica` e `eh_oferta` nunca sao atualizados.
 - [ ] Relatorio de analise do modelo
 - [ ] Recomendacoes documentadas
 - [ ] Decisao sobre v1 vs v2
+
+### Pipeline v3 (Futuro)
+- [x] Arquitetura planejada (epic-06-pipeline-v3.md)
+- [ ] Implementacao
 
 ---
 

@@ -21,6 +21,10 @@ from app.core.logging import get_logger
 from app.services.supabase import supabase
 from app.services.grupos.heuristica import calcular_score_heuristica
 from app.services.grupos.classificador_llm import classificar_com_llm
+from app.services.grupos.classificador import (
+    atualizar_resultado_heuristica,
+    atualizar_resultado_classificacao_llm,
+)
 from app.services.grupos.extrator import extrair_dados_mensagem
 from app.services.grupos.normalizador import normalizar_vaga
 from app.services.grupos.deduplicador import processar_deduplicacao
@@ -103,6 +107,12 @@ class PipelineGrupos:
         # Aplicar heurística
         resultado = calcular_score_heuristica(texto)
 
+        # Sprint 51 - Fix: Salvar resultado da heurística no banco
+        await atualizar_resultado_heuristica(
+            mensagem_id=mensagem_id,
+            resultado=resultado
+        )
+
         if resultado.score < THRESHOLD_HEURISTICA:
             logger.debug(f"Mensagem {mensagem_id} descartada por heurística: {resultado.score:.2f}")
             return ResultadoPipeline(
@@ -163,6 +173,12 @@ class PipelineGrupos:
             texto=msg.data.get("texto", ""),
             nome_grupo=grupo_info.get("nome", ""),
             nome_contato=msg.data.get("sender_nome", "")
+        )
+
+        # Sprint 51 - Fix: Salvar resultado da classificação LLM no banco
+        await atualizar_resultado_classificacao_llm(
+            mensagem_id=mensagem_id,
+            resultado=resultado
         )
 
         if resultado.eh_oferta and resultado.confianca >= THRESHOLD_LLM:

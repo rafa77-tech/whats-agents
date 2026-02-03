@@ -22,6 +22,9 @@ from app.services.grupos.extrator_v2.extrator_hospitais import extrair_hospitais
 from app.services.grupos.extrator_v2.extrator_datas import extrair_datas_periodos
 from app.services.grupos.extrator_v2.extrator_valores import extrair_valores
 from app.services.grupos.extrator_v2.extrator_contato import extrair_contato
+from app.services.grupos.extrator_v2.extrator_especialidades import (
+    extrair_especialidades_completo,
+)
 from app.services.grupos.extrator_v2.gerador_vagas import (
     gerar_vagas,
     validar_vagas,
@@ -139,12 +142,21 @@ async def extrair_vagas_v2(
             if contato:
                 warnings.append("contato_extraido_texto_completo")
 
-        # 6. Geração de vagas
+        # 6. Extração de especialidades (Sprint 51 - fix)
+        especialidades = extrair_especialidades_completo(
+            secoes_especialidade=msg_parsed.secoes_especialidade,
+            texto_completo=texto
+        )
+        if not especialidades:
+            warnings.append("sem_especialidade_extraida")
+
+        # 7. Geração de vagas
         vagas = gerar_vagas(
             hospitais=hospitais,
             datas_periodos=datas_periodos,
             valores=valores,
             contato=contato,
+            especialidades=especialidades,  # Sprint 51 - agora passa especialidades
             mensagem_id=mensagem_id,
             grupo_id=grupo_id,
         )
@@ -161,6 +173,7 @@ async def extrair_vagas_v2(
             datas_periodos=datas_periodos,
             valores=valores,
             contato=contato,
+            especialidades=especialidades,  # Sprint 51 - incluir especialidades no resultado
             total_vagas=len(vagas),
             tempo_processamento_ms=tempo_ms,
             warnings=warnings

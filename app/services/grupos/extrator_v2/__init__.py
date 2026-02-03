@@ -42,6 +42,12 @@ from .extrator_valores import extrair_valores, obter_valor_para_dia
 
 from .extrator_contato import extrair_contato
 
+from .extrator_especialidades import (
+    extrair_especialidades,
+    extrair_especialidades_completo,
+    extrair_especialidade_do_titulo,
+)
+
 from .gerador_vagas import gerar_vagas, gerar_vagas_para_hospital, validar_vagas, deduplicar_vagas
 
 from .pipeline import extrair_vagas_v2
@@ -83,6 +89,9 @@ __all__ = [
     "extrair_valores",
     "obter_valor_para_dia",
     "extrair_contato",
+    "extrair_especialidades",
+    "extrair_especialidades_completo",
+    "extrair_especialidade_do_titulo",
     # Gerador
     "gerar_vagas",
     "gerar_vagas_para_hospital",
