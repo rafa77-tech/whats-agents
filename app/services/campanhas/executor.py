@@ -140,24 +140,36 @@ class CampanhaExecutor:
         Returns:
             Lista de destinatarios
         """
+        af = campanha.audience_filters
         filtros = {}
 
-        if campanha.audience_filters:
-            # Mapear filtros para formato do segmentacao_service
-            if campanha.audience_filters.especialidades:
-                filtros["especialidade"] = campanha.audience_filters.especialidades[0]
-            if campanha.audience_filters.regioes:
-                filtros["regiao"] = campanha.audience_filters.regioes[0]
+        # Se tem clientes especificos, ignora filtros demograficos
+        clientes_especificos = None
+        if af and af.clientes_especificos:
+            clientes_especificos = af.clientes_especificos
+        else:
+            # Mapear filtros demograficos
+            if af:
+                if af.especialidades:
+                    filtros["especialidade"] = af.especialidades[0]
+                if af.regioes:
+                    filtros["regiao"] = af.regioes[0]
 
-        limite = campanha.audience_filters.quantidade_alvo if campanha.audience_filters else 50
+        # Parametros de controle
+        limite = af.quantidade_alvo if af else 50
+        pressure_score_max = af.pressure_score_max if af else 50
+        modo_selecao = af.modo_selecao if af else "deterministico"
 
         try:
             # Sprint 44: Usar buscar_alvos_campanha que filtra por elegibilidade
-            # (conversas ativas, cooling_off, contact_cap, etc)
+            # (conversas ativas, cooling_off, contact_cap, pressure_score, etc)
             return await segmentacao_service.buscar_alvos_campanha(
                 filtros=filtros,
                 dias_sem_contato=7,  # Não recontatar em 7 dias
                 limite=limite,
+                pressure_score_max=pressure_score_max,
+                modo_selecao=modo_selecao,
+                clientes_especificos=clientes_especificos,
             )
         except Exception as e:
             logger.error(f"Erro ao buscar destinatarios: {e}")

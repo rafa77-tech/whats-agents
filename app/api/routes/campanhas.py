@@ -43,6 +43,10 @@ class CriarCampanhaRequest(BaseModel):
         description="Filtro de regioes"
     )
     quantidade_alvo: int = Field(default=50, description="Quantidade alvo de envios")
+    modo_selecao: str = Field(
+        default="deterministico",
+        description="Modo de selecao: deterministico (prioriza nunca contatados) ou aleatorio"
+    )
     agendar_para: Optional[datetime] = Field(
         None,
         description="Data/hora para agendamento"
@@ -98,6 +102,7 @@ async def criar_campanha(dados: CriarCampanhaRequest):
         regioes=dados.regioes or [],
         especialidades=dados.especialidades or [],
         quantidade_alvo=dados.quantidade_alvo,
+        modo_selecao=dados.modo_selecao,
         chips_excluidos=dados.chips_excluidos or [],
     )
 
