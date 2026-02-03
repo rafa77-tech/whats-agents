@@ -118,14 +118,14 @@ function calcularVariacao(
 }
 
 /**
- * Formata valor monetario (centavos para reais)
+ * Formata valor monetario (valor ja em reais)
  */
-function formatarValor(centavos: number): string {
+function formatarValor(reais: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 0,
-  }).format(centavos / 100)
+  }).format(reais)
 }
 
 // =============================================================================
