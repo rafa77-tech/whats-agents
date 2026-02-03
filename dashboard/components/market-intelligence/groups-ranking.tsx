@@ -63,13 +63,13 @@ function formatNumber(value: number | null): string {
   return value.toLocaleString('pt-BR')
 }
 
-function formatCurrency(centavos: number | null): string {
-  if (centavos === null) return '-'
+function formatCurrency(reais: number | null): string {
+  if (reais === null) return '-'
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 0,
-  }).format(centavos / 100)
+  }).format(reais)
 }
 
 function formatDate(dateStr: string | null): string {

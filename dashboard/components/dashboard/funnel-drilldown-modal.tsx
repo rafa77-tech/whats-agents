@@ -8,7 +8,14 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Fragment } from 'react'
 import {
   Table,
   TableBody,
@@ -187,6 +194,9 @@ export function FunnelDrilldownModal({
           <DialogTitle>
             Medicos em &quot;{data?.stageLabel || stage}&quot; ({data?.total || 0})
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Lista de médicos no estágio do funil de conversão
+          </DialogDescription>
         </DialogHeader>
 
         {/* Busca */}
@@ -255,9 +265,8 @@ export function FunnelDrilldownModal({
                 </TableRow>
               ) : (
                 data?.items.map((item) => (
-                  <>
+                  <Fragment key={item.id}>
                     <TableRow
-                      key={item.id}
                       className={cn(
                         'cursor-pointer hover:bg-muted/50',
                         expandedRow === (item.conversaId || item.id) && 'bg-status-info/10'
@@ -359,7 +368,7 @@ export function FunnelDrilldownModal({
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 ))
               )}
             </TableBody>

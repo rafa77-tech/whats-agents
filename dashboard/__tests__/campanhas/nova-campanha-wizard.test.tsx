@@ -95,9 +95,9 @@ describe('NovaCampanhaWizard', () => {
     // Deve mostrar campo de audiencia especifico da etapa 2 (nao apenas o label no progress)
     // Verificamos pelo select que existe na etapa 2
     await waitFor(() => {
-      // O select de audiencia deve estar presente
-      const selectTrigger = screen.getByRole('combobox')
-      expect(selectTrigger).toBeInTheDocument()
+      // O select de audiencia deve estar presente (primeiro combobox)
+      const selectTriggers = screen.getAllByRole('combobox')
+      expect(selectTriggers.length).toBeGreaterThan(0)
     })
   })
 
@@ -116,9 +116,9 @@ describe('NovaCampanhaWizard', () => {
       expect(screen.getByText('Todos os medicos')).toBeInTheDocument()
     })
 
-    // Clicar no select e escolher filtrado
-    const selectTrigger = screen.getByRole('combobox')
-    fireEvent.click(selectTrigger)
+    // Clicar no primeiro select (audiencia) e escolher filtrado
+    const selectTriggers = screen.getAllByRole('combobox')
+    fireEvent.click(selectTriggers[0])
 
     await waitFor(() => {
       const filtradoOption = screen.getByText('Filtrar audiencia')

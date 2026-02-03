@@ -23,7 +23,7 @@ const mockGrupos: GrupoRanking[] = [
     vagasExtraidas30d: 80,
     vagasImportadas30d: 60,
     confiancaMedia30d: 0.85,
-    valorMedio30d: 250000, // R$ 2.500,00 em centavos
+    valorMedio30d: 2500, // R$ 2.500,00 em reais
     scoreQualidade: 85,
     ultimaMensagemEm: '2026-02-01T10:00:00Z',
     ultimaVagaEm: '2026-02-01T09:00:00Z',
@@ -40,7 +40,7 @@ const mockGrupos: GrupoRanking[] = [
     vagasExtraidas30d: 40,
     vagasImportadas30d: 30,
     confiancaMedia30d: 0.75,
-    valorMedio30d: 180000,
+    valorMedio30d: 1800, // R$ 1.800,00 em reais
     scoreQualidade: 55,
     ultimaMensagemEm: '2026-01-30T10:00:00Z',
     ultimaVagaEm: '2026-01-28T09:00:00Z',
@@ -57,7 +57,7 @@ const mockGrupos: GrupoRanking[] = [
     vagasExtraidas30d: 15,
     vagasImportadas30d: 10,
     confiancaMedia30d: 0.65,
-    valorMedio30d: 150000,
+    valorMedio30d: 1500, // R$ 1.500,00 em reais
     scoreQualidade: 30,
     ultimaMensagemEm: '2026-01-20T10:00:00Z',
     ultimaVagaEm: '2026-01-15T09:00:00Z',
@@ -78,7 +78,7 @@ function generateMockGrupos(count: number): GrupoRanking[] {
     vagasExtraidas30d: 15 + i,
     vagasImportadas30d: 10 + i,
     confiancaMedia30d: 0.5 + (i % 5) * 0.1,
-    valorMedio30d: 100000 + i * 10000,
+    valorMedio30d: 1000 + i * 100, // Valores em reais (R$ 1.000, R$ 1.100, etc)
     scoreQualidade: 20 + (i % 8) * 10,
     ultimaMensagemEm: new Date(Date.now() - i * 86400000).toISOString(),
     ultimaVagaEm: new Date(Date.now() - i * 86400000 * 2).toISOString(),
