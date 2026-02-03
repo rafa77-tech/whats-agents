@@ -118,7 +118,8 @@ describe('NovaCampanhaWizard', () => {
 
     // Clicar no primeiro select (audiencia) e escolher filtrado
     const selectTriggers = screen.getAllByRole('combobox')
-    fireEvent.click(selectTriggers[0])
+    expect(selectTriggers[0]).toBeDefined()
+    fireEvent.click(selectTriggers[0] as HTMLElement)
 
     await waitFor(() => {
       const filtradoOption = screen.getByText('Filtrar audiencia')
