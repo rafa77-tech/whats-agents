@@ -95,6 +95,8 @@ export function useCampanhaForm() {
       objetivo: formData.objetivo || null,
       corpo: formData.corpo,
       tom: formData.tom,
+      quantidade_alvo: formData.quantidade_alvo,
+      modo_selecao: formData.modo_selecao,
       audience_filters:
         formData.audiencia_tipo === 'filtrado'
           ? {
@@ -102,9 +104,13 @@ export function useCampanhaForm() {
               regioes: formData.regioes,
               status_cliente: formData.status_cliente,
               chips_excluidos: chipsExcluidos,
+              quantidade_alvo: formData.quantidade_alvo,
+              modo_selecao: formData.modo_selecao,
             }
           : {
               chips_excluidos: chipsExcluidos,
+              quantidade_alvo: formData.quantidade_alvo,
+              modo_selecao: formData.modo_selecao,
             },
       chips_excluidos: chipsExcluidos, // Também no nível raiz para compatibilidade
       agendar_para:

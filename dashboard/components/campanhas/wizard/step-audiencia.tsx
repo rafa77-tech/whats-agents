@@ -1,6 +1,6 @@
 /**
  * Step 2 - Audiencia - Sprint 34 E03
- * Updated: Chips exclusion support
+ * Updated: Chips exclusion support + quantidade alvo + modo selecao
  */
 
 'use client'
@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -15,8 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, ChevronDown, Smartphone, Ban } from 'lucide-react'
-import { type CampanhaFormData } from './types'
+import { Loader2, ChevronDown, Smartphone, Ban, Users, Shuffle } from 'lucide-react'
+import { type CampanhaFormData, type ModoSelecao } from './types'
 
 interface FiltroOption {
   value: string
@@ -173,6 +174,52 @@ export function StepAudiencia({ formData, updateField, toggleArrayItem }: StepAu
             </>
           )}
         </p>
+      </div>
+
+      {/* Quantidade e Modo de Selecao */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="quantidade_alvo" className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            Quantidade de medicos
+          </Label>
+          <Input
+            id="quantidade_alvo"
+            type="number"
+            min={1}
+            max={1000}
+            value={formData.quantidade_alvo}
+            onChange={(e) => updateField('quantidade_alvo', parseInt(e.target.value) || 50)}
+            placeholder="Ex: 50"
+          />
+          <p className="text-xs text-muted-foreground">
+            Maximo de medicos a serem impactados pela campanha
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Shuffle className="h-4 w-4 text-muted-foreground" />
+            Modo de selecao
+          </Label>
+          <Select
+            value={formData.modo_selecao}
+            onValueChange={(v) => updateField('modo_selecao', v as ModoSelecao)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="deterministico">Priorizar nunca contatados</SelectItem>
+              <SelectItem value="aleatorio">Selecao aleatoria</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {formData.modo_selecao === 'deterministico'
+              ? 'Medicos que nunca foram contatados serao priorizados'
+              : 'Selecao aleatoria entre os medicos elegiveis'}
+          </p>
+        </div>
       </div>
 
       {/* Chips Exclusion Section */}

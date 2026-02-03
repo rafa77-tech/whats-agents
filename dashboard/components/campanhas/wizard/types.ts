@@ -9,6 +9,8 @@ export type Categoria = 'marketing' | 'operacional' | 'relacionamento'
 export type Tom = 'amigavel' | 'profissional' | 'urgente' | 'casual'
 export type AudienciaTipo = 'todos' | 'filtrado'
 
+export type ModoSelecao = 'deterministico' | 'aleatorio'
+
 export interface CampanhaFormData {
   // Step 1 - Configuracao
   nome_template: string
@@ -22,6 +24,8 @@ export interface CampanhaFormData {
   regioes: string[]
   status_cliente: string[]
   chips_excluidos: string[] // IDs de chips a NAO usar nesta campanha
+  quantidade_alvo: number // Quantidade maxima de medicos a impactar
+  modo_selecao: ModoSelecao // Como selecionar os medicos
 
   // Step 3 - Mensagem
   corpo: string
@@ -42,6 +46,8 @@ export const INITIAL_FORM_DATA: CampanhaFormData = {
   regioes: [],
   status_cliente: [],
   chips_excluidos: [],
+  quantidade_alvo: 50,
+  modo_selecao: 'deterministico',
   corpo: '',
   tom: 'amigavel',
   agendar: false,
