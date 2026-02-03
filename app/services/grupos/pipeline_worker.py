@@ -34,6 +34,9 @@ from app.services.grupos.importador import processar_importacao
 # Sprint 40 - Extrator v2 (opcional, controlado por feature flag)
 from app.services.grupos.extrator_v2 import extrair_vagas_v2
 
+# Sprint 52 - Pipeline v3 (LLM unificado)
+from app.services.grupos.extrator_v2 import extrair_vagas_v3
+
 logger = get_logger(__name__)
 
 
@@ -202,8 +205,10 @@ class PipelineGrupos:
         """
         Extrai dados estruturados da mensagem.
 
-        Usa extrator v2 se EXTRATOR_V2_ENABLED=true (default: true).
-        O v2 resolve o problema de valores NULL com regras por dia da semana.
+        Pipeline versões:
+        - v3 (Sprint 52): LLM unificado - classifica E extrai em uma chamada
+        - v2 (Sprint 40): Regex para extração
+        - v1 (legado): Extrator original
 
         Args:
             item: Item da fila com mensagem_id
@@ -212,6 +217,14 @@ class PipelineGrupos:
             ResultadoPipeline com ação a tomar
         """
         import os
+
+        # Feature flag: usar pipeline v3 (Sprint 52 - LLM unificado)
+        # Default: False (gradual rollout)
+        use_v3 = os.getenv("PIPELINE_V3_ENABLED", "false").lower() == "true"
+
+        if use_v3:
+            return await self.processar_extracao_v3(item)
+
         # Feature flag: usar extrator v2 (Sprint 40)
         # Default: True (v2 habilitado)
         use_v2 = os.getenv("EXTRATOR_V2_ENABLED", "true").lower() == "true"
@@ -343,6 +356,96 @@ class PipelineGrupos:
             detalhes={
                 "extrator": "v2",
                 "tempo_ms": resultado.tempo_processamento_ms,
+                "warnings": resultado.warnings,
+            }
+        )
+
+    async def processar_extracao_v3(self, item: dict) -> ResultadoPipeline:
+        """
+        Extrai dados estruturados usando LLM unificado (Sprint 52).
+
+        O pipeline v3 usa LLM para classificar E extrair em uma única chamada,
+        resolvendo problemas como:
+        - Bug R$ 202 (regex capturava "202" de "2026")
+        - Contexto semântico perdido
+        - Normalização automática de especialidades
+
+        Args:
+            item: Item da fila com mensagem_id
+
+        Returns:
+            ResultadoPipeline com ação a tomar
+        """
+        from datetime import date
+
+        mensagem_id = item.get("mensagem_id")
+        if isinstance(mensagem_id, str):
+            mensagem_id = UUID(mensagem_id)
+
+        # Buscar mensagem completa com dados do grupo
+        msg = supabase.table("mensagens_grupo") \
+            .select("*, grupos_whatsapp(nome, regiao)") \
+            .eq("id", str(mensagem_id)) \
+            .single() \
+            .execute()
+
+        if not msg.data:
+            return ResultadoPipeline(
+                acao="descartar",
+                mensagem_id=mensagem_id,
+                motivo="mensagem_nao_encontrada"
+            )
+
+        grupo_id = msg.data.get("grupo_id")
+        if grupo_id:
+            grupo_id = UUID(grupo_id) if isinstance(grupo_id, str) else grupo_id
+
+        grupo_info = msg.data.get("grupos_whatsapp") or {}
+
+        # Extrair usando v3 (LLM unificado)
+        resultado = await extrair_vagas_v3(
+            texto=msg.data.get("texto", ""),
+            mensagem_id=mensagem_id,
+            grupo_id=grupo_id,
+            nome_grupo=grupo_info.get("nome", ""),
+            nome_contato=msg.data.get("sender_nome", ""),
+            data_referencia=date.today()
+        )
+
+        if not resultado.vagas:
+            logger.warning(
+                f"Extração v3 falhou para {mensagem_id}: {resultado.erro}"
+            )
+            return ResultadoPipeline(
+                acao="descartar",
+                mensagem_id=mensagem_id,
+                motivo=f"extracao_v3_falhou: {resultado.erro}",
+                detalhes={
+                    "extrator": "v3",
+                    "tokens_usados": resultado.tokens_usados,
+                }
+            )
+
+        # Criar vagas_grupo para cada vaga atômica
+        vagas_criadas = []
+        for vaga in resultado.vagas:
+            vaga_id = await self._criar_vaga_grupo_v2(mensagem_id, vaga, msg.data)
+            if vaga_id:
+                vagas_criadas.append(str(vaga_id))
+
+        logger.info(
+            f"Mensagem {mensagem_id}: {len(vagas_criadas)} vaga(s) extraída(s) [v3/LLM] "
+            f"(tempo: {resultado.tempo_processamento_ms}ms, tokens: {resultado.tokens_usados})"
+        )
+
+        return ResultadoPipeline(
+            acao="normalizar",
+            mensagem_id=mensagem_id,
+            vagas_criadas=vagas_criadas,
+            detalhes={
+                "extrator": "v3",
+                "tempo_ms": resultado.tempo_processamento_ms,
+                "tokens_usados": resultado.tokens_usados,
                 "warnings": resultado.warnings,
             }
         )

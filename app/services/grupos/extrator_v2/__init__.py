@@ -52,6 +52,9 @@ from .gerador_vagas import gerar_vagas, gerar_vagas_para_hospital, validar_vagas
 
 from .pipeline import extrair_vagas_v2
 
+# Sprint 52 - Pipeline v3 (LLM unificado)
+from .extrator_llm import extrair_vagas_v3, extrair_com_llm
+
 from .repository import salvar_vagas_atomicas, atualizar_mensagem_processada
 
 __all__ = [
@@ -99,6 +102,9 @@ __all__ = [
     "deduplicar_vagas",
     # Pipeline (função principal)
     "extrair_vagas_v2",
+    # Pipeline v3 (LLM unificado - Sprint 52)
+    "extrair_vagas_v3",
+    "extrair_com_llm",
     # Persistência
     "salvar_vagas_atomicas",
     "atualizar_mensagem_processada",
