@@ -37,9 +37,11 @@ class AudienceFilters:
     regioes: List[str] = field(default_factory=list)
     especialidades: List[str] = field(default_factory=list)
     quantidade_alvo: int = 50
-    pressure_score_max: int = 70
+    modo_selecao: str = "deterministico"  # "deterministico" | "aleatorio"
+    pressure_score_max: int = 50  # Score maximo de fadiga (conservador)
     excluir_opt_out: bool = True
     chips_excluidos: List[str] = field(default_factory=list)  # IDs de chips a não usar
+    clientes_especificos: List[str] = field(default_factory=list)  # UUIDs especificos
 
     def to_dict(self) -> dict:
         """Converte para dicionario."""
@@ -47,9 +49,11 @@ class AudienceFilters:
             "regioes": self.regioes,
             "especialidades": self.especialidades,
             "quantidade_alvo": self.quantidade_alvo,
+            "modo_selecao": self.modo_selecao,
             "pressure_score_max": self.pressure_score_max,
             "excluir_opt_out": self.excluir_opt_out,
             "chips_excluidos": self.chips_excluidos,
+            "clientes_especificos": self.clientes_especificos,
         }
 
     @classmethod
@@ -61,9 +65,11 @@ class AudienceFilters:
             regioes=data.get("regioes", []),
             especialidades=data.get("especialidades", []),
             quantidade_alvo=data.get("quantidade_alvo", 50),
-            pressure_score_max=data.get("pressure_score_max", 70),
+            modo_selecao=data.get("modo_selecao", "deterministico"),
+            pressure_score_max=data.get("pressure_score_max", 50),
             excluir_opt_out=data.get("excluir_opt_out", True),
             chips_excluidos=data.get("chips_excluidos", []),
+            clientes_especificos=data.get("clientes_especificos", []),
         )
 
 
