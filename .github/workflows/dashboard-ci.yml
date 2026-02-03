@@ -84,10 +84,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: cache-restore
         uses: actions/cache@v4
         with:
           path: dashboard/node_modules
           key: node-modules-${{ hashFiles('dashboard/package-lock.json') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: npm ci
 
       - name: Run TypeScript compiler
         run: npm run type-check
@@ -126,10 +131,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: cache-restore
         uses: actions/cache@v4
         with:
           path: dashboard/node_modules
           key: node-modules-${{ hashFiles('dashboard/package-lock.json') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: npm ci
 
       - name: Run ESLint
         run: npm run lint -- --max-warnings 0
@@ -150,10 +160,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: cache-restore
         uses: actions/cache@v4
         with:
           path: dashboard/node_modules
           key: node-modules-${{ hashFiles('dashboard/package-lock.json') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: npm ci
 
       - name: Check Prettier formatting
         run: npm run format:check
@@ -174,10 +189,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: cache-restore
         uses: actions/cache@v4
         with:
           path: dashboard/node_modules
           key: node-modules-${{ hashFiles('dashboard/package-lock.json') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: npm ci
 
       - name: Run Vitest
         run: npm run test:ci
@@ -206,10 +226,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: cache-restore
         uses: actions/cache@v4
         with:
           path: dashboard/node_modules
           key: node-modules-${{ hashFiles('dashboard/package-lock.json') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: npm ci
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
@@ -258,10 +283,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: cache-restore
         uses: actions/cache@v4
         with:
           path: dashboard/node_modules
           key: node-modules-${{ hashFiles('dashboard/package-lock.json') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: npm ci
 
       - name: Cache Next.js build
         uses: actions/cache@v4
@@ -302,10 +332,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: cache-restore
         uses: actions/cache@v4
         with:
           path: dashboard/node_modules
           key: node-modules-${{ hashFiles('dashboard/package-lock.json') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: npm ci
 
       - name: Run npm audit
         run: npm audit --audit-level=high
@@ -340,10 +375,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: cache-restore
         uses: actions/cache@v4
         with:
           path: dashboard/node_modules
           key: node-modules-${{ hashFiles('dashboard/package-lock.json') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: npm ci
 
       - name: Build for Lighthouse
         run: npm run build
@@ -456,10 +496,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: cache-restore
         uses: actions/cache@v4
         with:
           path: dashboard/node_modules
           key: node-modules-${{ hashFiles('dashboard/package-lock.json') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: npm ci
 
       - name: Build with bundle analyzer
         run: ANALYZE=true npm run build
