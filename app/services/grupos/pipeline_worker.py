@@ -2,6 +2,7 @@
 Pipeline de processamento de mensagens de grupos.
 
 Sprint 14 - E11 - Worker e Orquestração
+Sprint 51 - Correções críticas de persistência
 
 Orquestra os estágios de processamento:
 1. Heurística - filtro rápido
