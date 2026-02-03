@@ -120,9 +120,9 @@ test.describe('Monitor Page', () => {
   test('should have monitor link in sidebar', async ({ page }) => {
     const url = page.url()
     if (url.includes('/monitor') && !url.includes('/login')) {
-      // Verificar que o link existe no sidebar
+      // Verificar que o link existe no sidebar (usar getByRole para evitar ambiguidade)
       const sidebar = page.locator('nav')
-      await expect(sidebar.locator('text=Monitor')).toBeVisible()
+      await expect(sidebar.getByRole('link', { name: 'Monitor' })).toBeVisible()
     }
   })
 })

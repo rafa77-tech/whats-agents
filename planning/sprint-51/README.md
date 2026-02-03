@@ -1,4 +1,4 @@
-# Sprint 51 - Pipeline de Grupos WhatsApp: Investigacao e Refatoracao
+# Sprint 51 - Pipeline de Grupos: Revisao Arquitetural Completa
 
 **Inicio:** 02/02/2026
 **Chip em foco:** 5511916175810 (Revoluna)
@@ -6,73 +6,133 @@
 
 ---
 
-## Resumo Executivo
+## Objetivo Estrategico
 
-**3 problemas criticos identificados:**
+Este pipeline e **critico para o negocio**. Ele alimenta:
+- Inteligencia de mercado (precos, tendencias, demanda)
+- Analise de concorrencia
+- Identificacao de oportunidades
+- Metricas de mercado para tomada de decisao
 
-1. **Extrator v2 nao captura especialidade** → 100% das vagas descartadas
-2. **Campos de classificacao nao atualizados** → Dashboard mostra zeros
-3. **Pipeline parado desde 26/01** → Nenhuma importacao em 7 dias
+**Esta sprint vai alem de corrigir bugs** - e uma revisao completa para validar se o modelo funciona e e sustentavel.
 
 ---
 
-## Contexto
+## Protecao do Chip de Grupos (CRITICO!)
 
-Durante analise do dashboard de grupos (/grupos), foram identificadas inconsistencias graves nos dados do pipeline:
+O chip **5511916175810** tem acesso a **174 grupos** de WhatsApp. Esse e um ativo valioso que **nao pode ser perdido**.
 
-### Problema 1: Dashboard Mostra Zeros
+### Regras de Protecao
 
-| Metrica | Valor no Dashboard | Realidade |
-|---------|-------------------|-----------|
-| Mensagens Recebidas | 1.381 | OK |
-| Passou Heuristica | 0 | ❌ Campos NULL |
-| Classificadas como Oferta | 0 | ❌ Campos NULL |
-| Vagas Extraidas | 3.503 | OK (mas sem especialidade) |
-| Dados Minimos OK | 3.503 (100%) | OK |
-| Vagas Importadas | 0 | ❌ Todas descartadas |
+| Regra | Descricao |
+|-------|-----------|
+| **READ-ONLY** | Chip de grupos NUNCA envia mensagens |
+| **Sem Julia** | Julia NAO pode usar este chip para prospectar |
+| **Isolado** | Deve estar isolado do pool de chips ativos |
+| **Monitorado** | Alertas se houver tentativa de envio |
+
+### Implementacao Necessaria
+
+1. **Flag no banco:** `tipo = 'escuta'` ou `modo = 'readonly'`
+2. **Validacao no envio:** Bloquear envio se chip for de escuta
+3. **Alerta:** Notificar se alguem tentar enviar por este chip
+4. **Documentacao:** Deixar claro que este chip e especial
+
+---
+
+## Problemas Identificados
+
+### Problema 1: Extrator v2 Incompleto (URGENTE)
+
+**100% das vagas descartadas** por falta de especialidade.
+
+```
+Mensagem: "VAGA PARA MÉDICO - GINECOLOGIA E OBSTETRÍCIA"
+Extraido: especialidade_raw = NULL
+Resultado: DESCARTADA
+```
+
+**Causa:** `extrator_especialidades.py` nao existe. O parser identifica secoes de especialidade mas ninguem as processa.
+
+**Impacto:** Pipeline parado desde 26/01 (7 dias sem importacoes).
 
 ### Problema 2: Campos de Classificacao NULL
 
-- **22.514 mensagens** com `passou_heuristica = NULL`
-- **22.514 mensagens** com `eh_oferta = NULL`
-- Campos existem mas `pipeline_worker.py` **nao os atualiza**
+Campos `passou_heuristica` e `eh_oferta` nunca sao atualizados.
 
-### Problema 3: Extrator Falha em Capturar Especialidade (CRITICO!)
+**Causa:** `pipeline_worker.py` calcula os valores mas nao chama as funcoes de atualizacao que existem em `classificador.py`.
 
-**100% das vagas das ultimas 24h descartadas** com motivo:
-```
-validacao_falhou: especialidade_id ausente
-```
+**Impacto:** Dashboard mostra zeros, impossivel auditar decisoes.
 
-Exemplo de mensagem com especialidade clara:
-```
-🔔 *VAGA PARA MÉDICO(A) - GINECOLOGIA E OBSTETRÍCIA*
-📍 *Cianorte - PR*
-...
-```
+### Problema 3: Falta de Observabilidade
 
-Mas a vaga extraida tem `especialidade_raw = NULL`!
-
-### Causa Raiz Confirmada
-
-O pipeline atual:
-1. ✅ Recebe mensagem e salva em `mensagens_grupo`
-2. ✅ Calcula score de heuristica
-3. ❌ **NAO atualiza** `passou_heuristica` na mensagem
-4. ✅ Chama LLM para classificacao (se necessario)
-5. ❌ **NAO atualiza** `eh_oferta` na mensagem
-6. ⚠️ Extrai vagas mas **SEM especialidade**
-7. ❌ Vagas descartadas por falta de `especialidade_id`
+- Sem logs estruturados por estagio
+- Sem metricas de conversao do pipeline
+- Sem alertas de anomalias
+- Impossivel diagnosticar problemas rapidamente
 
 ---
 
-## Objetivo da Sprint
+## Perguntas a Responder (Revisao Arquitetural)
 
-1. **Entender completamente** o pipeline atual de grupos
-2. **Corrigir** a sincronizacao de campos (`passou_heuristica`, `eh_oferta`)
-3. **Investigar** por que vagas nao estao sendo importadas
-4. **Refatorar** para garantir integridade de dados
-5. **Adicionar observabilidade** para monitoramento do pipeline
+### Sobre o Modelo
+
+1. **O pipeline faz sentido?** Mensagem → Heuristica → LLM → Extracao → Normalizacao → Dedup → Import
+2. **Vale a pena usar LLM para classificacao?** Ou a heuristica e suficiente?
+3. **A taxa de conversao e aceitavel?** Hoje: 3.5% importadas, 50% duplicadas, 44% descartadas
+4. **O extrator v2 e melhor que o v1?** Ou devemos reverter?
+
+### Sobre Operacao
+
+5. **Como garantir que o chip de grupos nao seja banido?**
+6. **Como monitorar saude do pipeline em tempo real?**
+7. **Qual o SLA aceitavel?** (tempo entre mensagem e importacao)
+8. **Como detectar regressoes automaticamente?**
+
+### Sobre Dados
+
+9. **Os dados extraidos sao uteis?** Hospital, especialidade, valor, data
+10. **Estamos perdendo informacoes importantes?** Contato, observacoes, requisitos
+11. **A deduplicacao esta correta?** 50% duplicadas parece muito
+
+---
+
+## Epicos
+
+### Epic 1: Investigacao Profunda ✅
+**Arquivo:** `epic-01-investigacao.md`
+- Mapear fluxo completo
+- Identificar bugs
+- Documentar estado atual
+
+### Epic 2: Correcoes Criticas
+**Arquivo:** `epic-02-correcoes.md`
+- S51.E2.0: Implementar extracao de especialidades (URGENTE)
+- S51.E2.1: Corrigir atualizacao de heuristica
+- S51.E2.2: Corrigir atualizacao de classificacao LLM
+- S51.E2.3: Investigar taxa de descarte
+- S51.E2.4: Backfill de dados historicos
+
+### Epic 3: Protecao do Chip de Grupos
+**Arquivo:** `epic-03-protecao-chip.md`
+- S51.E3.1: Flag de chip read-only no banco
+- S51.E3.2: Bloqueio de envio para chips de escuta
+- S51.E3.3: Alertas de tentativa de envio
+- S51.E3.4: Documentacao e treinamento
+
+### Epic 4: Observabilidade e Monitoramento
+**Arquivo:** `epic-04-observabilidade.md`
+- S51.E4.1: Logs estruturados por estagio
+- S51.E4.2: Metricas do pipeline (Prometheus)
+- S51.E4.3: Dashboard de saude do pipeline
+- S51.E4.4: Alertas de anomalias
+
+### Epic 5: Validacao do Modelo
+**Arquivo:** `epic-05-validacao-modelo.md`
+- S51.E5.1: Analise de taxa de conversao
+- S51.E5.2: Comparacao v1 vs v2
+- S51.E5.3: Avaliacao de qualidade dos dados
+- S51.E5.4: Recomendacoes de ajustes
 
 ---
 
@@ -84,78 +144,38 @@ O pipeline atual:
 | Instance | Revoluna |
 | Status | degraded |
 | Fase | operacao |
-| Tipo | julia |
+| Tipo | julia (DEVE SER 'escuta') |
 | Total Grupos | 174 |
 | Total Mensagens | 22.514 |
-| Total Ofertas Detectadas | 56.461 |
-| Total Vagas Importadas | 2.004 |
-| Taxa Importacao | 3.5% |
-
----
-
-## Epicos
-
-### Epic 1: Investigacao Profunda
-**Arquivo:** `epic-01-investigacao.md`
-- Mapear fluxo completo do pipeline
-- Identificar pontos de falha
-- Documentar estado atual
-
-### Epic 2: Correcoes Criticas
-**Arquivo:** `epic-02-correcoes.md`
-- Corrigir sincronizacao de campos
-- Corrigir fluxo de importacao
-- Adicionar validacoes
-
-### Epic 3: Refatoracao e Observabilidade
-**Arquivo:** `epic-03-refatoracao.md`
-- Refatorar pipeline para clareza
-- Adicionar metricas e logs
-- Criar alertas de inconsistencia
-
----
-
-## Arquivos-Chave do Pipeline
-
-| Arquivo | Responsabilidade |
-|---------|-----------------|
-| `app/api/routes/webhook.py` | Recebe mensagens Evolution |
-| `app/pipeline/processors/ingestao_grupo.py` | Detecta grupo e enfileira |
-| `app/services/grupos/ingestor.py` | Salva mensagem inicial |
-| `app/services/grupos/heuristica.py` | Filtro por regex/keywords |
-| `app/services/grupos/classificador.py` | Funcoes de atualizacao (NAO USADAS) |
-| `app/services/grupos/classificador_llm.py` | Classificacao LLM |
-| `app/services/grupos/extrator.py` | Extracao de dados |
-| `app/services/grupos/pipeline_worker.py` | Orquestra estagios |
-| `app/workers/grupos_worker.py` | Loop de processamento |
-| `app/services/grupos/fila.py` | Gerencia fila |
+| Vagas Detectadas | 56.461 |
+| Vagas Importadas | 2.004 (3.5%) |
+| Ultima Importacao | 26/01/2026 |
 
 ---
 
 ## Definition of Done
 
-- [ ] Pipeline documentado com diagramas
-- [ ] Campos `passou_heuristica` e `eh_oferta` sendo atualizados corretamente
-- [ ] Vagas sendo importadas para tabela final
-- [ ] Metricas do dashboard refletindo realidade
-- [ ] Observabilidade adicionada (logs estruturados)
-- [ ] Testes de integracao do pipeline
-- [ ] Backfill de dados historicos (opcional)
+### Correcoes (P0)
+- [ ] Especialidades sendo extraidas
+- [ ] Vagas sendo importadas novamente
+- [ ] Chip 5810 protegido contra envio
 
----
+### Observabilidade (P1)
+- [ ] Logs estruturados em todos os estagios
+- [ ] Metricas exportadas
+- [ ] Alertas configurados
 
-## Dependencias
-
-- Acesso ao banco de producao (Supabase)
-- Ambiente de desenvolvimento configurado
-- Conhecimento do fluxo Evolution API → Python → Supabase
+### Validacao (P2)
+- [ ] Relatorio de analise do modelo
+- [ ] Recomendacoes documentadas
+- [ ] Decisao sobre v1 vs v2
 
 ---
 
 ## Riscos
 
-| Risco | Mitigacao |
-|-------|-----------|
-| Quebrar pipeline em producao | Fazer alteracoes incrementais |
-| Perda de dados historicos | Manter campos NULL existentes |
-| Impacto em performance | Monitorar latencia |
+| Risco | Probabilidade | Impacto | Mitigacao |
+|-------|---------------|---------|-----------|
+| Ban do chip 5810 | Media | Critico | Implementar protecao read-only |
+| Quebrar pipeline em prod | Media | Alto | Testes antes de deploy |
+| Dados historicos perdidos | Baixa | Medio | Backfill apos correcoes |
