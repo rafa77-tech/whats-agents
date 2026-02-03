@@ -130,6 +130,12 @@ function setupSuccessfulMocks() {
         json: () => Promise.resolve(mockPipelineResponse),
       })
     }
+    if (url.includes('/groups-ranking')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    }
     return Promise.reject(new Error('Unknown endpoint'))
   })
 }
@@ -164,13 +170,13 @@ describe('useMarketIntelligence', () => {
       expect(mockFetch).not.toHaveBeenCalled()
     })
 
-    it('deve usar periodo default de 30d', async () => {
+    it('deve usar periodo default de 24h', async () => {
       setupSuccessfulMocks()
       const { result } = renderHook(() => useMarketIntelligence())
 
       await waitFor(() => expect(result.current.isLoading).toBe(false))
 
-      expect(result.current.period).toBe('30d')
+      expect(result.current.period).toBe('24h')
     })
 
     it('deve aceitar periodo inicial customizado', async () => {
@@ -185,16 +191,17 @@ describe('useMarketIntelligence', () => {
   })
 
   describe('Fetch de Dados', () => {
-    it('deve buscar todos os 3 endpoints em paralelo', async () => {
+    it('deve buscar todos os 4 endpoints em paralelo', async () => {
       setupSuccessfulMocks()
       const { result } = renderHook(() => useMarketIntelligence())
 
       await waitFor(() => expect(result.current.isLoading).toBe(false))
 
-      expect(mockFetch).toHaveBeenCalledTimes(3)
+      expect(mockFetch).toHaveBeenCalledTimes(4)
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/overview'))
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/volume'))
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/pipeline'))
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/groups-ranking'))
     })
 
     it('deve popular dados corretamente apos fetch', async () => {
@@ -300,13 +307,13 @@ describe('useMarketIntelligence', () => {
       const { result } = renderHook(() => useMarketIntelligence())
 
       await waitFor(() => expect(result.current.isLoading).toBe(false))
-      expect(mockFetch).toHaveBeenCalledTimes(3)
+      expect(mockFetch).toHaveBeenCalledTimes(4)
 
       await act(async () => {
         await result.current.refresh()
       })
 
-      expect(mockFetch).toHaveBeenCalledTimes(6) // 3 inicial + 3 refresh
+      expect(mockFetch).toHaveBeenCalledTimes(8) // 4 inicial + 4 refresh
     })
   })
 
@@ -333,7 +340,7 @@ describe('useMarketIntelligence', () => {
 
       await waitFor(() => expect(result.current.isLoading).toBe(false))
 
-      expect(result.current.period).toBe('30d')
+      expect(result.current.period).toBe('24h')
 
       await act(async () => {
         result.current.setPeriod('90d')

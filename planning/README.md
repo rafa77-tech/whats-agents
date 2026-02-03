@@ -96,7 +96,9 @@ Este diretório contém o planejamento completo do projeto organizado em **Sprin
 | 42 | Monitor Jobs | ✅ Completa |
 | 43 | UX & Operacao Unificada | 📋 Planejado |
 | 44 | Correcoes Arquiteturais | ✅ Completa |
-| 45 | Arquitetura da Informacao & Navegacao | 📋 Planejado |
+| 45 | Arquitetura da Informacao & Navegacao | ✅ Completa |
+| 47 | Helena - Agente de Analytics Slack | ✅ Completa |
+| **51** | **Pipeline Grupos: Investigacao e Refatoracao** | 🔄 Em Andamento |
 
 > **Nota:** Sprints 19-24 e 31-33 estão em planejamento futuro.
 

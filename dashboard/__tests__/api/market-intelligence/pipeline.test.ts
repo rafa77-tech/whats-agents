@@ -59,7 +59,9 @@ describe('API /api/market-intelligence/pipeline', () => {
 
       expect(response.status).toBe(200)
       const data = await response.json()
-      expect(data.periodo.dias).toBeGreaterThanOrEqual(30)
+      // Default period is 24h, so dias should be 1-2
+      expect(data.periodo.dias).toBeGreaterThanOrEqual(1)
+      expect(data.periodo.dias).toBeLessThanOrEqual(2)
     })
 
     it('deve aceitar period=7d', async () => {
@@ -265,10 +267,10 @@ describe('API /api/market-intelligence/pipeline', () => {
       expect(data.funil.etapas[0].percentual).toBe(100)
       expect(data.funil.etapas[0].valor).toBe(1000)
 
-      // Ultima etapa (importadas)
+      // Ultima etapa (importadas) - percentual relativo a baseVagas (vagasExtraidas=200)
       const ultimaEtapa = data.funil.etapas[data.funil.etapas.length - 1]
       expect(ultimaEtapa.valor).toBe(150)
-      expect(ultimaEtapa.percentual).toBe(15) // 150/1000 = 15%
+      expect(ultimaEtapa.percentual).toBe(75) // 150/200 = 75% (relativo a vagas extraidas)
     })
 
     it('deve calcular taxas de conversao corretamente', async () => {

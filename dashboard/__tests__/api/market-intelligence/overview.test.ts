@@ -40,9 +40,9 @@ describe('API /api/market-intelligence/overview', () => {
 
       expect(response.status).toBe(200)
       const data = await response.json()
-      // O cálculo é inclusivo (início e fim), então 30d = 30 ou 31 dias dependendo do horário
-      expect(data.periodo.dias).toBeGreaterThanOrEqual(30)
-      expect(data.periodo.dias).toBeLessThanOrEqual(31)
+      // Default period is 24h, so dias should be 1-2
+      expect(data.periodo.dias).toBeGreaterThanOrEqual(1)
+      expect(data.periodo.dias).toBeLessThanOrEqual(2)
     })
 
     it('deve aceitar period=7d', async () => {

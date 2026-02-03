@@ -53,7 +53,9 @@ describe('API /api/market-intelligence/volume', () => {
 
       expect(response.status).toBe(200)
       const data = await response.json()
-      expect(data.periodo.dias).toBeGreaterThanOrEqual(30)
+      // Default period is 24h, so dias should be 1-2
+      expect(data.periodo.dias).toBeGreaterThanOrEqual(1)
+      expect(data.periodo.dias).toBeLessThanOrEqual(2)
     })
 
     it('deve aceitar period=7d', async () => {
