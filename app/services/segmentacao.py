@@ -84,6 +84,9 @@ class SegmentacaoService:
         excluir_em_atendimento: bool = True,
         contact_cap: int = 5,
         limite: int = 1000,
+        pressure_score_max: int = 50,
+        modo_selecao: str = "deterministico",
+        clientes_especificos: Optional[List[str]] = None,
     ) -> List[Dict]:
         """
         Busca médicos elegíveis para campanha.
@@ -94,8 +97,7 @@ class SegmentacaoService:
         - Não está em cooling_off
         - Não tem conversa ativa com humano
         - Não está em atendimento ativo (inbound < 30min)
-
-        Ordem determinística: prioriza nunca tocados, depois por antiguidade.
+        - Não excede pressure_score_max (score de fadiga)
 
         Args:
             filtros: Filtros demográficos (especialidade, regiao)
@@ -104,6 +106,9 @@ class SegmentacaoService:
             excluir_em_atendimento: Excluir se inbound < 30min
             contact_cap: Limite de contatos em 7 dias
             limite: Máximo de resultados
+            pressure_score_max: Score máximo de fadiga (0-100)
+            modo_selecao: "deterministico" (nunca contatados primeiro) ou "aleatorio"
+            clientes_especificos: Lista de UUIDs para filtrar (ignora filtros demograficos)
 
         Returns:
             Lista de médicos elegíveis com campos:
@@ -118,6 +123,9 @@ class SegmentacaoService:
                 "p_excluir_em_atendimento": excluir_em_atendimento,
                 "p_contact_cap": contact_cap,
                 "p_limite": limite,
+                "p_pressure_score_max": pressure_score_max,
+                "p_modo_selecao": modo_selecao,
+                "p_clientes_especificos": clientes_especificos,
             }).execute()
 
             alvos = response.data or []
@@ -125,7 +133,8 @@ class SegmentacaoService:
             logger.info(
                 f"Target set qualificado: {len(alvos)} médicos elegíveis "
                 f"(filtros={filtros}, dias_sem_contato={dias_sem_contato}, "
-                f"contact_cap={contact_cap}, limite={limite})"
+                f"contact_cap={contact_cap}, limite={limite}, "
+                f"pressure_score_max={pressure_score_max}, modo={modo_selecao})"
             )
 
             return alvos

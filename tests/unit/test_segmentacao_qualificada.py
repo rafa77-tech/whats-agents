@@ -62,6 +62,9 @@ class TestBuscarAlvosCampanha:
             "p_excluir_em_atendimento": True,
             "p_contact_cap": 5,
             "p_limite": 100,
+            "p_pressure_score_max": 50,
+            "p_modo_selecao": "deterministico",
+            "p_clientes_especificos": None,
         })
 
     @pytest.mark.asyncio
@@ -88,6 +91,9 @@ class TestBuscarAlvosCampanha:
             "p_excluir_em_atendimento": False,
             "p_contact_cap": 10,
             "p_limite": 500,
+            "p_pressure_score_max": 50,
+            "p_modo_selecao": "deterministico",
+            "p_clientes_especificos": None,
         })
 
     @pytest.mark.asyncio
