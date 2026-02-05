@@ -167,9 +167,7 @@ describe('StepRevisao', () => {
 
       render(<StepRevisao formData={formData} updateField={mockUpdateField} />)
 
-      expect(
-        screen.getByText('Oi Dr {{nome}}! Tenho uma vaga pra vc')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Oi Dr {{nome}}! Tenho uma vaga pra vc')).toBeInTheDocument()
     })
 
     it('exibe "Mensagem automatica do sistema" para descoberta sem corpo', () => {
@@ -262,9 +260,7 @@ describe('StepRevisao', () => {
 
       render(<StepRevisao formData={formData} updateField={mockUpdateField} />)
 
-      expect(
-        screen.getByText(/campanha sera salva como rascunho/i)
-      ).toBeInTheDocument()
+      expect(screen.getByText(/campanha sera salva como rascunho/i)).toBeInTheDocument()
     })
 
     it('chama updateField ao clicar no checkbox', () => {

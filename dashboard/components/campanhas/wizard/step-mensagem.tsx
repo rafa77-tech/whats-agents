@@ -27,8 +27,7 @@ const MENSAGENS_AUTOMATICAS: Record<string, string> = {
     'A mensagem será gerada automaticamente usando aberturas dinâmicas personalizadas para cada médico.',
   reativacao:
     'Se não informar uma mensagem, será usado: "Oi Dr {nome}! Tudo bem? Faz tempo que a gente nao se fala..."',
-  followup:
-    'Se não informar uma mensagem, será usado: "Oi Dr {nome}! Lembrei de vc..."',
+  followup: 'Se não informar uma mensagem, será usado: "Oi Dr {nome}! Lembrei de vc..."',
 }
 
 export function StepMensagem({ formData, updateField }: StepMensagemProps) {
@@ -39,13 +38,13 @@ export function StepMensagem({ formData, updateField }: StepMensagemProps) {
     <div className="space-y-4">
       {/* Info card para mensagem automática */}
       {!isRequired && autoMessageInfo && (
-        <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
-          <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+        <div className="flex items-start gap-3 rounded-lg border border-status-info-border bg-status-info p-4">
+          <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-status-info-solid" />
           <div>
-            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+            <p className="text-sm font-medium text-status-info-foreground">
               Mensagem automática disponível
             </p>
-            <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">{autoMessageInfo}</p>
+            <p className="mt-1 text-sm text-status-info-foreground/80">{autoMessageInfo}</p>
           </div>
         </div>
       )}
@@ -67,9 +66,7 @@ export function StepMensagem({ formData, updateField }: StepMensagemProps) {
       </div>
 
       <div>
-        <Label htmlFor="corpo">
-          Mensagem {isRequired ? '*' : '(opcional)'}
-        </Label>
+        <Label htmlFor="corpo">Mensagem {isRequired ? '*' : '(opcional)'}</Label>
         <Textarea
           id="corpo"
           placeholder={

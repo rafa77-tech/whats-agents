@@ -85,7 +85,7 @@ export function StepRevisao({ formData, updateField }: StepRevisaoProps) {
                 : formData.corpo}
             </p>
           ) : !requiresCustomMessage(formData.tipo_campanha) ? (
-            <p className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+            <p className="flex items-center gap-1.5 text-status-info-solid">
               <Sparkles className="h-3.5 w-3.5" />
               Mensagem automatica do sistema
             </p>
