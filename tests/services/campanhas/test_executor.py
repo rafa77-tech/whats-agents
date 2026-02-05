@@ -77,6 +77,7 @@ class TestExecutar:
         with patch("app.services.campanhas.executor.campanha_repository") as mock_repo, \
              patch("app.services.campanhas.executor.segmentacao_service") as mock_seg, \
              patch("app.services.campanhas.executor.fila_service") as mock_fila, \
+             patch("app.services.campanhas.executor.supabase") as mock_supabase, \
              patch("app.services.campanhas.executor.obter_abertura_texto") as mock_abertura:
 
             # Setup mocks
@@ -84,9 +85,11 @@ class TestExecutar:
             mock_repo.atualizar_status = AsyncMock(return_value=True)
             mock_repo.atualizar_total_destinatarios = AsyncMock(return_value=True)
             mock_repo.incrementar_enviados = AsyncMock(return_value=True)
-            mock_seg.buscar_segmento = AsyncMock(return_value=destinatarios)
+            mock_seg.buscar_alvos_campanha = AsyncMock(return_value=destinatarios)
             mock_fila.enfileirar = AsyncMock()
             mock_abertura.return_value = "Oi Dr Carlos! Tudo bem?"
+            # Mock deduplicação (Sprint 44)
+            mock_supabase.table.return_value.select.return_value.contains.return_value.execute.return_value.data = []
 
             # Executar
             result = await executor.executar(16)
@@ -101,15 +104,18 @@ class TestExecutar:
         """Testa execucao de campanha oferta com template."""
         with patch("app.services.campanhas.executor.campanha_repository") as mock_repo, \
              patch("app.services.campanhas.executor.segmentacao_service") as mock_seg, \
-             patch("app.services.campanhas.executor.fila_service") as mock_fila:
+             patch("app.services.campanhas.executor.fila_service") as mock_fila, \
+             patch("app.services.campanhas.executor.supabase") as mock_supabase:
 
             # Setup mocks
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha_oferta)
             mock_repo.atualizar_status = AsyncMock(return_value=True)
             mock_repo.atualizar_total_destinatarios = AsyncMock(return_value=True)
             mock_repo.incrementar_enviados = AsyncMock(return_value=True)
-            mock_seg.buscar_segmento = AsyncMock(return_value=destinatarios)
+            mock_seg.buscar_alvos_campanha = AsyncMock(return_value=destinatarios)
             mock_fila.enfileirar = AsyncMock()
+            # Mock deduplicação (Sprint 44)
+            mock_supabase.table.return_value.select.return_value.contains.return_value.execute.return_value.data = []
 
             # Executar
             result = await executor.executar(17)
@@ -147,11 +153,14 @@ class TestExecutar:
     async def test_executar_sem_destinatarios(self, executor, campanha_discovery):
         """Testa execucao quando nao ha destinatarios."""
         with patch("app.services.campanhas.executor.campanha_repository") as mock_repo, \
-             patch("app.services.campanhas.executor.segmentacao_service") as mock_seg:
+             patch("app.services.campanhas.executor.segmentacao_service") as mock_seg, \
+             patch("app.services.campanhas.executor.supabase") as mock_supabase:
 
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha_discovery)
             mock_repo.atualizar_status = AsyncMock(return_value=True)
-            mock_seg.buscar_segmento = AsyncMock(return_value=[])
+            mock_seg.buscar_alvos_campanha = AsyncMock(return_value=[])
+            # Mock deduplicação (Sprint 44) - não afeta pois lista vazia
+            mock_supabase.table.return_value.select.return_value.contains.return_value.execute.return_value.data = []
 
             result = await executor.executar(16)
 
@@ -159,6 +168,39 @@ class TestExecutar:
             assert result is True
             # Deve ter chamado atualizar_status duas vezes (ativa, depois concluida)
             assert mock_repo.atualizar_status.call_count == 2
+
+
+    @pytest.mark.asyncio
+    async def test_executar_deduplica_clientes_ja_enviados(self, executor, campanha_discovery, destinatarios):
+        """Testa que clientes que já receberam a campanha são ignorados (Sprint 44)."""
+        with patch("app.services.campanhas.executor.campanha_repository") as mock_repo, \
+             patch("app.services.campanhas.executor.segmentacao_service") as mock_seg, \
+             patch("app.services.campanhas.executor.fila_service") as mock_fila, \
+             patch("app.services.campanhas.executor.supabase") as mock_supabase, \
+             patch("app.services.campanhas.executor.obter_abertura_texto") as mock_abertura:
+
+            # Setup mocks
+            mock_repo.buscar_por_id = AsyncMock(return_value=campanha_discovery)
+            mock_repo.atualizar_status = AsyncMock(return_value=True)
+            mock_repo.atualizar_total_destinatarios = AsyncMock(return_value=True)
+            mock_repo.incrementar_enviados = AsyncMock(return_value=True)
+            mock_seg.buscar_alvos_campanha = AsyncMock(return_value=destinatarios)
+            mock_fila.enfileirar = AsyncMock()
+            mock_abertura.return_value = "Oi! Tudo bem?"
+            # Mock: uuid-1 já recebeu essa campanha antes
+            mock_supabase.table.return_value.select.return_value.contains.return_value.execute.return_value.data = [
+                {"cliente_id": "uuid-1"}
+            ]
+
+            # Executar
+            result = await executor.executar(16)
+
+            # Verificar: apenas 1 destinatário (uuid-2) deve receber
+            assert result is True
+            assert mock_fila.enfileirar.call_count == 1
+            # Verificar que foi o uuid-2 que recebeu
+            call_args = mock_fila.enfileirar.call_args
+            assert call_args.kwargs["cliente_id"] == "uuid-2"
 
 
 class TestGerarMensagem:
@@ -214,6 +256,56 @@ class TestGerarMensagem:
         assert "Pedro" in mensagem
         assert "Lembrei de vc" in mensagem
 
+    @pytest.mark.asyncio
+    async def test_gerar_mensagem_oferta_sem_corpo_retorna_none(self, executor):
+        """Testa que oferta sem corpo retorna None (corpo é obrigatório)."""
+        campanha = CampanhaData(
+            id=20,
+            nome_template="Oferta Sem Corpo",
+            tipo_campanha=TipoCampanha.OFERTA,
+            corpo=None,
+            status=StatusCampanha.AGENDADA,
+        )
+        destinatario = {"id": "uuid-1", "primeiro_nome": "Carlos", "especialidade_nome": "Cardio"}
+
+        mensagem = await executor._gerar_mensagem(campanha, destinatario)
+
+        assert mensagem is None
+
+    @pytest.mark.asyncio
+    async def test_gerar_mensagem_oferta_plantao_sem_corpo_retorna_none(self, executor):
+        """Testa que oferta_plantao sem corpo retorna None (corpo é obrigatório)."""
+        campanha = CampanhaData(
+            id=21,
+            nome_template="Oferta Plantao Sem Corpo",
+            tipo_campanha=TipoCampanha.OFERTA_PLANTAO,
+            corpo=None,
+            status=StatusCampanha.AGENDADA,
+        )
+        destinatario = {"id": "uuid-1", "primeiro_nome": "Maria", "especialidade_nome": "Anestesio"}
+
+        mensagem = await executor._gerar_mensagem(campanha, destinatario)
+
+        assert mensagem is None
+
+    @pytest.mark.asyncio
+    async def test_gerar_mensagem_oferta_plantao_com_corpo(self, executor):
+        """Testa oferta_plantao com corpo usa o template."""
+        campanha = CampanhaData(
+            id=22,
+            nome_template="Oferta Plantao Com Corpo",
+            tipo_campanha=TipoCampanha.OFERTA_PLANTAO,
+            corpo="Oi Dr {nome}! Temos uma vaga de {especialidade}",
+            status=StatusCampanha.AGENDADA,
+        )
+        destinatario = {"id": "uuid-1", "primeiro_nome": "Ana", "especialidade_nome": "Pediatria"}
+
+        mensagem = await executor._gerar_mensagem(campanha, destinatario)
+
+        assert mensagem is not None
+        assert "Ana" in mensagem
+        assert "Pediatria" in mensagem
+
 
 class TestFormatarTemplate:
     """Testes do metodo _formatar_template."""
@@ -258,21 +350,21 @@ class TestBuscarDestinatarios:
     async def test_buscar_com_filtros(self, executor, campanha_oferta, destinatarios):
         """Testa busca com filtros de audiencia."""
         with patch("app.services.campanhas.executor.segmentacao_service") as mock_seg:
-            mock_seg.buscar_segmento = AsyncMock(return_value=destinatarios)
+            mock_seg.buscar_alvos_campanha = AsyncMock(return_value=destinatarios)
 
             result = await executor._buscar_destinatarios(campanha_oferta)
 
             assert len(result) == 2
-            # Verificar que filtros foram passados
-            call_args = mock_seg.buscar_segmento.call_args
-            filtros = call_args[0][0]
-            assert filtros["especialidade"] == "cardiologia"
+            # Verificar que filtros foram passados (Sprint 44: usa kwargs)
+            call_args = mock_seg.buscar_alvos_campanha.call_args
+            filtros = call_args.kwargs.get("filtros", {})
+            assert filtros.get("especialidade") == "cardiologia"
 
     @pytest.mark.asyncio
     async def test_buscar_sem_filtros(self, executor, campanha_discovery, destinatarios):
         """Testa busca sem filtros especificos."""
         with patch("app.services.campanhas.executor.segmentacao_service") as mock_seg:
-            mock_seg.buscar_segmento = AsyncMock(return_value=destinatarios)
+            mock_seg.buscar_alvos_campanha = AsyncMock(return_value=destinatarios)
 
             result = await executor._buscar_destinatarios(campanha_discovery)
 
@@ -282,7 +374,7 @@ class TestBuscarDestinatarios:
     async def test_buscar_com_erro(self, executor, campanha_discovery):
         """Testa busca quando ocorre erro."""
         with patch("app.services.campanhas.executor.segmentacao_service") as mock_seg:
-            mock_seg.buscar_segmento = AsyncMock(side_effect=Exception("DB Error"))
+            mock_seg.buscar_alvos_campanha = AsyncMock(side_effect=Exception("DB Error"))
 
             result = await executor._buscar_destinatarios(campanha_discovery)
 

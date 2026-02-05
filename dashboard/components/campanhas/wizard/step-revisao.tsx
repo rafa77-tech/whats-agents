@@ -4,10 +4,12 @@
 
 'use client'
 
+import { Sparkles } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { type CampanhaFormData, TIPOS_CAMPANHA, CATEGORIAS, TONS } from './types'
+import { requiresCustomMessage } from './schema'
 
 interface StepRevisaoProps {
   formData: CampanhaFormData
@@ -73,6 +75,24 @@ export function StepRevisao({ formData, updateField }: StepRevisaoProps) {
             </p>
           </div>
         )}
+
+        <div className="text-sm">
+          <span className="text-muted-foreground">Mensagem:</span>
+          {formData.corpo ? (
+            <p className="mt-1 whitespace-pre-wrap rounded bg-muted p-2 text-xs">
+              {formData.corpo.length > 100
+                ? `${formData.corpo.substring(0, 100)}...`
+                : formData.corpo}
+            </p>
+          ) : !requiresCustomMessage(formData.tipo_campanha) ? (
+            <p className="flex items-center gap-1.5 text-status-info-solid">
+              <Sparkles className="h-3.5 w-3.5" />
+              Mensagem automatica do sistema
+            </p>
+          ) : (
+            <p className="text-status-error-foreground">Nao definida</p>
+          )}
+        </div>
       </div>
 
       <div className="border-t pt-4">
