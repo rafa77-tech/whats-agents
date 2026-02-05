@@ -299,7 +299,7 @@ async def buscar_mensagens_pendentes() -> list[dict]:
     """
     try:
         result = supabase.table("mensagens_fora_horario").select(
-            "*, clientes(nome, telefone)"
+            "*, clientes(primeiro_nome, telefone)"
         ).eq(
             "processada", False
         ).order(

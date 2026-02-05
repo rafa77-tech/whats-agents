@@ -436,7 +436,7 @@ async def listar_pendentes_confirmacao() -> list[VagaPendenteConfirmacao]:
             hospital_id, cliente_id,
             hospitais(nome),
             especialidades(nome),
-            clientes(nome, telefone)
+            clientes(primeiro_nome, telefone)
         """) \
         .eq("status", "pendente_confirmacao") \
         .order("pendente_confirmacao_em") \

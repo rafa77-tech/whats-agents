@@ -232,7 +232,8 @@ class CampanhaExecutor:
             Mensagem gerada ou None
         """
         cliente_id = destinatario.get("id")
-        nome = destinatario.get("primeiro_nome", "")
+        # RPC retorna "nome" (alias de primeiro_nome), mas outras fontes podem usar "primeiro_nome"
+        nome = destinatario.get("nome") or destinatario.get("primeiro_nome", "")
         especialidade = destinatario.get("especialidade_nome", "medico")
 
         if campanha.tipo_campanha == TipoCampanha.DISCOVERY:
