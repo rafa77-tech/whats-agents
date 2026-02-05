@@ -161,6 +161,18 @@ interface CampanhaBody {
 }
 
 /**
+ * Tipos de campanha que têm mensagem automática gerada pelo sistema
+ * - descoberta: usa aberturas dinâmicas
+ * - reativacao: usa template "Faz tempo que a gente nao se fala"
+ * - followup: usa template "Lembrei de vc"
+ */
+const TIPOS_COM_MENSAGEM_AUTOMATICA = ['descoberta', 'reativacao', 'followup']
+
+function requiresCustomMessage(tipoCampanha: string): boolean {
+  return !TIPOS_COM_MENSAGEM_AUTOMATICA.includes(tipoCampanha)
+}
+
+/**
  * POST /api/campanhas
  * Cria uma nova campanha
  */
@@ -182,7 +194,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'Nome da campanha e obrigatorio' }, { status: 400 })
     }
 
-    if (!body.corpo?.trim()) {
+    // Corpo é obrigatório apenas para tipos que não têm mensagem automática
+    const tipoCampanha = body.tipo_campanha || 'oferta_plantao'
+    if (requiresCustomMessage(tipoCampanha) && !body.corpo?.trim()) {
       return NextResponse.json({ detail: 'Corpo da mensagem e obrigatorio' }, { status: 400 })
     }
 
@@ -190,10 +204,10 @@ export async function POST(request: NextRequest) {
       .from('campanhas')
       .insert({
         nome_template: body.nome_template.trim(),
-        tipo_campanha: body.tipo_campanha || 'oferta_plantao',
+        tipo_campanha: tipoCampanha,
         categoria: body.categoria || 'marketing',
         objetivo: body.objetivo?.trim() || null,
-        corpo: body.corpo.trim(),
+        corpo: body.corpo?.trim() || null,
         tom: body.tom || 'amigavel',
         audience_filters: body.audience_filters || {},
         agendar_para: body.agendar_para || null,
