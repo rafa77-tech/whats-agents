@@ -454,7 +454,7 @@ async def listar_pendentes_confirmacao() -> list[VagaPendenteConfirmacao]:
             hospital_nome=row.get("hospitais", {}).get("nome", "N/A") if row.get("hospitais") else "N/A",
             especialidade_nome=row.get("especialidades", {}).get("nome", "N/A") if row.get("especialidades") else "N/A",
             cliente_id=row["cliente_id"],
-            cliente_nome=row.get("clientes", {}).get("nome") if row.get("clientes") else None,
+            cliente_nome=row.get("clientes", {}).get("primeiro_nome") if row.get("clientes") else None,
             cliente_telefone=row.get("clientes", {}).get("telefone") if row.get("clientes") else None,
         ))
 
