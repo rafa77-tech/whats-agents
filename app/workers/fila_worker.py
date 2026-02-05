@@ -16,6 +16,9 @@ from app.services.outbound import send_outbound_message, criar_contexto_followup
 from app.services.guardrails import SendOutcome
 from app.services.circuit_breaker import circuit_evolution, CircuitState
 from app.services.redis import redis_client
+from app.services.conversa import buscar_ou_criar_conversa
+from app.services.interacao import salvar_interacao
+from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
 
@@ -214,6 +217,30 @@ async def processar_fila():
                     f"Mensagem enviada: {mensagem['id']} "
                     f"(provider_id={result.provider_message_id})"
                 )
+
+                # Criar/obter conversa e salvar interação
+                conversa_id = mensagem.get("conversa_id")
+                if not conversa_id:
+                    conversa = await buscar_ou_criar_conversa(cliente_id)
+                    if conversa:
+                        conversa_id = conversa["id"]
+                        # Atualizar fila_mensagens com conversa_id
+                        supabase.table("fila_mensagens").update({
+                            "conversa_id": conversa_id
+                        }).eq("id", mensagem["id"]).execute()
+
+                if conversa_id:
+                    # Extrair chip_id do resultado se disponível
+                    chip_id = getattr(result, "chip_id", None)
+                    await salvar_interacao(
+                        conversa_id=conversa_id,
+                        cliente_id=cliente_id,
+                        tipo="saida",
+                        conteudo=mensagem["conteudo"],
+                        autor_tipo="julia",
+                        message_id=result.provider_message_id,
+                        chip_id=chip_id,
+                    )
             elif result.outcome.is_blocked:
                 logger.info(
                     f"Mensagem {mensagem['id']} bloqueada: "

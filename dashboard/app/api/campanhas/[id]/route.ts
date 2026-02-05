@@ -66,11 +66,13 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
         `
         id,
         cliente_id,
+        conversa_id,
         status,
         conteudo,
         created_at,
         enviada_em,
         outcome,
+        provider_message_id,
         clientes (
           id,
           primeiro_nome,
@@ -85,6 +87,34 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
     if (filaError) {
       console.error('Erro ao buscar fila_mensagens:', filaError)
+    }
+
+    // Buscar delivery_status das interações para esta campanha
+    // Interações de saída (tipo='saida') criadas para mensagens de campanha
+    const conversaIds = filaMensagens
+      ?.map((m) => m.conversa_id)
+      .filter((id): id is string => id !== null) || []
+
+    let deliveryStatusMap = new Map<string, { delivery_status: string; created_at: string }>()
+
+    if (conversaIds.length > 0) {
+      const { data: interacoes } = await supabase
+        .from('interacoes')
+        .select('conversation_id, delivery_status, created_at')
+        .in('conversation_id', conversaIds)
+        .eq('tipo', 'saida')
+        .eq('autor_tipo', 'julia')
+        .order('created_at', { ascending: false })
+
+      // Mapear por conversation_id (pegar a mais recente)
+      interacoes?.forEach((i) => {
+        if (!deliveryStatusMap.has(i.conversation_id)) {
+          deliveryStatusMap.set(i.conversation_id, {
+            delivery_status: i.delivery_status || 'sent',
+            created_at: i.created_at,
+          })
+        }
+      })
     }
 
     // Mapear fila_mensagens para formato de envios
@@ -122,6 +152,27 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
             envioStatus = 'pendente'
           }
 
+          // Buscar delivery_status da interação correspondente
+          const conversaId = msg.conversa_id as string | null
+          const deliveryInfo = conversaId ? deliveryStatusMap.get(conversaId) : null
+          const deliveryStatus = deliveryInfo?.delivery_status || null
+
+          // Mapear delivery_status para entregue_em e visualizado_em
+          // delivery_status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
+          let entregueEm: string | null = null
+          let visualizadoEm: string | null = null
+
+          if (deliveryStatus === 'delivered' || deliveryStatus === 'read') {
+            entregueEm = deliveryInfo?.created_at || msg.enviada_em
+          }
+          if (deliveryStatus === 'read') {
+            visualizadoEm = deliveryInfo?.created_at || msg.enviada_em
+          }
+          if (deliveryStatus === 'failed') {
+            envioStatus = 'falhou'
+            falhouEm = falhouEm || deliveryInfo?.created_at || null
+          }
+
           return {
             id: msg.id,
             cliente_id: msg.cliente_id,
@@ -129,8 +180,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
             conteudo_enviado: msg.conteudo,
             created_at: msg.created_at,
             enviado_em: msg.enviada_em,
-            entregue_em: null, // Tracking de entrega vem por webhook separado
-            visualizado_em: null, // Tracking de visualização vem por webhook separado
+            entregue_em: entregueEm,
+            visualizado_em: visualizadoEm,
             falhou_em: falhouEm,
             clientes: msg.clientes,
           }
