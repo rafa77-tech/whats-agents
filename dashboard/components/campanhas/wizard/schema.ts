@@ -18,8 +18,8 @@ export const campanhaSchema = z.object({
   regioes: z.array(z.string()),
   status_cliente: z.array(z.string()),
 
-  // Step 3 - Mensagem
-  corpo: z.string().min(10, 'Mensagem deve ter pelo menos 10 caracteres'),
+  // Step 3 - Mensagem (corpo é opcional para tipos com mensagem automática)
+  corpo: z.string().optional().default(''),
   tom: z.enum(['amigavel', 'profissional', 'urgente', 'casual']),
 
   // Step 4 - Agendamento
@@ -28,6 +28,21 @@ export const campanhaSchema = z.object({
 })
 
 export type CampanhaSchemaType = z.infer<typeof campanhaSchema>
+
+/**
+ * Tipos de campanha que têm geração automática de mensagem.
+ * - discovery: usa obter_abertura_texto()
+ * - reativacao: template padrão "Oi Dr {nome}! Tudo bem? Faz tempo..."
+ * - followup: template padrão "Oi Dr {nome}! Lembrei de vc..."
+ */
+const TIPOS_COM_MENSAGEM_AUTOMATICA = ['descoberta', 'reativacao', 'followup']
+
+/**
+ * Verifica se o tipo de campanha requer mensagem customizada.
+ */
+export function requiresCustomMessage(tipoCampanha: string): boolean {
+  return !TIPOS_COM_MENSAGEM_AUTOMATICA.includes(tipoCampanha)
+}
 
 /**
  * Validates a specific step of the wizard.
@@ -39,7 +54,11 @@ export function validateStep(step: number, data: CampanhaFormData): boolean {
     case 2:
       return true // Audiencia is always valid
     case 3:
-      return data.corpo.trim().length >= 10
+      // Mensagem só é obrigatória para oferta_plantao
+      if (requiresCustomMessage(data.tipo_campanha)) {
+        return data.corpo.trim().length >= 10
+      }
+      return true // Outros tipos têm geração automática
     case 4:
       return true // Review is always valid
     default:
