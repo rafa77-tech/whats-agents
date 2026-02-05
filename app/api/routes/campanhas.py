@@ -153,7 +153,8 @@ async def iniciar_campanha(campanha_id: int):
         raise HTTPException(status_code=404, detail="Campanha nao encontrada")
 
     # Verificar status
-    if campanha.status not in (StatusCampanha.AGENDADA, StatusCampanha.RASCUNHO):
+    # Aceita ATIVA também para casos onde a campanha foi ativada mas não executada
+    if campanha.status not in (StatusCampanha.AGENDADA, StatusCampanha.RASCUNHO, StatusCampanha.ATIVA):
         raise HTTPException(
             status_code=400,
             detail=f"Campanha com status '{campanha.status.value}' nao pode ser iniciada"

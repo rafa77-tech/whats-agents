@@ -299,7 +299,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (action === 'iniciar' || action === 'retomar') {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       try {
-        const execResponse = await fetch(`${apiUrl}/campanhas/${id}/executar`, {
+        const execResponse = await fetch(`${apiUrl}/campanhas/${id}/iniciar`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         })
