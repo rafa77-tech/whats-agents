@@ -377,10 +377,18 @@ class PipelineGrupos:
             ResultadoPipeline com ação a tomar
         """
         from datetime import date
+        import time
 
         mensagem_id = item.get("mensagem_id")
         if isinstance(mensagem_id, str):
             mensagem_id = UUID(mensagem_id)
+
+        # Sprint 51 - E04: Log estruturado de início
+        start_time = time.time()
+        logger.info(
+            f"[Pipeline v3] INICIO mensagem_id={mensagem_id} "
+            f"estagio=EXTRACAO_LLM"
+        )
 
         # Buscar mensagem completa com dados do grupo
         msg = supabase.table("mensagens_grupo") \
@@ -390,6 +398,12 @@ class PipelineGrupos:
             .execute()
 
         if not msg.data:
+            tempo_ms = int((time.time() - start_time) * 1000)
+            logger.warning(
+                f"[Pipeline v3] DESCARTADA mensagem_id={mensagem_id} "
+                f"estagio=EXTRACAO_LLM motivo=mensagem_nao_encontrada "
+                f"tempo_ms={tempo_ms}"
+            )
             return ResultadoPipeline(
                 acao="descartar",
                 mensagem_id=mensagem_id,
@@ -413,8 +427,11 @@ class PipelineGrupos:
         )
 
         if not resultado.vagas:
+            tempo_ms = int((time.time() - start_time) * 1000)
             logger.warning(
-                f"Extração v3 falhou para {mensagem_id}: {resultado.erro}"
+                f"[Pipeline v3] DESCARTADA mensagem_id={mensagem_id} "
+                f"estagio=EXTRACAO_LLM motivo={resultado.erro} "
+                f"tempo_ms={tempo_ms} tokens={resultado.tokens_usados}"
             )
             return ResultadoPipeline(
                 acao="descartar",
@@ -433,9 +450,12 @@ class PipelineGrupos:
             if vaga_id:
                 vagas_criadas.append(str(vaga_id))
 
+        tempo_total_ms = int((time.time() - start_time) * 1000)
         logger.info(
-            f"Mensagem {mensagem_id}: {len(vagas_criadas)} vaga(s) extraída(s) [v3/LLM] "
-            f"(tempo: {resultado.tempo_processamento_ms}ms, tokens: {resultado.tokens_usados})"
+            f"[Pipeline v3] SUCESSO mensagem_id={mensagem_id} "
+            f"estagio=EXTRACAO_LLM vagas_criadas={len(vagas_criadas)} "
+            f"tempo_ms={tempo_total_ms} tokens={resultado.tokens_usados} "
+            f"llm_ms={resultado.tempo_processamento_ms}"
         )
 
         return ResultadoPipeline(

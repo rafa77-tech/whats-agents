@@ -14,21 +14,21 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 ## Estado Atual
 
-**Sprint Atual:** Sprint 30 - Refatoração Arquitetural
+**Sprint Atual:** Nenhuma sprint em andamento (backlog disponível)
 **Início do Projeto:** 05/12/2025
-**Última Atualização:** 16/01/2026
+**Última Atualização:** 05/02/2026
 
 ### Métricas do Projeto
 
 | Recurso | Quantidade | Como verificar |
 |---------|------------|----------------|
-| Arquivos Python | ~310 | `find app -name "*.py" \| wc -l` |
-| Módulos de serviço | ~220 | `find app/services -name "*.py" \| wc -l` |
-| Tabelas no banco | ~90 | `mcp__supabase__list_tables` |
-| Testes | ~2100 | `grep -r "def test_" tests/ \| wc -l` |
-| Routers API | ~20 | `find app/api/routes -name "*.py" \| wc -l` |
+| Arquivos Python | ~375 | `find app -name "*.py" \| wc -l` |
+| Módulos de serviço | ~260 | `find app/services -name "*.py" \| wc -l` |
+| Tabelas no banco | ~115 | `mcp__supabase__list_tables` |
+| Testes | ~2550 | `grep -r "def test_" tests/ \| wc -l` |
+| Routers API | ~24 | `find app/api/routes -name "*.py" \| wc -l` |
 
-> **Nota:** Métricas aproximadas (verificadas em 16/01/2026). Rodar comandos para valores exatos.
+> **Nota:** Métricas aproximadas (verificadas em 05/02/2026). Rodar comandos para valores exatos.
 
 ### Sprints Concluídas
 
@@ -46,7 +46,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 9 | Julia no Slack (NLP) | ✅ Completa |
 | 10 | Refatoracao e Divida Tecnica | ✅ Completa |
 | 11 | Briefing Conversacional | ✅ Completa |
-| 12 | Deploy Produção | 📋 Planejado |
+| 12 | Deploy Produção | ✅ Completa |
 | 13 | Conhecimento Dinâmico (RAG) | ✅ Completa |
 | 14 | Pipeline de Grupos WhatsApp | ✅ Completa |
 | 15 | Policy Engine (Estado + Decisão) | ✅ Completa |
@@ -55,19 +55,21 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 18 | Auditoria e Integridade | ✅ Completa |
 | 25 | Julia Warmer (Foundation) | ✅ Completa |
 | 26 | Multi-Julia Orchestration | ✅ Completa |
-| 27 | Chip Activator (VPS) | 🔄 Em Andamento |
+| 27 | Chip Activator (VPS) | ⏸️ Pausada |
 | 28 | Dashboard Julia | ✅ Completa |
 | 29 | Conversation Mode | ✅ Completa |
-| 30 | Refatoração Arquitetural | 🔄 Em Andamento |
+| 30 | Refatoração Arquitetural | ✅ Completa |
 | 33 | Dashboard de Performance | ✅ Completa |
 | 34 | UX Refinements Dashboard | 📋 Planejado |
 | 40 | Chips Dashboard | ✅ Completa |
 | 41 | Chips Ops & Health | ✅ Completa |
 | 42 | Monitor Jobs | ✅ Completa |
-| 43 | UX & Operacao Unificada | 📋 Planejado |
+| 43 | UX & Operacao Unificada | ✅ Completa |
 | 44 | Correções Arquiteturais | ✅ Completa |
 | 45 | Arquitetura da Informação & Navegação | ✅ Completa |
 | 47 | Helena - Agente de Gestão Slack | ✅ Completa |
+| 51 | Pipeline Grupos: Revisão Arquitetural | ✅ Completa |
+| 52 | Pipeline v3: Extração LLM | ✅ Completa |
 
 ### Funcionalidades Implementadas
 

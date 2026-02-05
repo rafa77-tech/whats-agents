@@ -52,6 +52,19 @@ async def enviar_via_chip(
     Returns:
         MessageResult com status do envio
     """
+    # Sprint 51 - E03: BLOQUEIO DEFENSIVO para chips listener
+    # Chips listener são exclusivos para escuta de grupos (read-only)
+    if chip.get("tipo") == "listener":
+        logger.error(
+            f"[ChipSender] BLOQUEIO: Tentativa de envio via chip listener! "
+            f"chip={chip.get('telefone', 'N/A')}, destino={telefone[-4:]}"
+        )
+        # TODO: Adicionar alerta Slack aqui (Sprint 51 E03.3)
+        return MessageResult(
+            success=False,
+            error="Chip listener não pode enviar mensagens"
+        )
+
     try:
         provider = get_provider(chip)
         result = await provider.send_text(telefone, texto)
@@ -218,6 +231,17 @@ async def enviar_media_via_chip(
     Returns:
         MessageResult com status do envio
     """
+    # Sprint 51 - E03: BLOQUEIO DEFENSIVO para chips listener
+    if chip.get("tipo") == "listener":
+        logger.error(
+            f"[ChipSender] BLOQUEIO: Tentativa de envio de mídia via chip listener! "
+            f"chip={chip.get('telefone', 'N/A')}, destino={telefone[-4:]}"
+        )
+        return MessageResult(
+            success=False,
+            error="Chip listener não pode enviar mensagens"
+        )
+
     try:
         provider = get_provider(chip)
         result = await provider.send_media(

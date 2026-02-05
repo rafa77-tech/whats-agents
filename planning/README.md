@@ -68,7 +68,7 @@ Este diretório contém o planejamento completo do projeto organizado em **Sprin
 | 9 | Julia no Slack (NLP) | ✅ Completa |
 | 10 | Refatoração e Dívida Técnica | ✅ Completa |
 | 11 | Briefing Conversacional | ✅ Completa |
-| 12 | Deploy Produção | 📋 Planejado |
+| 12 | Deploy Produção | ✅ Completa |
 | 13 | Conhecimento Dinâmico (RAG) | ✅ Completa |
 | 14 | Pipeline de Grupos WhatsApp | ✅ Completa |
 | 15 | Policy Engine (Estado + Decisão) | ✅ Completa |
@@ -82,10 +82,10 @@ Este diretório contém o planejamento completo do projeto organizado em **Sprin
 |--------|------|--------|
 | 25 | Julia Warmer (Foundation) | ✅ Completa |
 | 26 | Multi-Julia Orchestration | ✅ Completa |
-| 27 | Chip Activator (VPS) | 🔄 Em Andamento |
+| 27 | Chip Activator (VPS) | ⏸️ Pausada |
 | 28 | Dashboard Julia | ✅ Completa |
 | 29 | Conversation Mode | ✅ Completa |
-| 30 | Refatoração Arquitetural | 🔄 Em Andamento |
+| 30 | Refatoração Arquitetural | ✅ Completa |
 
 ### Sprints Recentes (40+)
 
@@ -94,11 +94,12 @@ Este diretório contém o planejamento completo do projeto organizado em **Sprin
 | 40 | Chips Dashboard | ✅ Completa |
 | 41 | Chips Ops & Health | ✅ Completa |
 | 42 | Monitor Jobs | ✅ Completa |
-| 43 | UX & Operacao Unificada | 📋 Planejado |
+| 43 | UX & Operacao Unificada | ✅ Completa |
 | 44 | Correcoes Arquiteturais | ✅ Completa |
 | 45 | Arquitetura da Informacao & Navegacao | ✅ Completa |
 | 47 | Helena - Agente de Analytics Slack | ✅ Completa |
-| **51** | **Pipeline Grupos: Investigacao e Refatoracao** | 🔄 Em Andamento |
+| 51 | Pipeline Grupos: Revisao Arquitetural | ✅ Completa |
+| 52 | Pipeline v3: Extração LLM | ✅ Completa |
 
 > **Nota:** Sprints 19-24 e 31-33 estão em planejamento futuro.
 

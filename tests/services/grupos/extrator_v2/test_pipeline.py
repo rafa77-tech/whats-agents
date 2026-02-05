@@ -15,8 +15,8 @@ class TestPipelineIntegracao:
         texto = """📍 Hospital Campo Limpo
 Estrada Itapecirica, 1661 - SP
 
-🗓 26/01 - Segunda - Manhã 7-13h
-🗓 27/01 - Terça - Noite 19-7h
+🗓 26/03 - Segunda - Manhã 7-13h
+🗓 27/03 - Terça - Noite 19-7h
 
 💰 Segunda a Sexta: R$ 1.700
 💰 Sábado e Domingo: R$ 1.800
@@ -26,7 +26,7 @@ wa.me/5511939050162"""
 
         resultado = await extrair_vagas_v2(
             texto=texto,
-            data_referencia=date(2026, 1, 25)
+            data_referencia=date(2026, 3, 25)
         )
 
         assert resultado.sucesso is True
@@ -36,18 +36,18 @@ wa.me/5511939050162"""
         # Verificar primeira vaga
         vaga1 = resultado.vagas[0]
         assert vaga1.hospital_raw == "Hospital Campo Limpo"
-        assert vaga1.data == date(2026, 1, 26)
+        assert vaga1.data == date(2026, 3, 26)
         assert vaga1.valor == 1700
         assert vaga1.contato_nome == "Eloisa"
 
     @pytest.mark.asyncio
     async def test_mensagem_simples(self):
         """Pipeline processa mensagem simples."""
-        texto = "Hospital ABC - 26/01 manhã R$ 1.800"
+        texto = "Hospital ABC - 26/03 manhã R$ 1.800"
 
         resultado = await extrair_vagas_v2(
             texto=texto,
-            data_referencia=date(2026, 1, 25)
+            data_referencia=date(2026, 3, 25)
         )
 
         # Pode ter warnings mas deve extrair
@@ -64,11 +64,11 @@ wa.me/5511939050162"""
     @pytest.mark.asyncio
     async def test_mensagem_sem_hospital(self):
         """Pipeline rejeita mensagem sem hospital."""
-        texto = "🗓 26/01 manhã R$ 1.800"
+        texto = "🗓 26/03 manhã R$ 1.800"
 
         resultado = await extrair_vagas_v2(
             texto=texto,
-            data_referencia=date(2026, 1, 25)
+            data_referencia=date(2026, 3, 25)
         )
 
         assert resultado.sucesso is False
@@ -87,11 +87,11 @@ wa.me/5511939050162"""
     @pytest.mark.asyncio
     async def test_tempo_processamento(self):
         """Pipeline registra tempo de processamento."""
-        texto = "📍 Hospital ABC\n🗓 26/01 manhã\n💰 R$ 1.800"
+        texto = "📍 Hospital ABC\n🗓 26/03 manhã\n💰 R$ 1.800"
 
         resultado = await extrair_vagas_v2(
             texto=texto,
-            data_referencia=date(2026, 1, 25)
+            data_referencia=date(2026, 3, 25)
         )
 
         # tempo_processamento_ms >= 0 (pode ser 0 se muito rápido)
@@ -101,7 +101,7 @@ wa.me/5511939050162"""
     @pytest.mark.asyncio
     async def test_rastreabilidade(self):
         """Pipeline preserva IDs de rastreabilidade."""
-        texto = "📍 Hospital ABC\n🗓 26/01 manhã\n💰 R$ 1.800"
+        texto = "📍 Hospital ABC\n🗓 26/03 manhã\n💰 R$ 1.800"
         msg_id = uuid4()
         grupo_id = uuid4()
 
@@ -109,7 +109,7 @@ wa.me/5511939050162"""
             texto=texto,
             mensagem_id=msg_id,
             grupo_id=grupo_id,
-            data_referencia=date(2026, 1, 25)
+            data_referencia=date(2026, 3, 25)
         )
 
         if resultado.vagas:
@@ -126,14 +126,14 @@ class TestCasosReais:
         texto = """🔴🔴PRECISO🔴🔴
 
 📍UPA CAMPO LIMPO
-📅 27/01 SEGUNDA
+📅 27/03 SEGUNDA
 ⏰ 19 as 07
 💰1.600
 📲11964391344"""
 
         resultado = await extrair_vagas_v2(
             texto=texto,
-            data_referencia=date(2026, 1, 25)
+            data_referencia=date(2026, 3, 25)
         )
 
         assert resultado.sucesso is True
@@ -147,9 +147,9 @@ class TestCasosReais:
 
 Hospital Santa Casa ABC
 
-26/01 dom diurno 7-19h
-27/01 seg noturno 19-7h
-28/01 ter diurno 7-19h
+26/03 dom diurno 7-19h
+27/03 seg noturno 19-7h
+28/03 ter diurno 7-19h
 
 Valor R$ 1.500
 
@@ -157,7 +157,7 @@ Int. Maria 11 99999-9999"""
 
         resultado = await extrair_vagas_v2(
             texto=texto,
-            data_referencia=date(2026, 1, 25)
+            data_referencia=date(2026, 3, 25)
         )
 
         assert resultado.sucesso is True
@@ -169,9 +169,9 @@ Int. Maria 11 99999-9999"""
         texto = """📍 Hospital ABC
 Região Sul - SP
 
-🗓 26/01 - Segunda - Manhã 7-13h
-🗓 01/02 - Sábado - SD 7-19h
-🗓 02/02 - Domingo - SD 7-19h
+🗓 24/03 - Segunda - Manhã 7-13h
+🗓 29/03 - Sábado - SD 7-19h
+🗓 30/03 - Domingo - SD 7-19h
 
 💰 Seg-Sex: R$ 1.700
 💰 Sab-Dom: R$ 2.000
@@ -180,7 +180,7 @@ Região Sul - SP
 
         resultado = await extrair_vagas_v2(
             texto=texto,
-            data_referencia=date(2026, 1, 25)
+            data_referencia=date(2026, 3, 20)
         )
 
         assert resultado.sucesso is True

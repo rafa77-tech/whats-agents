@@ -217,6 +217,10 @@ class ChipSelector:
         """
         query = supabase.table("chips").select("*").eq("status", "active")
 
+        # Sprint 51 - E03: NUNCA selecionar chips do tipo 'listener'
+        # Chips listener são exclusivos para escuta de grupos (read-only)
+        query = query.neq("tipo", "listener")
+
         # Sprint 27: NÃO filtrar por evolution_connected na query
         # A verificação de conexão é feita no loop, pois depende do provider
 
