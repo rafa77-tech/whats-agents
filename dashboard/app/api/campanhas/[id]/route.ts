@@ -295,6 +295,30 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       created_at: new Date().toISOString(),
     })
 
+    // Se ação é iniciar ou retomar, chamar o executor do backend para criar os envios
+    if (action === 'iniciar' || action === 'retomar') {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      try {
+        const execResponse = await fetch(`${apiUrl}/campanhas/${id}/executar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        })
+
+        if (!execResponse.ok) {
+          console.error(
+            `Erro ao executar campanha ${id}: ${execResponse.status} ${execResponse.statusText}`
+          )
+          // Não falha a requisição, apenas loga o erro
+          // Os envios serão criados, mas pode haver delay
+        } else {
+          console.log(`Campanha ${id} executada com sucesso pelo backend`)
+        }
+      } catch (execError) {
+        console.error(`Erro ao chamar executor para campanha ${id}:`, execError)
+        // Não falha a requisição principal
+      }
+    }
+
     return NextResponse.json(updated)
   } catch (error) {
     console.error('Erro ao atualizar campanha:', error)
