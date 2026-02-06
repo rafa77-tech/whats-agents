@@ -676,6 +676,26 @@ async def diagnosticar_multi_chip(
     """
     import traceback
 
+    # Wrapper global para capturar qualquer erro não tratado
+    try:
+        return await _executar_diagnostico(tipo_mensagem, telefone_teste, enviar_teste)
+    except Exception as e:
+        return {
+            "erro": "Exceção não tratada",
+            "tipo": type(e).__name__,
+            "mensagem": str(e),
+            "traceback": traceback.format_exc(),
+        }
+
+
+async def _executar_diagnostico(
+    tipo_mensagem: str,
+    telefone_teste: Optional[str],
+    enviar_teste: bool,
+):
+    """Execução interna do diagnóstico."""
+    import traceback
+
     try:
         from app.core.config import settings
         from app.services.whatsapp_providers import get_provider
