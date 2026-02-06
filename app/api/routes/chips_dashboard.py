@@ -674,9 +674,17 @@ async def diagnosticar_multi_chip(
 
     Use para identificar onde o sistema está falhando.
     """
-    from app.core.config import settings
-    from app.services.whatsapp_providers import get_provider
-    from app.services.chips.circuit_breaker import ChipCircuitBreaker
+    import traceback
+
+    try:
+        from app.core.config import settings
+        from app.services.whatsapp_providers import get_provider
+    except Exception as import_error:
+        return {
+            "erro": "Falha nos imports",
+            "detalhe": str(import_error),
+            "traceback": traceback.format_exc(),
+        }
 
     diagnostico = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -685,10 +693,10 @@ async def diagnosticar_multi_chip(
         "erro_em": None,
     }
 
-    # ─────────────────────────────────────────────────────────
-    # ETAPA 1: Verificar MULTI_CHIP_ENABLED
-    # ─────────────────────────────────────────────────────────
     try:
+        # ─────────────────────────────────────────────────────────
+        # ETAPA 1: Verificar MULTI_CHIP_ENABLED
+        # ─────────────────────────────────────────────────────────
         multi_chip_enabled = getattr(settings, "MULTI_CHIP_ENABLED", False)
         diagnostico["etapas"].append({
             "etapa": 1,
