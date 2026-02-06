@@ -15,7 +15,10 @@ export const metadata: Metadata = {
   description: 'Dashboard de gestao da Julia - Agente de staffing medico',
   manifest: '/manifest.json',
   icons: {
-    icon: '/icons/icon-192.png',
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
     apple: '/icons/apple-touch-icon.png',
   },
 }
