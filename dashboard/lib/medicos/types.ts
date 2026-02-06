@@ -34,6 +34,8 @@ export interface Doctor {
   stage_jornada?: string
   opt_out: boolean
   created_at: string
+  app_enviado?: boolean // Links do app foram enviados
+  app_enviado_em?: string // Data/hora do envio
 }
 
 /**

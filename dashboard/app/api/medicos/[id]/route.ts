@@ -55,6 +55,16 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       .select('id', { count: 'exact', head: true })
       .eq('cliente_id', id)
 
+    // Check if app download links were sent
+    const { data: appEvent } = await supabase
+      .from('business_events')
+      .select('created_at')
+      .eq('cliente_id', id)
+      .eq('event_type', 'app_download_sent')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
     const doctor = {
       id: cliente.id,
       nome: [cliente.primeiro_nome, cliente.sobrenome].filter(Boolean).join(' ') || 'Sem nome',
@@ -72,6 +82,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       created_at: cliente.created_at,
       conversations_count: conversationsCount || 0,
       last_interaction_at: cliente.ultima_mensagem_data || undefined,
+      app_enviado: !!appEvent,
+      app_enviado_em: appEvent?.created_at || undefined,
     }
 
     return NextResponse.json(doctor)

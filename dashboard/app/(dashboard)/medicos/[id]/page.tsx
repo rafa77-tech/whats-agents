@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Phone, Stethoscope, MapPin, Mail } from 'lucide-react'
+import { ArrowLeft, Phone, Stethoscope, MapPin, Mail, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -89,6 +89,12 @@ export default function DoctorProfilePage() {
                 <div className="mt-1 flex flex-wrap gap-2">
                   <Badge className={stageColor}>{stageLabel}</Badge>
                   {doctor.opt_out && <Badge variant="destructive">Opt-out</Badge>}
+                  {doctor.app_enviado && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Smartphone className="h-3 w-3" />
+                      App Enviado
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>

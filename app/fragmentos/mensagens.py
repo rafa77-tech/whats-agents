@@ -62,3 +62,102 @@ def formatar_primeiro_contato(medico: dict) -> str:
         nome=nome,
         saudacao_especialidade=saudacao
     )
+
+
+# ============================================================================
+# LINKS DO APP REVOLUNA
+# ============================================================================
+
+LINK_APP_IOS = "https://apps.apple.com/br/app/revoluna/id6744747736"
+LINK_APP_ANDROID = "https://play.google.com/store/apps/details?id=com.mycompany.revoluna&hl=pt_BR"
+
+
+# ============================================================================
+# TEMPLATES DE DOWNLOAD DO APP
+# Usados quando médico demonstra interesse na Revoluna
+# ============================================================================
+
+# Variações da mensagem de convite para baixar o app
+# Formato: lista de mensagens para enviar em sequência (simula conversa natural)
+TEMPLATES_DOWNLOAD_APP = [
+    # Variação 1 - Direta e animada
+    [
+        "Show! Fico feliz que curtiu",
+        "Baixa nosso app que la vc ve todas as vagas disponiveis e pode se candidatar direto",
+        "iPhone: {link_ios}",
+        "Android: {link_android}",
+        "Qualquer duvida me chama aqui!"
+    ],
+    # Variação 2 - Explicativa
+    [
+        "Que bom! Deixa eu te explicar como funciona",
+        "A gente tem um app onde vc consegue ver os plantoes disponiveis, valores, horarios... tudo certinho",
+        "E pode se candidatar com um clique",
+        "Segue os links:",
+        "iOS: {link_ios}",
+        "Android: {link_android}"
+    ],
+    # Variação 3 - Casual
+    [
+        "Massa! Entao faz o seguinte",
+        "Baixa o app da Revoluna que la tem tudo",
+        "Se for iPhone: {link_ios}",
+        "Se for Android: {link_android}",
+        "Depois me conta o que achou"
+    ],
+    # Variação 4 - Prestativa
+    [
+        "Otimo! Vou te passar o link do nosso app",
+        "La vc ve as vagas da regiao, valores, e consegue se inscrever rapidinho",
+        "Apple: {link_ios}",
+        "Google Play: {link_android}",
+        "Se precisar de ajuda pra baixar ou usar, me avisa!"
+    ],
+]
+
+# Template único (para casos onde uma só mensagem é preferível)
+TEMPLATE_DOWNLOAD_APP_UNICO = """Show! Vou te passar o link do app
+
+La vc ve todas as vagas disponiveis e pode se candidatar
+
+iPhone: {link_ios}
+Android: {link_android}
+
+Qualquer coisa me chama!"""
+
+
+def obter_mensagens_download_app(variacao: int = None) -> list[str]:
+    """
+    Retorna lista de mensagens para enviar links do app.
+
+    Args:
+        variacao: Índice da variação (0-3) ou None para aleatório
+
+    Returns:
+        Lista de mensagens formatadas com os links
+    """
+    import random
+
+    if variacao is None:
+        variacao = random.randint(0, len(TEMPLATES_DOWNLOAD_APP) - 1)
+
+    variacao = variacao % len(TEMPLATES_DOWNLOAD_APP)
+    template = TEMPLATES_DOWNLOAD_APP[variacao]
+
+    return [
+        msg.format(link_ios=LINK_APP_IOS, link_android=LINK_APP_ANDROID)
+        for msg in template
+    ]
+
+
+def obter_mensagem_download_app_unica() -> str:
+    """
+    Retorna mensagem única com links do app.
+
+    Returns:
+        String com mensagem formatada
+    """
+    return TEMPLATE_DOWNLOAD_APP_UNICO.format(
+        link_ios=LINK_APP_IOS,
+        link_android=LINK_APP_ANDROID
+    )

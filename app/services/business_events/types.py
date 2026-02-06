@@ -49,6 +49,9 @@ class EventType(Enum):
     # Briefing (Sprint 23 E06)
     BRIEFING_SYNC_TRIGGERED = "briefing_sync_triggered"  # Sync manual via Slack
 
+    # Engajamento com App (Sprint 52+)
+    APP_DOWNLOAD_SENT = "app_download_sent"  # Links do app enviados ao médico
+
 
 class EventSource(Enum):
     """Origens validas de eventos."""

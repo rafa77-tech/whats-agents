@@ -190,3 +190,120 @@ async def tempo_conversao(
     """
     return await get_conversion_time(hours=hours, hospital_id=hospital_id)
 
+
+# =============================================================================
+# Sprint 52+: Métricas de Engajamento com App
+# =============================================================================
+
+
+@router.get("/app-downloads")
+async def app_downloads(
+    hours: int = Query(720, ge=1, le=2160, description="Janela de tempo em horas"),
+):
+    """
+    Retorna métricas de envio de links do app.
+
+    Conta quantos médicos receberam os links do app via conversa com a Julia.
+
+    - **hours**: Janela de tempo (default 720 = 30 dias)
+    """
+    data_inicio = (agora_brasilia() - timedelta(hours=hours)).isoformat()
+
+    try:
+        # Buscar eventos APP_DOWNLOAD_SENT
+        response = (
+            supabase.table("business_events")
+            .select("id, cliente_id, created_at, event_props")
+            .eq("event_type", "app_download_sent")
+            .gte("created_at", data_inicio)
+            .execute()
+        )
+        eventos = response.data or []
+
+        # Médicos únicos que receberam links
+        medicos_unicos = set(e.get("cliente_id") for e in eventos if e.get("cliente_id"))
+
+        # Agrupar por dia
+        por_dia: dict = {}
+        for e in eventos:
+            created = e.get("created_at", "")[:10]  # YYYY-MM-DD
+            if created:
+                por_dia[created] = por_dia.get(created, 0) + 1
+
+        return {
+            "periodo_horas": hours,
+            "total_envios": len(eventos),
+            "medicos_unicos": len(medicos_unicos),
+            "por_dia": por_dia,
+        }
+    except Exception as e:
+        logger.error(f"Erro ao obter métricas de app downloads: {e}")
+        return {
+            "periodo_horas": hours,
+            "total_envios": 0,
+            "medicos_unicos": 0,
+            "por_dia": {},
+            "erro": str(e),
+        }
+
+
+@router.get("/app-downloads/medicos")
+async def medicos_com_app_enviado(
+    limit: int = Query(100, ge=1, le=500, description="Número máximo de resultados"),
+):
+    """
+    Retorna lista de médicos que receberam links do app.
+
+    Útil para verificar quem já foi notificado sobre o app.
+
+    - **limit**: Número máximo de resultados (default 100)
+    """
+    try:
+        # Buscar eventos APP_DOWNLOAD_SENT com dados do médico
+        response = (
+            supabase.table("business_events")
+            .select("cliente_id, created_at")
+            .eq("event_type", "app_download_sent")
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        eventos = response.data or []
+
+        if not eventos:
+            return {"medicos": []}
+
+        # Buscar dados dos médicos
+        cliente_ids = list(set(e.get("cliente_id") for e in eventos if e.get("cliente_id")))
+
+        if not cliente_ids:
+            return {"medicos": []}
+
+        medicos_response = (
+            supabase.table("clientes")
+            .select("id, primeiro_nome, telefone")
+            .in_("id", cliente_ids)
+            .execute()
+        )
+        medicos_map = {m["id"]: m for m in (medicos_response.data or [])}
+
+        # Montar resultado
+        resultado = []
+        medicos_vistos = set()
+        for e in eventos:
+            cliente_id = e.get("cliente_id")
+            if cliente_id and cliente_id not in medicos_vistos:
+                medicos_vistos.add(cliente_id)
+                medico = medicos_map.get(cliente_id, {})
+                resultado.append({
+                    "id": cliente_id,
+                    "nome": medico.get("primeiro_nome", ""),
+                    "telefone": medico.get("telefone", ""),
+                    "enviado_em": e.get("created_at"),
+                })
+
+        return {"medicos": resultado}
+    except Exception as e:
+        logger.error(f"Erro ao listar médicos com app enviado: {e}")
+        return {"medicos": [], "erro": str(e)}
+

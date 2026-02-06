@@ -114,6 +114,34 @@ GANCHOS = [
     ("g10", "Quer saber das vagas disponiveis?"),
 ]
 
+# ============================================================================
+# FRAGMENTOS SOFT DISCOVERY (sem mencionar plantao na primeira abordagem)
+# ============================================================================
+
+# Contextos soft - focados em apresentar a Revoluna sem falar de plantao
+CONTEXTOS_SOFT = [
+    ("cs1", "Trabalho com escalas medicas aqui na regiao"),
+    ("cs2", "A Revoluna conecta medicos com hospitais"),
+    ("cs3", "A gente trabalha com staffing medico"),
+    ("cs4", "Somos uma empresa de staffing medico"),
+    ("cs5", "Trabalho na area de escalas hospitalares"),
+    ("cs6", "A Revoluna e especializada em staffing"),
+    ("cs7", "Trabalho conectando medicos com oportunidades"),
+    ("cs8", "A gente ajuda medicos na regiao do ABC"),
+]
+
+# Ganchos soft - perguntas de descoberta sem mencionar plantao
+GANCHOS_SOFT = [
+    ("gs1", "Posso te contar mais sobre a gente?"),
+    ("gs2", "Vc conhece a Revoluna?"),
+    ("gs3", "Ja ouviu falar da gente?"),
+    ("gs4", "Posso te apresentar nosso trabalho?"),
+    ("gs5", "Quer saber como a gente funciona?"),
+    ("gs6", "Conhece nosso modelo de trabalho?"),
+    ("gs7", "Posso te explicar o que fazemos?"),
+    ("gs8", "Ta aberto a conhecer a Revoluna?"),
+]
+
 
 def montar_abertura_completa(
     nome: str,
@@ -121,7 +149,8 @@ def montar_abertura_completa(
     apresentacao_id: str = None,
     contexto_id: str = None,
     gancho_id: str = None,
-    incluir_contexto: bool = None
+    incluir_contexto: bool = None,
+    soft: bool = False
 ) -> list[str]:
     """
     Monta abertura completa com IDs especificos ou aleatorios.
@@ -133,11 +162,16 @@ def montar_abertura_completa(
         contexto_id: ID do contexto
         gancho_id: ID do gancho
         incluir_contexto: Incluir linha de contexto (None = 70% chance)
+        soft: Se True, usa fragmentos soft (sem mencionar plantao)
 
     Returns:
         Lista de strings (cada uma e uma mensagem separada)
     """
     mensagens = []
+
+    # Selecionar listas de contexto e gancho baseado no modo
+    lista_contextos = CONTEXTOS_SOFT if soft else CONTEXTOS
+    lista_ganchos = GANCHOS_SOFT if soft else GANCHOS
 
     # Verificar se temos nome valido
     tem_nome = nome and nome.strip() and nome.strip().lower() not in ('none', 'null', '')
@@ -174,18 +208,18 @@ def montar_abertura_completa(
 
     if incluir_contexto:
         if contexto_id:
-            contexto = next((c for c in CONTEXTOS if c[0] == contexto_id), None)
+            contexto = next((c for c in lista_contextos if c[0] == contexto_id), None)
         else:
-            contexto = random.choice(CONTEXTOS)
+            contexto = random.choice(lista_contextos)
 
         if contexto:
             mensagens.append(contexto[1])
 
     # Gancho (sempre)
     if gancho_id:
-        gancho = next((g for g in GANCHOS if g[0] == gancho_id), None)
+        gancho = next((g for g in lista_ganchos if g[0] == gancho_id), None)
     else:
-        gancho = random.choice(GANCHOS)
+        gancho = random.choice(lista_ganchos)
 
     if gancho:
         mensagens.append(gancho[1])
@@ -198,7 +232,8 @@ def gerar_abertura_texto_unico(
     saudacao_id: str = None,
     apresentacao_id: str = None,
     contexto_id: str = None,
-    gancho_id: str = None
+    gancho_id: str = None,
+    soft: bool = False
 ) -> str:
     """
     Gera abertura como texto unico (para envio em uma so mensagem).
@@ -209,6 +244,7 @@ def gerar_abertura_texto_unico(
         apresentacao_id: ID da apresentacao
         contexto_id: ID do contexto
         gancho_id: ID do gancho
+        soft: Se True, usa fragmentos soft (sem mencionar plantao)
 
     Returns:
         String com abertura completa separada por quebras de linha
@@ -218,7 +254,8 @@ def gerar_abertura_texto_unico(
         saudacao_id=saudacao_id,
         apresentacao_id=apresentacao_id,
         contexto_id=contexto_id,
-        gancho_id=gancho_id
+        gancho_id=gancho_id,
+        soft=soft
     )
     return "\n\n".join(mensagens)
 

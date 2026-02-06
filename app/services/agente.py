@@ -703,6 +703,22 @@ async def _emitir_offer_events(
         )
         logger.debug(f"offer_teaser_sent emitido para cliente {cliente_id[:8]}")
 
+    # Se resposta contém links do app, emitir app_download_sent
+    from app.services.business_events.context import tem_link_app_revoluna
+    if resposta and tem_link_app_revoluna(resposta):
+        safe_create_task(
+            emit_event(BusinessEvent(
+                event_type=EventType.APP_DOWNLOAD_SENT,
+                source=EventSource.BACKEND,
+                cliente_id=cliente_id,
+                conversation_id=conversa_id,
+                event_props={},
+                dedupe_key=f"app_download:{cliente_id}",  # 1 por médico
+            )),
+            name="emit_app_download_sent"
+        )
+        logger.info(f"app_download_sent emitido para cliente {cliente_id[:8]}")
+
 
 async def processar_mensagem_completo(
     mensagem_texto: str,

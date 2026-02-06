@@ -237,8 +237,8 @@ class CampanhaExecutor:
         especialidade = destinatario.get("especialidade_nome", "medico")
 
         if campanha.tipo_campanha == TipoCampanha.DISCOVERY:
-            # Discovery: usar aberturas dinamicas
-            return await obter_abertura_texto(cliente_id, nome)
+            # Discovery: usar aberturas soft (sem mencionar plantao)
+            return await obter_abertura_texto(cliente_id, nome, soft=True)
 
         elif campanha.tipo_campanha in (TipoCampanha.OFERTA, TipoCampanha.OFERTA_PLANTAO):
             # Oferta: usar corpo como template

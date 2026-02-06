@@ -11,7 +11,9 @@ from app.fragmentos.aberturas import (
     SAUDACOES,
     APRESENTACOES,
     CONTEXTOS,
+    CONTEXTOS_SOFT,
     GANCHOS,
+    GANCHOS_SOFT,
     montar_abertura_completa,
     gerar_abertura_texto_unico,
     obter_saudacao_por_periodo,
@@ -279,3 +281,80 @@ class TestVariacaoReal:
 
             # Deve mencionar Julia ou Revoluna
             assert "julia" in texto.lower() or "revoluna" in texto.lower()
+
+
+class TestSoftDiscovery:
+    """Testes para o modo soft discovery (sem mencionar plantao)."""
+
+    def test_contextos_soft_nao_mencionam_plantao(self):
+        """Contextos soft NAO devem mencionar plantao."""
+        for contexto in CONTEXTOS_SOFT:
+            texto = contexto[1].lower()
+            assert "plantao" not in texto, f"Contexto soft menciona plantao: {contexto[1]}"
+            assert "plantoes" not in texto, f"Contexto soft menciona plantoes: {contexto[1]}"
+
+    def test_ganchos_soft_nao_mencionam_plantao(self):
+        """Ganchos soft NAO devem mencionar plantao."""
+        for gancho in GANCHOS_SOFT:
+            texto = gancho[1].lower()
+            assert "plantao" not in texto, f"Gancho soft menciona plantao: {gancho[1]}"
+            assert "plantoes" not in texto, f"Gancho soft menciona plantoes: {gancho[1]}"
+
+    def test_tem_contextos_soft_suficientes(self):
+        """Deve ter pelo menos 5 contextos soft."""
+        assert len(CONTEXTOS_SOFT) >= 5
+
+    def test_tem_ganchos_soft_suficientes(self):
+        """Deve ter pelo menos 5 ganchos soft."""
+        assert len(GANCHOS_SOFT) >= 5
+
+    def test_contextos_soft_tem_formato_correto(self):
+        """Contextos soft devem ter formato (id, texto)."""
+        for contexto in CONTEXTOS_SOFT:
+            assert len(contexto) == 2
+            assert contexto[0].startswith("cs")  # ID comeca com 'cs'
+
+    def test_ganchos_soft_tem_formato_correto(self):
+        """Ganchos soft devem ter formato (id, texto)."""
+        for gancho in GANCHOS_SOFT:
+            assert len(gancho) == 2
+            assert gancho[0].startswith("gs")  # ID comeca com 'gs'
+
+    def test_monta_abertura_soft_nao_menciona_plantao(self):
+        """Abertura soft NAO deve mencionar plantao."""
+        for _ in range(20):  # Testar varias vezes por ser aleatorio
+            mensagens = montar_abertura_completa(
+                nome="Carlos",
+                soft=True,
+                incluir_contexto=True
+            )
+            texto = " ".join(mensagens).lower()
+            assert "plantao" not in texto, f"Abertura soft menciona plantao: {texto}"
+            assert "plantoes" not in texto, f"Abertura soft menciona plantoes: {texto}"
+
+    def test_gerar_abertura_texto_soft(self):
+        """Deve gerar texto soft sem plantao."""
+        for _ in range(10):
+            texto = gerar_abertura_texto_unico(nome="Ana", soft=True)
+            texto_lower = texto.lower()
+            assert "plantao" not in texto_lower
+            assert "plantoes" not in texto_lower
+
+    @pytest.mark.asyncio
+    async def test_servico_abertura_soft(self):
+        """Servico de abertura em modo soft NAO deve mencionar plantao."""
+        from app.services.abertura import obter_abertura_texto
+
+        with patch('app.services.abertura._get_ultima_abertura', new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = None
+
+            with patch('app.services.abertura._salvar_abertura_usada', new_callable=AsyncMock):
+                for _ in range(10):
+                    texto = await obter_abertura_texto(
+                        cliente_id="test-123",
+                        nome="Carlos",
+                        soft=True
+                    )
+                    texto_lower = texto.lower()
+                    assert "plantao" not in texto_lower, f"Abertura soft menciona plantao: {texto}"
+                    assert "plantoes" not in texto_lower, f"Abertura soft menciona plantoes: {texto}"

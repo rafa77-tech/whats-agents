@@ -144,3 +144,32 @@ async def emitir_policy_effect_event(
         effect=effect,
         details=details or {},
     )
+
+
+async def emitir_app_download_event(
+    cliente_id: str,
+    conversa_id: Optional[str] = None,
+    trigger: str = "interesse_demonstrado",
+) -> None:
+    """
+    Emite evento quando links do app são enviados ao médico.
+
+    Args:
+        cliente_id: ID do cliente/médico
+        conversa_id: ID da conversa (se houver)
+        trigger: O que disparou o envio (interesse_demonstrado, perguntou_vagas, quer_cadastrar)
+    """
+    try:
+        await emit_event(BusinessEvent(
+            event_type=EventType.APP_DOWNLOAD_SENT,
+            source=EventSource.BACKEND,
+            cliente_id=cliente_id,
+            conversation_id=conversa_id,
+            event_props={
+                "trigger": trigger,
+            },
+            dedupe_key=f"app_download:{cliente_id}",  # 1 por médico
+        ))
+        logger.info(f"app_download_sent emitido para cliente {cliente_id[:8]}... (trigger={trigger})")
+    except Exception as e:
+        logger.warning(f"Erro ao emitir app_download_sent: {e}")

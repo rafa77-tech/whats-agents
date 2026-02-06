@@ -15,7 +15,9 @@ from app.fragmentos.aberturas import (
     SAUDACOES_SEM_NOME,
     APRESENTACOES,
     CONTEXTOS,
+    CONTEXTOS_SOFT,
     GANCHOS,
+    GANCHOS_SOFT,
     montar_abertura_completa
 )
 from app.services.redis import cache_get, cache_set
@@ -28,7 +30,8 @@ logger = logging.getLogger(__name__)
 async def obter_abertura(
     cliente_id: str,
     nome: str,
-    hora_atual: datetime = None
+    hora_atual: datetime = None,
+    soft: bool = False
 ) -> list[str]:
     """
     Obtem abertura personalizada para medico.
@@ -40,6 +43,7 @@ async def obter_abertura(
         cliente_id: ID do medico
         nome: Nome do medico
         hora_atual: Hora atual (para saudacao contextual)
+        soft: Se True, usa fragmentos soft (sem mencionar plantao)
 
     Returns:
         Lista de mensagens de abertura
@@ -58,13 +62,17 @@ async def obter_abertura(
         ultima_abertura.get("apresentacao") if ultima_abertura else None
     )
 
+    # Usar listas soft ou normais
+    lista_contextos = CONTEXTOS_SOFT if soft else CONTEXTOS
+    lista_ganchos = GANCHOS_SOFT if soft else GANCHOS
+
     contexto = _selecionar_sem_repetir(
-        CONTEXTOS,
+        lista_contextos,
         ultima_abertura.get("contexto") if ultima_abertura else None
     )
 
     gancho = _selecionar_sem_repetir(
-        GANCHOS,
+        lista_ganchos,
         ultima_abertura.get("gancho") if ultima_abertura else None
     )
 
@@ -78,7 +86,8 @@ async def obter_abertura(
         apresentacao_id=apresentacao[0],
         contexto_id=contexto[0] if incluir_contexto else None,
         gancho_id=gancho[0],
-        incluir_contexto=incluir_contexto
+        incluir_contexto=incluir_contexto,
+        soft=soft
     )
 
     # Salvar para evitar repeticao
@@ -91,7 +100,7 @@ async def obter_abertura(
     )
 
     logger.info(
-        f"Abertura gerada para {cliente_id}: "
+        f"Abertura gerada para {cliente_id} (soft={soft}): "
         f"saudacao={saudacao[0]}, apresentacao={apresentacao[0]}, "
         f"contexto={contexto[0] if incluir_contexto else 'nenhum'}, gancho={gancho[0]}"
     )
@@ -102,7 +111,8 @@ async def obter_abertura(
 async def obter_abertura_texto(
     cliente_id: str,
     nome: str,
-    hora_atual: datetime = None
+    hora_atual: datetime = None,
+    soft: bool = False
 ) -> str:
     """
     Obtem abertura como texto unico.
@@ -111,11 +121,12 @@ async def obter_abertura_texto(
         cliente_id: ID do medico
         nome: Nome do medico
         hora_atual: Hora atual
+        soft: Se True, usa fragmentos soft (sem mencionar plantao)
 
     Returns:
         String com abertura completa
     """
-    mensagens = await obter_abertura(cliente_id, nome, hora_atual)
+    mensagens = await obter_abertura(cliente_id, nome, hora_atual, soft=soft)
     return "\n\n".join(mensagens)
 
 
