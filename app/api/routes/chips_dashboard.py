@@ -655,6 +655,12 @@ async def delete_instance(instance_name: str):
 # ════════════════════════════════════════════════════════════
 
 
+@router.get("/diagnostico-ping")
+async def diagnostico_ping():
+    """Teste simples para verificar se a rota está acessível."""
+    return {"status": "ok", "message": "Rota diagnostico acessivel"}
+
+
 @router.get("/diagnostico")
 async def diagnosticar_multi_chip(
     tipo_mensagem: str = Query("prospeccao", description="prospeccao, followup, ou resposta"),
