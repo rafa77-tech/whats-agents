@@ -38,12 +38,10 @@ ALERTAS_GRUPOS = {
         "threshold_quantidade": 5,  # > 5 itens
         "severidade": "warning"
     },
-    "duplicacao_alta": {
-        "descricao": "Taxa de duplicação muito alta",
-        "threshold": 0.5,  # > 50% duplicados
-        "janela_dias": 1,
-        "severidade": "info"
-    },
+    # REMOVIDO: duplicacao_alta
+    # Motivo: Taxa de duplicação alta é comportamento normal (mesmas vagas em vários grupos).
+    # Alerta não é acionável e gera ruído no Slack.
+    # Ref: Limpeza de alertas
 }
 
 # Títulos amigáveis para exibição ao usuário (Slack, logs)
@@ -51,7 +49,6 @@ TITULOS_ALERTAS = {
     "fila_travada": "Fila com Muitos Erros",
     "custo_alto": "Custo Diário Elevado",
     "itens_pendentes_antigos": "Itens Pendentes Há Muito Tempo",
-    "duplicacao_alta": "Alta Taxa de Duplicação",
 }
 
 
@@ -154,42 +151,9 @@ async def verificar_itens_pendentes_antigos() -> List[Dict]:
         return []
 
 
-async def verificar_duplicacao_alta() -> List[Dict]:
-    """Verifica se taxa de duplicação está muito alta."""
-    config = ALERTAS_GRUPOS["duplicacao_alta"]
-    data_inicio = (datetime.now(UTC) - timedelta(days=config["janela_dias"])).isoformat()
-
-    try:
-        # Total de vagas
-        vagas_total = supabase.table("vagas_grupo") \
-            .select("id", count="exact") \
-            .gte("created_at", data_inicio) \
-            .execute()
-
-        # Vagas duplicadas
-        vagas_duplicadas = supabase.table("vagas_grupo") \
-            .select("id", count="exact") \
-            .eq("eh_duplicada", True) \
-            .gte("created_at", data_inicio) \
-            .execute()
-
-        total = vagas_total.count or 0
-        duplicadas = vagas_duplicadas.count or 0
-
-        if total > 0:
-            taxa = duplicadas / total
-            if taxa > config["threshold"]:
-                return [{
-                    "tipo": "duplicacao_alta",
-                    "mensagem": f"Taxa de duplicação: {taxa*100:.1f}% (threshold: {config['threshold']*100}%)",
-                    "severidade": config["severidade"],
-                    "valor": taxa
-                }]
-
-        return []
-    except Exception as e:
-        logger.error(f"Erro ao verificar taxa de duplicação: {e}")
-        return []
+    # REMOVIDO: verificar_duplicacao_alta()
+    # Motivo: Taxa de duplicação alta é comportamento normal do pipeline.
+    # Ref: Limpeza de alertas
 
 
 # =============================================================================
@@ -208,7 +172,6 @@ async def verificar_alertas_grupos() -> List[Dict]:
     alertas.extend(await verificar_fila_travada())
     alertas.extend(await verificar_custo_alto())
     alertas.extend(await verificar_itens_pendentes_antigos())
-    alertas.extend(await verificar_duplicacao_alta())
 
     return alertas
 

@@ -13,7 +13,6 @@ from app.services.grupos.alertas import (
     verificar_fila_travada,
     verificar_custo_alto,
     verificar_itens_pendentes_antigos,
-    verificar_duplicacao_alta,
     verificar_alertas_grupos,
     enviar_alerta_grupos_slack,
     executar_verificacao_alertas_grupos,
@@ -32,7 +31,7 @@ class TestConfiguracaoAlertas:
         assert "fila_travada" in ALERTAS_GRUPOS
         assert "custo_alto" in ALERTAS_GRUPOS
         assert "itens_pendentes_antigos" in ALERTAS_GRUPOS
-        assert "duplicacao_alta" in ALERTAS_GRUPOS
+        # REMOVIDO: duplicacao_alta (não acionável, comportamento normal do pipeline)
         # REMOVIDO: taxa_conversao_baixa (Sprint 41 - movido para report fim do dia)
 
     def test_fila_travada_config(self):
@@ -181,41 +180,7 @@ class TestVerificarItensPendentesAntigos:
             assert result[0]["tipo"] == "itens_pendentes_antigos"
 
 
-class TestVerificarDuplicacaoAlta:
-    """Testes de verificação de duplicação alta."""
-
-    @pytest.mark.asyncio
-    async def test_duplicacao_ok(self):
-        """Retorna vazio quando duplicação está OK."""
-        with patch("app.services.grupos.alertas.supabase") as mock_supabase:
-            # Total: 100, Duplicadas: 30 = 30%
-            mock_supabase.table.return_value.select.return_value.gte.return_value.execute.return_value = MagicMock(
-                count=100
-            )
-            mock_supabase.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value = MagicMock(
-                count=30
-            )
-
-            result = await verificar_duplicacao_alta()
-
-            assert result == []
-
-    @pytest.mark.asyncio
-    async def test_duplicacao_alta(self):
-        """Retorna alerta quando duplicação está alta."""
-        with patch("app.services.grupos.alertas.supabase") as mock_supabase:
-            # Total: 100, Duplicadas: 60 = 60%
-            mock_supabase.table.return_value.select.return_value.gte.return_value.execute.return_value = MagicMock(
-                count=100
-            )
-            mock_supabase.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value = MagicMock(
-                count=60
-            )
-
-            result = await verificar_duplicacao_alta()
-
-            assert len(result) == 1
-            assert result[0]["tipo"] == "duplicacao_alta"
+# REMOVIDO: TestVerificarDuplicacaoAlta (não acionável, comportamento normal do pipeline)
 
 
 # =============================================================================
@@ -230,13 +195,11 @@ class TestVerificarAlertasGrupos:
         """Retorna lista vazia quando não há alertas."""
         with patch("app.services.grupos.alertas.verificar_fila_travada", new_callable=AsyncMock) as m1, \
              patch("app.services.grupos.alertas.verificar_custo_alto", new_callable=AsyncMock) as m2, \
-             patch("app.services.grupos.alertas.verificar_itens_pendentes_antigos", new_callable=AsyncMock) as m3, \
-             patch("app.services.grupos.alertas.verificar_duplicacao_alta", new_callable=AsyncMock) as m4:
+             patch("app.services.grupos.alertas.verificar_itens_pendentes_antigos", new_callable=AsyncMock) as m3:
 
             m1.return_value = []
             m2.return_value = []
             m3.return_value = []
-            m4.return_value = []
 
             result = await verificar_alertas_grupos()
 
@@ -247,13 +210,11 @@ class TestVerificarAlertasGrupos:
         """Retorna múltiplos alertas quando há problemas."""
         with patch("app.services.grupos.alertas.verificar_fila_travada", new_callable=AsyncMock) as m1, \
              patch("app.services.grupos.alertas.verificar_custo_alto", new_callable=AsyncMock) as m2, \
-             patch("app.services.grupos.alertas.verificar_itens_pendentes_antigos", new_callable=AsyncMock) as m3, \
-             patch("app.services.grupos.alertas.verificar_duplicacao_alta", new_callable=AsyncMock) as m4:
+             patch("app.services.grupos.alertas.verificar_itens_pendentes_antigos", new_callable=AsyncMock) as m3:
 
             m1.return_value = [{"tipo": "fila_travada"}]
             m2.return_value = [{"tipo": "custo_alto"}]
             m3.return_value = []
-            m4.return_value = []
 
             result = await verificar_alertas_grupos()
 
