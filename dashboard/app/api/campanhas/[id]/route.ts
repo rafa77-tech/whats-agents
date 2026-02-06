@@ -91,11 +91,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
     // Buscar delivery_status das interações para esta campanha
     // Interações de saída (tipo='saida') criadas para mensagens de campanha
-    const conversaIds = filaMensagens
-      ?.map((m) => m.conversa_id)
-      .filter((id): id is string => id !== null) || []
+    const conversaIds =
+      filaMensagens?.map((m) => m.conversa_id).filter((id): id is string => id !== null) || []
 
-    let deliveryStatusMap = new Map<string, { delivery_status: string; created_at: string }>()
+    const deliveryStatusMap = new Map<string, { delivery_status: string; created_at: string }>()
 
     if (conversaIds.length > 0) {
       const { data: interacoes } = await supabase
