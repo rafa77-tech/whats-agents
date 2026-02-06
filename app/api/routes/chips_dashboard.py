@@ -92,6 +92,332 @@ async def list_chips(
     return {"chips": result.data or [], "count": len(result.data or [])}
 
 
+# ════════════════════════════════════════════════════════════
+# DIAGNÓSTICO MULTI-CHIP (Debug)
+# ════════════════════════════════════════════════════════════
+# IMPORTANTE: Estas rotas devem ficar ANTES de /{chip_id}
+# para evitar que "diagnostico" seja interpretado como chip_id
+
+
+@router.get("/diagnostico-ping")
+async def diagnostico_ping():
+    """Teste simples para verificar se a rota está acessível."""
+    return {"status": "ok", "message": "Rota diagnostico acessivel"}
+
+
+@router.get("/diagnostico")
+async def diagnosticar_multi_chip(
+    tipo_mensagem: str = Query("prospeccao", description="prospeccao, followup, ou resposta"),
+    telefone_teste: Optional[str] = Query(None, description="Telefone para teste de envio"),
+    enviar_teste: bool = Query(False, description="Se True, envia mensagem de teste"),
+):
+    """
+    Diagnóstico completo do sistema multi-chip.
+
+    Testa cada etapa do fluxo:
+    1. Verifica MULTI_CHIP_ENABLED
+    2. Busca chips elegíveis
+    3. Testa seleção de chip
+    4. Testa criação do provider
+    5. Verifica conexão do provider
+    6. (Opcional) Envia mensagem de teste
+
+    Use para identificar onde o sistema está falhando.
+    """
+    import traceback
+
+    # Wrapper global para capturar qualquer erro não tratado
+    try:
+        return await _executar_diagnostico(tipo_mensagem, telefone_teste, enviar_teste)
+    except Exception as e:
+        return {
+            "erro": "Exceção não tratada",
+            "tipo": type(e).__name__,
+            "mensagem": str(e),
+            "traceback": traceback.format_exc(),
+        }
+
+
+async def _executar_diagnostico(
+    tipo_mensagem: str,
+    telefone_teste: Optional[str],
+    enviar_teste: bool,
+):
+    """Execução interna do diagnóstico."""
+    import traceback
+
+    try:
+        from app.core.config import settings
+        from app.services.whatsapp_providers import get_provider
+    except Exception as import_error:
+        return {
+            "erro": "Falha nos imports",
+            "detalhe": str(import_error),
+            "traceback": traceback.format_exc(),
+        }
+
+    diagnostico = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "etapas": [],
+        "resultado": "pendente",
+        "erro_em": None,
+    }
+
+    try:
+        # ─────────────────────────────────────────────────────────
+        # ETAPA 1: Verificar MULTI_CHIP_ENABLED
+        # ─────────────────────────────────────────────────────────
+        multi_chip_enabled = getattr(settings, "MULTI_CHIP_ENABLED", False)
+        diagnostico["etapas"].append({
+            "etapa": 1,
+            "nome": "MULTI_CHIP_ENABLED",
+            "status": "ok" if multi_chip_enabled else "erro",
+            "valor": multi_chip_enabled,
+            "detalhe": "Habilitado" if multi_chip_enabled else "DESABILITADO - mensagens vão para Evolution API legada",
+        })
+
+        if not multi_chip_enabled:
+            diagnostico["resultado"] = "falha"
+            diagnostico["erro_em"] = "MULTI_CHIP_ENABLED está False"
+            return diagnostico
+    except Exception as e:
+        diagnostico["etapas"].append({
+            "etapa": 1,
+            "nome": "MULTI_CHIP_ENABLED",
+            "status": "erro",
+            "erro": str(e),
+        })
+        diagnostico["resultado"] = "falha"
+        diagnostico["erro_em"] = f"Erro ao verificar config: {e}"
+        return diagnostico
+
+    # ─────────────────────────────────────────────────────────
+    # ETAPA 2: Buscar chips no banco
+    # ─────────────────────────────────────────────────────────
+    try:
+        # Query direta para ver o que existe
+        result = supabase.table("chips").select(
+            "id, telefone, status, tipo, provider, trust_score, "
+            "pode_prospectar, pode_followup, pode_responder, "
+            "evolution_connected, cooldown_until, circuit_breaker_ativo, "
+            "msgs_enviadas_hoje, limite_dia, limite_hora"
+        ).eq("status", "active").neq("tipo", "listener").execute()
+
+        chips_ativos = result.data or []
+
+        diagnostico["etapas"].append({
+            "etapa": 2,
+            "nome": "Buscar chips ativos",
+            "status": "ok" if chips_ativos else "aviso",
+            "quantidade": len(chips_ativos),
+            "chips": [
+                {
+                    "id": c["id"][:8] + "...",
+                    "telefone": c["telefone"],
+                    "provider": c.get("provider"),
+                    "trust_score": c.get("trust_score"),
+                    "pode_prospectar": c.get("pode_prospectar"),
+                    "evolution_connected": c.get("evolution_connected"),
+                    "circuit_breaker_ativo": c.get("circuit_breaker_ativo"),
+                }
+                for c in chips_ativos
+            ],
+            "detalhe": f"{len(chips_ativos)} chip(s) ativo(s) encontrado(s)" if chips_ativos else "NENHUM chip ativo encontrado",
+        })
+
+        if not chips_ativos:
+            diagnostico["resultado"] = "falha"
+            diagnostico["erro_em"] = "Nenhum chip com status='active'"
+            return diagnostico
+
+    except Exception as e:
+        diagnostico["etapas"].append({
+            "etapa": 2,
+            "nome": "Buscar chips ativos",
+            "status": "erro",
+            "erro": str(e),
+        })
+        diagnostico["resultado"] = "falha"
+        diagnostico["erro_em"] = f"Erro ao buscar chips: {e}"
+        return diagnostico
+
+    # ─────────────────────────────────────────────────────────
+    # ETAPA 3: Testar ChipSelector
+    # ─────────────────────────────────────────────────────────
+    try:
+        chip_selecionado = await chip_selector.selecionar_chip(
+            tipo_mensagem=tipo_mensagem,
+            telefone_destino=telefone_teste,
+        )
+
+        if chip_selecionado:
+            diagnostico["etapas"].append({
+                "etapa": 3,
+                "nome": f"Selecionar chip ({tipo_mensagem})",
+                "status": "ok",
+                "chip_selecionado": {
+                    "id": chip_selecionado["id"][:8] + "...",
+                    "telefone": chip_selecionado["telefone"],
+                    "provider": chip_selecionado.get("provider"),
+                    "trust_score": chip_selecionado.get("trust_score"),
+                },
+                "detalhe": f"Chip {chip_selecionado['telefone']} selecionado",
+            })
+        else:
+            # Tentar entender por que não selecionou
+            motivos = []
+            for chip in chips_ativos:
+                # Verificar trust mínimo
+                trust_min = {"prospeccao": 80, "followup": 60, "resposta": 40}.get(tipo_mensagem, 40)
+                if (chip.get("trust_score") or 0) < trust_min:
+                    motivos.append(f"{chip['telefone']}: trust {chip.get('trust_score')} < {trust_min}")
+                    continue
+
+                # Verificar permissão
+                perm_field = {"prospeccao": "pode_prospectar", "followup": "pode_followup", "resposta": "pode_responder"}.get(tipo_mensagem)
+                if perm_field and not chip.get(perm_field):
+                    motivos.append(f"{chip['telefone']}: {perm_field}=false")
+                    continue
+
+                # Verificar circuit breaker
+                if chip.get("circuit_breaker_ativo"):
+                    motivos.append(f"{chip['telefone']}: circuit_breaker_ativo")
+                    continue
+
+                # Verificar conexão (Evolution only)
+                if chip.get("provider") == "evolution" and not chip.get("evolution_connected"):
+                    motivos.append(f"{chip['telefone']}: evolution não conectado")
+                    continue
+
+            diagnostico["etapas"].append({
+                "etapa": 3,
+                "nome": f"Selecionar chip ({tipo_mensagem})",
+                "status": "erro",
+                "chip_selecionado": None,
+                "motivos_rejeicao": motivos if motivos else ["Motivo desconhecido - verificar logs"],
+                "detalhe": "Nenhum chip passou nos filtros do selector",
+            })
+            diagnostico["resultado"] = "falha"
+            diagnostico["erro_em"] = "ChipSelector retornou None"
+            return diagnostico
+
+    except Exception as e:
+        diagnostico["etapas"].append({
+            "etapa": 3,
+            "nome": f"Selecionar chip ({tipo_mensagem})",
+            "status": "erro",
+            "erro": str(e),
+        })
+        diagnostico["resultado"] = "falha"
+        diagnostico["erro_em"] = f"Exceção no ChipSelector: {e}"
+        return diagnostico
+
+    # ─────────────────────────────────────────────────────────
+    # ETAPA 4: Testar criação do Provider
+    # ─────────────────────────────────────────────────────────
+    try:
+        provider = get_provider(chip_selecionado)
+
+        diagnostico["etapas"].append({
+            "etapa": 4,
+            "nome": "Criar provider",
+            "status": "ok",
+            "provider_type": provider.provider_type.value if hasattr(provider, 'provider_type') else "unknown",
+            "detalhe": f"Provider {type(provider).__name__} criado com sucesso",
+        })
+
+    except Exception as e:
+        diagnostico["etapas"].append({
+            "etapa": 4,
+            "nome": "Criar provider",
+            "status": "erro",
+            "erro": str(e),
+            "detalhe": "Falha ao criar provider - verificar credenciais do chip",
+        })
+        diagnostico["resultado"] = "falha"
+        diagnostico["erro_em"] = f"Exceção ao criar provider: {e}"
+        return diagnostico
+
+    # ─────────────────────────────────────────────────────────
+    # ETAPA 5: Verificar conexão do provider
+    # ─────────────────────────────────────────────────────────
+    try:
+        status = await provider.get_status()
+
+        diagnostico["etapas"].append({
+            "etapa": 5,
+            "nome": "Verificar conexão",
+            "status": "ok" if status.connected else "aviso",
+            "connected": status.connected,
+            "state": status.state,
+            "detalhe": "Conectado" if status.connected else f"DESCONECTADO (state={status.state})",
+        })
+
+        if not status.connected:
+            diagnostico["resultado"] = "aviso"
+            diagnostico["erro_em"] = f"Provider não conectado (state={status.state})"
+            # Continua mesmo assim para o teste de envio
+
+    except Exception as e:
+        diagnostico["etapas"].append({
+            "etapa": 5,
+            "nome": "Verificar conexão",
+            "status": "erro",
+            "erro": str(e),
+        })
+        # Não falha aqui, tenta enviar mesmo assim
+
+    # ─────────────────────────────────────────────────────────
+    # ETAPA 6: (Opcional) Enviar mensagem de teste
+    # ─────────────────────────────────────────────────────────
+    if enviar_teste and telefone_teste:
+        try:
+            mensagem_teste = f"[TESTE DIAGNÓSTICO] Multi-chip funcionando! Chip: {chip_selecionado['telefone'][-4:]}"
+            result = await provider.send_text(telefone_teste, mensagem_teste)
+
+            diagnostico["etapas"].append({
+                "etapa": 6,
+                "nome": "Enviar mensagem teste",
+                "status": "ok" if result.success else "erro",
+                "success": result.success,
+                "message_id": result.message_id if result.success else None,
+                "error": result.error if not result.success else None,
+                "detalhe": f"Mensagem enviada (id={result.message_id})" if result.success else f"Falha: {result.error}",
+            })
+
+            if result.success:
+                diagnostico["resultado"] = "sucesso"
+            else:
+                diagnostico["resultado"] = "falha"
+                diagnostico["erro_em"] = f"Falha no envio: {result.error}"
+
+        except Exception as e:
+            diagnostico["etapas"].append({
+                "etapa": 6,
+                "nome": "Enviar mensagem teste",
+                "status": "erro",
+                "erro": str(e),
+            })
+            diagnostico["resultado"] = "falha"
+            diagnostico["erro_em"] = f"Exceção no envio: {e}"
+    else:
+        if diagnostico["resultado"] == "pendente":
+            diagnostico["resultado"] = "ok_sem_envio"
+        diagnostico["etapas"].append({
+            "etapa": 6,
+            "nome": "Enviar mensagem teste",
+            "status": "pulado",
+            "detalhe": "Use enviar_teste=true e telefone_teste=5511... para testar envio real",
+        })
+
+    return diagnostico
+
+
+# ════════════════════════════════════════════════════════════
+# DETALHES DE CHIP
+# ════════════════════════════════════════════════════════════
+
+
 @router.get("/{chip_id}")
 async def get_chip(chip_id: str):
     """
@@ -650,320 +976,3 @@ async def delete_instance(instance_name: str):
     }
 
 
-# ════════════════════════════════════════════════════════════
-# DIAGNÓSTICO MULTI-CHIP (Debug)
-# ════════════════════════════════════════════════════════════
-
-
-@router.get("/diagnostico-ping")
-async def diagnostico_ping():
-    """Teste simples para verificar se a rota está acessível."""
-    return {"status": "ok", "message": "Rota diagnostico acessivel"}
-
-
-@router.get("/diagnostico")
-async def diagnosticar_multi_chip(
-    tipo_mensagem: str = Query("prospeccao", description="prospeccao, followup, ou resposta"),
-    telefone_teste: Optional[str] = Query(None, description="Telefone para teste de envio"),
-    enviar_teste: bool = Query(False, description="Se True, envia mensagem de teste"),
-):
-    """
-    Diagnóstico completo do sistema multi-chip.
-
-    Testa cada etapa do fluxo:
-    1. Verifica MULTI_CHIP_ENABLED
-    2. Busca chips elegíveis
-    3. Testa seleção de chip
-    4. Testa criação do provider
-    5. Verifica conexão do provider
-    6. (Opcional) Envia mensagem de teste
-
-    Use para identificar onde o sistema está falhando.
-    """
-    import traceback
-
-    # Wrapper global para capturar qualquer erro não tratado
-    try:
-        return await _executar_diagnostico(tipo_mensagem, telefone_teste, enviar_teste)
-    except Exception as e:
-        return {
-            "erro": "Exceção não tratada",
-            "tipo": type(e).__name__,
-            "mensagem": str(e),
-            "traceback": traceback.format_exc(),
-        }
-
-
-async def _executar_diagnostico(
-    tipo_mensagem: str,
-    telefone_teste: Optional[str],
-    enviar_teste: bool,
-):
-    """Execução interna do diagnóstico."""
-    import traceback
-
-    try:
-        from app.core.config import settings
-        from app.services.whatsapp_providers import get_provider
-    except Exception as import_error:
-        return {
-            "erro": "Falha nos imports",
-            "detalhe": str(import_error),
-            "traceback": traceback.format_exc(),
-        }
-
-    diagnostico = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "etapas": [],
-        "resultado": "pendente",
-        "erro_em": None,
-    }
-
-    try:
-        # ─────────────────────────────────────────────────────────
-        # ETAPA 1: Verificar MULTI_CHIP_ENABLED
-        # ─────────────────────────────────────────────────────────
-        multi_chip_enabled = getattr(settings, "MULTI_CHIP_ENABLED", False)
-        diagnostico["etapas"].append({
-            "etapa": 1,
-            "nome": "MULTI_CHIP_ENABLED",
-            "status": "ok" if multi_chip_enabled else "erro",
-            "valor": multi_chip_enabled,
-            "detalhe": "Habilitado" if multi_chip_enabled else "DESABILITADO - mensagens vão para Evolution API legada",
-        })
-
-        if not multi_chip_enabled:
-            diagnostico["resultado"] = "falha"
-            diagnostico["erro_em"] = "MULTI_CHIP_ENABLED está False"
-            return diagnostico
-    except Exception as e:
-        diagnostico["etapas"].append({
-            "etapa": 1,
-            "nome": "MULTI_CHIP_ENABLED",
-            "status": "erro",
-            "erro": str(e),
-        })
-        diagnostico["resultado"] = "falha"
-        diagnostico["erro_em"] = f"Erro ao verificar config: {e}"
-        return diagnostico
-
-    # ─────────────────────────────────────────────────────────
-    # ETAPA 2: Buscar chips no banco
-    # ─────────────────────────────────────────────────────────
-    try:
-        # Query direta para ver o que existe
-        result = supabase.table("chips").select(
-            "id, telefone, status, tipo, provider, trust_score, "
-            "pode_prospectar, pode_followup, pode_responder, "
-            "evolution_connected, cooldown_until, circuit_breaker_ativo, "
-            "msgs_enviadas_hoje, limite_dia, limite_hora"
-        ).eq("status", "active").neq("tipo", "listener").execute()
-
-        chips_ativos = result.data or []
-
-        diagnostico["etapas"].append({
-            "etapa": 2,
-            "nome": "Buscar chips ativos",
-            "status": "ok" if chips_ativos else "aviso",
-            "quantidade": len(chips_ativos),
-            "chips": [
-                {
-                    "id": c["id"][:8] + "...",
-                    "telefone": c["telefone"],
-                    "provider": c.get("provider"),
-                    "trust_score": c.get("trust_score"),
-                    "pode_prospectar": c.get("pode_prospectar"),
-                    "evolution_connected": c.get("evolution_connected"),
-                    "circuit_breaker_ativo": c.get("circuit_breaker_ativo"),
-                }
-                for c in chips_ativos
-            ],
-            "detalhe": f"{len(chips_ativos)} chip(s) ativo(s) encontrado(s)" if chips_ativos else "NENHUM chip ativo encontrado",
-        })
-
-        if not chips_ativos:
-            diagnostico["resultado"] = "falha"
-            diagnostico["erro_em"] = "Nenhum chip com status='active'"
-            return diagnostico
-
-    except Exception as e:
-        diagnostico["etapas"].append({
-            "etapa": 2,
-            "nome": "Buscar chips ativos",
-            "status": "erro",
-            "erro": str(e),
-        })
-        diagnostico["resultado"] = "falha"
-        diagnostico["erro_em"] = f"Erro ao buscar chips: {e}"
-        return diagnostico
-
-    # ─────────────────────────────────────────────────────────
-    # ETAPA 3: Testar ChipSelector
-    # ─────────────────────────────────────────────────────────
-    try:
-        chip_selecionado = await chip_selector.selecionar_chip(
-            tipo_mensagem=tipo_mensagem,
-            telefone_destino=telefone_teste,
-        )
-
-        if chip_selecionado:
-            diagnostico["etapas"].append({
-                "etapa": 3,
-                "nome": f"Selecionar chip ({tipo_mensagem})",
-                "status": "ok",
-                "chip_selecionado": {
-                    "id": chip_selecionado["id"][:8] + "...",
-                    "telefone": chip_selecionado["telefone"],
-                    "provider": chip_selecionado.get("provider"),
-                    "trust_score": chip_selecionado.get("trust_score"),
-                },
-                "detalhe": f"Chip {chip_selecionado['telefone']} selecionado",
-            })
-        else:
-            # Tentar entender por que não selecionou
-            motivos = []
-            for chip in chips_ativos:
-                # Verificar trust mínimo
-                trust_min = {"prospeccao": 80, "followup": 60, "resposta": 40}.get(tipo_mensagem, 40)
-                if (chip.get("trust_score") or 0) < trust_min:
-                    motivos.append(f"{chip['telefone']}: trust {chip.get('trust_score')} < {trust_min}")
-                    continue
-
-                # Verificar permissão
-                perm_field = {"prospeccao": "pode_prospectar", "followup": "pode_followup", "resposta": "pode_responder"}.get(tipo_mensagem)
-                if perm_field and not chip.get(perm_field):
-                    motivos.append(f"{chip['telefone']}: {perm_field}=false")
-                    continue
-
-                # Verificar circuit breaker
-                if chip.get("circuit_breaker_ativo"):
-                    motivos.append(f"{chip['telefone']}: circuit_breaker_ativo")
-                    continue
-
-                # Verificar conexão (Evolution only)
-                if chip.get("provider") == "evolution" and not chip.get("evolution_connected"):
-                    motivos.append(f"{chip['telefone']}: evolution não conectado")
-                    continue
-
-            diagnostico["etapas"].append({
-                "etapa": 3,
-                "nome": f"Selecionar chip ({tipo_mensagem})",
-                "status": "erro",
-                "chip_selecionado": None,
-                "motivos_rejeicao": motivos if motivos else ["Motivo desconhecido - verificar logs"],
-                "detalhe": "Nenhum chip passou nos filtros do selector",
-            })
-            diagnostico["resultado"] = "falha"
-            diagnostico["erro_em"] = "ChipSelector retornou None"
-            return diagnostico
-
-    except Exception as e:
-        diagnostico["etapas"].append({
-            "etapa": 3,
-            "nome": f"Selecionar chip ({tipo_mensagem})",
-            "status": "erro",
-            "erro": str(e),
-        })
-        diagnostico["resultado"] = "falha"
-        diagnostico["erro_em"] = f"Exceção no ChipSelector: {e}"
-        return diagnostico
-
-    # ─────────────────────────────────────────────────────────
-    # ETAPA 4: Testar criação do Provider
-    # ─────────────────────────────────────────────────────────
-    try:
-        provider = get_provider(chip_selecionado)
-
-        diagnostico["etapas"].append({
-            "etapa": 4,
-            "nome": "Criar provider",
-            "status": "ok",
-            "provider_type": provider.provider_type.value if hasattr(provider, 'provider_type') else "unknown",
-            "detalhe": f"Provider {type(provider).__name__} criado com sucesso",
-        })
-
-    except Exception as e:
-        diagnostico["etapas"].append({
-            "etapa": 4,
-            "nome": "Criar provider",
-            "status": "erro",
-            "erro": str(e),
-            "detalhe": "Falha ao criar provider - verificar credenciais do chip",
-        })
-        diagnostico["resultado"] = "falha"
-        diagnostico["erro_em"] = f"Exceção ao criar provider: {e}"
-        return diagnostico
-
-    # ─────────────────────────────────────────────────────────
-    # ETAPA 5: Verificar conexão do provider
-    # ─────────────────────────────────────────────────────────
-    try:
-        status = await provider.get_status()
-
-        diagnostico["etapas"].append({
-            "etapa": 5,
-            "nome": "Verificar conexão",
-            "status": "ok" if status.connected else "aviso",
-            "connected": status.connected,
-            "state": status.state,
-            "detalhe": "Conectado" if status.connected else f"DESCONECTADO (state={status.state})",
-        })
-
-        if not status.connected:
-            diagnostico["resultado"] = "aviso"
-            diagnostico["erro_em"] = f"Provider não conectado (state={status.state})"
-            # Continua mesmo assim para o teste de envio
-
-    except Exception as e:
-        diagnostico["etapas"].append({
-            "etapa": 5,
-            "nome": "Verificar conexão",
-            "status": "erro",
-            "erro": str(e),
-        })
-        # Não falha aqui, tenta enviar mesmo assim
-
-    # ─────────────────────────────────────────────────────────
-    # ETAPA 6: (Opcional) Enviar mensagem de teste
-    # ─────────────────────────────────────────────────────────
-    if enviar_teste and telefone_teste:
-        try:
-            mensagem_teste = f"[TESTE DIAGNÓSTICO] Multi-chip funcionando! Chip: {chip_selecionado['telefone'][-4:]}"
-            result = await provider.send_text(telefone_teste, mensagem_teste)
-
-            diagnostico["etapas"].append({
-                "etapa": 6,
-                "nome": "Enviar mensagem teste",
-                "status": "ok" if result.success else "erro",
-                "success": result.success,
-                "message_id": result.message_id if result.success else None,
-                "error": result.error if not result.success else None,
-                "detalhe": f"Mensagem enviada (id={result.message_id})" if result.success else f"Falha: {result.error}",
-            })
-
-            if result.success:
-                diagnostico["resultado"] = "sucesso"
-            else:
-                diagnostico["resultado"] = "falha"
-                diagnostico["erro_em"] = f"Falha no envio: {result.error}"
-
-        except Exception as e:
-            diagnostico["etapas"].append({
-                "etapa": 6,
-                "nome": "Enviar mensagem teste",
-                "status": "erro",
-                "erro": str(e),
-            })
-            diagnostico["resultado"] = "falha"
-            diagnostico["erro_em"] = f"Exceção no envio: {e}"
-    else:
-        if diagnostico["resultado"] == "pendente":
-            diagnostico["resultado"] = "ok_sem_envio"
-        diagnostico["etapas"].append({
-            "etapa": 6,
-            "nome": "Enviar mensagem teste",
-            "status": "pulado",
-            "detalhe": "Use enviar_teste=true e telefone_teste=5511... para testar envio real",
-        })
-
-    return diagnostico
