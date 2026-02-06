@@ -315,50 +315,27 @@ railway status                   # Projeto atual
 
 ---
 
-## Ambientes Supabase (MCP)
+## Supabase (MCP)
 
-O projeto possui dois ambientes Supabase configurados via MCP:
-
-| Ambiente | Project Ref | URL | Uso |
-|----------|-------------|-----|-----|
-| **PROD** | `jyqgbzhqavgpxqacduoi` | https://jyqgbzhqavgpxqacduoi.supabase.co | Julia em produção |
-| **DEV** | `ofpnronthwcsybfxnxgj` | https://ofpnronthwcsybfxnxgj.supabase.co | Desenvolvimento/testes |
+| Project Ref | URL | Uso |
+|-------------|-----|-----|
+| `jyqgbzhqavgpxqacduoi` | https://jyqgbzhqavgpxqacduoi.supabase.co | Produção |
 
 ### Ferramentas MCP
 
 ```
-# PROD (julia-prod)
-mcp__supabase-prod__execute_sql
-mcp__supabase-prod__apply_migration
-mcp__supabase-prod__list_tables
-mcp__supabase-prod__get_project_url
-
-# DEV (banco_medicos)
-mcp__supabase-dev__execute_sql
-mcp__supabase-dev__apply_migration
-mcp__supabase-dev__list_tables
-mcp__supabase-dev__get_project_url
+mcp__supabase__execute_sql
+mcp__supabase__apply_migration
+mcp__supabase__list_tables
+mcp__supabase__get_project_url
 ```
-
-### Regras Importantes
-
-1. **Migrations em PROD**: Sempre usar `mcp__supabase-prod__apply_migration` para produção
-2. **Testes em DEV**: Testar queries complexas primeiro no DEV
-3. **Nunca confundir**: Verificar o ambiente antes de executar DDL
 
 ### Configuração (se precisar reconfigurar)
 
 ```bash
-# Listar MCPs configurados
 claude mcp list
-
-# Adicionar PROD
-claude mcp add supabase-prod --transport http "https://mcp.supabase.com/mcp?project_ref=jyqgbzhqavgpxqacduoi"
-
-# Adicionar DEV
-claude mcp add supabase-dev --transport http "https://mcp.supabase.com/mcp?project_ref=ofpnronthwcsybfxnxgj"
-
-# Autenticação acontece automaticamente via OAuth ao usar /mcp
+claude mcp add supabase --transport http "https://mcp.supabase.com/mcp?project_ref=jyqgbzhqavgpxqacduoi"
+# Autenticação acontece automaticamente via OAuth
 ```
 
 ---
