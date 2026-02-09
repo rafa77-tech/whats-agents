@@ -32,6 +32,7 @@ import {
   HelpCircle,
   Power,
   Users,
+  Target,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -53,6 +54,7 @@ const navigationGroups: NavGroup[] = [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { name: 'Conversas', href: '/conversas', icon: MessageSquare },
       { name: 'Campanhas', href: '/campanhas', icon: Megaphone },
+      { name: 'Oportunidades', href: '/oportunidades', icon: Target },
       { name: 'Vagas', href: '/vagas', icon: Briefcase },
       { name: 'Instrucoes', href: '/instrucoes', icon: FileText },
     ],

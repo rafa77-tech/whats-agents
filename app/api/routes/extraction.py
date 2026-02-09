@@ -344,6 +344,118 @@ async def get_backfill_status():
 
 
 # =============================================================================
+# Endpoints - Oportunidades
+# =============================================================================
+
+@router.get("/opportunities")
+async def get_opportunities(
+    limit: int = Query(default=50, le=200),
+    proximo_passo: Optional[str] = Query(default=None),
+):
+    """
+    Retorna oportunidades agrupadas por proximo_passo.
+
+    Oportunidades sao insights recentes com acoes pendentes:
+    - enviar_vagas: medicos prontos para receber vagas
+    - agendar_followup: medicos para follow-up
+    - escalar_humano: situacoes que precisam de atencao humana
+    """
+    try:
+        # Buscar insights recentes com acoes pendentes
+        query = supabase.table("conversation_insights").select(
+            """
+            id,
+            cliente_id,
+            conversation_id,
+            campaign_id,
+            interesse,
+            interesse_score,
+            proximo_passo,
+            especialidade_mencionada,
+            disponibilidade_mencionada,
+            preferencias,
+            objecao_tipo,
+            objecao_descricao,
+            confianca,
+            created_at
+            """
+        ).in_(
+            "proximo_passo",
+            ["enviar_vagas", "agendar_followup", "escalar_humano"]
+        ).order("created_at", desc=True).limit(limit)
+
+        if proximo_passo:
+            query = query.eq("proximo_passo", proximo_passo)
+
+        insights_result = query.execute()
+        insights = insights_result.data or []
+
+        if not insights:
+            return {
+                "enviar_vagas": [],
+                "agendar_followup": [],
+                "escalar_humano": [],
+                "total": 0,
+            }
+
+        # Buscar dados dos clientes
+        cliente_ids = list(set(i.get("cliente_id") for i in insights if i.get("cliente_id")))
+        clientes_result = supabase.table("clientes").select(
+            "id, primeiro_nome, sobrenome, especialidade, telefone"
+        ).in_("id", cliente_ids).execute()
+
+        clientes_map = {c["id"]: c for c in (clientes_result.data or [])}
+
+        # Buscar nomes das campanhas
+        campaign_ids = list(set(i.get("campaign_id") for i in insights if i.get("campaign_id")))
+        if campaign_ids:
+            campanhas_result = supabase.table("campanhas").select(
+                "id, nome_template"
+            ).in_("id", campaign_ids).execute()
+            campanhas_map = {c["id"]: c["nome_template"] for c in (campanhas_result.data or [])}
+        else:
+            campanhas_map = {}
+
+        # Agrupar por proximo_passo
+        grouped = {
+            "enviar_vagas": [],
+            "agendar_followup": [],
+            "escalar_humano": [],
+        }
+
+        for insight in insights:
+            cliente_id = insight.get("cliente_id")
+            cliente = clientes_map.get(cliente_id, {})
+            campaign_id = insight.get("campaign_id")
+
+            # Montar insight enriquecido
+            insight_data = insight.copy()
+            insight_data["cliente_nome"] = (
+                f"{cliente.get('primeiro_nome', '')} {cliente.get('sobrenome', '')}".strip()
+                or "Nome nao disponivel"
+            )
+            insight_data["cliente_especialidade"] = cliente.get("especialidade")
+            insight_data["cliente_telefone"] = cliente.get("telefone")
+            insight_data["campanha_nome"] = campanhas_map.get(campaign_id)
+
+            # Adicionar ao grupo correto
+            passo = insight.get("proximo_passo")
+            if passo in grouped:
+                grouped[passo].append(insight_data)
+
+        return {
+            "enviar_vagas": grouped["enviar_vagas"],
+            "agendar_followup": grouped["agendar_followup"],
+            "escalar_humano": grouped["escalar_humano"],
+            "total": len(insights),
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar oportunidades: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
 # Endpoints - Refresh View
 # =============================================================================
 

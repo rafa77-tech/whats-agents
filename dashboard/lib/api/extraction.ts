@@ -87,3 +87,44 @@ export const objecaoLabels: Record<string, string> = {
   pessoal: 'Pessoal',
   outro: 'Outro',
 }
+
+// Types para Oportunidades
+export interface Opportunity {
+  id: number
+  cliente_id: string
+  conversation_id: string
+  campaign_id: number | null
+  interesse: string
+  interesse_score: number
+  proximo_passo: string
+  especialidade_mencionada: string | null
+  disponibilidade_mencionada: string | null
+  preferencias: string[]
+  objecao_tipo: string | null
+  objecao_descricao: string | null
+  confianca: number
+  created_at: string
+  cliente_nome: string
+  cliente_especialidade: string | null
+  cliente_telefone: string | null
+  campanha_nome: string | null
+}
+
+export interface OpportunitiesResponse {
+  enviar_vagas: Opportunity[]
+  agendar_followup: Opportunity[]
+  escalar_humano: Opportunity[]
+  total: number
+}
+
+export async function fetchOpportunities(
+  limit = 50,
+  proximoPasso?: string
+): Promise<OpportunitiesResponse> {
+  const params = new URLSearchParams()
+  params.set('limit', String(limit))
+  if (proximoPasso) {
+    params.set('proximo_passo', proximoPasso)
+  }
+  return api.get<OpportunitiesResponse>(`/extraction/opportunities?${params}`)
+}
