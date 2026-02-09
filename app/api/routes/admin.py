@@ -52,7 +52,7 @@ async def listar_conversas(
             supabase.table("conversations")
             .select("""
                 *,
-                clientes(primeiro_nome, telefone, especialidade_id),
+                clientes(primeiro_nome, telefone, especialidade),
                 metricas_conversa(*),
                 avaliacoes_qualidade(score_geral, avaliador)
             """)
