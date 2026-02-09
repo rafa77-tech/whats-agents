@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.routes import health, test_db, debug_llm, debug_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer, group_entry, webhook_router, webhook_zapi, chips_dashboard, sistema, guardrails, policy, dashboard_conversations, extraction
+from app.api.routes import health, test_db, debug_llm, debug_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer, group_entry, webhook_router, webhook_zapi, chips_dashboard, sistema, guardrails, policy, dashboard_conversations, extraction, supervisor_channel, sse
 from app.api.error_handlers import register_exception_handlers
 from app.api.middleware import TracingMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -81,6 +81,8 @@ app.include_router(guardrails.router)  # Sprint 43 - Guardrails API
 app.include_router(policy.router)  # Sprint 43 - Policy Engine API
 app.include_router(dashboard_conversations.router)  # Sprint 43 - Dashboard Conversations
 app.include_router(extraction.router)  # Sprint 53 - Extraction Pipeline
+app.include_router(supervisor_channel.router)  # Sprint 54 - Supervisor Channel
+app.include_router(sse.router)  # Sprint 54 - SSE Real-Time
 
 # Arquivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")

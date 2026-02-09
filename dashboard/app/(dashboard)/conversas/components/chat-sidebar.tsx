@@ -5,33 +5,34 @@ import { ptBR } from 'date-fns/locale'
 import { Bot, UserCheck, CheckCheck, Smartphone } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn, formatPhone } from '@/lib/utils'
-
-export interface ChipInfo {
-  id: string
-  telefone: string
-  instance_name: string
-  status: string
-  trust_level: string
-}
-
-export interface ConversationItem {
-  id: string
-  cliente_nome: string
-  cliente_telefone: string
-  status: string
-  controlled_by: string
-  last_message?: string
-  last_message_at?: string
-  unread_count: number
-  chip?: ChipInfo | null
-}
+import { getSentimentColor } from '@/lib/conversas/constants'
+import type { ConversationListItem } from '@/types/conversas'
 
 interface Props {
-  conversations: ConversationItem[]
+  conversations: ConversationListItem[]
   selectedId: string | null
   onSelect: (id: string) => void
   hasMore?: boolean
   onLoadMore?: () => void
+}
+
+function getUrgencyBorder(conv: ConversationListItem): string {
+  if (conv.controlled_by === 'human' || conv.has_handoff) return 'border-l-4 border-l-destructive'
+  if (conv.last_message_direction === 'entrada' && conv.last_message_at) {
+    const waitMs = Date.now() - new Date(conv.last_message_at).getTime()
+    if (waitMs > 60 * 60 * 1000) return 'border-l-4 border-l-status-warning-solid'
+  }
+  return 'border-l-4 border-l-transparent'
+}
+
+function getWaitTime(conv: ConversationListItem): string | null {
+  if (conv.last_message_direction !== 'entrada' || !conv.last_message_at) return null
+  const waitMs = Date.now() - new Date(conv.last_message_at).getTime()
+  if (waitMs < 10 * 60 * 1000) return null // < 10 min, no display
+  const minutes = Math.floor(waitMs / 60000)
+  if (minutes < 60) return `${minutes}min`
+  const hours = Math.floor(minutes / 60)
+  return `${hours}h`
 }
 
 export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLoadMore }: Props) {
@@ -40,6 +41,8 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
       {conversations.map((conversation) => {
         const isSelected = conversation.id === selectedId
         const isHandoff = conversation.controlled_by === 'human'
+        const urgencyBorder = getUrgencyBorder(conversation)
+        const waitTime = getWaitTime(conversation)
 
         const timeAgo = conversation.last_message_at
           ? formatDistanceToNow(new Date(conversation.last_message_at), {
@@ -61,29 +64,64 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
             onClick={() => onSelect(conversation.id)}
             className={cn(
               'flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50',
+              urgencyBorder,
               isSelected && 'bg-muted'
             )}
           >
-            {/* Avatar */}
-            <Avatar className="h-12 w-12 flex-shrink-0">
-              <AvatarFallback
-                className={cn(
-                  'text-sm font-medium',
-                  isHandoff
-                    ? 'bg-state-handoff text-state-handoff-foreground'
-                    : 'bg-state-ai text-state-ai-foreground'
-                )}
-              >
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            {/* Avatar with sentiment dot */}
+            <div className="relative flex-shrink-0">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback
+                  className={cn(
+                    'text-sm font-medium',
+                    isHandoff
+                      ? 'bg-state-handoff text-state-handoff-foreground'
+                      : 'bg-state-ai text-state-ai-foreground'
+                  )}
+                >
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              {/* Sentiment indicator dot */}
+              {conversation.sentimento_score != null && (
+                <span
+                  className={cn(
+                    'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background',
+                    getSentimentColor(conversation.sentimento_score)
+                  )}
+                />
+              )}
+            </div>
 
             {/* Content */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate font-medium">{conversation.cliente_nome}</span>
-                <span className="flex-shrink-0 text-xs text-muted-foreground">{timeAgo}</span>
+                <div className="flex flex-shrink-0 items-center gap-1">
+                  {waitTime && (
+                    <span className="text-[10px] font-medium text-status-warning-foreground">
+                      {waitTime}
+                    </span>
+                  )}
+                  <span className="text-xs text-muted-foreground">{timeAgo}</span>
+                </div>
               </div>
+
+              {/* Especialidade + Stage */}
+              {(conversation.especialidade || conversation.stage_jornada) && (
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  {conversation.especialidade && (
+                    <span className="truncate text-[10px] text-muted-foreground">
+                      {conversation.especialidade}
+                    </span>
+                  )}
+                  {conversation.stage_jornada && (
+                    <span className="rounded bg-muted px-1 py-0.5 text-[9px] font-medium">
+                      {conversation.stage_jornada}
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="mt-0.5 flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-1">

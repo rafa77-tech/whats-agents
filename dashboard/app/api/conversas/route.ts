@@ -2,20 +2,52 @@
  * API: GET /api/conversas
  *
  * Lista conversas do banco de dados com informações do chip.
+ * Sprint 54: Enrichment (sentimento, confidence, stage, handoff)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { SupervisionTab } from '@/types/conversas'
 
 export const dynamic = 'force-dynamic'
+
+function categorizeConversation(conv: {
+  controlled_by: string
+  status: string
+  sentimento_score?: number | null | undefined
+  last_message_direction?: string | null | undefined
+  last_message_at?: string | null | undefined
+  has_handoff?: boolean | undefined
+}): SupervisionTab {
+  // Atencao: handoff OR very negative sentiment OR waiting too long
+  if (conv.controlled_by === 'human' || conv.has_handoff) return 'atencao'
+  if (conv.sentimento_score != null && conv.sentimento_score <= -2) return 'atencao'
+
+  if (conv.last_message_direction === 'entrada' && conv.last_message_at) {
+    const waitMs = Date.now() - new Date(conv.last_message_at).getTime()
+    if (waitMs > 60 * 60 * 1000) return 'atencao' // > 60 min
+  }
+
+  // Encerradas
+  if (['completed', 'archived', 'encerrada', 'arquivada'].includes(conv.status)) {
+    return 'encerradas'
+  }
+
+  // Aguardando: Julia sent last, waiting for doctor reply
+  if (conv.last_message_direction === 'saida' && conv.controlled_by === 'ai') {
+    return 'aguardando'
+  }
+
+  // Julia ativa: AI active
+  return 'julia_ativa'
+}
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const page = parseInt(searchParams.get('page') || '1')
     const perPage = parseInt(searchParams.get('per_page') || '50')
-    const status = searchParams.get('status')
-    const controlledBy = searchParams.get('controlled_by')
+    const tab = searchParams.get('tab') as SupervisionTab | null
     const chipId = searchParams.get('chip_id')
     const search = searchParams.get('search')
 
@@ -48,7 +80,7 @@ export async function GET(request: NextRequest) {
         last_message_at,
         created_at,
         cliente_id,
-        clientes!inner(id, primeiro_nome, sobrenome, telefone)
+        clientes!inner(id, primeiro_nome, sobrenome, telefone, stage_jornada, especialidade)
       `,
       { count: 'exact' }
     )
@@ -58,53 +90,60 @@ export async function GET(request: NextRequest) {
       query = query.in('id', conversationIds)
     }
 
-    // Apply other filters
-    if (status) {
-      query = query.eq('status', status)
-    }
-    if (controlledBy) {
-      query = query.eq('controlled_by', controlledBy)
-    }
+    // Apply search filter
     if (search) {
       query = query.or(
         `clientes.primeiro_nome.ilike.%${search}%,clientes.sobrenome.ilike.%${search}%,clientes.telefone.ilike.%${search}%`
       )
     }
 
-    // Pagination
-    const from = (page - 1) * perPage
-    const to = from + perPage - 1
+    query = query.order('last_message_at', { ascending: false, nullsFirst: false }).limit(200)
 
-    query = query.order('last_message_at', { ascending: false, nullsFirst: false }).range(from, to)
-
-    const { data: conversations, error, count } = await query
+    const { data: conversations, error } = await query
 
     if (error) {
       console.error('Erro ao buscar conversas:', error)
       throw error
     }
 
-    // Get chip info for all conversations
+    // Get conversation IDs for enrichment
     const conversaIds = (conversations || []).map((c) => c.id)
 
-    const { data: chipLinks } = await supabase
-      .from('conversation_chips')
-      .select(
+    // Parallel enrichment queries
+    const [chipLinksResult, lastMessagesResult, handoffsResult] = await Promise.all([
+      // Chip info
+      supabase
+        .from('conversation_chips')
+        .select(
+          `
+          conversa_id,
+          chips!inner(id, telefone, instance_name, status, trust_level)
         `
-        conversa_id,
-        chips!inner(id, telefone, instance_name, status, trust_level)
-      `
-      )
-      .in('conversa_id', conversaIds)
-      .eq('active', true)
+        )
+        .in('conversa_id', conversaIds)
+        .eq('active', true),
 
-    // Create a map of conversation to chip
+      // Last messages with direction
+      supabase
+        .from('interacoes')
+        .select('conversation_id, conteudo, autor_tipo, created_at')
+        .in('conversation_id', conversaIds)
+        .order('created_at', { ascending: false }),
+
+      // Active handoffs
+      supabase
+        .from('handoffs')
+        .select('conversation_id, motivo, status')
+        .in('conversation_id', conversaIds)
+        .eq('status', 'pendente'),
+    ])
+
+    // Create maps
     const chipMap = new Map<
       string,
       { id: string; telefone: string; instance_name: string; status: string; trust_level: string }
     >()
-
-    chipLinks?.forEach((link) => {
+    chipLinksResult.data?.forEach((link) => {
       const chip = link.chips as unknown as {
         id: string
         telefone: string
@@ -112,36 +151,33 @@ export async function GET(request: NextRequest) {
         status: string
         trust_level: string
       }
-      if (chip) {
-        chipMap.set(link.conversa_id, chip)
+      if (chip) chipMap.set(link.conversa_id, chip)
+    })
+
+    const lastMessageMap = new Map<string, { conteudo: string; direction: 'entrada' | 'saida' }>()
+    lastMessagesResult.data?.forEach((msg) => {
+      if (!lastMessageMap.has(msg.conversation_id)) {
+        lastMessageMap.set(msg.conversation_id, {
+          conteudo: msg.conteudo || '',
+          direction: msg.autor_tipo === 'medico' ? 'entrada' : 'saida',
+        })
       }
     })
 
-    // Get last message for each conversation
-    const { data: lastMessages } = await supabase
-      .from('interacoes')
-      .select('cliente_id, conteudo')
-      .in(
-        'cliente_id',
-        (conversations || []).map((c) => c.cliente_id)
-      )
-      .order('created_at', { ascending: false })
-
-    // Create a map of cliente_id to last message
-    const lastMessageMap = new Map<string, string>()
-    lastMessages?.forEach((msg) => {
-      if (!lastMessageMap.has(msg.cliente_id)) {
-        lastMessageMap.set(msg.cliente_id, msg.conteudo || '')
-      }
+    const handoffMap = new Map<string, string>()
+    handoffsResult.data?.forEach((h) => {
+      handoffMap.set(h.conversation_id, h.motivo || 'Handoff pendente')
     })
 
-    // Transform data
-    const data = (conversations || []).map((c) => {
+    // Transform data with enrichment
+    let enrichedData = (conversations || []).map((c) => {
       const cliente = c.clientes as unknown as {
         id: string
         primeiro_nome: string | null
         sobrenome: string | null
         telefone: string
+        stage_jornada?: string | null
+        especialidade?: string | null
       } | null
 
       const clienteNome = cliente
@@ -149,15 +185,18 @@ export async function GET(request: NextRequest) {
         : 'Desconhecido'
 
       const chip = chipMap.get(c.id)
+      const lastMsg = lastMessageMap.get(c.id)
+      const handoffReason = handoffMap.get(c.id)
 
       return {
         id: c.id,
         cliente_nome: clienteNome,
         cliente_telefone: cliente?.telefone || '',
         status: c.status || 'active',
-        controlled_by: c.controlled_by || 'julia',
-        last_message: lastMessageMap.get(c.cliente_id) || undefined,
+        controlled_by: c.controlled_by || 'ai',
+        last_message: lastMsg?.conteudo || undefined,
         last_message_at: c.last_message_at,
+        last_message_direction: lastMsg?.direction || undefined,
         unread_count: 0,
         chip: chip
           ? {
@@ -168,14 +207,29 @@ export async function GET(request: NextRequest) {
               trust_level: chip.trust_level,
             }
           : null,
+        stage_jornada: cliente?.stage_jornada || undefined,
+        especialidade: cliente?.especialidade || undefined,
+        has_handoff: handoffMap.has(c.id),
+        handoff_reason: handoffReason || undefined,
       }
     })
 
-    const total = count || 0
+    // Apply tab filter after enrichment
+    if (tab) {
+      enrichedData = enrichedData.filter((conv) => {
+        const category = categorizeConversation(conv)
+        return category === tab
+      })
+    }
+
+    // Apply pagination on filtered results
+    const total = enrichedData.length
     const pages = Math.ceil(total / perPage)
+    const from = (page - 1) * perPage
+    const paginatedData = enrichedData.slice(from, from + perPage)
 
     return NextResponse.json({
-      data,
+      data: paginatedData,
       total,
       pages,
     })
