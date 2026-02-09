@@ -57,6 +57,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { CampaignInsights } from '@/components/campanhas/CampaignInsights'
+import { JuliaReport } from '@/components/campanhas/JuliaReport'
+import { ActionableContacts } from '@/components/campanhas/ActionableContacts'
+import { fetchCampaignReport, CampaignReport } from '@/lib/api/extraction'
 
 interface Cliente {
   id: string
@@ -203,6 +207,11 @@ export default function CampanhaDetalhesPage() {
     description: string
   }>({ open: false, action: '', title: '', description: '' })
 
+  // Estado para insights/relatório
+  const [report, setReport] = useState<CampaignReport | null>(null)
+  const [reportLoading, setReportLoading] = useState(false)
+  const [reportRefreshing, setReportRefreshing] = useState(false)
+
   // Estado para gerenciar audiencia
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -251,6 +260,27 @@ export default function CampanhaDetalhesPage() {
     }
   }, [params.id])
 
+  const carregarRelatorio = useCallback(
+    async (forceRefresh = false) => {
+      if (forceRefresh) {
+        setReportRefreshing(true)
+      } else {
+        setReportLoading(true)
+      }
+      try {
+        const data = await fetchCampaignReport(Number(params.id), forceRefresh)
+        setReport(data)
+      } catch (err) {
+        console.error('Erro ao carregar relatorio:', err)
+        // Silently fail - relatório é opcional
+      } finally {
+        setReportLoading(false)
+        setReportRefreshing(false)
+      }
+    },
+    [params.id]
+  )
+
   useEffect(() => {
     carregarCampanha()
   }, [carregarCampanha])
@@ -258,8 +288,12 @@ export default function CampanhaDetalhesPage() {
   useEffect(() => {
     if (campanha) {
       carregarAudiencia()
+      // Carregar relatório apenas para campanhas ativas ou concluídas
+      if (['ativa', 'concluida'].includes(campanha.status)) {
+        carregarRelatorio()
+      }
     }
-  }, [campanha, carregarAudiencia])
+  }, [campanha, carregarAudiencia, carregarRelatorio])
 
   // Funcoes para gerenciar audiencia
   const removerMedico = async (clienteId: string) => {
@@ -772,6 +806,27 @@ export default function CampanhaDetalhesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Insights da Campanha - Apenas para campanhas ativas/concluídas */}
+      {['ativa', 'concluida'].includes(campanha.status) && (
+        <div className="space-y-6">
+          <CampaignInsights metrics={report?.metrics || null} loading={reportLoading} />
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <JuliaReport
+              report={report?.relatorio_julia || null}
+              generatedAt={report?.generated_at || null}
+              cached={report?.cached || false}
+              tokensUsed={report?.tokens_usados || 0}
+              loading={reportLoading}
+              onRefresh={() => carregarRelatorio(true)}
+              refreshing={reportRefreshing}
+            />
+
+            <ActionableContacts medicos={report?.medicos_destaque || []} loading={reportLoading} />
+          </div>
+        </div>
+      )}
 
       {/* Detalhes e Mensagem */}
       <div className="grid gap-6 md:grid-cols-2">

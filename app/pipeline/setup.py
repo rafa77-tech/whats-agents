@@ -28,6 +28,7 @@ from .post_processors import (
     SaveInteractionProcessor,
     MetricsProcessor,
 )
+from .processors.extraction import ExtractionProcessor
 
 
 def criar_pipeline() -> MessageProcessor:
@@ -67,6 +68,7 @@ def criar_pipeline() -> MessageProcessor:
     pipeline.add_post_processor(TimingProcessor())           # 10
     pipeline.add_post_processor(SendMessageProcessor())      # 20
     pipeline.add_post_processor(SaveInteractionProcessor())  # 30
+    pipeline.add_post_processor(ExtractionProcessor())       # 35 - Sprint 53: extrai dados estruturados
     pipeline.add_post_processor(MetricsProcessor())          # 40
 
     return pipeline

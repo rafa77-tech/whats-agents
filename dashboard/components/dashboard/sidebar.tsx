@@ -32,6 +32,7 @@ import {
   Stethoscope,
   ClipboardList,
   Users,
+  Target,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -57,6 +58,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: 'Conversas', href: '/conversas', icon: MessageSquare },
       { name: 'Campanhas', href: '/campanhas', icon: Megaphone },
+      { name: 'Oportunidades', href: '/oportunidades', icon: Target },
       { name: 'Vagas', href: '/vagas', icon: Briefcase },
       { name: 'Instrucoes', href: '/instrucoes', icon: FileText },
     ],

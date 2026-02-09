@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { DoctorTimeline } from '../components/doctor-timeline'
 import { DoctorStats } from '../components/doctor-stats'
 import { DoctorActions } from '../components/doctor-actions'
+import { DoctorInsights } from '../components/doctor-insights'
 import { getInitials, getStageColor, getStageLabel } from '@/lib/medicos'
 import type { DoctorDetail } from '@/lib/medicos'
 
@@ -135,6 +136,9 @@ export default function DoctorProfilePage() {
             <TabsTrigger value="timeline" className="flex-1 md:flex-none">
               Historico
             </TabsTrigger>
+            <TabsTrigger value="insights" className="flex-1 md:flex-none">
+              Insights
+            </TabsTrigger>
             <TabsTrigger value="stats" className="flex-1 md:flex-none">
               Metricas
             </TabsTrigger>
@@ -146,6 +150,10 @@ export default function DoctorProfilePage() {
           <div className="mt-6">
             <TabsContent value="timeline">
               <DoctorTimeline doctorId={doctorId} />
+            </TabsContent>
+
+            <TabsContent value="insights">
+              <DoctorInsights doctorId={doctorId} />
             </TabsContent>
 
             <TabsContent value="stats">

@@ -16,7 +16,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 **Sprint Atual:** Nenhuma sprint em andamento (backlog disponível)
 **Início do Projeto:** 05/12/2025
-**Última Atualização:** 05/02/2026
+**Última Atualização:** 09/02/2026
 
 ### Métricas do Projeto
 
@@ -70,6 +70,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 47 | Helena - Agente de Gestão Slack | ✅ Completa |
 | 51 | Pipeline Grupos: Revisão Arquitetural | ✅ Completa |
 | 52 | Pipeline v3: Extração LLM | ✅ Completa |
+| 53 | Discovery Intelligence Pipeline | ✅ Completa |
 
 ### Funcionalidades Implementadas
 

@@ -24,6 +24,10 @@ vi.mock('@/components/dashboard/quality-metrics-section', () => ({
   QualityMetricsSection: () => <div data-testid="quality-section">Quality</div>,
 }))
 
+vi.mock('@/components/dashboard/opportunities-widget', () => ({
+  OpportunitiesWidget: () => <div data-testid="opportunities-widget">Opportunities</div>,
+}))
+
 vi.mock('@/components/dashboard/operational-status', () => ({
   OperationalStatus: () => <div data-testid="operational-status">Operational</div>,
 }))
