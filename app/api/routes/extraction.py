@@ -15,6 +15,7 @@ from app.services.extraction import (
     buscar_insights_conversa,
     buscar_insights_cliente,
     buscar_insights_campanha,
+    gerar_relatorio_campanha,
 )
 from app.workers.backfill_extraction import (
     executar_backfill,
@@ -173,6 +174,36 @@ async def get_insights_campanha(
         }
     except Exception as e:
         logger.error(f"Erro ao buscar insights da campanha: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/campaign/{campaign_id}/report")
+async def get_campaign_report(
+    campaign_id: int,
+    force_refresh: bool = Query(default=False, description="Ignorar cache e regenerar")
+):
+    """
+    Gera relatorio Julia para uma campanha.
+
+    Retorna analise qualitativa com:
+    - Metricas agregadas
+    - Medicos em destaque
+    - Objecoes encontradas
+    - Preferencias comuns
+    - Relatorio escrito pela Julia (LLM)
+
+    Cache de 1 hora (use force_refresh=true para ignorar).
+    """
+    try:
+        report = await gerar_relatorio_campanha(
+            campaign_id=campaign_id,
+            force_refresh=force_refresh,
+        )
+        return report.to_dict()
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatorio da campanha: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

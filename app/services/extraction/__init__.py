@@ -49,6 +49,15 @@ from .persistence import (
     buscar_insights_campanha,
 )
 
+# Report Generator
+from .report_generator import (
+    gerar_relatorio_campanha,
+    CampaignReport,
+    CampaignReportMetrics,
+    MedicoDestaque,
+    ObjecaoAgregada,
+)
+
 __all__ = [
     # Schemas
     "ExtractionContext",
@@ -67,4 +76,10 @@ __all__ = [
     "buscar_insights_conversa",
     "buscar_insights_cliente",
     "buscar_insights_campanha",
+    # Report Generator
+    "gerar_relatorio_campanha",
+    "CampaignReport",
+    "CampaignReportMetrics",
+    "MedicoDestaque",
+    "ObjecaoAgregada",
 ]
