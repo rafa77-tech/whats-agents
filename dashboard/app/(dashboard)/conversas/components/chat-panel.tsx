@@ -14,6 +14,11 @@ import {
   Hand,
   RotateCcw,
   Loader2,
+  ThumbsUp,
+  ThumbsDown,
+  PanelRightOpen,
+  PanelRightClose,
+  Pause,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -27,38 +32,35 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
-
-interface Message {
-  id: string
-  tipo: 'entrada' | 'saida'
-  conteudo: string
-  created_at: string
-}
-
-interface ConversationDetail {
-  id: string
-  status: string
-  controlled_by: string
-  cliente: {
-    id: string
-    nome: string
-    telefone: string
-  }
-  messages: Message[]
-}
+import { getSentimentColor } from '@/lib/conversas/constants'
+import { useConversationStream } from '@/lib/conversas/use-conversation-stream'
+import type { Message, ConversationDetail } from '@/types/conversas'
 
 interface Props {
   conversationId: string
   onControlChange?: () => void
+  showContextPanel?: boolean
+  onToggleContext?: () => void
 }
 
-export function ChatPanel({ conversationId, onControlChange }: Props) {
+export function ChatPanel({
+  conversationId,
+  onControlChange,
+  showContextPanel,
+  onToggleContext,
+}: Props) {
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
   const [changingControl, setChangingControl] = useState(false)
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, 'positive' | 'negative'>>({})
+
+  // SSE real-time updates
+  useConversationStream(conversationId, {
+    onEvent: () => fetchConversation(),
+  })
 
   // Scroll to bottom instantly (no animation)
   const scrollToBottom = useCallback((instant = true) => {
@@ -101,6 +103,25 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
       console.error('Failed to change control:', err)
     } finally {
       setChangingControl(false)
+    }
+  }
+
+  const handleFeedback = async (messageId: string, interacaoId: number, type: 'positive' | 'negative') => {
+    try {
+      const response = await fetch(`/api/conversas/${conversationId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          interacao_id: interacaoId,
+          feedback_type: type,
+        }),
+      })
+
+      if (response.ok) {
+        setFeedbackMap((prev) => ({ ...prev, [messageId]: type }))
+      }
+    } catch (err) {
+      console.error('Failed to send feedback:', err)
     }
   }
 
@@ -164,9 +185,10 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
 
   useEffect(() => {
     setLoading(true)
+    setFeedbackMap({})
     fetchConversation()
 
-    // Refresh every 10 seconds
+    // Refresh every 10 seconds (fallback if SSE not active)
     const interval = setInterval(fetchConversation, 10000)
     return () => clearInterval(interval)
   }, [fetchConversation])
@@ -208,6 +230,7 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
 
   const cliente = conversation.cliente
   const isHandoff = conversation.controlled_by === 'human'
+  const isPaused = !!conversation.pausada_em
 
   const initials = cliente.nome
     .split(' ')
@@ -259,6 +282,12 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
                   Handoff
                 </span>
               )}
+              {isPaused && (
+                <span className="flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
+                  <Pause className="h-3 w-3" />
+                  Pausada
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Phone className="h-3 w-3" />
@@ -268,6 +297,22 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Context Panel Toggle */}
+          {onToggleContext && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleContext}
+              title={showContextPanel ? 'Fechar painel de contexto' : 'Abrir painel de contexto'}
+            >
+              {showContextPanel ? (
+                <PanelRightClose className="h-5 w-5" />
+              ) : (
+                <PanelRightOpen className="h-5 w-5" />
+              )}
+            </Button>
+          )}
+
           {/* Control Button */}
           {isHandoff ? (
             <Button
@@ -362,11 +407,12 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
                   {group.messages.map((message) => {
                     const isOutgoing = message.tipo === 'saida'
                     const time = format(new Date(message.created_at), 'HH:mm')
+                    const feedback = feedbackMap[message.id]
 
                     return (
                       <div
                         key={message.id}
-                        className={cn('flex', isOutgoing ? 'justify-end' : 'justify-start')}
+                        className={cn('group flex', isOutgoing ? 'justify-end' : 'justify-start')}
                       >
                         <div
                           className={cn(
@@ -381,7 +427,32 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
                             <div className="mb-1 flex items-center gap-1 text-xs font-medium text-state-message-out-muted">
                               <Bot className="h-3 w-3" />
                               Julia
+                              {/* AI confidence badge on hover */}
+                              {message.ai_confidence != null && (
+                                <span
+                                  className={cn(
+                                    'ml-1 rounded px-1 py-0.5 text-[9px] opacity-0 transition-opacity group-hover:opacity-100',
+                                    message.ai_confidence >= 0.8
+                                      ? 'bg-emerald-200 text-emerald-800'
+                                      : message.ai_confidence >= 0.5
+                                        ? 'bg-amber-200 text-amber-800'
+                                        : 'bg-red-200 text-red-800'
+                                  )}
+                                >
+                                  {Math.round(message.ai_confidence * 100)}%
+                                </span>
+                              )}
                             </div>
+                          )}
+
+                          {/* Sentiment dot for incoming messages */}
+                          {!isOutgoing && message.sentimento_score != null && (
+                            <span
+                              className={cn(
+                                'absolute -left-1.5 top-2 h-2 w-2 rounded-full',
+                                getSentimentColor(message.sentimento_score)
+                              )}
+                            />
                           )}
 
                           <p className="whitespace-pre-wrap break-words text-sm">
@@ -397,6 +468,41 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
                             <span className="text-[10px] text-muted-foreground">{time}</span>
                             {isOutgoing && <CheckCheck className="h-3 w-3 text-state-unread" />}
                           </div>
+
+                          {/* Feedback buttons for outgoing (Julia) messages */}
+                          {isOutgoing && (
+                            <div
+                              className={cn(
+                                'absolute -bottom-2 right-2 flex items-center gap-0.5 rounded-full bg-background px-1 py-0.5 shadow-sm',
+                                feedback ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                              )}
+                            >
+                              {feedback === 'positive' ? (
+                                <ThumbsUp className="h-3 w-3 text-emerald-500" />
+                              ) : feedback === 'negative' ? (
+                                <ThumbsDown className="h-3 w-3 text-destructive" />
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() =>
+                                      handleFeedback(message.id, parseInt(message.id), 'positive')
+                                    }
+                                    className="rounded p-0.5 hover:bg-muted"
+                                  >
+                                    <ThumbsUp className="h-3 w-3 text-muted-foreground hover:text-emerald-500" />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleFeedback(message.id, parseInt(message.id), 'negative')
+                                    }
+                                    className="rounded p-0.5 hover:bg-muted"
+                                  >
+                                    <ThumbsDown className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )
@@ -445,23 +551,40 @@ export function ChatPanel({ conversationId, onControlChange }: Props) {
             <div className="flex items-center gap-2 text-sm">
               <Bot className="h-5 w-5 text-state-ai-muted" />
               <div>
-                <span className="font-medium text-state-ai-foreground">Julia esta respondendo</span>
-                <p className="text-xs text-state-ai-muted">Respostas automaticas ativas</p>
+                <span className="font-medium text-state-ai-foreground">
+                  {isPaused ? 'Julia pausada' : 'Julia esta respondendo'}
+                </span>
+                <p className="text-xs text-state-ai-muted">
+                  {isPaused ? conversation.motivo_pausa || 'Pausada pelo supervisor' : 'Respostas automaticas ativas'}
+                </p>
               </div>
             </div>
-            <Button
-              size="sm"
-              onClick={() => handleControlChange('human')}
-              disabled={changingControl}
-              className="gap-2 bg-state-handoff-button text-white hover:bg-state-handoff-button-hover"
-            >
-              {changingControl ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Hand className="h-4 w-4" />
+            <div className="flex items-center gap-2">
+              {onToggleContext && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onToggleContext}
+                  className="gap-1 border-state-ai-border text-state-ai-foreground"
+                >
+                  <Bot className="h-4 w-4" />
+                  <span className="hidden sm:inline">Supervisionar</span>
+                </Button>
               )}
-              Assumir
-            </Button>
+              <Button
+                size="sm"
+                onClick={() => handleControlChange('human')}
+                disabled={changingControl}
+                className="gap-2 bg-state-handoff-button text-white hover:bg-state-handoff-button-hover"
+              >
+                {changingControl ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Hand className="h-4 w-4" />
+                )}
+                Assumir
+              </Button>
+            </div>
           </div>
         </div>
       )}

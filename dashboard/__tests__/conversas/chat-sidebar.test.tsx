@@ -1,11 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import {
-  ChatSidebar,
-  type ConversationItem,
-} from '@/app/(dashboard)/conversas/components/chat-sidebar'
+import { ChatSidebar } from '@/app/(dashboard)/conversas/components/chat-sidebar'
+import type { ConversationListItem } from '@/types/conversas'
 
-const mockConversations: ConversationItem[] = [
+const mockConversations: ConversationListItem[] = [
   {
     id: '1',
     cliente_nome: 'Dr. João Silva',

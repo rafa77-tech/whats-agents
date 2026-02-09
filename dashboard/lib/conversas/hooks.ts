@@ -31,6 +31,7 @@ interface UseConversationListReturn {
   isError: boolean
   error: Error | undefined
   refresh: () => void
+  mutate: () => Promise<ConversationListResponse | undefined>
 }
 
 export function useConversationList(
@@ -62,6 +63,7 @@ export function useConversationList(
     refresh: () => {
       void mutate()
     },
+    mutate: () => mutate(),
   }
 }
 

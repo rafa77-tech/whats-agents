@@ -1,23 +1,19 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Search, Filter, MessageSquare, Smartphone, X } from 'lucide-react'
+import { Search, MessageSquare, Smartphone, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
-import { ConversationFilters } from './components/conversation-filters'
-import { ChatSidebar, type ConversationItem } from './components/chat-sidebar'
+import { ChatSidebar } from './components/chat-sidebar'
 import { ChatPanel } from './components/chat-panel'
+import { SupervisionTabs } from './components/supervision-tabs'
+import { DoctorContextPanel } from './components/doctor-context-panel'
 import { NewConversationDialog } from './components/new-conversation-dialog'
 import { cn, formatPhone } from '@/lib/utils'
-
-interface Filters {
-  status?: string | undefined
-  controlled_by?: string | undefined
-  search?: string | undefined
-}
+import { useConversationList, useTabCounts } from '@/lib/conversas/hooks'
+import type { SupervisionTab } from '@/types/conversas'
 
 interface Chip {
   id: string
@@ -29,19 +25,28 @@ interface Chip {
 }
 
 export default function ConversasPage() {
+  const [activeTab, setActiveTab] = useState<SupervisionTab>('atencao')
   const [page, setPage] = useState(1)
-  const [filters, setFilters] = useState<Filters>({})
   const [search, setSearch] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedChipId, setSelectedChipId] = useState<string | null>(null)
+  const [showContext, setShowContext] = useState(false)
   const [chips, setChips] = useState<Chip[]>([])
-  const [data, setData] = useState<{
-    data: ConversationItem[]
-    total: number
-    pages: number
-  } | null>(null)
+  const [chipsLoading, setChipsLoading] = useState(true)
+
+  // SWR hooks
+  const {
+    conversations: data,
+    isLoading: loading,
+    mutate: mutateConversations,
+  } = useConversationList({
+    tab: activeTab,
+    search: search || undefined,
+    chipId: selectedChipId,
+    page,
+  })
+
+  const { counts } = useTabCounts(selectedChipId)
 
   // Fetch available chips
   const fetchChips = useCallback(async () => {
@@ -53,6 +58,8 @@ export default function ConversasPage() {
       }
     } catch (err) {
       console.error('Failed to fetch chips:', err)
+    } finally {
+      setChipsLoading(false)
     }
   }, [])
 
@@ -60,56 +67,31 @@ export default function ConversasPage() {
     fetchChips()
   }, [fetchChips])
 
-  const fetchConversations = useCallback(async () => {
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        per_page: '50',
-      })
-
-      if (filters.status) params.append('status', filters.status)
-      if (filters.controlled_by) params.append('controlled_by', filters.controlled_by)
-      if (selectedChipId) params.append('chip_id', selectedChipId)
-      if (search) params.append('search', search)
-
-      const response = await fetch(`/api/conversas?${params}`)
-
-      if (response.ok) {
-        const result = await response.json()
-        setData(result)
-
-        // Auto-select first conversation if none selected
-        if (!selectedId && result.data?.length > 0) {
-          setSelectedId(result.data[0].id)
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch conversations:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [page, filters, search, selectedId, selectedChipId])
-
+  // Auto-select first conversation
   useEffect(() => {
-    fetchConversations()
-  }, [fetchConversations])
+    if (!selectedId && data?.data && data.data.length > 0) {
+      const firstConversation = data.data[0]
+      if (firstConversation) {
+        setSelectedId(firstConversation.id)
+      }
+    }
+  }, [selectedId, data])
 
   const handleSearch = (value: string) => {
     setSearch(value)
     setPage(1)
   }
 
-  const handleFilterChange = (newFilters: Filters) => {
-    setFilters((prev) => ({ ...prev, ...newFilters }))
+  const handleTabChange = (tab: SupervisionTab) => {
+    setActiveTab(tab)
     setPage(1)
-    setShowFilters(false)
+    setSelectedId(null)
   }
 
   const handleChipSelect = (chipId: string | null) => {
     setSelectedChipId(chipId)
     setSelectedId(null)
     setPage(1)
-    setLoading(true)
   }
 
   const handleLoadMore = () => {
@@ -128,9 +110,7 @@ export default function ConversasPage() {
 
       if (response.ok) {
         const result = await response.json()
-        // Refresh conversations list
-        await fetchConversations()
-        // Select the new/existing conversation
+        await mutateConversations()
         setSelectedId(result.conversation_id)
       }
     } catch (err) {
@@ -138,13 +118,12 @@ export default function ConversasPage() {
     }
   }
 
-  const activeFiltersCount = Object.values(filters).filter(Boolean).length
   const selectedChip = chips.find((c) => c.id === selectedChipId)
   const totalConversations = selectedChipId
     ? data?.total || 0
     : chips.reduce((sum, c) => sum + c.conversation_count, 0)
 
-  if (loading && !data) {
+  if (loading && !data && chipsLoading) {
     return (
       <div className="flex h-full">
         <div className="w-[400px] border-r">
@@ -258,9 +237,16 @@ export default function ConversasPage() {
           </div>
         )}
 
-        {/* Search Header */}
-        <div className="flex items-center gap-2 border-b bg-muted/30 p-3">
-          <div className="relative flex-1">
+        {/* Supervision Tabs */}
+        <SupervisionTabs
+          activeTab={activeTab}
+          counts={counts || { atencao: 0, julia_ativa: 0, aguardando: 0, encerradas: 0 }}
+          onTabChange={handleTabChange}
+        />
+
+        {/* Search */}
+        <div className="border-b bg-muted/30 p-3">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Pesquisar conversa..."
@@ -269,32 +255,6 @@ export default function ConversasPage() {
               className="h-9 bg-background pl-9"
             />
           </div>
-
-          <Sheet open={showFilters} onOpenChange={setShowFilters}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-9 w-9">
-                <Filter className="h-4 w-4" />
-                {activeFiltersCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Filtros</SheetTitle>
-              </SheetHeader>
-              <ConversationFilters
-                filters={filters}
-                onApply={handleFilterChange}
-                onClear={() => {
-                  setFilters({})
-                  setShowFilters(false)
-                }}
-              />
-            </SheetContent>
-          </Sheet>
         </div>
 
         {/* Conversation List */}
@@ -326,10 +286,15 @@ export default function ConversasPage() {
         </div>
       </div>
 
-      {/* Right Panel - Chat */}
+      {/* Center Panel - Chat */}
       <div className="hidden h-full min-h-0 flex-1 md:flex">
         {selectedId ? (
-          <ChatPanel conversationId={selectedId} />
+          <ChatPanel
+            conversationId={selectedId}
+            onControlChange={() => mutateConversations()}
+            showContextPanel={showContext}
+            onToggleContext={() => setShowContext((prev) => !prev)}
+          />
         ) : (
           <div className="flex h-full flex-1 flex-col items-center justify-center gap-4 bg-muted/10">
             <div className="rounded-full bg-muted/50 p-6">
@@ -349,6 +314,16 @@ export default function ConversasPage() {
           </div>
         )}
       </div>
+
+      {/* Right Panel - Doctor Context (collapsible) */}
+      {showContext && selectedId && (
+        <div className="hidden h-full w-[340px] border-l xl:block">
+          <DoctorContextPanel
+            conversationId={selectedId}
+            onClose={() => setShowContext(false)}
+          />
+        </div>
+      )}
     </div>
   )
 }

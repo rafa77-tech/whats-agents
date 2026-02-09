@@ -2,16 +2,21 @@
 Dashboard Conversations API - Endpoints para envio de mensagens do dashboard.
 
 Sprint 43 - UX & Operacao Unificada
+Sprint 54 - Supervision Dashboard (pause, notes, feedback)
 
 Endpoints para:
 - Enviar mensagens de texto via WhatsApp
 - Enviar midia (imagem, audio, documento) via WhatsApp
 - Controle de conversas (handoff)
+- Pausar/retomar Julia (Sprint 54)
+- Notas do supervisor (Sprint 54)
+- Feedback em mensagens (Sprint 54)
 """
 
 import logging
 from datetime import datetime, timezone
 from typing import Optional
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
@@ -42,6 +47,23 @@ class SendMediaRequest(BaseModel):
 class ControlRequest(BaseModel):
     """Request para alterar controle da conversa."""
     controlled_by: str  # ai ou human
+
+
+class PauseRequest(BaseModel):
+    """Request para pausar Julia na conversa."""
+    motivo: Optional[str] = None
+
+
+class NoteRequest(BaseModel):
+    """Request para criar nota do supervisor."""
+    content: str
+
+
+class FeedbackRequest(BaseModel):
+    """Request para feedback em mensagem."""
+    interacao_id: int
+    feedback_type: str  # positive ou negative
+    comment: Optional[str] = None
 
 
 async def _get_conversation_with_chip(conversation_id: str) -> dict:
@@ -340,4 +362,137 @@ async def get_conversation_details(conversation_id: str):
         raise
     except Exception as e:
         logger.error(f"Erro ao buscar conversa: {e}")
+        raise HTTPException(500, f"Erro interno: {str(e)}")
+
+
+# ============================================
+# Sprint 54: Supervision Endpoints
+# ============================================
+
+
+@router.post("/{conversation_id}/pause")
+async def pause_conversation(conversation_id: str, request: PauseRequest):
+    """Pausa Julia na conversa."""
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        result = supabase.table("conversations").update({
+            "pausada_em": now,
+            "motivo_pausa": request.motivo,
+            "updated_at": now,
+        }).eq("id", conversation_id).execute()
+
+        if not result.data:
+            raise HTTPException(404, "Conversa nao encontrada")
+
+        logger.info(f"Julia pausada: conv={conversation_id}, motivo={request.motivo}")
+        return {"success": True, "pausada_em": now}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao pausar conversa: {e}")
+        raise HTTPException(500, f"Erro interno: {str(e)}")
+
+
+@router.post("/{conversation_id}/resume")
+async def resume_conversation(conversation_id: str):
+    """Retoma Julia na conversa."""
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        result = supabase.table("conversations").update({
+            "pausada_em": None,
+            "motivo_pausa": None,
+            "updated_at": now,
+        }).eq("id", conversation_id).execute()
+
+        if not result.data:
+            raise HTTPException(404, "Conversa nao encontrada")
+
+        logger.info(f"Julia retomada: conv={conversation_id}")
+        return {"success": True}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao retomar conversa: {e}")
+        raise HTTPException(500, f"Erro interno: {str(e)}")
+
+
+@router.get("/{conversation_id}/notes")
+async def list_notes(conversation_id: str):
+    """Lista notas do supervisor para a conversa."""
+    try:
+        result = supabase.table("supervisor_notes").select(
+            "id, content, created_at, user_id"
+        ).eq(
+            "conversation_id", conversation_id
+        ).order("created_at", desc=True).limit(50).execute()
+
+        return {"notes": result.data or []}
+
+    except Exception as e:
+        logger.error(f"Erro ao listar notas: {e}")
+        raise HTTPException(500, f"Erro interno: {str(e)}")
+
+
+@router.post("/{conversation_id}/notes")
+async def create_note(conversation_id: str, request: NoteRequest):
+    """Cria nota do supervisor."""
+    try:
+        # Buscar cliente_id da conversa
+        conv = supabase.table("conversations").select(
+            "cliente_id"
+        ).eq("id", conversation_id).single().execute()
+
+        if not conv.data:
+            raise HTTPException(404, "Conversa nao encontrada")
+
+        note_data = {
+            "id": str(uuid4()),
+            "conversation_id": conversation_id,
+            "cliente_id": conv.data["cliente_id"],
+            "content": request.content,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        result = supabase.table("supervisor_notes").insert(note_data).execute()
+
+        logger.info(f"Nota criada: conv={conversation_id}")
+        return {"success": True, "note": result.data[0] if result.data else note_data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao criar nota: {e}")
+        raise HTTPException(500, f"Erro interno: {str(e)}")
+
+
+@router.post("/{conversation_id}/feedback")
+async def create_feedback(conversation_id: str, request: FeedbackRequest):
+    """Registra feedback em mensagem da Julia."""
+    if request.feedback_type not in ("positive", "negative"):
+        raise HTTPException(400, "feedback_type deve ser 'positive' ou 'negative'")
+
+    try:
+        feedback_data = {
+            "id": str(uuid4()),
+            "interacao_id": request.interacao_id,
+            "conversation_id": conversation_id,
+            "feedback_type": request.feedback_type,
+            "comment": request.comment,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        result = supabase.table("message_feedback").insert(feedback_data).execute()
+
+        logger.info(
+            f"Feedback registrado: conv={conversation_id}, "
+            f"interacao={request.interacao_id}, tipo={request.feedback_type}"
+        )
+        return {"success": True, "feedback": result.data[0] if result.data else feedback_data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao registrar feedback: {e}")
         raise HTTPException(500, f"Erro interno: {str(e)}")

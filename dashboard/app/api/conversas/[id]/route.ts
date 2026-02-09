@@ -2,6 +2,7 @@
  * API: GET /api/conversas/[id]
  *
  * Retorna detalhes de uma conversa específica com mensagens.
+ * Sprint 54: Enrichment (sentimento, confidence, pause state)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -15,6 +16,8 @@ interface InteracaoRow {
   autor_tipo: string | null
   autor_nome: string | null
   created_at: string | null
+  sentimento_score: number | null
+  ai_confidence: number | null
 }
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +25,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const { id } = await params
     const supabase = createAdminClient()
 
-    // Fetch conversation with client info
+    // Fetch conversation with client info + pause state
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
       .select(
@@ -31,6 +34,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         status,
         controlled_by,
         cliente_id,
+        pausada_em,
+        motivo_pausa,
         clientes!inner(id, primeiro_nome, sobrenome, telefone)
       `
       )
@@ -53,7 +58,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     } | null
 
     // Fetch messages (interacoes) for this conversation
-    // Buscar por conversation_id (coluna correta na tabela interacoes)
+    // Include sentimento_score and ai_confidence
     const { data: interacoes, error: msgError } = await supabase
       .from('interacoes')
       .select(
@@ -62,7 +67,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         conteudo,
         autor_tipo,
         autor_nome,
-        created_at
+        created_at,
+        sentimento_score,
+        ai_confidence
       `
       )
       .eq('conversation_id', id)
@@ -80,12 +87,16 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       tipo: msg.autor_tipo === 'medico' ? 'entrada' : 'saida',
       conteudo: msg.conteudo || '',
       created_at: msg.created_at || new Date().toISOString(),
+      sentimento_score: msg.sentimento_score ?? undefined,
+      ai_confidence: msg.ai_confidence ?? undefined,
     }))
 
     const result = {
       id: conversation.id,
       status: conversation.status || 'active',
-      controlled_by: conversation.controlled_by || 'julia',
+      controlled_by: conversation.controlled_by || 'ai',
+      pausada_em: (conversation as Record<string, unknown>).pausada_em ?? null,
+      motivo_pausa: (conversation as Record<string, unknown>).motivo_pausa ?? null,
       cliente: {
         id: cliente?.id || '',
         nome: cliente

@@ -40,6 +40,7 @@ export async function GET(
       handoffsResult,
       eventsResult,
       conversationCountResult,
+      notesResult,
     ] = await Promise.all([
       // Doctor profile
       supabase
@@ -89,6 +90,14 @@ export async function GET(
         .from('conversations')
         .select('id', { count: 'exact', head: true })
         .eq('cliente_id', clienteId),
+
+      // Supervisor notes
+      supabase
+        .from('supervisor_notes')
+        .select('id, content, created_at, user_id')
+        .eq('conversation_id', id)
+        .order('created_at', { ascending: false })
+        .limit(50),
     ])
 
     const cliente = clienteResult.data
@@ -141,6 +150,12 @@ export async function GET(
       })),
       conversation_count: conversationCountResult.count || 0,
       first_contact_at: cliente?.created_at || undefined,
+      notes: (notesResult.data || []).map((n) => ({
+        id: n.id || '',
+        content: n.content || '',
+        created_at: n.created_at || '',
+        user_id: n.user_id || undefined,
+      })),
     }
 
     return NextResponse.json(result)
