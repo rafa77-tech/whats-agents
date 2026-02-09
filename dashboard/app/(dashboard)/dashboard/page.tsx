@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { MetricsSection } from '@/components/dashboard/metrics-section'
 import { QualityMetricsSection } from '@/components/dashboard/quality-metrics-section'
+import { OpportunitiesWidget } from '@/components/dashboard/opportunities-widget'
 import { OperationalStatus } from '@/components/dashboard/operational-status'
 import { ChipPoolOverview } from '@/components/dashboard/chip-pool-overview'
 import { ChipListTable } from '@/components/dashboard/chip-list-table'
@@ -477,6 +478,10 @@ export default function DashboardPage() {
             <QualityMetricsSection metrics={qualityData} />
           </section>
         )}
+
+        <section aria-label="Oportunidades Julia">
+          <OpportunitiesWidget />
+        </section>
 
         <section aria-label="Status Operacional">
           <OperationalStatus data={operationalData} />
