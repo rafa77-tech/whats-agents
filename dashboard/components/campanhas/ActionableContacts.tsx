@@ -150,7 +150,7 @@ function MedicoCard({ medico }: MedicoCardProps) {
             {medico.especialidade || 'Especialidade nao informada'}
           </p>
           {medico.insight && (
-            <p className="mt-1 text-xs italic text-gray-500">"{medico.insight}"</p>
+            <p className="mt-1 text-xs italic text-gray-500">&ldquo;{medico.insight}&rdquo;</p>
           )}
         </div>
       </div>

@@ -128,3 +128,42 @@ export async function fetchOpportunities(
   }
   return api.get<OpportunitiesResponse>(`/extraction/opportunities?${params}`)
 }
+
+// Types para insights do cliente
+export interface ClienteInsight {
+  id: number
+  conversation_id: string
+  campaign_id: number | null
+  interesse: string
+  interesse_score: number
+  proximo_passo: string
+  especialidade_mencionada: string | null
+  regiao_mencionada: string | null
+  disponibilidade_mencionada: string | null
+  preferencias: string[]
+  restricoes: string[]
+  objecao_tipo: string | null
+  objecao_descricao: string | null
+  confianca: number
+  created_at: string
+}
+
+export interface ClienteInsightsResponse {
+  cliente_id: string
+  total: number
+  resumo: {
+    interesse_positivo: number
+    interesse_negativo: number
+    interesse_score_medio: number
+  }
+  insights: ClienteInsight[]
+}
+
+export async function fetchClienteInsights(
+  clienteId: string,
+  limit = 20
+): Promise<ClienteInsightsResponse> {
+  return api.get<ClienteInsightsResponse>(
+    `/extraction/insights/cliente/${clienteId}?limit=${limit}`
+  )
+}
