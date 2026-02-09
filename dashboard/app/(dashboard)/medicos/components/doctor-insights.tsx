@@ -78,9 +78,7 @@ export function DoctorInsights({ doctorId }: DoctorInsightsProps) {
       <Card>
         <CardContent className="py-8 text-center">
           <Sparkles className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-          <p className="text-muted-foreground">
-            Nenhum insight disponivel para este medico.
-          </p>
+          <p className="text-muted-foreground">Nenhum insight disponivel para este medico.</p>
           <p className="mt-1 text-sm text-gray-400">
             Insights sao gerados automaticamente a partir das conversas.
           </p>

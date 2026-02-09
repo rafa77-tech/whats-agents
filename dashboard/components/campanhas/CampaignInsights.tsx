@@ -45,9 +45,7 @@ export function CampaignInsights({ metrics, loading }: CampaignInsightsProps) {
         <CardContent>
           <div className="py-8 text-center">
             <HelpCircle className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-            <p className="text-gray-500">
-              Ainda nao ha dados de insights para esta campanha.
-            </p>
+            <p className="text-gray-500">Ainda nao ha dados de insights para esta campanha.</p>
             <p className="mt-1 text-sm text-gray-400">
               Os insights sao gerados automaticamente apos as respostas.
             </p>
@@ -118,15 +116,11 @@ export function CampaignInsights({ metrics, loading }: CampaignInsightsProps) {
             <p className="text-xs text-muted-foreground">Prontos para Vagas</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-status-info-solid">
-              {metrics.para_followup}
-            </p>
+            <p className="text-2xl font-bold text-status-info-solid">{metrics.para_followup}</p>
             <p className="text-xs text-muted-foreground">Para Follow-up</p>
           </div>
           <div>
-            <p className="text-2xl font-bold">
-              {metrics.taxa_interesse_pct.toFixed(0)}%
-            </p>
+            <p className="text-2xl font-bold">{metrics.taxa_interesse_pct.toFixed(0)}%</p>
             <p className="text-xs text-muted-foreground">Taxa de Interesse</p>
           </div>
         </div>

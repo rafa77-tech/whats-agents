@@ -13,14 +13,7 @@ import type { Route } from 'next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Target,
-  Send,
-  Calendar,
-  AlertTriangle,
-  ChevronRight,
-  Sparkles,
-} from 'lucide-react'
+import { Target, Send, Calendar, AlertTriangle, ChevronRight, Sparkles } from 'lucide-react'
 import { fetchOpportunities, OpportunitiesResponse } from '@/lib/api/extraction'
 
 export function OpportunitiesWidget() {

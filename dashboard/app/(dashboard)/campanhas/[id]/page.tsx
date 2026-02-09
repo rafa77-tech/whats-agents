@@ -260,23 +260,26 @@ export default function CampanhaDetalhesPage() {
     }
   }, [params.id])
 
-  const carregarRelatorio = useCallback(async (forceRefresh = false) => {
-    if (forceRefresh) {
-      setReportRefreshing(true)
-    } else {
-      setReportLoading(true)
-    }
-    try {
-      const data = await fetchCampaignReport(Number(params.id), forceRefresh)
-      setReport(data)
-    } catch (err) {
-      console.error('Erro ao carregar relatorio:', err)
-      // Silently fail - relatório é opcional
-    } finally {
-      setReportLoading(false)
-      setReportRefreshing(false)
-    }
-  }, [params.id])
+  const carregarRelatorio = useCallback(
+    async (forceRefresh = false) => {
+      if (forceRefresh) {
+        setReportRefreshing(true)
+      } else {
+        setReportLoading(true)
+      }
+      try {
+        const data = await fetchCampaignReport(Number(params.id), forceRefresh)
+        setReport(data)
+      } catch (err) {
+        console.error('Erro ao carregar relatorio:', err)
+        // Silently fail - relatório é opcional
+      } finally {
+        setReportLoading(false)
+        setReportRefreshing(false)
+      }
+    },
+    [params.id]
+  )
 
   useEffect(() => {
     carregarCampanha()
@@ -807,10 +810,7 @@ export default function CampanhaDetalhesPage() {
       {/* Insights da Campanha - Apenas para campanhas ativas/concluídas */}
       {['ativa', 'concluida'].includes(campanha.status) && (
         <div className="space-y-6">
-          <CampaignInsights
-            metrics={report?.metrics || null}
-            loading={reportLoading}
-          />
+          <CampaignInsights metrics={report?.metrics || null} loading={reportLoading} />
 
           <div className="grid gap-6 md:grid-cols-2">
             <JuliaReport
@@ -823,10 +823,7 @@ export default function CampanhaDetalhesPage() {
               refreshing={reportRefreshing}
             />
 
-            <ActionableContacts
-              medicos={report?.medicos_destaque || []}
-              loading={reportLoading}
-            />
+            <ActionableContacts medicos={report?.medicos_destaque || []} loading={reportLoading} />
           </div>
         </div>
       )}

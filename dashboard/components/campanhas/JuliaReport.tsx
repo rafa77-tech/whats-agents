@@ -61,9 +61,7 @@ export function JuliaReport({
         <CardContent>
           <div className="py-8 text-center">
             <MessageSquare className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-            <p className="text-gray-500">
-              Nenhum relatorio disponivel ainda.
-            </p>
+            <p className="text-gray-500">Nenhum relatorio disponivel ainda.</p>
             <p className="mt-1 text-sm text-gray-400">
               O relatorio sera gerado automaticamente quando houver respostas suficientes.
             </p>
@@ -96,12 +94,7 @@ export function JuliaReport({
           </CardDescription>
         </div>
         {onRefresh && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            disabled={refreshing}
-          >
+          <Button variant="outline" size="sm" onClick={onRefresh} disabled={refreshing}>
             <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             Regenerar
           </Button>
@@ -109,7 +102,7 @@ export function JuliaReport({
       </CardHeader>
       <CardContent>
         <div
-          className={`prose prose-sm max-w-none dark:prose-invert ${
+          className={`prose prose-sm dark:prose-invert max-w-none ${
             expanded ? '' : 'line-clamp-6'
           }`}
         >

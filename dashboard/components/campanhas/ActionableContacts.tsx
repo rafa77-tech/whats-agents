@@ -5,14 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Send,
-  Calendar,
-  User,
-  Star,
-  ChevronRight,
-  Users,
-} from 'lucide-react'
+import { Send, Calendar, User, Star, ChevronRight, Users } from 'lucide-react'
 import { MedicoDestaque, proximoPassoLabels } from '@/lib/api/extraction'
 
 interface ActionableContactsProps {
@@ -55,9 +48,7 @@ export function ActionableContacts({ medicos, loading }: ActionableContactsProps
         <CardContent>
           <div className="py-8 text-center">
             <Users className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-            <p className="text-gray-500">
-              Nenhum medico com acao pendente.
-            </p>
+            <p className="text-gray-500">Nenhum medico com acao pendente.</p>
           </div>
         </CardContent>
       </Card>
@@ -71,9 +62,7 @@ export function ActionableContacts({ medicos, loading }: ActionableContactsProps
           <Users className="h-5 w-5" />
           Medicos para Acao
         </CardTitle>
-        <CardDescription>
-          {medicos.length} medico(s) identificado(s) para acao
-        </CardDescription>
+        <CardDescription>{medicos.length} medico(s) identificado(s) para acao</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Prontos para Vagas */}

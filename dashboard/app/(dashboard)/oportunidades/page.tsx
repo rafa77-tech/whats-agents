@@ -22,11 +22,7 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import {
-  fetchOpportunities,
-  Opportunity,
-  OpportunitiesResponse,
-} from '@/lib/api/extraction'
+import { fetchOpportunities, Opportunity, OpportunitiesResponse } from '@/lib/api/extraction'
 
 export default function OportunidadesPage() {
   const [data, setData] = useState<OpportunitiesResponse | null>(null)
@@ -60,9 +56,7 @@ export default function OportunidadesPage() {
             <Target className="h-6 w-6" />
             Oportunidades
           </h1>
-          <p className="text-muted-foreground">
-            Acoes pendentes identificadas pela Julia
-          </p>
+          <p className="text-muted-foreground">Acoes pendentes identificadas pela Julia</p>
         </div>
         <Button variant="outline" onClick={carregarOportunidades} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
