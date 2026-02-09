@@ -47,7 +47,11 @@ export function useConversationStream(
     if (!conversationId) return
     // Invalidate SWR caches for this conversation
     void mutate(`/api/conversas/${conversationId}`)
-    void mutate((key: string) => typeof key === 'string' && key.startsWith('/api/conversas'), undefined, { revalidate: true })
+    void mutate(
+      (key: string) => typeof key === 'string' && key.startsWith('/api/conversas'),
+      undefined,
+      { revalidate: true }
+    )
   }, [conversationId])
 
   const startFallbackPolling = useCallback(() => {

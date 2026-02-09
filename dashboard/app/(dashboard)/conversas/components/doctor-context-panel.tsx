@@ -129,8 +129,8 @@ function ProfileSection({ context }: { context: DoctorContextData }) {
               doctor.pressure_score > 7
                 ? 'bg-destructive/10 text-destructive'
                 : doctor.pressure_score > 4
-                  ? 'bg-amber-100 text-amber-700'
-                  : 'bg-emerald-100 text-emerald-700'
+                  ? 'bg-status-warning text-status-warning-foreground'
+                  : 'bg-status-success text-status-success-foreground'
             )}
           >
             Pressao: {doctor.pressure_score}/10
@@ -258,7 +258,7 @@ function HandoffTimeline({ context }: { context: DoctorContextData }) {
             <div
               className={cn(
                 'h-2 w-2 rounded-full',
-                h.status === 'pendente' ? 'bg-amber-500' : 'bg-emerald-500'
+                h.status === 'pendente' ? 'bg-status-warning-solid' : 'bg-status-success-solid'
               )}
             />
             {i < handoff_history.length - 1 && <div className="mt-1 h-full w-px bg-border" />}
@@ -270,7 +270,7 @@ function HandoffTimeline({ context }: { context: DoctorContextData }) {
                 className={cn(
                   'rounded px-1 py-0.5 text-[10px]',
                   h.status === 'pendente'
-                    ? 'bg-amber-100 text-amber-700'
+                    ? 'bg-status-warning text-status-warning-foreground'
                     : 'bg-muted text-muted-foreground'
                 )}
               >
@@ -400,10 +400,7 @@ function NotesSection({ conversationId }: { conversationId: string }) {
       ) : (
         <div className="space-y-1">
           {notes.map((note) => (
-            <div
-              key={note.id}
-              className="rounded bg-amber-50 px-2 py-1.5 text-xs dark:bg-amber-950/20"
-            >
+            <div key={note.id} className="rounded bg-status-warning/20 px-2 py-1.5 text-xs">
               {note.content}
               <div className="mt-0.5 text-[10px] text-muted-foreground">
                 {note.created_at

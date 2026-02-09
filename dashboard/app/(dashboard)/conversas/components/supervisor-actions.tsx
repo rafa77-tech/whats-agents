@@ -57,7 +57,7 @@ export function SupervisorActions({
               <Button
                 variant="ghost"
                 size="icon"
-                className={cn('h-8 w-8', isPaused && 'text-amber-600')}
+                className={cn('h-8 w-8', isPaused && 'text-status-warning-foreground')}
                 onClick={handlePauseToggle}
                 disabled={actionLoading === 'pause'}
               >

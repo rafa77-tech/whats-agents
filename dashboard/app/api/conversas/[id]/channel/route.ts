@@ -54,8 +54,7 @@ export async function POST(
         ? `${API_URL}/supervisor/channel/${id}/instruct`
         : `${API_URL}/supervisor/channel/${id}/message`
 
-    const requestBody =
-      msgType === 'instruction' ? { instruction: content } : { content }
+    const requestBody = msgType === 'instruction' ? { instruction: content } : { content }
 
     const response = await fetch(endpoint, {
       method: 'POST',

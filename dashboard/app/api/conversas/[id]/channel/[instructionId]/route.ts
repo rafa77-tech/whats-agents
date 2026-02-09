@@ -21,10 +21,7 @@ export async function POST(
     const { action } = body as { action: 'confirm' | 'reject' }
 
     if (!['confirm', 'reject'].includes(action)) {
-      return NextResponse.json(
-        { error: 'action deve ser "confirm" ou "reject"' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'action deve ser "confirm" ou "reject"' }, { status: 400 })
     }
 
     const response = await fetch(

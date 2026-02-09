@@ -3,16 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import {
-  Send,
-  Loader2,
-  MessageCircle,
-  Lightbulb,
-  Check,
-  X,
-  Bot,
-  UserCog,
-} from 'lucide-react'
+import { Send, Loader2, MessageCircle, Lightbulb, Check, X, Bot, UserCog } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { ChannelMessage, InstructionPreview } from '@/types/conversas'
@@ -24,9 +15,18 @@ interface Props {
 type ChannelMode = 'question' | 'instruction'
 
 const QUICK_BUTTONS = [
-  { label: 'Explica a ultima msg', prompt: 'Explica a ultima mensagem do medico e o que voce acha que ele quis dizer' },
-  { label: 'Qual sua leitura?', prompt: 'Qual sua leitura geral sobre essa conversa? O medico parece interessado?' },
-  { label: 'O que faria agora?', prompt: 'O que voce faria agora nessa conversa? Qual seria seu proximo passo?' },
+  {
+    label: 'Explica a ultima msg',
+    prompt: 'Explica a ultima mensagem do medico e o que voce acha que ele quis dizer',
+  },
+  {
+    label: 'Qual sua leitura?',
+    prompt: 'Qual sua leitura geral sobre essa conversa? O medico parece interessado?',
+  },
+  {
+    label: 'O que faria agora?',
+    prompt: 'O que voce faria agora nessa conversa? Qual seria seu proximo passo?',
+  },
 ]
 
 export function SupervisorChannel({ conversationId }: Props) {
@@ -166,7 +166,8 @@ export function SupervisorChannel({ conversationId }: Props) {
       )
 
       if (response.ok) {
-        const statusText = action === 'confirm' ? 'Mensagem enviada ao medico' : 'Instrucao rejeitada'
+        const statusText =
+          action === 'confirm' ? 'Mensagem enviada ao medico' : 'Instrucao rejeitada'
         setMessages((prev) => [
           ...prev,
           {
@@ -207,9 +208,7 @@ export function SupervisorChannel({ conversationId }: Props) {
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
             <Bot className="h-8 w-8 text-muted-foreground/50" />
-            <p className="text-xs text-muted-foreground">
-              Converse com Julia sobre esta conversa.
-            </p>
+            <p className="text-xs text-muted-foreground">Converse com Julia sobre esta conversa.</p>
             <p className="text-[10px] text-muted-foreground/70">
               Faca perguntas ou envie instrucoes.
             </p>
@@ -219,10 +218,7 @@ export function SupervisorChannel({ conversationId }: Props) {
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={cn(
-                  'flex',
-                  msg.role === 'supervisor' ? 'justify-end' : 'justify-start'
-                )}
+                className={cn('flex', msg.role === 'supervisor' ? 'justify-end' : 'justify-start')}
               >
                 <div
                   className={cn(
@@ -265,8 +261,8 @@ export function SupervisorChannel({ conversationId }: Props) {
 
       {/* Preview Banner */}
       {pendingPreview && (
-        <div className="border-t bg-amber-50 p-3 dark:bg-amber-950/20">
-          <div className="mb-1 text-[10px] font-medium uppercase text-amber-700 dark:text-amber-400">
+        <div className="border-t bg-status-warning/30 p-3">
+          <div className="mb-1 text-[10px] font-medium uppercase text-status-warning-foreground">
             Preview da mensagem
           </div>
           <p className="rounded bg-white p-2 text-xs dark:bg-background">
@@ -338,7 +334,7 @@ export function SupervisorChannel({ conversationId }: Props) {
             className={cn(
               'flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] transition-colors',
               mode === 'instruction'
-                ? 'bg-amber-600 text-white'
+                ? 'bg-status-warning-solid text-white'
                 : 'bg-muted text-muted-foreground'
             )}
           >
@@ -373,16 +369,12 @@ export function SupervisorChannel({ conversationId }: Props) {
             onClick={() => void handleSend()}
             disabled={sending || !input.trim() || !!pendingPreview}
           >
-            {sending ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Send className="h-3 w-3" />
-            )}
+            {sending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
           </Button>
         </div>
 
         {mode === 'instruction' && (
-          <p className="mt-1 text-[9px] text-amber-600">
+          <p className="mt-1 text-[9px] text-status-warning-foreground">
             Instrucoes geram um preview para confirmacao antes do envio.
           </p>
         )}

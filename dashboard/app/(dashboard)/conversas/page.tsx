@@ -318,10 +318,7 @@ export default function ConversasPage() {
       {/* Right Panel - Doctor Context (collapsible) */}
       {showContext && selectedId && (
         <div className="hidden h-full w-[340px] border-l xl:block">
-          <DoctorContextPanel
-            conversationId={selectedId}
-            onClose={() => setShowContext(false)}
-          />
+          <DoctorContextPanel conversationId={selectedId} onClose={() => setShowContext(false)} />
         </div>
       )}
     </div>

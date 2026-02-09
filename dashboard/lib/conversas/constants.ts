@@ -76,22 +76,22 @@ export const SUPERVISION_TABS = [
 
 export const URGENCY_COLORS: Record<string, string> = {
   atencao: 'border-l-destructive',
-  julia_ativa: 'border-l-emerald-500',
-  aguardando: 'border-l-amber-400',
+  julia_ativa: 'border-l-status-success-solid',
+  aguardando: 'border-l-status-warning-solid',
   encerradas: 'border-l-muted-foreground',
 }
 
 export const SENTIMENTO_COLORS: Record<string, string> = {
-  positivo: 'bg-emerald-500',
-  neutro: 'bg-slate-400',
+  positivo: 'bg-status-success-solid',
+  neutro: 'bg-status-neutral-solid',
   negativo: 'bg-destructive',
 }
 
 export function getSentimentColor(score: number | undefined | null): string {
-  if (score == null) return 'bg-slate-400'
-  if (score >= 2) return 'bg-emerald-500'
+  if (score == null) return 'bg-status-neutral-solid'
+  if (score >= 2) return 'bg-status-success-solid'
   if (score <= -2) return 'bg-destructive'
-  return 'bg-slate-400'
+  return 'bg-status-neutral-solid'
 }
 
 export function getSentimentLabel(score: number | undefined | null): string {
@@ -116,11 +116,11 @@ export const STAGE_LABELS: Record<string, string> = {
 }
 
 export const STAGE_COLORS: Record<string, string> = {
-  novo: 'bg-blue-100 text-blue-700',
-  interessado: 'bg-purple-100 text-purple-700',
-  prospectado: 'bg-indigo-100 text-indigo-700',
-  negociando: 'bg-amber-100 text-amber-700',
-  ativo: 'bg-emerald-100 text-emerald-700',
-  inativo: 'bg-slate-100 text-slate-600',
-  perdido: 'bg-red-100 text-red-700',
+  novo: 'bg-status-info text-status-info-foreground',
+  interessado: 'bg-accent/20 text-accent',
+  prospectado: 'bg-status-info/70 text-status-info-foreground',
+  negociando: 'bg-status-warning text-status-warning-foreground',
+  ativo: 'bg-status-success text-status-success-foreground',
+  inativo: 'bg-status-neutral text-status-neutral-foreground',
+  perdido: 'bg-status-error text-status-error-foreground',
 }

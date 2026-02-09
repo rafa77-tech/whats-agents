@@ -20,7 +20,7 @@ function getUrgencyBorder(conv: ConversationListItem): string {
   if (conv.controlled_by === 'human' || conv.has_handoff) return 'border-l-4 border-l-destructive'
   if (conv.last_message_direction === 'entrada' && conv.last_message_at) {
     const waitMs = Date.now() - new Date(conv.last_message_at).getTime()
-    if (waitMs > 60 * 60 * 1000) return 'border-l-4 border-l-amber-400'
+    if (waitMs > 60 * 60 * 1000) return 'border-l-4 border-l-status-warning-solid'
   }
   return 'border-l-4 border-l-transparent'
 }
@@ -99,7 +99,9 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
                 <span className="truncate font-medium">{conversation.cliente_nome}</span>
                 <div className="flex flex-shrink-0 items-center gap-1">
                   {waitTime && (
-                    <span className="text-[10px] font-medium text-amber-600">{waitTime}</span>
+                    <span className="text-[10px] font-medium text-status-warning-foreground">
+                      {waitTime}
+                    </span>
                   )}
                   <span className="text-xs text-muted-foreground">{timeAgo}</span>
                 </div>

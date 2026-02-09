@@ -106,7 +106,11 @@ export function ChatPanel({
     }
   }
 
-  const handleFeedback = async (messageId: string, interacaoId: number, type: 'positive' | 'negative') => {
+  const handleFeedback = async (
+    messageId: string,
+    interacaoId: number,
+    type: 'positive' | 'negative'
+  ) => {
     try {
       const response = await fetch(`/api/conversas/${conversationId}/feedback`, {
         method: 'POST',
@@ -283,7 +287,7 @@ export function ChatPanel({
                 </span>
               )}
               {isPaused && (
-                <span className="flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
+                <span className="flex items-center gap-1 rounded bg-status-warning px-1.5 py-0.5 text-xs font-medium text-status-warning-foreground">
                   <Pause className="h-3 w-3" />
                   Pausada
                 </span>
@@ -433,10 +437,10 @@ export function ChatPanel({
                                   className={cn(
                                     'ml-1 rounded px-1 py-0.5 text-[9px] opacity-0 transition-opacity group-hover:opacity-100',
                                     message.ai_confidence >= 0.8
-                                      ? 'bg-emerald-200 text-emerald-800'
+                                      ? 'bg-status-success text-status-success-foreground'
                                       : message.ai_confidence >= 0.5
-                                        ? 'bg-amber-200 text-amber-800'
-                                        : 'bg-red-200 text-red-800'
+                                        ? 'bg-status-warning text-status-warning-foreground'
+                                        : 'bg-status-error text-status-error-foreground'
                                   )}
                                 >
                                   {Math.round(message.ai_confidence * 100)}%
@@ -478,7 +482,7 @@ export function ChatPanel({
                               )}
                             >
                               {feedback === 'positive' ? (
-                                <ThumbsUp className="h-3 w-3 text-emerald-500" />
+                                <ThumbsUp className="h-3 w-3 text-status-success-solid" />
                               ) : feedback === 'negative' ? (
                                 <ThumbsDown className="h-3 w-3 text-destructive" />
                               ) : (
@@ -489,7 +493,7 @@ export function ChatPanel({
                                     }
                                     className="rounded p-0.5 hover:bg-muted"
                                   >
-                                    <ThumbsUp className="h-3 w-3 text-muted-foreground hover:text-emerald-500" />
+                                    <ThumbsUp className="h-3 w-3 text-muted-foreground hover:text-status-success-solid" />
                                   </button>
                                   <button
                                     onClick={() =>
@@ -555,7 +559,9 @@ export function ChatPanel({
                   {isPaused ? 'Julia pausada' : 'Julia esta respondendo'}
                 </span>
                 <p className="text-xs text-state-ai-muted">
-                  {isPaused ? conversation.motivo_pausa || 'Pausada pelo supervisor' : 'Respostas automaticas ativas'}
+                  {isPaused
+                    ? conversation.motivo_pausa || 'Pausada pelo supervisor'
+                    : 'Respostas automaticas ativas'}
                 </p>
               </div>
             </div>
