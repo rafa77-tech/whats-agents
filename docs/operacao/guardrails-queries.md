@@ -1,6 +1,9 @@
 # Queries de Auditoria - Guardrails
 
-Sprint 18.1 - Queries para análise de bloqueios e bypasses.
+**Sprint Original:** 18.1 - Queries para análise de bloqueios e bypasses
+**Atualizado:** Sprint 57 (Fevereiro 2026)
+
+**IMPORTANTE:** Todas as queries neste documento foram validadas contra o schema atual e estão funcionais.
 
 ## 1. Bloqueios por opted_out em 24h
 
@@ -110,9 +113,14 @@ ORDER BY 1 DESC, 2;
 ## 8. Warnings de integridade (buscar nos logs)
 
 ```bash
-# Buscar warnings de integridade nos logs
+# Buscar warnings de integridade nos logs Railway
+railway logs | grep "INTEGRITY_WARNING"
+
+# OU localmente se tiver acesso aos logs
 grep "INTEGRITY_WARNING" /var/log/julia/*.log | tail -100
 ```
+
+**NOTA:** Logs do Railway podem ser acessados via `railway logs -n 100` (últimas 100 linhas) ou `railway logs` (streaming).
 
 ---
 
@@ -218,3 +226,22 @@ ORDER BY 1 DESC;
 4. Se veio do policy engine, `policy_decision_id` deve estar preenchido
 5. `is_proactive=true` ⇒ `method != reply`
 6. `details` nunca pode carregar PII (telefone/texto cru)
+
+---
+
+## Referencia de Codigo
+
+- **Guardrails Check:** `app/services/guardrails/check.py` - verificacao de guardrails
+- **Guardrails Types:** `app/services/guardrails/types.py` - tipos e estruturas
+- **Business Events:** `app/services/business_events/` - emissao de eventos
+- **Outbound:** `app/services/outbound.py` - controle de envios
+
+**Event Types relevantes:**
+- `OUTBOUND_BLOCKED` - envio bloqueado por guardrail
+- `OUTBOUND_BYPASS` - envio permitido por bypass humano
+- `OUTBOUND_FALLBACK` - fallback legado usado
+- `OUTBOUND_DEDUPED` - envio bloqueado por deduplicacao
+
+---
+
+*Última verificacao: Sprint 57 (10/02/2026) - Queries validadas e funcionais*

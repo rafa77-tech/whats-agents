@@ -1,6 +1,21 @@
 # Canary de Produção - Go/No-Go e Critérios de Escala
 
-Sprint 18.1 P0 - Documento de governança para rollout de guardrails.
+> **AVISO DE DEPRECACAO**
+>
+> Este documento refere-se ao sistema de canary deployment da **Sprint 18** (dezembro 2025).
+>
+> **Status atual:** Sistema de guardrails foi implementado e esta em producao. O processo de canary gradual (10% → 25% → 50% → 100%) foi substituido por deploys diretos com guardrails obrigatorios.
+>
+> **Para informacoes sobre o deploy atual, consulte:**
+> - `docs/setup/deploy.md` - Deploy Railway (3 servicos: api, worker, scheduler)
+> - `docs/operacao/runbook.md` - Procedimentos operacionais
+> - `.github/workflows/ci.yml` - CI/CD pipeline atual
+>
+> Este documento e mantido apenas para referencia historica.
+
+---
+
+Sprint 18.1 P0 - Documento de governança para rollout de guardrails (HISTORICO).
 
 ---
 

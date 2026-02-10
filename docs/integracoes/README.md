@@ -141,7 +141,90 @@ class EvolutionService:
 
 ---
 
-## 2. Anthropic (Claude LLM)
+## 2. Z-API (WhatsApp SaaS)
+
+### O que e
+
+Z-API e uma alternativa SaaS paga para conectar ao WhatsApp. Provider alternativo ao Evolution API, com melhor uptime e suporte.
+
+### Configuracao
+
+```python
+# app/services/whatsapp_providers/zapi.py
+
+from app.services.whatsapp_providers.zapi import ZApiProvider
+
+# Inicializar provider
+provider = ZApiProvider(
+    instance_id="SUA_INSTANCE_ID",
+    token="SEU_TOKEN",
+    client_token="SEU_CLIENT_TOKEN"  # Opcional
+)
+```
+
+### Endpoints Utilizados
+
+| Endpoint | Metodo | Uso |
+|----------|--------|-----|
+| `/send-text` | POST | Enviar mensagem texto |
+| `/send-image` | POST | Enviar imagem |
+| `/send-document/pdf` | POST | Enviar documento |
+| `/status` | GET | Verificar conexao |
+| `/disconnect` | GET | Desconectar instancia |
+| `/restart` | GET | Reiniciar instancia |
+
+### Servico: ZApiProvider
+
+```python
+# app/services/whatsapp_providers/zapi.py
+
+class ZApiProvider(WhatsAppProvider):
+    async def send_text(self, phone: str, message: str) -> MessageResult:
+        """Envia mensagem de texto"""
+
+    async def send_media(
+        self,
+        phone: str,
+        media_url: str,
+        caption: str = None,
+        media_type: str = "image"
+    ) -> MessageResult:
+        """Envia midia (imagem, video, audio, documento)"""
+
+    async def get_status(self) -> ConnectionStatus:
+        """Verifica status da conexao"""
+
+    async def is_connected(self) -> bool:
+        """Retorna True se conectado"""
+```
+
+### Multi-Provider Support
+
+Sprint 26 - E08: Sistema suporta multiplos providers simultaneamente.
+
+```python
+# Selecao automatica de provider por chip
+from app.services.whatsapp_providers import get_provider_for_chip
+
+chip = await buscar_chip(chip_id)
+provider = get_provider_for_chip(chip)
+
+result = await provider.send_text(phone, message)
+```
+
+### Comparacao Evolution vs Z-API
+
+| Aspecto | Evolution API | Z-API |
+|---------|---------------|-------|
+| Hospedagem | Self-hosted | SaaS |
+| Custo | Gratis (infra propria) | Pago por instancia |
+| Uptime | Variavel | 99.9% SLA |
+| Suporte | Comunidade | Comercial |
+| Rate Limiting | Configuravel | Definido pelo plano |
+
+---
+
+## 3. Anthropic (Claude LLM)
 
 ### O que e
 
@@ -160,10 +243,10 @@ LLM_MAX_TOKENS=1024
 
 ### Modelos Utilizados
 
-| Modelo | Uso | Custo |
-|--------|-----|-------|
-| claude-3-5-haiku | Respostas simples (80%) | $0.25/1M input |
-| claude-sonnet-4 | Negociacao complexa (20%) | $3/1M input |
+| Modelo | ID Completo | Uso | Custo |
+|--------|-------------|-----|-------|
+| Claude 3.5 Haiku | claude-3-5-haiku-20241022 | Respostas simples (80%) | $0.25/1M input |
+| Claude Sonnet 4 | claude-sonnet-4-20250514 | Negociacao complexa (20%) | $3/1M input |
 
 ### Servico: LLMService
 
@@ -280,7 +363,7 @@ Voce e Julia Mendes, escalista da Revoluna com 4 anos de experiencia.
 
 ---
 
-## 3. Supabase (PostgreSQL)
+## 4. Supabase (PostgreSQL)
 
 ### O que e
 
@@ -297,21 +380,20 @@ SUPABASE_SERVICE_KEY=eyJ...
 ### Cliente
 
 ```python
-# app/core/database.py
+# app/services/supabase.py
 
-from supabase import create_client, Client
+from app.services.supabase import supabase
 
-def get_supabase() -> Client:
-    return create_client(
-        settings.SUPABASE_URL,
-        settings.SUPABASE_SERVICE_KEY
-    )
+# IMPORTANTE: Sempre usar import direto do supabase
+# NAO usar get_supabase() ou get_supabase_client() (deprecated)
 ```
 
 ### Operacoes Principais
 
 ```python
 # Inserir
+from app.services.supabase import supabase
+
 supabase.table("clientes").insert({"nome": "Dr. Carlos"}).execute()
 
 # Buscar
@@ -364,7 +446,7 @@ USING (auth.role() = 'service_role');
 
 ---
 
-## 4. Redis
+## 5. Redis
 
 ### O que e
 
@@ -436,7 +518,7 @@ class RateLimiter:
 
 ---
 
-## 5. Chatwoot
+## 6. Chatwoot
 
 ### O que e
 
@@ -522,7 +604,7 @@ class ChatwootService:
 
 ---
 
-## 6. Slack
+## 7. Slack
 
 ### O que e
 
@@ -592,7 +674,7 @@ blocks = [
 
 ---
 
-## 7. Google Docs (Briefing)
+## 8. Google Docs (Briefing)
 
 ### O que e
 
@@ -694,13 +776,14 @@ async def job_sync_briefing():
 
 ---
 
-## 8. Resumo de Dependencias
+## 9. Resumo de Dependencias
 
 ### Servicos Externos
 
 | Servico | Criticidade | Fallback |
 |---------|-------------|----------|
-| Evolution API | Alta | Queue + retry |
+| Evolution API | Alta | Queue + retry ou Z-API |
+| Z-API | Alta | Queue + retry ou Evolution |
 | Anthropic | Alta | Circuit breaker |
 | Supabase | Alta | Nenhum (core) |
 | Redis | Media | Fallback in-memory |
@@ -743,6 +826,11 @@ CIRCUIT_CONFIG = {
         "connected": true,
         "latency_ms": 45
     },
+    "zapi": {
+        "status": "healthy",
+        "connected": true,
+        "latency_ms": 32
+    },
     "supabase": {
         "status": "healthy",
         "tables": 32,
@@ -763,7 +851,7 @@ CIRCUIT_CONFIG = {
 
 ---
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 ### Evolution API
 
@@ -772,6 +860,15 @@ CIRCUIT_CONFIG = {
 | 401 Unauthorized | API key errada | Verificar EVOLUTION_API_KEY |
 | WhatsApp desconectado | Sessao expirou | Escanear QR code novamente |
 | Mensagem nao enviada | Rate limit | Aguardar ou verificar contadores |
+
+### Z-API
+
+| Problema | Causa Provavel | Solucao |
+|----------|----------------|---------|
+| 401 Unauthorized | Token invalido | Verificar instance_id e token |
+| 403 Forbidden | Client-Token invalido | Verificar client_token ou permissoes |
+| WhatsApp desconectado | Sessao expirou | Reiniciar instancia via dashboard Z-API |
+| Rate limit | Plano excedido | Upgrade plano ou aguardar |
 
 ### Anthropic
 

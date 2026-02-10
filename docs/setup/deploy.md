@@ -6,413 +6,457 @@
 
 ## Arquitetura de Deploy
 
+O Agente Julia e composto por 3 servicos independentes rodando no Railway:
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        INTERNET                              │
-└─────────────────────────────┬───────────────────────────────┘
+│                     RAILWAY PROJECT                          │
+│              remarkable-communication                        │
+└─────────────────────────────────────────────────────────────┘
                               │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     LOAD BALANCER                            │
-│                   (Nginx / Traefik)                          │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-          ┌───────────────────┼───────────────────┐
-          │                   │                   │
-          ▼                   ▼                   ▼
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│    API Julia    │ │    API Julia    │ │    API Julia    │
-│   (Container)   │ │   (Container)   │ │   (Container)   │
-│    Port 8000    │ │    Port 8000    │ │    Port 8000    │
-└─────────────────┘ └─────────────────┘ └─────────────────┘
-          │                   │                   │
-          └───────────────────┼───────────────────┘
-                              │
-          ┌───────────────────┼───────────────────┐
-          │                   │                   │
-          ▼                   ▼                   ▼
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│   Supabase      │ │     Redis       │ │   Evolution     │
-│  (Managed)      │ │  (Container)    │ │  (Container)    │
-└─────────────────┘ └─────────────────┘ └─────────────────┘
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+        ▼                     ▼                     ▼
+┌───────────────┐    ┌───────────────┐    ┌───────────────┐
+│  whats-agents │    │ whats-agents  │    │ whats-agents  │
+│               │    │               │    │               │
+│ RUN_MODE=api  │    │ RUN_MODE=     │    │ RUN_MODE=     │
+│               │    │ worker        │    │ scheduler     │
+│               │    │               │    │               │
+│ Uvicorn       │    │ ARQ worker    │    │ APScheduler   │
+│ Port 8000     │    │ (fila)        │    │ (jobs)        │
+└───────┬───────┘    └───────┬───────┘    └───────┬───────┘
+        │                    │                    │
+        └────────────────────┼────────────────────┘
+                             │
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+        ▼                    ▼                    ▼
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  Supabase   │    │    Redis    │    │  Evolution  │
+│  (Managed)  │    │ (Railway)   │    │    API      │
+│             │    │             │    │  (External) │
+└─────────────┘    └─────────────┘    └─────────────┘
 ```
 
 ---
 
-## Componentes para Deploy
+## Componentes
 
-| Componente | Tipo | Replicas |
-|------------|------|----------|
-| API Julia | Container | 1-3 |
-| Scheduler | Container | 1 |
-| Fila Worker | Container | 1-2 |
-| Evolution API | Container | 1 |
-| Redis | Container | 1 |
-| Chatwoot | Container | 1 |
-| Supabase | Managed | - |
-
----
-
-## Docker Compose Producao
-
-```yaml
-# docker-compose.prod.yml
-
-version: '3.8'
-
-services:
-  julia-api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - ENVIRONMENT=production
-      - DEBUG=false
-    env_file:
-      - .env.production
-    restart: always
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-
-  julia-scheduler:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: python -m app.workers scheduler
-    env_file:
-      - .env.production
-    restart: always
-    depends_on:
-      - julia-api
-
-  julia-fila:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: python -m app.workers fila
-    env_file:
-      - .env.production
-    restart: always
-    depends_on:
-      - julia-api
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    restart: always
-    command: redis-server --appendonly yes
-
-  evolution-api:
-    image: atendai/evolution-api:latest
-    ports:
-      - "8080:8080"
-    volumes:
-      - evolution-data:/evolution/instances
-    env_file:
-      - .env.evolution
-    restart: always
-
-volumes:
-  redis-data:
-  evolution-data:
-```
+| Servico | Imagem | RUN_MODE | Descricao |
+|---------|--------|----------|-----------|
+| whats-agents (api) | Dockerfile | `api` | FastAPI server (webhook, endpoints) |
+| whats-agents (worker) | Dockerfile | `worker` | ARQ worker (fila de mensagens) |
+| whats-agents (scheduler) | Dockerfile | `scheduler` | APScheduler (jobs agendados) |
+| Redis | Railway Plugin | - | Cache e filas |
+| Supabase | External | - | PostgreSQL + pgvector |
+| Evolution API | External | - | WhatsApp gateway |
 
 ---
 
-## Dockerfile
+## Railway: 3 Servicos, 1 Dockerfile
 
-```dockerfile
-# Dockerfile
+Todos os 3 servicos usam o **mesmo Dockerfile** e a **mesma imagem Docker**.
 
-FROM python:3.13-slim
+O que diferencia cada servico e a variavel de ambiente `RUN_MODE`:
 
-WORKDIR /app
+| Servico | RUN_MODE | Comando Executado |
+|---------|----------|-------------------|
+| API | `api` | `uvicorn app.main:app --host 0.0.0.0 --port 8000` |
+| Worker | `worker` | `python -m app.workers.fila_worker` |
+| Scheduler | `scheduler` | `python -m app.workers.scheduler` |
 
-# Instalar uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+### Como Funciona
 
-# Copiar arquivos de dependencias
-COPY pyproject.toml uv.lock ./
-
-# Instalar dependencias
-RUN uv sync --frozen --no-dev
-
-# Copiar codigo
-COPY app/ ./app/
-
-# Expor porta
-EXPOSE 8000
-
-# Comando padrao
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
----
-
-## Variaveis de Producao
+O `entrypoint.sh` le a variavel `RUN_MODE` e executa o comando apropriado:
 
 ```bash
-# .env.production
+# scripts/entrypoint.sh
 
-# App
+case "$RUN_MODE" in
+    api)
+        exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+        ;;
+    worker)
+        exec python -m app.workers.fila_worker
+        ;;
+    scheduler)
+        exec python -m app.workers.scheduler
+        ;;
+    *)
+        echo "ERROR: Invalid RUN_MODE: $RUN_MODE"
+        exit 1
+        ;;
+esac
+```
+
+---
+
+## Setup Railway
+
+### 1. Criar Projeto
+
+1. Acesse https://railway.app
+2. New Project → Deploy from GitHub repo
+3. Selecione o repositorio `whatsapp-api`
+4. Railway detecta o Dockerfile automaticamente
+
+### 2. Adicionar Redis
+
+1. New → Database → Redis
+2. Railway injeta `REDIS_URL` automaticamente nos servicos
+
+### 3. Criar 3 Servicos
+
+Railway permite criar multiplos servicos a partir do mesmo repositorio.
+
+**Servico 1: API**
+
+1. Settings → Service Name: `whats-agents-api`
+2. Variables → Add Variable:
+   - `RUN_MODE=api`
+   - `APP_ENV=production`
+   - (mais variaveis abaixo)
+3. Settings → Networking → Public Domain: Habilitar
+
+**Servico 2: Worker**
+
+1. New → GitHub Repo (mesmo repo)
+2. Settings → Service Name: `whats-agents-worker`
+3. Variables → Add Variable:
+   - `RUN_MODE=worker`
+   - `APP_ENV=production`
+   - (copiar todas as outras variaveis do servico API)
+
+**Servico 3: Scheduler**
+
+1. New → GitHub Repo (mesmo repo)
+2. Settings → Service Name: `whats-agents-scheduler`
+3. Variables → Add Variable:
+   - `RUN_MODE=scheduler`
+   - `APP_ENV=production`
+   - (copiar todas as outras variaveis do servico API)
+
+---
+
+## Variaveis de Ambiente (Producao)
+
+Configurar as mesmas variaveis nos 3 servicos (exceto `RUN_MODE`):
+
+### App
+
+```bash
+APP_NAME=Agente Julia
 ENVIRONMENT=production
+APP_ENV=production
 DEBUG=false
-LOG_LEVEL=WARNING
+LOG_LEVEL=INFO
+TZ=America/Sao_Paulo
+```
 
-# Supabase
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_KEY=eyJ...
+### Seguranca
 
-# Anthropic
+```bash
+JWT_SECRET_KEY=<openssl rand -hex 32>
+CORS_ORIGINS=https://dashboard.revoluna.app
+```
+
+### Supabase (Producao)
+
+```bash
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_SERVICE_KEY=eyJhbG...
+SUPABASE_PROJECT_REF=xxxxx
+```
+
+### Anthropic
+
+```bash
 ANTHROPIC_API_KEY=sk-ant-...
+LLM_MODEL=claude-3-5-haiku-20241022
+LLM_MODEL_COMPLEX=claude-sonnet-4-20250514
+```
 
-# Evolution (usar URL interno do Docker)
-EVOLUTION_API_URL=http://evolution-api:8080
+### Voyage AI
+
+```bash
+VOYAGE_API_KEY=pa-...
+VOYAGE_MODEL=voyage-3.5-lite
+```
+
+### Evolution API
+
+```bash
+EVOLUTION_API_URL=https://evolution.seudominio.com
 EVOLUTION_API_KEY=xxx
-EVOLUTION_INSTANCE=julia-prod
+EVOLUTION_INSTANCE=Revoluna
+MULTI_CHIP_ENABLED=true
+```
 
-# Redis (usar URL interno do Docker)
-REDIS_URL=redis://redis:6379/0
+### Chatwoot
 
-# Rate Limits (mais restritivos em prod)
-MAX_MSGS_POR_HORA=15
-MAX_MSGS_POR_DIA=80
+```bash
+CHATWOOT_URL=https://chatwoot.seudominio.com
+CHATWOOT_API_KEY=xxx
+CHATWOOT_ACCOUNT_ID=1
+CHATWOOT_INBOX_ID=1
+```
 
-# Julia API (para scheduler)
-JULIA_API_URL=http://julia-api:8000
+### Slack
+
+```bash
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx
+SLACK_CHANNEL=#julia-gestao
+SLACK_BOT_TOKEN=xoxb-xxx
+SLACK_SIGNING_SECRET=xxx
+```
+
+### Google
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/google-sa.json
+GOOGLE_BRIEFINGS_FOLDER_ID=xxx
+GOOGLE_TEMPLATES_FOLDER_ID=xxx
+```
+
+### Rate Limiting
+
+```bash
+MAX_MSGS_POR_HORA=20
+MAX_MSGS_POR_DIA=100
+HORARIO_INICIO=08:00
+HORARIO_FIM=20:00
+PILOT_MODE=false
+```
+
+### Empresa
+
+```bash
+NOME_EMPRESA=Revoluna
+GESTOR_WHATSAPP=5511999999999
+```
+
+### Redis
+
+Railway injeta automaticamente:
+```bash
+REDIS_URL=redis://:password@redis.railway.internal:6379
 ```
 
 ---
 
-## Deploy Commands
+## CI/CD Automatico
 
-### Build e Push
+O workflow `.github/workflows/ci.yml` faz deploy automatico na main.
+
+### Funcionamento
+
+1. Push para `main` → Trigger workflow
+2. Lint & Type Check
+3. Run Tests
+4. Build Docker Image
+5. Deploy to Railway (3 servicos)
+6. Health Check
+7. Notificacao Slack
+
+### Secrets do GitHub
+
+Repository → Settings → Secrets and variables → Actions
+
+| Secret | Descricao |
+|--------|-----------|
+| `RAILWAY_TOKEN` | Token de deploy Railway |
+| `RAILWAY_PROJECT_ID` | ID do projeto Railway |
+| `RAILWAY_APP_URL` | URL da API (para health check) |
+| `SUPABASE_URL` | URL Supabase (para testes CI) |
+| `SUPABASE_SERVICE_KEY` | Service key Supabase |
+| `ANTHROPIC_API_KEY` | API key Anthropic |
+
+### Deploy Manual
 
 ```bash
-# Build image
-docker build -t julia-api:latest .
+# Via Railway CLI
+npm install -g @railway/cli
+railway login
+railway link
 
-# Tag para registry
-docker tag julia-api:latest registry.example.com/julia-api:latest
+# Deploy API
+railway up --detach --service whats-agents-api
 
-# Push
-docker push registry.example.com/julia-api:latest
+# Deploy Worker
+railway up --detach --service whats-agents-worker
+
+# Deploy Scheduler
+railway up --detach --service whats-agents-scheduler
 ```
 
-### Deploy
+---
+
+## Health Checks
+
+### API
 
 ```bash
-# Subir em producao
-docker compose -f docker-compose.prod.yml up -d
+# Basic health
+curl https://seu-app.railway.app/health
 
-# Ver logs
-docker compose -f docker-compose.prod.yml logs -f julia-api
-
-# Scale (se necessario)
-docker compose -f docker-compose.prod.yml up -d --scale julia-api=3
+# Deep health (verifica Redis, Supabase)
+curl https://seu-app.railway.app/health/deep
 ```
 
-### Rolling Update
+Resposta esperada:
+
+```json
+{
+  "status": "healthy",
+  "version": "1.0.0",
+  "environment": "production",
+  "git_sha": "abc123",
+  "build_time": "2026-02-10T10:30:00Z",
+  "checks": {
+    "redis": "ok",
+    "supabase": "ok"
+  }
+}
+```
+
+### Worker
+
+O worker nao expoe porta. Verificar logs:
 
 ```bash
-# Atualizar sem downtime
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d --no-deps julia-api
+railway logs --service whats-agents-worker
 ```
+
+Procurar por:
+- `Worker started`
+- `Processing message...`
+
+### Scheduler
+
+O scheduler nao expoe porta. Verificar logs:
+
+```bash
+railway logs --service whats-agents-scheduler
+```
+
+Procurar por:
+- `Scheduler started`
+- `Job executed: sync_briefings`
 
 ---
 
 ## Monitoramento
 
-### Health Checks
+### Logs
 
-Configurar no load balancer:
+```bash
+# API
+railway logs --service whats-agents-api
 
-```nginx
-# nginx.conf
-upstream julia {
-    server julia-api-1:8000;
-    server julia-api-2:8000;
-}
+# Worker
+railway logs --service whats-agents-worker
 
-server {
-    location /health {
-        proxy_pass http://julia/health;
-    }
-}
+# Scheduler
+railway logs --service whats-agents-scheduler
+
+# Todos os servicos
+railway logs
+
+# Follow (streaming)
+railway logs -f
 ```
 
-### Prometheus Metrics (Futuro)
+### Metricas (Railway Dashboard)
 
-```python
-# app/core/metrics.py
-from prometheus_client import Counter, Histogram
-
-mensagens_recebidas = Counter(
-    'julia_mensagens_recebidas_total',
-    'Total de mensagens recebidas'
-)
-
-tempo_resposta = Histogram(
-    'julia_tempo_resposta_segundos',
-    'Tempo de resposta do LLM'
-)
-```
+1. Project → Metrics
+2. Verificar para cada servico:
+   - CPU Usage
+   - Memory Usage
+   - Restart Count
 
 ### Alertas
 
-Configurar alertas para:
+Configurar via Slack webhook (variaveis acima):
 
 | Metrica | Threshold | Acao |
 |---------|-----------|------|
-| Error rate | > 5% | Notificar Slack |
-| Latencia | > 5s | Notificar Slack |
-| Circuit open | any | Notificar Slack urgente |
-| Rate limit | > 90% | Notificar Slack |
-| Deteccao bot | > 5% | Notificar Slack |
+| Error rate | > 5% | Notifica Slack |
+| Circuit open | any | Notifica Slack urgente |
+| Health check fail | 3x | Notifica Slack |
 
 ---
 
-## Backup e Recovery
+## Rollback
 
-### Supabase
+### Via Railway Dashboard
 
-Supabase faz backup automatico. Para restaurar:
+1. Railway → Deployments
+2. Selecionar deploy anterior estaval
+3. Click "Redeploy"
 
-```bash
-# Download backup via dashboard
-# Ou usar pg_dump/pg_restore
-```
-
-### Redis
+### Via CLI
 
 ```bash
-# Backup manual
-docker exec redis redis-cli BGSAVE
+# Listar deploys
+railway deployments list --service whats-agents-api
 
-# Copiar arquivo RDB
-docker cp redis:/data/dump.rdb ./backups/
+# Rollback para deploy anterior
+railway rollback <deployment-id> --service whats-agents-api --yes
 ```
 
-### Evolution (Sessoes WhatsApp)
+### Rollback Automatico
 
-```bash
-# Backup das sessoes
-docker cp evolution-api:/evolution/instances ./backups/evolution/
-
-# Restaurar
-docker cp ./backups/evolution/ evolution-api:/evolution/instances
-```
+O workflow CI/CD faz rollback automatico se health check falhar apos deploy.
 
 ---
 
-## Logs
-
-### Estrutura de Logs
-
-```json
-{
-    "timestamp": "2025-12-07T10:30:00Z",
-    "level": "INFO",
-    "service": "julia-api",
-    "message": "Mensagem processada",
-    "context": {
-        "medico_id": "uuid",
-        "conversa_id": "uuid",
-        "latencia_ms": 1234
-    }
-}
-```
-
-### Agregacao de Logs
-
-Recomendado usar:
-- **ELK Stack** (Elasticsearch, Logstash, Kibana)
-- **Grafana Loki**
-- **Datadog**
-
----
-
-## Seguranca em Producao
-
-### Checklist
-
-- [ ] HTTPS obrigatorio
-- [ ] Secrets em vault (nao .env)
-- [ ] RLS ativo no Supabase
-- [ ] API keys rotacionadas
-- [ ] Rate limiting no load balancer
-- [ ] Logs sem dados sensiveis
-- [ ] Backup automatico
-
-### Rotacao de Secrets
-
-```bash
-# Rotacionar API key Anthropic
-1. Gerar nova key no console
-2. Atualizar .env.production
-3. Restart containers
-4. Revogar key antiga
-
-# Mesma logica para outras keys
-```
-
----
-
-## Troubleshooting Producao
+## Troubleshooting
 
 ### Container reiniciando
 
 ```bash
 # Ver logs
-docker logs julia-api --tail 100
+railway logs --service whats-agents-api --tail 100
 
-# Ver eventos
-docker events --filter container=julia-api
-
-# Comum: OOM (Out of Memory)
-# Solucao: aumentar limite de memoria
+# Comum: RUN_MODE nao definido
+# Solucao: Verificar variavel RUN_MODE nas Settings
 ```
 
-### Conexao recusada
+### Erro: "RUN_MODE environment variable is required!"
 
 ```bash
-# Verificar rede Docker
-docker network inspect julia-network
-
-# Testar conectividade
-docker exec julia-api ping redis
+# Causa: Variavel RUN_MODE nao configurada
+# Solucao: Railway → Service → Variables → Add Variable
+RUN_MODE=api  # ou worker, ou scheduler
 ```
 
-### Rate limit atingido
+### Worker nao processa mensagens
 
 ```bash
-# Verificar uso atual
-curl http://localhost:8000/health/rate
+# Verificar logs do worker
+railway logs --service whats-agents-worker -f
 
-# Se necessario, resetar contadores
-docker exec redis redis-cli DEL "rate:global:hour"
-docker exec redis redis-cli DEL "rate:global:day"
+# Verificar Redis
+railway variables --service whats-agents-worker | grep REDIS_URL
+
+# Testar conexao Redis (via API health check)
+curl https://seu-app.railway.app/health/deep
 ```
 
-### Circuit breaker aberto
+### Scheduler nao executa jobs
 
 ```bash
-# Verificar status
-curl http://localhost:8000/health/circuit
+# Verificar logs
+railway logs --service whats-agents-scheduler -f
 
-# Aguardar recovery_timeout ou
-# Restart para resetar estado
-docker restart julia-api
+# Procurar por:
+# - "Scheduler started"
+# - "Job executed: <job_name>"
+# - "Job failed: <error>"
+
+# Se nao aparecer jobs, verificar timezone
+railway variables --service whats-agents-scheduler | grep TZ
 ```
 
 ---
@@ -422,234 +466,71 @@ docker restart julia-api
 ### Pausar Julia (Emergencia)
 
 ```bash
-# 1. Atualizar status no banco
-# Via Supabase dashboard ou SQL:
+# Via Slack
+# @julia pausar julia motivo: emergencia
+
+# Ou via SQL (Supabase)
 INSERT INTO julia_status (status, motivo, alterado_via)
 VALUES ('pausado', 'Emergencia - pausado manualmente', 'manual');
-
-# 2. O webhook verifica este status e para de processar
 ```
 
 ### Retomar Julia
 
 ```bash
-# 1. Atualizar status
+# Via Slack
+# @julia retomar julia
+
+# Ou via SQL
 INSERT INTO julia_status (status, motivo, alterado_via)
 VALUES ('ativo', 'Retomando operacao', 'manual');
 ```
 
-### Handoff Manual de Conversa
-
-```sql
--- Marcar conversa para humano assumir
-UPDATE conversations
-SET controlled_by = 'human',
-    escalation_reason = 'Handoff manual'
-WHERE id = 'uuid-da-conversa';
-```
-
----
-
-## SLA e Disponibilidade
-
-### Metas
-
-| Metrica | Meta |
-|---------|------|
-| Uptime | 99.5% |
-| Tempo resposta | < 5s |
-| Taxa erro | < 1% |
-
-### Calculo de Uptime
-
-```
-Uptime = (Tempo total - Tempo down) / Tempo total * 100
-
-Ex: Mes de 30 dias
-- 99.5% = max 3.6h de downtime
-- 99.9% = max 43min de downtime
-```
-
----
-
-## Deploy Railway (Recomendado)
-
-Railway oferece deploy simplificado com CI/CD integrado.
-
-### Setup Inicial
-
-1. **Criar Projeto**
-   - https://railway.app → "New Project" → "Deploy from GitHub repo"
-   - Selecionar repositório
-   - Railway detecta Dockerfile automaticamente
-
-2. **Adicionar Redis**
-   - "New" → "Database" → "Redis"
-   - Railway injeta `REDIS_URL` automaticamente
-
-3. **Configurar Variáveis**
+### Restart Servico
 
 ```bash
-# No painel Variables do Railway:
+# Via CLI
+railway restart --service whats-agents-api
 
-# App
-ENVIRONMENT=production
-DEBUG=false
-LOG_LEVEL=INFO
-
-# Segurança
-JWT_SECRET_KEY=<openssl rand -hex 32>
-CORS_ORIGINS=https://app.revoluna.com
-
-# Supabase (projeto de produção)
-SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbG...
-
-# Anthropic
-ANTHROPIC_API_KEY=sk-ant-...
-LLM_MODEL=claude-3-5-haiku-20241022
-LLM_MODEL_COMPLEX=claude-sonnet-4-20250514
-
-# Voyage AI
-VOYAGE_API_KEY=pa-...
-VOYAGE_MODEL=voyage-3.5-lite
-
-# Evolution API
-EVOLUTION_API_URL=https://evolution.seudominio.com
-EVOLUTION_API_KEY=xxx
-EVOLUTION_INSTANCE=Revoluna
-
-# Chatwoot
-CHATWOOT_URL=https://chatwoot.seudominio.com
-CHATWOOT_API_KEY=xxx
-CHATWOOT_ACCOUNT_ID=1
-CHATWOOT_INBOX_ID=1
-
-# Slack
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx
-SLACK_CHANNEL=#julia-gestao
-SLACK_BOT_TOKEN=xoxb-xxx
-SLACK_SIGNING_SECRET=xxx
-
-# Rate Limiting
-MAX_MSGS_POR_HORA=20
-MAX_MSGS_POR_DIA=100
-HORARIO_INICIO=08:00
-HORARIO_FIM=20:00
-
-# Empresa
-NOME_EMPRESA=Revoluna
-GESTOR_WHATSAPP=5511999999999
+# Via Dashboard
+# Railway → Service → Settings → Restart
 ```
 
-### Gerar Token de Deploy
+### Escalar Replicas
 
-1. Railway → Account Settings → Tokens
-2. "Create Token" → Nome: `github-deploy`
-3. Copiar token (formato: `rlw_xxxx`)
-4. Adicionar como GitHub Secret: `RAILWAY_TOKEN`
-
-### CI/CD Automático
-
-O workflow `.github/workflows/ci.yml` faz deploy automático na main.
-
-Para deploy manual:
+Railway Pro permite replicas horizontais:
 
 ```bash
-# Via Railway CLI
-npm install -g @railway/cli
-railway login
-railway up
-
-# Via GitHub Actions
-gh workflow run ci.yml --ref main
+# Via Dashboard
+# Railway → Service → Settings → Replicas → 2
 ```
 
-### Verificação
-
-```bash
-# Health check
-curl https://seu-app.railway.app/health
-
-# Resposta esperada
-{"status": "healthy", "version": "1.0.0", "environment": "production"}
-```
-
-### Rollback
-
-1. Railway → Deployments
-2. Encontrar deploy estável anterior
-3. Clicar "Redeploy"
-
----
-
-## Supabase Produção
-
-### Criar Projeto Separado
-
-1. https://supabase.com/dashboard → "New Project"
-2. Nome: `julia-prod`
-3. Região: `South America (São Paulo)`
-4. Salvar password
-
-### Aplicar Schema
-
-**Opção A: Supabase CLI**
-
-```bash
-# Instalar
-brew install supabase/tap/supabase
-
-# Login e link staging
-supabase login
-supabase link --project-ref SEU_REF_STAGING
-
-# Exportar schema
-supabase db dump -f schema.sql
-
-# Link prod e aplicar
-supabase link --project-ref SEU_REF_PROD
-supabase db push
-```
-
-**Opção B: Dashboard**
-
-1. Staging: Database → Backups → Download
-2. Prod: SQL Editor → Colar e executar
-
-### Habilitar Extensões
-
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-CREATE EXTENSION IF NOT EXISTS unaccent;
-```
-
----
-
-## GitHub Secrets
-
-Repository → Settings → Secrets and variables → Actions
-
-| Secret | Descrição |
-|--------|-----------|
-| `SUPABASE_URL` | URL projeto staging (testes CI) |
-| `SUPABASE_SERVICE_KEY` | Service key staging |
-| `ANTHROPIC_API_KEY` | API key Anthropic |
-| `RAILWAY_TOKEN` | Token de deploy Railway |
+**Importante:** Apenas o servico API deve ter replicas. Worker e Scheduler devem ter 1 replica cada.
 
 ---
 
 ## Checklist Deploy
 
-- [ ] Supabase prod criado com schema aplicado
-- [ ] Extensões habilitadas (vector, pg_trgm, unaccent)
+- [ ] Supabase producao criado com schema aplicado
+- [ ] Extensoes habilitadas (vector, pg_trgm, unaccent)
 - [ ] Railway projeto configurado
 - [ ] Redis adicionado no Railway
-- [ ] Todas variáveis de ambiente no Railway
+- [ ] 3 servicos criados (api, worker, scheduler)
+- [ ] Variavel RUN_MODE configurada em cada servico
+- [ ] Todas variaveis de ambiente nos 3 servicos
 - [ ] GitHub Secrets configurados
 - [ ] CI/CD workflow testado
-- [ ] Health check respondendo
+- [ ] Health check respondendo (API)
+- [ ] Worker processando mensagens
+- [ ] Scheduler executando jobs
 - [ ] Evolution API apontando para URL Railway
 - [ ] Webhook Evolution configurado
-- [ ] Slack notificações funcionando
+- [ ] Slack notificacoes funcionando
+
+---
+
+## Documentacao Relacionada
+
+- **Railway CLI:** `docs/integracoes/railway-quickref.md`
+- **Railway Deploy:** `docs/integracoes/railway-deploy.md`
+- **Configuracao:** `docs/setup/configuracao.md`
+- **CI/CD Backend:** `.github/workflows/ci.yml`

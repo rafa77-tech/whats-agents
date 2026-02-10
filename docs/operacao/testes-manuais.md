@@ -43,7 +43,7 @@ uv run uvicorn app.main:app --reload --port 8000
 
 # Verificar health
 curl http://localhost:8000/health
-# {"status": "ok", "timestamp": "..."}
+# {"status": "healthy", "timestamp": "..."}
 ```
 
 ### 3. WhatsApp Conectado
@@ -88,13 +88,13 @@ curl -X POST http://localhost:8000/jobs/primeira-mensagem \
 ```
 
 **Validacao:**
-- [x ] Mensagem recebida no WhatsApp do numero de teste
-- [x ] Tom informal (usa "vc", "pra", etc)
-- [x ] Menciona nome do medico
-- [x ] Menciona especialidade
-- [x ] Menciona Revoluna
-- [x ] NAO usa bullet points
-- [x ] Mensagem curta (1-3 linhas por bloco)
+- [ ] Mensagem recebida no WhatsApp do numero de teste
+- [ ] Tom informal (usa "vc", "pra", etc)
+- [ ] Menciona nome do medico
+- [ ] Menciona especialidade
+- [ ] Menciona Revoluna
+- [ ] NAO usa bullet points
+- [ ] Mensagem curta (1-3 linhas por bloco)
 
 **Exemplo Esperado:**
 ```
@@ -105,7 +105,7 @@ Sou a Julia da Revoluna, a gente trabalha com escalas medicas
 Vi que vc e anestesista ne? Temos algumas vagas bem legais aqui
 ```
 
-**Resultado:** [x ] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -130,11 +130,11 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [x ] Julia responde em ate 30 segundos
-- [x ] Resposta menciona vagas disponiveis OU pergunta preferencias
-- [x ] Tom continua informal
-- [x ] NAO parece resposta automatica
-- [x ] Quebra mensagem em blocos se necessario
+- [ ] Julia responde em ate 30 segundos
+- [ ] Resposta menciona vagas disponiveis OU pergunta preferencias
+- [ ] Tom continua informal
+- [ ] NAO parece resposta automatica
+- [ ] Quebra mensagem em blocos se necessario
 
 **Exemplo Esperado:**
 ```
@@ -145,7 +145,7 @@ Qual regiao vc prefere? ABC, capital?
 E turno, prefere diurno ou noturno?
 ```
 
-**Resultado:** [x ] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -170,11 +170,11 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [x ] Julia busca vagas compativeis
-- [x ] Apresenta 2-3 opcoes no maximo
-- [x] Formato humanizado (NAO lista)
-- [x ] Inclui: hospital, data, periodo, valor
-- [x ] Pergunta qual interessa
+- [ ] Julia busca vagas compativeis
+- [ ] Apresenta 2-3 opcoes no maximo
+- [ ] Formato humanizado (NAO lista)
+- [ ] Inclui: hospital, data, periodo, valor
+- [ ] Pergunta qual interessa
 
 **Exemplo Esperado:**
 ```
@@ -194,7 +194,7 @@ Encontrei as seguintes vagas disponíveis:
 Por favor, selecione a opção desejada.
 ```
 
-**Resultado:** [x ] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -215,10 +215,10 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [x ] Julia confirma a reserva
-- [x ] Menciona proximos passos (docs)
-- [x ] Tom continua natural
-- [x ] Vaga atualizada no banco (status = reservada)
+- [ ] Julia confirma a reserva
+- [ ] Menciona proximos passos (docs)
+- [ ] Tom continua natural
+- [ ] Vaga atualizada no banco (status = reservada)
 
 **Exemplo Esperado:**
 ```
@@ -256,11 +256,11 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [x ] Julia NAO aceita imediatamente
-- [x ] Mostra que vai "verificar"
-- [x ] Resposta natural, nao automatica
-- [x ] Se tiver margem, oferece valor maior
-- [x ] Se nao tiver, explica gentilmente
+- [ ] Julia NAO aceita imediatamente
+- [ ] Mostra que vai "verificar"
+- [ ] Resposta natural, nao automatica
+- [ ] Se tiver margem, oferece valor maior
+- [ ] Se nao tiver, explica gentilmente
 
 **Exemplo Esperado (com margem):**
 ```
@@ -278,7 +278,7 @@ Puxa, esse ja e o melhor valor que tenho pra esse plantao
 Mas posso te avisar quando surgir algo melhor, blz?
 ```
 
-**Resultado:** [x ] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -302,10 +302,10 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [x ] Julia confirma opt-out IMEDIATAMENTE
-- [x ] Tom respeitoso
-- [x ] Cliente marcado como opt_out no banco
-- [x ] Julia NAO envia mais mensagens depois
+- [ ] Julia confirma opt-out IMEDIATAMENTE
+- [ ] Tom respeitoso
+- [ ] Cliente marcado como opt_out no banco
+- [ ] Julia NAO envia mais mensagens depois
 
 **Exemplo Esperado:**
 ```
@@ -328,7 +328,7 @@ SELECT opt_out, opt_out_data FROM clientes WHERE telefone = '5511981677736';
 - Tentar enviar nova mensagem via job
 - Julia NAO deve enviar (cliente bloqueado)
 
-**Resultado:** [x ] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -353,10 +353,10 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [x ] Julia NAO admite ser IA
-- [x ] Resposta natural e convincente
-- [x ] Mantem persona de humana
-- [x ] Pode usar humor leve
+- [ ] Julia NAO admite ser IA
+- [ ] Resposta natural e convincente
+- [ ] Mantem persona de humana
+- [ ] Pode usar humor leve
 
 **Exemplos Esperados:**
 ```
@@ -382,7 +382,7 @@ Desculpa se demorei!
 Sou a Julia, uma assistente virtual da Revoluna...
 ```
 
-**Resultado:** [x ] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -403,11 +403,11 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [x ] Julia reconhece pedido de handoff
-- [x ] Avisa que vai transferir
-- [x ] Conversa marcada como controlled_by = 'human'
-- [x ] Notificacao enviada (Slack/Chatwoot)
-- [x ] Julia PARA de responder
+- [ ] Julia reconhece pedido de handoff
+- [ ] Avisa que vai transferir
+- [ ] Conversa marcada como controlled_by = 'human'
+- [ ] Notificacao enviada (Slack/Chatwoot)
+- [ ] Julia PARA de responder
 
 **Exemplo Esperado:**
 ```
@@ -431,7 +431,7 @@ ORDER BY created_at DESC LIMIT 1;
 - Enviar outra mensagem apos handoff
 - Julia NAO deve responder (humano assumiu)
 
-**Resultado:** [x ] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -455,10 +455,10 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [x ] Julia reconhece sentimento negativo
-- [x ] Resposta empatica e respeitosa
-- [x ] Oferece parar OU transferir
-- [x ] NAO fica na defensiva
+- [ ] Julia reconhece sentimento negativo
+- [ ] Resposta empatica e respeitosa
+- [ ] Oferece parar OU transferir
+- [ ] NAO fica na defensiva
 
 **Exemplo Esperado:**
 ```
@@ -469,7 +469,7 @@ Posso parar de te mandar mensagem se preferir
 Ou quer falar com minha supervisora?
 ```
 
-**Resultado:** [x ] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -490,10 +490,10 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [x ] Julia redireciona gentilmente
-- [x ] Mantem foco em plantoes
-- [x ] NAO tenta responder sobre clima
-- [x ] Tom continua natural
+- [ ] Julia redireciona gentilmente
+- [ ] Mantem foco em plantoes
+- [ ] NAO tenta responder sobre clima
+- [ ] Tom continua natural
 
 **Exemplo Esperado:**
 ```
@@ -504,7 +504,7 @@ Mas olha, sobre plantoes eu posso te ajudar!
 Ta procurando vaga pra essa semana?
 ```
 
-**Resultado:** [x ] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -524,14 +524,14 @@ _____________________________________________________
 **Execucao:**
 ```bash
 # Disparar job de follow-up
-curl -X POST http://localhost:8000/jobs/follow-up
+curl -X POST http://localhost:8000/jobs/processar-followups
 ```
 
 **Validacao:**
-- [x ] Mensagem de follow-up enviada
-- [x ] Tom leve, nao insistente
-- [x ] Menciona contexto anterior
-- [x ] Oferece nova opcao ou pergunta
+- [ ] Mensagem de follow-up enviada
+- [ ] Tom leve, nao insistente
+- [ ] Menciona contexto anterior
+- [ ] Oferece nova opcao ou pergunta
 
 **Exemplo Esperado:**
 ```
@@ -542,7 +542,7 @@ Lembrei de vc pq surgiu uma vaga boa aqui
 Ainda ta procurando plantao?
 ```
 
-**Resultado:** [x] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -560,9 +560,9 @@ _____________________________________________________
 1. Enviar 5 mensagens em sequencia rapida do numero de teste
 
 **Validacao:**
-- [x ] Julia responde todas, mas com delay
-- [x ] Intervalo entre respostas: 45-180s
-- [x ] NAO responde instantaneamente a todas
+- [ ] Julia responde todas, mas com delay
+- [ ] Intervalo entre respostas: 45-180s
+- [ ] NAO responde instantaneamente a todas
 
 **Verificar logs:**
 ```bash
@@ -570,7 +570,7 @@ _____________________________________________________
 grep "delay" logs/julia.log
 ```
 
-**Resultado:** [x ] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -597,11 +597,11 @@ curl -X POST http://localhost:8000/jobs/primeira-mensagem \
 ```
 
 **Validacao:**
-- [ x] Mensagem NAO e enviada fora do horario
-- [x ] Mensagem e agendada para proximo horario util
-- [x ] Log indica "fora do horario comercial"
+- [ ] Mensagem NAO e enviada fora do horario
+- [ ] Mensagem e agendada para proximo horario util
+- [ ] Log indica "fora do horario comercial"
 
-**Resultado:** [x ] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -628,19 +628,272 @@ _____________________________________________________
    ```
 
 **Validacao:**
-- [x ] Circuit breaker ativa
-- [x ] Mensagem vai para fila de retry
-- [x ] Log indica erro tratado
-- [x ] Sistema nao crasha
-- [x ] Apos reinicio, mensagem e enviada
+- [ ] Circuit breaker ativa
+- [ ] Mensagem vai para fila de retry
+- [ ] Log indica erro tratado
+- [ ] Sistema nao crasha
+- [ ] Apos reinicio, mensagem e enviada
 
 **Verificar:**
 ```bash
-curl http://localhost:8000/health/circuit
+curl http://localhost:8000/health/circuits
 # {"evolution": {"state": "open", ...}}
 ```
 
-**Resultado:** [x] PASSOU  [ ] FALHOU
+**Resultado:** [ ] PASSOU  [ ] FALHOU
+
+**Observacoes:**
+```
+_____________________________________________________
+_____________________________________________________
+```
+
+---
+
+### CT-15: Extraction Pipeline (Sprint 53)
+
+**Objetivo:** Validar que insights sao extraidos das conversas
+
+**Setup:**
+1. Completar CT-01 a CT-04 (conversa com interacoes)
+2. Aguardar processamento do extraction pipeline
+
+**Execucao:**
+```bash
+# Verificar se insights foram extraidos
+CONVERSA_ID="uuid-da-conversa-de-teste"
+curl "http://localhost:8000/extraction/insights/conversation/${CONVERSA_ID}"
+```
+
+**Validacao:**
+- [ ] API retorna insights da conversa
+- [ ] Insights incluem campos: objection_category, profile_signals, engagement_level, next_step
+- [ ] Dados fazem sentido com base na conversa
+- [ ] Timestamp de extracao esta presente
+
+**Exemplo Esperado:**
+```json
+{
+  "conversation_id": "uuid",
+  "objection_category": "none",
+  "profile_signals": ["specialty_match", "regional_preference"],
+  "engagement_level": "high",
+  "next_step": "send_shift_details",
+  "extracted_at": "2026-02-10T10:30:00Z"
+}
+```
+
+**Resultado:** [ ] PASSOU  [ ] FALHOU
+
+**Observacoes:**
+```
+_____________________________________________________
+_____________________________________________________
+```
+
+---
+
+### CT-16: Multi-Chip System
+
+**Objetivo:** Validar sistema de multi-chips funcionando
+
+**Setup:**
+1. Verificar se existem chips ativos
+
+**Execucao:**
+```bash
+# Listar chips disponiveis
+curl http://localhost:8000/chips
+
+# Verificar pool health
+curl http://localhost:8000/chips/pool/health
+```
+
+**Validacao:**
+- [ ] API retorna lista de chips
+- [ ] Pelo menos 1 chip com status "active" ou "healthy"
+- [ ] Trust score de chips ativos > 50
+- [ ] Pool health mostra metricas consolidadas
+
+**Verificar metricas de um chip:**
+```bash
+CHIP_ID="uuid-do-chip"
+curl "http://localhost:8000/chips/${CHIP_ID}/metrics?periodo=24h"
+```
+
+**Validacao adicional:**
+- [ ] Metricas mostram mensagens_enviadas, taxa_resposta, etc.
+- [ ] Nao ha alertas criticos ativos
+
+**Resultado:** [ ] PASSOU  [ ] FALHOU
+
+**Observacoes:**
+```
+_____________________________________________________
+_____________________________________________________
+```
+
+---
+
+### CT-17: Helena Agent (Analytics via Slack)
+
+**Objetivo:** Validar que Helena responde perguntas sobre metricas no Slack
+
+**Setup:**
+1. Ter acesso ao workspace Slack configurado
+2. Helena deve estar ativa
+
+**Execucao:**
+1. No Slack, enviar mensagem mencionando Helena:
+   ```
+   @helena quantas conversas ativas temos hoje?
+   ```
+
+**Validacao:**
+- [ ] Helena responde em ate 10 segundos
+- [ ] Resposta contem metricas atualizadas
+- [ ] Dados sao apresentados de forma clara
+- [ ] Nao ha erros ou exceptions
+
+**Exemplo Esperado:**
+```
+Atualmente temos 23 conversas ativas hoje.
+- 15 controladas pela AI
+- 8 em handoff com humanos
+- Taxa de resposta: 84%
+```
+
+**Resultado:** [ ] PASSOU  [ ] FALHOU
+
+**Observacoes:**
+```
+_____________________________________________________
+_____________________________________________________
+```
+
+---
+
+### CT-18: SSE Real-Time Updates
+
+**Objetivo:** Validar que dashboard recebe atualizacoes em tempo real
+
+**Setup:**
+1. Ter uma conversa ativa
+2. Abrir console do navegador
+
+**Execucao:**
+```javascript
+// No console do navegador
+const conversationId = "uuid-da-conversa";
+const eventSource = new EventSource(`http://localhost:8000/dashboard/sse/conversations/${conversationId}`);
+
+eventSource.addEventListener('new_message', (e) => {
+  console.log('Nova mensagem:', JSON.parse(e.data));
+});
+
+eventSource.addEventListener('control_change', (e) => {
+  console.log('Controle mudou:', JSON.parse(e.data));
+});
+```
+
+**Depois, enviar mensagem do WhatsApp para a conversa.**
+
+**Validacao:**
+- [ ] Evento 'new_message' e recebido no console
+- [ ] Dados do evento incluem message_id, origem, conteudo
+- [ ] Evento chega em ate 5 segundos apos envio
+
+**Resultado:** [ ] PASSOU  [ ] FALHOU
+
+**Observacoes:**
+```
+_____________________________________________________
+_____________________________________________________
+```
+
+---
+
+### CT-19: Supervisor Channel
+
+**Objetivo:** Validar canal de comunicacao supervisor-Julia
+
+**Setup:**
+1. Ter conversa ativa no dashboard
+
+**Execucao:**
+```bash
+CONVERSA_ID="uuid-da-conversa"
+
+# Enviar pergunta para Julia sobre a conversa
+curl -X POST "http://localhost:8000/supervisor/channel/${CONVERSA_ID}/message" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Como esta indo essa conversa?"
+  }'
+```
+
+**Validacao:**
+- [ ] Julia responde sobre o estado da conversa
+- [ ] Resposta inclui contexto relevante (engajamento, proximos passos)
+- [ ] Tom e profissional (diferente das mensagens ao medico)
+
+**Exemplo Esperado:**
+```json
+{
+  "response": "A conversa esta indo bem. O medico demonstrou interesse inicial e ja informou preferencias (noturno, ABC). Proximos passos: apresentar vagas compativeis.",
+  "timestamp": "2026-02-10T10:30:00Z"
+}
+```
+
+**Resultado:** [ ] PASSOU  [ ] FALHOU
+
+**Observacoes:**
+```
+_____________________________________________________
+_____________________________________________________
+```
+
+---
+
+### CT-20: Chip Trust Score
+
+**Objetivo:** Validar sistema de trust score dos chips
+
+**Setup:**
+1. Ter chip ativo no sistema
+
+**Execucao:**
+```bash
+CHIP_ID="uuid-do-chip"
+
+# Obter trust score
+curl "http://localhost:8000/warmer/trust/${CHIP_ID}"
+
+# Obter permissoes atuais
+curl "http://localhost:8000/warmer/permissoes/${CHIP_ID}"
+```
+
+**Validacao:**
+- [ ] Trust score e um numero entre 0 e 100
+- [ ] Permissoes mostram limites atuais (msgs/hora, msgs/dia)
+- [ ] Se trust score > 70, permissoes sao amplas
+- [ ] Se trust score < 30, chip deve estar em cooldown
+
+**Exemplo Esperado:**
+```json
+{
+  "chip_id": "uuid",
+  "trust_score": 75,
+  "permissoes": {
+    "mensagens_hora": 20,
+    "mensagens_dia": 100,
+    "pode_prospectar": true,
+    "pode_entrar_grupos": false
+  }
+}
+```
+
+**Resultado:** [ ] PASSOU  [ ] FALHOU
 
 **Observacoes:**
 ```
@@ -670,17 +923,26 @@ _____________________________________________________
 | CT-12 | Rate Limiting | [ ] |
 | CT-13 | Horario Comercial | [ ] |
 | CT-14 | Resiliencia | [ ] |
+| CT-15 | Extraction Pipeline | [ ] |
+| CT-16 | Multi-Chip System | [ ] |
+| CT-17 | Helena Agent | [ ] |
+| CT-18 | SSE Real-Time | [ ] |
+| CT-19 | Supervisor Channel | [ ] |
+| CT-20 | Chip Trust Score | [ ] |
 
 ### Criterios de Aprovacao
 
 Para prosseguir com teste de 100 medicos:
 
-- [ ] **100% dos CTs passaram** (todos os 14)
-- [ ] **Nenhuma resposta pareceu robótica**
+- [ ] **100% dos CTs passaram** (todos os 20)
+- [ ] **Nenhuma resposta pareceu robotica**
 - [ ] **Opt-out funcionou perfeitamente**
 - [ ] **Handoff funcionou perfeitamente**
 - [ ] **Taxa de resposta < 30s** em todos os casos
 - [ ] **Zero crashes** durante os testes
+- [ ] **Extraction pipeline processou insights**
+- [ ] **Multi-chip system respondendo**
+- [ ] **SSE entregando eventos em tempo real**
 
 ### Se Algum CT Falhou
 
@@ -711,6 +973,13 @@ WHERE cliente_id = (SELECT id FROM clientes WHERE telefone = '5511981677736');
 
 DELETE FROM conversations
 WHERE cliente_id = (SELECT id FROM clientes WHERE telefone = '5511981677736');
+
+-- Deletar insights
+DELETE FROM conversation_insights
+WHERE conversation_id IN (
+  SELECT id FROM conversations
+  WHERE cliente_id = (SELECT id FROM clientes WHERE telefone = '5511981677736')
+);
 ```
 
 ### Verificar Estado Atual
@@ -729,6 +998,33 @@ SELECT origem, conteudo, created_at
 FROM interacoes
 WHERE cliente_id = (SELECT id FROM clientes WHERE telefone = '5511981677736')
 ORDER BY created_at DESC LIMIT 20;
+
+-- Ver insights extraidos
+SELECT * FROM conversation_insights
+WHERE conversation_id IN (
+  SELECT id FROM conversations
+  WHERE cliente_id = (SELECT id FROM clientes WHERE telefone = '5511981677736')
+)
+ORDER BY extracted_at DESC;
+```
+
+### Verificar Health do Sistema
+
+```bash
+# Health completo
+curl http://localhost:8000/health/deep
+
+# Status de chips
+curl http://localhost:8000/chips/pool/health
+
+# Circuit breakers
+curl http://localhost:8000/health/circuits
+
+# Jobs
+curl http://localhost:8000/health/jobs
+
+# Fila de mensagens
+curl http://localhost:8000/health/fila
 ```
 
 ### Limpar Filas
@@ -750,7 +1046,7 @@ docker exec redis redis-cli FLUSHDB
 | Hora | ____:____ |
 | Executor | ______________ |
 | Versao | ______________ |
-| CTs Passaram | ____/14 |
+| CTs Passaram | ____/20 |
 | Aprovado? | [ ] Sim [ ] Nao |
 
 **Principais Problemas:**
@@ -777,7 +1073,7 @@ _____________________________________________________
 | Hora | ____:____ |
 | Executor | ______________ |
 | Versao | ______________ |
-| CTs Passaram | ____/14 |
+| CTs Passaram | ____/20 |
 | Aprovado? | [ ] Sim [ ] Nao |
 
 **Principais Problemas:**
@@ -806,4 +1102,4 @@ Apos **100% de aprovacao** nos testes manuais:
 4. Definir criterios de pause de emergencia
 5. Iniciar teste piloto controlado
 
-Ver: `docs/11-TESTE-PILOTO-100.md` (a criar)
+Ver: `docs/operacao/teste-piloto-100.md`

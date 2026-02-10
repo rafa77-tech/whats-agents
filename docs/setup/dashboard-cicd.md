@@ -220,18 +220,31 @@ O dashboard possui um pipeline de CI/CD completo seguindo as melhores práticas 
 - Railway CLI
 - Health check após deploy
 
-**Condições:**
+**Condicoes:**
 - Branch: main
 - Event: push
-- Secrets: RAILWAY_TOKEN
+- Secrets: RAILWAY_TOKEN (se nao configurado, deploy e pulado)
+
+**Comandos:**
+```bash
+railway up --detach --service Dashboard
+# Aguarda 90s
+# Health check em $DASHBOARD_URL/api/health (5 tentativas)
+```
 
 ### 11. Bundle Analysis
 
-**Objetivo:** Análise de tamanho do bundle.
+**Objetivo:** Analise de tamanho do bundle.
 
 - Apenas em PRs
 - @next/bundle-analyzer
-- Upload de relatório
+- Upload de relatorio
+
+**Comandos:**
+```bash
+ANALYZE=true npm run build
+# Upload de .next/analyze/ como artifact
+```
 
 ## Arquivos de Configuração
 
@@ -247,15 +260,17 @@ O dashboard possui um pipeline de CI/CD completo seguindo as melhores práticas 
 
 ## Secrets do GitHub
 
-| Secret | Descrição | Status |
-|--------|-----------|--------|
-| `RAILWAY_TOKEN` | Token para deploy | ✅ Configurado |
-| `RAILWAY_PROJECT_ID` | ID do projeto | ✅ Configurado |
-| `RAILWAY_APP_URL` | URL da API | ✅ Configurado |
-| `SUPABASE_URL` | URL Supabase | ✅ Configurado |
-| `SUPABASE_SERVICE_KEY` | Service key | ✅ Configurado |
-| `ANTHROPIC_API_KEY` | API Anthropic | ✅ Configurado |
-| `LHCI_GITHUB_APP_TOKEN` | Lighthouse CI | ✅ Configurado |
+Repository → Settings → Secrets and variables → Actions
+
+| Secret | Descrição | Usado em |
+|--------|-----------|----------|
+| `RAILWAY_TOKEN` | Token para deploy Railway | Job: deploy |
+| `DASHBOARD_URL` | URL do dashboard (health check) | Job: deploy |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL Supabase (build) | Jobs: e2e-tests, build, lighthouse |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key Supabase (build) | Jobs: e2e-tests, build, lighthouse |
+| `LHCI_GITHUB_APP_TOKEN` | Lighthouse CI (opcional) | Job: lighthouse |
+
+**Nota:** Secrets sao opcionais para CI. Se nao configurados, jobs usam valores fallback de teste.
 
 ## Comandos Locais
 

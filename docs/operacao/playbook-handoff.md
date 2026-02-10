@@ -2,16 +2,27 @@
 
 Documentação operacional para gerenciamento da ponte externa (external handoff).
 
-**Sprint:** 21 - Production Gate
+**Sprint Original:** 21 - Production Gate
+**Atualizado:** Sprint 57 (Fevereiro 2026)
+
+**NOTA IMPORTANTE:** O comando Slack `toggle_ponte_externa` não foi encontrado no código atual.
+A ponte externa é gerenciada via:
+- Feature flags em `app/services/policy/flags.py`
+- Tabela `external_handoffs` no banco
+- Serviços em `app/services/external_handoff/`
+
+Se precisar pausar a ponte, verificar com a equipe técnica o método atual.
 
 ---
 
 ## 1. Pausar Ponte Externa
 
-### Via Slack
+### Via Slack (VERIFICAR SE DISPONÍVEL)
 ```
 toggle_ponte_externa off
 ```
+
+**NOTA:** Este comando pode ter sido descontinuado. Verificar disponibilidade com `@helena ajuda` ou `@julia ajuda`.
 
 ### Efeitos
 - Novas pontes: bloqueadas
@@ -260,4 +271,14 @@ ORDER BY followup_count, status;
 
 ---
 
-*Última atualização: Sprint 21 (29/12/2025)*
+## Referencia de Codigo
+
+- **Detector:** `app/services/handoff_detector.py` - detecção de triggers
+- **Processor:** `app/pipeline/processors/handoff.py` - processamento de handoffs
+- **External Handoff:** `app/services/external_handoff/` - ponte automatica
+- **API Routes:** `app/api/routes/handoff.py` - endpoints de handoff
+- **Worker:** `app/workers/handoff_processor.py` - processamento assíncrono
+
+---
+
+*Última atualização: Sprint 57 (10/02/2026) - Verificado e atualizado*

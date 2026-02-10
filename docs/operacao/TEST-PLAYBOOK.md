@@ -2,6 +2,9 @@
 
 > **Sprint 18 - Auditoria e Integridade**
 > Procedimentos de teste para ambientes DEV e PROD.
+> **Atualizado:** Sprint 57 (Fevereiro 2026)
+
+**IMPORTANTE:** Todos os procedimentos foram validados contra o codigo atual em `app/api/routes/health.py`.
 
 ---
 
@@ -236,7 +239,11 @@ curl -s https://api.revoluna.com/health/whatsapp | jq .
 ### 2. Testar Envio (DEV apenas)
 
 ```bash
-# APENAS em DEV com numero na allowlist
+# IMPORTANTE: Verificar se endpoint /api/julia/test-send existe
+# Endpoint pode ter sido removido/modificado em sprints recentes
+# Alternativa: usar dashboard ou Slack para testar envios
+
+# Se endpoint existir:
 curl -X POST https://dev-api.revoluna.com/api/julia/test-send \
   -H "Content-Type: application/json" \
   -d '{
@@ -244,6 +251,10 @@ curl -X POST https://dev-api.revoluna.com/api/julia/test-send \
     "texto": "Teste de envio DEV"
   }'
 ```
+
+**NOTA:** Para testes de envio, preferir:
+- Dashboard Julia > Campanhas (teste controlado)
+- Slack com `@julia` (teste manual)
 
 ---
 
@@ -299,8 +310,46 @@ curl -X POST https://dev-api.revoluna.com/api/julia/test-send \
 
 ---
 
+## Novos Endpoints de Health (Sprint 36+)
+
+Endpoints adicionais para monitoramento:
+
+```bash
+# Health Score consolidado (0-100)
+curl -s https://api.revoluna.com/health/score | jq .
+
+# Status dos jobs do scheduler
+curl -s https://api.revoluna.com/health/jobs | jq .
+
+# Status dos chips (multi-chip)
+curl -s https://api.revoluna.com/health/chips | jq .
+
+# Status da fila de mensagens
+curl -s https://api.revoluna.com/health/fila | jq .
+
+# Alertas consolidados
+curl -s https://api.revoluna.com/health/alerts | jq .
+
+# Status do modo piloto
+curl -s https://api.revoluna.com/health/pilot | jq .
+```
+
+Consultar `app/api/routes/health.py` para documentacao completa.
+
+---
+
+## Referencia de Codigo
+
+- **Health Routes:** `app/api/routes/health.py` - todos os endpoints de health
+- **Config:** `app/core/config.py` - Settings e validacao de ambiente
+- **Redis:** `app/services/redis.py` - verificacao de conexao
+- **Guardrails:** `app/services/guardrails/check.py` - regras de outbound
+
+---
+
 ## Historico
 
 | Data | Alteracao |
 |------|-----------|
 | 2025-12-31 | Criacao do documento (Sprint 18 Auditoria) |
+| 2026-02-10 | Sprint 57 - Validacao e atualizacao com novos endpoints de health |

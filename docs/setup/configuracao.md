@@ -61,10 +61,37 @@ DEBUG=true
 LOG_LEVEL=INFO
 
 # ==============================================
+# TIMEZONE (CRITICO)
+# ==============================================
+TZ=America/Sao_Paulo
+
+# ==============================================
+# DEPLOY / RUNTIME
+# ==============================================
+# APP_ENV: development, staging, production
+APP_ENV=development
+
+# RUN_MODE: Define qual servico o container executa
+# OBRIGATORIO para containers Docker!
+# Opcoes: api, worker, scheduler
+RUN_MODE=api
+
+# ==============================================
+# SEGURANCA
+# ==============================================
+# JWT Secret para tokens de confirmacao externa
+# OBRIGATORIO em producao! Gerar com: openssl rand -hex 32
+JWT_SECRET_KEY=
+
+# CORS - origens permitidas (separadas por virgula)
+CORS_ORIGINS=*
+
+# ==============================================
 # SUPABASE (Banco de Dados)
 # ==============================================
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_KEY=eyJ...
+SUPABASE_PROJECT_REF=
 
 # ==============================================
 # ANTHROPIC (Claude LLM)
@@ -74,16 +101,32 @@ LLM_MODEL=claude-3-5-haiku-20241022
 LLM_MODEL_COMPLEX=claude-sonnet-4-20250514
 
 # ==============================================
+# VOYAGE AI (Embeddings para RAG)
+# ==============================================
+VOYAGE_API_KEY=pa-...
+VOYAGE_MODEL=voyage-3.5-lite
+
+# ==============================================
 # EVOLUTION API (WhatsApp)
 # ==============================================
 EVOLUTION_API_URL=http://localhost:8080
 EVOLUTION_API_KEY=xxx
-EVOLUTION_INSTANCE=julia
+EVOLUTION_INSTANCE=Revoluna
+
+# Multi-Chip (Sprint 26)
+MULTI_CHIP_ENABLED=false
 
 # ==============================================
 # REDIS (Cache e Filas)
 # ==============================================
 REDIS_URL=redis://localhost:6379/0
+
+# ==============================================
+# MODO PILOTO (Sprint 32)
+# ==============================================
+# PILOT_MODE=true (default): Funcionalidades autonomas DESABILITADAS
+# PILOT_MODE=false: Todas as funcionalidades habilitadas
+PILOT_MODE=true
 
 # ==============================================
 # RATE LIMITING
@@ -119,16 +162,34 @@ CHATWOOT_ACCOUNT_ID=1
 CHATWOOT_INBOX_ID=1
 
 # ==============================================
-# SLACK (Notificacoes)
+# SLACK (Notificacoes e Comandos)
 # ==============================================
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx
 SLACK_CHANNEL=#julia-gestao
+SLACK_BOT_TOKEN=xoxb-xxx
+SLACK_SIGNING_SECRET=xxx
 
 # ==============================================
 # GOOGLE DOCS (Briefing)
 # ==============================================
-GOOGLE_DOCS_CREDENTIALS_PATH=./credentials/google_docs.json
-GOOGLE_BRIEFING_DOC_ID=1abc...xyz
+# Service Account credentials
+GOOGLE_APPLICATION_CREDENTIALS=./credentials/google-sa.json
+
+# ID do documento de briefing (LEGADO)
+BRIEFING_DOC_ID=
+
+# ID da pasta de briefings (RECOMENDADO - Sprint 11)
+GOOGLE_BRIEFINGS_FOLDER_ID=
+
+# ID da pasta de templates de campanha
+# Estrutura esperada:
+#   Templates/
+#   ├── Discovery/
+#   ├── Oferta/
+#   ├── Reativacao/
+#   ├── Followup/
+#   └── Feedback/
+GOOGLE_TEMPLATES_FOLDER_ID=
 
 # ==============================================
 # JULIA API (para scheduler)
