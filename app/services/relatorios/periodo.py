@@ -3,6 +3,7 @@ Reports periodicos (manha, almoco, tarde, fim_dia).
 
 Sprint 10 - S10.E3.3
 """
+
 from datetime import datetime, timezone
 import logging
 
@@ -41,7 +42,7 @@ async def gerar_report_periodo(tipo: str = "manha") -> dict:
         "inicio": inicio.isoformat(),
         "fim": agora.isoformat(),
         "metricas": metricas,
-        "destaques": destaques
+        "destaques": destaques,
     }
 
     # Resumo do pipeline de grupos apenas no fim do dia (métricas do dia todo)
@@ -76,6 +77,7 @@ async def _coletar_metricas_periodo(inicio: datetime, fim: datetime) -> dict:
         )
 
         from app.services.deteccao_bot import calcular_taxa_deteccao_periodo
+
         deteccao = await calcular_taxa_deteccao_periodo(inicio, fim)
 
         taxa_resposta = (total_recebidas / total_enviadas * 100) if total_enviadas > 0 else 0
@@ -87,7 +89,7 @@ async def _coletar_metricas_periodo(inicio: datetime, fim: datetime) -> dict:
             "plantoes_fechados": plantoes_resp.count or 0,
             "handoffs": handoffs_resp.count or 0,
             "deteccao_bot": deteccao["taxa_percentual"],
-            "deteccoes_total": deteccao["deteccoes"]
+            "deteccoes_total": deteccao["deteccoes"],
         }
     except Exception as e:
         logger.error(f"Erro ao coletar metricas do periodo: {e}")
@@ -98,7 +100,7 @@ async def _coletar_metricas_periodo(inicio: datetime, fim: datetime) -> dict:
             "plantoes_fechados": 0,
             "handoffs": 0,
             "deteccao_bot": 0,
-            "deteccoes_total": 0
+            "deteccoes_total": 0,
         }
 
 
@@ -113,34 +115,42 @@ async def _coletar_metricas_pipeline_grupos(inicio: datetime, fim: datetime) -> 
     """
     try:
         # Total de mensagens recebidas
-        msgs_total = supabase.table("mensagens_grupo") \
-            .select("id", count="exact") \
-            .gte("created_at", inicio.isoformat()) \
-            .lte("created_at", fim.isoformat()) \
+        msgs_total = (
+            supabase.table("mensagens_grupo")
+            .select("id", count="exact")
+            .gte("created_at", inicio.isoformat())
+            .lte("created_at", fim.isoformat())
             .execute()
+        )
 
         # Mensagens classificadas (passaram pela heurística)
-        msgs_classificadas = supabase.table("mensagens_grupo") \
-            .select("id", count="exact") \
-            .in_("status", ["classificada", "extraida", "processada"]) \
-            .gte("created_at", inicio.isoformat()) \
-            .lte("created_at", fim.isoformat()) \
+        msgs_classificadas = (
+            supabase.table("mensagens_grupo")
+            .select("id", count="exact")
+            .in_("status", ["classificada", "extraida", "processada"])
+            .gte("created_at", inicio.isoformat())
+            .lte("created_at", fim.isoformat())
             .execute()
+        )
 
         # Vagas extraídas (qualquer status)
-        vagas_extraidas = supabase.table("vagas_grupo") \
-            .select("id", count="exact") \
-            .gte("created_at", inicio.isoformat()) \
-            .lte("created_at", fim.isoformat()) \
+        vagas_extraidas = (
+            supabase.table("vagas_grupo")
+            .select("id", count="exact")
+            .gte("created_at", inicio.isoformat())
+            .lte("created_at", fim.isoformat())
             .execute()
+        )
 
         # Vagas importadas (prontas para uso)
-        vagas_importadas = supabase.table("vagas_grupo") \
-            .select("id", count="exact") \
-            .eq("status", "importada") \
-            .gte("created_at", inicio.isoformat()) \
-            .lte("created_at", fim.isoformat()) \
+        vagas_importadas = (
+            supabase.table("vagas_grupo")
+            .select("id", count="exact")
+            .eq("status", "importada")
+            .gte("created_at", inicio.isoformat())
+            .lte("created_at", fim.isoformat())
             .execute()
+        )
 
         return {
             "msgs_recebidas": msgs_total.count or 0,
@@ -175,11 +185,13 @@ async def _buscar_destaques_periodo(inicio: datetime, fim: datetime) -> list:
         for p in plantoes_resp.data or []:
             medico = p.get("clientes", {}).get("primeiro_nome", "Medico")
             hospital = p.get("hospitais", {}).get("nome", "Hospital")
-            destaques.append({
-                "tipo": "plantao_fechado",
-                "icone": "OK",
-                "texto": f"{medico} fechou vaga no {hospital}"
-            })
+            destaques.append(
+                {
+                    "tipo": "plantao_fechado",
+                    "icone": "OK",
+                    "texto": f"{medico} fechou vaga no {hospital}",
+                }
+            )
 
         handoffs_resp = (
             supabase.table("handoffs")
@@ -192,11 +204,7 @@ async def _buscar_destaques_periodo(inicio: datetime, fim: datetime) -> list:
 
         for h in handoffs_resp.data or []:
             motivo = h.get("motivo", "Sem motivo")[:50]
-            destaques.append({
-                "tipo": "handoff",
-                "icone": "ATENCAO",
-                "texto": f"Handoff: {motivo}"
-            })
+            destaques.append({"tipo": "handoff", "icone": "ATENCAO", "texto": f"Handoff: {motivo}"})
 
     except Exception as e:
         logger.error(f"Erro ao buscar destaques: {e}")
@@ -214,7 +222,7 @@ async def enviar_report_periodo_slack(report: dict):
         "almoco": "Relatorio Almoco",
         "tarde": "Relatorio Tarde",
         "fim_dia": "Relatorio Fim do Dia",
-        "semanal": "Relatorio Semanal"
+        "semanal": "Relatorio Semanal",
     }
 
     taxa_deteccao = metricas.get("deteccao_bot", 0)
@@ -224,49 +232,73 @@ async def enviar_report_periodo_slack(report: dict):
     blocks = [
         {
             "type": "header",
-            "text": {"type": "plain_text", "text": titulos.get(report["periodo"], "Relatorio")}
+            "text": {"type": "plain_text", "text": titulos.get(report["periodo"], "Relatorio")},
         },
         {
             "type": "section",
             "fields": [
                 {"type": "mrkdwn", "text": f"*Mensagens:* {metricas['msgs_enviadas']} enviadas"},
-                {"type": "mrkdwn", "text": f"*Respostas:* {metricas['msgs_recebidas']} ({metricas['taxa_resposta']}%)"},
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Respostas:* {metricas['msgs_recebidas']} ({metricas['taxa_resposta']}%)",
+                },
                 {"type": "mrkdwn", "text": f"*Plantoes:* {metricas['plantoes_fechados']} fechados"},
                 {"type": "mrkdwn", "text": f"*Handoffs:* {metricas['handoffs']}"},
-            ]
+            ],
         },
         {
             "type": "section",
             "fields": [
-                {"type": "mrkdwn", "text": f"*Deteccao bot:* {taxa_deteccao}% ({deteccoes_total} casos) [{alerta_bot}]"},
-            ]
-        }
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Deteccao bot:* {taxa_deteccao}% ({deteccoes_total} casos) [{alerta_bot}]",
+                },
+            ],
+        },
     ]
 
     if destaques:
         destaque_text = "\n".join([f"[{d['icone']}] {d['texto']}" for d in destaques])
-        blocks.append({
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*Destaques:*\n{destaque_text}"}
-        })
+        blocks.append(
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": f"*Destaques:*\n{destaque_text}"},
+            }
+        )
 
     # Resumo do pipeline de grupos (apenas no fim do dia)
     pipeline_grupos = report.get("pipeline_grupos")
     if pipeline_grupos:
         blocks.append({"type": "divider"})
-        blocks.append({
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": "*Pipeline Grupos (Resumo do Dia)*"}
-        })
-        blocks.append({
-            "type": "section",
-            "fields": [
-                {"type": "mrkdwn", "text": f"*Msgs recebidas:* {pipeline_grupos['msgs_recebidas']}"},
-                {"type": "mrkdwn", "text": f"*Msgs classificadas:* {pipeline_grupos['msgs_classificadas']}"},
-                {"type": "mrkdwn", "text": f"*Vagas extraidas:* {pipeline_grupos['vagas_extraidas']}"},
-                {"type": "mrkdwn", "text": f"*Vagas importadas:* {pipeline_grupos['vagas_importadas']}"},
-            ]
-        })
+        blocks.append(
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "*Pipeline Grupos (Resumo do Dia)*"},
+            }
+        )
+        blocks.append(
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Msgs recebidas:* {pipeline_grupos['msgs_recebidas']}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Msgs classificadas:* {pipeline_grupos['msgs_classificadas']}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Vagas extraidas:* {pipeline_grupos['vagas_extraidas']}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Vagas importadas:* {pipeline_grupos['vagas_importadas']}",
+                    },
+                ],
+            }
+        )
 
     await enviar_slack({"blocks": blocks})
     logger.info(f"Report {report['periodo']} enviado para Slack")

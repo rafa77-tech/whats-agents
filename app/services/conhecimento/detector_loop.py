@@ -5,8 +5,9 @@ Sprint 37 - Epic 7
 
 Detecta quando Julia está repetindo respostas similares (loop).
 """
+
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from difflib import SequenceMatcher
 from typing import Optional
 
@@ -83,9 +84,7 @@ class DetectorLoop:
             similaridades.append(sim)
 
         # Contar respostas similares
-        respostas_similares = sum(
-            1 for sim in similaridades if sim >= self.THRESHOLD_SIMILARIDADE
-        )
+        respostas_similares = sum(1 for sim in similaridades if sim >= self.THRESHOLD_SIMILARIDADE)
         similaridade_max = max(similaridades) if similaridades else 0.0
 
         # Detectar loop

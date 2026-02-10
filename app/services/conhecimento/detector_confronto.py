@@ -5,6 +5,7 @@ Sprint 37 - Epic 6
 
 Detecta quando médico está confrontando Julia sobre informações.
 """
+
 import logging
 import random
 import re
@@ -114,9 +115,7 @@ class DetectorConfronto:
     """
 
     def __init__(self):
-        self.padroes_veracidade = [
-            re.compile(p, re.IGNORECASE) for p in PADROES_CONFRONTO
-        ]
+        self.padroes_veracidade = [re.compile(p, re.IGNORECASE) for p in PADROES_CONFRONTO]
         self.padroes_bot = [re.compile(p, re.IGNORECASE) for p in PADROES_PERGUNTA_BOT]
 
     def detectar(
@@ -161,9 +160,7 @@ class DetectorConfronto:
         for padrao in self.padroes_bot:
             match = padrao.search(mensagem_lower)
             if match:
-                logger.info(
-                    f"DetectorConfronto: BOT detectado, padrao='{match.group()}'"
-                )
+                logger.info(f"DetectorConfronto: BOT detectado, padrao='{match.group()}'")
 
                 return ResultadoConfronto(
                     tem_confronto=True,

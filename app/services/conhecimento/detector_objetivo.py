@@ -3,6 +3,7 @@ Detector de objetivo da conversa.
 
 Identifica em que fase a conversa está para adaptar a estratégia.
 """
+
 import logging
 from dataclasses import dataclass
 from typing import Optional

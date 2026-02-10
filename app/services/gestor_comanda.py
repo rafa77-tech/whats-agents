@@ -35,6 +35,7 @@ Exemplo:
 
     Julia (Haiku): [Executa os 23 contatos]
 """
+
 import json
 import logging
 from datetime import datetime, timezone
@@ -153,6 +154,7 @@ Crie o plano final em JSON:
 # CLASSE PRINCIPAL
 # =============================================================================
 
+
 class GestorComanda:
     """Orquestrador de comandos do gestor."""
 
@@ -185,12 +187,7 @@ class GestorComanda:
                 model=MODEL_OPUS,
                 max_tokens=2000,
                 system=PROMPT_INTERPRETAR,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"Comando do gestor: {comando}"
-                    }
-                ]
+                messages=[{"role": "user", "content": f"Comando do gestor: {comando}"}],
             )
 
             # Extrair JSON da resposta
@@ -259,19 +256,13 @@ class GestorComanda:
                 max_tokens=2000,
                 system=PROMPT_INTERPRETAR,
                 messages=[
-                    {
-                        "role": "user",
-                        "content": f"Comando original: {comando['comando_original']}"
-                    },
+                    {"role": "user", "content": f"Comando original: {comando['comando_original']}"},
                     {
                         "role": "assistant",
-                        "content": json.dumps(comando["interpretacao"], ensure_ascii=False)
+                        "content": json.dumps(comando["interpretacao"], ensure_ascii=False),
                     },
-                    {
-                        "role": "user",
-                        "content": f"Ajuste solicitado: {ajuste}"
-                    }
-                ]
+                    {"role": "user", "content": f"Ajuste solicitado: {ajuste}"},
+                ],
             )
 
             texto = response.content[0].text
@@ -314,7 +305,10 @@ class GestorComanda:
                 return {"success": False, "error": "Comando não encontrado"}
 
             if comando["status"] != STATUS_AGUARDANDO_CONFIRMACAO:
-                return {"success": False, "error": f"Comando em status inválido: {comando['status']}"}
+                return {
+                    "success": False,
+                    "error": f"Comando em status inválido: {comando['status']}",
+                }
 
             # Atualizar status
             await self._atualizar_status(comando_id, STATUS_CONFIRMADO)
@@ -361,14 +355,16 @@ class GestorComanda:
         comando_id = str(uuid4())
 
         try:
-            supabase.table("comandos_gestor").insert({
-                "id": comando_id,
-                "user_id": self.user_id,
-                "channel_id": self.channel_id,
-                "comando_original": comando_original,
-                "interpretacao": interpretacao,
-                "status": STATUS_AGUARDANDO_CONFIRMACAO,
-            }).execute()
+            supabase.table("comandos_gestor").insert(
+                {
+                    "id": comando_id,
+                    "user_id": self.user_id,
+                    "channel_id": self.channel_id,
+                    "comando_original": comando_original,
+                    "interpretacao": interpretacao,
+                    "status": STATUS_AGUARDANDO_CONFIRMACAO,
+                }
+            ).execute()
 
         except Exception as e:
             # Se tabela não existe, apenas logar
@@ -396,10 +392,12 @@ class GestorComanda:
     async def _atualizar_comando(self, comando_id: str, interpretacao: dict):
         """Atualiza interpretação do comando."""
         try:
-            supabase.table("comandos_gestor").update({
-                "interpretacao": interpretacao,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }).eq("id", comando_id).execute()
+            supabase.table("comandos_gestor").update(
+                {
+                    "interpretacao": interpretacao,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            ).eq("id", comando_id).execute()
 
         except Exception as e:
             logger.warning(f"Erro ao atualizar comando: {e}")
@@ -594,7 +592,11 @@ class GestorComanda:
                     percentual_maximo=filtros.get("percentual_maximo"),
                     criado_por=self.user_id,
                 )
-                return {"success": True, "tipo": "margem_vaga", "mensagem": "Margem definida para vaga"}
+                return {
+                    "success": True,
+                    "tipo": "margem_vaga",
+                    "mensagem": "Margem definida para vaga",
+                }
 
             elif filtros.get("cliente_id"):
                 await criar_margem_medico(
@@ -603,7 +605,11 @@ class GestorComanda:
                     percentual_maximo=filtros.get("percentual_maximo"),
                     criado_por=self.user_id,
                 )
-                return {"success": True, "tipo": "margem_medico", "mensagem": "Margem definida para médico"}
+                return {
+                    "success": True,
+                    "tipo": "margem_medico",
+                    "mensagem": "Margem definida para médico",
+                }
 
             return {"success": False, "error": "Escopo de margem não especificado"}
 
@@ -651,6 +657,7 @@ class GestorComanda:
 # FUNÇÕES AUXILIARES
 # =============================================================================
 
+
 def _extrair_json(texto: str) -> Optional[dict]:
     """Extrai JSON de uma resposta do LLM."""
     try:
@@ -660,7 +667,8 @@ def _extrair_json(texto: str) -> Optional[dict]:
 
         # Tentar encontrar JSON no texto
         import re
-        match = re.search(r'\{[\s\S]*\}', texto)
+
+        match = re.search(r"\{[\s\S]*\}", texto)
         if match:
             return json.loads(match.group())
 
@@ -673,6 +681,7 @@ def _extrair_json(texto: str) -> Optional[dict]:
 # =============================================================================
 # FUNÇÃO DE CONVENIÊNCIA
 # =============================================================================
+
 
 async def processar_comando_gestor(
     comando: str,

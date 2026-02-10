@@ -4,6 +4,7 @@ Services de gestao de vagas.
 Sprint 10 - S10.E3.2
 Sprint 31 - S31.E5: Adição de EspecialidadeService e filtros
 """
+
 from .repository import (
     buscar_por_id as buscar_vaga_por_id,
     verificar_conflito as verificar_conflito_vaga,

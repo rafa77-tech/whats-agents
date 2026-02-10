@@ -3,6 +3,7 @@ Tipos para eventos de negocio.
 
 Sprint 17 - E02
 """
+
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -20,30 +21,30 @@ class EventType(Enum):
     HANDOFF_CREATED = "handoff_created"
 
     # External Handoff - Ponte Automatica (Sprint 20)
-    HANDOFF_CONTACTED = "handoff_contacted"          # Msg enviada ao divulgador
+    HANDOFF_CONTACTED = "handoff_contacted"  # Msg enviada ao divulgador
     HANDOFF_CONFIRM_CLICKED = "handoff_confirm_clicked"  # Link clicado
-    HANDOFF_CONFIRMED = "handoff_confirmed"          # Plantao confirmado pelo divulgador
+    HANDOFF_CONFIRMED = "handoff_confirmed"  # Plantao confirmado pelo divulgador
     HANDOFF_NOT_CONFIRMED = "handoff_not_confirmed"  # Plantao nao fechou
-    HANDOFF_EXPIRED = "handoff_expired"              # Expirou sem resposta
+    HANDOFF_EXPIRED = "handoff_expired"  # Expirou sem resposta
     HANDOFF_FOLLOWUP_SENT = "handoff_followup_sent"  # Follow-up enviado
 
     # Confirmação de plantão (Sprint 17)
     SHIFT_CONFIRMATION_DUE = "shift_confirmation_due"  # Plantão terminou, aguarda confirmação
-    SHIFT_COMPLETED = "shift_completed"                 # Confirmado: plantão realizado
-    SHIFT_NOT_COMPLETED = "shift_not_completed"         # Confirmado: não ocorreu
+    SHIFT_COMPLETED = "shift_completed"  # Confirmado: plantão realizado
+    SHIFT_NOT_COMPLETED = "shift_not_completed"  # Confirmado: não ocorreu
 
     # Guardrails de outbound (Sprint 17)
-    OUTBOUND_BLOCKED = "outbound_blocked"    # Envio bloqueado por guardrail
-    OUTBOUND_BYPASS = "outbound_bypass"      # Envio permitido por bypass humano
+    OUTBOUND_BLOCKED = "outbound_blocked"  # Envio bloqueado por guardrail
+    OUTBOUND_BYPASS = "outbound_bypass"  # Envio permitido por bypass humano
     OUTBOUND_FALLBACK = "outbound_fallback"  # Fallback legado usado (Sprint 18.1)
-    OUTBOUND_DEDUPED = "outbound_deduped"    # Envio bloqueado por deduplicação (Sprint 18.1)
+    OUTBOUND_DEDUPED = "outbound_deduped"  # Envio bloqueado por deduplicação (Sprint 18.1)
 
     # Fora do horário (Sprint 22)
-    OUT_OF_HOURS_ACK_SENT = "out_of_hours_ack_sent"    # ACK enviado fora do horário
+    OUT_OF_HOURS_ACK_SENT = "out_of_hours_ack_sent"  # ACK enviado fora do horário
     OUT_OF_HOURS_ACK_SKIPPED = "out_of_hours_ack_skipped"  # ACK pulado (ceiling ou humano)
 
     # Atribuição de campanha (Sprint 23 E02)
-    CAMPAIGN_TOUCH_LINKED = "campaign_touch_linked"      # Touch de campanha registrado
+    CAMPAIGN_TOUCH_LINKED = "campaign_touch_linked"  # Touch de campanha registrado
     CAMPAIGN_REPLY_ATTRIBUTED = "campaign_reply_attributed"  # Reply atribuído a campanha
 
     # Briefing (Sprint 23 E06)
@@ -56,13 +57,13 @@ class EventType(Enum):
 class EventSource(Enum):
     """Origens validas de eventos."""
 
-    PIPELINE = "pipeline"    # Pipeline de processamento
-    BACKEND = "backend"      # Codigo de aplicacao
-    DB = "db"                # Trigger de banco
+    PIPELINE = "pipeline"  # Pipeline de processamento
+    BACKEND = "backend"  # Codigo de aplicacao
+    DB = "db"  # Trigger de banco
     HEURISTIC = "heuristic"  # Detector heuristico
-    OPS = "ops"              # Manual por operacoes
-    SYSTEM = "system"        # Sistema automatico (jobs, atribuicao)
-    SLACK = "slack"          # Comando via Slack
+    OPS = "ops"  # Manual por operacoes
+    SYSTEM = "system"  # Sistema automatico (jobs, atribuicao)
+    SLACK = "slack"  # Comando via Slack
 
 
 @dataclass

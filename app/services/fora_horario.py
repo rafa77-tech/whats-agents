@@ -5,6 +5,7 @@ Sprint 22 - Responsividade Inteligente
 
 Ajuste B: Ack idempotente - max 1 ack por conversa por 6 horas
 """
+
 import logging
 from datetime import datetime, time, timedelta
 from typing import Optional
@@ -13,7 +14,6 @@ from zoneinfo import ZoneInfo
 
 from app.services.supabase import supabase
 from app.services.message_context_classifier import ContextClassification, ContextType
-from app.services.delay_engine import has_valid_inbound_proof
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 TZ_BRASIL = ZoneInfo("America/Sao_Paulo")
 
 # Configuracao de horario comercial
-HORARIO_INICIO = time(8, 0)   # 08:00
-HORARIO_FIM = time(20, 0)     # 20:00
+HORARIO_INICIO = time(8, 0)  # 08:00
+HORARIO_FIM = time(20, 0)  # 20:00
 DIAS_UTEIS = [0, 1, 2, 3, 4]  # Segunda a Sexta (0=Monday)
 
 # Ajuste B: Ceiling de ack - max 1 a cada 6 horas por conversa
@@ -32,6 +32,7 @@ ACK_CEILING_HOURS = 6
 @dataclass
 class AckTemplate:
     """Template de ack para fora do horario."""
+
     tipo: str
     mensagem: str
 
@@ -41,13 +42,13 @@ ACK_TEMPLATES = {
         tipo="generico",
         mensagem="""Oi Dr(a) {nome}! Recebi sua mensagem.
 
-To fora do horario agora, mas ja anoto aqui e te retorno assim que voltar, tudo bem?"""
+To fora do horario agora, mas ja anoto aqui e te retorno assim que voltar, tudo bem?""",
     ),
     "vaga": AckTemplate(
         tipo="vaga",
         mensagem="""Oi Dr(a) {nome}! Vi sua msg sobre vaga.
 
-To fora do horario agora, mas ja anoto aqui. Te retorno assim que voltar pra ver a disponibilidade, ok?"""
+To fora do horario agora, mas ja anoto aqui. Te retorno assim que voltar pra ver a disponibilidade, ok?""",
     ),
     "aceite_vaga": AckTemplate(
         tipo="aceite_vaga",
@@ -55,13 +56,13 @@ To fora do horario agora, mas ja anoto aqui. Te retorno assim que voltar pra ver
 
 To fora do horario agora. Vou verificar a disponibilidade assim que voltar e te aviso, ok?
 
-Nao consigo garantir a reserva ate la, mas faco o possivel!"""
+Nao consigo garantir a reserva ate la, mas faco o possivel!""",
     ),
     "confirmacao": AckTemplate(
         tipo="confirmacao",
         mensagem="""Oi Dr(a) {nome}! Anotei aqui.
 
-Te retorno assim que o horario operacional voltar!"""
+Te retorno assim que o horario operacional voltar!""",
     ),
 }
 
@@ -131,8 +132,7 @@ def proximo_horario_comercial(dt: Optional[datetime] = None) -> datetime:
 
 
 def selecionar_template_ack(
-    classificacao: ContextClassification,
-    contexto: Optional[dict] = None
+    classificacao: ContextClassification, contexto: Optional[dict] = None
 ) -> AckTemplate:
     """
     Seleciona template de ack apropriado.
@@ -163,9 +163,7 @@ def selecionar_template_ack(
 
 
 async def verificar_ack_recente(
-    cliente_id: str,
-    conversa_id: Optional[str] = None,
-    horas: int = ACK_CEILING_HOURS
+    cliente_id: str, conversa_id: Optional[str] = None, horas: int = ACK_CEILING_HOURS
 ) -> bool:
     """
     Verifica se ja enviou ack recentemente para esta conversa.
@@ -183,10 +181,12 @@ async def verificar_ack_recente(
     try:
         cutoff = (datetime.now(TZ_BRASIL) - timedelta(hours=horas)).isoformat()
 
-        query = supabase.table("mensagens_fora_horario").select(
-            "id, ack_enviado_em"
-        ).eq("cliente_id", cliente_id).eq("ack_enviado", True).gte(
-            "ack_enviado_em", cutoff
+        query = (
+            supabase.table("mensagens_fora_horario")
+            .select("id, ack_enviado_em")
+            .eq("cliente_id", cliente_id)
+            .eq("ack_enviado", True)
+            .gte("ack_enviado_em", cutoff)
         )
 
         # Filtrar por conversa se disponivel
@@ -215,7 +215,7 @@ async def salvar_mensagem_fora_horario(
     mensagem: str,
     conversa_id: Optional[str] = None,
     contexto: Optional[dict] = None,
-    inbound_message_id: Optional[str] = None
+    inbound_message_id: Optional[str] = None,
 ) -> str:
     """
     Salva mensagem para processamento posterior.
@@ -254,20 +254,20 @@ async def salvar_mensagem_fora_horario(
         if "duplicate key" in str(e).lower() or "unique constraint" in str(e).lower():
             logger.info(f"Mensagem já existe (idempotência): {inbound_message_id}")
             # Buscar registro existente
-            existing = supabase.table("mensagens_fora_horario").select(
-                "id"
-            ).eq("inbound_message_id", inbound_message_id).limit(1).execute()
+            existing = (
+                supabase.table("mensagens_fora_horario")
+                .select("id")
+                .eq("inbound_message_id", inbound_message_id)
+                .limit(1)
+                .execute()
+            )
             if existing.data:
                 return existing.data[0]["id"]
         logger.error(f"Erro ao salvar mensagem fora horario: {e}")
         raise
 
 
-async def marcar_ack_enviado(
-    registro_id: str,
-    mensagem_id: str,
-    template_tipo: str
-) -> None:
+async def marcar_ack_enviado(registro_id: str, mensagem_id: str, template_tipo: str) -> None:
     """
     Marca que o ack foi enviado.
 
@@ -277,12 +277,14 @@ async def marcar_ack_enviado(
         template_tipo: Tipo de template usado
     """
     try:
-        supabase.table("mensagens_fora_horario").update({
-            "ack_enviado": True,
-            "ack_enviado_em": datetime.now(TZ_BRASIL).isoformat(),
-            "ack_mensagem_id": mensagem_id,
-            "ack_template_tipo": template_tipo,
-        }).eq("id", registro_id).execute()
+        supabase.table("mensagens_fora_horario").update(
+            {
+                "ack_enviado": True,
+                "ack_enviado_em": datetime.now(TZ_BRASIL).isoformat(),
+                "ack_mensagem_id": mensagem_id,
+                "ack_template_tipo": template_tipo,
+            }
+        ).eq("id", registro_id).execute()
 
         logger.debug(f"Ack marcado como enviado: {registro_id}")
 
@@ -298,13 +300,13 @@ async def buscar_mensagens_pendentes() -> list[dict]:
         Lista de registros pendentes
     """
     try:
-        result = supabase.table("mensagens_fora_horario").select(
-            "*, clientes(primeiro_nome, telefone)"
-        ).eq(
-            "processada", False
-        ).order(
-            "recebida_em"
-        ).execute()
+        result = (
+            supabase.table("mensagens_fora_horario")
+            .select("*, clientes(primeiro_nome, telefone)")
+            .eq("processada", False)
+            .order("recebida_em")
+            .execute()
+        )
 
         return result.data
 
@@ -313,10 +315,7 @@ async def buscar_mensagens_pendentes() -> list[dict]:
         return []
 
 
-async def marcar_processada(
-    registro_id: str,
-    resultado: str = "sucesso"
-) -> None:
+async def marcar_processada(registro_id: str, resultado: str = "sucesso") -> None:
     """
     Marca mensagem como processada.
 
@@ -325,11 +324,13 @@ async def marcar_processada(
         resultado: Resultado do processamento
     """
     try:
-        supabase.table("mensagens_fora_horario").update({
-            "processada": True,
-            "processada_em": datetime.now(TZ_BRASIL).isoformat(),
-            "processada_resultado": resultado,
-        }).eq("id", registro_id).execute()
+        supabase.table("mensagens_fora_horario").update(
+            {
+                "processada": True,
+                "processada_em": datetime.now(TZ_BRASIL).isoformat(),
+                "processada_resultado": resultado,
+            }
+        ).eq("id", registro_id).execute()
 
         logger.info(f"Mensagem processada: {registro_id} ({resultado})")
 
@@ -344,7 +345,7 @@ async def processar_mensagem_fora_horario(
     nome_cliente: str,
     conversa_id: Optional[str] = None,
     contexto: Optional[dict] = None,
-    inbound_message_id: Optional[str] = None
+    inbound_message_id: Optional[str] = None,
 ) -> dict:
     """
     Processa mensagem recebida fora do horario.
@@ -378,7 +379,7 @@ async def processar_mensagem_fora_horario(
             mensagem=mensagem,
             conversa_id=conversa_id,
             contexto=contexto,
-            inbound_message_id=inbound_message_id
+            inbound_message_id=inbound_message_id,
         )
 
         return {
@@ -394,7 +395,7 @@ async def processar_mensagem_fora_horario(
         mensagem=mensagem,
         conversa_id=conversa_id,
         contexto=contexto,
-        inbound_message_id=inbound_message_id
+        inbound_message_id=inbound_message_id,
     )
 
     # 3. Selecionar template

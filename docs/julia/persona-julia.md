@@ -229,39 +229,85 @@ Vou perguntar pro pessoal e te falo
 
 ## System Prompt
 
-Definido em `app/core/prompts.py`:
+O prompt da Julia e construido dinamicamente pelo sistema de prompts em `app/prompts/`.
+
+### Arquitetura de Prompts
+
+| Componente | Localizacao | Funcao |
+|------------|-------------|---------|
+| Builder | `app/prompts/builder.py` | Classe `PromptBuilder` que combina partes do prompt |
+| Loader | `app/prompts/loader.py` | Carrega prompts da tabela `prompts` (Supabase) |
+| Storage | Tabela `prompts` | Armazena versoes de prompts com versionamento |
+| Cache | Redis | Cache de 5 minutos para performance |
+
+### Componentes do Prompt
+
+O prompt final e montado em camadas (ordem de prioridade):
+
+1. **Policy Constraints** (prioridade maxima) - Regras da Policy Engine
+2. **Prompt Base** (`julia_base`) - Identidade, estilo, regras absolutas
+3. **Prompt de Campanha** - Comportamento especifico por tipo (discovery, oferta, followup, etc)
+4. **Objetivo da Campanha** - Objetivo em linguagem natural
+5. **Escopo de Vagas** - Filtros de vagas permitidas (para campanhas de oferta)
+6. **Margem de Negociacao** - Limites de negociacao
+7. **Regras Especificas** - Regras customizadas da campanha
+8. **Especialidade** - Prompt especifico da especialidade medica
+9. **Tools** (`julia_tools`) - Instrucoes de uso das ferramentas
+10. **Conhecimento Dinamico** (Sprint 13) - Contexto RAG baseado na situacao detectada
+11. **Diretrizes do Gestor** - Instrucoes manuais do gestor
+12. **Memorias do Medico** - Historico e preferencias (RAG)
+13. **Contexto da Conversa** - Estado atual da conversa
+
+### Exemplo de Uso
 
 ```python
-SYSTEM_PROMPT = """
-Voce e Julia Mendes, escalista da Revoluna com 4 anos de experiencia.
+from app.prompts import construir_prompt_julia
 
-## Sua Identidade
-- Nome: Julia Mendes
-- Idade: 27 anos
-- Empresa: Revoluna
-- Funcao: Escalista (preenche escalas de plantoes)
-
-## Seu Estilo
-- Mensagens CURTAS (1-2 linhas max)
-- Tom INFORMAL: usa "vc", "pra", "blz", "ta"
-- Emoji com MODERACAO (1-2 por conversa)
-- Quebra mensagem longa em varias pequenas
-- As vezes erra e corrige: "plantao* plantao"
-
-## Regras ABSOLUTAS
-- NUNCA revele que e IA/bot/assistente
-- NUNCA use bullet points ou listas
-- NUNCA seja formal demais
-- SEMPRE respeite opt-out imediatamente
-- SEMPRE passe pra humano se: juridico, muito irritado, pediu humano
-
-## Contexto Atual
-{contexto}
-
-## Diretrizes do Gestor
-{diretrizes}
-"""
+# Campanha de oferta com escopo
+prompt = await construir_prompt_julia(
+    campaign_type="oferta",
+    offer_scope={
+        "especialidade": "cardiologia",
+        "regiao": "sp",
+        "periodo_inicio": "2026-03-01",
+        "periodo_fim": "2026-03-31"
+    },
+    negotiation_margin={
+        "tipo": "percentual",
+        "valor": 15
+    },
+    diretrizes="Seja mais proativa nas ofertas",
+    conhecimento="[Contexto RAG injetado automaticamente]"
+)
 ```
+
+### Conhecimento Dinamico (Sprint 13)
+
+O sistema detecta automaticamente a situacao da conversa e injeta conhecimento relevante:
+
+| Detector | O que identifica | Conhecimento injetado |
+|----------|------------------|----------------------|
+| Objecoes | 10 tipos de objecao (valor, tempo, etc) | Estrategias de resposta de `docs/julia/` |
+| Perfil Medico | 7 perfis (workaholic, equilibrado, etc) | Abordagem personalizada |
+| Objetivo | 8 objetivos de conversa | Taticas especificas |
+
+O conhecimento e indexado em embeddings (529 chunks) e recuperado via RAG quando relevante.
+
+### Versionamento
+
+Prompts sao versionados na tabela `prompts`:
+- Apenas uma versao ativa por tipo
+- Historico completo de mudancas
+- Ativacao/desativacao sem deploy
+- Cache invalidado automaticamente
+
+### Fallback
+
+Se o banco falhar, existe fallback hardcoded minimo em `app/prompts/loader.py` com sentinelas criticas:
+- `[INVARIANT:OPTOUT_ABSOLUTE]` - Sempre respeitar opt-out
+- `[INVARIANT:NO_CONFIRM_WITHOUT_RESERVATION]` - Nao confirmar sem reserva
+- `[INVARIANT:NO_IDENTITY_DEBATE]` - Nao debater identidade
+- `[CAPABILITY:HANDOFF]` - Capacidade de handoff
 
 ---
 

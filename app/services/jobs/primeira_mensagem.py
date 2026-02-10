@@ -3,10 +3,10 @@ Service para envio de primeira mensagem de prospecao.
 
 Sprint 10 - S10.E3.1
 """
+
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional
 
 from app.core.timezone import agora_utc
@@ -14,7 +14,6 @@ from app.services.supabase import supabase
 from app.services.agente import gerar_resposta_julia, enviar_resposta
 from app.services.contexto import montar_contexto_completo
 from app.services.interacao import salvar_interacao
-from app.services.optout import verificar_opted_out
 from app.services.chatwoot import sincronizar_ids_chatwoot
 from app.services.guardrails import (
     check_outbound_guardrails,
@@ -30,6 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ResultadoPrimeiraMensagem:
     """Resultado do envio de primeira mensagem."""
+
     sucesso: bool
     cliente_nome: Optional[str] = None
     cliente_id: Optional[str] = None
@@ -72,7 +72,7 @@ async def enviar_primeira_mensagem(telefone: str) -> ResultadoPrimeiraMensagem:
                 cliente_nome=cliente.get("primeiro_nome"),
                 cliente_id=cliente["id"],
                 erro=f"Guardrail: {guardrail_result.reason_code}",
-                opted_out=guardrail_result.reason_code == "opted_out"
+                opted_out=guardrail_result.reason_code == "opted_out",
             )
 
         # 3. Criar ou buscar conversa ativa
@@ -89,13 +89,14 @@ async def enviar_primeira_mensagem(telefone: str) -> ResultadoPrimeiraMensagem:
             medico=cliente,
             conversa=conversa,
             incluir_historico=False,
-            usar_tools=False
+            usar_tools=False,
         )
         logger.info(f"Resposta gerada: {resposta[:100]}...")
 
         # 6. Enviar via WhatsApp
         # Sprint 18.1 P0: Usar wrapper com guardrails (reusar ctx do check)
         from app.services.outbound import criar_contexto_campanha
+
         envio_ctx = criar_contexto_campanha(
             cliente_id=cliente["id"],
             campaign_id="primeira_mensagem_slack",
@@ -112,7 +113,7 @@ async def enviar_primeira_mensagem(telefone: str) -> ResultadoPrimeiraMensagem:
             cliente_id=cliente["id"],
             tipo="saida",
             conteudo=resposta,
-            autor_tipo="julia"
+            autor_tipo="julia",
         )
 
         # 9. Atualizar cliente
@@ -124,25 +125,17 @@ async def enviar_primeira_mensagem(telefone: str) -> ResultadoPrimeiraMensagem:
             cliente_id=cliente["id"],
             conversa_id=conversa["id"],
             mensagem_enviada=resposta,
-            resultado_envio=resultado_envio
+            resultado_envio=resultado_envio,
         )
 
     except Exception as e:
         logger.error(f"Erro ao enviar primeira mensagem: {e}", exc_info=True)
-        return ResultadoPrimeiraMensagem(
-            sucesso=False,
-            erro=str(e)
-        )
+        return ResultadoPrimeiraMensagem(sucesso=False, erro=str(e))
 
 
 async def _obter_ou_criar_cliente(telefone: str) -> dict:
     """Busca cliente existente ou cria novo."""
-    cliente_resp = (
-        supabase.table("clientes")
-        .select("*")
-        .eq("telefone", telefone)
-        .execute()
-    )
+    cliente_resp = supabase.table("clientes").select("*").eq("telefone", telefone).execute()
 
     if cliente_resp.data:
         return cliente_resp.data[0]
@@ -151,13 +144,15 @@ async def _obter_ou_criar_cliente(telefone: str) -> dict:
     logger.info(f"Cliente nao encontrado, criando novo: {telefone}")
     novo_cliente = (
         supabase.table("clientes")
-        .insert({
-            "telefone": telefone,
-            "primeiro_nome": "Doutor(a)",
-            "status": "novo",
-            "origem": "slack_comando",
-            "stage_jornada": "novo"
-        })
+        .insert(
+            {
+                "telefone": telefone,
+                "primeiro_nome": "Doutor(a)",
+                "status": "novo",
+                "origem": "slack_comando",
+                "stage_jornada": "novo",
+            }
+        )
         .execute()
     )
     logger.info(f"Novo cliente criado: {novo_cliente.data[0]['id']}")
@@ -182,12 +177,9 @@ async def _obter_ou_criar_conversa(cliente_id: str) -> dict:
     # Criar nova conversa
     nova_conversa = (
         supabase.table("conversations")
-        .insert({
-            "cliente_id": cliente_id,
-            "status": "active",
-            "controlled_by": "ai",
-            "stage": "novo"
-        })
+        .insert(
+            {"cliente_id": cliente_id, "status": "active", "controlled_by": "ai", "stage": "novo"}
+        )
         .execute()
     )
     logger.info(f"Nova conversa criada: {nova_conversa.data[0]['id']}")
@@ -206,8 +198,10 @@ async def _sincronizar_chatwoot(cliente_id: str, telefone: str) -> None:
 
 async def _atualizar_cliente_apos_envio(cliente_id: str) -> None:
     """Atualiza dados do cliente apos envio."""
-    supabase.table("clientes").update({
-        "ultima_mensagem_data": agora_utc().isoformat(),
-        "ultima_mensagem_tipo": "outbound",
-        "stage_jornada": "prospectado"
-    }).eq("id", cliente_id).execute()
+    supabase.table("clientes").update(
+        {
+            "ultima_mensagem_data": agora_utc().isoformat(),
+            "ultima_mensagem_tipo": "outbound",
+            "stage_jornada": "prospectado",
+        }
+    ).eq("id", cliente_id).execute()

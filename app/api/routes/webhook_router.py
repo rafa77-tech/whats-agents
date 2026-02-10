@@ -159,22 +159,31 @@ async def processar_mensagem_recebida(chip: dict, payload: dict) -> dict:
         logger.warning(f"[WebhookRouter] Erro ao registrar resposta via RPC: {e}")
         # Fallback: registrar manualmente
         try:
-            supabase.table("chip_interactions").insert({
-                "chip_id": chip["id"],
-                "tipo": "msg_recebida",
-                "remetente": telefone,
-                "metadata": {"tipo_midia": tipo_midia},
-            }).execute()
+            supabase.table("chip_interactions").insert(
+                {
+                    "chip_id": chip["id"],
+                    "tipo": "msg_recebida",
+                    "remetente": telefone,
+                    "metadata": {"tipo_midia": tipo_midia},
+                }
+            ).execute()
 
             # Atualizar contadores manualmente
-            chip_data = supabase.table("chips").select(
-                "msgs_recebidas_total"
-            ).eq("id", chip["id"]).single().execute()
+            chip_data = (
+                supabase.table("chips")
+                .select("msgs_recebidas_total")
+                .eq("id", chip["id"])
+                .single()
+                .execute()
+            )
 
             if chip_data.data:
-                supabase.table("chips").update({
-                    "msgs_recebidas_total": (chip_data.data.get("msgs_recebidas_total") or 0) + 1,
-                }).eq("id", chip["id"]).execute()
+                supabase.table("chips").update(
+                    {
+                        "msgs_recebidas_total": (chip_data.data.get("msgs_recebidas_total") or 0)
+                        + 1,
+                    }
+                ).eq("id", chip["id"]).execute()
         except Exception as e2:
             logger.error(f"[WebhookRouter] Erro no fallback de métricas: {e2}")
 
@@ -186,9 +195,7 @@ async def processar_mensagem_recebida(chip: dict, payload: dict) -> dict:
     # O payload original segue para /webhook/evolution existente
     # Aqui apenas registramos metricas e adicionamos contexto
 
-    logger.info(
-        f"[WebhookRouter] Mensagem de {telefone} recebida por chip {chip['telefone']}"
-    )
+    logger.info(f"[WebhookRouter] Mensagem de {telefone} recebida por chip {chip['telefone']}")
 
     return {"status": "ok", "processed": True, "chip": chip["telefone"]}
 
@@ -200,36 +207,36 @@ async def processar_conexao(chip: dict, payload: dict) -> dict:
     state = payload.get("data", {}).get("state")
     connected = state == "open"
 
-    supabase.table("chips").update({
-        "evolution_connected": connected,
-    }).eq("id", chip["id"]).execute()
+    supabase.table("chips").update(
+        {
+            "evolution_connected": connected,
+        }
+    ).eq("id", chip["id"]).execute()
 
     if not connected:
         logger.warning(f"[WebhookRouter] Chip desconectado: {chip['telefone']}")
 
         # Criar alerta
-        supabase.table("chip_alerts").insert({
-            "chip_id": chip["id"],
-            "severity": "warning",
-            "tipo": "connection_lost",
-            "message": f"Chip {chip['telefone']} desconectado",
-        }).execute()
+        supabase.table("chip_alerts").insert(
+            {
+                "chip_id": chip["id"],
+                "severity": "warning",
+                "tipo": "connection_lost",
+                "message": f"Chip {chip['telefone']} desconectado",
+            }
+        ).execute()
 
     else:
         logger.info(f"[WebhookRouter] Chip conectado: {chip['telefone']}")
 
         # Resolver alertas de conexao
-        supabase.table("chip_alerts").update({
-            "resolved": True,
-            "resolved_at": datetime.now(timezone.utc).isoformat(),
-            "resolved_by": "auto",
-        }).eq(
-            "chip_id", chip["id"]
-        ).eq(
-            "tipo", "connection_lost"
-        ).eq(
-            "resolved", False
-        ).execute()
+        supabase.table("chip_alerts").update(
+            {
+                "resolved": True,
+                "resolved_at": datetime.now(timezone.utc).isoformat(),
+                "resolved_by": "auto",
+            }
+        ).eq("chip_id", chip["id"]).eq("tipo", "connection_lost").eq("resolved", False).execute()
 
     return {"status": "ok", "connected": connected}
 
@@ -253,11 +260,13 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
 
     if status == "DELIVERY_ACK":
         # Mensagem entregue
-        supabase.table("chip_interactions").insert({
-            "chip_id": chip["id"],
-            "tipo": "msg_entregue",
-            "destinatario": telefone,
-        }).execute()
+        supabase.table("chip_interactions").insert(
+            {
+                "chip_id": chip["id"],
+                "tipo": "msg_entregue",
+                "destinatario": telefone,
+            }
+        ).execute()
 
         # Sprint 41: Atualizar delivery_status na interação
         if message_id:
@@ -269,11 +278,13 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
 
     elif status == "READ":
         # Mensagem lida
-        supabase.table("chip_interactions").insert({
-            "chip_id": chip["id"],
-            "tipo": "msg_lida",
-            "destinatario": telefone,
-        }).execute()
+        supabase.table("chip_interactions").insert(
+            {
+                "chip_id": chip["id"],
+                "tipo": "msg_lida",
+                "destinatario": telefone,
+            }
+        ).execute()
 
         # Sprint 41: Atualizar delivery_status na interação
         if message_id:
@@ -293,9 +304,11 @@ async def processar_qr_code(chip: dict, payload: dict) -> dict:
     qr = payload.get("data", {}).get("qrcode", {}).get("base64")
 
     if qr:
-        supabase.table("chips").update({
-            "evolution_qr_code": qr,
-        }).eq("id", chip["id"]).execute()
+        supabase.table("chips").update(
+            {
+                "evolution_qr_code": qr,
+            }
+        ).eq("id", chip["id"]).execute()
 
         logger.info(f"[WebhookRouter] QR Code atualizado para {chip['telefone']}")
 

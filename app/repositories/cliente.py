@@ -3,9 +3,10 @@ Repository para Clientes (Medicos).
 
 Sprint 30 - S30.E3.2
 """
+
 import logging
 from typing import Optional, List
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 
 from .base import BaseRepository
@@ -20,6 +21,7 @@ class Cliente:
 
     Representa um medico no sistema Julia.
     """
+
     id: str
     telefone: str
     primeiro_nome: Optional[str] = None
@@ -56,7 +58,8 @@ class Cliente:
     def to_dict(self) -> dict:
         """Converte para dict (para updates)."""
         return {
-            k: v for k, v in {
+            k: v
+            for k, v in {
                 "telefone": self.telefone,
                 "primeiro_nome": self.primeiro_nome,
                 "sobrenome": self.sobrenome,
@@ -67,7 +70,8 @@ class Cliente:
                 "stage_jornada": self.stage_jornada,
                 "opt_out": self.opt_out,
                 "optout_at": self.optout_at,
-            }.items() if v is not None
+            }.items()
+            if v is not None
         }
 
 
@@ -91,12 +95,7 @@ class ClienteRepository(BaseRepository[Cliente]):
     async def buscar_por_id(self, id: str) -> Optional[Cliente]:
         """Busca cliente por ID."""
         try:
-            response = (
-                self.db.table(self.table_name)
-                .select("*")
-                .eq("id", id)
-                .execute()
-            )
+            response = self.db.table(self.table_name).select("*").eq("id", id).execute()
             if response.data:
                 return Cliente.from_dict(response.data[0])
             return None
@@ -117,10 +116,7 @@ class ClienteRepository(BaseRepository[Cliente]):
         telefone_limpo = "".join(filter(str.isdigit, telefone))
         try:
             response = (
-                self.db.table(self.table_name)
-                .select("*")
-                .eq("telefone", telefone_limpo)
-                .execute()
+                self.db.table(self.table_name).select("*").eq("telefone", telefone_limpo).execute()
             )
             if response.data:
                 return Cliente.from_dict(response.data[0])
@@ -129,12 +125,7 @@ class ClienteRepository(BaseRepository[Cliente]):
             logger.error(f"Erro ao buscar cliente por telefone: {e}")
             return None
 
-    async def listar(
-        self,
-        limit: int = 100,
-        offset: int = 0,
-        **filters
-    ) -> List[Cliente]:
+    async def listar(self, limit: int = 100, offset: int = 0, **filters) -> List[Cliente]:
         """Lista clientes com filtros."""
         try:
             query = self.db.table(self.table_name).select("*")
@@ -162,11 +153,7 @@ class ClienteRepository(BaseRepository[Cliente]):
             data["telefone"] = "".join(filter(str.isdigit, data["telefone"]))
 
         try:
-            response = (
-                self.db.table(self.table_name)
-                .insert(data)
-                .execute()
-            )
+            response = self.db.table(self.table_name).insert(data).execute()
             if response.data:
                 logger.info(f"Cliente criado: {response.data[0].get('id')}")
                 return Cliente.from_dict(response.data[0])
@@ -178,12 +165,7 @@ class ClienteRepository(BaseRepository[Cliente]):
     async def atualizar(self, id: str, data: dict) -> Optional[Cliente]:
         """Atualiza cliente existente."""
         try:
-            response = (
-                self.db.table(self.table_name)
-                .update(data)
-                .eq("id", id)
-                .execute()
-            )
+            response = self.db.table(self.table_name).update(data).eq("id", id).execute()
             if response.data:
                 logger.info(f"Cliente atualizado: {id}")
                 return Cliente.from_dict(response.data[0])
@@ -196,10 +178,7 @@ class ClienteRepository(BaseRepository[Cliente]):
         """Deleta cliente (soft delete via status)."""
         try:
             response = (
-                self.db.table(self.table_name)
-                .update({"status": "deletado"})
-                .eq("id", id)
-                .execute()
+                self.db.table(self.table_name).update({"status": "deletado"}).eq("id", id).execute()
             )
             if response.data:
                 logger.info(f"Cliente deletado: {id}")
@@ -211,11 +190,7 @@ class ClienteRepository(BaseRepository[Cliente]):
 
     # Metodos especificos de negocio
 
-    async def buscar_ou_criar(
-        self,
-        telefone: str,
-        primeiro_nome: Optional[str] = None
-    ) -> Cliente:
+    async def buscar_ou_criar(self, telefone: str, primeiro_nome: Optional[str] = None) -> Cliente:
         """
         Busca cliente ou cria se nao existir.
 
@@ -234,7 +209,7 @@ class ClienteRepository(BaseRepository[Cliente]):
             "telefone": telefone,
             "primeiro_nome": primeiro_nome,
             "stage_jornada": "novo",
-            "status": "novo"
+            "status": "novo",
         }
         return await self.criar(data)
 
@@ -249,8 +224,12 @@ class ClienteRepository(BaseRepository[Cliente]):
             Cliente atualizado ou None
         """
         from datetime import timezone
-        return await self.atualizar(id, {
-            "status": "opted_out",
-            "opt_out": True,
-            "optout_at": datetime.now(timezone.utc).isoformat()
-        })
+
+        return await self.atualizar(
+            id,
+            {
+                "status": "opted_out",
+                "opt_out": True,
+                "optout_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )

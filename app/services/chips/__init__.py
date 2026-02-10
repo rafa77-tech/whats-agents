@@ -35,6 +35,7 @@ from app.services.chips.sender import (
     enviar_media_via_chip,
     verificar_conexao_chip,
 )
+
 # Sprint 36
 from app.services.chips.circuit_breaker import (
     ChipCircuitBreaker,
@@ -57,6 +58,7 @@ from app.services.chips.affinity import (
     calcular_taxa_delivery,
     atualizar_metricas_chip,
 )
+
 # Sprint 40 - Instance Manager
 from app.services.chips.instance_manager import (
     InstanceManager,
@@ -66,6 +68,7 @@ from app.services.chips.instance_manager import (
     ConnectionStateResult,
     DeleteInstanceResult,
 )
+
 # Sync Evolution
 from app.services.chips.sync_evolution import (
     sincronizar_chips_com_evolution,

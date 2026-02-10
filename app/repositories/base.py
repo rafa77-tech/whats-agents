@@ -6,17 +6,19 @@ Sprint 30 - S30.E3.1
 Este modulo define a interface base que todos os repositories
 devem implementar, garantindo consistencia e facilitando testes.
 """
+
 from abc import ABC, abstractmethod
 from typing import TypeVar, Generic, Optional, List, Any
 from dataclasses import dataclass
 
 # Type variable para entidades
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 @dataclass
 class QueryResult(Generic[T]):
     """Resultado padronizado de query."""
+
     data: Optional[T] = None
     success: bool = True
     error: Optional[str] = None
@@ -74,12 +76,7 @@ class BaseRepository(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def listar(
-        self,
-        limit: int = 100,
-        offset: int = 0,
-        **filters
-    ) -> List[T]:
+    async def listar(self, limit: int = 100, offset: int = 0, **filters) -> List[T]:
         """
         Lista entidades com filtros opcionais.
 

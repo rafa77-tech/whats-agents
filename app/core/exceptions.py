@@ -3,6 +3,7 @@ Exceptions customizadas do Agente Julia.
 
 Sprint 10 - S10.E4.2
 """
+
 from typing import Optional
 
 
@@ -13,7 +14,7 @@ class JuliaException(Exception):
         self,
         message: str,
         details: Optional[dict] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         self.message = message
         self.details = details or {}
@@ -28,6 +29,7 @@ class JuliaException(Exception):
 
 class DatabaseError(JuliaException):
     """Erro de banco de dados (Supabase)."""
+
     pass
 
 
@@ -39,7 +41,7 @@ class ExternalAPIError(JuliaException):
         message: str,
         service: str,
         details: Optional[dict] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         self.service = service
         super().__init__(message, details, original_error)
@@ -47,6 +49,7 @@ class ExternalAPIError(JuliaException):
 
 class ValidationError(JuliaException):
     """Erro de validacao de dados de entrada."""
+
     pass
 
 
@@ -57,7 +60,7 @@ class RateLimitError(JuliaException):
         self,
         message: str = "Rate limit atingido",
         telefone: Optional[str] = None,
-        limite_tipo: Optional[str] = None
+        limite_tipo: Optional[str] = None,
     ):
         details = {}
         if telefone:
@@ -70,11 +73,7 @@ class RateLimitError(JuliaException):
 class NotFoundError(JuliaException):
     """Recurso nao encontrado."""
 
-    def __init__(
-        self,
-        resource: str,
-        identifier: Optional[str] = None
-    ):
+    def __init__(self, resource: str, identifier: Optional[str] = None):
         message = f"{resource} nao encontrado"
         details = {}
         if identifier:
@@ -84,9 +83,11 @@ class NotFoundError(JuliaException):
 
 class HandoffError(JuliaException):
     """Erro durante processo de handoff."""
+
     pass
 
 
 class ConfigurationError(JuliaException):
     """Erro de configuracao do sistema."""
+
     pass

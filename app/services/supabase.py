@@ -4,6 +4,7 @@ Cliente Supabase para operacoes de banco de dados.
 Sprint 30: Consolidado - funcoes de entidade movidas para services especificos.
 Manter apenas: cliente, circuit breaker e helpers genericos.
 """
+
 import asyncio
 from supabase import create_client, Client
 from functools import lru_cache
@@ -12,7 +13,7 @@ from typing import Optional
 import logging
 
 from app.core.config import settings
-from app.services.circuit_breaker import circuit_supabase, CircuitOpenError
+from app.services.circuit_breaker import circuit_supabase
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ def _validar_ambiente_supabase() -> None:
     try:
         project_id = settings.SUPABASE_URL.split("//")[1].split(".")[0]
     except (IndexError, AttributeError):
-        logger.warning(f"Não foi possível extrair project_id de SUPABASE_URL")
+        logger.warning("Não foi possível extrair project_id de SUPABASE_URL")
         return
 
     is_prod_env = settings.is_production  # APP_ENV == "production"
@@ -90,10 +91,7 @@ def get_supabase_client() -> Client:
     # Validar consistência ambiente <-> banco
     _validar_ambiente_supabase()
 
-    return create_client(
-        settings.SUPABASE_URL,
-        settings.SUPABASE_SERVICE_KEY
-    )
+    return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
 
 
 # Instancia global (use via dependency injection quando possivel)
@@ -113,6 +111,7 @@ async def _executar_com_circuit_breaker(func):
     Raises:
         CircuitOpenError: Se Supabase esta indisponivel
     """
+
     async def _async_wrapper():
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
@@ -124,11 +123,9 @@ async def _executar_com_circuit_breaker(func):
 # HELPERS GENERICOS (OK manter aqui - nao sao especificos de entidade)
 # =============================================================================
 
+
 async def contar_interacoes_periodo(
-    inicio: datetime,
-    fim: datetime,
-    direcao: Optional[str] = None,
-    cliente_id: Optional[str] = None
+    inicio: datetime, fim: datetime, direcao: Optional[str] = None, cliente_id: Optional[str] = None
 ) -> int:
     """
     Conta interacoes em um periodo.
@@ -149,6 +146,7 @@ async def contar_interacoes_periodo(
         ...     direcao="saida"
         ... )
     """
+
     def _query():
         query = supabase.table("interacoes").select("id", count="exact")
         query = query.gte("created_at", inicio.isoformat())

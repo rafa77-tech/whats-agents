@@ -13,6 +13,7 @@ GUARDRAIL CRÍTICO: Julia é INTERMEDIÁRIA
 - Conecta médico com responsável da vaga
 - Micro-confirmação é sobre PONTE, não reserva
 """
+
 import logging
 from datetime import datetime
 from typing import Optional
@@ -144,10 +145,25 @@ class ModeRouter:
         # (ex: "sim", "ok", "pode ser", "tenho")
         mensagem_lower = mensagem.lower().strip()
         confirma_keywords = [
-            "sim", "ok", "pode", "tenho", "blz", "beleza",
-            "pode ser", "aham", "isso", "claro", "tá bom",
-            "ta bom", "fechado", "bora", "vamo", "vamos",
-            "quero", "manda", "show",
+            "sim",
+            "ok",
+            "pode",
+            "tenho",
+            "blz",
+            "beleza",
+            "pode ser",
+            "aham",
+            "isso",
+            "claro",
+            "tá bom",
+            "ta bom",
+            "fechado",
+            "bora",
+            "vamo",
+            "vamos",
+            "quero",
+            "manda",
+            "show",
         ]
         for kw in confirma_keywords:
             if kw in mensagem_lower:

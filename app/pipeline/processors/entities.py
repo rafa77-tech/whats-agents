@@ -3,6 +3,7 @@ Processador de carregamento de entidades (médico, conversa).
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 
 from ..base import PreProcessor, ProcessorContext, ProcessorResult
@@ -18,21 +19,19 @@ class LoadEntitiesProcessor(PreProcessor):
 
     Prioridade: 20
     """
+
     name = "load_entities"
     priority = 20
 
     async def process(self, context: ProcessorContext) -> ProcessorResult:
         # Buscar/criar medico
         medico = await buscar_ou_criar_medico(
-            telefone=context.telefone,
-            nome_whatsapp=context.metadata.get("nome_contato")
+            telefone=context.telefone, nome_whatsapp=context.metadata.get("nome_contato")
         )
 
         if not medico:
             return ProcessorResult(
-                success=False,
-                should_continue=False,
-                error="Erro ao buscar/criar medico"
+                success=False, should_continue=False, error="Erro ao buscar/criar medico"
             )
 
         context.medico = medico
@@ -42,9 +41,7 @@ class LoadEntitiesProcessor(PreProcessor):
 
         if not conversa:
             return ProcessorResult(
-                success=False,
-                should_continue=False,
-                error="Erro ao buscar/criar conversa"
+                success=False, should_continue=False, error="Erro ao buscar/criar conversa"
             )
 
         context.conversa = conversa

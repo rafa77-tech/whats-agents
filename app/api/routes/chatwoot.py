@@ -5,6 +5,7 @@ IMPORTANTE: A integracao nativa Evolution API <-> Chatwoot ja faz
 a sincronizacao de mensagens/contatos/conversas. Este webhook e
 apenas para logica de negocio (handoff via labels).
 """
+
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 import logging
@@ -59,15 +60,13 @@ async def processar_conversation_updated(payload: dict):
 
     # Extrair labels (pode vir como lista de strings ou objetos)
     if labels and isinstance(labels[0], dict):
-        labels = [l.get("title", l.get("name", "")) for l in labels]
+        labels = [label.get("title", label.get("name", "")) for label in labels]
 
     if not chatwoot_conversation_id:
         logger.warning(f"Payload sem conversation.id. Keys: {list(payload.keys())}")
         return
 
-    logger.info(
-        f"Conversa {chatwoot_conversation_id} atualizada, labels: {labels}"
-    )
+    logger.info(f"Conversa {chatwoot_conversation_id} atualizada, labels: {labels}")
 
     # Buscar nossa conversa pelo chatwoot_conversation_id
     response = (
@@ -78,9 +77,7 @@ async def processar_conversation_updated(payload: dict):
     )
 
     if not response.data:
-        logger.warning(
-            f"Conversa nao encontrada para chatwoot_id: {chatwoot_conversation_id}"
-        )
+        logger.warning(f"Conversa nao encontrada para chatwoot_id: {chatwoot_conversation_id}")
         return
 
     conversa = response.data[0]
@@ -89,19 +86,19 @@ async def processar_conversation_updated(payload: dict):
     # Label "humano" presente -> handoff
     if "humano" in labels:
         if controlled_by != "human":
-            logger.info(f"Label 'humano' detectada, iniciando handoff...")
+            logger.info("Label 'humano' detectada, iniciando handoff...")
             await iniciar_handoff(
                 conversa_id=conversa["id"],
                 cliente_id=conversa["cliente_id"],
                 motivo="Label 'humano' adicionada no Chatwoot",
-                trigger_type="manual"
+                trigger_type="manual",
             )
         else:
             logger.debug("Conversa ja esta sob controle humano")
 
     # Label "humano" removida -> voltar para IA
     elif controlled_by == "human":
-        logger.info(f"Label 'humano' removida, finalizando handoff...")
+        logger.info("Label 'humano' removida, finalizando handoff...")
         await finalizar_handoff(conversa["id"])
 
 
@@ -144,31 +141,28 @@ async def chatwoot_test_api():
                     "api_key_valid": True,
                     "user": data.get("name", "Unknown"),
                     "email": data.get("email", "Unknown"),
-                    "account_id": chatwoot_service.account_id
+                    "account_id": chatwoot_service.account_id,
                 }
             elif response.status_code == 401:
                 return {
                     "status": "error",
                     "api_key_valid": False,
                     "message": "API key invalida. Regenere em Profile Settings > Access Token no Chatwoot.",
-                    "chatwoot_url": chatwoot_service.base_url
+                    "chatwoot_url": chatwoot_service.base_url,
                 }
             else:
                 return {
                     "status": "error",
                     "http_status": response.status_code,
-                    "message": response.text
+                    "message": response.text,
                 }
     except httpx.ConnectError:
         return {
             "status": "error",
-            "message": f"Nao foi possivel conectar ao Chatwoot em {chatwoot_service.base_url}"
+            "message": f"Nao foi possivel conectar ao Chatwoot em {chatwoot_service.base_url}",
         }
     except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+        return {"status": "error", "message": str(e)}
 
 
 @router.post("/sync/{telefone}")
@@ -185,7 +179,12 @@ async def chatwoot_sync_ids(telefone: str):
     from app.services.chatwoot import sincronizar_ids_chatwoot
 
     # Buscar cliente pelo telefone
-    response = supabase.table("clientes").select("id, telefone, primeiro_nome").eq("telefone", telefone).execute()
+    response = (
+        supabase.table("clientes")
+        .select("id, telefone, primeiro_nome")
+        .eq("telefone", telefone)
+        .execute()
+    )
 
     if not response.data:
         return {"status": "error", "message": f"Cliente nao encontrado com telefone {telefone}"}
@@ -200,7 +199,7 @@ async def chatwoot_sync_ids(telefone: str):
         "cliente": {
             "id": cliente["id"],
             "nome": cliente.get("primeiro_nome", "N/A"),
-            "telefone": telefone
+            "telefone": telefone,
         },
-        "chatwoot": resultado
+        "chatwoot": resultado,
     }

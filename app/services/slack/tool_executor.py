@@ -6,10 +6,10 @@ V2 - Governanca (31/12/2025):
 - Audit log para comandos criticos
 - Broadcast de status em toggles
 """
+
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any
 
 from app.tools.slack import TOOLS_CRITICAS, executar_tool
 from app.services.supabase import supabase
@@ -109,18 +109,20 @@ class ToolExecutor:
         - Resultado (sucesso/erro)
         """
         try:
-            supabase.table("slack_comandos").insert({
-                "texto_original": f"[AUDIT] {tool_name}",
-                "comando": tool_name,
-                "argumentos": tool_input,
-                "user_id": self.user_id,
-                "channel_id": self.channel_id,
-                "resposta": json.dumps(result, ensure_ascii=False)[:1000],
-                "respondido": True,
-                "respondido_em": datetime.now(timezone.utc).isoformat(),
-                "erro": None if result.get("success") else result.get("error"),
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }).execute()
+            supabase.table("slack_comandos").insert(
+                {
+                    "texto_original": f"[AUDIT] {tool_name}",
+                    "comando": tool_name,
+                    "argumentos": tool_input,
+                    "user_id": self.user_id,
+                    "channel_id": self.channel_id,
+                    "resposta": json.dumps(result, ensure_ascii=False)[:1000],
+                    "respondido": True,
+                    "respondido_em": datetime.now(timezone.utc).isoformat(),
+                    "erro": None if result.get("success") else result.get("error"),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+            ).execute()
 
             logger.info(
                 f"[AUDIT] {tool_name} executado por {self.user_id}",
@@ -129,8 +131,8 @@ class ToolExecutor:
                     "tool": tool_name,
                     "user_id": self.user_id,
                     "success": result.get("success", False),
-                    "params": tool_input
-                }
+                    "params": tool_input,
+                },
             )
         except Exception as e:
             logger.error(f"Erro ao registrar audit log: {e}")
@@ -247,27 +249,21 @@ class ToolExecutor:
             Mensagem formatada
         """
         if tool_name == "enviar_mensagem":
-            return template_sucesso_envio(
-                nome=result.get("nome"),
-                telefone=result.get("telefone")
-            )
+            return template_sucesso_envio(nome=result.get("nome"), telefone=result.get("telefone"))
 
         elif tool_name == "bloquear_medico":
             return template_sucesso_bloqueio(
-                nome=result.get("nome"),
-                telefone=result.get("telefone")
+                nome=result.get("nome"), telefone=result.get("telefone")
             )
 
         elif tool_name == "desbloquear_medico":
             return template_sucesso_desbloqueio(
-                nome=result.get("nome"),
-                telefone=result.get("telefone")
+                nome=result.get("nome"), telefone=result.get("telefone")
             )
 
         elif tool_name == "reservar_vaga":
             return template_sucesso_reserva(
-                vaga=result.get("vaga", {}),
-                medico=result.get("medico", {})
+                vaga=result.get("vaga", {}), medico=result.get("medico", {})
             )
 
         elif tool_name == "pausar_julia":
@@ -297,15 +293,13 @@ class ToolExecutor:
                 if result.get("success"):
                     # Tentar formatar com templates
                     if "metricas" in result:
-                        partes.append(template_metricas(
-                            result["metricas"],
-                            result.get("periodo", "")
-                        ))
+                        partes.append(
+                            template_metricas(result["metricas"], result.get("periodo", ""))
+                        )
                     elif "medicos" in result:
-                        partes.append(template_lista_medicos(
-                            result["medicos"],
-                            result.get("filtro", "")
-                        ))
+                        partes.append(
+                            template_lista_medicos(result["medicos"], result.get("filtro", ""))
+                        )
                     elif "vagas" in result:
                         partes.append(template_lista_vagas(result["vagas"]))
                     elif "status" in result:
@@ -315,10 +309,9 @@ class ToolExecutor:
                     elif "medico" in result:
                         partes.append(template_medico_info(result["medico"]))
                     elif "mensagens" in result:
-                        partes.append(template_historico(
-                            result.get("medico", "?"),
-                            result["mensagens"]
-                        ))
+                        partes.append(
+                            template_historico(result.get("medico", "?"), result["mensagens"])
+                        )
                     elif "variacao" in result:
                         partes.append(template_comparacao(result))
                     else:

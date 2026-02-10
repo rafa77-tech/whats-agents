@@ -13,6 +13,7 @@ from typing import List, Optional
 @dataclass
 class AlertaVaga:
     """Alerta sobre possível problema na vaga."""
+
     tipo: str  # "valor_baixo", "valor_alto", "data_proxima", etc
     mensagem: str
     severidade: str  # "info", "warning", "error"
@@ -26,18 +27,18 @@ def validar_valor(valor: Optional[int]) -> List[AlertaVaga]:
         return alertas
 
     if valor < 500:
-        alertas.append(AlertaVaga(
-            tipo="valor_baixo",
-            mensagem=f"Valor muito baixo: R$ {valor}",
-            severidade="warning"
-        ))
+        alertas.append(
+            AlertaVaga(
+                tipo="valor_baixo", mensagem=f"Valor muito baixo: R$ {valor}", severidade="warning"
+            )
+        )
 
     if valor > 10000:
-        alertas.append(AlertaVaga(
-            tipo="valor_alto",
-            mensagem=f"Valor muito alto: R$ {valor}",
-            severidade="warning"
-        ))
+        alertas.append(
+            AlertaVaga(
+                tipo="valor_alto", mensagem=f"Valor muito alto: R$ {valor}", severidade="warning"
+            )
+        )
 
     return alertas
 
@@ -53,25 +54,21 @@ def validar_data(data_vaga: Optional[date]) -> List[AlertaVaga]:
     diff = (data_vaga - hoje).days
 
     if diff < 0:
-        alertas.append(AlertaVaga(
-            tipo="data_passada",
-            mensagem="Data já passou",
-            severidade="error"
-        ))
+        alertas.append(
+            AlertaVaga(tipo="data_passada", mensagem="Data já passou", severidade="error")
+        )
 
     if diff == 0:
-        alertas.append(AlertaVaga(
-            tipo="data_hoje",
-            mensagem="Vaga para hoje - urgente",
-            severidade="info"
-        ))
+        alertas.append(
+            AlertaVaga(tipo="data_hoje", mensagem="Vaga para hoje - urgente", severidade="info")
+        )
 
     if diff > 30:
-        alertas.append(AlertaVaga(
-            tipo="data_distante",
-            mensagem=f"Vaga para daqui {diff} dias",
-            severidade="info"
-        ))
+        alertas.append(
+            AlertaVaga(
+                tipo="data_distante", mensagem=f"Vaga para daqui {diff} dias", severidade="info"
+            )
+        )
 
     return alertas
 
@@ -80,21 +77,25 @@ def validar_horario(hora_inicio: Optional[str], hora_fim: Optional[str]) -> List
     """Valida formato e lógica de horários."""
     alertas = []
 
-    pattern = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+    pattern = r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
 
     if hora_inicio and not re.match(pattern, hora_inicio):
-        alertas.append(AlertaVaga(
-            tipo="horario_invalido",
-            mensagem=f"Hora início inválida: {hora_inicio}",
-            severidade="warning"
-        ))
+        alertas.append(
+            AlertaVaga(
+                tipo="horario_invalido",
+                mensagem=f"Hora início inválida: {hora_inicio}",
+                severidade="warning",
+            )
+        )
 
     if hora_fim and not re.match(pattern, hora_fim):
-        alertas.append(AlertaVaga(
-            tipo="horario_invalido",
-            mensagem=f"Hora fim inválida: {hora_fim}",
-            severidade="warning"
-        ))
+        alertas.append(
+            AlertaVaga(
+                tipo="horario_invalido",
+                mensagem=f"Hora fim inválida: {hora_fim}",
+                severidade="warning",
+            )
+        )
 
     return alertas
 
@@ -103,7 +104,7 @@ def validar_vaga_completa(
     valor: Optional[int],
     data_vaga: Optional[date],
     hora_inicio: Optional[str],
-    hora_fim: Optional[str]
+    hora_fim: Optional[str],
 ) -> List[AlertaVaga]:
     """Executa todas as validações em uma vaga."""
     alertas = []
@@ -126,15 +127,19 @@ TIPOS_VAGA_VALIDOS = ["Cobertura", "Fixo", "Ambulatorial", "Mensal"]
 FORMAS_PAGAMENTO_VALIDAS = ["Pessoa fisica", "Pessoa jurídica", "CLT", "SCP"]
 
 
-def validar_campo_enum(valor: Optional[str], valores_validos: List[str], campo: str) -> List[AlertaVaga]:
+def validar_campo_enum(
+    valor: Optional[str], valores_validos: List[str], campo: str
+) -> List[AlertaVaga]:
     """Valida se um campo está entre os valores válidos."""
     alertas = []
 
     if valor and valor not in valores_validos:
-        alertas.append(AlertaVaga(
-            tipo=f"{campo}_invalido",
-            mensagem=f"{campo} não reconhecido: {valor}",
-            severidade="info"
-        ))
+        alertas.append(
+            AlertaVaga(
+                tipo=f"{campo}_invalido",
+                mensagem=f"{campo} não reconhecido: {valor}",
+                severidade="info",
+            )
+        )
 
     return alertas

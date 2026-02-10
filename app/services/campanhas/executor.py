@@ -9,6 +9,7 @@ Responsavel por:
 
 Sprint 35 - Epic 04
 """
+
 import logging
 from typing import List, Optional
 
@@ -50,8 +51,7 @@ class CampanhaExecutor:
         # 2. Validar status
         if campanha.status not in (StatusCampanha.AGENDADA, StatusCampanha.ATIVA):
             logger.warning(
-                f"Campanha {campanha_id} tem status {campanha.status.value}, "
-                "nao pode ser executada"
+                f"Campanha {campanha_id} tem status {campanha.status.value}, nao pode ser executada"
             )
             return False
 
@@ -69,10 +69,7 @@ class CampanhaExecutor:
         clientes_ja_receberam = await self._buscar_clientes_ja_enviados(campanha_id)
         if clientes_ja_receberam:
             destinatarios_antes = len(destinatarios)
-            destinatarios = [
-                d for d in destinatarios
-                if d.get("id") not in clientes_ja_receberam
-            ]
+            destinatarios = [d for d in destinatarios if d.get("id") not in clientes_ja_receberam]
             duplicados = destinatarios_antes - len(destinatarios)
             if duplicados > 0:
                 logger.info(

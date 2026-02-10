@@ -2,6 +2,7 @@
 
 > **Sprint 18 - Auditoria e Integridade**
 > Contrato formal entre ambientes DEV e PROD.
+> **Atualizado:** Sprint 57 (Fevereiro 2026)
 
 ---
 
@@ -13,6 +14,8 @@ Este documento define o contrato de configuracao entre os ambientes **DEV** e **
 |----------|---------------------|---------------------|---------|
 | **PROD** | `jyqgbzhqavgpxqacduoi` | `production` | `production` |
 | **DEV** | `ofpnronthwcsybfxnxgj` | `dev` | `dev` |
+
+**NOTA:** A validacao de ambiente e project ref e feita em `app/api/routes/health.py` no endpoint `/health/deep`.
 
 ---
 
@@ -213,8 +216,19 @@ remarkable-communication/
 
 ---
 
+---
+
+## Referencia de Codigo
+
+- **Config:** `app/core/config.py` - classe `Settings`
+- **Health Check:** `app/api/routes/health.py` - endpoint `/health/deep`
+- **Guardrails:** `app/services/guardrails/check.py`
+
+---
+
 ## Historico
 
 | Data | Alteracao |
 |------|-----------|
 | 2025-12-31 | Criacao do documento (Sprint 18 Auditoria) |
+| 2026-02-10 | Verificacao de acuracia (Sprint 57) - contrato validado, nenhuma mudanca necessaria |

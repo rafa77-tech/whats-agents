@@ -32,9 +32,11 @@ THRESHOLD_REVISAR = 0.70
 # S09.1 - Cálculo de Confiança
 # =============================================================================
 
+
 @dataclass
 class ScoreConfianca:
     """Scores de confiança da vaga."""
+
     hospital: float = 0.0
     especialidade: float = 0.0
     data: float = 0.0
@@ -68,7 +70,9 @@ def calcular_confianca_geral(vaga: dict) -> ScoreConfianca:
     scores.detalhes["hospital"] = scores.hospital
 
     # Especialidade (30%)
-    scores.especialidade = vaga.get("especialidade_match_score") or vaga.get("confianca_especialidade") or 0.0
+    scores.especialidade = (
+        vaga.get("especialidade_match_score") or vaga.get("confianca_especialidade") or 0.0
+    )
     scores.detalhes["especialidade"] = scores.especialidade
 
     # Data (25%)
@@ -106,11 +110,11 @@ def calcular_confianca_geral(vaga: dict) -> ScoreConfianca:
 
     # Cálculo ponderado
     scores.geral = (
-        scores.hospital * 0.30 +
-        scores.especialidade * 0.30 +
-        scores.data * 0.25 +
-        scores.periodo * 0.10 +
-        scores.valor * 0.05
+        scores.hospital * 0.30
+        + scores.especialidade * 0.30
+        + scores.data * 0.25
+        + scores.periodo * 0.10
+        + scores.valor * 0.05
     )
 
     return scores
@@ -120,9 +124,11 @@ def calcular_confianca_geral(vaga: dict) -> ScoreConfianca:
 # S09.2 - Validação para Importação
 # =============================================================================
 
+
 @dataclass
 class ResultadoValidacao:
     """Resultado da validação de vaga."""
+
     valido: bool
     erros: List[str] = field(default_factory=list)
     avisos: List[str] = field(default_factory=list)
@@ -194,16 +200,13 @@ def validar_para_importacao(vaga: dict) -> ResultadoValidacao:
         avisos.append("valor_tipo=faixa mas limites ausentes")
     # a_combinar não gera aviso - é um tipo válido
 
-    return ResultadoValidacao(
-        valido=len(erros) == 0,
-        erros=erros,
-        avisos=avisos
-    )
+    return ResultadoValidacao(valido=len(erros) == 0, erros=erros, avisos=avisos)
 
 
 # =============================================================================
 # S09.3 - Criar Vaga Principal
 # =============================================================================
+
 
 async def criar_vaga_principal(vaga_grupo: dict) -> UUID:
     """
@@ -246,10 +249,7 @@ async def criar_vaga_principal(vaga_grupo: dict) -> UUID:
     return vaga_id
 
 
-async def atualizar_vaga_grupo_importada(
-    vaga_grupo_id: UUID,
-    vaga_id: UUID
-) -> None:
+async def atualizar_vaga_grupo_importada(vaga_grupo_id: UUID, vaga_id: UUID) -> None:
     """
     Marca vaga_grupo como importada.
 
@@ -257,22 +257,23 @@ async def atualizar_vaga_grupo_importada(
         vaga_grupo_id: ID da vaga de grupo
         vaga_id: ID da vaga criada
     """
-    supabase.table("vagas_grupo") \
-        .update({
+    supabase.table("vagas_grupo").update(
+        {
             "status": "importada",
             "vaga_importada_id": str(vaga_id),
             "importada_em": datetime.now(UTC).isoformat(),
-        }) \
-        .eq("id", str(vaga_grupo_id)) \
-        .execute()
+        }
+    ).eq("id", str(vaga_grupo_id)).execute()
 
 
 # =============================================================================
 # S09.4 - Regras de Decisão
 # =============================================================================
 
+
 class AcaoImportacao(Enum):
     """Ações possíveis para importação."""
+
     IMPORTAR = "importar"
     REVISAR = "revisar"
     DESCARTAR = "descartar"
@@ -312,7 +313,7 @@ async def aplicar_acao(
     vaga_grupo: dict,
     acao: AcaoImportacao,
     score: ScoreConfianca,
-    validacao: ResultadoValidacao
+    validacao: ResultadoValidacao,
 ) -> dict:
     """
     Aplica a ação decidida na vaga.
@@ -343,14 +344,13 @@ async def aplicar_acao(
 
     elif acao == AcaoImportacao.REVISAR:
         # Mover para fila de revisão
-        supabase.table("vagas_grupo") \
-            .update({
+        supabase.table("vagas_grupo").update(
+            {
                 "status": "aguardando_revisao",
                 "confianca_geral": score.geral,
                 "motivo_status": "confianca_media",
-            }) \
-            .eq("id", str(vaga_grupo_id)) \
-            .execute()
+            }
+        ).eq("id", str(vaga_grupo_id)).execute()
 
         resultado["status"] = "aguardando_revisao"
 
@@ -359,14 +359,13 @@ async def aplicar_acao(
         if not validacao.valido:
             motivo = f"validacao_falhou: {', '.join(validacao.erros)}"
 
-        supabase.table("vagas_grupo") \
-            .update({
+        supabase.table("vagas_grupo").update(
+            {
                 "status": "descartada",
                 "confianca_geral": score.geral,
                 "motivo_status": motivo,
-            }) \
-            .eq("id", str(vaga_grupo_id)) \
-            .execute()
+            }
+        ).eq("id", str(vaga_grupo_id)).execute()
 
         resultado["status"] = "descartada"
         resultado["motivo"] = motivo
@@ -378,9 +377,11 @@ async def aplicar_acao(
 # S09.5 - Processador de Importação
 # =============================================================================
 
+
 @dataclass
 class ResultadoImportacao:
     """Resultado do processamento de importação."""
+
     vaga_grupo_id: str
     acao: str
     score: float
@@ -409,11 +410,7 @@ async def processar_importacao(vaga_grupo_id: UUID) -> ResultadoImportacao:
         ResultadoImportacao com detalhes do processamento
     """
     # Buscar vaga
-    vaga = supabase.table("vagas_grupo") \
-        .select("*") \
-        .eq("id", str(vaga_grupo_id)) \
-        .single() \
-        .execute()
+    vaga = supabase.table("vagas_grupo").select("*").eq("id", str(vaga_grupo_id)).single().execute()
 
     if not vaga.data:
         return ResultadoImportacao(
@@ -421,7 +418,7 @@ async def processar_importacao(vaga_grupo_id: UUID) -> ResultadoImportacao:
             acao="erro",
             score=0,
             status="erro",
-            erro="vaga_nao_encontrada"
+            erro="vaga_nao_encontrada",
         )
 
     dados = vaga.data
@@ -433,7 +430,7 @@ async def processar_importacao(vaga_grupo_id: UUID) -> ResultadoImportacao:
             acao="ignorada",
             score=dados.get("confianca_geral", 0),
             status=dados["status"],
-            erro="vaga_ja_processada"
+            erro="vaga_ja_processada",
         )
 
     # Verificar se é duplicada
@@ -443,7 +440,7 @@ async def processar_importacao(vaga_grupo_id: UUID) -> ResultadoImportacao:
             acao="ignorada",
             score=0,
             status="duplicada",
-            erro="vaga_duplicada"
+            erro="vaga_duplicada",
         )
 
     # Calcular confiança
@@ -462,7 +459,7 @@ async def processar_importacao(vaga_grupo_id: UUID) -> ResultadoImportacao:
         score=resultado["score"],
         status=resultado["status"],
         vaga_id=resultado.get("vaga_id"),
-        motivo=resultado.get("motivo")
+        motivo=resultado.get("motivo"),
     )
 
 
@@ -479,14 +476,16 @@ async def processar_batch_importacao(limite: int = 50) -> dict:
         Estatísticas do processamento
     """
     # Buscar vagas prontas (não duplicadas, não importadas)
-    vagas = supabase.table("vagas_grupo") \
-        .select("id") \
-        .eq("status", "pronta_importacao") \
-        .eq("eh_duplicada", False) \
-        .is_("vaga_importada_id", "null") \
-        .order("created_at") \
-        .limit(limite) \
+    vagas = (
+        supabase.table("vagas_grupo")
+        .select("id")
+        .eq("status", "pronta_importacao")
+        .eq("eh_duplicada", False)
+        .is_("vaga_importada_id", "null")
+        .order("created_at")
+        .limit(limite)
         .execute()
+    )
 
     stats = {
         "total": len(vagas.data),
@@ -527,6 +526,7 @@ async def processar_batch_importacao(limite: int = 50) -> dict:
 # Funções de Consulta
 # =============================================================================
 
+
 async def listar_vagas_para_revisao(limite: int = 50) -> list:
     """
     Lista vagas aguardando revisão humana.
@@ -537,12 +537,14 @@ async def listar_vagas_para_revisao(limite: int = 50) -> list:
     Returns:
         Lista de vagas para revisão
     """
-    result = supabase.table("vagas_grupo") \
-        .select("*, hospitais(nome), especialidades(nome)") \
-        .eq("status", "aguardando_revisao") \
-        .order("confianca_geral", desc=True) \
-        .limit(limite) \
+    result = (
+        supabase.table("vagas_grupo")
+        .select("*, hospitais(nome), especialidades(nome)")
+        .eq("status", "aguardando_revisao")
+        .order("confianca_geral", desc=True)
+        .limit(limite)
         .execute()
+    )
 
     return result.data
 
@@ -559,11 +561,7 @@ async def aprovar_vaga_revisao(vaga_grupo_id: UUID, aprovado_por: str = "gestor"
         Resultado da importação
     """
     # Buscar vaga
-    vaga = supabase.table("vagas_grupo") \
-        .select("*") \
-        .eq("id", str(vaga_grupo_id)) \
-        .single() \
-        .execute()
+    vaga = supabase.table("vagas_grupo").select("*").eq("id", str(vaga_grupo_id)).single().execute()
 
     if not vaga.data:
         return {"erro": "vaga_nao_encontrada"}
@@ -576,13 +574,12 @@ async def aprovar_vaga_revisao(vaga_grupo_id: UUID, aprovado_por: str = "gestor"
     await atualizar_vaga_grupo_importada(vaga_grupo_id, vaga_id)
 
     # Registrar aprovação
-    supabase.table("vagas_grupo") \
-        .update({
+    supabase.table("vagas_grupo").update(
+        {
             "aprovado_por": aprovado_por,
             "aprovado_em": datetime.now(UTC).isoformat(),
-        }) \
-        .eq("id", str(vaga_grupo_id)) \
-        .execute()
+        }
+    ).eq("id", str(vaga_grupo_id)).execute()
 
     return {
         "vaga_grupo_id": str(vaga_grupo_id),
@@ -593,9 +590,7 @@ async def aprovar_vaga_revisao(vaga_grupo_id: UUID, aprovado_por: str = "gestor"
 
 
 async def rejeitar_vaga_revisao(
-    vaga_grupo_id: UUID,
-    motivo: str,
-    rejeitado_por: str = "gestor"
+    vaga_grupo_id: UUID, motivo: str, rejeitado_por: str = "gestor"
 ) -> dict:
     """
     Rejeita vaga da fila de revisão.
@@ -608,15 +603,14 @@ async def rejeitar_vaga_revisao(
     Returns:
         Resultado da rejeição
     """
-    supabase.table("vagas_grupo") \
-        .update({
+    supabase.table("vagas_grupo").update(
+        {
             "status": "rejeitada",
             "motivo_status": f"rejeitada: {motivo}",
             "rejeitado_por": rejeitado_por,
             "rejeitado_em": datetime.now(UTC).isoformat(),
-        }) \
-        .eq("id", str(vaga_grupo_id)) \
-        .execute()
+        }
+    ).eq("id", str(vaga_grupo_id)).execute()
 
     return {
         "vaga_grupo_id": str(vaga_grupo_id),
@@ -633,33 +627,39 @@ async def obter_estatisticas_importacao() -> dict:
         Estatísticas gerais
     """
     # Total de vagas de grupo
-    total = supabase.table("vagas_grupo") \
-        .select("id", count="exact") \
-        .execute()
+    total = supabase.table("vagas_grupo").select("id", count="exact").execute()
 
     # Importadas
-    importadas = supabase.table("vagas_grupo") \
-        .select("id", count="exact") \
-        .eq("status", "importada") \
+    importadas = (
+        supabase.table("vagas_grupo")
+        .select("id", count="exact")
+        .eq("status", "importada")
         .execute()
+    )
 
     # Aguardando revisão
-    revisao = supabase.table("vagas_grupo") \
-        .select("id", count="exact") \
-        .eq("status", "aguardando_revisao") \
+    revisao = (
+        supabase.table("vagas_grupo")
+        .select("id", count="exact")
+        .eq("status", "aguardando_revisao")
         .execute()
+    )
 
     # Descartadas
-    descartadas = supabase.table("vagas_grupo") \
-        .select("id", count="exact") \
-        .eq("status", "descartada") \
+    descartadas = (
+        supabase.table("vagas_grupo")
+        .select("id", count="exact")
+        .eq("status", "descartada")
         .execute()
+    )
 
     # Prontas para importação
-    prontas = supabase.table("vagas_grupo") \
-        .select("id", count="exact") \
-        .eq("status", "pronta_importacao") \
+    prontas = (
+        supabase.table("vagas_grupo")
+        .select("id", count="exact")
+        .eq("status", "pronta_importacao")
         .execute()
+    )
 
     return {
         "total_vagas_grupo": total.count or 0,
@@ -667,7 +667,5 @@ async def obter_estatisticas_importacao() -> dict:
         "aguardando_revisao": revisao.count or 0,
         "descartadas": descartadas.count or 0,
         "prontas_importacao": prontas.count or 0,
-        "taxa_importacao": (
-            (importadas.count or 0) / (total.count or 1) * 100
-        ),
+        "taxa_importacao": ((importadas.count or 0) / (total.count or 1) * 100),
     }

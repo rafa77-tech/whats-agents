@@ -5,6 +5,7 @@ Sprint 31 - S31.E1.7
 
 Centraliza criação de providers para facilitar DI e configuração.
 """
+
 from typing import Optional
 from functools import lru_cache
 

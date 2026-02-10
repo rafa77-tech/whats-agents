@@ -3,12 +3,12 @@ Endpoints para jobs e tarefas agendadas.
 
 Sprint 10 - S10.E3.1: Logica de negocio extraida para app/services/jobs/
 """
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import logging
 
-from datetime import datetime, timezone
 from app.core.timezone import agora_brasilia, agora_utc
 from app.services.supabase import supabase
 from app.services.fila_mensagens import processar_mensagens_agendadas
@@ -42,18 +42,17 @@ async def job_heartbeat():
     Schedule: * * * * * (a cada minuto)
     """
     try:
-        supabase.table("julia_status").insert({
-            "status": "ativo",
-            "motivo": "Heartbeat automático",
-            "alterado_por": "scheduler",
-            "alterado_via": "sistema",
-            "created_at": agora_utc().isoformat()
-        }).execute()
+        supabase.table("julia_status").insert(
+            {
+                "status": "ativo",
+                "motivo": "Heartbeat automático",
+                "alterado_por": "scheduler",
+                "alterado_via": "sistema",
+                "created_at": agora_utc().isoformat(),
+            }
+        ).execute()
 
-        return JSONResponse({
-            "status": "ok",
-            "message": "Heartbeat registrado"
-        })
+        return JSONResponse({"status": "ok", "message": "Heartbeat registrado"})
     except Exception as e:
         logger.error(f"Erro ao registrar heartbeat: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -69,27 +68,28 @@ async def job_primeira_mensagem(request: PrimeiraMensagemRequest):
     resultado = await enviar_primeira_mensagem(request.telefone)
 
     if resultado.opted_out:
-        return JSONResponse({
-            "status": "blocked",
-            "message": resultado.erro,
-            "cliente": resultado.cliente_nome,
-            "opted_out": True
-        })
-
-    if not resultado.sucesso:
         return JSONResponse(
-            {"status": "error", "message": resultado.erro},
-            status_code=500
+            {
+                "status": "blocked",
+                "message": resultado.erro,
+                "cliente": resultado.cliente_nome,
+                "opted_out": True,
+            }
         )
 
-    return JSONResponse({
-        "status": "ok",
-        "message": "Primeira mensagem enviada",
-        "cliente": resultado.cliente_nome,
-        "conversa_id": resultado.conversa_id,
-        "resposta": resultado.mensagem_enviada,
-        "envio": resultado.resultado_envio
-    })
+    if not resultado.sucesso:
+        return JSONResponse({"status": "error", "message": resultado.erro}, status_code=500)
+
+    return JSONResponse(
+        {
+            "status": "ok",
+            "message": "Primeira mensagem enviada",
+            "cliente": resultado.cliente_nome,
+            "conversa_id": resultado.conversa_id,
+            "resposta": resultado.mensagem_enviada,
+            "envio": resultado.resultado_envio,
+        }
+    )
 
 
 @router.post("/processar-mensagens-agendadas")
@@ -131,7 +131,9 @@ async def job_relatorio_diario():
     try:
         relatorio = await gerar_relatorio_diario()
         await enviar_relatorio_slack(relatorio)
-        return JSONResponse({"status": "ok", "message": "Relatorio diario enviado", "relatorio": relatorio})
+        return JSONResponse(
+            {"status": "ok", "message": "Relatorio diario enviado", "relatorio": relatorio}
+        )
     except Exception as e:
         logger.error(f"Erro ao enviar relatorio diario: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -146,12 +148,14 @@ async def job_atualizar_prompt_feedback():
     """
     try:
         resultado = await atualizar_prompt_com_feedback()
-        return JSONResponse({
-            "status": "ok",
-            "message": "Exemplos de feedback atualizados no banco",
-            "exemplos_bons": resultado.get("exemplos_bons", 0),
-            "exemplos_ruins": resultado.get("exemplos_ruins", 0),
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": "Exemplos de feedback atualizados no banco",
+                "exemplos_bons": resultado.get("exemplos_bons", 0),
+                "exemplos_ruins": resultado.get("exemplos_ruins", 0),
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao atualizar prompt com feedback: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -162,10 +166,9 @@ async def job_processar_campanhas_agendadas():
     """Job para iniciar campanhas agendadas."""
     try:
         resultado = await processar_campanhas_agendadas()
-        return JSONResponse({
-            "status": "ok",
-            "message": f"{resultado.campanhas_iniciadas} campanha(s) iniciada(s)"
-        })
+        return JSONResponse(
+            {"status": "ok", "message": f"{resultado.campanhas_iniciadas} campanha(s) iniciada(s)"}
+        )
     except Exception as e:
         logger.error(f"Erro ao processar campanhas agendadas: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -176,6 +179,7 @@ async def job_report_periodo(tipo: str = "manha"):
     """Gera e envia report do periodo."""
     try:
         from app.services.relatorio import gerar_report_periodo, enviar_report_periodo_slack
+
         report = await gerar_report_periodo(tipo)
         await enviar_report_periodo_slack(report)
         return JSONResponse({"status": "ok", "periodo": tipo, "metricas": report["metricas"]})
@@ -189,9 +193,12 @@ async def job_report_semanal():
     """Gera e envia report semanal."""
     try:
         from app.services.relatorio import gerar_report_semanal, enviar_report_semanal_slack
+
         report = await gerar_report_semanal()
         await enviar_report_semanal_slack(report)
-        return JSONResponse({"status": "ok", "semana": report["semana"], "metricas": report["metricas"]})
+        return JSONResponse(
+            {"status": "ok", "semana": report["semana"], "metricas": report["metricas"]}
+        )
     except Exception as e:
         logger.error(f"Erro ao gerar report semanal: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -202,6 +209,7 @@ async def job_processar_followups():
     """Job diario para processar follow-ups pendentes."""
     try:
         from app.services.followup import processar_followups_pendentes
+
         stats = await processar_followups_pendentes()
         return JSONResponse({"status": "ok", "stats": stats})
     except Exception as e:
@@ -214,6 +222,7 @@ async def job_processar_pausas_expiradas():
     """Job diario para reativar conversas pausadas."""
     try:
         from app.services.followup import processar_pausas_expiradas
+
         stats = await processar_pausas_expiradas()
         return JSONResponse({"status": "ok", "stats": stats})
     except Exception as e:
@@ -226,6 +235,7 @@ async def job_sincronizar_briefing():
     """Job para sincronizar briefing do Google Docs."""
     try:
         from app.services.briefing import sincronizar_briefing
+
         result = await sincronizar_briefing()
         return JSONResponse({"status": "ok", "result": result})
     except Exception as e:
@@ -241,18 +251,19 @@ async def job_followup_diario():
         enviados = 0
         for item in pendentes:
             sucesso = await followup_service.enviar_followup(
-                conversa_id=item["conversa"]["id"],
-                tipo=item["tipo"]
+                conversa_id=item["conversa"]["id"], tipo=item["tipo"]
             )
             if sucesso:
                 enviados += 1
 
-        return JSONResponse({
-            "status": "ok",
-            "message": f"{enviados} follow-up(s) agendado(s)",
-            "pendentes": len(pendentes),
-            "enviados": enviados
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"{enviados} follow-up(s) agendado(s)",
+                "pendentes": len(pendentes),
+                "enviados": enviados,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao processar follow-ups: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -274,15 +285,17 @@ async def job_processar_fila_mensagens(limite: int = 20):
     """Job para processar fila de mensagens."""
     try:
         stats = await processar_fila(limite)
-        return JSONResponse({
-            "status": "ok",
-            "stats": {
-                "processadas": stats.processadas,
-                "enviadas": stats.enviadas,
-                "bloqueadas_optout": stats.bloqueadas_optout,
-                "erros": stats.erros
+        return JSONResponse(
+            {
+                "status": "ok",
+                "stats": {
+                    "processadas": stats.processadas,
+                    "enviadas": stats.enviadas,
+                    "bloqueadas_optout": stats.bloqueadas_optout,
+                    "erros": stats.erros,
+                },
             }
-        })
+        )
     except Exception as e:
         logger.error(f"Erro ao processar fila de mensagens: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -291,6 +304,7 @@ async def job_processar_fila_mensagens(limite: int = 20):
 # ==========================================
 # Jobs de manutenção do doctor_state (Sprint 15)
 # ==========================================
+
 
 @router.post("/doctor-state-manutencao-diaria")
 async def job_doctor_state_manutencao_diaria():
@@ -304,12 +318,11 @@ async def job_doctor_state_manutencao_diaria():
     """
     try:
         from app.workers.temperature_decay import run_daily_maintenance
+
         result = await run_daily_maintenance()
-        return JSONResponse({
-            "status": "ok",
-            "message": "Manutenção diária concluída",
-            "result": result
-        })
+        return JSONResponse(
+            {"status": "ok", "message": "Manutenção diária concluída", "result": result}
+        )
     except Exception as e:
         logger.error(f"Erro na manutenção diária: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -324,12 +337,11 @@ async def job_doctor_state_manutencao_semanal():
     """
     try:
         from app.workers.temperature_decay import run_weekly_maintenance
+
         result = await run_weekly_maintenance()
-        return JSONResponse({
-            "status": "ok",
-            "message": "Manutenção semanal concluída",
-            "result": result
-        })
+        return JSONResponse(
+            {"status": "ok", "message": "Manutenção semanal concluída", "result": result}
+        )
     except Exception as e:
         logger.error(f"Erro na manutenção semanal: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -345,12 +357,11 @@ async def job_doctor_state_decay(batch_size: int = 100):
     """
     try:
         from app.workers.temperature_decay import decay_all_temperatures
+
         decayed = await decay_all_temperatures(batch_size)
-        return JSONResponse({
-            "status": "ok",
-            "message": f"Decay aplicado em {decayed} médicos",
-            "decayed": decayed
-        })
+        return JSONResponse(
+            {"status": "ok", "message": f"Decay aplicado em {decayed} médicos", "decayed": decayed}
+        )
     except Exception as e:
         logger.error(f"Erro no decay de temperatura: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -365,12 +376,11 @@ async def job_doctor_state_expire_cooling():
     """
     try:
         from app.workers.temperature_decay import expire_cooling_off
+
         expired = await expire_cooling_off()
-        return JSONResponse({
-            "status": "ok",
-            "message": f"{expired} cooling_off expirado(s)",
-            "expired": expired
-        })
+        return JSONResponse(
+            {"status": "ok", "message": f"{expired} cooling_off expirado(s)", "expired": expired}
+        )
     except Exception as e:
         logger.error(f"Erro ao expirar cooling_off: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -379,6 +389,7 @@ async def job_doctor_state_expire_cooling():
 # ==========================================
 # Jobs de processamento de grupos WhatsApp (Sprint 14)
 # ==========================================
+
 
 @router.post("/processar-grupos")
 async def job_processar_grupos(batch_size: int = 50, max_workers: int = 20):
@@ -394,12 +405,15 @@ async def job_processar_grupos(batch_size: int = 50, max_workers: int = 20):
     """
     try:
         from app.workers.grupos_worker import processar_ciclo_grupos
+
         resultado = await processar_ciclo_grupos(batch_size, max_workers)
-        return JSONResponse({
-            "status": "ok" if resultado["sucesso"] else "error",
-            "ciclo": resultado.get("ciclo", {}),
-            "fila": resultado.get("fila", {})
-        })
+        return JSONResponse(
+            {
+                "status": "ok" if resultado["sucesso"] else "error",
+                "ciclo": resultado.get("ciclo", {}),
+                "fila": resultado.get("fila", {}),
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao processar grupos: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -414,6 +428,7 @@ async def job_status_grupos():
     """
     try:
         from app.workers.grupos_worker import obter_status_worker
+
         status = await obter_status_worker()
         return JSONResponse(status)
     except Exception as e:
@@ -431,12 +446,11 @@ async def job_limpar_grupos_finalizados(dias: int = 7):
     """
     try:
         from app.services.grupos.fila import limpar_finalizados
+
         removidos = await limpar_finalizados(dias)
-        return JSONResponse({
-            "status": "ok",
-            "message": f"{removidos} item(ns) removido(s)",
-            "removidos": removidos
-        })
+        return JSONResponse(
+            {"status": "ok", "message": f"{removidos} item(ns) removido(s)", "removidos": removidos}
+        )
     except Exception as e:
         logger.error(f"Erro ao limpar finalizados: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -452,12 +466,15 @@ async def job_reprocessar_grupos_erro(limite: int = 100):
     """
     try:
         from app.services.grupos.fila import reprocessar_erros
+
         reprocessados = await reprocessar_erros(limite)
-        return JSONResponse({
-            "status": "ok",
-            "message": f"{reprocessados} item(ns) enviado(s) para reprocessamento",
-            "reprocessados": reprocessados
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"{reprocessados} item(ns) enviado(s) para reprocessamento",
+                "reprocessados": reprocessados,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao reprocessar erros: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -480,16 +497,16 @@ async def job_backfill_fila_grupos(limite: int = 1000):
         from uuid import UUID
 
         # Buscar mensagens pendentes que NÃO estão na fila
-        result = supabase.rpc("buscar_mensagens_pendentes_sem_fila", {
-            "p_limite": limite
-        }).execute()
+        result = supabase.rpc("buscar_mensagens_pendentes_sem_fila", {"p_limite": limite}).execute()
 
         if not result.data:
-            return JSONResponse({
-                "status": "ok",
-                "message": "Nenhuma mensagem pendente para enfileirar",
-                "enfileiradas": 0
-            })
+            return JSONResponse(
+                {
+                    "status": "ok",
+                    "message": "Nenhuma mensagem pendente para enfileirar",
+                    "enfileiradas": 0,
+                }
+            )
 
         enfileiradas = 0
         erros = 0
@@ -504,12 +521,14 @@ async def job_backfill_fila_grupos(limite: int = 1000):
                 logger.warning(f"Erro ao enfileirar {row['id']}: {e}")
                 erros += 1
 
-        return JSONResponse({
-            "status": "ok",
-            "message": f"{enfileiradas} mensagem(ns) enfileirada(s), {erros} erro(s)",
-            "enfileiradas": enfileiradas,
-            "erros": erros
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"{enfileiradas} mensagem(ns) enfileirada(s), {erros} erro(s)",
+                "enfileiradas": enfileiradas,
+                "erros": erros,
+            }
+        )
 
     except Exception as e:
         logger.error(f"Erro no backfill de fila de grupos: {e}")
@@ -530,12 +549,15 @@ async def job_verificar_alertas_grupos():
     """
     try:
         from app.services.grupos.alertas import executar_verificacao_alertas_grupos
+
         alertas = await executar_verificacao_alertas_grupos()
-        return JSONResponse({
-            "status": "ok",
-            "message": f"{len(alertas)} alerta(s) encontrado(s)",
-            "alertas": alertas
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"{len(alertas)} alerta(s) encontrado(s)",
+                "alertas": alertas,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao verificar alertas de grupos: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -558,10 +580,12 @@ async def job_consolidar_metricas_grupos():
         # Depois, consolidar dia anterior
         sucesso = await consolidar_metricas_dia()
 
-        return JSONResponse({
-            "status": "ok" if sucesso else "error",
-            "message": "Métricas consolidadas" if sucesso else "Erro na consolidação"
-        })
+        return JSONResponse(
+            {
+                "status": "ok" if sucesso else "error",
+                "message": "Métricas consolidadas" if sucesso else "Erro na consolidação",
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao consolidar métricas de grupos: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -570,6 +594,7 @@ async def job_consolidar_metricas_grupos():
 # =============================================================================
 # Jobs de Confirmação de Plantão (Sprint 17)
 # =============================================================================
+
 
 @router.post("/processar-confirmacao-plantao")
 async def job_processar_confirmacao_plantao(buffer_horas: int = 2):
@@ -586,12 +611,14 @@ async def job_processar_confirmacao_plantao(buffer_horas: int = 2):
 
         resultado = await processar_vagas_vencidas(buffer_horas=buffer_horas)
 
-        return JSONResponse({
-            "status": "ok",
-            "processadas": resultado["processadas"],
-            "erros": resultado["erros"],
-            "vagas": resultado["vagas"]
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "processadas": resultado["processadas"],
+                "erros": resultado["erros"],
+                "vagas": resultado["vagas"],
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao processar confirmação de plantão: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -609,12 +636,14 @@ async def job_backfill_confirmacao_plantao():
 
         resultado = await processar_vagas_vencidas(buffer_horas=2, is_backfill=True)
 
-        return JSONResponse({
-            "status": "ok",
-            "message": f"Backfill concluído: {resultado['processadas']} vagas transicionadas",
-            "processadas": resultado["processadas"],
-            "erros": resultado["erros"]
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"Backfill concluído: {resultado['processadas']} vagas transicionadas",
+                "processadas": resultado["processadas"],
+                "erros": resultado["erros"],
+            }
+        )
     except Exception as e:
         logger.error(f"Erro no backfill: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -632,23 +661,25 @@ async def listar_pendentes_confirmacao():
 
         vagas = await listar_pendentes_confirmacao()
 
-        return JSONResponse({
-            "status": "ok",
-            "total": len(vagas),
-            "vagas": [
-                {
-                    "id": v.id,
-                    "data": v.data,
-                    "horario": f"{v.hora_inicio} - {v.hora_fim}",
-                    "valor": v.valor,
-                    "hospital": v.hospital_nome,
-                    "especialidade": v.especialidade_nome,
-                    "medico": v.cliente_nome,
-                    "telefone": v.cliente_telefone
-                }
-                for v in vagas
-            ]
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "total": len(vagas),
+                "vagas": [
+                    {
+                        "id": v.id,
+                        "data": v.data,
+                        "horario": f"{v.hora_inicio} - {v.hora_fim}",
+                        "valor": v.valor,
+                        "hospital": v.hospital_nome,
+                        "especialidade": v.especialidade_nome,
+                        "medico": v.cliente_nome,
+                        "telefone": v.cliente_telefone,
+                    }
+                    for v in vagas
+                ],
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao listar pendentes: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -667,7 +698,7 @@ async def confirmar_plantao(vaga_id: str, realizado: bool, confirmado_por: str =
     try:
         from app.services.confirmacao_plantao import (
             confirmar_plantao_realizado,
-            confirmar_plantao_nao_ocorreu
+            confirmar_plantao_nao_ocorreu,
         )
 
         if realizado:
@@ -676,17 +707,16 @@ async def confirmar_plantao(vaga_id: str, realizado: bool, confirmado_por: str =
             resultado = await confirmar_plantao_nao_ocorreu(vaga_id, confirmado_por)
 
         if resultado.sucesso:
-            return JSONResponse({
-                "status": "ok",
-                "vaga_id": vaga_id,
-                "novo_status": resultado.status_novo,
-                "confirmado_por": confirmado_por
-            })
+            return JSONResponse(
+                {
+                    "status": "ok",
+                    "vaga_id": vaga_id,
+                    "novo_status": resultado.status_novo,
+                    "confirmado_por": confirmado_por,
+                }
+            )
         else:
-            return JSONResponse({
-                "status": "error",
-                "message": resultado.erro
-            }, status_code=400)
+            return JSONResponse({"status": "error", "message": resultado.erro}, status_code=400)
     except Exception as e:
         logger.error(f"Erro ao confirmar plantão {vaga_id}: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -738,25 +768,24 @@ async def job_setup_templates(parent_folder_id: str):
             └── feedback_2025-01-01
     """
     import os
-    from datetime import datetime
     from app.services.google_docs import criar_pasta, criar_documento, listar_subpastas
 
     try:
         # Verificar se ja existe pasta Templates
         subpastas = await listar_subpastas(parent_folder_id)
-        templates_folder = next((p for p in subpastas if p['name'] == 'Templates'), None)
+        templates_folder = next((p for p in subpastas if p["name"] == "Templates"), None)
 
         if templates_folder:
-            templates_id = templates_folder['id']
+            templates_id = templates_folder["id"]
             logger.info(f"Pasta Templates ja existe: {templates_id}")
         else:
             # Criar pasta principal Templates
             templates_id = await criar_pasta("Templates", parent_folder_id)
             if not templates_id:
-                return JSONResponse({
-                    "status": "error",
-                    "message": "Falha ao criar pasta Templates"
-                }, status_code=500)
+                return JSONResponse(
+                    {"status": "error", "message": "Falha ao criar pasta Templates"},
+                    status_code=500,
+                )
 
         # Estrutura de templates
         templates_config = [
@@ -772,7 +801,7 @@ async def job_setup_templates(parent_folder_id: str):
 
         # Verificar subpastas existentes
         subpastas_templates = await listar_subpastas(templates_id)
-        subpastas_existentes = {p['name']: p['id'] for p in subpastas_templates}
+        subpastas_existentes = {p["name"]: p["id"] for p in subpastas_templates}
 
         for pasta_nome, template_tipo in templates_config:
             # Criar subpasta se nao existe
@@ -790,24 +819,24 @@ async def job_setup_templates(parent_folder_id: str):
             # Ler template do arquivo local
             template_path = f"docs/templates/{template_tipo}_2025-01-01.md"
             if os.path.exists(template_path):
-                with open(template_path, 'r', encoding='utf-8') as f:
+                with open(template_path, "r", encoding="utf-8") as f:
                     conteudo = f.read()
 
                 # Criar documento
                 doc_nome = f"{template_tipo}_{data_hoje}"
                 doc_id = await criar_documento(doc_nome, conteudo, pasta_id)
                 if doc_id:
-                    resultado["documentos"].append({
-                        "nome": doc_nome,
-                        "id": doc_id,
-                        "tipo": template_tipo
-                    })
+                    resultado["documentos"].append(
+                        {"nome": doc_nome, "id": doc_id, "tipo": template_tipo}
+                    )
 
-        return JSONResponse({
-            "status": "ok",
-            "message": f"Estrutura criada com {len(resultado['pastas'])} pastas e {len(resultado['documentos'])} documentos",
-            **resultado
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"Estrutura criada com {len(resultado['pastas'])} pastas e {len(resultado['documentos'])} documentos",
+                **resultado,
+            }
+        )
 
     except Exception as e:
         logger.error(f"Erro ao criar estrutura de templates: {e}")
@@ -837,11 +866,13 @@ async def job_processar_handoffs():
 
         stats = await processar_handoffs_pendentes()
 
-        return JSONResponse({
-            "status": "ok",
-            "message": f"Processados {stats['total_processados']} handoffs",
-            **stats
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"Processados {stats['total_processados']} handoffs",
+                **stats,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao processar handoffs: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -862,11 +893,13 @@ async def job_processar_retomadas():
 
         stats = await processar_retomadas()
 
-        return JSONResponse({
-            "status": "ok",
-            "message": f"Processadas {stats.get('processadas', 0)} retomadas",
-            **stats
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"Processadas {stats.get('processadas', 0)} retomadas",
+                **stats,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao processar retomadas: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -906,19 +939,21 @@ async def job_reconcile_touches(horas: int = 72, limite: int = 1000):
 
         result = await executar_reconciliacao(horas=horas, limite=limite)
 
-        return JSONResponse({
-            "status": "ok",
-            "message": result.summary,
-            "stats": {
-                "total_candidates": result.total_candidates,
-                "reconciled": result.reconciled,
-                "skipped_already_processed": result.skipped_already_processed,
-                "skipped_already_newer": result.skipped_already_newer,
-                "skipped_no_change": result.skipped_no_change,
-                "failed": result.failed,
-            },
-            "errors": result.errors[:10] if result.errors else [],
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": result.summary,
+                "stats": {
+                    "total_candidates": result.total_candidates,
+                    "reconciled": result.reconciled,
+                    "skipped_already_processed": result.skipped_already_processed,
+                    "skipped_already_newer": result.skipped_already_newer,
+                    "skipped_no_change": result.skipped_no_change,
+                    "failed": result.failed,
+                },
+                "errors": result.errors[:10] if result.errors else [],
+            }
+        )
     except Exception as e:
         logger.error(f"Erro na reconciliação de touches: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -939,11 +974,13 @@ async def job_limpar_logs_reconciliacao(dias: int = 30):
 
         removidos = await limpar_logs_antigos(dias=dias)
 
-        return JSONResponse({
-            "status": "ok",
-            "message": f"{removidos} log(s) removido(s)",
-            "removidos": removidos,
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"{removidos} log(s) removido(s)",
+                "removidos": removidos,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao limpar logs de reconciliação: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -966,15 +1003,17 @@ async def job_reclamar_processing_travado(minutos_timeout: int = 15):
 
         result = await reclamar_processing_travado(minutos_timeout=minutos_timeout)
 
-        return JSONResponse({
-            "status": "ok",
-            "message": f"found={result.found}, reclaimed={result.reclaimed}",
-            "stats": {
-                "found": result.found,
-                "reclaimed": result.reclaimed,
-            },
-            "errors": result.errors[:10] if result.errors else [],
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"found={result.found}, reclaimed={result.reclaimed}",
+                "stats": {
+                    "found": result.found,
+                    "reclaimed": result.reclaimed,
+                },
+                "errors": result.errors[:10] if result.errors else [],
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao reclamar processing travado: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -997,11 +1036,13 @@ async def job_reconciliacao_status(minutos_timeout: int = 15):
 
         status = "healthy" if stuck_count == 0 else "warning" if stuck_count < 10 else "critical"
 
-        return JSONResponse({
-            "status": status,
-            "processing_stuck": stuck_count,
-            "timeout_minutes": minutos_timeout,
-        })
+        return JSONResponse(
+            {
+                "status": status,
+                "processing_stuck": stuck_count,
+                "timeout_minutes": minutos_timeout,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao verificar status de reconciliação: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1035,24 +1076,28 @@ async def job_validar_telefones(limite: int = 50):
         # Verificar horário comercial (horário de Brasília)
         hora_atual = agora_brasilia().hour
         if hora_atual < 8 or hora_atual >= 20:
-            return JSONResponse({
-                "status": "skipped",
-                "reason": "fora_horario",
-                "message": "Validação só ocorre das 8h às 20h"
-            })
+            return JSONResponse(
+                {
+                    "status": "skipped",
+                    "reason": "fora_horario",
+                    "message": "Validação só ocorre das 8h às 20h",
+                }
+            )
 
         from app.services.validacao_telefone import processar_lote_validacao
 
         stats = await processar_lote_validacao(limit=limite)
 
-        return JSONResponse({
-            "status": "ok",
-            "processados": stats["processados"],
-            "validados": stats["validados"],
-            "invalidos": stats["invalidos"],
-            "erros": stats["erros"],
-            "skips": stats["skips"],
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "processados": stats["processados"],
+                "validados": stats["validados"],
+                "invalidos": stats["invalidos"],
+                "erros": stats["erros"],
+                "skips": stats["skips"],
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao validar telefones: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1074,11 +1119,13 @@ async def job_resetar_telefones_travados(horas: int = 1):
 
         resetados = await resetar_telefones_travados(horas=horas)
 
-        return JSONResponse({
-            "status": "ok",
-            "message": f"{resetados} telefone(s) resetado(s)",
-            "resetados": resetados,
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"{resetados} telefone(s) resetado(s)",
+                "resetados": resetados,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao resetar telefones travados: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1116,19 +1163,23 @@ async def job_executar_gatilhos_autonomos():
         resultados = await executar_todos_gatilhos()
 
         if resultados.get("pilot_mode"):
-            return JSONResponse({
-                "status": "skipped",
-                "reason": "pilot_mode",
-                "message": "Modo piloto ativo - gatilhos não executados"
-            })
+            return JSONResponse(
+                {
+                    "status": "skipped",
+                    "reason": "pilot_mode",
+                    "message": "Modo piloto ativo - gatilhos não executados",
+                }
+            )
 
-        return JSONResponse({
-            "status": "ok",
-            "discovery": resultados.get("discovery", {}),
-            "oferta": resultados.get("oferta", {}),
-            "reativacao": resultados.get("reativacao", {}),
-            "feedback": resultados.get("feedback", {}),
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "discovery": resultados.get("discovery", {}),
+                "oferta": resultados.get("oferta", {}),
+                "reativacao": resultados.get("reativacao", {}),
+                "feedback": resultados.get("feedback", {}),
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao executar gatilhos autônomos: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1152,16 +1203,15 @@ async def job_executar_discovery_autonomo():
         resultado = await executar_discovery_automatico()
 
         if resultado is None:
-            return JSONResponse({
-                "status": "skipped",
-                "reason": "pilot_mode",
-                "message": "Modo piloto ativo - discovery não executado"
-            })
+            return JSONResponse(
+                {
+                    "status": "skipped",
+                    "reason": "pilot_mode",
+                    "message": "Modo piloto ativo - discovery não executado",
+                }
+            )
 
-        return JSONResponse({
-            "status": "ok",
-            **resultado
-        })
+        return JSONResponse({"status": "ok", **resultado})
     except Exception as e:
         logger.error(f"Erro no discovery autônomo: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1185,16 +1235,15 @@ async def job_executar_oferta_autonoma():
         resultado = await executar_oferta_automatica()
 
         if resultado is None:
-            return JSONResponse({
-                "status": "skipped",
-                "reason": "pilot_mode",
-                "message": "Modo piloto ativo - oferta não executada"
-            })
+            return JSONResponse(
+                {
+                    "status": "skipped",
+                    "reason": "pilot_mode",
+                    "message": "Modo piloto ativo - oferta não executada",
+                }
+            )
 
-        return JSONResponse({
-            "status": "ok",
-            **resultado
-        })
+        return JSONResponse({"status": "ok", **resultado})
     except Exception as e:
         logger.error(f"Erro na oferta autônoma: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1218,16 +1267,15 @@ async def job_executar_reativacao_autonoma():
         resultado = await executar_reativacao_automatica()
 
         if resultado is None:
-            return JSONResponse({
-                "status": "skipped",
-                "reason": "pilot_mode",
-                "message": "Modo piloto ativo - reativação não executada"
-            })
+            return JSONResponse(
+                {
+                    "status": "skipped",
+                    "reason": "pilot_mode",
+                    "message": "Modo piloto ativo - reativação não executada",
+                }
+            )
 
-        return JSONResponse({
-            "status": "ok",
-            **resultado
-        })
+        return JSONResponse({"status": "ok", **resultado})
     except Exception as e:
         logger.error(f"Erro na reativação autônoma: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1251,16 +1299,15 @@ async def job_executar_feedback_autonomo():
         resultado = await executar_feedback_automatico()
 
         if resultado is None:
-            return JSONResponse({
-                "status": "skipped",
-                "reason": "pilot_mode",
-                "message": "Modo piloto ativo - feedback não executado"
-            })
+            return JSONResponse(
+                {
+                    "status": "skipped",
+                    "reason": "pilot_mode",
+                    "message": "Modo piloto ativo - feedback não executado",
+                }
+            )
 
-        return JSONResponse({
-            "status": "ok",
-            **resultado
-        })
+        return JSONResponse({"status": "ok", **resultado})
     except Exception as e:
         logger.error(f"Erro no feedback autônomo: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1281,11 +1328,13 @@ async def job_estatisticas_gatilhos():
 
         stats = await obter_estatisticas_gatilhos()
 
-        return JSONResponse({
-            "status": "ok",
-            "pilot_mode": is_pilot_mode(),
-            "gatilhos": stats,
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "pilot_mode": is_pilot_mode(),
+                "gatilhos": stats,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao obter estatísticas de gatilhos: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1318,17 +1367,22 @@ async def job_atualizar_trust_scores():
         from app.services.warmer.trust_score import calcular_trust_score
 
         # Buscar chips ativos
-        chips = supabase.table("chips").select("id, telefone").in_(
-            "status", ["active", "warming", "ready"]
-        ).execute()
+        chips = (
+            supabase.table("chips")
+            .select("id, telefone")
+            .in_("status", ["active", "warming", "ready"])
+            .execute()
+        )
 
         if not chips.data:
-            return JSONResponse({
-                "status": "ok",
-                "message": "Nenhum chip ativo para atualizar",
-                "atualizados": 0,
-                "erros": 0
-            })
+            return JSONResponse(
+                {
+                    "status": "ok",
+                    "message": "Nenhum chip ativo para atualizar",
+                    "atualizados": 0,
+                    "erros": 0,
+                }
+            )
 
         atualizados = 0
         erros = 0
@@ -1338,27 +1392,29 @@ async def job_atualizar_trust_scores():
             try:
                 result = await calcular_trust_score(chip["id"])
                 atualizados += 1
-                detalhes.append({
-                    "telefone": chip["telefone"][-4:],  # últimos 4 dígitos
-                    "score": result["score"],
-                    "nivel": result["nivel"],
-                })
+                detalhes.append(
+                    {
+                        "telefone": chip["telefone"][-4:],  # últimos 4 dígitos
+                        "score": result["score"],
+                        "nivel": result["nivel"],
+                    }
+                )
             except Exception as e:
                 logger.error(f"Erro ao atualizar trust score de {chip['id']}: {e}")
                 erros += 1
 
         # Log resumido
-        logger.info(
-            f"[TrustScore] Atualização concluída: {atualizados} chips, {erros} erros"
-        )
+        logger.info(f"[TrustScore] Atualização concluída: {atualizados} chips, {erros} erros")
 
-        return JSONResponse({
-            "status": "ok",
-            "message": f"{atualizados} chip(s) atualizado(s), {erros} erro(s)",
-            "atualizados": atualizados,
-            "erros": erros,
-            "detalhes": detalhes[:10],  # Limitar para não sobrecarregar resposta
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "message": f"{atualizados} chip(s) atualizado(s), {erros} erro(s)",
+                "atualizados": atualizados,
+                "erros": erros,
+                "detalhes": detalhes[:10],  # Limitar para não sobrecarregar resposta
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao atualizar trust scores: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1367,6 +1423,7 @@ async def job_atualizar_trust_scores():
 # ==========================================
 # Jobs de sincronização de Chips (Sprint 25)
 # ==========================================
+
 
 @router.post("/sincronizar-chips")
 async def job_sincronizar_chips():
@@ -1395,19 +1452,19 @@ async def job_sincronizar_chips():
         desconectadas = resultado.get("chips_desconectados", 0)
 
         if total > 0 and desconectadas > total * 0.3:
-            logger.warning(
-                f"[SyncChips] ALERTA: {desconectadas}/{total} instâncias desconectadas"
-            )
+            logger.warning(f"[SyncChips] ALERTA: {desconectadas}/{total} instâncias desconectadas")
 
-        return JSONResponse({
-            "status": "ok",
-            "instancias_evolution": resultado["instancias_evolution"],
-            "chips_atualizados": resultado["chips_atualizados"],
-            "chips_criados": resultado["chips_criados"],
-            "chips_conectados": resultado["chips_conectados"],
-            "chips_desconectados": resultado["chips_desconectados"],
-            "erros": resultado["erros"],
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "instancias_evolution": resultado["instancias_evolution"],
+                "chips_atualizados": resultado["chips_atualizados"],
+                "chips_criados": resultado["chips_criados"],
+                "chips_conectados": resultado["chips_conectados"],
+                "chips_desconectados": resultado["chips_desconectados"],
+                "erros": resultado["erros"],
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao sincronizar chips: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1458,7 +1515,9 @@ async def job_monitorar_fila(
 
         # Verificar mensagens travadas
         if idade and idade > limite_idade_minutos:
-            alertas.append(f"Mensagem mais antiga há {idade:.0f} min (limite: {limite_idade_minutos})")
+            alertas.append(
+                f"Mensagem mais antiga há {idade:.0f} min (limite: {limite_idade_minutos})"
+            )
 
         # Verificar muitos erros
         if erros_24h > 20:
@@ -1478,14 +1537,16 @@ async def job_monitorar_fila(
 
         status = "warning" if alertas else "ok"
 
-        return JSONResponse({
-            "status": status,
-            "pendentes": pendentes,
-            "processando": metricas["processando"],
-            "mensagem_mais_antiga_min": idade,
-            "erros_24h": erros_24h,
-            "alertas": alertas,
-        })
+        return JSONResponse(
+            {
+                "status": status,
+                "pendentes": pendentes,
+                "processando": metricas["processando"],
+                "mensagem_mais_antiga_min": idade,
+                "erros_24h": erros_24h,
+                "alertas": alertas,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao monitorar fila: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1513,10 +1574,9 @@ async def job_snapshot_chips_diario():
         result = supabase.rpc("chip_criar_snapshots_todos").execute()
 
         if not result.data:
-            return JSONResponse({
-                "status": "error",
-                "message": "RPC retornou vazio"
-            }, status_code=500)
+            return JSONResponse(
+                {"status": "error", "message": "RPC retornou vazio"}, status_code=500
+            )
 
         row = result.data[0] if isinstance(result.data, list) else result.data
 
@@ -1525,13 +1585,15 @@ async def job_snapshot_chips_diario():
             f"{row.get('snapshots_existentes', 0)} existentes, {row.get('erros', 0)} erros"
         )
 
-        return JSONResponse({
-            "status": "ok",
-            "total_chips": row.get("total_chips", 0),
-            "snapshots_criados": row.get("snapshots_criados", 0),
-            "snapshots_existentes": row.get("snapshots_existentes", 0),
-            "erros": row.get("erros", 0),
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "total_chips": row.get("total_chips", 0),
+                "snapshots_criados": row.get("snapshots_criados", 0),
+                "snapshots_existentes": row.get("snapshots_existentes", 0),
+                "erros": row.get("erros", 0),
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao criar snapshots de chips: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1554,20 +1616,21 @@ async def job_resetar_contadores_chips():
         result = supabase.rpc("chip_resetar_contadores_diarios").execute()
 
         if not result.data:
-            return JSONResponse({
-                "status": "error",
-                "message": "RPC retornou vazio"
-            }, status_code=500)
+            return JSONResponse(
+                {"status": "error", "message": "RPC retornou vazio"}, status_code=500
+            )
 
         row = result.data[0] if isinstance(result.data, list) else result.data
         chips_resetados = row.get("chips_resetados", 0)
 
         logger.info(f"[ResetChips] {chips_resetados} chips resetados")
 
-        return JSONResponse({
-            "status": "ok",
-            "chips_resetados": chips_resetados,
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "chips_resetados": chips_resetados,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao resetar contadores de chips: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -1592,7 +1655,7 @@ async def job_fila_worker_health():
     """
     try:
         from app.services.fila import fila_service
-        from app.services.circuit_breaker import circuit_evolution, CircuitState
+        from app.services.circuit_breaker import circuit_evolution
 
         metricas = await fila_service.obter_metricas_fila()
 
@@ -1632,25 +1695,30 @@ async def job_fila_worker_health():
         else:
             status = "healthy"
 
-        return JSONResponse({
-            "status": status,
-            "circuit_breaker": {
-                "estado": circuit_estado,
-                "falhas_consecutivas": circuit_status["falhas_consecutivas"],
-                "ultima_falha": circuit_status["ultima_falha"],
-            },
-            "fila": {
-                "pendentes": pendentes,
-                "processando": processando,
-                "mensagem_mais_antiga_min": round(idade, 1) if idade else None,
-                "erros_24h": erros_24h,
-            },
-            "issues": issues,
-        })
+        return JSONResponse(
+            {
+                "status": status,
+                "circuit_breaker": {
+                    "estado": circuit_estado,
+                    "falhas_consecutivas": circuit_status["falhas_consecutivas"],
+                    "ultima_falha": circuit_status["ultima_falha"],
+                },
+                "fila": {
+                    "pendentes": pendentes,
+                    "processando": processando,
+                    "mensagem_mais_antiga_min": round(idade, 1) if idade else None,
+                    "erros_24h": erros_24h,
+                },
+                "issues": issues,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro no health check do fila_worker: {e}")
-        return JSONResponse({
-            "status": "error",
-            "message": str(e),
-            "issues": ["health_check_failed"],
-        }, status_code=500)
+        return JSONResponse(
+            {
+                "status": "error",
+                "message": str(e),
+                "issues": ["health_check_failed"],
+            },
+            status_code=500,
+        )

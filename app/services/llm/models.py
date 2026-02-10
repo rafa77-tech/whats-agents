@@ -5,13 +5,15 @@ Sprint 31 - S31.E1.2
 
 Dataclasses para request/response desacoplados de qualquer provider.
 """
+
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any, Literal
+from typing import Optional, List, Dict, Any
 from enum import Enum
 
 
 class MessageRole(str, Enum):
     """Roles de mensagem suportados."""
+
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
@@ -19,6 +21,7 @@ class MessageRole(str, Enum):
 
 class StopReason(str, Enum):
     """Motivos de parada da geração."""
+
     END_TURN = "end_turn"
     TOOL_USE = "tool_use"
     MAX_TOKENS = "max_tokens"
@@ -34,6 +37,7 @@ class Message:
         role: Quem enviou (user, assistant, system)
         content: Conteúdo da mensagem
     """
+
     role: MessageRole
     content: str
 
@@ -67,6 +71,7 @@ class ToolDefinition:
         description: Descrição do que a tool faz
         input_schema: JSON Schema dos parâmetros
     """
+
     name: str
     description: str
     input_schema: Dict[str, Any]
@@ -90,6 +95,7 @@ class ToolCall:
         name: Nome da tool chamada
         input: Argumentos passados para a tool
     """
+
     id: str
     name: str
     input: Dict[str, Any]
@@ -105,6 +111,7 @@ class ToolResult:
         content: Resultado como string
         is_error: Se o resultado é um erro
     """
+
     tool_call_id: str
     content: str
     is_error: bool = False
@@ -132,6 +139,7 @@ class LLMRequest:
         temperature: Temperatura (0.0 = determinístico, 1.0 = criativo)
         stop_sequences: Sequências que param a geração
     """
+
     messages: List[Message]
     system_prompt: Optional[str] = None
     tools: Optional[List[ToolDefinition]] = None
@@ -157,6 +165,7 @@ class LLMResponse:
         model_id: Modelo que gerou a resposta
         raw_response: Response original do provider (para debug)
     """
+
     content: str
     tool_calls: List[ToolCall] = field(default_factory=list)
     stop_reason: StopReason = StopReason.END_TURN
@@ -187,6 +196,7 @@ class UsageStats:
 
     Útil para tracking de custos.
     """
+
     total_input_tokens: int = 0
     total_output_tokens: int = 0
     total_requests: int = 0

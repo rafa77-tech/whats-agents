@@ -8,7 +8,8 @@ Este módulo define o OutboundContext que TODO envio outbound deve passar.
 O guardrail decide ALLOW/BLOCK e sempre emite business_event quando
 bloquear (e quando permitir por bypass humano).
 """
-from dataclasses import dataclass, field
+
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Dict, Any
 
@@ -26,6 +27,7 @@ class SendOutcome(str, Enum):
     - FAILED_*: Erro tecnico
     - BYPASS: Override manual via Slack
     """
+
     # Sucesso
     SENT = "SENT"
 
@@ -44,9 +46,9 @@ class SendOutcome(str, Enum):
     DEDUPED = "DEDUPED"
 
     # Erros tecnicos
-    FAILED_PROVIDER = "FAILED_PROVIDER"        # Erro de infra (timeout, 5xx, rede)
-    FAILED_VALIDATION = "FAILED_VALIDATION"    # Número inválido/inexistente
-    FAILED_BANNED = "FAILED_BANNED"            # Número banido/bloqueado pelo WhatsApp
+    FAILED_PROVIDER = "FAILED_PROVIDER"  # Erro de infra (timeout, 5xx, rede)
+    FAILED_VALIDATION = "FAILED_VALIDATION"  # Número inválido/inexistente
+    FAILED_BANNED = "FAILED_BANNED"  # Número banido/bloqueado pelo WhatsApp
     FAILED_RATE_LIMIT = "FAILED_RATE_LIMIT"
     FAILED_CIRCUIT_OPEN = "FAILED_CIRCUIT_OPEN"
 
@@ -114,6 +116,7 @@ def map_guardrail_to_outcome(reason_code: str) -> SendOutcome:
 
 class OutboundChannel(str, Enum):
     """Canal de envio da mensagem."""
+
     WHATSAPP = "whatsapp"
     SLACK = "slack"
     API = "api"
@@ -122,20 +125,22 @@ class OutboundChannel(str, Enum):
 
 class OutboundMethod(str, Enum):
     """Método/intenção do envio."""
-    CAMPAIGN = "campaign"           # disparo em massa
-    FOLLOWUP = "followup"           # automação baseada em state/policy
-    REACTIVATION = "reactivation"   # silêncio + quente
-    BUTTON = "button"               # clique Slack
-    COMMAND = "command"             # slash command Slack
-    MANUAL = "manual"               # console/ops
-    REPLY = "reply"                 # resposta a mensagem inbound
+
+    CAMPAIGN = "campaign"  # disparo em massa
+    FOLLOWUP = "followup"  # automação baseada em state/policy
+    REACTIVATION = "reactivation"  # silêncio + quente
+    BUTTON = "button"  # clique Slack
+    COMMAND = "command"  # slash command Slack
+    MANUAL = "manual"  # console/ops
+    REPLY = "reply"  # resposta a mensagem inbound
 
 
 class ActorType(str, Enum):
     """Tipo de ator que está tentando enviar."""
-    HUMAN = "human"     # Gestor/ops via Slack ou console
-    BOT = "bot"         # Julia (agente)
-    SYSTEM = "system"   # Jobs automáticos (cron, campanhas)
+
+    HUMAN = "human"  # Gestor/ops via Slack ou console
+    BOT = "bot"  # Julia (agente)
+    SYSTEM = "system"  # Jobs automáticos (cron, campanhas)
 
 
 @dataclass(frozen=True)
@@ -170,6 +175,7 @@ class OutboundContext:
         bypass_reason: Motivo do bypass humano (obrigatório para opted_out)
         extra: Dados extras para auditoria
     """
+
     # Obrigatórios
     cliente_id: str
     actor_type: ActorType
@@ -196,6 +202,7 @@ class OutboundContext:
 
 class GuardrailDecision(str, Enum):
     """Decisão do guardrail."""
+
     ALLOW = "allow"
     BLOCK = "block"
 
@@ -211,6 +218,7 @@ class GuardrailResult:
         human_bypass: True quando liberou por override humano
         details: Detalhes extras (ex: until, cap, count)
     """
+
     decision: GuardrailDecision
     reason_code: str
     human_bypass: bool = False

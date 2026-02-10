@@ -24,19 +24,19 @@ from .human_control import HumanControlProcessor
 
 __all__ = [
     # Ordem por prioridade
-    "IngestaoGrupoProcessor",      # 5
-    "ParseMessageProcessor",        # 10
-    "PresenceProcessor",            # 15
-    "LoadEntitiesProcessor",        # 20
-    "ChipMappingProcessor",         # 21
-    "BusinessEventInboundProcessor", # 22
-    "ChatwootSyncProcessor",        # 25
-    "OptOutProcessor",              # 30
-    "ForaHorarioProcessor",         # 32
-    "BotDetectionProcessor",        # 35
-    "MediaProcessor",               # 40
-    "LongMessageProcessor",         # 45
-    "HandoffTriggerProcessor",      # 50
-    "HandoffKeywordProcessor",      # 55
-    "HumanControlProcessor",        # 60
+    "IngestaoGrupoProcessor",  # 5
+    "ParseMessageProcessor",  # 10
+    "PresenceProcessor",  # 15
+    "LoadEntitiesProcessor",  # 20
+    "ChipMappingProcessor",  # 21
+    "BusinessEventInboundProcessor",  # 22
+    "ChatwootSyncProcessor",  # 25
+    "OptOutProcessor",  # 30
+    "ForaHorarioProcessor",  # 32
+    "BotDetectionProcessor",  # 35
+    "MediaProcessor",  # 40
+    "LongMessageProcessor",  # 45
+    "HandoffTriggerProcessor",  # 50
+    "HandoffKeywordProcessor",  # 55
+    "HumanControlProcessor",  # 60
 ]

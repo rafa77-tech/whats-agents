@@ -12,9 +12,10 @@ Exemplos de micro-confirmação:
 ✅ "Posso te colocar em contato com quem tá oferecendo?"
 ❌ "Quer que eu reserve pra você?" (Julia não reserva)
 """
+
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, Union
 from dateutil.parser import parse as parse_datetime
@@ -33,6 +34,7 @@ def _ensure_datetime(value: Optional[Union[datetime, str]]) -> Optional[datetime
     except Exception:
         return None
 
+
 from .types import ConversationMode
 from .proposer import TransitionProposal
 
@@ -48,16 +50,18 @@ PENDING_TRANSITION_TIMEOUT_MINUTES = 30
 
 class TransitionDecision(Enum):
     """Decisão do validador."""
-    APPLY = "apply"          # Aplicar transição imediatamente
-    PENDING = "pending"      # Salvar como pending (aguardar confirmação)
-    CONFIRM = "confirm"      # Confirmar pending existente
-    CANCEL = "cancel"        # Cancelar pending existente
-    REJECT = "reject"        # Rejeitar transição
+
+    APPLY = "apply"  # Aplicar transição imediatamente
+    PENDING = "pending"  # Salvar como pending (aguardar confirmação)
+    CONFIRM = "confirm"  # Confirmar pending existente
+    CANCEL = "cancel"  # Cancelar pending existente
+    REJECT = "reject"  # Rejeitar transição
 
 
 @dataclass
 class ValidationResult:
     """Resultado da validação de transição."""
+
     decision: TransitionDecision
     final_mode: ConversationMode  # Modo final após decisão
     reason: str
@@ -169,9 +173,7 @@ class TransitionValidator:
                 pending_at_dt = pending_at_dt.replace(tzinfo=timezone.utc)
             minutes_since = (agora_utc() - pending_at_dt).total_seconds() / 60
             if minutes_since > PENDING_TRANSITION_TIMEOUT_MINUTES:
-                logger.info(
-                    f"Pending expirada após {minutes_since:.1f}min"
-                )
+                logger.info(f"Pending expirada após {minutes_since:.1f}min")
                 return ValidationResult(
                     decision=TransitionDecision.CANCEL,
                     final_mode=current_mode,
@@ -180,9 +182,7 @@ class TransitionValidator:
 
         # Se mensagem confirma, aplicar transição
         if mensagem_confirma:
-            logger.info(
-                f"Pending confirmada: {current_mode.value} → {pending_transition.value}"
-            )
+            logger.info(f"Pending confirmada: {current_mode.value} → {pending_transition.value}")
             return ValidationResult(
                 decision=TransitionDecision.CONFIRM,
                 final_mode=pending_transition,
@@ -190,9 +190,7 @@ class TransitionValidator:
             )
 
         # Se mensagem não confirma, cancelar pending
-        logger.info(
-            f"Pending cancelada: médico não confirmou"
-        )
+        logger.info("Pending cancelada: médico não confirmou")
         return ValidationResult(
             decision=TransitionDecision.CANCEL,
             final_mode=current_mode,

@@ -26,9 +26,10 @@ logger = get_logger(__name__)
 # Endpoints de Métricas
 # =============================================================================
 
+
 @router.get("/resumo")
 async def resumo_metricas(
-    dias: int = Query(default=7, ge=1, le=90, description="Quantidade de dias")
+    dias: int = Query(default=7, ge=1, le=90, description="Quantidade de dias"),
 ):
     """
     Retorna resumo de métricas do pipeline de grupos.
@@ -81,7 +82,7 @@ async def metricas_hoje():
 @router.get("/top-grupos")
 async def top_grupos(
     dias: int = Query(default=7, ge=1, le=90, description="Período em dias"),
-    limite: int = Query(default=10, ge=1, le=50, description="Máximo de grupos")
+    limite: int = Query(default=10, ge=1, le=50, description="Máximo de grupos"),
 ):
     """
     Retorna os grupos com mais vagas importadas.
@@ -125,9 +126,7 @@ async def status_fila():
 
 
 @router.get("/custos")
-async def custos_periodo(
-    dias: int = Query(default=7, ge=1, le=90, description="Período em dias")
-):
+async def custos_periodo(dias: int = Query(default=7, ge=1, le=90, description="Período em dias")):
     """
     Retorna detalhamento de custos LLM do período.
     """
@@ -139,13 +138,15 @@ async def custos_periodo(
         # Extrair custos por dia
         custos_diarios = []
         for dia in por_dia:
-            custos_diarios.append({
-                "data": dia.get("data"),
-                "custo_usd": float(dia.get("custo_total_usd", 0) or 0),
-                "tokens_input": dia.get("tokens_input", 0) or 0,
-                "tokens_output": dia.get("tokens_output", 0) or 0,
-                "mensagens": dia.get("mensagens_processadas", 0) or 0,
-            })
+            custos_diarios.append(
+                {
+                    "data": dia.get("data"),
+                    "custo_usd": float(dia.get("custo_total_usd", 0) or 0),
+                    "tokens_input": dia.get("tokens_input", 0) or 0,
+                    "tokens_output": dia.get("tokens_output", 0) or 0,
+                    "mensagens": dia.get("mensagens_processadas", 0) or 0,
+                }
+            )
 
         # Calcular média
         total_mensagens = totais.get("mensagens", 0)
@@ -170,7 +171,7 @@ async def custos_periodo(
 
 @router.post("/consolidar")
 async def consolidar_dia(
-    data: Optional[str] = Query(default=None, description="Data para consolidar (YYYY-MM-DD)")
+    data: Optional[str] = Query(default=None, description="Data para consolidar (YYYY-MM-DD)"),
 ):
     """
     Consolida métricas de grupos para métricas de pipeline.

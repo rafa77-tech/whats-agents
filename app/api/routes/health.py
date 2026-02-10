@@ -6,6 +6,7 @@ Sprint 24 - Produção Ready:
 - /health/ready: Readiness (Redis conectado)
 - /health/deep: Deep check para CI/CD (Redis + Supabase + schema + views + env marker)
 """
+
 from fastapi import APIRouter, Response
 from datetime import datetime
 import logging
@@ -26,6 +27,7 @@ logger = logging.getLogger(__name__)
 APP_ENV = os.getenv("APP_ENV", "development")
 SUPABASE_PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF", "")
 
+
 # Versioning info (injected by CI/CD build or Railway runtime)
 # Railway fornece RAILWAY_GIT_COMMIT_SHA automaticamente em runtime
 # Nota: Dockerfile seta GIT_SHA="unknown" como default, então precisamos ignorar esse valor
@@ -39,6 +41,7 @@ def _get_version_var(explicit_name: str, railway_name: str) -> str:
     if railway:
         return railway
     return "unknown"
+
 
 GIT_SHA = _get_version_var("GIT_SHA", "RAILWAY_GIT_COMMIT_SHA")
 DEPLOYMENT_ID = _get_version_var("BUILD_TIME", "RAILWAY_DEPLOYMENT_ID")
@@ -113,15 +116,17 @@ def _generate_schema_fingerprint() -> dict:
     try:
         # Buscar estrutura das tabelas críticas
         result = supabase.rpc(
-            "get_table_columns_for_fingerprint",
-            {"table_names": CRITICAL_TABLES}
+            "get_table_columns_for_fingerprint", {"table_names": CRITICAL_TABLES}
         ).execute()
 
         if not result.data:
             # Fallback: usar query direta
-            columns_query = supabase.table("information_schema.columns").select(
-                "table_name, column_name, data_type, is_nullable"
-            ).in_("table_name", CRITICAL_TABLES).execute()
+            columns_query = (
+                supabase.table("information_schema.columns")
+                .select("table_name, column_name, data_type, is_nullable")
+                .in_("table_name", CRITICAL_TABLES)
+                .execute()
+            )
 
             if columns_query.data:
                 columns = columns_query.data
@@ -136,8 +141,7 @@ def _generate_schema_fingerprint() -> dict:
 
         # Ordenar por tabela e coluna para consistência
         sorted_columns = sorted(
-            columns,
-            key=lambda c: (c.get("table_name", ""), c.get("column_name", ""))
+            columns, key=lambda c: (c.get("table_name", ""), c.get("column_name", ""))
         )
 
         # Criar string para hash
@@ -158,9 +162,8 @@ def _generate_schema_fingerprint() -> dict:
         logger.warning(f"[health] Schema fingerprint generation failed: {e}")
         # Fallback simples: hash da lista de tabelas
         import hashlib
-        simple_fp = hashlib.sha256(
-            "|".join(sorted(CRITICAL_TABLES)).encode()
-        ).hexdigest()[:16]
+
+        simple_fp = hashlib.sha256("|".join(sorted(CRITICAL_TABLES)).encode()).hexdigest()[:16]
 
         return {
             "fingerprint": f"fallback-{simple_fp}",
@@ -212,7 +215,7 @@ async def readiness_check():
 
     # 2. Verificar Supabase
     try:
-        result = supabase.table("clientes").select("id").limit(1).execute()
+        supabase.table("clientes").select("id").limit(1).execute()
         checks["database"] = "ok"
     except Exception as e:
         checks["database"] = "error"
@@ -383,9 +386,12 @@ async def _check_prompt_contract() -> dict:
 
     try:
         # Buscar todos os prompts necessários
-        response = supabase.table("prompts").select(
-            "nome, versao, ativo, conteudo"
-        ).in_("nome", list(REQUIRED_PROMPTS.keys())).execute()
+        response = (
+            supabase.table("prompts")
+            .select("nome, versao, ativo, conteudo")
+            .in_("nome", list(REQUIRED_PROMPTS.keys()))
+            .execute()
+        )
 
         found = {r["nome"]: r for r in (response.data or [])}
 
@@ -411,29 +417,21 @@ async def _check_prompt_contract() -> dict:
 
             # Check tamanho mínimo
             if len(conteudo) < req["min_len"]:
-                result["too_short"].append({
-                    "nome": nome,
-                    "len": len(conteudo),
-                    "min": req["min_len"]
-                })
+                result["too_short"].append(
+                    {"nome": nome, "len": len(conteudo), "min": req["min_len"]}
+                )
                 has_error = True
 
             # Check sentinelas obrigatórias (BLOQUEADOR)
             for sentinel in req.get("required_sentinels", []):
                 if sentinel not in conteudo:
-                    result["missing_sentinels"].append({
-                        "prompt": nome,
-                        "sentinel": sentinel
-                    })
+                    result["missing_sentinels"].append({"prompt": nome, "sentinel": sentinel})
                     has_error = True
 
             # Check sentinelas de warning
             for sentinel in req.get("warning_sentinels", []):
                 if sentinel not in conteudo:
-                    result["missing_warnings"].append({
-                        "prompt": nome,
-                        "sentinel": sentinel
-                    })
+                    result["missing_warnings"].append({"prompt": nome, "sentinel": sentinel})
                     has_warning = True
 
         if has_error:
@@ -481,7 +479,11 @@ async def deep_health_check(response: Response):
         "supabase": {"status": "pending", "message": None},
         "tables": {"status": "pending", "missing": []},
         "views": {"status": "pending", "missing": []},
-        "schema_version": {"status": "pending", "current": None, "expected": EXPECTED_SCHEMA_VERSION},
+        "schema_version": {
+            "status": "pending",
+            "current": None,
+            "expected": EXPECTED_SCHEMA_VERSION,
+        },
         "prompts": {"status": "pending"},
     }
 
@@ -490,7 +492,13 @@ async def deep_health_check(response: Response):
 
     # 0. HARD GUARD: Check environment marker
     try:
-        result = supabase.table("app_settings").select("value").eq("key", "environment").single().execute()
+        result = (
+            supabase.table("app_settings")
+            .select("value")
+            .eq("key", "environment")
+            .single()
+            .execute()
+        )
         db_env = result.data.get("value") if result.data else None
         checks["environment"]["db_env"] = db_env
 
@@ -498,10 +506,14 @@ async def deep_health_check(response: Response):
             checks["environment"]["status"] = "ok"
         else:
             checks["environment"]["status"] = "CRITICAL"
-            checks["environment"]["message"] = f"ENVIRONMENT MISMATCH! APP_ENV={APP_ENV}, DB={db_env}"
+            checks["environment"]["message"] = (
+                f"ENVIRONMENT MISMATCH! APP_ENV={APP_ENV}, DB={db_env}"
+            )
             all_ok = False
             critical_mismatch = True
-            logger.critical(f"[health/deep] CRITICAL: Environment mismatch! APP_ENV={APP_ENV}, DB={db_env}")
+            logger.critical(
+                f"[health/deep] CRITICAL: Environment mismatch! APP_ENV={APP_ENV}, DB={db_env}"
+            )
     except Exception as e:
         checks["environment"]["status"] = "error"
         checks["environment"]["message"] = str(e)
@@ -511,7 +523,13 @@ async def deep_health_check(response: Response):
     # 0b. HARD GUARD: Check Supabase project ref
     if SUPABASE_PROJECT_REF:  # Só verifica se configurado
         try:
-            result = supabase.table("app_settings").select("value").eq("key", "supabase_project_ref").single().execute()
+            result = (
+                supabase.table("app_settings")
+                .select("value")
+                .eq("key", "supabase_project_ref")
+                .single()
+                .execute()
+            )
             db_ref = result.data.get("value") if result.data else None
             checks["project_ref"]["db_ref"] = db_ref
 
@@ -519,10 +537,14 @@ async def deep_health_check(response: Response):
                 checks["project_ref"]["status"] = "ok"
             else:
                 checks["project_ref"]["status"] = "CRITICAL"
-                checks["project_ref"]["message"] = f"PROJECT REF MISMATCH! Expected={SUPABASE_PROJECT_REF}, DB={db_ref}"
+                checks["project_ref"]["message"] = (
+                    f"PROJECT REF MISMATCH! Expected={SUPABASE_PROJECT_REF}, DB={db_ref}"
+                )
                 all_ok = False
                 critical_mismatch = True
-                logger.critical(f"[health/deep] CRITICAL: Project ref mismatch! Expected={SUPABASE_PROJECT_REF}, DB={db_ref}")
+                logger.critical(
+                    f"[health/deep] CRITICAL: Project ref mismatch! Expected={SUPABASE_PROJECT_REF}, DB={db_ref}"
+                )
         except Exception as e:
             checks["project_ref"]["status"] = "error"
             checks["project_ref"]["message"] = str(e)
@@ -535,7 +557,7 @@ async def deep_health_check(response: Response):
     # Se hard guard falhou, não faz sentido continuar - é deploy errado
     if critical_mismatch:
         response.status_code = 503
-        logger.critical(f"[health/deep] CRITICAL MISMATCH - DEPLOY TO WRONG ENVIRONMENT DETECTED!")
+        logger.critical("[health/deep] CRITICAL MISMATCH - DEPLOY TO WRONG ENVIRONMENT DETECTED!")
         return {
             "status": "CRITICAL",
             "message": "DEPLOY TO WRONG ENVIRONMENT DETECTED! ROLLBACK IMMEDIATELY!",
@@ -562,7 +584,9 @@ async def deep_health_check(response: Response):
             )
             all_ok = False
             critical_mismatch = True
-            logger.critical(f"[health/deep] CRITICAL: Localhost URLs in production: {localhost_violations}")
+            logger.critical(
+                f"[health/deep] CRITICAL: Localhost URLs in production: {localhost_violations}"
+            )
         else:
             # Em DEV, é apenas warning (pode ser intencional)
             checks["localhost_check"]["status"] = "warning"
@@ -600,9 +624,7 @@ async def deep_health_check(response: Response):
             )
         else:
             checks["dev_guardrails"]["status"] = "ok"
-            logger.info(
-                f"[health/deep] DEV guardrails OK: allowlist has {len(allowlist)} numbers"
-            )
+            logger.info(f"[health/deep] DEV guardrails OK: allowlist has {len(allowlist)} numbers")
     else:
         # Em PROD, este check é skipped
         checks["dev_guardrails"] = {
@@ -678,7 +700,13 @@ async def deep_health_check(response: Response):
 
     # 5. Check schema version (via app_settings - contrato Sprint 18)
     try:
-        result = supabase.table("app_settings").select("value").eq("key", "schema_version").single().execute()
+        result = (
+            supabase.table("app_settings")
+            .select("value")
+            .eq("key", "schema_version")
+            .single()
+            .execute()
+        )
         if result.data:
             current_version = result.data.get("value")
             checks["schema_version"]["current"] = current_version
@@ -688,7 +716,9 @@ async def deep_health_check(response: Response):
                 checks["schema_version"]["status"] = "ok"
             else:
                 checks["schema_version"]["status"] = "warning"
-                checks["schema_version"]["message"] = f"Schema behind: {current_version} < {EXPECTED_SCHEMA_VERSION}"
+                checks["schema_version"]["message"] = (
+                    f"Schema behind: {current_version} < {EXPECTED_SCHEMA_VERSION}"
+                )
                 # Warning não falha o deploy, mas avisa
         else:
             checks["schema_version"]["status"] = "error"
@@ -708,7 +738,9 @@ async def deep_health_check(response: Response):
         all_ok = False
         logger.error(f"[health/deep] Prompt contract FAILED: {prompt_result}")
     elif prompt_result["status"] == "warning":
-        logger.warning(f"[health/deep] Prompt contract warnings: {prompt_result.get('missing_warnings', [])}")
+        logger.warning(
+            f"[health/deep] Prompt contract warnings: {prompt_result.get('missing_warnings', [])}"
+        )
 
     # Resultado final
     overall_status = "healthy" if all_ok else "unhealthy"
@@ -746,9 +778,12 @@ async def schema_info():
     """
     try:
         # Buscar schema_version e schema_applied_at de app_settings
-        result = supabase.table("app_settings").select("key, value").in_(
-            "key", ["schema_version", "schema_applied_at"]
-        ).execute()
+        result = (
+            supabase.table("app_settings")
+            .select("key, value")
+            .in_("key", ["schema_version", "schema_applied_at"])
+            .execute()
+        )
 
         settings_map = {r["key"]: r["value"] for r in (result.data or [])}
         current_version = settings_map.get("schema_version")
@@ -760,7 +795,9 @@ async def schema_info():
         return {
             "current_version": current_version,
             "expected_version": EXPECTED_SCHEMA_VERSION,
-            "schema_up_to_date": current_version >= EXPECTED_SCHEMA_VERSION if current_version else False,
+            "schema_up_to_date": current_version >= EXPECTED_SCHEMA_VERSION
+            if current_version
+            else False,
             "applied_at": applied_at,
             "fingerprint": schema_fp.get("fingerprint"),
             "critical_tables": CRITICAL_TABLES,
@@ -846,9 +883,15 @@ async def job_executions_status():
         since = (now - timedelta(hours=24)).isoformat()
 
         # Buscar todas execuções das últimas 24h
-        result = supabase.table("job_executions").select(
-            "job_name, started_at, finished_at, status, duration_ms, items_processed, error"
-        ).gte("started_at", since).order("started_at", desc=True).execute()
+        result = (
+            supabase.table("job_executions")
+            .select(
+                "job_name, started_at, finished_at, status, duration_ms, items_processed, error"
+            )
+            .gte("started_at", since)
+            .order("started_at", desc=True)
+            .execute()
+        )
 
         executions = result.data or []
 
@@ -883,7 +926,9 @@ async def job_executions_status():
 
                 # Calcular idade da última execução
                 try:
-                    last_run_dt = datetime.fromisoformat(ex["started_at"].replace("+00:00", "").replace("Z", ""))
+                    last_run_dt = datetime.fromisoformat(
+                        ex["started_at"].replace("+00:00", "").replace("Z", "")
+                    )
                     age_seconds = (now - last_run_dt).total_seconds()
                     summary["seconds_since_last_run"] = int(age_seconds)
 
@@ -915,7 +960,9 @@ async def job_executions_status():
         # Calcular médias e limpar
         for name, summary in jobs_summary.items():
             if summary["durations"]:
-                summary["avg_duration_ms"] = int(sum(summary["durations"]) / len(summary["durations"]))
+                summary["avg_duration_ms"] = int(
+                    sum(summary["durations"]) / len(summary["durations"])
+                )
             del summary["durations"]
 
         # Coletar alertas
@@ -1062,9 +1109,13 @@ async def chips_health_status():
 
     try:
         # Buscar todos os chips ativos
-        result = supabase.table("chips").select("*").eq(
-            "status", "active"
-        ).order("trust_score", desc=True).execute()
+        result = (
+            supabase.table("chips")
+            .select("*")
+            .eq("status", "active")
+            .order("trust_score", desc=True)
+            .execute()
+        )
 
         chips = result.data or []
 
@@ -1100,10 +1151,7 @@ async def chips_health_status():
                 chips_criticos += 1
 
             # Verificar disponibilidade
-            is_available = (
-                circuit_state != CircuitState.OPEN.value and
-                evolution_connected
-            )
+            is_available = circuit_state != CircuitState.OPEN.value and evolution_connected
 
             if is_available:
                 chips_disponiveis += 1
@@ -1114,21 +1162,23 @@ async def chips_health_status():
             if not evolution_connected:
                 chips_desconectados += 1
 
-            chips_status.append({
-                "telefone": chip.get("telefone", "N/A")[-4:],
-                "trust_score": trust,
-                "trust_level": chip.get("trust_level", "unknown"),
-                "health": health,
-                "circuit_state": circuit_state,
-                "circuit_falhas": circuit.falhas_consecutivas,
-                "evolution_connected": evolution_connected,
-                "pode_prospectar": chip.get("pode_prospectar", False),
-                "pode_followup": chip.get("pode_followup", False),
-                "pode_responder": chip.get("pode_responder", False),
-                "msgs_hoje": chip.get("msgs_enviadas_hoje", 0),
-                "erros_24h": chip.get("erros_ultimas_24h", 0),
-                "is_available": is_available,
-            })
+            chips_status.append(
+                {
+                    "telefone": chip.get("telefone", "N/A")[-4:],
+                    "trust_score": trust,
+                    "trust_level": chip.get("trust_level", "unknown"),
+                    "health": health,
+                    "circuit_state": circuit_state,
+                    "circuit_falhas": circuit.falhas_consecutivas,
+                    "evolution_connected": evolution_connected,
+                    "pode_prospectar": chip.get("pode_prospectar", False),
+                    "pode_followup": chip.get("pode_followup", False),
+                    "pode_responder": chip.get("pode_responder", False),
+                    "msgs_hoje": chip.get("msgs_enviadas_hoje", 0),
+                    "erros_24h": chip.get("erros_ultimas_24h", 0),
+                    "is_available": is_available,
+                }
+            )
 
         # Determinar status geral
         total_chips = len(chips)
@@ -1150,9 +1200,15 @@ async def chips_health_status():
             message = "Pool de chips saudável"
 
         # Contadores por capacidade
-        podem_prospectar = len([c for c in chips if c.get("pode_prospectar") and c.get("trust_score", 0) >= 60])
-        podem_followup = len([c for c in chips if c.get("pode_followup") and c.get("trust_score", 0) >= 40])
-        podem_responder = len([c for c in chips if c.get("pode_responder") and c.get("trust_score", 0) >= 20])
+        podem_prospectar = len(
+            [c for c in chips if c.get("pode_prospectar") and c.get("trust_score", 0) >= 60]
+        )
+        podem_followup = len(
+            [c for c in chips if c.get("pode_followup") and c.get("trust_score", 0) >= 40]
+        )
+        podem_responder = len(
+            [c for c in chips if c.get("pode_responder") and c.get("trust_score", 0) >= 20]
+        )
 
         return {
             "status": status,
@@ -1165,7 +1221,9 @@ async def chips_health_status():
                 "criticos": chips_criticos,
                 "circuit_aberto": chips_com_circuit_aberto,
                 "desconectados": chips_desconectados,
-                "trust_medio": round(sum(c.get("trust_score", 0) for c in chips) / total_chips, 1) if total_chips > 0 else 0,
+                "trust_medio": round(sum(c.get("trust_score", 0) for c in chips) / total_chips, 1)
+                if total_chips > 0
+                else 0,
             },
             "capacidade": {
                 "prospeccao": podem_prospectar,
@@ -1278,7 +1336,6 @@ async def system_alerts():
 
     Útil para dashboard de monitoramento.
     """
-    from datetime import timedelta
     from app.services.fila import fila_service
     from app.services.circuit_breaker import obter_status_circuits
 
@@ -1290,57 +1347,72 @@ async def system_alerts():
         try:
             fila_stats = await fila_service.obter_estatisticas_completas()
             if fila_stats.get("travadas", 0) > 0:
-                alerts.append({
-                    "severity": "warning" if fila_stats["travadas"] < 10 else "critical",
-                    "source": "fila",
-                    "message": f"{fila_stats['travadas']} mensagens travadas",
-                    "value": fila_stats["travadas"],
-                })
+                alerts.append(
+                    {
+                        "severity": "warning" if fila_stats["travadas"] < 10 else "critical",
+                        "source": "fila",
+                        "message": f"{fila_stats['travadas']} mensagens travadas",
+                        "value": fila_stats["travadas"],
+                    }
+                )
             if fila_stats.get("pendentes", 0) > 100:
-                alerts.append({
-                    "severity": "warning" if fila_stats["pendentes"] < 500 else "critical",
-                    "source": "fila",
-                    "message": f"Backlog alto: {fila_stats['pendentes']} pendentes",
-                    "value": fila_stats["pendentes"],
-                })
+                alerts.append(
+                    {
+                        "severity": "warning" if fila_stats["pendentes"] < 500 else "critical",
+                        "source": "fila",
+                        "message": f"Backlog alto: {fila_stats['pendentes']} pendentes",
+                        "value": fila_stats["pendentes"],
+                    }
+                )
         except Exception as e:
-            alerts.append({
-                "severity": "error",
-                "source": "fila",
-                "message": f"Erro ao verificar fila: {e}",
-            })
+            alerts.append(
+                {
+                    "severity": "error",
+                    "source": "fila",
+                    "message": f"Erro ao verificar fila: {e}",
+                }
+            )
 
         # 2. Alertas dos circuit breakers
         try:
             circuits = obter_status_circuits()
             for name, circuit in circuits.items():
                 if circuit.get("estado") == "open":
-                    alerts.append({
-                        "severity": "critical",
-                        "source": "circuit_breaker",
-                        "message": f"Circuit {name} está ABERTO",
-                        "circuit": name,
-                        "falhas": circuit.get("falhas_consecutivas"),
-                    })
+                    alerts.append(
+                        {
+                            "severity": "critical",
+                            "source": "circuit_breaker",
+                            "message": f"Circuit {name} está ABERTO",
+                            "circuit": name,
+                            "falhas": circuit.get("falhas_consecutivas"),
+                        }
+                    )
                 elif circuit.get("estado") == "half_open":
-                    alerts.append({
-                        "severity": "warning",
-                        "source": "circuit_breaker",
-                        "message": f"Circuit {name} testando recuperação",
-                        "circuit": name,
-                    })
+                    alerts.append(
+                        {
+                            "severity": "warning",
+                            "source": "circuit_breaker",
+                            "message": f"Circuit {name} testando recuperação",
+                            "circuit": name,
+                        }
+                    )
         except Exception as e:
-            alerts.append({
-                "severity": "error",
-                "source": "circuit_breaker",
-                "message": f"Erro ao verificar circuits: {e}",
-            })
+            alerts.append(
+                {
+                    "severity": "error",
+                    "source": "circuit_breaker",
+                    "message": f"Erro ao verificar circuits: {e}",
+                }
+            )
 
         # 3. Alertas do pool de chips
         try:
-            result = supabase.table("chips").select(
-                "id, trust_score, evolution_connected, status"
-            ).eq("status", "active").execute()
+            result = (
+                supabase.table("chips")
+                .select("id, trust_score, evolution_connected, status")
+                .eq("status", "active")
+                .execute()
+            )
 
             chips = result.data or []
             total = len(chips)
@@ -1348,38 +1420,48 @@ async def system_alerts():
             criticos = len([c for c in chips if (c.get("trust_score") or 0) < 40])
 
             if total == 0:
-                alerts.append({
-                    "severity": "critical",
-                    "source": "chips",
-                    "message": "Pool de chips vazio!",
-                })
+                alerts.append(
+                    {
+                        "severity": "critical",
+                        "source": "chips",
+                        "message": "Pool de chips vazio!",
+                    }
+                )
             elif conectados == 0:
-                alerts.append({
-                    "severity": "critical",
-                    "source": "chips",
-                    "message": "Nenhum chip conectado!",
-                })
+                alerts.append(
+                    {
+                        "severity": "critical",
+                        "source": "chips",
+                        "message": "Nenhum chip conectado!",
+                    }
+                )
             elif conectados < total * 0.5:
-                alerts.append({
-                    "severity": "warning",
-                    "source": "chips",
-                    "message": f"Poucos chips conectados: {conectados}/{total}",
-                    "conectados": conectados,
-                    "total": total,
-                })
+                alerts.append(
+                    {
+                        "severity": "warning",
+                        "source": "chips",
+                        "message": f"Poucos chips conectados: {conectados}/{total}",
+                        "conectados": conectados,
+                        "total": total,
+                    }
+                )
             if criticos > total * 0.3:
-                alerts.append({
-                    "severity": "warning",
-                    "source": "chips",
-                    "message": f"Muitos chips críticos: {criticos}/{total}",
-                    "criticos": criticos,
-                })
+                alerts.append(
+                    {
+                        "severity": "warning",
+                        "source": "chips",
+                        "message": f"Muitos chips críticos: {criticos}/{total}",
+                        "criticos": criticos,
+                    }
+                )
         except Exception as e:
-            alerts.append({
-                "severity": "error",
-                "source": "chips",
-                "message": f"Erro ao verificar chips: {e}",
-            })
+            alerts.append(
+                {
+                    "severity": "error",
+                    "source": "chips",
+                    "message": f"Erro ao verificar chips: {e}",
+                }
+            )
 
         # Ordenar por severidade
         severity_order = {"critical": 0, "error": 1, "warning": 2, "info": 3}
@@ -1507,9 +1589,12 @@ async def system_health_score():
         # 3. Pool de chips (25 pontos)
         chips_score = 25
         try:
-            result = supabase.table("chips").select(
-                "id, trust_score, evolution_connected"
-            ).eq("status", "active").execute()
+            result = (
+                supabase.table("chips")
+                .select("id, trust_score, evolution_connected")
+                .eq("status", "active")
+                .execute()
+            )
 
             chips = result.data or []
             total = len(chips)
@@ -1620,13 +1705,15 @@ async def circuit_breaker_history(circuit_name: str = None, horas: int = 24):
             name = t.get("circuit_name", "unknown")
             if name not in by_circuit:
                 by_circuit[name] = []
-            by_circuit[name].append({
-                "from": t.get("from_state"),
-                "to": t.get("to_state"),
-                "reason": t.get("reason"),
-                "falhas": t.get("falhas_consecutivas"),
-                "at": t.get("created_at"),
-            })
+            by_circuit[name].append(
+                {
+                    "from": t.get("from_state"),
+                    "to": t.get("to_state"),
+                    "reason": t.get("reason"),
+                    "falhas": t.get("falhas_consecutivas"),
+                    "at": t.get("created_at"),
+                }
+            )
 
         return {
             "circuit_filter": circuit_name,

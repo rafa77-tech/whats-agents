@@ -3,6 +3,7 @@ Processador de controle humano.
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 
 from ..base import PreProcessor, ProcessorContext, ProcessorResult
@@ -16,6 +17,7 @@ class HumanControlProcessor(PreProcessor):
 
     Prioridade: 60
     """
+
     name = "human_control"
     priority = 60
 
@@ -33,13 +35,11 @@ class HumanControlProcessor(PreProcessor):
                 await chatwoot_service.enviar_mensagem(
                     conversation_id=context.conversa["chatwoot_conversation_id"],
                     content=context.mensagem_texto or "[midia]",
-                    message_type="incoming"
+                    message_type="incoming",
                 )
             except Exception as e:
                 logger.warning(f"Erro ao sincronizar com Chatwoot: {e}")
 
         return ProcessorResult(
-            success=True,
-            should_continue=False,
-            metadata={"human_control": True}
+            success=True, should_continue=False, metadata={"human_control": True}
         )

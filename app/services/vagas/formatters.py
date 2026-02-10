@@ -3,6 +3,7 @@ Formatadores de vagas para mensagens.
 
 Sprint 10 - S10.E3.2
 """
+
 from datetime import datetime
 
 from app.config.especialidades import obter_config_especialidade
@@ -26,7 +27,7 @@ def formatar_para_mensagem(vaga: dict) -> str:
     hospital = hospitais.get("nome", "Hospital") if isinstance(hospitais, dict) else "Hospital"
     data = vaga.get("data", "")
     periodo = periodos.get("nome", "") if isinstance(periodos, dict) else ""
-    valor = vaga.get("valor") or 0
+    vaga.get("valor") or 0
     setor = setores.get("nome", "") if isinstance(setores, dict) else ""
 
     # Formatar data para PT-BR
@@ -117,23 +118,23 @@ def formatar_para_contexto(vagas: list[dict], especialidade: str = None) -> str:
         setor = v.get("setores") or {}
 
         # Extrair valores com segurança
-        hospital_nome = hospital.get('nome', 'N/A') if isinstance(hospital, dict) else 'N/A'
-        hospital_cidade = hospital.get('cidade', 'N/A') if isinstance(hospital, dict) else 'N/A'
-        periodo_nome = periodo.get('nome', 'N/A') if isinstance(periodo, dict) else 'N/A'
-        periodo_inicio = periodo.get('hora_inicio', '') if isinstance(periodo, dict) else ''
-        periodo_fim = periodo.get('hora_fim', '') if isinstance(periodo, dict) else ''
-        setor_nome = setor.get('nome', 'N/A') if isinstance(setor, dict) else 'N/A'
+        hospital_nome = hospital.get("nome", "N/A") if isinstance(hospital, dict) else "N/A"
+        hospital_cidade = hospital.get("cidade", "N/A") if isinstance(hospital, dict) else "N/A"
+        periodo_nome = periodo.get("nome", "N/A") if isinstance(periodo, dict) else "N/A"
+        periodo_inicio = periodo.get("hora_inicio", "") if isinstance(periodo, dict) else ""
+        periodo_fim = periodo.get("hora_fim", "") if isinstance(periodo, dict) else ""
+        setor_nome = setor.get("nome", "N/A") if isinstance(setor, dict) else "N/A"
 
         # Formatar valor baseado no tipo (Sprint 19)
         valor_display = _formatar_valor_contexto(v)
 
         texto += f"""**Vaga {i}:**
 - Hospital: {hospital_nome} ({hospital_cidade})
-- Data: {v.get('data', 'N/A')}
+- Data: {v.get("data", "N/A")}
 - Período: {periodo_nome} ({periodo_inicio}-{periodo_fim})
 - Setor: {setor_nome}
 - Valor: {valor_display}
-- ID: {v.get('id', 'N/A')}
+- ID: {v.get("id", "N/A")}
 """
 
     return texto

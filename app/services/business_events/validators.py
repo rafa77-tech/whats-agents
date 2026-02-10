@@ -3,6 +3,7 @@ Validadores para emissao de eventos de negocio.
 
 Sprint 17 - E04
 """
+
 import logging
 
 from app.services.supabase import supabase
@@ -28,11 +29,7 @@ async def vaga_pode_receber_oferta(vaga_id: str) -> bool:
     """
     try:
         response = (
-            supabase.table("vagas")
-            .select("status")
-            .eq("id", vaga_id)
-            .maybe_single()
-            .execute()
+            supabase.table("vagas").select("status").eq("id", vaga_id).maybe_single().execute()
         )
 
         if not response.data:

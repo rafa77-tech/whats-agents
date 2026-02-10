@@ -4,6 +4,7 @@ Tool para salvar memorias sobre o medico durante conversas.
 Permite que Julia aprenda e lembre informacoes importantes
 sobre cada medico ao longo do tempo.
 """
+
 import logging
 from typing import Any
 from datetime import datetime, timezone
@@ -62,33 +63,29 @@ DICA: Sempre que ouvir "prefiro", "gosto de", "nao quero", "sempre", "nunca" - p
         "properties": {
             "informacao": {
                 "type": "string",
-                "description": "A informacao a ser salva. Escreva de forma clara e objetiva. Ex: 'Prefere plantoes noturnos', 'Nao trabalha aos domingos', 'Mora em Santo Andre'"
+                "description": "A informacao a ser salva. Escreva de forma clara e objetiva. Ex: 'Prefere plantoes noturnos', 'Nao trabalha aos domingos', 'Mora em Santo Andre'",
             },
             "tipo": {
                 "type": "string",
                 "enum": ["preferencia", "restricao", "info_pessoal", "historico", "comportamento"],
-                "description": "Categoria da informacao: preferencia (gosta/quer), restricao (nao quer/evita), info_pessoal (sobre a vida), historico (experiencias passadas), comportamento (padrao de acao)"
+                "description": "Categoria da informacao: preferencia (gosta/quer), restricao (nao quer/evita), info_pessoal (sobre a vida), historico (experiencias passadas), comportamento (padrao de acao)",
             },
             "confianca": {
                 "type": "string",
                 "enum": ["alta", "media", "baixa"],
-                "description": "Nivel de certeza sobre a informacao. Alta = medico disse explicitamente. Media = inferido da conversa. Baixa = suposicao."
+                "description": "Nivel de certeza sobre a informacao. Alta = medico disse explicitamente. Media = inferido da conversa. Baixa = suposicao.",
             },
             "contexto": {
                 "type": "string",
-                "description": "Contexto em que a informacao foi mencionada (opcional). Ex: 'Ao oferecer vaga no ABC, medico disse que mora longe'"
-            }
+                "description": "Contexto em que a informacao foi mencionada (opcional). Ex: 'Ao oferecer vaga no ABC, medico disse que mora longe'",
+            },
         },
-        "required": ["informacao", "tipo"]
-    }
+        "required": ["informacao", "tipo"],
+    },
 }
 
 
-async def handle_salvar_memoria(
-    tool_input: dict,
-    medico: dict,
-    conversa: dict
-) -> dict[str, Any]:
+async def handle_salvar_memoria(tool_input: dict, medico: dict, conversa: dict) -> dict[str, Any]:
     """
     Processa chamada da tool salvar_memoria.
 
@@ -117,15 +114,12 @@ async def handle_salvar_memoria(
         return {
             "success": False,
             "error": "Informacao vazia",
-            "mensagem_sugerida": None  # Nao precisa dizer nada ao medico
+            "mensagem_sugerida": None,  # Nao precisa dizer nada ao medico
         }
 
     if not cliente_id:
         logger.error("Medico sem ID ao tentar salvar memoria")
-        return {
-            "success": False,
-            "error": "ID do medico nao encontrado"
-        }
+        return {"success": False, "error": "ID do medico nao encontrado"}
 
     logger.info(
         f"Salvando memoria para medico {cliente_id}: "
@@ -154,18 +148,11 @@ async def handle_salvar_memoria(
             dados_insert["embedding"] = embedding
 
         # Inserir na tabela doctor_context
-        response = (
-            supabase.table("doctor_context")
-            .insert(dados_insert)
-            .execute()
-        )
+        response = supabase.table("doctor_context").insert(dados_insert).execute()
 
         if not response.data:
             logger.error("Falha ao inserir memoria no banco")
-            return {
-                "success": False,
-                "error": "Erro ao salvar no banco"
-            }
+            return {"success": False, "error": "Erro ao salvar no banco"}
 
         memoria_id = response.data[0].get("id")
         logger.info(f"Memoria salva com sucesso: {memoria_id}")
@@ -173,9 +160,7 @@ async def handle_salvar_memoria(
         # Se for preferencia ou restricao, atualizar campo preferencias_detectadas
         if tipo in ("preferencia", "restricao"):
             await _atualizar_preferencias_detectadas(
-                cliente_id=cliente_id,
-                tipo=tipo,
-                informacao=informacao
+                cliente_id=cliente_id, tipo=tipo, informacao=informacao
             )
 
         return {
@@ -184,22 +169,15 @@ async def handle_salvar_memoria(
             "tipo": tipo,
             "mensagem": f"Memoria salva: {informacao[:50]}...",
             # Nao precisa responder nada ao medico sobre isso
-            "instrucao": "Memoria salva. Continue a conversa naturalmente sem mencionar que salvou a informacao."
+            "instrucao": "Memoria salva. Continue a conversa naturalmente sem mencionar que salvou a informacao.",
         }
 
     except Exception as e:
         logger.error(f"Erro ao salvar memoria: {e}", exc_info=True)
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
-async def _atualizar_preferencias_detectadas(
-    cliente_id: str,
-    tipo: str,
-    informacao: str
-) -> None:
+async def _atualizar_preferencias_detectadas(cliente_id: str, tipo: str, informacao: str) -> None:
     """
     Atualiza o campo preferencias_detectadas do cliente.
 
@@ -231,28 +209,21 @@ async def _atualizar_preferencias_detectadas(
         if tipo == "preferencia":
             if "preferencias" not in preferencias_atuais:
                 preferencias_atuais["preferencias"] = []
-            preferencias_atuais["preferencias"].append({
-                "info": informacao,
-                "data": timestamp
-            })
+            preferencias_atuais["preferencias"].append({"info": informacao, "data": timestamp})
             # Manter apenas as 10 mais recentes
             preferencias_atuais["preferencias"] = preferencias_atuais["preferencias"][-10:]
 
         elif tipo == "restricao":
             if "restricoes" not in preferencias_atuais:
                 preferencias_atuais["restricoes"] = []
-            preferencias_atuais["restricoes"].append({
-                "info": informacao,
-                "data": timestamp
-            })
+            preferencias_atuais["restricoes"].append({"info": informacao, "data": timestamp})
             # Manter apenas as 10 mais recentes
             preferencias_atuais["restricoes"] = preferencias_atuais["restricoes"][-10:]
 
         # Atualizar no banco
-        supabase.table("clientes").update({
-            "preferencias_detectadas": preferencias_atuais,
-            "updated_at": timestamp
-        }).eq("id", cliente_id).execute()
+        supabase.table("clientes").update(
+            {"preferencias_detectadas": preferencias_atuais, "updated_at": timestamp}
+        ).eq("id", cliente_id).execute()
 
         logger.debug(f"Preferencias detectadas atualizadas para cliente {cliente_id}")
 

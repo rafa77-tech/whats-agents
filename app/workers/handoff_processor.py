@@ -4,9 +4,9 @@ Job de processamento de handoffs (follow-up e expiracao).
 Sprint 20 - E07 - Automacao de follow-up.
 Sprint 21 - E01 - Verificar canary flag antes de follow-ups.
 """
+
 import logging
 from datetime import datetime, timezone
-from typing import List
 
 from app.services.external_handoff.repository import (
     listar_handoffs_pendentes,
@@ -23,10 +23,10 @@ from app.services.policy.flags import get_external_handoff_flags
 logger = logging.getLogger(__name__)
 
 # Configuracoes de tempo
-FOLLOWUP_1_HORAS = 2   # Primeiro follow-up apos 2h
+FOLLOWUP_1_HORAS = 2  # Primeiro follow-up apos 2h
 FOLLOWUP_2_HORAS = 24  # Segundo follow-up apos 24h
 FOLLOWUP_3_HORAS = 36  # Terceiro follow-up apos 36h
-MAX_FOLLOWUPS = 3      # Maximo de follow-ups
+MAX_FOLLOWUPS = 3  # Maximo de follow-ups
 
 
 async def processar_handoffs_pendentes() -> dict:
@@ -92,11 +92,7 @@ async def processar_handoffs_pendentes() -> dict:
         raise
 
 
-async def _processar_handoff(
-    handoff: dict,
-    now: datetime,
-    followups_pausados: bool = False
-) -> str:
+async def _processar_handoff(handoff: dict, now: datetime, followups_pausados: bool = False) -> str:
     """
     Processa um handoff individual.
 
@@ -108,7 +104,7 @@ async def _processar_handoff(
     Returns:
         'followup', 'followup_paused', 'expired', ou 'noop'
     """
-    handoff_id = handoff["id"]
+    handoff["id"]
     reserved_until = handoff.get("reserved_until")
     followup_count = handoff.get("followup_count", 0) or 0
     created_at = handoff.get("created_at")
@@ -240,10 +236,7 @@ async def _expirar_handoff(handoff: dict) -> None:
     )
 
     # Liberar vaga
-    supabase.table("vagas") \
-        .update({"status": "aberta"}) \
-        .eq("id", vaga_id) \
-        .execute()
+    supabase.table("vagas").update({"status": "aberta"}).eq("id", vaga_id).execute()
 
     logger.info(f"Vaga {vaga_id} liberada")
 
@@ -266,16 +259,26 @@ async def _expirar_handoff(handoff: dict) -> None:
     cor = "#9CA3AF"  # Cinza
     mensagem_slack = {
         "text": ":hourglass: Handoff Expirado",
-        "attachments": [{
-            "color": cor,
-            "title": "Handoff Expirado",
-            "fields": [
-                {"title": "Divulgador", "value": handoff.get("divulgador_nome", "N/A"), "short": True},
-                {"title": "Follow-ups", "value": str(handoff.get("followup_count", 0)), "short": True},
-                {"title": "Vaga", "value": vaga_id[:8], "short": True},
-            ],
-            "footer": "Agente Julia - Sprint 20",
-        }]
+        "attachments": [
+            {
+                "color": cor,
+                "title": "Handoff Expirado",
+                "fields": [
+                    {
+                        "title": "Divulgador",
+                        "value": handoff.get("divulgador_nome", "N/A"),
+                        "short": True,
+                    },
+                    {
+                        "title": "Follow-ups",
+                        "value": str(handoff.get("followup_count", 0)),
+                        "short": True,
+                    },
+                    {"title": "Vaga", "value": vaga_id[:8], "short": True},
+                ],
+                "footer": "Agente Julia - Sprint 20",
+            }
+        ],
     }
     try:
         await enviar_slack(mensagem_slack)

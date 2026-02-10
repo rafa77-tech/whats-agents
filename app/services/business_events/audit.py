@@ -4,6 +4,7 @@ Auditoria de cobertura de eventos por fonte.
 Sprint 18 - E10: Data Integrity
 Audita expectativas DETERMINISTICAS, nao contagens abstratas.
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 class CoverageSource(Enum):
     """Fonte de eventos."""
+
     PIPELINE_INBOUND = "pipeline_inbound"
     AGENTE_OUTBOUND = "agente_outbound"
     DB_TRIGGER_STATUS = "db_trigger_status"
@@ -25,7 +27,8 @@ class CoverageSource(Enum):
 
 class CoverageStatus(Enum):
     """Status da cobertura."""
-    OK = "ok"           # >= 98%
+
+    OK = "ok"  # >= 98%
     WARNING = "warning"  # >= 90%
     CRITICAL = "critical"  # < 90%
 
@@ -33,6 +36,7 @@ class CoverageStatus(Enum):
 @dataclass
 class SourceCoverage:
     """Cobertura de uma fonte especifica."""
+
     source: CoverageSource
     layer: str  # ex: "business_events", "policy_events"
     expectation: str  # O que deveria acontecer
@@ -48,9 +52,11 @@ class SourceCoverage:
         """Cria a partir de row do banco."""
         coverage = float(row.get("coverage_pct") or 0)
         status = (
-            CoverageStatus.OK if coverage >= 98 else
-            CoverageStatus.WARNING if coverage >= 90 else
-            CoverageStatus.CRITICAL
+            CoverageStatus.OK
+            if coverage >= 98
+            else CoverageStatus.WARNING
+            if coverage >= 90
+            else CoverageStatus.CRITICAL
         )
         return cls(
             source=source,
@@ -68,6 +74,7 @@ class SourceCoverage:
 @dataclass
 class InvariantViolation:
     """Violacao de invariante do funil."""
+
     invariant_name: str
     violation_type: str
     event_id: str
@@ -80,6 +87,7 @@ class InvariantViolation:
 @dataclass
 class AuditResult:
     """Resultado completo da auditoria."""
+
     timestamp: datetime
     period_start: datetime
     period_end: datetime
@@ -133,15 +141,12 @@ class AuditResult:
         return grouped
 
 
-async def audit_pipeline_inbound(
-    start: datetime,
-    end: datetime
-) -> List[SourceCoverage]:
+async def audit_pipeline_inbound(start: datetime, end: datetime) -> List[SourceCoverage]:
     """Audita cobertura do pipeline inbound."""
     try:
         response = supabase.rpc(
             "audit_pipeline_inbound_coverage",
-            {"p_start": start.isoformat(), "p_end": end.isoformat()}
+            {"p_start": start.isoformat(), "p_end": end.isoformat()},
         ).execute()
 
         return [
@@ -153,15 +158,11 @@ async def audit_pipeline_inbound(
         return []
 
 
-async def audit_outbound_coverage(
-    start: datetime,
-    end: datetime
-) -> List[SourceCoverage]:
+async def audit_outbound_coverage(start: datetime, end: datetime) -> List[SourceCoverage]:
     """Audita cobertura de outbound (2 layers)."""
     try:
         response = supabase.rpc(
-            "audit_outbound_coverage",
-            {"p_start": start.isoformat(), "p_end": end.isoformat()}
+            "audit_outbound_coverage", {"p_start": start.isoformat(), "p_end": end.isoformat()}
         ).execute()
 
         return [
@@ -173,35 +174,36 @@ async def audit_outbound_coverage(
         return []
 
 
-async def audit_status_transitions(
-    start: datetime,
-    end: datetime
-) -> List[SourceCoverage]:
+async def audit_status_transitions(start: datetime, end: datetime) -> List[SourceCoverage]:
     """Audita cobertura de transicoes de status."""
     try:
         response = supabase.rpc(
             "audit_status_transition_coverage",
-            {"p_start": start.isoformat(), "p_end": end.isoformat()}
+            {"p_start": start.isoformat(), "p_end": end.isoformat()},
         ).execute()
 
         coverages = []
         for row in response.data or []:
             coverage = float(row.get("coverage_pct") or 0)
             status = (
-                CoverageStatus.OK if coverage >= 98 else
-                CoverageStatus.WARNING if coverage >= 90 else
-                CoverageStatus.CRITICAL
+                CoverageStatus.OK
+                if coverage >= 98
+                else CoverageStatus.WARNING
+                if coverage >= 90
+                else CoverageStatus.CRITICAL
             )
-            coverages.append(SourceCoverage(
-                source=CoverageSource.DB_TRIGGER_STATUS,
-                layer="business_events",
-                expectation=f"{row['status_from']} → {row['status_to']} gera {row['expected_event']}",
-                expected_count=int(row["db_transitions"] or 0),
-                actual_count=int(row["events_found"] or 0),
-                coverage_pct=coverage,
-                status=status,
-                missing_ids=[str(x) for x in row.get("missing_vaga_ids") or []],
-            ))
+            coverages.append(
+                SourceCoverage(
+                    source=CoverageSource.DB_TRIGGER_STATUS,
+                    layer="business_events",
+                    expectation=f"{row['status_from']} → {row['status_to']} gera {row['expected_event']}",
+                    expected_count=int(row["db_transitions"] or 0),
+                    actual_count=int(row["events_found"] or 0),
+                    coverage_pct=coverage,
+                    status=status,
+                    missing_ids=[str(x) for x in row.get("missing_vaga_ids") or []],
+                )
+            )
         return coverages
     except Exception as e:
         logger.error(f"Erro ao auditar transicoes: {e}")
@@ -211,10 +213,7 @@ async def audit_status_transitions(
 async def get_invariant_violations(days: int = 7) -> List[InvariantViolation]:
     """Obtem violacoes de invariantes do funil."""
     try:
-        response = supabase.rpc(
-            "get_funnel_invariant_violations",
-            {"p_days": days}
-        ).execute()
+        response = supabase.rpc("get_funnel_invariant_violations", {"p_days": days}).execute()
 
         violations = []
         for row in response.data or []:
@@ -224,15 +223,17 @@ async def get_invariant_violations(days: int = 7) -> List[InvariantViolation]:
             elif event_ts is None:
                 event_ts = datetime.now(timezone.utc)
 
-            violations.append(InvariantViolation(
-                invariant_name=row["invariant_name"],
-                violation_type=row["violation_type"],
-                event_id=str(row["event_id"]),
-                vaga_id=str(row["vaga_id"]) if row.get("vaga_id") else None,
-                cliente_id=str(row["cliente_id"]) if row.get("cliente_id") else None,
-                event_ts=event_ts,
-                details=row.get("details") or {},
-            ))
+            violations.append(
+                InvariantViolation(
+                    invariant_name=row["invariant_name"],
+                    violation_type=row["violation_type"],
+                    event_id=str(row["event_id"]),
+                    vaga_id=str(row["vaga_id"]) if row.get("vaga_id") else None,
+                    cliente_id=str(row["cliente_id"]) if row.get("cliente_id") else None,
+                    event_ts=event_ts,
+                    details=row.get("details") or {},
+                )
+            )
         return violations
     except Exception as e:
         logger.error(f"Erro ao obter violacoes: {e}")

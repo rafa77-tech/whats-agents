@@ -10,6 +10,7 @@ Evita cenários como:
 
 Fingerprint: sha256(cliente_id + intent_type + reference_id + day_bucket)
 """
+
 import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
@@ -48,16 +49,16 @@ class IntentType(str, Enum):
 # Janelas de dedupe por intent (dias)
 # Dentro da janela, mesma intenção é bloqueada
 INTENT_WINDOWS: dict[str, int] = {
-    "discovery_first_touch": 7,      # 1 discovery por semana
-    "discovery_followup": 3,         # 1 followup a cada 3 dias
-    "offer_active": 1,               # 1 oferta por dia (por vaga)
-    "offer_reminder": 2,             # 1 reminder a cada 2 dias
-    "reactivation_nudge": 7,         # 1 reativação por semana
-    "reactivation_value_prop": 7,    # 1 value prop por semana
-    "followup_silence": 3,           # 1 followup silêncio a cada 3 dias
-    "followup_pending_docs": 2,      # 1 cobrança docs a cada 2 dias
-    "shift_reminder": 1,             # 1 reminder por dia
-    "handoff_confirmation": 1,       # 1 confirmação por dia
+    "discovery_first_touch": 7,  # 1 discovery por semana
+    "discovery_followup": 3,  # 1 followup a cada 3 dias
+    "offer_active": 1,  # 1 oferta por dia (por vaga)
+    "offer_reminder": 2,  # 1 reminder a cada 2 dias
+    "reactivation_nudge": 7,  # 1 reativação por semana
+    "reactivation_value_prop": 7,  # 1 value prop por semana
+    "followup_silence": 3,  # 1 followup silêncio a cada 3 dias
+    "followup_pending_docs": 2,  # 1 cobrança docs a cada 2 dias
+    "shift_reminder": 1,  # 1 reminder por dia
+    "handoff_confirmation": 1,  # 1 confirmação por dia
 }
 DEFAULT_WINDOW = 3
 
@@ -65,13 +66,13 @@ DEFAULT_WINDOW = 3
 # Qual campo usar como reference_id para cada intent
 # Determina a granularidade do dedupe
 INTENT_REFERENCE_FIELD: dict[str, Optional[str]] = {
-    "discovery_first_touch": "campaign_id",      # 1 por campanha
+    "discovery_first_touch": "campaign_id",  # 1 por campanha
     "discovery_followup": "campaign_id",
-    "offer_active": "vaga_id",                   # 1 por vaga
+    "offer_active": "vaga_id",  # 1 por vaga
     "offer_reminder": "vaga_id",
-    "reactivation_nudge": None,                  # global
+    "reactivation_nudge": None,  # global
     "reactivation_value_prop": None,
-    "followup_silence": "conversation_id",       # 1 por conversa
+    "followup_silence": "conversation_id",  # 1 por conversa
     "followup_pending_docs": "conversation_id",
     "shift_reminder": "vaga_id",
     "handoff_confirmation": "vaga_id",
@@ -147,20 +148,21 @@ async def verificar_intent(
     intent_str = _normalize_intent_type(intent_type)
     window_days = INTENT_WINDOWS.get(intent_str, DEFAULT_WINDOW)
 
-    fingerprint = gerar_intent_fingerprint(
-        cliente_id, intent_str, reference_id, window_days
-    )
+    fingerprint = gerar_intent_fingerprint(cliente_id, intent_str, reference_id, window_days)
 
     expires_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
 
     try:
-        response = supabase.rpc("inserir_intent_se_novo", {
-            "p_fingerprint": fingerprint,
-            "p_cliente_id": cliente_id,
-            "p_intent_type": intent_str,
-            "p_reference_id": reference_id,
-            "p_expires_at": expires_at,
-        }).execute()
+        response = supabase.rpc(
+            "inserir_intent_se_novo",
+            {
+                "p_fingerprint": fingerprint,
+                "p_cliente_id": cliente_id,
+                "p_intent_type": intent_str,
+                "p_reference_id": reference_id,
+                "p_expires_at": expires_at,
+            },
+        ).execute()
 
         if response.data and len(response.data) > 0:
             inserted = response.data[0].get("inserted", False)
@@ -206,7 +208,7 @@ def obter_reference_id(intent_type: str, ctx) -> Optional[str]:
 
     # Tenta obter do objeto ou do metadata
     ref = getattr(ctx, field, None)
-    if ref is None and hasattr(ctx, 'metadata'):
+    if ref is None and hasattr(ctx, "metadata"):
         ref = ctx.metadata.get(field)
 
     return str(ref) if ref else None
@@ -222,9 +224,12 @@ async def limpar_intents_expirados() -> int:
         Número de registros removidos
     """
     try:
-        response = supabase.table("intent_log").delete().lt(
-            "expires_at", datetime.now(timezone.utc).isoformat()
-        ).execute()
+        response = (
+            supabase.table("intent_log")
+            .delete()
+            .lt("expires_at", datetime.now(timezone.utc).isoformat())
+            .execute()
+        )
 
         count = len(response.data) if response.data else 0
         logger.info(f"Intent cleanup: {count} registros expirados removidos")

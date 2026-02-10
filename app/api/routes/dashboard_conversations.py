@@ -18,12 +18,11 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.services.supabase import supabase
 from app.services.chips.sender import enviar_via_chip, enviar_media_via_chip
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +31,14 @@ router = APIRouter(prefix="/dashboard/conversations", tags=["dashboard-conversat
 
 class SendTextRequest(BaseModel):
     """Request para enviar mensagem de texto."""
+
     conversation_id: str
     message: str
 
 
 class SendMediaRequest(BaseModel):
     """Request para enviar midia."""
+
     conversation_id: str
     media_url: str
     media_type: str  # image, audio, document, video
@@ -46,21 +47,25 @@ class SendMediaRequest(BaseModel):
 
 class ControlRequest(BaseModel):
     """Request para alterar controle da conversa."""
+
     controlled_by: str  # ai ou human
 
 
 class PauseRequest(BaseModel):
     """Request para pausar Julia na conversa."""
+
     motivo: Optional[str] = None
 
 
 class NoteRequest(BaseModel):
     """Request para criar nota do supervisor."""
+
     content: str
 
 
 class FeedbackRequest(BaseModel):
     """Request para feedback em mensagem."""
+
     interacao_id: int
     feedback_type: str  # positive ou negative
     comment: Optional[str] = None
@@ -74,9 +79,13 @@ async def _get_conversation_with_chip(conversation_id: str) -> dict:
         Dict com conversa, cliente e chip
     """
     # Buscar conversa
-    conv_result = supabase.table("conversations").select(
-        "*, clientes(*)"
-    ).eq("id", conversation_id).single().execute()
+    conv_result = (
+        supabase.table("conversations")
+        .select("*, clientes(*)")
+        .eq("id", conversation_id)
+        .single()
+        .execute()
+    )
 
     if not conv_result.data:
         raise HTTPException(404, "Conversa nao encontrada")
@@ -88,11 +97,14 @@ async def _get_conversation_with_chip(conversation_id: str) -> dict:
     # Nota: conversation_chips tem 2 FKs para chips (chip_id e migrated_from),
     # entao precisamos especificar qual usar.
     # A coluna eh 'conversa_id', nao 'conversation_id'.
-    chip_result = supabase.table("conversation_chips").select(
-        "chip_id, chips!conversation_chips_chip_id_fkey(*)"
-    ).eq("conversa_id", conversation_id).eq(
-        "active", True
-    ).limit(1).execute()
+    chip_result = (
+        supabase.table("conversation_chips")
+        .select("chip_id, chips!conversation_chips_chip_id_fkey(*)")
+        .eq("conversa_id", conversation_id)
+        .eq("active", True)
+        .limit(1)
+        .execute()
+    )
 
     chip = None
     if chip_result.data and chip_result.data[0].get("chips"):
@@ -100,9 +112,7 @@ async def _get_conversation_with_chip(conversation_id: str) -> dict:
 
     # Se nao tem chip associado, buscar um chip ativo
     if not chip:
-        active_chip = supabase.table("chips").select("*").eq(
-            "status", "active"
-        ).limit(1).execute()
+        active_chip = supabase.table("chips").select("*").eq("status", "active").limit(1).execute()
 
         if active_chip.data:
             chip = active_chip.data[0]
@@ -191,10 +201,12 @@ async def send_text_message(request: SendTextRequest):
         )
 
         # Atualizar last_message_at
-        supabase.table("conversations").update({
-            "last_message_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", request.conversation_id).execute()
+        supabase.table("conversations").update(
+            {
+                "last_message_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", request.conversation_id).execute()
 
         logger.info(
             f"Mensagem enviada: conv={request.conversation_id}, "
@@ -267,10 +279,12 @@ async def send_media_message(request: SendMediaRequest):
         )
 
         # Atualizar last_message_at
-        supabase.table("conversations").update({
-            "last_message_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", request.conversation_id).execute()
+        supabase.table("conversations").update(
+            {
+                "last_message_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", request.conversation_id).execute()
 
         logger.info(
             f"Midia enviada: conv={request.conversation_id}, "
@@ -300,10 +314,17 @@ async def change_control(conversation_id: str, request: ControlRequest):
         raise HTTPException(400, "controlled_by deve ser 'ai' ou 'human'")
 
     try:
-        result = supabase.table("conversations").update({
-            "controlled_by": request.controlled_by,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", conversation_id).execute()
+        result = (
+            supabase.table("conversations")
+            .update(
+                {
+                    "controlled_by": request.controlled_by,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+            .eq("id", conversation_id)
+            .execute()
+        )
 
         if not result.data:
             raise HTTPException(404, "Conversa nao encontrada")
@@ -335,11 +356,14 @@ async def get_conversation_details(conversation_id: str):
         chip = data["chip"]
 
         # Buscar mensagens
-        msgs = supabase.table("interacoes").select(
-            "id, tipo, conteudo, created_at, metadata"
-        ).eq(
-            "cliente_id", cliente.get("id")
-        ).order("created_at", desc=False).limit(100).execute()
+        msgs = (
+            supabase.table("interacoes")
+            .select("id, tipo, conteudo, created_at, metadata")
+            .eq("cliente_id", cliente.get("id"))
+            .order("created_at", desc=False)
+            .limit(100)
+            .execute()
+        )
 
         return {
             "id": conversation.get("id"),
@@ -354,7 +378,9 @@ async def get_conversation_details(conversation_id: str):
                 "id": chip.get("id"),
                 "telefone": chip.get("telefone"),
                 "instance_name": chip.get("instance_name"),
-            } if chip else None,
+            }
+            if chip
+            else None,
             "messages": msgs.data or [],
         }
 
@@ -375,11 +401,18 @@ async def pause_conversation(conversation_id: str, request: PauseRequest):
     """Pausa Julia na conversa."""
     try:
         now = datetime.now(timezone.utc).isoformat()
-        result = supabase.table("conversations").update({
-            "pausada_em": now,
-            "motivo_pausa": request.motivo,
-            "updated_at": now,
-        }).eq("id", conversation_id).execute()
+        result = (
+            supabase.table("conversations")
+            .update(
+                {
+                    "pausada_em": now,
+                    "motivo_pausa": request.motivo,
+                    "updated_at": now,
+                }
+            )
+            .eq("id", conversation_id)
+            .execute()
+        )
 
         if not result.data:
             raise HTTPException(404, "Conversa nao encontrada")
@@ -399,11 +432,18 @@ async def resume_conversation(conversation_id: str):
     """Retoma Julia na conversa."""
     try:
         now = datetime.now(timezone.utc).isoformat()
-        result = supabase.table("conversations").update({
-            "pausada_em": None,
-            "motivo_pausa": None,
-            "updated_at": now,
-        }).eq("id", conversation_id).execute()
+        result = (
+            supabase.table("conversations")
+            .update(
+                {
+                    "pausada_em": None,
+                    "motivo_pausa": None,
+                    "updated_at": now,
+                }
+            )
+            .eq("id", conversation_id)
+            .execute()
+        )
 
         if not result.data:
             raise HTTPException(404, "Conversa nao encontrada")
@@ -422,11 +462,14 @@ async def resume_conversation(conversation_id: str):
 async def list_notes(conversation_id: str):
     """Lista notas do supervisor para a conversa."""
     try:
-        result = supabase.table("supervisor_notes").select(
-            "id, content, created_at, user_id"
-        ).eq(
-            "conversation_id", conversation_id
-        ).order("created_at", desc=True).limit(50).execute()
+        result = (
+            supabase.table("supervisor_notes")
+            .select("id, content, created_at, user_id")
+            .eq("conversation_id", conversation_id)
+            .order("created_at", desc=True)
+            .limit(50)
+            .execute()
+        )
 
         return {"notes": result.data or []}
 
@@ -440,9 +483,13 @@ async def create_note(conversation_id: str, request: NoteRequest):
     """Cria nota do supervisor."""
     try:
         # Buscar cliente_id da conversa
-        conv = supabase.table("conversations").select(
-            "cliente_id"
-        ).eq("id", conversation_id).single().execute()
+        conv = (
+            supabase.table("conversations")
+            .select("cliente_id")
+            .eq("id", conversation_id)
+            .single()
+            .execute()
+        )
 
         if not conv.data:
             raise HTTPException(404, "Conversa nao encontrada")

@@ -19,21 +19,17 @@ logger = logging.getLogger(__name__)
 # Mapeamento de códigos de erro para tempo de cooldown
 COOLDOWN_POR_ERRO = {
     # Rate limit: cooldown curto
-    429: 5,      # 5 minutos
-
+    429: 5,  # 5 minutos
     # Bad request: pode ser restrição temporária
-    400: 15,     # 15 minutos
-
+    400: 15,  # 15 minutos
     # Forbidden: restrição mais séria
-    403: 60,     # 1 hora
-
+    403: 60,  # 1 hora
     # Not found: número inválido (não é culpa do chip)
-    404: 0,      # Sem cooldown
-
+    404: 0,  # Sem cooldown
     # Server error: problema no servidor (não é culpa do chip)
-    500: 0,      # Sem cooldown
+    500: 0,  # Sem cooldown
     502: 0,
-    503: 5,      # Pode ser temporário
+    503: 5,  # Pode ser temporário
 }
 
 # Mensagens de erro que indicam restrição
@@ -70,14 +66,15 @@ async def aplicar_cooldown(
     cooldown_until = datetime.now(timezone.utc) + timedelta(minutes=minutos)
 
     try:
-        supabase.table("chips").update({
-            "cooldown_until": cooldown_until.isoformat(),
-            "cooldown_motivo": motivo,
-        }).eq("id", chip_id).execute()
+        supabase.table("chips").update(
+            {
+                "cooldown_until": cooldown_until.isoformat(),
+                "cooldown_motivo": motivo,
+            }
+        ).eq("id", chip_id).execute()
 
         logger.warning(
-            f"[ChipCooldown] Chip {chip_id[:8]} em cooldown por {minutos}min. "
-            f"Motivo: {motivo}"
+            f"[ChipCooldown] Chip {chip_id[:8]} em cooldown por {minutos}min. Motivo: {motivo}"
         )
 
         return True
@@ -149,10 +146,12 @@ async def limpar_cooldown(chip_id: str) -> bool:
         True se cooldown foi removido
     """
     try:
-        supabase.table("chips").update({
-            "cooldown_until": None,
-            "cooldown_motivo": None,
-        }).eq("id", chip_id).execute()
+        supabase.table("chips").update(
+            {
+                "cooldown_until": None,
+                "cooldown_motivo": None,
+            }
+        ).eq("id", chip_id).execute()
 
         logger.info(f"[ChipCooldown] Cooldown removido do chip {chip_id[:8]}")
         return True
@@ -178,9 +177,13 @@ async def verificar_cooldown(chip_id: str) -> dict:
         }
     """
     try:
-        result = supabase.table("chips").select(
-            "cooldown_until, cooldown_motivo"
-        ).eq("id", chip_id).single().execute()
+        result = (
+            supabase.table("chips")
+            .select("cooldown_until, cooldown_motivo")
+            .eq("id", chip_id)
+            .single()
+            .execute()
+        )
 
         if not result.data:
             return {
@@ -199,9 +202,7 @@ async def verificar_cooldown(chip_id: str) -> dict:
                 "motivo": None,
             }
 
-        cooldown_until = datetime.fromisoformat(
-            cooldown_until_str.replace("Z", "+00:00")
-        )
+        cooldown_until = datetime.fromisoformat(cooldown_until_str.replace("Z", "+00:00"))
         agora = datetime.now(timezone.utc)
 
         if cooldown_until <= agora:

@@ -46,7 +46,7 @@ async def retry_with_backoff(
 
             if attempt < max_retries - 1:
                 # Calcular delay exponencial: 1s, 2s, 4s, 8s, ...
-                delay = min(base_delay * (2 ** attempt), max_delay)
+                delay = min(base_delay * (2**attempt), max_delay)
 
                 logger.warning(
                     f"[Retry] Tentativa {attempt + 1}/{max_retries} falhou: {e}. "
@@ -55,9 +55,7 @@ async def retry_with_backoff(
 
                 await asyncio.sleep(delay)
             else:
-                logger.error(
-                    f"[Retry] Todas as {max_retries} tentativas falharam: {e}"
-                )
+                logger.error(f"[Retry] Todas as {max_retries} tentativas falharam: {e}")
 
     raise last_exception
 
@@ -96,7 +94,7 @@ async def retry_sync_with_backoff(
             last_exception = e
 
             if attempt < max_retries - 1:
-                delay = min(base_delay * (2 ** attempt), max_delay)
+                delay = min(base_delay * (2**attempt), max_delay)
 
                 logger.warning(
                     f"[Retry] Tentativa {attempt + 1}/{max_retries} falhou: {e}. "
@@ -105,8 +103,6 @@ async def retry_sync_with_backoff(
 
                 await asyncio.sleep(delay)
             else:
-                logger.error(
-                    f"[Retry] Todas as {max_retries} tentativas falharam: {e}"
-                )
+                logger.error(f"[Retry] Todas as {max_retries} tentativas falharam: {e}")
 
     raise last_exception

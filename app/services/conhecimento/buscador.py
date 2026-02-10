@@ -1,6 +1,7 @@
 """
 Buscador semântico de conhecimento Julia.
 """
+
 import logging
 from dataclasses import dataclass
 from typing import Optional
@@ -100,19 +101,22 @@ class BuscadorConhecimento:
 
         # Salvar em cache (serializa lista para JSON string)
         if usar_cache and resultados:
-            cache_data = json.dumps([
-                {
-                    "id": r.id,
-                    "arquivo": r.arquivo,
-                    "secao": r.secao,
-                    "conteudo": r.conteudo,
-                    "tipo": r.tipo,
-                    "subtipo": r.subtipo,
-                    "tags": r.tags,
-                    "similaridade": r.similaridade,
-                }
-                for r in resultados
-            ], ensure_ascii=False)
+            cache_data = json.dumps(
+                [
+                    {
+                        "id": r.id,
+                        "arquivo": r.arquivo,
+                        "secao": r.secao,
+                        "conteudo": r.conteudo,
+                        "tipo": r.tipo,
+                        "subtipo": r.subtipo,
+                        "tags": r.tags,
+                        "similaridade": r.similaridade,
+                    }
+                    for r in resultados
+                ],
+                ensure_ascii=False,
+            )
             await cache_set(cache_key, cache_data, CACHE_TTL_BUSCA)
 
         logger.info(f"Busca '{query[:30]}...': {len(resultados)} resultados")
@@ -163,9 +167,7 @@ class BuscadorConhecimento:
         """
         return await self.buscar(query=contexto, tipo="conversa", limite=2)
 
-    async def buscar_por_tags(
-        self, tags: list[str], limite: int = 5
-    ) -> list[ResultadoBusca]:
+    async def buscar_por_tags(self, tags: list[str], limite: int = 5) -> list[ResultadoBusca]:
         """
         Busca por tags específicas.
 

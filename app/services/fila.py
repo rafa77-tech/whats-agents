@@ -6,6 +6,7 @@ Sprint 36 - T01.1: Timeout para mensagens travadas
 Sprint 36 - T01.2: Cancelar mensagens antigas
 Sprint 44 T03.5: Dead Letter Queue para mensagens falhadas
 """
+
 from datetime import datetime, timezone, timedelta
 from typing import Optional, TYPE_CHECKING
 import logging
@@ -29,7 +30,7 @@ class FilaService:
         conversa_id: str = None,
         prioridade: int = 5,
         agendar_para: datetime = None,
-        metadata: dict = None
+        metadata: dict = None,
     ) -> Optional[dict]:
         """Adiciona mensagem à fila."""
         data = {
@@ -42,14 +43,10 @@ class FilaService:
             "tentativas": 0,
             "max_tentativas": 3,
             "agendar_para": (agendar_para or datetime.now(timezone.utc)).isoformat(),
-            "metadata": metadata or {}
+            "metadata": metadata or {},
         }
 
-        response = (
-            supabase.table("fila_mensagens")
-            .insert(data)
-            .execute()
-        )
+        response = supabase.table("fila_mensagens").insert(data).execute()
 
         if response.data:
             logger.info(f"Mensagem enfileirada para {cliente_id}: {tipo}")
@@ -85,10 +82,9 @@ class FilaService:
         mensagem = response.data[0]
 
         # Marcar como processando
-        supabase.table("fila_mensagens").update({
-            "status": "processando",
-            "processando_desde": agora
-        }).eq("id", mensagem["id"]).execute()
+        supabase.table("fila_mensagens").update(
+            {"status": "processando", "processando_desde": agora}
+        ).eq("id", mensagem["id"]).execute()
 
         return mensagem
 
@@ -96,10 +92,7 @@ class FilaService:
         """Marca mensagem como enviada com sucesso."""
         response = (
             supabase.table("fila_mensagens")
-            .update({
-                "status": "enviada",
-                "enviada_em": datetime.now(timezone.utc).isoformat()
-            })
+            .update({"status": "enviada", "enviada_em": datetime.now(timezone.utc).isoformat()})
             .eq("id", mensagem_id)
             .execute()
         )
@@ -151,10 +144,7 @@ class FilaService:
             update_data["enviada_em"] = now
 
         response = (
-            supabase.table("fila_mensagens")
-            .update(update_data)
-            .eq("id", mensagem_id)
-            .execute()
+            supabase.table("fila_mensagens").update(update_data).eq("id", mensagem_id).execute()
         )
 
         if response.data:
@@ -164,7 +154,7 @@ class FilaService:
                     "mensagem_id": mensagem_id,
                     "outcome": outcome.value,
                     "outcome_reason_code": outcome_reason_code,
-                }
+                },
             )
             return True
 
@@ -189,34 +179,45 @@ class FilaService:
         ontem = (agora - timedelta(hours=24)).isoformat()
 
         # Contar pendentes
-        pendentes = supabase.table("fila_mensagens").select(
-            "id", count="exact"
-        ).eq("status", "pendente").execute()
+        pendentes = (
+            supabase.table("fila_mensagens")
+            .select("id", count="exact")
+            .eq("status", "pendente")
+            .execute()
+        )
 
         # Contar processando
-        processando = supabase.table("fila_mensagens").select(
-            "id", count="exact"
-        ).eq("status", "processando").execute()
+        processando = (
+            supabase.table("fila_mensagens")
+            .select("id", count="exact")
+            .eq("status", "processando")
+            .execute()
+        )
 
         # Contar erros nas últimas 24h
-        erros = supabase.table("fila_mensagens").select(
-            "id", count="exact"
-        ).eq("status", "erro").gte("updated_at", ontem).execute()
+        erros = (
+            supabase.table("fila_mensagens")
+            .select("id", count="exact")
+            .eq("status", "erro")
+            .gte("updated_at", ontem)
+            .execute()
+        )
 
         # Buscar mensagem pendente mais antiga
-        mais_antiga = supabase.table("fila_mensagens").select(
-            "created_at"
-        ).eq("status", "pendente").order(
-            "created_at", desc=False
-        ).limit(1).execute()
+        mais_antiga = (
+            supabase.table("fila_mensagens")
+            .select("created_at")
+            .eq("status", "pendente")
+            .order("created_at", desc=False)
+            .limit(1)
+            .execute()
+        )
 
         # Calcular idade em minutos
         idade_minutos = None
         if mais_antiga.data:
             created_at_str = mais_antiga.data[0]["created_at"]
-            created_at = datetime.fromisoformat(
-                created_at_str.replace("Z", "+00:00")
-            )
+            created_at = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
             idade_minutos = (agora - created_at).total_seconds() / 60
 
         return {
@@ -246,39 +247,36 @@ class FilaService:
 
         if nova_tentativa < max_tentativas:
             # Agendar retry com backoff exponencial
-            delay = 60 * (2 ** nova_tentativa)  # 2min, 4min, 8min
+            delay = 60 * (2**nova_tentativa)  # 2min, 4min, 8min
             novo_agendamento = datetime.now(timezone.utc) + timedelta(seconds=delay)
 
-            supabase.table("fila_mensagens").update({
-                "status": "pendente",
-                "tentativas": nova_tentativa,
-                "erro": erro,
-                "agendar_para": novo_agendamento.isoformat(),
-                "processando_desde": None
-            }).eq("id", mensagem_id).execute()
-            
+            supabase.table("fila_mensagens").update(
+                {
+                    "status": "pendente",
+                    "tentativas": nova_tentativa,
+                    "erro": erro,
+                    "agendar_para": novo_agendamento.isoformat(),
+                    "processando_desde": None,
+                }
+            ).eq("id", mensagem_id).execute()
+
             logger.info(f"Retry agendado para mensagem {mensagem_id} (tentativa {nova_tentativa})")
             return True
         else:
             # Esgotou tentativas - mover para DLQ
-            supabase.table("fila_mensagens").update({
-                "status": "erro",
-                "tentativas": nova_tentativa,
-                "erro": erro
-            }).eq("id", mensagem_id).execute()
+            supabase.table("fila_mensagens").update(
+                {"status": "erro", "tentativas": nova_tentativa, "erro": erro}
+            ).eq("id", mensagem_id).execute()
 
             # Sprint 44 T03.5: Mover para Dead Letter Queue
             await self._mover_para_dlq(mensagem_id, nova_tentativa, erro)
 
-            logger.error(f"Mensagem {mensagem_id} falhou após {nova_tentativa} tentativas - movida para DLQ")
+            logger.error(
+                f"Mensagem {mensagem_id} falhou após {nova_tentativa} tentativas - movida para DLQ"
+            )
             return False
 
-    async def _mover_para_dlq(
-        self,
-        mensagem_id: str,
-        tentativas: int,
-        erro: str
-    ) -> bool:
+    async def _mover_para_dlq(self, mensagem_id: str, tentativas: int, erro: str) -> bool:
         """
         Sprint 44 T03.5: Move mensagem falhada para Dead Letter Queue.
 
@@ -292,9 +290,13 @@ class FilaService:
         """
         try:
             # Buscar dados completos da mensagem original
-            msg_resp = supabase.table("fila_mensagens").select(
-                "*, clientes(telefone, primeiro_nome)"
-            ).eq("id", mensagem_id).single().execute()
+            msg_resp = (
+                supabase.table("fila_mensagens")
+                .select("*, clientes(telefone, primeiro_nome)")
+                .eq("id", mensagem_id)
+                .single()
+                .execute()
+            )
 
             if not msg_resp.data:
                 logger.warning(f"[DLQ] Mensagem {mensagem_id} não encontrada")
@@ -326,7 +328,7 @@ class FilaService:
                     "mensagem_id": mensagem_id,
                     "tentativas": tentativas,
                     "erro": erro[:100] if erro else None,
-                }
+                },
             )
             return True
 
@@ -336,9 +338,7 @@ class FilaService:
             return False
 
     async def listar_dlq(
-        self,
-        limite: int = 50,
-        apenas_nao_reprocessadas: bool = True
+        self, limite: int = 50, apenas_nao_reprocessadas: bool = True
     ) -> list[dict]:
         """
         Sprint 44 T03.5: Lista mensagens na Dead Letter Queue.
@@ -350,24 +350,16 @@ class FilaService:
         Returns:
             Lista de mensagens na DLQ
         """
-        query = supabase.table("fila_mensagens_dlq").select(
-            "*, clientes(telefone, primeiro_nome)"
-        )
+        query = supabase.table("fila_mensagens_dlq").select("*, clientes(telefone, primeiro_nome)")
 
         if apenas_nao_reprocessadas:
             query = query.eq("reprocessado", False)
 
-        response = query.order(
-            "movido_para_dlq_em", desc=True
-        ).limit(limite).execute()
+        response = query.order("movido_para_dlq_em", desc=True).limit(limite).execute()
 
         return response.data or []
 
-    async def reprocessar_da_dlq(
-        self,
-        dlq_id: str,
-        usuario: str = "system"
-    ) -> Optional[dict]:
+    async def reprocessar_da_dlq(self, dlq_id: str, usuario: str = "system") -> Optional[dict]:
         """
         Sprint 44 T03.5: Reprocessa mensagem da DLQ.
 
@@ -380,9 +372,9 @@ class FilaService:
         """
         try:
             # Buscar entrada da DLQ
-            dlq_resp = supabase.table("fila_mensagens_dlq").select(
-                "*"
-            ).eq("id", dlq_id).single().execute()
+            dlq_resp = (
+                supabase.table("fila_mensagens_dlq").select("*").eq("id", dlq_id).single().execute()
+            )
 
             if not dlq_resp.data:
                 logger.warning(f"[DLQ] Entrada {dlq_id} não encontrada")
@@ -404,20 +396,22 @@ class FilaService:
                 metadata={
                     **dlq.get("metadata", {}),
                     "reprocessado_de_dlq": dlq_id,
-                }
+                },
             )
 
             if nova_msg:
                 # Marcar DLQ como reprocessada
-                supabase.table("fila_mensagens_dlq").update({
-                    "reprocessado": True,
-                    "reprocessado_em": datetime.now(timezone.utc).isoformat(),
-                    "reprocessado_por": usuario,
-                }).eq("id", dlq_id).execute()
+                supabase.table("fila_mensagens_dlq").update(
+                    {
+                        "reprocessado": True,
+                        "reprocessado_em": datetime.now(timezone.utc).isoformat(),
+                        "reprocessado_por": usuario,
+                    }
+                ).eq("id", dlq_id).execute()
 
                 logger.info(
                     f"[DLQ] Mensagem {dlq_id} reprocessada como {nova_msg['id']}",
-                    extra={"dlq_id": dlq_id, "nova_mensagem_id": nova_msg["id"]}
+                    extra={"dlq_id": dlq_id, "nova_mensagem_id": nova_msg["id"]},
                 )
 
             return nova_msg
@@ -442,19 +436,23 @@ class FilaService:
         ontem = (agora - timedelta(hours=24)).isoformat()
 
         # Total
-        total = supabase.table("fila_mensagens_dlq").select(
-            "id", count="exact"
-        ).execute()
+        total = supabase.table("fila_mensagens_dlq").select("id", count="exact").execute()
 
         # Não reprocessadas
-        nao_reprocessadas = supabase.table("fila_mensagens_dlq").select(
-            "id", count="exact"
-        ).eq("reprocessado", False).execute()
+        nao_reprocessadas = (
+            supabase.table("fila_mensagens_dlq")
+            .select("id", count="exact")
+            .eq("reprocessado", False)
+            .execute()
+        )
 
         # Últimas 24h
-        ultimas_24h = supabase.table("fila_mensagens_dlq").select(
-            "id", count="exact"
-        ).gte("movido_para_dlq_em", ontem).execute()
+        ultimas_24h = (
+            supabase.table("fila_mensagens_dlq")
+            .select("id", count="exact")
+            .gte("movido_para_dlq_em", ontem)
+            .execute()
+        )
 
         return {
             "total": total.count or 0,
@@ -479,13 +477,13 @@ class FilaService:
         limite = (agora - timedelta(minutes=timeout_minutos)).isoformat()
 
         # Buscar mensagens travadas
-        travadas = supabase.table("fila_mensagens").select(
-            "id, tentativas, max_tentativas"
-        ).eq(
-            "status", "processando"
-        ).lt(
-            "processando_desde", limite
-        ).execute()
+        travadas = (
+            supabase.table("fila_mensagens")
+            .select("id, tentativas, max_tentativas")
+            .eq("status", "processando")
+            .lt("processando_desde", limite)
+            .execute()
+        )
 
         if not travadas.data:
             return 0
@@ -498,31 +496,34 @@ class FilaService:
             if tentativas >= max_tentativas:
                 # Esgotou tentativas - marcar como erro
                 erro_msg = f"Timeout após {timeout_minutos}min (tentativa {tentativas})"
-                supabase.table("fila_mensagens").update({
-                    "status": "erro",
-                    "tentativas": tentativas,
-                    "erro": erro_msg,
-                    "outcome": "FAILED_TIMEOUT",
-                    "outcome_at": agora.isoformat(),
-                }).eq("id", msg["id"]).execute()
+                supabase.table("fila_mensagens").update(
+                    {
+                        "status": "erro",
+                        "tentativas": tentativas,
+                        "erro": erro_msg,
+                        "outcome": "FAILED_TIMEOUT",
+                        "outcome_at": agora.isoformat(),
+                    }
+                ).eq("id", msg["id"]).execute()
 
                 # Sprint 44 T03.5: Mover para DLQ
                 await self._mover_para_dlq(msg["id"], tentativas, erro_msg)
             else:
                 # Ainda tem tentativas - resetar para pendente
-                supabase.table("fila_mensagens").update({
-                    "status": "pendente",
-                    "tentativas": tentativas,
-                    "processando_desde": None,
-                    "agendar_para": agora.isoformat(),  # Tentar imediatamente
-                }).eq("id", msg["id"]).execute()
+                supabase.table("fila_mensagens").update(
+                    {
+                        "status": "pendente",
+                        "tentativas": tentativas,
+                        "processando_desde": None,
+                        "agendar_para": agora.isoformat(),  # Tentar imediatamente
+                    }
+                ).eq("id", msg["id"]).execute()
 
             resetadas += 1
 
         if resetadas > 0:
             logger.warning(
-                f"[Fila] Resetadas {resetadas} mensagens travadas "
-                f"(timeout: {timeout_minutos}min)"
+                f"[Fila] Resetadas {resetadas} mensagens travadas (timeout: {timeout_minutos}min)"
             )
 
         return resetadas
@@ -540,28 +541,29 @@ class FilaService:
         Returns:
             Número de mensagens canceladas
         """
-        limite = (
-            datetime.now(timezone.utc) - timedelta(hours=max_idade_horas)
-        ).isoformat()
+        limite = (datetime.now(timezone.utc) - timedelta(hours=max_idade_horas)).isoformat()
 
         # Atualizar mensagens antigas para cancelada
-        result = supabase.table("fila_mensagens").update({
-            "status": "cancelada",
-            "outcome": "FAILED_EXPIRED",
-            "outcome_reason_code": f"expired_after_{max_idade_horas}h",
-            "outcome_at": datetime.now(timezone.utc).isoformat(),
-        }).eq(
-            "status", "pendente"
-        ).lt(
-            "created_at", limite
-        ).execute()
+        result = (
+            supabase.table("fila_mensagens")
+            .update(
+                {
+                    "status": "cancelada",
+                    "outcome": "FAILED_EXPIRED",
+                    "outcome_reason_code": f"expired_after_{max_idade_horas}h",
+                    "outcome_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+            .eq("status", "pendente")
+            .lt("created_at", limite)
+            .execute()
+        )
 
         canceladas = len(result.data) if result.data else 0
 
         if canceladas > 0:
             logger.warning(
-                f"[Fila] Canceladas {canceladas} mensagens antigas "
-                f"(> {max_idade_horas}h)"
+                f"[Fila] Canceladas {canceladas} mensagens antigas (> {max_idade_horas}h)"
             )
 
         return canceladas
@@ -587,44 +589,61 @@ class FilaService:
         uma_hora_atras_processando = (agora - timedelta(hours=1)).isoformat()
 
         # Contagens por status
-        pendentes = supabase.table("fila_mensagens").select(
-            "id", count="exact"
-        ).eq("status", "pendente").execute()
+        pendentes = (
+            supabase.table("fila_mensagens")
+            .select("id", count="exact")
+            .eq("status", "pendente")
+            .execute()
+        )
 
-        processando = supabase.table("fila_mensagens").select(
-            "id", count="exact"
-        ).eq("status", "processando").execute()
+        processando = (
+            supabase.table("fila_mensagens")
+            .select("id", count="exact")
+            .eq("status", "processando")
+            .execute()
+        )
 
         # Enviadas na última hora
-        enviadas = supabase.table("fila_mensagens").select(
-            "id", count="exact"
-        ).eq("status", "enviada").gte("enviada_em", uma_hora_atras).execute()
+        enviadas = (
+            supabase.table("fila_mensagens")
+            .select("id", count="exact")
+            .eq("status", "enviada")
+            .gte("enviada_em", uma_hora_atras)
+            .execute()
+        )
 
         # Erros na última hora
-        erros = supabase.table("fila_mensagens").select(
-            "id", count="exact"
-        ).eq("status", "erro").gte("updated_at", uma_hora_atras).execute()
+        erros = (
+            supabase.table("fila_mensagens")
+            .select("id", count="exact")
+            .eq("status", "erro")
+            .gte("updated_at", uma_hora_atras)
+            .execute()
+        )
 
         # Mensagens travadas (processando > 1h)
-        travadas = supabase.table("fila_mensagens").select(
-            "id", count="exact"
-        ).eq("status", "processando").lt(
-            "processando_desde", uma_hora_atras_processando
-        ).execute()
+        travadas = (
+            supabase.table("fila_mensagens")
+            .select("id", count="exact")
+            .eq("status", "processando")
+            .lt("processando_desde", uma_hora_atras_processando)
+            .execute()
+        )
 
         # Mensagem pendente mais antiga
-        mais_antiga = supabase.table("fila_mensagens").select(
-            "created_at"
-        ).eq("status", "pendente").order(
-            "created_at", desc=False
-        ).limit(1).execute()
+        mais_antiga = (
+            supabase.table("fila_mensagens")
+            .select("created_at")
+            .eq("status", "pendente")
+            .order("created_at", desc=False)
+            .limit(1)
+            .execute()
+        )
 
         idade_minutos = None
         if mais_antiga.data:
             created_at_str = mais_antiga.data[0]["created_at"]
-            created_at = datetime.fromisoformat(
-                created_at_str.replace("Z", "+00:00")
-            )
+            created_at = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
             idade_minutos = round((agora - created_at).total_seconds() / 60, 1)
 
         return {
@@ -648,7 +667,7 @@ async def enfileirar_mensagem(
     tipo: str = "lembrete",
     prioridade: int = 5,
     agendar_para: datetime = None,
-    metadata: dict = None
+    metadata: dict = None,
 ) -> Optional[dict]:
     """Enfileira mensagem (wrapper para compatibilidade)."""
     return await fila_service.enfileirar(
@@ -658,7 +677,7 @@ async def enfileirar_mensagem(
         conversa_id=conversa_id,
         prioridade=prioridade,
         agendar_para=agendar_para,
-        metadata=metadata
+        metadata=metadata,
     )
 
 

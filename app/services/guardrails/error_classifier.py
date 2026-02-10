@@ -13,6 +13,7 @@ Isso permite métricas distintas:
 - % FAILED_BANNED por janela → risco reputacional
 - % FAILED_PROVIDER por hora → estabilidade do provider
 """
+
 import re
 import logging
 from dataclasses import dataclass
@@ -26,9 +27,10 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ClassifiedError:
     """Resultado da classificação de erro."""
+
     outcome: SendOutcome
     provider_error_code: str  # Código curto (ex: "invalid_number", "blocked_by_user")
-    provider_error_raw: str   # Trecho do erro original (truncado)
+    provider_error_raw: str  # Trecho do erro original (truncado)
 
 
 # Padrões para números inválidos/inexistentes (FAILED_VALIDATION)
@@ -176,8 +178,8 @@ def classify_provider_error(error: Exception) -> ClassifiedError:
     # Tentar extrair response body se for HTTPStatusError
     response_text = ""
     try:
-        if hasattr(error, 'response') and error.response is not None:
-            response_text = error.response.text[:500] if hasattr(error.response, 'text') else ""
+        if hasattr(error, "response") and error.response is not None:
+            response_text = error.response.text[:500] if hasattr(error.response, "text") else ""
     except Exception:
         pass
 

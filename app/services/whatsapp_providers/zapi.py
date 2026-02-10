@@ -87,9 +87,7 @@ class ZApiProvider(WhatsAppProvider):
                         provider=self.provider_type.value,
                     )
 
-                logger.warning(
-                    f"[Z-API] Erro ao enviar: {response.status_code} - {response.text}"
-                )
+                logger.warning(f"[Z-API] Erro ao enviar: {response.status_code} - {response.text}")
                 return MessageResult(
                     success=False,
                     error=f"HTTP {response.status_code}: {response.text}",

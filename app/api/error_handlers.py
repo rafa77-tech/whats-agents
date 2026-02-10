@@ -3,6 +3,7 @@ Exception handlers para FastAPI.
 
 Sprint 10 - S10.E4.2
 """
+
 import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -45,37 +46,26 @@ async def julia_exception_handler(request: Request, exc: JuliaException) -> JSON
     # Log do erro
     logger.error(
         f"{error_type}: {exc.message}",
-        extra={
-            "error_type": error_type,
-            "details": exc.details,
-            "path": request.url.path
-        }
+        extra={"error_type": error_type, "details": exc.details, "path": request.url.path},
     )
 
     return JSONResponse(
         status_code=status_code,
-        content={
-            "error": error_type,
-            "message": exc.message,
-            "details": exc.details
-        }
+        content={"error": error_type, "message": exc.message, "details": exc.details},
     )
 
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handler para exceptions nao tratadas."""
-    logger.exception(
-        f"Erro nao tratado: {exc}",
-        extra={"path": request.url.path}
-    )
+    logger.exception(f"Erro nao tratado: {exc}", extra={"path": request.url.path})
 
     return JSONResponse(
         status_code=500,
         content={
             "error": "InternalServerError",
             "message": "Erro interno do servidor",
-            "details": {}
-        }
+            "details": {},
+        },
     )
 
 

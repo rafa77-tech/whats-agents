@@ -48,10 +48,10 @@ def lista_numerada(itens: list[str], max_itens: int = 7) -> str:
     if len(itens) > max_itens:
         itens_mostrar = itens[:max_itens]
         resto = len(itens) - max_itens
-        resultado = "\n".join(f"{i+1}. {item}" for i, item in enumerate(itens_mostrar))
+        resultado = "\n".join(f"{i + 1}. {item}" for i, item in enumerate(itens_mostrar))
         resultado += f"\n_...e mais {resto}_"
         return resultado
-    return "\n".join(f"{i+1}. {item}" for i, item in enumerate(itens))
+    return "\n".join(f"{i + 1}. {item}" for i, item in enumerate(itens))
 
 
 def link(url: str, texto: str) -> str:

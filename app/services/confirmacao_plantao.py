@@ -13,11 +13,11 @@ IMPORTANTE: Timezone
 - Conversao para UTC so acontece APOS combinar data + hora em SP
 - Nunca usar .replace(tzinfo=UTC) diretamente em horarios locais
 """
+
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from app.services.supabase import supabase
@@ -70,6 +70,7 @@ def calcular_fim_plantao(data: str, hora_inicio: str, hora_fim: str) -> datetime
 @dataclass
 class ResultadoTransicao:
     """Resultado de uma operacao de transicao."""
+
     sucesso: bool
     vaga_id: Optional[str] = None
     status_anterior: Optional[str] = None
@@ -80,6 +81,7 @@ class ResultadoTransicao:
 @dataclass
 class VagaPendenteConfirmacao:
     """Vaga aguardando confirmacao."""
+
     id: str
     data: str
     hora_inicio: str
@@ -97,9 +99,9 @@ class VagaPendenteConfirmacao:
 # Job: Transicao reservada -> pendente_confirmacao
 # =============================================================================
 
+
 async def processar_vagas_vencidas(
-    buffer_horas: int = BUFFER_HORAS,
-    is_backfill: bool = False
+    buffer_horas: int = BUFFER_HORAS, is_backfill: bool = False
 ) -> dict:
     """
     Processa vagas reservadas cujo plantao ja terminou.
@@ -119,11 +121,13 @@ async def processar_vagas_vencidas(
     # Buscar vagas reservadas vencidas
     # Precisamos combinar data + hora_inicio + hora_fim para calcular fim real
     # Sprint 44 T04.5: Adicionado limite para evitar queries sem bound
-    result = supabase.table("vagas") \
-        .select("id, data, hora_inicio, hora_fim, hospital_id, cliente_id") \
-        .eq("status", "reservada") \
-        .limit(1000) \
+    result = (
+        supabase.table("vagas")
+        .select("id, data, hora_inicio, hora_fim, hospital_id, cliente_id")
+        .eq("status", "reservada")
+        .limit(1000)
         .execute()
+    )
 
     if not result.data:
         logger.info("Nenhuma vaga reservada encontrada")
@@ -137,9 +141,7 @@ async def processar_vagas_vencidas(
         try:
             # Calcular fim real do plantao
             fim_plantao = calcular_fim_plantao(
-                data=vaga["data"],
-                hora_inicio=vaga["hora_inicio"],
-                hora_fim=vaga["hora_fim"]
+                data=vaga["data"], hora_inicio=vaga["hora_inicio"], hora_fim=vaga["hora_fim"]
             )
 
             # Verificar se ja passou do buffer
@@ -152,7 +154,7 @@ async def processar_vagas_vencidas(
                 hospital_id=vaga.get("hospital_id"),
                 cliente_id=vaga.get("cliente_id"),
                 fim_plantao=fim_plantao,
-                is_backfill=is_backfill
+                is_backfill=is_backfill,
             )
 
             if resultado.sucesso:
@@ -168,11 +170,7 @@ async def processar_vagas_vencidas(
 
     logger.info(f"Job de confirmacao: {processadas} transicionadas, {erros} erros")
 
-    return {
-        "processadas": processadas,
-        "erros": erros,
-        "vagas": vagas_transicionadas
-    }
+    return {"processadas": processadas, "erros": erros, "vagas": vagas_transicionadas}
 
 
 async def transicionar_para_pendente_confirmacao(
@@ -180,7 +178,7 @@ async def transicionar_para_pendente_confirmacao(
     hospital_id: Optional[str],
     cliente_id: Optional[str],
     fim_plantao: datetime,
-    is_backfill: bool = False
+    is_backfill: bool = False,
 ) -> ResultadoTransicao:
     """
     Transiciona vaga para pendente_confirmacao e emite evento.
@@ -191,11 +189,13 @@ async def transicionar_para_pendente_confirmacao(
 
     try:
         # 1. Atualizar status (idempotente: só atualiza se ainda reservada)
-        supabase.table("vagas").update({
-            "status": "pendente_confirmacao",
-            "pendente_confirmacao_em": agora.isoformat(),
-            "updated_at": agora.isoformat()
-        }).eq("id", vaga_id).eq("status", "reservada").execute()
+        supabase.table("vagas").update(
+            {
+                "status": "pendente_confirmacao",
+                "pendente_confirmacao_em": agora.isoformat(),
+                "updated_at": agora.isoformat(),
+            }
+        ).eq("id", vaga_id).eq("status", "reservada").execute()
 
         # 2. Emitir business_event (com dedupe_key para idempotência)
         dedupe = f"shift_confirmation_due:{vaga_id}"
@@ -211,8 +211,8 @@ async def transicionar_para_pendente_confirmacao(
                 "transitioned_at": agora.isoformat(),
                 "is_backfill": is_backfill,
                 "channel": "job",
-                "method": "hourly_cron"
-            }
+                "method": "hourly_cron",
+            },
         )
 
         await emit_event(event)
@@ -227,25 +227,19 @@ async def transicionar_para_pendente_confirmacao(
             sucesso=True,
             vaga_id=vaga_id,
             status_anterior="reservada",
-            status_novo="pendente_confirmacao"
+            status_novo="pendente_confirmacao",
         )
 
     except Exception as e:
-        return ResultadoTransicao(
-            sucesso=False,
-            vaga_id=vaga_id,
-            erro=str(e)
-        )
+        return ResultadoTransicao(sucesso=False, vaga_id=vaga_id, erro=str(e))
 
 
 # =============================================================================
 # Confirmacao via Slack
 # =============================================================================
 
-async def confirmar_plantao_realizado(
-    vaga_id: str,
-    confirmado_por: str
-) -> ResultadoTransicao:
+
+async def confirmar_plantao_realizado(vaga_id: str, confirmado_por: str) -> ResultadoTransicao:
     """
     Confirma que plantao foi realizado.
 
@@ -259,11 +253,13 @@ async def confirmar_plantao_realizado(
 
     try:
         # 1. Verificar status atual (idempotencia)
-        result = supabase.table("vagas") \
-            .select("status, hospital_id, cliente_id") \
-            .eq("id", vaga_id) \
-            .single() \
+        result = (
+            supabase.table("vagas")
+            .select("status, hospital_id, cliente_id")
+            .eq("id", vaga_id)
+            .single()
             .execute()
+        )
 
         if not result.data:
             return ResultadoTransicao(sucesso=False, erro="Vaga nao encontrada")
@@ -277,19 +273,18 @@ async def confirmar_plantao_realizado(
             return ResultadoTransicao(
                 sucesso=False,
                 vaga_id=vaga_id,
-                erro=f"Status invalido para confirmacao: {status_atual}"
+                erro=f"Status invalido para confirmacao: {status_atual}",
             )
 
         # 2. Atualizar status + auditoria
-        supabase.table("vagas") \
-            .update({
+        supabase.table("vagas").update(
+            {
                 "status": "realizada",
                 "realizada_em": agora.isoformat(),
                 "realizada_por": confirmado_por,
-                "updated_at": agora.isoformat()
-            }) \
-            .eq("id", vaga_id) \
-            .execute()
+                "updated_at": agora.isoformat(),
+            }
+        ).eq("id", vaga_id).execute()
 
         # 3. Emitir business_event (com dedupe_key para idempotência)
         dedupe = f"shift_completed:{vaga_id}"
@@ -304,8 +299,8 @@ async def confirmar_plantao_realizado(
                 "confirmed_by": confirmado_por,
                 "confirmed_at": agora.isoformat(),
                 "channel": "slack",
-                "method": "button"
-            }
+                "method": "button",
+            },
         )
 
         await emit_event(event)
@@ -316,7 +311,7 @@ async def confirmar_plantao_realizado(
             sucesso=True,
             vaga_id=vaga_id,
             status_anterior="pendente_confirmacao",
-            status_novo="realizada"
+            status_novo="realizada",
         )
 
     except Exception as e:
@@ -325,9 +320,7 @@ async def confirmar_plantao_realizado(
 
 
 async def confirmar_plantao_nao_ocorreu(
-    vaga_id: str,
-    confirmado_por: str,
-    motivo: Optional[str] = None
+    vaga_id: str, confirmado_por: str, motivo: Optional[str] = None
 ) -> ResultadoTransicao:
     """
     Confirma que plantao NAO ocorreu.
@@ -338,11 +331,13 @@ async def confirmar_plantao_nao_ocorreu(
 
     try:
         # 1. Verificar status atual
-        result = supabase.table("vagas") \
-            .select("status, hospital_id, cliente_id") \
-            .eq("id", vaga_id) \
-            .single() \
+        result = (
+            supabase.table("vagas")
+            .select("status, hospital_id, cliente_id")
+            .eq("id", vaga_id)
+            .single()
             .execute()
+        )
 
         if not result.data:
             return ResultadoTransicao(sucesso=False, erro="Vaga nao encontrada")
@@ -354,21 +349,18 @@ async def confirmar_plantao_nao_ocorreu(
 
         if status_atual != "pendente_confirmacao":
             return ResultadoTransicao(
-                sucesso=False,
-                vaga_id=vaga_id,
-                erro=f"Status invalido: {status_atual}"
+                sucesso=False, vaga_id=vaga_id, erro=f"Status invalido: {status_atual}"
             )
 
         # 2. Atualizar status + auditoria
-        supabase.table("vagas") \
-            .update({
+        supabase.table("vagas").update(
+            {
                 "status": "cancelada",
                 "cancelada_em": agora.isoformat(),
                 "cancelada_por": confirmado_por,
-                "updated_at": agora.isoformat()
-            }) \
-            .eq("id", vaga_id) \
-            .execute()
+                "updated_at": agora.isoformat(),
+            }
+        ).eq("id", vaga_id).execute()
 
         # 3. Emitir business_event (com dedupe_key para idempotência)
         dedupe = f"shift_not_completed:{vaga_id}"
@@ -384,8 +376,8 @@ async def confirmar_plantao_nao_ocorreu(
                 "confirmed_at": agora.isoformat(),
                 "motivo": motivo,
                 "channel": "slack",
-                "method": "button"
-            }
+                "method": "button",
+            },
         )
 
         await emit_event(event)
@@ -396,7 +388,7 @@ async def confirmar_plantao_nao_ocorreu(
             sucesso=True,
             vaga_id=vaga_id,
             status_anterior="pendente_confirmacao",
-            status_novo="cancelada"
+            status_novo="cancelada",
         )
 
     except Exception as e:
@@ -408,6 +400,7 @@ async def confirmar_plantao_nao_ocorreu(
 # Sprint 47: Notificação Slack removida
 # =============================================================================
 
+
 async def _enviar_notificacao_slack(vaga_id: str) -> bool:
     """
     Sprint 47: Notificação Slack removida.
@@ -417,7 +410,7 @@ async def _enviar_notificacao_slack(vaga_id: str) -> bool:
     """
     logger.info(
         f"Plantão {vaga_id} aguardando confirmação (visualizar no dashboard)",
-        extra={"vaga_id": vaga_id}
+        extra={"vaga_id": vaga_id},
     )
     return True
 
@@ -426,37 +419,50 @@ async def _enviar_notificacao_slack(vaga_id: str) -> bool:
 # Queries auxiliares
 # =============================================================================
 
+
 async def listar_pendentes_confirmacao() -> list[VagaPendenteConfirmacao]:
     """
     Lista vagas aguardando confirmacao para exibir no Slack.
     """
-    result = supabase.table("vagas") \
+    result = (
+        supabase.table("vagas")
         .select("""
             id, data, hora_inicio, hora_fim, valor,
             hospital_id, cliente_id,
             hospitais(nome),
             especialidades(nome),
             clientes(primeiro_nome, telefone)
-        """) \
-        .eq("status", "pendente_confirmacao") \
-        .order("pendente_confirmacao_em") \
+        """)
+        .eq("status", "pendente_confirmacao")
+        .order("pendente_confirmacao_em")
         .execute()
+    )
 
     vagas = []
     for row in result.data or []:
-        vagas.append(VagaPendenteConfirmacao(
-            id=row["id"],
-            data=row["data"],
-            hora_inicio=row["hora_inicio"],
-            hora_fim=row["hora_fim"],
-            valor=row["valor"],
-            hospital_id=row["hospital_id"],
-            hospital_nome=row.get("hospitais", {}).get("nome", "N/A") if row.get("hospitais") else "N/A",
-            especialidade_nome=row.get("especialidades", {}).get("nome", "N/A") if row.get("especialidades") else "N/A",
-            cliente_id=row["cliente_id"],
-            cliente_nome=row.get("clientes", {}).get("primeiro_nome") if row.get("clientes") else None,
-            cliente_telefone=row.get("clientes", {}).get("telefone") if row.get("clientes") else None,
-        ))
+        vagas.append(
+            VagaPendenteConfirmacao(
+                id=row["id"],
+                data=row["data"],
+                hora_inicio=row["hora_inicio"],
+                hora_fim=row["hora_fim"],
+                valor=row["valor"],
+                hospital_id=row["hospital_id"],
+                hospital_nome=row.get("hospitais", {}).get("nome", "N/A")
+                if row.get("hospitais")
+                else "N/A",
+                especialidade_nome=row.get("especialidades", {}).get("nome", "N/A")
+                if row.get("especialidades")
+                else "N/A",
+                cliente_id=row["cliente_id"],
+                cliente_nome=row.get("clientes", {}).get("primeiro_nome")
+                if row.get("clientes")
+                else None,
+                cliente_telefone=row.get("clientes", {}).get("telefone")
+                if row.get("clientes")
+                else None,
+            )
+        )
 
     return vagas
 
@@ -473,20 +479,22 @@ async def contar_pendencias() -> dict:
     limite_buffer = (agora - timedelta(hours=BUFFER_HORAS)).isoformat()
 
     # Pendentes ha mais de 24h (alerta)
-    pendentes_atrasadas = supabase.table("vagas") \
-        .select("id", count="exact") \
-        .eq("status", "pendente_confirmacao") \
-        .lt("pendente_confirmacao_em", limite_24h) \
+    pendentes_atrasadas = (
+        supabase.table("vagas")
+        .select("id", count="exact")
+        .eq("status", "pendente_confirmacao")
+        .lt("pendente_confirmacao_em", limite_24h)
         .execute()
+    )
 
     # Reservadas vencidas (job falhou?)
-    reservadas_vencidas = supabase.rpc("contar_reservadas_vencidas", {
-        "limite_ts": limite_buffer
-    }).execute()
+    reservadas_vencidas = supabase.rpc(
+        "contar_reservadas_vencidas", {"limite_ts": limite_buffer}
+    ).execute()
 
     return {
         "pendentes_atrasadas": pendentes_atrasadas.count or 0,
-        "reservadas_vencidas": reservadas_vencidas.data if reservadas_vencidas.data else 0
+        "reservadas_vencidas": reservadas_vencidas.data if reservadas_vencidas.data else 0,
     }
 
 

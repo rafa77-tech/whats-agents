@@ -3,15 +3,16 @@ Cliente Evolution API para WhatsApp.
 
 Sprint 18.1 - B2: Retry/backoff antes do circuit breaker.
 """
+
 import asyncio
 import random
 import httpx
-from typing import Literal, Tuple
+from typing import Literal
 import logging
 
 from app.core.config import settings
-from app.services.circuit_breaker import circuit_evolution, CircuitOpenError
-from app.services.rate_limiter import pode_enviar, registrar_envio, calcular_delay_humanizado
+from app.services.circuit_breaker import circuit_evolution
+from app.services.rate_limiter import pode_enviar, registrar_envio
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ RETRY_CONFIG = {
 
 class RateLimitError(Exception):
     """Exceção quando rate limit é atingido."""
+
     def __init__(self, motivo: str):
         self.motivo = motivo
         super().__init__(f"Rate limit: {motivo}")
@@ -55,11 +57,7 @@ class EvolutionClient:
         }
 
     async def _fazer_request(
-        self,
-        method: str,
-        url: str,
-        payload: dict = None,
-        timeout: float = 30.0
+        self, method: str, url: str, payload: dict = None, timeout: float = 30.0
     ) -> dict:
         """
         Faz request HTTP com retry/backoff + circuit breaker.
@@ -67,6 +65,7 @@ class EvolutionClient:
         Sprint 18.1 - B2: Retry antes de contar falha no circuit.
         Fluxo: Request → Retry (se transitório) → Circuit Breaker
         """
+
         async def _request_com_retry():
             last_error = None
             last_status_code = None
@@ -79,9 +78,7 @@ class EvolutionClient:
                                 url, json=payload, headers=self.headers, timeout=timeout
                             )
                         else:
-                            response = await client.get(
-                                url, headers=self.headers, timeout=timeout
-                            )
+                            response = await client.get(url, headers=self.headers, timeout=timeout)
                         response.raise_for_status()
                         return response.json()
 
@@ -93,7 +90,7 @@ class EvolutionClient:
                     if last_status_code in RETRY_CONFIG["non_retryable_status_codes"]:
                         logger.warning(
                             f"Erro não-retryable {last_status_code} em {url}",
-                            extra={"status_code": last_status_code, "attempt": attempt + 1}
+                            extra={"status_code": last_status_code, "attempt": attempt + 1},
                         )
                         raise
 
@@ -108,7 +105,7 @@ class EvolutionClient:
                                     "status_code": last_status_code,
                                     "attempt": attempt + 1,
                                     "delay": delay,
-                                }
+                                },
                             )
                             await asyncio.sleep(delay)
                             continue
@@ -130,7 +127,7 @@ class EvolutionClient:
                                 "error_type": error_type,
                                 "attempt": attempt + 1,
                                 "delay": delay,
-                            }
+                            },
                         )
                         await asyncio.sleep(delay)
                         continue
@@ -155,17 +152,12 @@ class EvolutionClient:
         Returns:
             Delay em segundos
         """
-        base_delay = RETRY_CONFIG["base_delays"][
-            min(attempt, len(RETRY_CONFIG["base_delays"]) - 1)
-        ]
+        base_delay = RETRY_CONFIG["base_delays"][min(attempt, len(RETRY_CONFIG["base_delays"]) - 1)]
         jitter = base_delay * RETRY_CONFIG["jitter_factor"] * (2 * random.random() - 1)
         return max(0.1, base_delay + jitter)
 
     async def enviar_mensagem(
-        self,
-        telefone: str,
-        texto: str,
-        verificar_rate_limit: bool = True
+        self, telefone: str, texto: str, verificar_rate_limit: bool = True
     ) -> dict:
         """
         Envia mensagem de texto para um numero.
@@ -207,7 +199,7 @@ class EvolutionClient:
         self,
         telefone: str,
         presenca: Literal["available", "composing", "recording", "paused"],
-        delay: int = 3000
+        delay: int = 3000,
     ) -> dict:
         """
         Envia status de presenca (online, digitando, etc).
@@ -234,7 +226,7 @@ class EvolutionClient:
                 {
                     "remoteJid": telefone if "@" in telefone else f"{telefone}@s.whatsapp.net",
                     "fromMe": from_me,
-                    "id": message_id
+                    "id": message_id,
                 }
             ]
         }
@@ -330,10 +322,7 @@ class EvolutionClient:
         async def _request():
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    url,
-                    params={"groupJid": grupo_jid},
-                    headers=self.headers,
-                    timeout=15.0
+                    url, params={"groupJid": grupo_jid}, headers=self.headers, timeout=15.0
                 )
                 response.raise_for_status()
                 return response.json()
@@ -341,16 +330,18 @@ class EvolutionClient:
         try:
             result = await circuit_evolution.executar(_request)
             # Retorna lista de participantes diretamente
-            return result.get("participants", []) if isinstance(result, dict) else result if isinstance(result, list) else []
+            return (
+                result.get("participants", [])
+                if isinstance(result, dict)
+                else result
+                if isinstance(result, list)
+                else []
+            )
         except Exception as e:
             logger.warning(f"Erro ao buscar participantes do grupo {grupo_jid}: {e}")
             return []
 
-    async def resolver_lid_para_telefone_via_grupo(
-        self,
-        lid: str,
-        grupo_jid: str
-    ) -> str:
+    async def resolver_lid_para_telefone_via_grupo(self, lid: str, grupo_jid: str) -> str:
         """
         Resolve LID para telefone real usando participantes do grupo.
 
@@ -392,10 +383,7 @@ class EvolutionClient:
         async def _request():
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    url,
-                    params={"getParticipants": "false"},
-                    headers=self.headers,
-                    timeout=15.0
+                    url, params={"getParticipants": "false"}, headers=self.headers, timeout=15.0
                 )
                 response.raise_for_status()
                 return response.json()
@@ -422,10 +410,7 @@ class EvolutionClient:
         async def _request():
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    url,
-                    params={"inviteCode": invite_code},
-                    headers=self.headers,
-                    timeout=15.0
+                    url, params={"inviteCode": invite_code}, headers=self.headers, timeout=15.0
                 )
                 response.raise_for_status()
                 return response.json()
@@ -457,10 +442,7 @@ class EvolutionClient:
         async def _request():
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    url,
-                    json={"inviteCode": invite_code},
-                    headers=self.headers,
-                    timeout=30.0
+                    url, json={"inviteCode": invite_code}, headers=self.headers, timeout=30.0
                 )
                 response.raise_for_status()
                 return response.json()
@@ -553,9 +535,7 @@ class EvolutionClient:
 
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    url,
-                    headers=self.headers,
-                    json={"numbers": [numero_limpo]}
+                    url, headers=self.headers, json={"numbers": [numero_limpo]}
                 )
 
                 if response.status_code != 200:
@@ -591,12 +571,7 @@ class EvolutionClient:
 
         webhook_url = f"{self.base_url}/webhook/set/{self.instance}"
         payload = {
-            "webhook": {
-                "enabled": True,
-                "url": url,
-                "webhookByEvents": False,
-                "events": events
-            }
+            "webhook": {"enabled": True, "url": url, "webhookByEvents": False, "events": events}
         }
 
         result = await self._fazer_request("POST", webhook_url, payload, timeout=10.0)
@@ -609,11 +584,7 @@ evolution = EvolutionClient()
 
 
 # Funcoes de conveniencia
-async def enviar_whatsapp(
-    telefone: str,
-    texto: str,
-    verificar_rate_limit: bool = True
-) -> dict:
+async def enviar_whatsapp(telefone: str, texto: str, verificar_rate_limit: bool = True) -> dict:
     """
     Funcao de conveniencia para enviar mensagem.
 
@@ -645,17 +616,14 @@ async def manter_digitando(telefone: str, duracao_max: int = 30):
     Útil enquanto aguarda resposta do LLM.
     """
     import asyncio
+
     inicio = asyncio.get_event_loop().time()
     while asyncio.get_event_loop().time() - inicio < duracao_max:
         await mostrar_digitando(telefone)
         await asyncio.sleep(5)  # Reenviar a cada 5s
 
 
-async def enviar_com_digitacao(
-    telefone: str,
-    texto: str,
-    tempo_digitacao: float = None
-) -> dict:
+async def enviar_com_digitacao(telefone: str, texto: str, tempo_digitacao: float = None) -> dict:
     """
     Envia mensagem com simulação de digitação.
 
@@ -686,5 +654,5 @@ async def enviar_com_digitacao(
     return await evolution.enviar_mensagem(
         telefone=telefone,
         texto=texto,
-        verificar_rate_limit=False  # Respostas não contam no rate limit
+        verificar_rate_limit=False,  # Respostas não contam no rate limit
     )

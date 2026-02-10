@@ -79,9 +79,13 @@ async def executar_atividade(atividade: AtividadeAgendada) -> bool:
 
 async def _buscar_chip(chip_id: str) -> Optional[dict]:
     """Busca dados completos de um chip."""
-    result = supabase.table("chips").select(
-        "id, telefone, instance_name, evolution_connected, fase_warmup, provider"
-    ).eq("id", chip_id).single().execute()
+    result = (
+        supabase.table("chips")
+        .select("id, telefone, instance_name, evolution_connected, fase_warmup, provider")
+        .eq("id", chip_id)
+        .single()
+        .execute()
+    )
 
     return result.data
 
@@ -122,10 +126,7 @@ async def _executar_conversa_par(chip: dict, atividade: AtividadeAgendada) -> bo
         if resultado.success:
             # Registrar interação
             await _registrar_interacao(
-                chip["id"],
-                "conversa_par",
-                destinatario=par["telefone"],
-                sucesso=True
+                chip["id"], "conversa_par", destinatario=par["telefone"], sucesso=True
             )
             logger.info(
                 f"[WarmupExecutor] Conversa par: {chip['telefone'][-4:]} -> {par['telefone'][-4:]}"
@@ -225,8 +226,7 @@ async def _executar_enviar_midia(chip: dict, atividade: AtividadeAgendada) -> bo
     try:
         # Fallback: enviar conversa_par (mais seguro)
         logger.info(
-            f"[WarmupExecutor] enviar_midia -> fallback conversa_par "
-            f"para {chip['telefone'][-4:]}"
+            f"[WarmupExecutor] enviar_midia -> fallback conversa_par para {chip['telefone'][-4:]}"
         )
         return await _executar_conversa_par(chip, atividade)
 
@@ -236,24 +236,25 @@ async def _executar_enviar_midia(chip: dict, atividade: AtividadeAgendada) -> bo
 
 
 async def _registrar_interacao(
-    chip_id: str,
-    tipo: str,
-    destinatario: str = None,
-    sucesso: bool = True
+    chip_id: str, tipo: str, destinatario: str = None, sucesso: bool = True
 ) -> None:
     """Registra interação na tabela chip_interactions."""
     try:
-        supabase.table("chip_interactions").insert({
-            "chip_id": chip_id,
-            "tipo": "msg_enviada" if tipo in ["conversa_par", "mensagem_grupo"] else "status_criado",
-            "destinatario": destinatario,
-            "metadata": {
-                "tipo_warmup": tipo,
-                "sucesso": sucesso,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            },
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }).execute()
+        supabase.table("chip_interactions").insert(
+            {
+                "chip_id": chip_id,
+                "tipo": "msg_enviada"
+                if tipo in ["conversa_par", "mensagem_grupo"]
+                else "status_criado",
+                "destinatario": destinatario,
+                "metadata": {
+                    "tipo_warmup": tipo,
+                    "sucesso": sucesso,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).execute()
     except Exception as e:
         logger.warning(f"[WarmupExecutor] Erro ao registrar interação: {e}")
 

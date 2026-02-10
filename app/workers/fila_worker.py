@@ -5,6 +5,7 @@ Sprint 23 E01 - Registra outcome detalhado para cada envio.
 Sprint 36 - T01.3: Circuit breaker no fila_worker.
 Sprint 44 T03.4: Idempotência via Redis SETNX.
 """
+
 import asyncio
 import logging
 from datetime import datetime, timezone
@@ -12,7 +13,11 @@ from typing import Optional
 
 from app.services.fila import fila_service
 from app.services.rate_limiter import pode_enviar
-from app.services.outbound import send_outbound_message, criar_contexto_followup, criar_contexto_campanha
+from app.services.outbound import (
+    send_outbound_message,
+    criar_contexto_followup,
+    criar_contexto_campanha,
+)
 from app.services.guardrails import SendOutcome
 from app.services.circuit_breaker import circuit_evolution, CircuitState
 from app.services.redis import redis_client
@@ -51,14 +56,12 @@ async def _adquirir_lock_idempotencia(mensagem_id: str) -> bool:
             key,
             "processing",
             nx=True,  # Only set if not exists
-            ex=_IDEMPOTENCY_TTL_SEGUNDOS
+            ex=_IDEMPOTENCY_TTL_SEGUNDOS,
         )
         return bool(acquired)
 
     except Exception as e:
-        logger.warning(
-            f"[FilaWorker] T03.4: Erro Redis idempotência, prosseguindo: {e}"
-        )
+        logger.warning(f"[FilaWorker] T03.4: Erro Redis idempotência, prosseguindo: {e}")
         # Em caso de erro Redis, prossegue (fallback graceful)
         return True
 
@@ -124,9 +127,7 @@ async def processar_fila():
         try:
             # Sprint 36 - T01.3: Verificar circuit breaker antes de processar
             if circuit_evolution.estado == CircuitState.OPEN:
-                logger.warning(
-                    "[FilaWorker] Circuit breaker ABERTO - pausando processamento"
-                )
+                logger.warning("[FilaWorker] Circuit breaker ABERTO - pausando processamento")
                 await _alertar_circuit_aberto()
 
                 # Aguardar tempo de reset antes de tentar novamente
@@ -143,9 +144,7 @@ async def processar_fila():
 
             # Sprint 44 T03.4: Verificar idempotência antes de processar
             if not await _adquirir_lock_idempotencia(mensagem["id"]):
-                logger.info(
-                    f"[FilaWorker] T03.4: Mensagem {mensagem['id']} já em processamento"
-                )
+                logger.info(f"[FilaWorker] T03.4: Mensagem {mensagem['id']} já em processamento")
                 await asyncio.sleep(1)
                 continue
 
@@ -153,10 +152,7 @@ async def processar_fila():
             cliente_id = mensagem.get("cliente_id")
             if cliente_id and not await pode_enviar(cliente_id):
                 # Reagendar para depois
-                await fila_service.marcar_erro(
-                    mensagem["id"],
-                    "Rate limit atingido"
-                )
+                await fila_service.marcar_erro(mensagem["id"], "Rate limit atingido")
                 # Sprint 44 T03.4: Liberar lock antes de continue
                 await _liberar_lock_idempotencia(mensagem["id"])
                 await asyncio.sleep(10)
@@ -214,8 +210,7 @@ async def processar_fila():
 
             if result.outcome.is_success:
                 logger.info(
-                    f"Mensagem enviada: {mensagem['id']} "
-                    f"(provider_id={result.provider_message_id})"
+                    f"Mensagem enviada: {mensagem['id']} (provider_id={result.provider_message_id})"
                 )
 
                 # Criar/obter conversa e salvar interação
@@ -225,9 +220,9 @@ async def processar_fila():
                     if conversa:
                         conversa_id = conversa["id"]
                         # Atualizar fila_mensagens com conversa_id
-                        supabase.table("fila_mensagens").update({
-                            "conversa_id": conversa_id
-                        }).eq("id", mensagem["id"]).execute()
+                        supabase.table("fila_mensagens").update({"conversa_id": conversa_id}).eq(
+                            "id", mensagem["id"]
+                        ).execute()
 
                 if conversa_id:
                     # Extrair chip_id do resultado se disponível
@@ -247,20 +242,14 @@ async def processar_fila():
                     f"{result.outcome.value} - {result.outcome_reason_code}"
                 )
             elif result.outcome.is_deduped:
-                logger.info(
-                    f"Mensagem {mensagem['id']} deduplicada: "
-                    f"{result.outcome_reason_code}"
-                )
+                logger.info(f"Mensagem {mensagem['id']} deduplicada: {result.outcome_reason_code}")
             elif result.outcome == SendOutcome.FAILED_CIRCUIT_OPEN:
                 # Sprint 36 - T01.3: Alertar quando circuit abre
-                logger.warning(
-                    f"Mensagem {mensagem['id']} falhou por circuit open"
-                )
+                logger.warning(f"Mensagem {mensagem['id']} falhou por circuit open")
                 await _alertar_circuit_aberto()
             else:
                 logger.warning(
-                    f"Mensagem {mensagem['id']} falhou: "
-                    f"{result.outcome.value} - {result.error}"
+                    f"Mensagem {mensagem['id']} falhou: {result.outcome.value} - {result.error}"
                 )
 
             # Sprint 44 T03.4: Liberar lock após processamento

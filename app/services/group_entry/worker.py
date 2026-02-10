@@ -11,7 +11,6 @@ Processa a fila de entrada em grupos:
 """
 
 import logging
-import asyncio
 from typing import Optional
 from datetime import datetime, UTC
 
@@ -123,22 +122,18 @@ async def processar_entrada(queue_id: str) -> str:
         return "erro"
 
     # Marcar como processando
-    supabase.table("group_entry_queue").update(
-        {"status": "processando"}
-    ).eq("id", queue_id).execute()
+    supabase.table("group_entry_queue").update({"status": "processando"}).eq(
+        "id", queue_id
+    ).execute()
 
-    supabase.table("group_links").update(
-        {"status": "em_progresso"}
-    ).eq("id", link["id"]).execute()
+    supabase.table("group_links").update({"status": "em_progresso"}).eq("id", link["id"]).execute()
 
     # Selecionar chip
     chip_id = entrada.get("chip_id")
 
     if chip_id:
         # Usar chip específico
-        chip_result = (
-            supabase.table("chips").select("*").eq("id", chip_id).single().execute()
-        )
+        chip_result = supabase.table("chips").select("*").eq("id", chip_id).single().execute()
         chip = chip_result.data
     else:
         # Selecionar melhor chip disponível
@@ -221,10 +216,7 @@ async def processar_entrada(queue_id: str) -> str:
                 }
             ).eq("id", link["id"]).execute()
 
-            logger.info(
-                f"[Worker] Aguardando aprovação: {invite_code} "
-                f"(chip={chip['telefone']})"
-            )
+            logger.info(f"[Worker] Aguardando aprovação: {invite_code} (chip={chip['telefone']})")
 
             return "aguardando"
 
@@ -298,10 +290,7 @@ async def verificar_entradas_aguardando() -> dict:
         }
     """
     result = (
-        supabase.table("group_links")
-        .select("*, chips(*)")
-        .eq("status", "aguardando")
-        .execute()
+        supabase.table("group_links").select("*, chips(*)").eq("status", "aguardando").execute()
     )
 
     if not result.data:
@@ -360,9 +349,7 @@ async def verificar_entradas_aguardando() -> dict:
                 resultado["ainda_aguardando"] += 1
 
         except Exception as e:
-            logger.warning(
-                f"[Worker] Erro ao verificar aprovação {link['invite_code']}: {e}"
-            )
+            logger.warning(f"[Worker] Erro ao verificar aprovação {link['invite_code']}: {e}")
             resultado["ainda_aguardando"] += 1
 
     return resultado

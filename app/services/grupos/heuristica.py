@@ -27,7 +27,6 @@ KEYWORDS_PLANTAO = [
     r"\bescala\b",
     r"\bcobertura\b",
     r"\bsubstitui[çc][aã]o\b",
-
     # Termos financeiros (não incluir R$ aqui, vai em valor separado)
     r"\breais\b",
     r"\bvalor\b",
@@ -35,7 +34,6 @@ KEYWORDS_PLANTAO = [
     r"\bpagamento\b",
     r"\bPJ\b",
     r"\bPF\b",
-
     # Horários/Períodos
     r"\bnoturno\b",
     r"\bdiurno\b",
@@ -44,7 +42,6 @@ KEYWORDS_PLANTAO = [
     r"\bcinderela\b",
     r"\d{1,2}h\s*[àa]\s*\d{1,2}h",  # "19h às 7h"
     r"\d{1,2}:\d{2}\s*[-–]\s*\d{1,2}:\d{2}",  # "19:00 - 07:00"
-
     # Datas
     r"\bdia\s+\d{1,2}\b",
     r"\d{1,2}/\d{1,2}",  # "28/12"
@@ -52,13 +49,11 @@ KEYWORDS_PLANTAO = [
     r"\bhoje\b",
     r"\bsegunda\b|\bter[çc]a\b|\bquarta\b|\bquinta\b|\bsexta\b",
     r"\bs[aá]bado\b|\bdomingo\b",
-
     # Termos médicos
     r"\bm[eé]dico\b",
     r"\bdr\.?\b",
     r"\bCRM\b",
     r"\bplantoni[sz]ta\b",
-
     # Urgência
     r"\burgente\b",
     r"\bpreciso\b",
@@ -102,13 +97,11 @@ KEYWORDS_DESCARTE = [
     r"^boa\s*(tarde|noite)\b",
     r"^ol[aá]\b",
     r"^oi\b",
-
     # Agradecimentos
     r"\bobrigad[oa]\b",
     r"\bvaleu\b",
     r"\bagradec",
     r"\btmj\b",
-
     # Confirmações simples (início de mensagem)
     r"^ok\b",
     r"^beleza\b",
@@ -116,11 +109,9 @@ KEYWORDS_DESCARTE = [
     r"^show\b",
     r"^top\b",
     r"^massa\b",
-
     # Perguntas genéricas
     r"^quem\s",
     r"^algu[eé]m\s",
-
     # Reações
     r"^(kk|haha|rs)",
 ]
@@ -137,9 +128,11 @@ THRESHOLD_SCORE = GruposConfig.THRESHOLD_HEURISTICA
 # S03.3 - Função de Score Heurístico
 # =============================================================================
 
+
 @dataclass
 class ResultadoHeuristica:
     """Resultado da análise heurística."""
+
     passou: bool
     score: float
     keywords_encontradas: List[str]
@@ -172,10 +165,7 @@ def calcular_score_heuristica(texto: str) -> ResultadoHeuristica:
     """
     if not texto:
         return ResultadoHeuristica(
-            passou=False,
-            score=0.0,
-            keywords_encontradas=[],
-            motivo_rejeicao="texto_vazio"
+            passou=False, score=0.0, keywords_encontradas=[], motivo_rejeicao="texto_vazio"
         )
 
     texto_norm = normalizar_texto(texto)
@@ -184,18 +174,12 @@ def calcular_score_heuristica(texto: str) -> ResultadoHeuristica:
     # Verificar tamanho
     if texto_len < MIN_TAMANHO_MENSAGEM:
         return ResultadoHeuristica(
-            passou=False,
-            score=0.0,
-            keywords_encontradas=[],
-            motivo_rejeicao="muito_curta"
+            passou=False, score=0.0, keywords_encontradas=[], motivo_rejeicao="muito_curta"
         )
 
     if texto_len > MAX_TAMANHO_MENSAGEM:
         return ResultadoHeuristica(
-            passou=False,
-            score=0.0,
-            keywords_encontradas=[],
-            motivo_rejeicao="muito_longa"
+            passou=False, score=0.0, keywords_encontradas=[], motivo_rejeicao="muito_longa"
         )
 
     # Primeiro, verificar se há keywords positivas fortes
@@ -220,7 +204,7 @@ def calcular_score_heuristica(texto: str) -> ResultadoHeuristica:
                     passou=False,
                     score=0.0,
                     keywords_encontradas=[],
-                    motivo_rejeicao="keyword_negativa"
+                    motivo_rejeicao="keyword_negativa",
                 )
 
     # Calcular score positivo
@@ -266,7 +250,7 @@ def calcular_score_heuristica(texto: str) -> ResultadoHeuristica:
         passou=passou,
         score=score,
         keywords_encontradas=keywords_encontradas,
-        motivo_rejeicao=None if passou else "score_baixo"
+        motivo_rejeicao=None if passou else "score_baixo",
     )
 
 

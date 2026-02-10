@@ -9,9 +9,9 @@ Sprint 32 E05 - Implementa gatilhos que disparam ações automáticas:
 
 IMPORTANTE: Esses gatilhos SÓ executam se PILOT_MODE=False.
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from app.services.supabase import supabase
 from app.workers.pilot_mode import (
@@ -49,6 +49,7 @@ LIMITE_FEEDBACK_POR_CICLO = 20
 # =============================================================================
 # DISCOVERY AUTOMÁTICO
 # =============================================================================
+
 
 async def buscar_medicos_nao_enriquecidos(limite: int = LIMITE_DISCOVERY_POR_CICLO) -> list[dict]:
     """
@@ -124,7 +125,7 @@ async def executar_discovery_automatico() -> dict:
                 metadata={
                     "gatilho": "discovery_automatico",
                     "campos_faltantes": _identificar_campos_faltantes(medico),
-                }
+                },
             )
             stats["enfileirados"] += 1
 
@@ -153,9 +154,9 @@ def _identificar_campos_faltantes(medico: dict) -> list[str]:
 # OFERTA AUTOMÁTICA (FURO DE ESCALA)
 # =============================================================================
 
+
 async def buscar_vagas_urgentes(
-    threshold_dias: int = OFERTA_THRESHOLD_DIAS,
-    limite: int = LIMITE_OFERTA_POR_CICLO
+    threshold_dias: int = OFERTA_THRESHOLD_DIAS, limite: int = LIMITE_OFERTA_POR_CICLO
 ) -> list[dict]:
     """
     Busca vagas que precisam de médico urgentemente.
@@ -198,10 +199,7 @@ async def buscar_vagas_urgentes(
         return []
 
 
-async def buscar_medicos_compativeis_para_vaga(
-    vaga: dict,
-    limite: int = 5
-) -> list[dict]:
+async def buscar_medicos_compativeis_para_vaga(vaga: dict, limite: int = 5) -> list[dict]:
     """
     Busca médicos compatíveis com uma vaga específica.
 
@@ -240,19 +238,20 @@ async def buscar_medicos_compativeis_para_vaga(
         medicos = response.data or []
 
         # Filtrar por especialidade (match parcial)
-        esp_nome = vaga.get("especialidades", {}).get("nome", "").lower() if vaga.get("especialidades") else ""
+        esp_nome = (
+            vaga.get("especialidades", {}).get("nome", "").lower()
+            if vaga.get("especialidades")
+            else ""
+        )
         if esp_nome:
             medicos = [
-                m for m in medicos
+                m
+                for m in medicos
                 if m.get("especialidade") and esp_nome in m["especialidade"].lower()
             ]
 
         # Priorizar médicos
-        medicos_priorizados = await priorizar_medicos(
-            medicos=medicos,
-            vaga=vaga,
-            limite=limite
-        )
+        medicos_priorizados = await priorizar_medicos(medicos=medicos, vaga=vaga, limite=limite)
 
         return medicos_priorizados
 
@@ -310,8 +309,10 @@ async def executar_oferta_automatica() -> dict:
                             "vaga_id": vaga["id"],
                             "vaga_data": vaga["data"],
                             "vaga_valor": vaga.get("valor"),
-                            "hospital_nome": vaga.get("hospitais", {}).get("nome") if vaga.get("hospitais") else None,
-                        }
+                            "hospital_nome": vaga.get("hospitais", {}).get("nome")
+                            if vaga.get("hospitais")
+                            else None,
+                        },
                     )
                     stats["ofertas_enfileiradas"] += 1
                     stats["medicos_contatados"] += 1
@@ -336,9 +337,9 @@ async def executar_oferta_automatica() -> dict:
 # REATIVAÇÃO AUTOMÁTICA
 # =============================================================================
 
+
 async def buscar_medicos_inativos(
-    dias_inativo: int = REATIVACAO_DIAS_INATIVO,
-    limite: int = LIMITE_REATIVACAO_POR_CICLO
+    dias_inativo: int = REATIVACAO_DIAS_INATIVO, limite: int = LIMITE_REATIVACAO_POR_CICLO
 ) -> list[dict]:
     """
     Busca médicos inativos que precisam de reativação.
@@ -426,7 +427,7 @@ async def executar_reativacao_automatica() -> dict:
                     "gatilho": "reativacao_automatica",
                     "dias_inativo": dias_sem_contato,
                     "total_interacoes_anteriores": medico.get("total_interacoes"),
-                }
+                },
             )
             stats["enfileirados"] += 1
 
@@ -446,9 +447,9 @@ async def executar_reativacao_automatica() -> dict:
 # FEEDBACK AUTOMÁTICO
 # =============================================================================
 
+
 async def buscar_plantoes_realizados_recentes(
-    dias: int = FEEDBACK_DIAS_RECENTES,
-    limite: int = LIMITE_FEEDBACK_POR_CICLO
+    dias: int = FEEDBACK_DIAS_RECENTES, limite: int = LIMITE_FEEDBACK_POR_CICLO
 ) -> list[dict]:
     """
     Busca plantões realizados recentemente para pedir feedback.
@@ -504,10 +505,7 @@ async def buscar_plantoes_realizados_recentes(
         return []
 
 
-async def verificar_feedback_ja_solicitado(
-    cliente_id: str,
-    vaga_id: str
-) -> bool:
+async def verificar_feedback_ja_solicitado(cliente_id: str, vaga_id: str) -> bool:
     """
     Verifica se feedback já foi solicitado para este plantão.
 
@@ -588,9 +586,11 @@ async def executar_feedback_automatico() -> dict:
                     "gatilho": "feedback_automatico",
                     "vaga_id": plantao["id"],
                     "vaga_data": plantao["data"],
-                    "hospital_nome": plantao.get("hospitais", {}).get("nome") if plantao.get("hospitais") else None,
+                    "hospital_nome": plantao.get("hospitais", {}).get("nome")
+                    if plantao.get("hospitais")
+                    else None,
                     "realizada_em": plantao.get("realizada_em"),
-                }
+                },
             )
             stats["feedbacks_enfileirados"] += 1
 
@@ -609,6 +609,7 @@ async def executar_feedback_automatico() -> dict:
 # =============================================================================
 # ORQUESTRADOR PRINCIPAL
 # =============================================================================
+
 
 async def executar_todos_gatilhos() -> dict:
     """
@@ -668,6 +669,7 @@ async def executar_todos_gatilhos() -> dict:
 # =============================================================================
 # FUNÇÕES DE ESTATÍSTICAS
 # =============================================================================
+
 
 async def obter_estatisticas_gatilhos() -> dict:
     """

@@ -8,6 +8,7 @@ Centraliza todas as chamadas HTTP externas para:
 - Timeout padronizado
 - Fechamento gracioso no shutdown
 """
+
 import httpx
 import logging
 from typing import Optional
@@ -32,16 +33,16 @@ async def get_http_client() -> httpx.AsyncClient:
         _client = httpx.AsyncClient(
             # Timeouts
             timeout=httpx.Timeout(
-                connect=10.0,    # Timeout para estabelecer conexão
-                read=30.0,       # Timeout para leitura
-                write=30.0,      # Timeout para escrita
-                pool=5.0,        # Timeout para obter conexão do pool
+                connect=10.0,  # Timeout para estabelecer conexão
+                read=30.0,  # Timeout para leitura
+                write=30.0,  # Timeout para escrita
+                pool=5.0,  # Timeout para obter conexão do pool
             ),
             # Connection pooling
             limits=httpx.Limits(
-                max_connections=100,           # Máximo de conexões totais
+                max_connections=100,  # Máximo de conexões totais
                 max_keepalive_connections=20,  # Conexões mantidas abertas
-                keepalive_expiry=30.0,         # Tempo para manter conexão ociosa
+                keepalive_expiry=30.0,  # Tempo para manter conexão ociosa
             ),
             # HTTP/2 para multiplexing
             http2=True,

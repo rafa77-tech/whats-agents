@@ -10,6 +10,7 @@ Exemplo de uso:
     def minha_funcao(provider: LLMProvider):
         response = await provider.generate(request)
 """
+
 from typing import Protocol, Optional, List, runtime_checkable
 
 from .models import LLMRequest, LLMResponse, ToolResult

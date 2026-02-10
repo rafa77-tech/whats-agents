@@ -29,7 +29,6 @@ async def notificar_slack(mensagem: str, canal: str = "operacoes") -> bool:
 
     Notificações são logadas e visualizadas no dashboard.
     """
-    nivel = "warning" if canal == "alertas" else "info"
     log_fn = logger.warning if canal == "alertas" else logger.info
     log_fn(f"[Orchestrator] {mensagem}")
     return True
@@ -85,12 +84,15 @@ class ChipOrchestrator:
             await self.carregar_config()
 
         # Buscar todos os chips relevantes
-        result = supabase.table("chips").select(
-            "id, telefone, instance_name, status, trust_score, trust_level, "
-            "fase_warmup, warming_started_at, msgs_enviadas_hoje, evolution_connected"
-        ).in_(
-            "status", ["warming", "ready", "active", "degraded"]
-        ).execute()
+        result = (
+            supabase.table("chips")
+            .select(
+                "id, telefone, instance_name, status, trust_score, trust_level, "
+                "fase_warmup, warming_started_at, msgs_enviadas_hoje, evolution_connected"
+            )
+            .in_("status", ["warming", "ready", "active", "degraded"])
+            .execute()
+        )
 
         chips = result.data or []
 
@@ -134,8 +136,7 @@ class ChipOrchestrator:
             "totais": {
                 "total_chips": len(chips),
                 "trust_medio": (
-                    sum(c["trust_score"] or 0 for c in producao) / len(producao)
-                    if producao else 0
+                    sum(c["trust_score"] or 0 for c in producao) / len(producao) if producao else 0
                 ),
             },
         }
@@ -174,20 +175,24 @@ class ChipOrchestrator:
         threshold = self.config["trust_degraded_threshold"]
 
         # Chips ativos com trust baixo
-        result = supabase.table("chips").select("*").eq(
-            "status", "active"
-        ).lt(
-            "trust_score", threshold
-        ).execute()
+        result = (
+            supabase.table("chips")
+            .select("*")
+            .eq("status", "active")
+            .lt("trust_score", threshold)
+            .execute()
+        )
 
         degradados = result.data or []
 
         # Chips desconectados
-        desconectados = supabase.table("chips").select("*").eq(
-            "status", "active"
-        ).eq(
-            "evolution_connected", False
-        ).execute()
+        desconectados = (
+            supabase.table("chips")
+            .select("*")
+            .eq("status", "active")
+            .eq("evolution_connected", False)
+            .execute()
+        )
 
         for chip in desconectados.data or []:
             if chip["id"] not in [d["id"] for d in degradados]:
@@ -217,13 +222,15 @@ class ChipOrchestrator:
         )
 
         # 1. Buscar melhor chip ready
-        result = supabase.table("chips").select("*").eq(
-            "status", "ready"
-        ).gte(
-            "trust_score", self.config["trust_min_for_ready"]
-        ).order(
-            "trust_score", desc=True
-        ).limit(1).execute()
+        result = (
+            supabase.table("chips")
+            .select("*")
+            .eq("status", "ready")
+            .gte("trust_score", self.config["trust_min_for_ready"])
+            .order("trust_score", desc=True)
+            .limit(1)
+            .execute()
+        )
 
         if not result.data:
             logger.error("[Orchestrator] Nenhum chip ready disponivel para substituicao!")
@@ -232,42 +239,45 @@ class ChipOrchestrator:
                 f":rotating_light: *CRITICO*: Chip `{chip_degradado['telefone']}` degradado "
                 f"(Trust: {chip_degradado.get('trust_score', 'N/A')}) mas NAO HA CHIPS READY!\n"
                 f"Pool precisa de atencao imediata.",
-                canal="alertas"
+                canal="alertas",
             )
             return None
 
         novo_chip = result.data[0]
 
         # 2. Migrar conversas ativas
-        conversas_migradas = await self._migrar_conversas(
-            chip_degradado["id"],
-            novo_chip["id"]
-        )
+        conversas_migradas = await self._migrar_conversas(chip_degradado["id"], novo_chip["id"])
 
         # 3. Promover novo chip
         now = datetime.now(timezone.utc).isoformat()
-        supabase.table("chips").update({
-            "status": "active",
-            "promoted_to_active_at": now,
-        }).eq("id", novo_chip["id"]).execute()
+        supabase.table("chips").update(
+            {
+                "status": "active",
+                "promoted_to_active_at": now,
+            }
+        ).eq("id", novo_chip["id"]).execute()
 
         # 4. Rebaixar chip degradado
-        supabase.table("chips").update({
-            "status": "degraded",
-        }).eq("id", chip_degradado["id"]).execute()
+        supabase.table("chips").update(
+            {
+                "status": "degraded",
+            }
+        ).eq("id", chip_degradado["id"]).execute()
 
         # 5. Registrar operacao
-        supabase.table("orchestrator_operations").insert({
-            "operacao": "auto_replace",
-            "chip_id": chip_degradado["id"],
-            "chip_destino_id": novo_chip["id"],
-            "motivo": f"Trust Score {chip_degradado.get('trust_score', 'N/A')} < {self.config['trust_degraded_threshold']}",
-            "metadata": {
-                "conversas_migradas": conversas_migradas,
-                "trust_degradado": chip_degradado.get("trust_score"),
-                "trust_novo": novo_chip.get("trust_score"),
-            },
-        }).execute()
+        supabase.table("orchestrator_operations").insert(
+            {
+                "operacao": "auto_replace",
+                "chip_id": chip_degradado["id"],
+                "chip_destino_id": novo_chip["id"],
+                "motivo": f"Trust Score {chip_degradado.get('trust_score', 'N/A')} < {self.config['trust_degraded_threshold']}",
+                "metadata": {
+                    "conversas_migradas": conversas_migradas,
+                    "trust_degradado": chip_degradado.get("trust_score"),
+                    "trust_novo": novo_chip.get("trust_score"),
+                },
+            }
+        ).execute()
 
         # 6. Notificar
         await notificar_slack(
@@ -275,7 +285,7 @@ class ChipOrchestrator:
             f"- Degradado: `{chip_degradado['telefone']}` (Trust: {chip_degradado.get('trust_score', 'N/A')})\n"
             f"- Promovido: `{novo_chip['telefone']}` (Trust: {novo_chip.get('trust_score', 'N/A')})\n"
             f"- Conversas migradas: {conversas_migradas}",
-            canal="operacoes"
+            canal="operacoes",
         )
 
         logger.info(
@@ -299,34 +309,36 @@ class ChipOrchestrator:
         now = datetime.now(timezone.utc).isoformat()
 
         # Buscar conversas ativas
-        result = supabase.table("conversation_chips").select("id").eq(
-            "chip_id", chip_antigo_id
-        ).eq(
-            "active", True
-        ).execute()
+        result = (
+            supabase.table("conversation_chips")
+            .select("id")
+            .eq("chip_id", chip_antigo_id)
+            .eq("active", True)
+            .execute()
+        )
 
         count = len(result.data or [])
 
         if count > 0:
             # Atualizar todas de uma vez
-            supabase.table("conversation_chips").update({
-                "chip_id": chip_novo_id,
-                "migrated_at": now,
-                "migrated_from": chip_antigo_id,
-            }).eq(
-                "chip_id", chip_antigo_id
-            ).eq(
-                "active", True
-            ).execute()
+            supabase.table("conversation_chips").update(
+                {
+                    "chip_id": chip_novo_id,
+                    "migrated_at": now,
+                    "migrated_from": chip_antigo_id,
+                }
+            ).eq("chip_id", chip_antigo_id).eq("active", True).execute()
 
             # Registrar operacao de migracao
-            supabase.table("orchestrator_operations").insert({
-                "operacao": "migration",
-                "chip_id": chip_antigo_id,
-                "chip_destino_id": chip_novo_id,
-                "motivo": f"Migracao de {count} conversas",
-                "metadata": {"count": count},
-            }).execute()
+            supabase.table("orchestrator_operations").insert(
+                {
+                    "operacao": "migration",
+                    "chip_id": chip_antigo_id,
+                    "chip_destino_id": chip_novo_id,
+                    "motivo": f"Migracao de {count} conversas",
+                    "metadata": {"count": count},
+                }
+            ).execute()
 
         logger.info(f"[Orchestrator] {count} conversas migradas")
 
@@ -351,7 +363,9 @@ class ChipOrchestrator:
 
         # Prioridade: manter warming buffer
         if deficits["warming"] > 0:
-            logger.info(f"[Orchestrator] Provisionando {deficits['warming']} chips (warming deficit)")
+            logger.info(
+                f"[Orchestrator] Provisionando {deficits['warming']} chips (warming deficit)"
+            )
 
             # Max 3 por ciclo
             for _ in range(min(deficits["warming"], 3)):
@@ -377,34 +391,42 @@ class ChipOrchestrator:
             instance_name = f"julia-{salvy_number.phone_number[-8:]}"
 
             # 3. Criar registro no banco
-            result = supabase.table("chips").insert({
-                "telefone": salvy_number.phone_number,
-                "salvy_id": salvy_number.id,
-                "salvy_status": salvy_number.status,
-                "salvy_created_at": salvy_number.created_at.isoformat(),
-                "instance_name": instance_name,
-                "status": "provisioned",
-                "tipo": "julia",
-                "trust_score": 50,  # Score inicial
-                "trust_level": "verde",
-            }).execute()
+            result = (
+                supabase.table("chips")
+                .insert(
+                    {
+                        "telefone": salvy_number.phone_number,
+                        "salvy_id": salvy_number.id,
+                        "salvy_status": salvy_number.status,
+                        "salvy_created_at": salvy_number.created_at.isoformat(),
+                        "instance_name": instance_name,
+                        "status": "provisioned",
+                        "tipo": "julia",
+                        "trust_score": 50,  # Score inicial
+                        "trust_level": "verde",
+                    }
+                )
+                .execute()
+            )
 
             chip = result.data[0] if result.data else None
 
             if chip:
                 # Registrar operacao
-                supabase.table("orchestrator_operations").insert({
-                    "operacao": "auto_provision",
-                    "chip_id": chip["id"],
-                    "motivo": "Pool buffer baixo",
-                    "metadata": {"ddd": ddd, "salvy_id": salvy_number.id},
-                }).execute()
+                supabase.table("orchestrator_operations").insert(
+                    {
+                        "operacao": "auto_provision",
+                        "chip_id": chip["id"],
+                        "motivo": "Pool buffer baixo",
+                        "metadata": {"ddd": ddd, "salvy_id": salvy_number.id},
+                    }
+                ).execute()
 
                 logger.info(f"[Orchestrator] Chip provisionado: {salvy_number.phone_number}")
 
                 await notificar_slack(
                     f":sparkles: *Novo chip provisionado*: `{salvy_number.phone_number}`",
-                    canal="operacoes"
+                    canal="operacoes",
                 )
 
             return chip
@@ -412,10 +434,7 @@ class ChipOrchestrator:
         except Exception as e:
             logger.error(f"[Orchestrator] Erro ao provisionar: {e}")
 
-            await notificar_slack(
-                f":x: *Erro no auto-provisioning*: {str(e)}",
-                canal="alertas"
-            )
+            await notificar_slack(f":x: *Erro no auto-provisioning*: {str(e)}", canal="alertas")
 
             return None
 
@@ -439,13 +458,14 @@ class ChipOrchestrator:
             await self.carregar_config()
 
         # Buscar candidatos
-        result = supabase.table("chips").select("*").eq(
-            "status", "warming"
-        ).eq(
-            "fase_warmup", "operacao"
-        ).gte(
-            "trust_score", self.config["trust_min_for_ready"]
-        ).execute()
+        result = (
+            supabase.table("chips")
+            .select("*")
+            .eq("status", "warming")
+            .eq("fase_warmup", "operacao")
+            .gte("trust_score", self.config["trust_min_for_ready"])
+            .execute()
+        )
 
         promovidos = 0
 
@@ -463,17 +483,21 @@ class ChipOrchestrator:
                 # Promover para ready
                 now = datetime.now(timezone.utc).isoformat()
 
-                supabase.table("chips").update({
-                    "status": "ready",
-                    "ready_at": now,
-                }).eq("id", chip["id"]).execute()
+                supabase.table("chips").update(
+                    {
+                        "status": "ready",
+                        "ready_at": now,
+                    }
+                ).eq("id", chip["id"]).execute()
 
                 # Registrar
-                supabase.table("orchestrator_operations").insert({
-                    "operacao": "promotion_warming_ready",
-                    "chip_id": chip["id"],
-                    "motivo": f"Trust {chip['trust_score']} >= {self.config['trust_min_for_ready']}, {dias} dias",
-                }).execute()
+                supabase.table("orchestrator_operations").insert(
+                    {
+                        "operacao": "promotion_warming_ready",
+                        "chip_id": chip["id"],
+                        "motivo": f"Trust {chip['trust_score']} >= {self.config['trust_min_for_ready']}, {dias} dias",
+                    }
+                ).execute()
 
                 promovidos += 1
 
@@ -486,7 +510,7 @@ class ChipOrchestrator:
             await notificar_slack(
                 f":white_check_mark: *{promovidos} chip(s) promovido(s) para READY*\n"
                 f"Disponiveis para producao quando necessario.",
-                canal="operacoes"
+                canal="operacoes",
             )
 
         return promovidos
@@ -508,26 +532,33 @@ class ChipOrchestrator:
             return 0  # Pool de producao ok
 
         # Buscar melhores ready
-        result = supabase.table("chips").select("*").eq(
-            "status", "ready"
-        ).order(
-            "trust_score", desc=True
-        ).limit(deficit).execute()
+        result = (
+            supabase.table("chips")
+            .select("*")
+            .eq("status", "ready")
+            .order("trust_score", desc=True)
+            .limit(deficit)
+            .execute()
+        )
 
         promovidos = 0
         now = datetime.now(timezone.utc).isoformat()
 
         for chip in result.data or []:
-            supabase.table("chips").update({
-                "status": "active",
-                "promoted_to_active_at": now,
-            }).eq("id", chip["id"]).execute()
+            supabase.table("chips").update(
+                {
+                    "status": "active",
+                    "promoted_to_active_at": now,
+                }
+            ).eq("id", chip["id"]).execute()
 
-            supabase.table("orchestrator_operations").insert({
-                "operacao": "promotion_ready_active",
-                "chip_id": chip["id"],
-                "motivo": f"Deficit de producao: {deficit}",
-            }).execute()
+            supabase.table("orchestrator_operations").insert(
+                {
+                    "operacao": "promotion_ready_active",
+                    "chip_id": chip["id"],
+                    "motivo": f"Deficit de producao: {deficit}",
+                }
+            ).execute()
 
             promovidos += 1
 
@@ -537,7 +568,7 @@ class ChipOrchestrator:
             await notificar_slack(
                 f":rocket: *{promovidos} chip(s) promovido(s) para PRODUCAO*\n"
                 f"Pool de producao normalizado.",
-                canal="operacoes"
+                canal="operacoes",
             )
 
         return promovidos
@@ -572,13 +603,17 @@ class ChipOrchestrator:
 
         supabase.table("chips").update(updates).eq("id", chip_id).execute()
 
-        supabase.table("orchestrator_operations").insert({
-            "operacao": "manual_promote",
-            "chip_id": chip_id,
-            "motivo": f"Promocao manual para {para_status}",
-        }).execute()
+        supabase.table("orchestrator_operations").insert(
+            {
+                "operacao": "manual_promote",
+                "chip_id": chip_id,
+                "motivo": f"Promocao manual para {para_status}",
+            }
+        ).execute()
 
-        logger.info(f"[Orchestrator] Chip {chip['telefone']} promovido manualmente para {para_status}")
+        logger.info(
+            f"[Orchestrator] Chip {chip['telefone']} promovido manualmente para {para_status}"
+        )
 
         return {"sucesso": True, "chip": chip, "novo_status": para_status}
 
@@ -601,11 +636,13 @@ class ChipOrchestrator:
 
         supabase.table("chips").update({"status": "degraded"}).eq("id", chip_id).execute()
 
-        supabase.table("orchestrator_operations").insert({
-            "operacao": "manual_demote",
-            "chip_id": chip_id,
-            "motivo": motivo,
-        }).execute()
+        supabase.table("orchestrator_operations").insert(
+            {
+                "operacao": "manual_demote",
+                "chip_id": chip_id,
+                "motivo": motivo,
+            }
+        ).execute()
 
         logger.info(f"[Orchestrator] Chip {chip['telefone']} rebaixado manualmente")
 
@@ -678,7 +715,7 @@ class ChipOrchestrator:
                 f"- Producao: {status['producao']['count']}/{status['producao']['min']}\n"
                 f"- Ready: {status['ready']['count']}/{status['ready']['min']}\n"
                 f"- Warming: {status['warming']['count']}/{status['warming']['buffer']}",
-                canal="alertas"
+                canal="alertas",
             )
 
     async def iniciar(self, intervalo_segundos: int = 60):

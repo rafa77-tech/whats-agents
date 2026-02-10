@@ -9,6 +9,7 @@ Este validador detecta padrões proibidos nas respostas:
 2. Citação de valores (Julia não negocia)
 3. Negociação de termos (Julia não negocia)
 """
+
 import re
 import logging
 from typing import Optional, Tuple
@@ -25,13 +26,11 @@ PADROES_PROIBIDOS: list[Tuple[str, str]] = [
     (r"(?i)confirm(ado|ei|o) (seu|o) plant[aã]o", "confirm_booking"),
     (r"(?i)t[aá]\s+(fechado|confirm)", "confirm_booking"),
     (r"(?i)seu\s+plant[aã]o\s+(j[aá]|foi)\s+", "confirm_booking"),
-
     # quote_price - Julia não cita valores específicos
     (r"(?i)paga\s+R?\$?\s*\d+", "quote_price"),
     (r"(?i)consigo\s+R?\$?\s*\d+", "quote_price"),
     (r"(?i)valor\s+(é|de|seria)\s+R?\$?\s*\d+", "quote_price"),
     (r"(?i)R?\$\s*\d+[\.,]?\d*\s*(reais|por|a hora|por hora|noite|diurno)", "quote_price"),
-
     # negotiate_terms - Julia não negocia
     (r"(?i)d[aá]\s+pra\s+(sub|melhora)ir", "negotiate_terms"),
     (r"(?i)consigo\s+melhorar", "negotiate_terms"),
@@ -76,7 +75,7 @@ def validar_resposta_julia(
                     "mode": mode,
                     "conversa_id": conversa_id,
                     "resposta_truncada": resposta[:100],
-                }
+                },
             )
 
             # Log estruturado para auditoria
@@ -146,7 +145,7 @@ def sanitizar_resposta_julia(
                     "violacao": violacao,
                     "mode": mode,
                     "conversa_id": conversa_id,
-                }
+                },
             )
 
     return resposta_sanitizada
@@ -159,8 +158,7 @@ FALLBACK_RESPONSES = {
         "Ele vai te passar os detalhes e confirmar tudo com você."
     ),
     "quote_price": (
-        "O valor você negocia direto com o responsável da vaga. "
-        "Quer que eu te conecte com ele?"
+        "O valor você negocia direto com o responsável da vaga. Quer que eu te conecte com ele?"
     ),
     "negotiate_terms": (
         "As condições você acerta direto com quem tá oferecendo. "

@@ -29,8 +29,9 @@ Formato esperado do documento:
 - Nota importante
 ```
 """
+
 import re
-from typing import List, Dict, Optional
+from typing import List, Dict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -74,23 +75,23 @@ def parsear_briefing(conteudo: str) -> dict:
         "observacoes": [],
         "margem_negociacao": None,
         "titulo": None,
-        "raw": conteudo
+        "raw": conteudo,
     }
 
     if not conteudo:
         return secoes
 
     # Extrair titulo (# Titulo) - permite espacos no inicio da linha
-    titulo_match = re.search(r'^\s*#\s+(.+?)$', conteudo, re.MULTILINE)
+    titulo_match = re.search(r"^\s*#\s+(.+?)$", conteudo, re.MULTILINE)
     if titulo_match:
         secoes["titulo"] = titulo_match.group(1).strip()
 
     # Dividir por secoes (## Titulo) - EXIGE marcador Markdown
     # Permite espacos antes do ## (Google Docs adiciona espacos)
-    partes = re.split(r'\n\s*##\s+', conteudo)
+    partes = re.split(r"\n\s*##\s+", conteudo)
 
     for parte in partes:
-        linhas = parte.strip().split('\n')
+        linhas = parte.strip().split("\n")
         if not linhas:
             continue
 
@@ -101,29 +102,31 @@ def parsear_briefing(conteudo: str) -> dict:
         itens = []
         for linha in linhas[1:]:
             linha_limpa = linha.strip()
-            if linha_limpa.startswith('-'):
+            if linha_limpa.startswith("-"):
                 itens.append(linha_limpa[1:].strip())
-            elif linha_limpa.startswith('*'):
+            elif linha_limpa.startswith("*"):
                 itens.append(linha_limpa[1:].strip())
 
         # Classificar secao
-        if 'foco' in titulo:
+        if "foco" in titulo:
             secoes["foco_semana"] = itens
-        elif 'vaga' in titulo and 'priorit' in titulo:
+        elif "vaga" in titulo and "priorit" in titulo:
             secoes["vagas_prioritarias"] = _parsear_vagas(itens)
-        elif 'tom' in titulo:
+        elif "tom" in titulo:
             secoes["tom_semana"] = itens
             # Extrair margem de negociacao se mencionada
             for item in itens:
-                match = re.search(r'(\d+)%', item)
-                if match and ('mais' in item.lower() or 'negoci' in item.lower()):
+                match = re.search(r"(\d+)%", item)
+                if match and ("mais" in item.lower() or "negoci" in item.lower()):
                     secoes["margem_negociacao"] = int(match.group(1))
-        elif 'observa' in titulo or 'nota' in titulo:
+        elif "observa" in titulo or "nota" in titulo:
             secoes["observacoes"] = itens
 
-    logger.info(f"Briefing parseado: {len(secoes['foco_semana'])} focos, "
-                f"{len(secoes['vagas_prioritarias'])} vagas prioritarias, "
-                f"{len(secoes['tom_semana'])} instrucoes de tom")
+    logger.info(
+        f"Briefing parseado: {len(secoes['foco_semana'])} focos, "
+        f"{len(secoes['vagas_prioritarias'])} vagas prioritarias, "
+        f"{len(secoes['tom_semana'])} instrucoes de tom"
+    )
 
     return secoes
 
@@ -137,22 +140,21 @@ def _parsear_vagas(itens: List[str]) -> List[Dict]:
     vagas = []
     for item in itens:
         # Formato esperado: "Hospital X - Data - ate R$ Y"
-        match = re.search(
-            r'(.+?)\s*-\s*(.+?)\s*-\s*(?:at[eé]\s*)?R\$\s*([\d.,]+)',
-            item
-        )
+        match = re.search(r"(.+?)\s*-\s*(.+?)\s*-\s*(?:at[eé]\s*)?R\$\s*([\d.,]+)", item)
         if match:
-            valor_str = match.group(3).replace('.', '').replace(',', '.')
+            valor_str = match.group(3).replace(".", "").replace(",", ".")
             try:
                 valor = float(valor_str)
             except ValueError:
                 valor = 0
 
-            vagas.append({
-                "hospital": match.group(1).strip(),
-                "data": match.group(2).strip(),
-                "valor_max": valor
-            })
+            vagas.append(
+                {
+                    "hospital": match.group(1).strip(),
+                    "data": match.group(2).strip(),
+                    "valor_max": valor,
+                }
+            )
         else:
             # Se nao conseguiu parsear, salva como raw
             vagas.append({"raw": item})
@@ -180,14 +182,13 @@ def validar_briefing(secoes: dict) -> dict:
     # Verificar vagas prioritarias tem estrutura correta
     for i, vaga in enumerate(secoes.get("vagas_prioritarias", [])):
         if "raw" in vaga:
-            avisos.append(f"Vaga {i+1} nao pode ser parseada: {vaga['raw'][:50]}")
+            avisos.append(f"Vaga {i + 1} nao pode ser parseada: {vaga['raw'][:50]}")
 
     return {
         "valido": len(erros) == 0,
         "erros": erros,
         "avisos": avisos,
         "secoes_encontradas": [
-            k for k, v in secoes.items()
-            if v and k not in ["raw", "titulo", "margem_negociacao"]
-        ]
+            k for k, v in secoes.items() if v and k not in ["raw", "titulo", "margem_negociacao"]
+        ],
     }

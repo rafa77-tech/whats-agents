@@ -3,6 +3,7 @@ Tipos e estruturas do Policy Engine.
 
 Sprint 15 - Policy Engine (Estado + Decisão Determinística)
 """
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -13,22 +14,25 @@ from app.core.timezone import agora_utc
 
 class PermissionState(Enum):
     """Estado de permissão de contato."""
-    NONE = "none"              # Nunca conversou
-    INITIAL = "initial"        # Contato inicial estabelecido
-    ACTIVE = "active"          # Conversa aberta e saudável
+
+    NONE = "none"  # Nunca conversou
+    INITIAL = "initial"  # Contato inicial estabelecido
+    ACTIVE = "active"  # Conversa aberta e saudável
     COOLING_OFF = "cooling_off"  # Pausa por atrito
-    OPTED_OUT = "opted_out"    # Não contatar (terminal)
+    OPTED_OUT = "opted_out"  # Não contatar (terminal)
 
 
 class TemperatureBand(Enum):
     """Faixa de temperatura (derivada)."""
-    COLD = "cold"    # < 0.33
-    WARM = "warm"    # 0.33 - 0.66
-    HOT = "hot"      # > 0.66
+
+    COLD = "cold"  # < 0.33
+    WARM = "warm"  # 0.33 - 0.66
+    HOT = "hot"  # > 0.66
 
 
 class TemperatureTrend(Enum):
     """Tendência de temperatura."""
+
     WARMING = "warming"
     COOLING = "cooling"
     STABLE = "stable"
@@ -36,6 +40,7 @@ class TemperatureTrend(Enum):
 
 class ObjectionSeverity(Enum):
     """Severidade de objeção."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -44,6 +49,7 @@ class ObjectionSeverity(Enum):
 
 class RiskTolerance(Enum):
     """Tolerância a vagas de risco."""
+
     UNKNOWN = "unknown"  # Conservador por default
     LOW = "low"
     MEDIUM = "medium"
@@ -52,6 +58,7 @@ class RiskTolerance(Enum):
 
 class LifecycleStage(Enum):
     """Estágio no ciclo de vida."""
+
     NOVO = "novo"
     PROSPECTING = "prospecting"
     ENGAGED = "engaged"
@@ -62,25 +69,28 @@ class LifecycleStage(Enum):
 
 class PrimaryAction(Enum):
     """Ação principal decidida pela policy."""
-    DISCOVERY = "discovery"        # Primeiro contato, conhecer médico
-    OFFER = "offer"                # Oferecer vaga
-    FOLLOWUP = "followup"          # Dar continuidade
+
+    DISCOVERY = "discovery"  # Primeiro contato, conhecer médico
+    OFFER = "offer"  # Oferecer vaga
+    FOLLOWUP = "followup"  # Dar continuidade
     REACTIVATION = "reactivation"  # Reativar médico inativo
-    HANDOFF = "handoff"            # Transferir para humano
-    WAIT = "wait"                  # Não fazer nada
+    HANDOFF = "handoff"  # Transferir para humano
+    WAIT = "wait"  # Não fazer nada
 
 
 class Tone(Enum):
     """Tom da resposta."""
-    LEVE = "leve"              # Descontraído, amigável
-    DIRETO = "direto"          # Objetivo, sem rodeios
-    CAUTELOSO = "cauteloso"    # Cuidado extra
-    CRISE = "crise"            # Situação crítica
+
+    LEVE = "leve"  # Descontraído, amigável
+    DIRETO = "direto"  # Objetivo, sem rodeios
+    CAUTELOSO = "cauteloso"  # Cuidado extra
+    CRISE = "crise"  # Situação crítica
 
 
 @dataclass
 class DoctorState:
     """Estado atual do médico (lido do banco)."""
+
     cliente_id: str
 
     # Permissão
@@ -121,10 +131,7 @@ class DoctorState:
 
     def has_unresolved_objection(self) -> bool:
         """Verifica se há objeção ativa não resolvida."""
-        return (
-            self.active_objection is not None
-            and self.objection_resolved_at is None
-        )
+        return self.active_objection is not None and self.objection_resolved_at is None
 
     def is_contactable(self) -> bool:
         """Verifica se pode ser contatado."""
@@ -155,6 +162,7 @@ class DoctorState:
 @dataclass
 class PolicyDecision:
     """Resultado do PolicyDecide - o que a Julia pode/não pode fazer."""
+
     primary_action: PrimaryAction
     allowed_actions: list[str]
     forbidden_actions: list[str]

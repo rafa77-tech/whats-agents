@@ -26,58 +26,52 @@ logger = get_logger(__name__)
 # =============================================================================
 
 # Padrão de valor monetário: R$ 1.800 ou 1800 ou 1.800
-PATTERN_VALOR = re.compile(
-    r'R?\$?\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)',
-    re.IGNORECASE
-)
+PATTERN_VALOR = re.compile(r"R?\$?\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)", re.IGNORECASE)
 
 # Padrões de grupo de dias (ordem importa - mais específicos primeiro)
 PATTERNS_GRUPO_DIA = {
     GrupoDia.SAB_DOM: [
-        r'sábado\s*(?:e|a|-)\s*domingo',
-        r'sabado\s*(?:e|a|-)\s*domingo',
-        r'sab[\s\-]*(?:e|a|-|dom)[\s\-]*dom',
-        r'sab[\s\-/]*dom',
-        r'fim\s+de\s+semana',
-        r'fds',
+        r"sábado\s*(?:e|a|-)\s*domingo",
+        r"sabado\s*(?:e|a|-)\s*domingo",
+        r"sab[\s\-]*(?:e|a|-|dom)[\s\-]*dom",
+        r"sab[\s\-/]*dom",
+        r"fim\s+de\s+semana",
+        r"fds",
     ],
     GrupoDia.SEG_SEX: [
-        r'segunda\s*(?:a|à|-|ate|até)\s*sexta',
-        r'seg[\s\-]*(?:a|à|-|ate|até)[\s\-]*sex',
-        r'seg[\s\-/]*sex',
-        r'dias\s+úteis',
-        r'dias\s+uteis',
-        r'durante\s+a\s+semana',
+        r"segunda\s*(?:a|à|-|ate|até)\s*sexta",
+        r"seg[\s\-]*(?:a|à|-|ate|até)[\s\-]*sex",
+        r"seg[\s\-/]*sex",
+        r"dias\s+úteis",
+        r"dias\s+uteis",
+        r"durante\s+a\s+semana",
     ],
     GrupoDia.SAB: [
-        r'sábado(?!\s*(?:e|a|-)\s*dom)',
-        r'sabado(?!\s*(?:e|a|-)\s*dom)',
-        r'sab(?!\s*[-/]?\s*dom)',
+        r"sábado(?!\s*(?:e|a|-)\s*dom)",
+        r"sabado(?!\s*(?:e|a|-)\s*dom)",
+        r"sab(?!\s*[-/]?\s*dom)",
     ],
     GrupoDia.DOM: [
-        r'domingo',
-        r'\bdom\b',
+        r"domingo",
+        r"\bdom\b",
     ],
     GrupoDia.FERIADO: [
-        r'feriado',
-        r'feriados',
+        r"feriado",
+        r"feriados",
     ],
 }
 
 # Padrões de período para valores
 PATTERNS_PERIODO_VALOR = {
-    Periodo.DIURNO: [r'diurno', r'\bsd\b', r's\.d\.'],
-    Periodo.NOTURNO: [r'noturno', r'\bsn\b', r's\.n\.'],
-    Periodo.MANHA: [r'manhã', r'manha', r'matutino'],
-    Periodo.TARDE: [r'tarde', r'vespertino'],
-    Periodo.NOITE: [r'noite'],
+    Periodo.DIURNO: [r"diurno", r"\bsd\b", r"s\.d\."],
+    Periodo.NOTURNO: [r"noturno", r"\bsn\b", r"s\.n\."],
+    Periodo.MANHA: [r"manhã", r"manha", r"matutino"],
+    Periodo.TARDE: [r"tarde", r"vespertino"],
+    Periodo.NOITE: [r"noite"],
 }
 
 # Padrão de adicional: "+100", "+ R$ 100", "(dom +100)"
-PATTERN_ADICIONAL = re.compile(
-    r'\+\s*R?\$?\s*(\d+)',
-    re.IGNORECASE
-)
+PATTERN_ADICIONAL = re.compile(r"\+\s*R?\$?\s*(\d+)", re.IGNORECASE)
 
 
 def _normalizar_valor(valor_str: str) -> Optional[int]:
@@ -94,7 +88,7 @@ def _normalizar_valor(valor_str: str) -> Optional[int]:
         return None
 
     # Remover tudo exceto números
-    numeros = re.sub(r'[^\d]', '', valor_str)
+    numeros = re.sub(r"[^\d]", "", valor_str)
 
     if not numeros:
         return None
@@ -103,7 +97,7 @@ def _normalizar_valor(valor_str: str) -> Optional[int]:
 
     # Se valor parece ter centavos (ex: 180000 de "1.800,00")
     # Detectar pelo padrão original se tem ,00 ou .00 no final
-    tem_centavos = bool(re.search(r'[,.]00$', valor_str))
+    tem_centavos = bool(re.search(r"[,.]00$", valor_str))
     if tem_centavos and valor > 10000:
         # Provavelmente tem centavos, dividir por 100
         valor = valor // 100
@@ -190,20 +184,19 @@ def _parsear_linha_valor(linha: str) -> List[RegraValor]:
 
     # Se tem grupo específico ou período, criar regra específica
     if grupo_dia or periodo:
-        regras.append(RegraValor(
-            grupo_dia=grupo_dia or GrupoDia.TODOS,
-            periodo=periodo,
-            valor=valores[0],
-            confianca=0.9 if grupo_dia else 0.7
-        ))
+        regras.append(
+            RegraValor(
+                grupo_dia=grupo_dia or GrupoDia.TODOS,
+                periodo=periodo,
+                valor=valores[0],
+                confianca=0.9 if grupo_dia else 0.7,
+            )
+        )
     else:
         # Valor geral
-        regras.append(RegraValor(
-            grupo_dia=GrupoDia.TODOS,
-            periodo=None,
-            valor=valores[0],
-            confianca=0.8
-        ))
+        regras.append(
+            RegraValor(grupo_dia=GrupoDia.TODOS, periodo=None, valor=valores[0], confianca=0.8)
+        )
 
     return regras
 
@@ -259,17 +252,14 @@ def extrair_valores(linhas_valor: List[str]) -> ValoresExtraidos:
     resultado = _consolidar_regras(todas_regras)
 
     logger.debug(
-        f"Extraídos {len(resultado.regras)} regras de valor, "
-        f"valor_unico={resultado.valor_unico}"
+        f"Extraídos {len(resultado.regras)} regras de valor, valor_unico={resultado.valor_unico}"
     )
 
     return resultado
 
 
 def obter_valor_para_dia(
-    valores: ValoresExtraidos,
-    dia_semana: DiaSemana,
-    periodo: Optional[Periodo] = None
+    valores: ValoresExtraidos, dia_semana: DiaSemana, periodo: Optional[Periodo] = None
 ) -> Optional[int]:
     """
     Obtém o valor correto para um dia e período específicos.
@@ -302,8 +292,13 @@ def obter_valor_para_dia(
         return None
 
     # Mapear dia da semana para grupo
-    dias_seg_sex = {DiaSemana.SEGUNDA, DiaSemana.TERCA, DiaSemana.QUARTA,
-                    DiaSemana.QUINTA, DiaSemana.SEXTA}
+    dias_seg_sex = {
+        DiaSemana.SEGUNDA,
+        DiaSemana.TERCA,
+        DiaSemana.QUARTA,
+        DiaSemana.QUINTA,
+        DiaSemana.SEXTA,
+    }
     dias_sab_dom = {DiaSemana.SABADO, DiaSemana.DOMINGO}
 
     # Encontrar regra mais específica

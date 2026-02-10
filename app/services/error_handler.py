@@ -1,6 +1,7 @@
 """
 Tratamento de erros e mensagens amigáveis para o usuário.
 """
+
 import random
 import logging
 
@@ -56,4 +57,3 @@ def logar_erro(tipo: str, erro: Exception, contexto: dict = None):
     """
     contexto_str = f" | Contexto: {contexto}" if contexto else ""
     logger.error(f"Erro {tipo}: {erro}{contexto_str}", exc_info=True)
-

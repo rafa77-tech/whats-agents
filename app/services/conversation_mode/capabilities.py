@@ -13,6 +13,7 @@ GUARDRAIL CRÍTICO: Julia é INTERMEDIÁRIA
 - Não pode confirmar reservas
 - Conecta médico com responsável da vaga
 """
+
 import logging
 from typing import Any
 
@@ -26,17 +27,17 @@ logger = logging.getLogger(__name__)
 # Julia é INTERMEDIÁRIA - não pode negociar nem confirmar reservas
 # =============================================================================
 GLOBAL_FORBIDDEN_CLAIMS = [
-    "negotiate_price",           # NUNCA negociar valores
-    "confirm_booking",           # NUNCA confirmar reserva
+    "negotiate_price",  # NUNCA negociar valores
+    "confirm_booking",  # NUNCA confirmar reserva
     "confirm_booking_directly",  # NUNCA confirmar reserva sozinha
-    "guarantee_availability",    # NUNCA garantir disponibilidade
-    "promise_conditions",        # NUNCA prometer condições
-    "negotiate_terms",           # NUNCA negociar termos
+    "guarantee_availability",  # NUNCA garantir disponibilidade
+    "promise_conditions",  # NUNCA prometer condições
+    "negotiate_terms",  # NUNCA negociar termos
 ]
 
 GLOBAL_FORBIDDEN_TOOLS = [
-    "reservar_plantao",          # Tool OBSOLETA - Julia não reserva
-    "calcular_valor",            # Julia não negocia valores
+    "reservar_plantao",  # Tool OBSOLETA - Julia não reserva
+    "calcular_valor",  # Julia não negocia valores
 ]
 
 
@@ -76,25 +77,24 @@ CAPABILITIES_BY_MODE: dict[ConversationMode, dict] = {
         "tone": "leve",
         "description": "Conhecer o médico, entender perfil e interesse",
     },
-
     ConversationMode.OFERTA: {
         # OFERTA = INTERMEDIAÇÃO (Julia NÃO é dona da vaga)
         "allowed_tools": [
-            "buscar_vagas",                    # Somente leitura / apresentar opções
-            "criar_handoff_externo",           # Coloca em contato com o dono da vaga
+            "buscar_vagas",  # Somente leitura / apresentar opções
+            "criar_handoff_externo",  # Coloca em contato com o dono da vaga
             "registrar_status_intermediacao",  # Status: interessado/contatado/fechado/sem_resposta
-            "agendar_followup",                # Agendar acompanhamento
-            "salvar_memoria",                  # Sempre
+            "agendar_followup",  # Agendar acompanhamento
+            "salvar_memoria",  # Sempre
         ],
         "forbidden_tools": [
             "perguntar_especialidade",  # Já deveria saber
         ],
         # Claims proibidos MESMO em oferta (Julia é intermediária)
         "forbidden_claims": [
-            "confirm_booking",          # "fechado", "confirmado", "tá reservado"
-            "quote_price",              # "paga X", "consigo X", "valor mínimo"
-            "promise_availability",     # "garanto que ainda tem"
-            "negotiate_terms",          # "consigo melhorar", "dá pra subir"
+            "confirm_booking",  # "fechado", "confirmado", "tá reservado"
+            "quote_price",  # "paga X", "consigo X", "valor mínimo"
+            "promise_availability",  # "garanto que ainda tem"
+            "negotiate_terms",  # "consigo melhorar", "dá pra subir"
         ],
         "required_behavior": (
             "Você está em OFERTA (INTERMEDIAÇÃO): apresente a vaga e conecte o médico ao responsável.\n"
@@ -112,25 +112,24 @@ CAPABILITIES_BY_MODE: dict[ConversationMode, dict] = {
         "tone": "objetiva",
         "description": "Ofertar vaga e intermediar contato com o responsável",
     },
-
     ConversationMode.FOLLOWUP: {
         # FOLLOWUP = Acompanhar desfecho da intermediação
         "allowed_tools": [
-            "buscar_vagas",                    # Pode oferecer novas opções
-            "criar_handoff_externo",           # Pode reconectar com outro responsável
+            "buscar_vagas",  # Pode oferecer novas opções
+            "criar_handoff_externo",  # Pode reconectar com outro responsável
             "registrar_status_intermediacao",  # Atualizar status: fechou/não fechou/sem resposta
-            "salvar_memoria",                  # Sempre
-            "agendar_followup",                # Pode remarcar
-            "perguntar_interesse",             # Re-sondar
+            "salvar_memoria",  # Sempre
+            "agendar_followup",  # Pode remarcar
+            "perguntar_interesse",  # Re-sondar
         ],
         "forbidden_tools": [
             "perguntar_especialidade",  # Já deveria saber
         ],
         "forbidden_claims": [
-            "pressure_decision",         # "Preciso de resposta hoje"
-            "create_urgency",            # "Vai acabar!"
-            "confirm_booking",           # NUNCA confirmar
-            "negotiate_terms",           # NUNCA negociar
+            "pressure_decision",  # "Preciso de resposta hoje"
+            "create_urgency",  # "Vai acabar!"
+            "confirm_booking",  # NUNCA confirmar
+            "negotiate_terms",  # NUNCA negociar
         ],
         "required_behavior": (
             "Você está em FOLLOWUP: acompanhe o desfecho da intermediação.\n"
@@ -147,25 +146,24 @@ CAPABILITIES_BY_MODE: dict[ConversationMode, dict] = {
         "tone": "leve",
         "description": "Acompanhar desfecho da intermediação, manter relacionamento",
     },
-
     ConversationMode.REATIVACAO: {
         "allowed_tools": [
-            "salvar_memoria",           # Sempre
-            "perguntar_interesse",      # Re-sondar
-            "buscar_vagas",             # Pode mostrar novidades
-            "agendar_followup",         # Pode agendar
+            "salvar_memoria",  # Sempre
+            "perguntar_interesse",  # Re-sondar
+            "buscar_vagas",  # Pode mostrar novidades
+            "agendar_followup",  # Pode agendar
         ],
         "forbidden_tools": [
-            "criar_handoff_externo",           # NÃO conectar direto (ainda não reengajou)
+            "criar_handoff_externo",  # NÃO conectar direto (ainda não reengajou)
             "registrar_status_intermediacao",  # NÃO registrar ainda
-            "solicitar_documentos",            # NÃO cobrar
+            "solicitar_documentos",  # NÃO cobrar
         ],
         "forbidden_claims": [
-            "offer_specific_shift",     # Não oferecer direto
-            "quote_price",              # Não falar de valor
-            "pressure_return",          # "Sumiu!" "Cadê você?"
-            "confirm_booking",          # NUNCA confirmar
-            "negotiate_terms",          # NUNCA negociar
+            "offer_specific_shift",  # Não oferecer direto
+            "quote_price",  # Não falar de valor
+            "pressure_return",  # "Sumiu!" "Cadê você?"
+            "confirm_booking",  # NUNCA confirmar
+            "negotiate_terms",  # NUNCA negociar
         ],
         "required_behavior": (
             "Você está em REATIVAÇÃO: seja gentil.\n"
@@ -258,16 +256,12 @@ class CapabilitiesGate:
         # Combina proibições do modo + globais
         forbidden = set(self.config.get("forbidden_tools", [])) | set(GLOBAL_FORBIDDEN_TOOLS)
 
-        filtered = [
-            tool for tool in tools
-            if tool.get("name") not in forbidden
-        ]
+        filtered = [tool for tool in tools if tool.get("name") not in forbidden]
 
         removed = len(tools) - len(filtered)
         if removed:
             logger.debug(
-                f"CapabilitiesGate [{self.mode.value}]: "
-                f"removidas {removed} tools de {len(tools)}"
+                f"CapabilitiesGate [{self.mode.value}]: removidas {removed} tools de {len(tools)}"
             )
 
         return filtered

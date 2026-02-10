@@ -3,6 +3,7 @@ Queries e persistencia de handoffs.
 
 Sprint 10 - S10.E3.4
 """
+
 from datetime import datetime, timedelta
 import logging
 
@@ -81,7 +82,9 @@ async def obter_metricas_handoff(periodo_dias: int = 30) -> dict:
             por_tipo[tipo] = por_tipo.get(tipo, 0) + 1
 
         # Calcular tempo medio de resolucao
-        resolvidos = [h for h in handoffs if h.get("status") == "resolvido" and h.get("resolvido_em")]
+        resolvidos = [
+            h for h in handoffs if h.get("status") == "resolvido" and h.get("resolvido_em")
+        ]
         tempo_medio_minutos = _calcular_tempo_medio(resolvidos)
 
         return {
@@ -89,7 +92,7 @@ async def obter_metricas_handoff(periodo_dias: int = 30) -> dict:
             "pendentes": len([h for h in handoffs if h.get("status") == "pendente"]),
             "resolvidos": len(resolvidos),
             "por_tipo": por_tipo,
-            "tempo_medio_resolucao_minutos": tempo_medio_minutos
+            "tempo_medio_resolucao_minutos": tempo_medio_minutos,
         }
 
     except Exception as e:
@@ -99,7 +102,7 @@ async def obter_metricas_handoff(periodo_dias: int = 30) -> dict:
             "pendentes": 0,
             "resolvidos": 0,
             "por_tipo": {},
-            "tempo_medio_resolucao_minutos": 0
+            "tempo_medio_resolucao_minutos": 0,
         }
 
 
@@ -133,10 +136,7 @@ async def verificar_handoff_ativo(conversa_id: str) -> bool:
     """
     try:
         response = (
-            supabase.table("conversations")
-            .select("controlled_by")
-            .eq("id", conversa_id)
-            .execute()
+            supabase.table("conversations").select("controlled_by").eq("id", conversa_id).execute()
         )
 
         if response.data:

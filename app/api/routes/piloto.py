@@ -4,6 +4,7 @@ Endpoints para monitoramento do piloto.
 Sprint 35 - Epic 06: Atualizado para usar nomes de colunas corretos
 e fila_mensagens em vez de envios_campanha (tabela removida).
 """
+
 from fastapi import APIRouter
 from typing import Dict, Any
 
@@ -51,10 +52,7 @@ async def status_piloto() -> Dict[str, Any]:
 
     # Contar respostas
     medicos_piloto_resp = (
-        supabase.table("clientes")
-        .select("id")
-        .contains("tags", ["piloto_v1"])
-        .execute()
+        supabase.table("clientes").select("id").contains("tags", ["piloto_v1"]).execute()
     )
 
     medicos_piloto = medicos_piloto_resp.data or []
@@ -85,10 +83,10 @@ async def status_piloto() -> Dict[str, Any]:
             "total": len(envios),
             "enviados": enviados,
             "pendentes": pendentes,
-            "erros": erros
+            "erros": erros,
         },
         "metricas": {
             "responderam": responderam,
-            "taxa_resposta": responderam / enviados if enviados > 0 else 0
-        }
+            "taxa_resposta": responderam / enviados if enviados > 0 else 0,
+        },
     }

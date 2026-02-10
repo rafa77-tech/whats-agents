@@ -3,6 +3,7 @@ Processador de mensagens fora do horário comercial.
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 from typing import Optional
 
@@ -23,6 +24,7 @@ class ForaHorarioProcessor(PreProcessor):
 
     Prioridade: 32 (após OptOut 30, antes de BotDetection 35)
     """
+
     name = "fora_horario"
     priority = 32
 
@@ -41,9 +43,7 @@ class ForaHorarioProcessor(PreProcessor):
         # Se conversa está sob controle humano, NÃO enviar ACK
         # Deixar o humano lidar (ele pode estar trabalhando fora do horário)
         if context.conversa and context.conversa.get("controlled_by") == "human":
-            logger.info(
-                f"Fora do horário mas conversa sob controle humano - sem ACK"
-            )
+            logger.info("Fora do horário mas conversa sob controle humano - sem ACK")
             return ProcessorResult(success=True)  # Continua para HumanControlProcessor
 
         # Fora do horário - processar
@@ -58,7 +58,7 @@ class ForaHorarioProcessor(PreProcessor):
             return ProcessorResult(
                 success=True,
                 should_continue=False,  # Não continua para LLM
-                metadata={"fora_horario": True, "sem_ack": True, "tipo": classificacao.tipo.value}
+                metadata={"fora_horario": True, "sem_ack": True, "tipo": classificacao.tipo.value},
             )
 
         # Processar mensagem fora do horário
@@ -73,7 +73,7 @@ class ForaHorarioProcessor(PreProcessor):
             nome_cliente=nome,
             conversa_id=conversa_id,
             contexto={"telefone": context.telefone},
-            inbound_message_id=context.message_id  # Para idempotência de webhook retries
+            inbound_message_id=context.message_id,  # Para idempotência de webhook retries
         )
 
         # Se não tem ACK (ceiling atingido), parar sem resposta
@@ -91,18 +91,19 @@ class ForaHorarioProcessor(PreProcessor):
                 metadata={
                     "fora_horario": True,
                     "ack_ceiling": True,
-                    "registro_id": resultado.get("registro_id")
-                }
+                    "registro_id": resultado.get("registro_id"),
+                },
             )
 
         # Emitir evento de ACK enviado
         await self._emitir_evento_fora_horario(
-            context, classificacao, ack_enviado=True,
-            template_tipo=resultado.get("template_tipo")
+            context, classificacao, ack_enviado=True, template_tipo=resultado.get("template_tipo")
         )
 
         # Retornar ACK como resposta (será enviado pelos post-processors)
-        logger.info(f"ACK fora do horário para {context.telefone[-4:]}... (template={resultado.get('template_tipo')})")
+        logger.info(
+            f"ACK fora do horário para {context.telefone[-4:]}... (template={resultado.get('template_tipo')})"
+        )
         return ProcessorResult(
             success=True,
             should_continue=False,  # Bypass LLM
@@ -110,8 +111,8 @@ class ForaHorarioProcessor(PreProcessor):
             metadata={
                 "fora_horario": True,
                 "ack_template": resultado.get("template_tipo"),
-                "registro_id": resultado.get("registro_id")
-            }
+                "registro_id": resultado.get("registro_id"),
+            },
         )
 
     async def _emitir_evento_fora_horario(
@@ -120,7 +121,7 @@ class ForaHorarioProcessor(PreProcessor):
         classificacao,
         ack_enviado: bool,
         motivo: Optional[str] = None,
-        template_tipo: Optional[str] = None
+        template_tipo: Optional[str] = None,
     ) -> None:
         """Emite evento de fora do horário para observabilidade."""
         from app.services.business_events import (
@@ -135,26 +136,27 @@ class ForaHorarioProcessor(PreProcessor):
             return
 
         event_type = (
-            EventType.OUT_OF_HOURS_ACK_SENT if ack_enviado
-            else EventType.OUT_OF_HOURS_ACK_SKIPPED
+            EventType.OUT_OF_HOURS_ACK_SENT if ack_enviado else EventType.OUT_OF_HOURS_ACK_SKIPPED
         )
 
         safe_create_task(
-            emit_event(BusinessEvent(
-                event_type=event_type,
-                source=EventSource.PIPELINE,
-                cliente_id=cliente_id,
-                conversation_id=context.conversa.get("id") if context.conversa else None,
-                event_props={
-                    "contexto_tipo": classificacao.tipo.value,
-                    "confianca": classificacao.confianca,
-                    "template_tipo": template_tipo,
-                    "motivo_skip": motivo,
-                    "telefone_hash": context.telefone[-4:] if context.telefone else None,
-                },
-                dedupe_key=f"out_of_hours:{context.message_id}" if context.message_id else None,
-            )),
-            name="emit_out_of_hours_event"
+            emit_event(
+                BusinessEvent(
+                    event_type=event_type,
+                    source=EventSource.PIPELINE,
+                    cliente_id=cliente_id,
+                    conversation_id=context.conversa.get("id") if context.conversa else None,
+                    event_props={
+                        "contexto_tipo": classificacao.tipo.value,
+                        "confianca": classificacao.confianca,
+                        "template_tipo": template_tipo,
+                        "motivo_skip": motivo,
+                        "telefone_hash": context.telefone[-4:] if context.telefone else None,
+                    },
+                    dedupe_key=f"out_of_hours:{context.message_id}" if context.message_id else None,
+                )
+            ),
+            name="emit_out_of_hours_event",
         )
 
         logger.debug(f"Evento {event_type.value} emitido para {cliente_id[:8]}")

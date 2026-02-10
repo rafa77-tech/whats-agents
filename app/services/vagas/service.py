@@ -4,9 +4,9 @@ Service principal de vagas.
 Sprint 10 - S10.E3.2
 Sprint 17 - E01: Adicao de status 'realizada'
 """
+
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 
 from app.config.regioes import detectar_regiao_por_telefone
 from app.services.supabase import supabase
@@ -21,10 +21,7 @@ STATUS_VALIDOS_PARA_REALIZADA = ("reservada", "fechada")
 
 
 async def buscar_vagas_compativeis(
-    especialidade_id: str = None,
-    cliente_id: str = None,
-    medico: dict = None,
-    limite: int = 5
+    especialidade_id: str = None, cliente_id: str = None, medico: dict = None, limite: int = 5
 ) -> list[dict]:
     """
     Busca vagas compativeis com o medico.
@@ -94,10 +91,7 @@ async def buscar_vagas_por_regiao(medico: dict, limite: int = 5) -> list[dict]:
 
 
 async def reservar_vaga(
-    vaga_id: str,
-    cliente_id: str,
-    medico: dict = None,
-    notificar_gestor: bool = True
+    vaga_id: str, cliente_id: str, medico: dict = None, notificar_gestor: bool = True
 ) -> dict:
     """
     Reserva vaga para o medico.
@@ -126,9 +120,7 @@ async def reservar_vaga(
     # Verificar conflito
     if vaga.get("periodo_id"):
         conflito = await repository.verificar_conflito(
-            cliente_id=cliente_id,
-            data=vaga["data"],
-            periodo_id=vaga["periodo_id"]
+            cliente_id=cliente_id, data=vaga["data"], periodo_id=vaga["periodo_id"]
         )
         if conflito["conflito"]:
             raise ValueError("Voce ja tem um plantao neste dia e periodo")
@@ -146,7 +138,7 @@ async def reservar_vaga(
     if notificar_gestor and medico:
         logger.info(
             f"Plantão reservado para médico {medico.get('primeiro_nome', 'N/A')}",
-            extra={"vaga_id": vaga.get("id"), "cliente_id": medico.get("id")}
+            extra={"vaga_id": vaga.get("id"), "cliente_id": medico.get("id")},
         )
 
     return vaga_atualizada
@@ -205,11 +197,7 @@ async def marcar_vaga_realizada(
     """
     # Buscar vaga atual
     response = (
-        supabase.table("vagas")
-        .select("id, status")
-        .eq("id", vaga_id)
-        .maybe_single()
-        .execute()
+        supabase.table("vagas").select("id, status").eq("id", vaga_id).maybe_single().execute()
     )
 
     if not response.data:
@@ -220,17 +208,18 @@ async def marcar_vaga_realizada(
     # Aceita 'reservada' (novo) ou 'fechada' (legado)
     if status_atual not in STATUS_VALIDOS_PARA_REALIZADA:
         raise ValueError(
-            f"Vaga deve estar reservada ou fechada para ser realizada. "
-            f"Status atual: {status_atual}"
+            f"Vaga deve estar reservada ou fechada para ser realizada. Status atual: {status_atual}"
         )
 
     # Atualizar para 'realizada'
-    supabase.table("vagas").update({
-        "status": "realizada",
-        "realizada_em": datetime.now(timezone.utc).isoformat(),
-        "realizada_por": realizada_por,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }).eq("id", vaga_id).execute()
+    supabase.table("vagas").update(
+        {
+            "status": "realizada",
+            "realizada_em": datetime.now(timezone.utc).isoformat(),
+            "realizada_por": realizada_por,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+    ).eq("id", vaga_id).execute()
 
     logger.info(
         f"Vaga {vaga_id} marcada como realizada por {realizada_por} "

@@ -8,14 +8,13 @@ REGRAS CRÍTICAS:
 
 Sprint 15 - Policy Engine
 """
+
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
 from app.core.timezone import agora_utc
-from app.services.classificacao.severity_mapper import (
-    map_severity, is_opt_out, ObjectionSeverity
-)
+from app.services.classificacao.severity_mapper import map_severity, is_opt_out, ObjectionSeverity
 from .types import DoctorState, PermissionState, TemperatureTrend, LifecycleStage
 
 logger = logging.getLogger(__name__)
@@ -257,7 +256,8 @@ class StateUpdate:
 
         # Atualiza lifecycle baseado no sinal
         if signal_type == "pediu_vaga" and state.lifecycle_stage not in (
-            LifecycleStage.QUALIFIED, LifecycleStage.ACTIVE
+            LifecycleStage.QUALIFIED,
+            LifecycleStage.ACTIVE,
         ):
             updates["lifecycle_stage"] = LifecycleStage.QUALIFIED.value
 

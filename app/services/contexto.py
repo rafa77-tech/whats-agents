@@ -3,8 +3,9 @@ Servico para montagem de contexto do agente.
 
 Sprint 44 T06.3: Paralelização de context building com asyncio.gather
 """
+
 import asyncio
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Optional
 import logging
 
@@ -81,29 +82,29 @@ def formatar_contexto_medico(medico: dict) -> str:
 def montar_contexto_especialidade(medico: dict) -> str:
     """
     Monta contexto específico da especialidade.
-    
+
     Args:
         medico: Dados do médico
-    
+
     Returns:
         String com contexto da especialidade ou vazio
     """
     especialidade_nome = medico.get("especialidade") or medico.get("especialidade_nome")
     if not especialidade_nome:
         return ""
-    
+
     config = obter_config_especialidade(especialidade_nome)
     if not config:
         return ""
-    
+
     partes = [
         f"## Informações da Especialidade ({config['nome_display']})",
         f"- Tipos de plantão comuns: {', '.join(config['tipo_plantao'])}",
         f"- Faixa de valor: {config['valor_medio']}",
         f"- Setores: {', '.join(config['vocabulario']['setores'])}",
-        f"- Contexto: {config['contexto_extra']}"
+        f"- Contexto: {config['contexto_extra']}",
     ]
-    
+
     return "\n".join(partes)
 
 
@@ -258,7 +259,9 @@ def formatar_contexto_diretrizes(diretrizes: dict) -> str:
         partes.append(f"\n**Tom:**\n{diretrizes['tom_semana']}")
 
     if diretrizes.get("margem_negociacao"):
-        partes.append(f"\n**Margem de Negociacao:** Pode oferecer ate {diretrizes['margem_negociacao']}% a mais")
+        partes.append(
+            f"\n**Margem de Negociacao:** Pode oferecer ate {diretrizes['margem_negociacao']}% a mais"
+        )
 
     if diretrizes.get("observacoes"):
         partes.append(f"\n**Observacoes:**\n{diretrizes['observacoes']}")
@@ -269,10 +272,7 @@ def formatar_contexto_diretrizes(diretrizes: dict) -> str:
 
 
 async def montar_contexto_completo(
-    medico: dict,
-    conversa: dict,
-    vagas: list[dict] = None,
-    mensagem_atual: str = None
+    medico: dict, conversa: dict, vagas: list[dict] = None, mensagem_atual: str = None
 ) -> dict:
     """
     Monta contexto completo para o agente.
@@ -301,10 +301,11 @@ async def montar_contexto_completo(
         contexto_especialidade_str = montar_contexto_especialidade(medico)
 
         # Salvar no cache
-        await cache_set_json(cache_key, {
-            "medico": contexto_medico_str,
-            "especialidade": contexto_especialidade_str
-        }, DatabaseConfig.CACHE_TTL_CONTEXTO)
+        await cache_set_json(
+            cache_key,
+            {"medico": contexto_medico_str, "especialidade": contexto_especialidade_str},
+            DatabaseConfig.CACHE_TTL_CONTEXTO,
+        )
 
     # Sprint 44 T06.3: Paralelizar operações async independentes
     # Cada operação é independente e pode rodar em paralelo
@@ -314,8 +315,7 @@ async def montar_contexto_completo(
             return ""
         try:
             memorias = await enriquecer_contexto_com_memorias(
-                cliente_id=medico["id"],
-                mensagem_atual=mensagem_atual
+                cliente_id=medico["id"], mensagem_atual=mensagem_atual
             )
             if memorias:
                 logger.debug(f"Memorias RAG carregadas para medico {medico['id']}")
@@ -330,7 +330,7 @@ async def montar_contexto_completo(
         verificar_handoff_recente(conversa["id"]),
         carregar_diretrizes_ativas(),
         _carregar_memorias(),
-        return_exceptions=True  # Não propaga exceções
+        return_exceptions=True,  # Não propaga exceções
     )
 
     # Tratar possíveis exceções de cada operação

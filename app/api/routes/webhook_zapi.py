@@ -103,11 +103,11 @@ def _identificar_tipo_evento(payload: dict) -> str:
     # Fallback: identificar pela estrutura do payload
     # Mensagem recebida tem phone e text/image/etc
     if payload.get("phone") and (
-        payload.get("text") or
-        payload.get("image") or
-        payload.get("audio") or
-        payload.get("video") or
-        payload.get("document")
+        payload.get("text")
+        or payload.get("image")
+        or payload.get("audio")
+        or payload.get("video")
+        or payload.get("document")
     ):
         # Verificar se é mensagem própria (enviada) ou recebida
         if payload.get("fromMe"):
@@ -136,17 +136,13 @@ async def _obter_chip_por_zapi_instance(instance_id: str) -> Optional[dict]:
 
     try:
         # Buscar por zapi_instance_id
-        result = supabase.table("chips").select("*").eq(
-            "zapi_instance_id", instance_id
-        ).execute()
+        result = supabase.table("chips").select("*").eq("zapi_instance_id", instance_id).execute()
 
         if result.data:
             return result.data[0]
 
         # Fallback: buscar por provider z-api e verificar manualmente
-        result = supabase.table("chips").select("*").eq(
-            "provider", "z-api"
-        ).execute()
+        result = supabase.table("chips").select("*").eq("provider", "z-api").execute()
 
         for chip in result.data or []:
             if chip.get("zapi_instance_id") == instance_id:
@@ -159,7 +155,9 @@ async def _obter_chip_por_zapi_instance(instance_id: str) -> Optional[dict]:
         return None
 
 
-async def processar_mensagem_recebida(chip: dict, payload: dict, background_tasks: BackgroundTasks) -> dict:
+async def processar_mensagem_recebida(
+    chip: dict, payload: dict, background_tasks: BackgroundTasks
+) -> dict:
     """
     Processa mensagem recebida no chip via Z-API.
 
@@ -238,27 +236,26 @@ async def processar_mensagem_recebida(chip: dict, payload: dict, background_task
         logger.warning(f"[WebhookZAPI] Erro ao registrar resposta via RPC: {e}")
         # Fallback: registrar manualmente
         try:
-            supabase.table("chip_interactions").insert({
-                "chip_id": chip["id"],
-                "tipo": "msg_recebida",
-                "remetente": telefone,
-                "sucesso": True,
-                "metadata": {"tipo_midia": tipo_midia, "provider": "zapi"},
-            }).execute()
+            supabase.table("chip_interactions").insert(
+                {
+                    "chip_id": chip["id"],
+                    "tipo": "msg_recebida",
+                    "remetente": telefone,
+                    "sucesso": True,
+                    "metadata": {"tipo_midia": tipo_midia, "provider": "zapi"},
+                }
+            ).execute()
         except Exception as e2:
             logger.error(f"[WebhookZAPI] Erro no fallback de métricas: {e2}")
 
     # Verificar se chip está ativo para processamento
     if chip.get("status") not in ["active", "warming"]:
         logger.warning(
-            f"[WebhookZAPI] Chip {chip['telefone']} não está ativo "
-            f"(status={chip.get('status')})"
+            f"[WebhookZAPI] Chip {chip['telefone']} não está ativo (status={chip.get('status')})"
         )
         return {"status": "ok", "processed": False}
 
-    logger.info(
-        f"[WebhookZAPI] Mensagem de {telefone} recebida por chip {chip['telefone']}"
-    )
+    logger.info(f"[WebhookZAPI] Mensagem de {telefone} recebida por chip {chip['telefone']}")
 
     # Converter payload Z-API para formato Evolution (compatível com pipeline)
     evolution_data = _converter_para_formato_evolution(payload, chip)
@@ -393,45 +390,49 @@ async def processar_conexao(chip: dict, payload: dict) -> dict:
     is_connected = connected and smartphone_connected
 
     try:
-        supabase.table("chips").update({
-            "evolution_connected": is_connected,  # Reutiliza campo existente
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", chip["id"]).execute()
+        supabase.table("chips").update(
+            {
+                "evolution_connected": is_connected,  # Reutiliza campo existente
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", chip["id"]).execute()
 
         if not is_connected:
             logger.warning(f"[WebhookZAPI] Chip desconectado: {chip['telefone']}")
 
             # Verificar se já existe alerta aberto antes de criar novo
-            existing_alert = supabase.table("chip_alerts").select("id").eq(
-                "chip_id", chip["id"]
-            ).eq(
-                "tipo", "connection_lost"
-            ).eq(
-                "resolved", False
-            ).limit(1).execute()
+            existing_alert = (
+                supabase.table("chip_alerts")
+                .select("id")
+                .eq("chip_id", chip["id"])
+                .eq("tipo", "connection_lost")
+                .eq("resolved", False)
+                .limit(1)
+                .execute()
+            )
 
             if not existing_alert.data:
                 # Criar alerta apenas se não houver um aberto
-                supabase.table("chip_alerts").insert({
-                    "chip_id": chip["id"],
-                    "severity": "warning",
-                    "tipo": "connection_lost",
-                    "message": f"Chip {chip['telefone']} desconectado (Z-API)",
-                }).execute()
+                supabase.table("chip_alerts").insert(
+                    {
+                        "chip_id": chip["id"],
+                        "severity": "warning",
+                        "tipo": "connection_lost",
+                        "message": f"Chip {chip['telefone']} desconectado (Z-API)",
+                    }
+                ).execute()
 
         else:
             logger.info(f"[WebhookZAPI] Chip conectado: {chip['telefone']}")
 
             # Resolver alertas de conexão
-            supabase.table("chip_alerts").update({
-                "resolved": True,
-                "resolved_at": datetime.now(timezone.utc).isoformat(),
-                "resolved_by": "auto",
-            }).eq(
-                "chip_id", chip["id"]
-            ).eq(
-                "tipo", "connection_lost"
-            ).eq(
+            supabase.table("chip_alerts").update(
+                {
+                    "resolved": True,
+                    "resolved_at": datetime.now(timezone.utc).isoformat(),
+                    "resolved_by": "auto",
+                }
+            ).eq("chip_id", chip["id"]).eq("tipo", "connection_lost").eq(
                 "resolved", False
             ).execute()
 
@@ -463,12 +464,14 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
 
     try:
         if status in ["DELIVERED", "DELIVERY_ACK"]:
-            supabase.table("chip_interactions").insert({
-                "chip_id": chip["id"],
-                "tipo": "msg_entregue",
-                "destinatario": telefone,
-                "metadata": {"message_id": message_id, "provider": "zapi"},
-            }).execute()
+            supabase.table("chip_interactions").insert(
+                {
+                    "chip_id": chip["id"],
+                    "tipo": "msg_entregue",
+                    "destinatario": telefone,
+                    "metadata": {"message_id": message_id, "provider": "zapi"},
+                }
+            ).execute()
 
             # Sprint 41: Atualizar delivery_status na interação
             if message_id:
@@ -479,12 +482,14 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
                 )
 
         elif status in ["READ", "VIEWED"]:
-            supabase.table("chip_interactions").insert({
-                "chip_id": chip["id"],
-                "tipo": "msg_lida",
-                "destinatario": telefone,
-                "metadata": {"message_id": message_id, "provider": "zapi"},
-            }).execute()
+            supabase.table("chip_interactions").insert(
+                {
+                    "chip_id": chip["id"],
+                    "tipo": "msg_lida",
+                    "destinatario": telefone,
+                    "metadata": {"message_id": message_id, "provider": "zapi"},
+                }
+            ).execute()
 
             # Sprint 41: Atualizar delivery_status na interação
             if message_id:
@@ -496,12 +501,14 @@ async def processar_status_mensagem(chip: dict, payload: dict) -> dict:
 
         elif status == "PLAYED":
             # Áudio/vídeo reproduzido
-            supabase.table("chip_interactions").insert({
-                "chip_id": chip["id"],
-                "tipo": "msg_reproduzida",
-                "destinatario": telefone,
-                "metadata": {"message_id": message_id, "provider": "zapi"},
-            }).execute()
+            supabase.table("chip_interactions").insert(
+                {
+                    "chip_id": chip["id"],
+                    "tipo": "msg_reproduzida",
+                    "destinatario": telefone,
+                    "metadata": {"message_id": message_id, "provider": "zapi"},
+                }
+            ).execute()
 
             # Sprint 41: Atualizar delivery_status na interação (played = read)
             if message_id:
@@ -540,20 +547,19 @@ async def processar_presenca_chat(chip: dict, payload: dict) -> dict:
     status = payload.get("status", "").upper()
     telefone = payload.get("phone", "").replace("@c.us", "")
 
-    logger.debug(
-        f"[WebhookZAPI] Presença: {telefone} -> {status} "
-        f"(chip={chip['telefone'][-4:]})"
-    )
+    logger.debug(f"[WebhookZAPI] Presença: {telefone} -> {status} (chip={chip['telefone'][-4:]})")
 
     # Registrar presença se for digitando ou gravando (indicativo de engajamento)
     if status in ["COMPOSING", "RECORDING"]:
         try:
-            supabase.table("chip_interactions").insert({
-                "chip_id": chip["id"],
-                "tipo": "presenca_digitando" if status == "COMPOSING" else "presenca_gravando",
-                "remetente": telefone,
-                "metadata": {"status": status, "provider": "zapi"},
-            }).execute()
+            supabase.table("chip_interactions").insert(
+                {
+                    "chip_id": chip["id"],
+                    "tipo": "presenca_digitando" if status == "COMPOSING" else "presenca_gravando",
+                    "remetente": telefone,
+                    "metadata": {"status": status, "provider": "zapi"},
+                }
+            ).execute()
         except Exception as e:
             logger.debug(f"[WebhookZAPI] Erro ao registrar presença: {e}")
 
@@ -582,12 +588,14 @@ async def processar_delivery(chip: dict, payload: dict) -> dict:
     )
 
     try:
-        supabase.table("chip_interactions").insert({
-            "chip_id": chip["id"],
-            "tipo": "msg_enviada_confirmada",
-            "destinatario": telefone,
-            "metadata": {"message_id": message_id, "provider": "zapi"},
-        }).execute()
+        supabase.table("chip_interactions").insert(
+            {
+                "chip_id": chip["id"],
+                "tipo": "msg_enviada_confirmada",
+                "destinatario": telefone,
+                "metadata": {"message_id": message_id, "provider": "zapi"},
+            }
+        ).execute()
     except Exception as e:
         logger.debug(f"[WebhookZAPI] Erro ao registrar delivery: {e}")
 

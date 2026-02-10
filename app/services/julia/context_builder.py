@@ -12,6 +12,7 @@ Responsabilidades:
 - Filtrar tools por capabilities
 - Sumarizar conversas longas (Sprint 44)
 """
+
 import logging
 from typing import Optional, List, Dict, Any, Tuple
 
@@ -20,7 +21,6 @@ from app.services.conhecimento import OrquestradorConhecimento
 from app.services.interacao import converter_historico_para_messages
 from app.services.conversation_mode.prompts import get_micro_confirmation_prompt
 
-from .models import JuliaContext, PolicyContext
 from .summarizer import sumarizar_se_necessario
 
 logger = logging.getLogger(__name__)
@@ -89,8 +89,7 @@ class ContextBuilder:
             historico_msgs = []
             if historico_raw:
                 historico_msgs = [
-                    m.get("conteudo", "") for m in historico_raw
-                    if m.get("tipo") == "recebida"
+                    m.get("conteudo", "") for m in historico_raw if m.get("tipo") == "recebida"
                 ][-5:]  # Últimas 5 mensagens
 
             situacao = await orquestrador.analisar_situacao(
@@ -136,7 +135,7 @@ class ContextBuilder:
         constraints_parts = []
 
         # Constraints da Policy Engine (Sprint 15)
-        if policy_decision and hasattr(policy_decision, 'constraints_text'):
+        if policy_decision and hasattr(policy_decision, "constraints_text"):
             if policy_decision.constraints_text:
                 constraints_parts.append(policy_decision.constraints_text)
 
@@ -151,7 +150,7 @@ class ContextBuilder:
             )
 
         # Prompt de micro-confirmação se há pending_transition
-        if mode_info and hasattr(mode_info, 'pending_transition') and mode_info.pending_transition:
+        if mode_info and hasattr(mode_info, "pending_transition") and mode_info.pending_transition:
             micro_prompt = get_micro_confirmation_prompt(
                 mode_info.mode, mode_info.pending_transition
             )
@@ -247,9 +246,7 @@ class ContextBuilder:
             return [], ""
 
         # Tentar sumarizar se necessário
-        resumo, msgs_para_converter = await sumarizar_se_necessario(
-            historico_raw, conversa_id
-        )
+        resumo, msgs_para_converter = await sumarizar_se_necessario(historico_raw, conversa_id)
 
         # Converter mensagens (todas ou apenas recentes)
         messages = converter_historico_para_messages(msgs_para_converter)

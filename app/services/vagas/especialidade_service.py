@@ -6,6 +6,7 @@ Sprint 31 - S31.E5.1
 Centraliza a lógica de buscar especialidades por nome,
 incluindo normalização e cache.
 """
+
 import logging
 from typing import Optional
 
@@ -92,9 +93,7 @@ class EspecialidadeService:
             return None
 
     async def resolver_especialidade_medico(
-        self,
-        especialidade_solicitada: Optional[str],
-        medico: dict
+        self, especialidade_solicitada: Optional[str], medico: dict
     ) -> tuple[Optional[str], Optional[str], bool]:
         """
         Resolve a especialidade a ser usada na busca.
@@ -117,13 +116,18 @@ class EspecialidadeService:
             if especialidade_id:
                 especialidade_nome = especialidade_solicitada.title()
                 # Verificar se é diferente da cadastrada
-                if especialidade_medico and especialidade_medico.lower() != especialidade_solicitada.lower():
+                if (
+                    especialidade_medico
+                    and especialidade_medico.lower() != especialidade_solicitada.lower()
+                ):
                     especialidade_diferente = True
                     logger.info(
                         f"Medico pediu {especialidade_solicitada} mas cadastro é {especialidade_medico}"
                     )
             else:
-                logger.warning(f"Especialidade '{especialidade_solicitada}' não encontrada no banco")
+                logger.warning(
+                    f"Especialidade '{especialidade_solicitada}' não encontrada no banco"
+                )
                 return None, especialidade_solicitada, False
         else:
             # Usar especialidade cadastrada do médico

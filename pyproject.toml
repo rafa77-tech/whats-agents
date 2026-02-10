@@ -42,6 +42,18 @@ dev = [
 line-length = 100
 target-version = "py313"
 
+[tool.ruff.lint]
+# Ignorar erros intencionais
+ignore = [
+    "E402",  # module level import not at top of file (conditional imports)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Re-exports em __init__.py são intencionais
+"__init__.py" = ["F401", "F403"]
+# Backward compatibility re-exports
+"app/services/slack_formatter.py" = ["F401", "F403"]
+
 [tool.black]
 line-length = 100
 target-version = ["py313"]
@@ -50,9 +62,68 @@ target-version = ["py313"]
 dev = [
     "pytest>=9.0.1",
     "pytest-asyncio>=1.3.0",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
 ]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true
+exclude = [
+    "tests/",
+    "docs/",
+    "planning/",
+    ".venv/",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "supabase.*",
+    "voyageai.*",
+    "anthropic.*",
+    "redis.*",
+    "google.*",
+    "googleapiclient.*",
+    "bs4.*",
+    "lxml.*",
+    "openpyxl.*",
+    "playwright.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 pythonpath = ["."]
+addopts = [
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-fail-under=45",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "app/__init__.py",
+    "app/main.py",
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+branch = true
+
+[tool.coverage.report]
+fail_under = 45
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@abstractmethod",
+]
+show_missing = true

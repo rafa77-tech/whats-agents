@@ -28,7 +28,7 @@ def _calcular_confianca_geral(
     hospital: HospitalExtraido,
     data_periodo: DataPeriodoExtraido,
     valor: Optional[int],
-    contato: Optional[ContatoExtraido]
+    contato: Optional[ContatoExtraido],
 ) -> float:
     """
     Calcula confiança geral da vaga.
@@ -109,27 +109,21 @@ def gerar_vagas_para_hospital(
             periodo=dp.periodo,
             hora_inicio=dp.hora_inicio,
             hora_fim=dp.hora_fim,
-
             # Valor
             valor=valor or 0,  # 0 indica valor não informado
-
             # Hospital
             hospital_raw=hospital.nome,
             endereco_raw=hospital.endereco,
             cidade=hospital.cidade,
             estado=hospital.estado,
-
             # Especialidade
             especialidade_raw=especialidade.nome if especialidade else None,
-
             # Contato
             contato_nome=contato.nome if contato else None,
             contato_whatsapp=contato.whatsapp if contato else None,
-
             # Metadados
             confianca_geral=confianca,
             observacoes="Valor não informado" if valor is None else None,
-
             # Rastreabilidade
             mensagem_id=mensagem_id,
             grupo_id=grupo_id,

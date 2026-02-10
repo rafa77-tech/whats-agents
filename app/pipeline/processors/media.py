@@ -3,6 +3,7 @@ Processador de mídia (audio, imagem, documento, video).
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 
 from ..base import PreProcessor, ProcessorContext, ProcessorResult
@@ -16,6 +17,7 @@ class MediaProcessor(PreProcessor):
 
     Prioridade: 40
     """
+
     name = "media"
     priority = 40
 
@@ -24,7 +26,7 @@ class MediaProcessor(PreProcessor):
             obter_resposta_audio,
             obter_resposta_imagem,
             obter_resposta_documento,
-            obter_resposta_video
+            obter_resposta_video,
         )
 
         tipo = context.tipo_mensagem
@@ -48,7 +50,7 @@ class MediaProcessor(PreProcessor):
                 success=True,
                 should_continue=False,
                 response=resposta,
-                metadata={"media_type": tipo}
+                metadata={"media_type": tipo},
             )
 
         return ProcessorResult(success=True)

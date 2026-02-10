@@ -5,12 +5,12 @@ Responsável por criar pares de chips que conversam entre si
 durante o processo de aquecimento, garantindo naturalidade
 e distribuição equilibrada.
 """
+
 import logging
 import random
 from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from collections import defaultdict
 
 from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ChipInfo:
     """Informações de um chip para pareamento."""
+
     id: str
     telefone: str
     ddd: int
@@ -39,6 +40,7 @@ class ChipInfo:
 @dataclass
 class ParInfo:
     """Informação de um par de chips."""
+
     chip_a: ChipInfo
     chip_b: ChipInfo
     score_compatibilidade: float
@@ -99,10 +101,16 @@ class PairingEngine:
         # Buscar chips ativos em fases de warmup
         fases_validas = list(FASES_COMPATIVEIS.keys())
 
-        result = supabase.table("chips").select(
-            "id, telefone, fase_warmup, trust_score, "
-            "msgs_enviadas_hoje, msgs_recebidas_hoje, ultimo_pareamento"
-        ).eq("status", "connected").in_("fase_warmup", fases_validas).execute()
+        result = (
+            supabase.table("chips")
+            .select(
+                "id, telefone, fase_warmup, trust_score, "
+                "msgs_enviadas_hoje, msgs_recebidas_hoje, ultimo_pareamento"
+            )
+            .eq("status", "connected")
+            .in_("fase_warmup", fases_validas)
+            .execute()
+        )
 
         chips = []
         for row in result.data or []:
@@ -115,26 +123,24 @@ class PairingEngine:
                     row["ultimo_pareamento"].replace("Z", "+00:00")
                 )
 
-            chips.append(ChipInfo(
-                id=row["id"],
-                telefone=telefone,
-                ddd=ddd,
-                fase_warmup=row["fase_warmup"],
-                trust_score=row.get("trust_score", 50),
-                msgs_enviadas_hoje=row.get("msgs_enviadas_hoje", 0),
-                msgs_recebidas_hoje=row.get("msgs_recebidas_hoje", 0),
-                ultimo_pareamento=ultimo_pareamento,
-            ))
+            chips.append(
+                ChipInfo(
+                    id=row["id"],
+                    telefone=telefone,
+                    ddd=ddd,
+                    fase_warmup=row["fase_warmup"],
+                    trust_score=row.get("trust_score", 50),
+                    msgs_enviadas_hoje=row.get("msgs_enviadas_hoje", 0),
+                    msgs_recebidas_hoje=row.get("msgs_recebidas_hoje", 0),
+                    ultimo_pareamento=ultimo_pareamento,
+                )
+            )
 
         logger.info(f"[Pairing] {len(chips)} chips disponíveis para pareamento")
 
         return chips
 
-    async def _carregar_pares_recentes(
-        self,
-        chip_id: str,
-        horas: int = 24
-    ) -> List[str]:
+    async def _carregar_pares_recentes(self, chip_id: str, horas: int = 24) -> List[str]:
         """
         Carrega IDs de chips pareados recentemente.
 
@@ -147,11 +153,13 @@ class PairingEngine:
         """
         desde = agora_brasilia() - timedelta(hours=horas)
 
-        result = supabase.table("chip_pairs").select(
-            "chip_a_id, chip_b_id"
-        ).or_(
-            f"chip_a_id.eq.{chip_id},chip_b_id.eq.{chip_id}"
-        ).gte("created_at", desde.isoformat()).execute()
+        result = (
+            supabase.table("chip_pairs")
+            .select("chip_a_id, chip_b_id")
+            .or_(f"chip_a_id.eq.{chip_id},chip_b_id.eq.{chip_id}")
+            .gte("created_at", desde.isoformat())
+            .execute()
+        )
 
         pares = set()
         for row in result.data or []:
@@ -336,7 +344,7 @@ class PairingEngine:
         chips_usados = set()
 
         for i, chip_a in enumerate(chips):
-            for chip_b in chips[i + 1:]:
+            for chip_b in chips[i + 1 :]:
                 score, motivo = self._calcular_score_compatibilidade(chip_a, chip_b)
                 if score > 0:
                     pares_possiveis.append((score, motivo, chip_a, chip_b))
@@ -356,12 +364,14 @@ class PairingEngine:
             chips_usados.add(chip_a.id)
             chips_usados.add(chip_b.id)
 
-            pares_criados.append(ParInfo(
-                chip_a=chip_a,
-                chip_b=chip_b,
-                score_compatibilidade=score,
-                motivo=motivo,
-            ))
+            pares_criados.append(
+                ParInfo(
+                    chip_a=chip_a,
+                    chip_b=chip_b,
+                    score_compatibilidade=score,
+                    motivo=motivo,
+                )
+            )
 
         logger.info(f"[Pairing] {len(pares_criados)} pares criados em lote")
 
@@ -384,21 +394,27 @@ class PairingEngine:
         Returns:
             ID do registro de pareamento
         """
-        result = supabase.table("chip_pairs").insert({
-            "chip_a_id": chip_a_id,
-            "chip_b_id": chip_b_id,
-            "tipo": motivo,
-            "status": "ativo",
-            "conversas_count": 0,
-        }).execute()
+        result = (
+            supabase.table("chip_pairs")
+            .insert(
+                {
+                    "chip_a_id": chip_a_id,
+                    "chip_b_id": chip_b_id,
+                    "tipo": motivo,
+                    "status": "ativo",
+                    "conversas_count": 0,
+                }
+            )
+            .execute()
+        )
 
         pair_id = result.data[0]["id"] if result.data else None
 
         # Atualizar último pareamento nos chips
         agora = agora_brasilia().isoformat()
-        supabase.table("chips").update(
-            {"ultimo_pareamento": agora}
-        ).in_("id", [chip_a_id, chip_b_id]).execute()
+        supabase.table("chips").update({"ultimo_pareamento": agora}).in_(
+            "id", [chip_a_id, chip_b_id]
+        ).execute()
 
         logger.info(f"[Pairing] Pareamento registrado: {pair_id}")
 
@@ -418,10 +434,12 @@ class PairingEngine:
         """
         status = "concluido" if sucesso else "falhou"
 
-        supabase.table("chip_pairs").update({
-            "status": status,
-            "ended_at": agora_brasilia().isoformat(),
-        }).eq("id", pair_id).execute()
+        supabase.table("chip_pairs").update(
+            {
+                "status": status,
+                "ended_at": agora_brasilia().isoformat(),
+            }
+        ).eq("id", pair_id).execute()
 
         logger.info(f"[Pairing] Pareamento {pair_id} finalizado: {status}")
 

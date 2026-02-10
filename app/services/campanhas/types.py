@@ -3,6 +3,7 @@ Tipos e enums para campanhas.
 
 Sprint 35 - Epic 03
 """
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum

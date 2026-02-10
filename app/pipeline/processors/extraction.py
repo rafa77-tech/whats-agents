@@ -36,6 +36,7 @@ class ExtractionProcessor(PostProcessor):
     Executa em background para nao atrasar a resposta.
     Falhas sao logadas mas nao interrompem o pipeline.
     """
+
     name = "extraction"
     priority = 35
 
@@ -44,17 +45,9 @@ class ExtractionProcessor(PostProcessor):
         if not EXTRACTION_ENABLED:
             return False
 
-        return bool(
-            context.mensagem_texto
-            and context.medico
-            and context.conversa
-        )
+        return bool(context.mensagem_texto and context.medico and context.conversa)
 
-    async def process(
-        self,
-        context: ProcessorContext,
-        response: str
-    ) -> ProcessorResult:
+    async def process(self, context: ProcessorContext, response: str) -> ProcessorResult:
         """
         Extrai dados e persiste em background.
 
@@ -66,17 +59,12 @@ class ExtractionProcessor(PostProcessor):
 
         # Executar em background para nao atrasar resposta
         safe_create_task(
-            self._extrair_e_persistir(context, response),
-            name=f"extraction_{context.telefone[-4:]}"
+            self._extrair_e_persistir(context, response), name=f"extraction_{context.telefone[-4:]}"
         )
 
         return ProcessorResult(success=True, response=response)
 
-    async def _extrair_e_persistir(
-        self,
-        context: ProcessorContext,
-        response: str
-    ) -> None:
+    async def _extrair_e_persistir(self, context: ProcessorContext, response: str) -> None:
         """Task em background para extracao e persistencia."""
         try:
             # 1. Montar contexto
@@ -138,5 +126,5 @@ class ExtractionProcessor(PostProcessor):
                 extra={
                     "cliente_id": context.medico.get("id") if context.medico else None,
                     "conversa_id": context.conversa.get("id") if context.conversa else None,
-                }
+                },
             )

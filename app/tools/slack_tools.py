@@ -12,6 +12,7 @@ Este arquivo foi reorganizado em:
 Use: from app.tools.slack import SLACK_TOOLS, executar_tool
 Sprint 10 - S10.E2.3
 """
+
 import warnings
 
 warnings.warn(

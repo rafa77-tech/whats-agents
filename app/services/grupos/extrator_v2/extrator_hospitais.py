@@ -21,67 +21,136 @@ logger = get_logger(__name__)
 
 # Prefixos que indicam nome de hospital
 PREFIXOS_HOSPITAL = [
-    "hospital", "hosp", "hosp.", "h.",
-    "clínica", "clinica", "clin", "clin.",
-    "upa", "u.p.a.",
-    "ama", "a.m.a.",
-    "ubs", "u.b.s.",
-    "caps", "c.a.p.s.",
-    "ps ", "p.s.", "pronto socorro", "pronto-socorro",
-    "pa ", "p.a.", "pronto atendimento", "pronto-atendimento",
+    "hospital",
+    "hosp",
+    "hosp.",
+    "h.",
+    "clínica",
+    "clinica",
+    "clin",
+    "clin.",
+    "upa",
+    "u.p.a.",
+    "ama",
+    "a.m.a.",
+    "ubs",
+    "u.b.s.",
+    "caps",
+    "c.a.p.s.",
+    "ps ",
+    "p.s.",
+    "pronto socorro",
+    "pronto-socorro",
+    "pa ",
+    "p.a.",
+    "pronto atendimento",
+    "pronto-atendimento",
     "santa casa",
-    "beneficência", "beneficencia",
-    "maternidade", "mat.",
-    "instituto", "inst.",
-    "centro médico", "centro medico",
+    "beneficência",
+    "beneficencia",
+    "maternidade",
+    "mat.",
+    "instituto",
+    "inst.",
+    "centro médico",
+    "centro medico",
 ]
 
 # Prefixos que indicam endereço
 PREFIXOS_ENDERECO = [
-    "rua", "r.",
-    "avenida", "av.", "av ",
-    "alameda", "al.",
-    "estrada", "estr.",
-    "rodovia", "rod.",
-    "travessa", "tv.",
-    "praça", "praca", "pç.",
+    "rua",
+    "r.",
+    "avenida",
+    "av.",
+    "av ",
+    "alameda",
+    "al.",
+    "estrada",
+    "estr.",
+    "rodovia",
+    "rod.",
+    "travessa",
+    "tv.",
+    "praça",
+    "praca",
+    "pç.",
     "largo",
 ]
 
 # Estados brasileiros
 ESTADOS_BR = {
-    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
-    "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
-    "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+    "AC",
+    "AL",
+    "AP",
+    "AM",
+    "BA",
+    "CE",
+    "DF",
+    "ES",
+    "GO",
+    "MA",
+    "MT",
+    "MS",
+    "MG",
+    "PA",
+    "PB",
+    "PR",
+    "PE",
+    "PI",
+    "RJ",
+    "RN",
+    "RS",
+    "RO",
+    "RR",
+    "SC",
+    "SP",
+    "SE",
+    "TO",
 }
 
 # Regiões comuns em mensagens de SP
 REGIOES_SP = {
-    "abc", "abcd", "grande abc",
-    "zona norte", "zn", "z. norte",
-    "zona sul", "zs", "z. sul",
-    "zona leste", "zl", "z. leste",
-    "zona oeste", "zo", "z. oeste",
+    "abc",
+    "abcd",
+    "grande abc",
+    "zona norte",
+    "zn",
+    "z. norte",
+    "zona sul",
+    "zs",
+    "z. sul",
+    "zona leste",
+    "zl",
+    "z. leste",
+    "zona oeste",
+    "zo",
+    "z. oeste",
     "centro",
-    "guarulhos", "osasco", "santo andré", "são bernardo",
-    "são caetano", "diadema", "mauá", "maua",
+    "guarulhos",
+    "osasco",
+    "santo andré",
+    "são bernardo",
+    "são caetano",
+    "diadema",
+    "mauá",
+    "maua",
 }
 
 # Regex para CEP
-PATTERN_CEP = re.compile(r'\d{5}-?\d{3}')
+PATTERN_CEP = re.compile(r"\d{5}-?\d{3}")
 
 # Regex para número de endereço
-PATTERN_NUMERO = re.compile(r',?\s*n?[º°]?\s*(\d+)')
+PATTERN_NUMERO = re.compile(r",?\s*n?[º°]?\s*(\d+)")
 
 
 def _limpar_texto(texto: str) -> str:
     """Remove emojis e caracteres especiais extras."""
     # Remove emojis comuns
-    texto = re.sub(r'[📍🏥🏨🏢📌🗺️🗺]', '', texto)
+    texto = re.sub(r"[📍🏥🏨🏢📌🗺️🗺]", "", texto)
     # Remove asteriscos de negrito WhatsApp
-    texto = texto.replace('*', '')
+    texto = texto.replace("*", "")
     # Remove espaços extras
-    texto = ' '.join(texto.split())
+    texto = " ".join(texto.split())
     return texto.strip()
 
 
@@ -108,7 +177,7 @@ def _extrair_cidade(texto: str, estado: Optional[str] = None) -> Optional[str]:
 
     # Se tem estado, tentar extrair cidade antes dele
     if estado:
-        pattern = rf'([^,\-]+)\s*[-–]\s*{estado}'
+        pattern = rf"([^,\-]+)\s*[-–]\s*{estado}"
         match = re.search(pattern, texto, re.IGNORECASE)
         if match:
             cidade = match.group(1).strip()
@@ -163,11 +232,11 @@ def _extrair_nome_hospital(texto: str) -> Tuple[str, float]:
             resto = texto_limpo[idx:]
 
             # Pegar até vírgula, ponto ou fim
-            match = re.match(r'^([^,.\n]+)', resto)
+            match = re.match(r"^([^,.\n]+)", resto)
             if match:
                 nome = match.group(1).strip()
                 # Remover número de endereço se presente
-                nome = PATTERN_NUMERO.sub('', nome).strip()
+                nome = PATTERN_NUMERO.sub("", nome).strip()
                 return nome, 0.9
 
     # Fallback: usar linha inteira se não tem indicador claro
@@ -216,10 +285,7 @@ def extrair_hospitais(linhas_local: List[str]) -> List[HospitalExtraido]:
             cidade = _extrair_cidade(linha, estado)
 
             hospital_atual = HospitalExtraido(
-                nome=nome,
-                cidade=cidade,
-                estado=estado,
-                confianca=confianca
+                nome=nome, cidade=cidade, estado=estado, confianca=confianca
             )
             endereco_atual = None
 
@@ -242,10 +308,7 @@ def extrair_hospitais(linhas_local: List[str]) -> List[HospitalExtraido]:
         else:
             # Se não tem hospital atual, pode ser nome
             if not hospital_atual:
-                hospital_atual = HospitalExtraido(
-                    nome=linha_limpa,
-                    confianca=0.6
-                )
+                hospital_atual = HospitalExtraido(nome=linha_limpa, confianca=0.6)
             else:
                 # Tentar extrair estado/cidade de linhas adicionais
                 estado = _extrair_estado(linha)

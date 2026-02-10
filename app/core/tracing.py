@@ -21,6 +21,7 @@ Como funciona:
     - O middleware gera/extrai o trace_id no início de cada request
     - Todos os logs podem incluir o trace_id para correlação
 """
+
 import uuid
 from contextvars import ContextVar
 from typing import Optional

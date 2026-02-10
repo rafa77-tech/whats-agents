@@ -44,23 +44,63 @@ CACHE_PREFIX = "grupo:extracao_llm:"
 
 # Especialidades válidas para normalização
 ESPECIALIDADES_VALIDAS = [
-    "Acupuntura", "Alergia e Imunologia", "Anestesiologia", "Angiologia",
-    "Cardiologia", "Cirurgia Cardiovascular", "Cirurgia da Mão",
-    "Cirurgia de Cabeça e Pescoço", "Cirurgia do Aparelho Digestivo",
-    "Cirurgia Geral", "Cirurgia Oncológica", "Cirurgia Pediátrica",
-    "Cirurgia Plástica", "Cirurgia Torácica", "Cirurgia Vascular",
-    "Clínica Médica", "Coloproctologia", "Dermatologia",
-    "Endocrinologia e Metabologia", "Endoscopia", "Gastroenterologia",
-    "Generalista", "Genética Médica", "Geriatria", "Ginecologia e Obstetrícia",
-    "Hematologia e Hemoterapia", "Homeopatia", "Infectologia", "Mastologia",
-    "Medicina de Emergência", "Medicina de Família", "Medicina do Trabalho",
-    "Medicina do Tráfego", "Medicina Esportiva", "Medicina Física e Reabilitação",
-    "Medicina Intensiva", "Medicina Legal e Perícia Médica", "Medicina Nuclear",
-    "Medicina Preventiva e Social", "Nefrologia", "Neonatologia", "Neurocirurgia",
-    "Neurologia", "Nutrologia", "Oftalmologia", "Oncologia Clínica",
-    "Ortopedia e Traumatologia", "Otorrinolaringologia", "Patologia",
-    "Patologia Clínica", "Pediatria", "Pneumologia", "Psiquiatria",
-    "Radiologia e Diagnóstico por Imagem", "Radioterapia", "Reumatologia", "Urologia"
+    "Acupuntura",
+    "Alergia e Imunologia",
+    "Anestesiologia",
+    "Angiologia",
+    "Cardiologia",
+    "Cirurgia Cardiovascular",
+    "Cirurgia da Mão",
+    "Cirurgia de Cabeça e Pescoço",
+    "Cirurgia do Aparelho Digestivo",
+    "Cirurgia Geral",
+    "Cirurgia Oncológica",
+    "Cirurgia Pediátrica",
+    "Cirurgia Plástica",
+    "Cirurgia Torácica",
+    "Cirurgia Vascular",
+    "Clínica Médica",
+    "Coloproctologia",
+    "Dermatologia",
+    "Endocrinologia e Metabologia",
+    "Endoscopia",
+    "Gastroenterologia",
+    "Generalista",
+    "Genética Médica",
+    "Geriatria",
+    "Ginecologia e Obstetrícia",
+    "Hematologia e Hemoterapia",
+    "Homeopatia",
+    "Infectologia",
+    "Mastologia",
+    "Medicina de Emergência",
+    "Medicina de Família",
+    "Medicina do Trabalho",
+    "Medicina do Tráfego",
+    "Medicina Esportiva",
+    "Medicina Física e Reabilitação",
+    "Medicina Intensiva",
+    "Medicina Legal e Perícia Médica",
+    "Medicina Nuclear",
+    "Medicina Preventiva e Social",
+    "Nefrologia",
+    "Neonatologia",
+    "Neurocirurgia",
+    "Neurologia",
+    "Nutrologia",
+    "Oftalmologia",
+    "Oncologia Clínica",
+    "Ortopedia e Traumatologia",
+    "Otorrinolaringologia",
+    "Patologia",
+    "Patologia Clínica",
+    "Pediatria",
+    "Pneumologia",
+    "Psiquiatria",
+    "Radiologia e Diagnóstico por Imagem",
+    "Radioterapia",
+    "Reumatologia",
+    "Urologia",
 ]
 
 # Prompt unificado para classificação + extração
@@ -149,9 +189,11 @@ Se NÃO for uma vaga de plantão médico, retorne:
 # Tipos
 # =============================================================================
 
+
 @dataclass
 class ResultadoExtracaoLLM:
     """Resultado da extração via LLM."""
+
     eh_vaga: bool
     confianca: float
     motivo_descarte: Optional[str] = None
@@ -164,6 +206,7 @@ class ResultadoExtracaoLLM:
 # =============================================================================
 # Cache
 # =============================================================================
+
 
 def _hash_texto(texto: str) -> str:
     """Gera hash do texto normalizado para cache."""
@@ -185,7 +228,7 @@ async def buscar_extracao_cache(texto: str) -> Optional[ResultadoExtracaoLLM]:
                 motivo_descarte=dados.get("motivo_descarte"),
                 vagas=dados.get("vagas", []),
                 tokens_usados=0,
-                do_cache=True
+                do_cache=True,
             )
     except Exception as e:
         logger.warning(f"Erro ao buscar cache de extração: {e}")
@@ -196,12 +239,14 @@ async def salvar_extracao_cache(texto: str, resultado: ResultadoExtracaoLLM) -> 
     """Salva extração no cache."""
     try:
         chave = f"{CACHE_PREFIX}{_hash_texto(texto)}"
-        dados = json.dumps({
-            "eh_vaga": resultado.eh_vaga,
-            "confianca": resultado.confianca,
-            "motivo_descarte": resultado.motivo_descarte,
-            "vagas": resultado.vagas,
-        })
+        dados = json.dumps(
+            {
+                "eh_vaga": resultado.eh_vaga,
+                "confianca": resultado.confianca,
+                "motivo_descarte": resultado.motivo_descarte,
+                "vagas": resultado.vagas,
+            }
+        )
         await cache_set(chave, dados, CACHE_TTL)
     except Exception as e:
         logger.warning(f"Erro ao salvar cache de extração: {e}")
@@ -211,11 +256,8 @@ async def salvar_extracao_cache(texto: str, resultado: ResultadoExtracaoLLM) -> 
 # LLM
 # =============================================================================
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=1, max=10),
-    reraise=True
-)
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10), reraise=True)
 async def _chamar_llm_extracao(prompt: str) -> tuple:
     """Chama o LLM para extração com retry."""
     client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
@@ -224,9 +266,7 @@ async def _chamar_llm_extracao(prompt: str) -> tuple:
         model="claude-3-haiku-20240307",
         max_tokens=1500,  # Mais tokens para extração completa
         temperature=0,
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
+        messages=[{"role": "user", "content": prompt}],
     )
 
     resposta_texto = response.content[0].text.strip()
@@ -253,7 +293,8 @@ def _parsear_resposta_extracao(texto: str) -> ResultadoExtracaoLLM:
         dados = json.loads(texto)
     else:
         import re
-        match = re.search(r'\{[\s\S]*\}', texto)
+
+        match = re.search(r"\{[\s\S]*\}", texto)
         if match:
             dados = json.loads(match.group())
         else:
@@ -263,7 +304,7 @@ def _parsear_resposta_extracao(texto: str) -> ResultadoExtracaoLLM:
         eh_vaga=dados.get("eh_vaga", False),
         confianca=float(dados.get("confianca", 0.0)),
         motivo_descarte=dados.get("motivo_descarte"),
-        vagas=dados.get("vagas", [])
+        vagas=dados.get("vagas", []),
     )
 
 
@@ -272,7 +313,7 @@ async def extrair_com_llm(
     nome_grupo: str = "",
     nome_contato: str = "",
     data_referencia: Optional[date] = None,
-    usar_cache: bool = True
+    usar_cache: bool = True,
 ) -> ResultadoExtracaoLLM:
     """
     Extrai dados de vagas usando LLM.
@@ -302,7 +343,7 @@ async def extrair_com_llm(
         nome_grupo=nome_grupo or "Desconhecido",
         nome_contato=nome_contato or "Desconhecido",
         data_referencia=(data_referencia or date.today()).isoformat(),
-        especialidades=especialidades_str
+        especialidades=especialidades_str,
     )
 
     try:
@@ -324,32 +365,24 @@ async def extrair_com_llm(
     except json.JSONDecodeError as e:
         logger.warning(f"Erro ao parsear JSON do LLM: {e}")
         return ResultadoExtracaoLLM(
-            eh_vaga=False,
-            confianca=0.0,
-            motivo_descarte="erro_parse_json",
-            erro=str(e)
+            eh_vaga=False, confianca=0.0, motivo_descarte="erro_parse_json", erro=str(e)
         )
     except anthropic.APIError as e:
         logger.error(f"Erro API Anthropic na extração: {e}")
         return ResultadoExtracaoLLM(
-            eh_vaga=False,
-            confianca=0.0,
-            motivo_descarte="erro_api",
-            erro=str(e)
+            eh_vaga=False, confianca=0.0, motivo_descarte="erro_api", erro=str(e)
         )
     except Exception as e:
         logger.exception(f"Erro inesperado na extração LLM: {e}")
         return ResultadoExtracaoLLM(
-            eh_vaga=False,
-            confianca=0.0,
-            motivo_descarte="erro_desconhecido",
-            erro=str(e)
+            eh_vaga=False, confianca=0.0, motivo_descarte="erro_desconhecido", erro=str(e)
         )
 
 
 # =============================================================================
 # Conversão para tipos v2
 # =============================================================================
+
 
 def _dia_semana_from_str(dia: str) -> DiaSemana:
     """Converte string para DiaSemana."""
@@ -406,7 +439,7 @@ def _parse_date(data_str: Optional[str]) -> Optional[date]:
 def converter_para_vagas_atomicas(
     resultado: ResultadoExtracaoLLM,
     mensagem_id: Optional[UUID] = None,
-    grupo_id: Optional[UUID] = None
+    grupo_id: Optional[UUID] = None,
 ) -> List[VagaAtomica]:
     """
     Converte resultado do LLM para lista de VagaAtomica.
@@ -462,6 +495,7 @@ def converter_para_vagas_atomicas(
 # Função principal de extração v3
 # =============================================================================
 
+
 async def extrair_vagas_v3(
     texto: str,
     mensagem_id: Optional[UUID] = None,
@@ -487,21 +521,19 @@ async def extrair_vagas_v3(
         ResultadoExtracaoV2 compatível com o pipeline existente
     """
     import time as time_module
+
     inicio = time_module.time()
 
     # Validação inicial
     if not texto or not texto.strip():
-        return ResultadoExtracaoV2(
-            erro="mensagem_vazia",
-            tempo_processamento_ms=0
-        )
+        return ResultadoExtracaoV2(erro="mensagem_vazia", tempo_processamento_ms=0)
 
     # Extrair via LLM
     resultado_llm = await extrair_com_llm(
         texto=texto,
         nome_grupo=nome_grupo,
         nome_contato=nome_contato,
-        data_referencia=data_referencia
+        data_referencia=data_referencia,
     )
 
     # Se não é vaga, retornar erro
@@ -509,7 +541,7 @@ async def extrair_vagas_v3(
         return ResultadoExtracaoV2(
             erro=resultado_llm.motivo_descarte or "nao_eh_vaga",
             tempo_processamento_ms=int((time_module.time() - inicio) * 1000),
-            tokens_usados=resultado_llm.tokens_usados
+            tokens_usados=resultado_llm.tokens_usados,
         )
 
     # Se teve erro no LLM
@@ -517,21 +549,17 @@ async def extrair_vagas_v3(
         return ResultadoExtracaoV2(
             erro=f"erro_llm: {resultado_llm.erro}",
             tempo_processamento_ms=int((time_module.time() - inicio) * 1000),
-            tokens_usados=resultado_llm.tokens_usados
+            tokens_usados=resultado_llm.tokens_usados,
         )
 
     # Converter para VagaAtomica
-    vagas = converter_para_vagas_atomicas(
-        resultado_llm,
-        mensagem_id=mensagem_id,
-        grupo_id=grupo_id
-    )
+    vagas = converter_para_vagas_atomicas(resultado_llm, mensagem_id=mensagem_id, grupo_id=grupo_id)
 
     if not vagas:
         return ResultadoExtracaoV2(
             erro="sem_vagas_validas",
             tempo_processamento_ms=int((time_module.time() - inicio) * 1000),
-            tokens_usados=resultado_llm.tokens_usados
+            tokens_usados=resultado_llm.tokens_usados,
         )
 
     # Construir resultado compatível com v2
@@ -546,17 +574,17 @@ async def extrair_vagas_v3(
     for vaga in vagas:
         if vaga.hospital_raw and vaga.hospital_raw not in hospitais_vistos:
             hospitais_vistos.add(vaga.hospital_raw)
-            hospitais.append(HospitalExtraido(
-                nome=vaga.hospital_raw,
-                confianca=resultado_llm.confianca
-            ))
+            hospitais.append(
+                HospitalExtraido(nome=vaga.hospital_raw, confianca=resultado_llm.confianca)
+            )
 
         if vaga.especialidade_raw and vaga.especialidade_raw not in especialidades_vistas:
             especialidades_vistas.add(vaga.especialidade_raw)
-            especialidades.append(EspecialidadeExtraida(
-                nome=vaga.especialidade_raw,
-                confianca=resultado_llm.confianca
-            ))
+            especialidades.append(
+                EspecialidadeExtraida(
+                    nome=vaga.especialidade_raw, confianca=resultado_llm.confianca
+                )
+            )
 
     return ResultadoExtracaoV2(
         vagas=vagas,
@@ -565,5 +593,7 @@ async def extrair_vagas_v3(
         total_vagas=len(vagas),
         tempo_processamento_ms=tempo_ms,
         tokens_usados=resultado_llm.tokens_usados,
-        warnings=["extrator_v3_llm"] if not resultado_llm.do_cache else ["extrator_v3_llm", "do_cache"]
+        warnings=["extrator_v3_llm"]
+        if not resultado_llm.do_cache
+        else ["extrator_v3_llm", "do_cache"],
     )

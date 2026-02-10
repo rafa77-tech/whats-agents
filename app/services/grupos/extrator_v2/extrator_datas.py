@@ -37,49 +37,92 @@ WEEKDAY_TO_ENUM = {
 
 # Nomes de dias em português
 DIAS_SEMANA_PT = {
-    "segunda": 0, "seg": 0, "segunda-feira": 0, "2ª": 0,
-    "terça": 1, "terca": 1, "ter": 1, "terça-feira": 1, "3ª": 1,
-    "quarta": 2, "qua": 2, "quarta-feira": 2, "4ª": 2,
-    "quinta": 3, "qui": 3, "quinta-feira": 3, "5ª": 3,
-    "sexta": 4, "sex": 4, "sexta-feira": 4, "6ª": 4,
-    "sábado": 5, "sabado": 5, "sab": 5, "sáb": 5,
-    "domingo": 6, "dom": 6,
+    "segunda": 0,
+    "seg": 0,
+    "segunda-feira": 0,
+    "2ª": 0,
+    "terça": 1,
+    "terca": 1,
+    "ter": 1,
+    "terça-feira": 1,
+    "3ª": 1,
+    "quarta": 2,
+    "qua": 2,
+    "quarta-feira": 2,
+    "4ª": 2,
+    "quinta": 3,
+    "qui": 3,
+    "quinta-feira": 3,
+    "5ª": 3,
+    "sexta": 4,
+    "sex": 4,
+    "sexta-feira": 4,
+    "6ª": 4,
+    "sábado": 5,
+    "sabado": 5,
+    "sab": 5,
+    "sáb": 5,
+    "domingo": 6,
+    "dom": 6,
 }
 
 # Meses em português
 MESES_PT = {
-    "janeiro": 1, "jan": 1,
-    "fevereiro": 2, "fev": 2,
-    "março": 3, "marco": 3, "mar": 3,
-    "abril": 4, "abr": 4,
-    "maio": 5, "mai": 5,
-    "junho": 6, "jun": 6,
-    "julho": 7, "jul": 7,
-    "agosto": 8, "ago": 8,
-    "setembro": 9, "set": 9,
-    "outubro": 10, "out": 10,
-    "novembro": 11, "nov": 11,
-    "dezembro": 12, "dez": 12,
+    "janeiro": 1,
+    "jan": 1,
+    "fevereiro": 2,
+    "fev": 2,
+    "março": 3,
+    "marco": 3,
+    "mar": 3,
+    "abril": 4,
+    "abr": 4,
+    "maio": 5,
+    "mai": 5,
+    "junho": 6,
+    "jun": 6,
+    "julho": 7,
+    "jul": 7,
+    "agosto": 8,
+    "ago": 8,
+    "setembro": 9,
+    "set": 9,
+    "outubro": 10,
+    "out": 10,
+    "novembro": 11,
+    "nov": 11,
+    "dezembro": 12,
+    "dez": 12,
 }
 
 # Mapeamento de período
 PERIODOS_MAP = {
     # Manhã
-    "manhã": Periodo.MANHA, "manha": Periodo.MANHA, "manh": Periodo.MANHA,
+    "manhã": Periodo.MANHA,
+    "manha": Periodo.MANHA,
+    "manh": Periodo.MANHA,
     "matutino": Periodo.MANHA,
     # Tarde
-    "tarde": Periodo.TARDE, "vespertino": Periodo.TARDE,
+    "tarde": Periodo.TARDE,
+    "vespertino": Periodo.TARDE,
     # Noite
-    "noite": Periodo.NOITE, "noturno": Periodo.NOTURNO,
+    "noite": Periodo.NOITE,
+    "noturno": Periodo.NOTURNO,
     "madrugada": Periodo.NOTURNO,
     # Diurno (SD - 12h)
-    "diurno": Periodo.DIURNO, "sd": Periodo.DIURNO, "s.d.": Periodo.DIURNO,
-    "plantão diurno": Periodo.DIURNO, "plantao diurno": Periodo.DIURNO,
+    "diurno": Periodo.DIURNO,
+    "sd": Periodo.DIURNO,
+    "s.d.": Periodo.DIURNO,
+    "plantão diurno": Periodo.DIURNO,
+    "plantao diurno": Periodo.DIURNO,
     # Noturno (SN - 12h)
-    "sn": Periodo.NOTURNO, "s.n.": Periodo.NOTURNO,
-    "plantão noturno": Periodo.NOTURNO, "plantao noturno": Periodo.NOTURNO,
+    "sn": Periodo.NOTURNO,
+    "s.n.": Periodo.NOTURNO,
+    "plantão noturno": Periodo.NOTURNO,
+    "plantao noturno": Periodo.NOTURNO,
     # Cinderela
-    "cinderela": Periodo.CINDERELA, "cind": Periodo.CINDERELA,
+    "cinderela": Periodo.CINDERELA,
+    "cind": Periodo.CINDERELA,
 }
 
 
@@ -88,37 +131,32 @@ PERIODOS_MAP = {
 # =============================================================================
 
 # Data no formato dd/mm ou dd/mm/yyyy
-PATTERN_DATA_BARRA = re.compile(
-    r'(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?'
-)
+PATTERN_DATA_BARRA = re.compile(r"(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?")
 
 # Data por extenso "26 de janeiro"
 PATTERN_DATA_EXTENSO = re.compile(
-    r'(\d{1,2})\s+(?:de\s+)?(' + '|'.join(MESES_PT.keys()) + r')',
-    re.IGNORECASE
+    r"(\d{1,2})\s+(?:de\s+)?(" + "|".join(MESES_PT.keys()) + r")", re.IGNORECASE
 )
 
 # Horário no formato HH:MM ou HHh (com separadores variados)
 PATTERN_HORARIO = re.compile(
-    r'(\d{1,2})[h:]?(\d{0,2})?\s*(?:[-–]|[aà]s?|as)\s*(\d{1,2})[h:]?(\d{0,2})?',
-    re.IGNORECASE
+    r"(\d{1,2})[h:]?(\d{0,2})?\s*(?:[-–]|[aà]s?|as)\s*(\d{1,2})[h:]?(\d{0,2})?", re.IGNORECASE
 )
 
 # Horário isolado
-PATTERN_HORARIO_SIMPLES = re.compile(
-    r'(\d{1,2})[h:](\d{2})?'
-)
+PATTERN_HORARIO_SIMPLES = re.compile(r"(\d{1,2})[h:](\d{2})?")
 
 
 # =============================================================================
 # Funções de Extração
 # =============================================================================
 
+
 def _limpar_texto(texto: str) -> str:
     """Remove emojis e caracteres especiais."""
-    texto = re.sub(r'[🗓📅📆⏰🕐🕛🗓️]', '', texto)
-    texto = texto.replace('*', '')
-    return ' '.join(texto.split()).strip()
+    texto = re.sub(r"[🗓📅📆⏰🕐🕛🗓️]", "", texto)
+    texto = texto.replace("*", "")
+    return " ".join(texto.split()).strip()
 
 
 def _calcular_dia_semana(data: date) -> DiaSemana:
@@ -217,7 +255,7 @@ def _parsear_data_relativa(texto: str, hoje: date) -> Optional[date]:
         # Para nomes curtos (<=3 chars), usar word boundary para evitar matches parciais
         # (ex: "ter" não deve casar com "Interessados")
         if len(dia_nome) <= 3:
-            pattern = rf'\b{re.escape(dia_nome)}\b'
+            pattern = rf"\b{re.escape(dia_nome)}\b"
             if re.search(pattern, texto_lower):
                 # Calcular próxima ocorrência deste dia
                 dias_ate = (dia_num - hoje.weekday()) % 7
@@ -257,8 +295,7 @@ def _parsear_horario(texto: str) -> Tuple[Optional[time], Optional[time]]:
 
 
 def _inferir_periodo_de_horario(
-    hora_inicio: Optional[time],
-    hora_fim: Optional[time]
+    hora_inicio: Optional[time], hora_fim: Optional[time]
 ) -> Optional[Periodo]:
     """
     Infere período baseado no horário.
@@ -309,8 +346,7 @@ def _extrair_periodo(texto: str) -> Optional[Periodo]:
 
 
 def extrair_data_periodo(
-    linha: str,
-    data_referencia: Optional[date] = None
+    linha: str, data_referencia: Optional[date] = None
 ) -> Optional[DataPeriodoExtraido]:
     """
     Extrai data e período de uma linha.
@@ -330,9 +366,9 @@ def extrair_data_periodo(
 
     # 1. Tentar extrair data
     data = (
-        _parsear_data_barra(linha_limpa, hoje) or
-        _parsear_data_extenso(linha_limpa, hoje) or
-        _parsear_data_relativa(linha_limpa, hoje)
+        _parsear_data_barra(linha_limpa, hoje)
+        or _parsear_data_extenso(linha_limpa, hoje)
+        or _parsear_data_relativa(linha_limpa, hoje)
     )
 
     if not data:
@@ -362,13 +398,12 @@ def extrair_data_periodo(
         periodo=periodo,
         hora_inicio=hora_inicio,
         hora_fim=hora_fim,
-        confianca=confianca
+        confianca=confianca,
     )
 
 
 def extrair_datas_periodos(
-    linhas_data: List[str],
-    data_referencia: Optional[date] = None
+    linhas_data: List[str], data_referencia: Optional[date] = None
 ) -> List[DataPeriodoExtraido]:
     """
     Extrai todas as datas e períodos das linhas de DATA.

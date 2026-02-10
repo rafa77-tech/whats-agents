@@ -2,6 +2,7 @@
 Rotas de teste para validar conexao com banco.
 Remover em producao.
 """
+
 from fastapi import APIRouter, HTTPException
 
 from app.services.supabase import supabase
@@ -59,7 +60,9 @@ async def count_vagas():
     """Conta vagas na base."""
     try:
         total = supabase.table("vagas").select("id", count="exact").execute()
-        abertas = supabase.table("vagas").select("id", count="exact").eq("status", "aberta").execute()
+        abertas = (
+            supabase.table("vagas").select("id", count="exact").eq("status", "aberta").execute()
+        )
         return {
             "total_vagas": total.count,
             "vagas_abertas": abertas.count,

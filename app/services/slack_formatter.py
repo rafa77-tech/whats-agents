@@ -9,12 +9,13 @@ Novos codigos devem usar:
 
 Sprint 10 - S10.E2.1
 """
+
 import warnings
 
 warnings.warn(
     "slack_formatter is deprecated. Use app.services.slack.formatter instead.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 # Re-export tudo para backward compatibility

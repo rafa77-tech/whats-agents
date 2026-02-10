@@ -4,6 +4,7 @@ Service principal para External Handoff.
 Sprint 20 - E03 - Ponte automatica medico-divulgador.
 Sprint 21 - E01 - Canary flag para rollout gradual.
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
@@ -39,14 +40,16 @@ async def buscar_divulgador_por_vaga_grupo(source_id: str) -> Optional[dict]:
     """
     try:
         # Buscar vagas_grupo com mensagem e contato
-        response = supabase.table("vagas_grupo") \
+        response = (
+            supabase.table("vagas_grupo")
             .select(
                 "id, "
                 "mensagens_grupo!inner(contato_id, "
                 "contatos_grupo!inner(id, nome, telefone, empresa))"
-            ) \
-            .eq("id", source_id) \
+            )
+            .eq("id", source_id)
             .execute()
+        )
 
         if not response.data:
             logger.warning(f"vagas_grupo {source_id} nao encontrado")
@@ -131,17 +134,25 @@ async def criar_ponte_externa(
         # Notificar Slack se for por canary (flag enabled mas cliente fora do %)
         if flags.enabled and flags.canary_pct < 100:
             try:
-                await enviar_slack({
-                    "text": ":test_tube: Ponte externa bloqueada (canary)",
-                    "attachments": [{
-                        "color": "#FCD34D",  # Amarelo
-                        "fields": [
-                            {"title": "Cliente", "value": cliente_id[:8], "short": True},
-                            {"title": "Canary %", "value": f"{flags.canary_pct}%", "short": True},
+                await enviar_slack(
+                    {
+                        "text": ":test_tube: Ponte externa bloqueada (canary)",
+                        "attachments": [
+                            {
+                                "color": "#FCD34D",  # Amarelo
+                                "fields": [
+                                    {"title": "Cliente", "value": cliente_id[:8], "short": True},
+                                    {
+                                        "title": "Canary %",
+                                        "value": f"{flags.canary_pct}%",
+                                        "short": True,
+                                    },
+                                ],
+                                "footer": "Sprint 21 - Canary Flag",
+                            }
                         ],
-                        "footer": "Sprint 21 - Canary Flag",
-                    }]
-                })
+                    }
+                )
             except Exception:
                 pass  # Não falhar por erro de notificação
 
@@ -170,18 +181,34 @@ async def criar_ponte_externa(
             )
             # Notificar Slack para intervencao manual
             try:
-                await enviar_slack({
-                    "text": ":no_entry_sign: Divulgador opted-out",
-                    "attachments": [{
-                        "color": "#EF4444",
-                        "fields": [
-                            {"title": "Divulgador", "value": divulgador["nome"], "short": True},
-                            {"title": "Empresa", "value": divulgador.get("empresa", "N/A"), "short": True},
-                            {"title": "Medico", "value": medico.get("nome", "N/A"), "short": True},
+                await enviar_slack(
+                    {
+                        "text": ":no_entry_sign: Divulgador opted-out",
+                        "attachments": [
+                            {
+                                "color": "#EF4444",
+                                "fields": [
+                                    {
+                                        "title": "Divulgador",
+                                        "value": divulgador["nome"],
+                                        "short": True,
+                                    },
+                                    {
+                                        "title": "Empresa",
+                                        "value": divulgador.get("empresa", "N/A"),
+                                        "short": True,
+                                    },
+                                    {
+                                        "title": "Medico",
+                                        "value": medico.get("nome", "N/A"),
+                                        "short": True,
+                                    },
+                                ],
+                                "footer": "Sprint 21 - Guardrails",
+                            }
                         ],
-                        "footer": "Sprint 21 - Guardrails",
-                    }]
-                })
+                    }
+                )
             except Exception:
                 pass
 
@@ -193,9 +220,7 @@ async def criar_ponte_externa(
             }
 
         elif motivo == "outside_business_hours":
-            logger.info(
-                f"Fora do horario comercial, ponte seria agendada para {agendar_para}"
-            )
+            logger.info(f"Fora do horario comercial, ponte seria agendada para {agendar_para}")
             # Por enquanto, retornar erro
             # TODO: Implementar agendamento real
             return {
@@ -262,10 +287,9 @@ async def criar_ponte_externa(
         msg_divulgador_enviada = True
 
         # Atualizar status para contacted
-        supabase.table("external_handoffs") \
-            .update({"status": "contacted"}) \
-            .eq("id", handoff_id) \
-            .execute()
+        supabase.table("external_handoffs").update({"status": "contacted"}).eq(
+            "id", handoff_id
+        ).execute()
 
     except Exception as e:
         logger.error(f"Erro ao enviar mensagens: {e}")
@@ -307,18 +331,20 @@ async def criar_ponte_externa(
 
     slack_msg = {
         "text": "Nova Ponte Externa",
-        "attachments": [{
-            "color": "#9333EA",  # Roxo
-            "title": "Ponte Medico-Divulgador",
-            "fields": [
-                {"title": "Medico", "value": medico.get("nome", "N/A"), "short": True},
-                {"title": "Divulgador", "value": divulgador["nome"], "short": True},
-                {"title": "Hospital", "value": hospital, "short": True},
-                {"title": "Data", "value": data_plantao, "short": True},
-                {"title": "Expira em", "value": f"{HANDOFF_EXPIRY_HOURS}h", "short": True},
-            ],
-            "footer": "Agente Julia - Sprint 20",
-        }]
+        "attachments": [
+            {
+                "color": "#9333EA",  # Roxo
+                "title": "Ponte Medico-Divulgador",
+                "fields": [
+                    {"title": "Medico", "value": medico.get("nome", "N/A"), "short": True},
+                    {"title": "Divulgador", "value": divulgador["nome"], "short": True},
+                    {"title": "Hospital", "value": hospital, "short": True},
+                    {"title": "Data", "value": data_plantao, "short": True},
+                    {"title": "Expira em", "value": f"{HANDOFF_EXPIRY_HOURS}h", "short": True},
+                ],
+                "footer": "Agente Julia - Sprint 20",
+            }
+        ],
     }
 
     try:

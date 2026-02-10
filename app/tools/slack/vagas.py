@@ -3,6 +3,7 @@ Tools de vagas para o agente Slack.
 
 Sprint 10 - S10.E2.3
 """
+
 from datetime import datetime, timezone
 
 from app.services.supabase import supabase
@@ -31,26 +32,17 @@ NAO requer confirmacao - e apenas leitura de dados.""",
     "input_schema": {
         "type": "object",
         "properties": {
-            "hospital": {
-                "type": "string",
-                "description": "Nome do hospital (opcional)"
-            },
-            "especialidade": {
-                "type": "string",
-                "description": "Especialidade (opcional)"
-            },
+            "hospital": {"type": "string", "description": "Nome do hospital (opcional)"},
+            "especialidade": {"type": "string", "description": "Especialidade (opcional)"},
             "status": {
                 "type": "string",
                 "enum": ["aberta", "reservada", "fechada", "todas"],
-                "description": "Status das vagas"
+                "description": "Status das vagas",
             },
-            "limite": {
-                "type": "integer",
-                "description": "Quantidade maxima de vagas"
-            }
+            "limite": {"type": "integer", "description": "Quantidade maxima de vagas"},
         },
-        "required": []
-    }
+        "required": [],
+    },
 }
 
 TOOL_RESERVAR_VAGA = {
@@ -69,27 +61,22 @@ ACAO CRITICA: Peca confirmacao antes de reservar.""",
     "input_schema": {
         "type": "object",
         "properties": {
-            "telefone_medico": {
-                "type": "string",
-                "description": "Telefone do medico"
-            },
-            "data_vaga": {
-                "type": "string",
-                "description": "Data da vaga (YYYY-MM-DD)"
-            },
+            "telefone_medico": {"type": "string", "description": "Telefone do medico"},
+            "data_vaga": {"type": "string", "description": "Data da vaga (YYYY-MM-DD)"},
             "hospital": {
                 "type": "string",
-                "description": "Nome do hospital (opcional, para confirmar)"
-            }
+                "description": "Nome do hospital (opcional, para confirmar)",
+            },
         },
-        "required": ["telefone_medico", "data_vaga"]
-    }
+        "required": ["telefone_medico", "data_vaga"],
+    },
 }
 
 
 # =============================================================================
 # HANDLERS
 # =============================================================================
+
 
 def _limpar_param_json_array(valor: str | None) -> str | None:
     """
@@ -111,6 +98,7 @@ def _limpar_param_json_array(valor: str | None) -> str | None:
     # Se vier como JSON array string, extrair primeiro elemento
     if valor.startswith("["):
         import json
+
         try:
             parsed = json.loads(valor)
             if isinstance(parsed, list) and parsed:
@@ -141,12 +129,24 @@ async def handle_buscar_vagas(params: dict) -> dict:
 
         if hospital:
             # Buscar hospital primeiro
-            hosp = supabase.table("hospitais").select("id").ilike("nome", f"%{hospital}%").limit(1).execute()
+            hosp = (
+                supabase.table("hospitais")
+                .select("id")
+                .ilike("nome", f"%{hospital}%")
+                .limit(1)
+                .execute()
+            )
             if hosp.data:
                 query = query.eq("hospital_id", hosp.data[0]["id"])
 
         if especialidade:
-            esp = supabase.table("especialidades").select("id").ilike("nome", f"%{especialidade}%").limit(1).execute()
+            esp = (
+                supabase.table("especialidades")
+                .select("id")
+                .ilike("nome", f"%{especialidade}%")
+                .limit(1)
+                .execute()
+            )
             if esp.data:
                 query = query.eq("especialidade_id", esp.data[0]["id"])
 
@@ -154,20 +154,22 @@ async def handle_buscar_vagas(params: dict) -> dict:
 
         vagas = []
         for v in result.data or []:
-            vagas.append({
-                "id": v.get("id"),
-                "hospital": v.get("hospitais", {}).get("nome"),
-                "cidade": v.get("hospitais", {}).get("cidade"),
-                "data": v.get("data"),
-                "periodo": v.get("periodos", {}).get("nome"),
-                # Campos de valor flexivel (Sprint 19)
-                "valor": v.get("valor"),
-                "valor_minimo": v.get("valor_minimo"),
-                "valor_maximo": v.get("valor_maximo"),
-                "valor_tipo": v.get("valor_tipo", "fixo"),
-                "especialidade": v.get("especialidades", {}).get("nome"),
-                "status": v.get("status")
-            })
+            vagas.append(
+                {
+                    "id": v.get("id"),
+                    "hospital": v.get("hospitais", {}).get("nome"),
+                    "cidade": v.get("hospitais", {}).get("cidade"),
+                    "data": v.get("data"),
+                    "periodo": v.get("periodos", {}).get("nome"),
+                    # Campos de valor flexivel (Sprint 19)
+                    "valor": v.get("valor"),
+                    "valor_minimo": v.get("valor_minimo"),
+                    "valor_maximo": v.get("valor_maximo"),
+                    "valor_tipo": v.get("valor_tipo", "fixo"),
+                    "especialidade": v.get("especialidades", {}).get("nome"),
+                    "status": v.get("status"),
+                }
+            )
 
         return {"success": True, "vagas": vagas, "total": len(vagas)}
 
@@ -189,9 +191,14 @@ async def handle_reservar_vaga(params: dict) -> dict:
 
     try:
         # Buscar vaga pela data (inclui campos de valor flexivel - Sprint 19)
-        vaga = supabase.table("vagas").select(
-            "*, hospitais(nome), periodos(nome)"
-        ).eq("data", data_vaga).eq("status", "aberta").limit(1).execute()
+        vaga = (
+            supabase.table("vagas")
+            .select("*, hospitais(nome), periodos(nome)")
+            .eq("data", data_vaga)
+            .eq("status", "aberta")
+            .limit(1)
+            .execute()
+        )
 
         if not vaga.data:
             return {"success": False, "error": f"Vaga nao encontrada para data {data_vaga}"}
@@ -199,11 +206,13 @@ async def handle_reservar_vaga(params: dict) -> dict:
         vaga_data = vaga.data[0]
 
         # Reservar
-        supabase.table("vagas").update({
-            "status": "reservada",
-            "reservado_para_id": medico["id"],
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }).eq("id", vaga_data["id"]).execute()
+        supabase.table("vagas").update(
+            {
+                "status": "reservada",
+                "reservado_para_id": medico["id"],
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", vaga_data["id"]).execute()
 
         return {
             "success": True,
@@ -217,10 +226,7 @@ async def handle_reservar_vaga(params: dict) -> dict:
                 "valor_maximo": vaga_data.get("valor_maximo"),
                 "valor_tipo": vaga_data.get("valor_tipo", "fixo"),
             },
-            "medico": {
-                "nome": medico.get("primeiro_nome"),
-                "telefone": medico.get("telefone")
-            }
+            "medico": {"nome": medico.get("primeiro_nome"), "telefone": medico.get("telefone")},
         }
 
     except Exception as e:

@@ -8,6 +8,7 @@ Expõe funcionalidades do Policy Engine:
 - Métricas
 - Decisões
 """
+
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
@@ -31,8 +32,6 @@ from app.services.policy.metrics import (
     get_decisions_count,
     get_decisions_by_rule,
     get_decisions_by_action,
-    get_effects_by_type,
-    get_handoff_count,
     get_decisions_per_hour,
     get_orphan_decisions,
     get_policy_summary,

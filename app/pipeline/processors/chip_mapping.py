@@ -3,6 +3,7 @@ Processador de mapeamento conversa-chip.
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 
 from app.core.tasks import safe_create_task
@@ -19,6 +20,7 @@ class ChipMappingProcessor(PreProcessor):
 
     Prioridade: 21 (logo apos load entities)
     """
+
     name = "chip_mapping"
     priority = 21
 
@@ -42,7 +44,7 @@ class ChipMappingProcessor(PreProcessor):
         # Registrar mapeamento em background (nao bloqueia)
         safe_create_task(
             self._registrar_chip_conversa(instance_name, conversa_id, context.telefone),
-            name="registrar_chip_conversa"
+            name="registrar_chip_conversa",
         )
 
         # Guardar no metadata para uso posterior
@@ -51,10 +53,7 @@ class ChipMappingProcessor(PreProcessor):
         return ProcessorResult(success=True)
 
     async def _registrar_chip_conversa(
-        self,
-        instance_name: str,
-        conversa_id: str,
-        telefone_remetente: str
+        self, instance_name: str, conversa_id: str, telefone_remetente: str
     ):
         """Registra chip da conversa no banco."""
         try:
@@ -74,22 +73,30 @@ class ChipMappingProcessor(PreProcessor):
             # Atualizar/criar mapeamento conversa-chip
             from app.services.supabase import supabase
 
-            existing = supabase.table("conversation_chips").select("id").eq(
-                "conversa_id", conversa_id
-            ).eq("active", True).execute()
+            existing = (
+                supabase.table("conversation_chips")
+                .select("id")
+                .eq("conversa_id", conversa_id)
+                .eq("active", True)
+                .execute()
+            )
 
             if existing.data:
                 # Atualizar se mudou de chip
-                supabase.table("conversation_chips").update({
-                    "chip_id": chip_id,
-                }).eq("conversa_id", conversa_id).eq("active", True).execute()
+                supabase.table("conversation_chips").update(
+                    {
+                        "chip_id": chip_id,
+                    }
+                ).eq("conversa_id", conversa_id).eq("active", True).execute()
             else:
                 # Criar novo mapeamento
-                supabase.table("conversation_chips").insert({
-                    "conversa_id": conversa_id,
-                    "chip_id": chip_id,
-                    "active": True,
-                }).execute()
+                supabase.table("conversation_chips").insert(
+                    {
+                        "conversa_id": conversa_id,
+                        "chip_id": chip_id,
+                        "active": True,
+                    }
+                ).execute()
 
             logger.debug(
                 f"[ChipMapping] Conversa {conversa_id[:8]} mapeada para chip {instance_name}"

@@ -1,10 +1,10 @@
 """
 Servico de notificacoes via Slack.
 """
+
 import httpx
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 
 from app.core.config import settings
 
@@ -24,6 +24,7 @@ async def is_notifications_enabled() -> bool:
     Default: True (habilitado)
     """
     from app.services.redis import cache_get_json
+
     try:
         result = await cache_get_json(NOTIFICATIONS_KEY)
         if result is None:
@@ -46,14 +47,19 @@ async def set_notifications_enabled(enabled: bool, user_id: str = None) -> dict:
         Dict com status e mensagem
     """
     from app.services.redis import cache_set_json
+
     try:
         # TTL de 7 dias - configuração operacional deve persistir
         # (default de 300s causava expiração prematura)
-        await cache_set_json(NOTIFICATIONS_KEY, {
-            "enabled": enabled,
-            "changed_by": user_id,
-            "changed_at": datetime.now(timezone.utc).isoformat(),
-        }, ttl=604800)  # 7 dias
+        await cache_set_json(
+            NOTIFICATIONS_KEY,
+            {
+                "enabled": enabled,
+                "changed_by": user_id,
+                "changed_at": datetime.now(timezone.utc).isoformat(),
+            },
+            ttl=604800,
+        )  # 7 dias
 
         status = "habilitadas" if enabled else "desabilitadas"
         logger.info(f"Notificações Slack {status} por {user_id}")
@@ -61,14 +67,11 @@ async def set_notifications_enabled(enabled: bool, user_id: str = None) -> dict:
         return {
             "success": True,
             "enabled": enabled,
-            "message": f"Notificações {status} com sucesso"
+            "message": f"Notificações {status} com sucesso",
         }
     except Exception as e:
         logger.error(f"Erro ao alterar status notificações: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 async def get_notifications_status() -> dict:
@@ -76,6 +79,7 @@ async def get_notifications_status() -> dict:
     Retorna status detalhado das notificações.
     """
     from app.services.redis import cache_get_json
+
     try:
         result = await cache_get_json(NOTIFICATIONS_KEY)
         if result is None:
@@ -83,18 +87,11 @@ async def get_notifications_status() -> dict:
                 "enabled": True,
                 "changed_by": None,
                 "changed_at": None,
-                "status": "default (habilitado)"
+                "status": "default (habilitado)",
             }
-        return {
-            **result,
-            "status": "habilitado" if result.get("enabled", True) else "desabilitado"
-        }
+        return {**result, "status": "habilitado" if result.get("enabled", True) else "desabilitado"}
     except Exception as e:
-        return {
-            "enabled": True,
-            "error": str(e),
-            "status": "erro (assumindo habilitado)"
-        }
+        return {"enabled": True, "error": str(e), "status": "erro (assumindo habilitado)"}
 
 
 async def enviar_slack(mensagem: dict, force: bool = False) -> bool:
@@ -121,11 +118,7 @@ async def enviar_slack(mensagem: dict, force: bool = False) -> bool:
 
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                settings.SLACK_WEBHOOK_URL,
-                json=mensagem,
-                timeout=10.0
-            )
+            response = await client.post(settings.SLACK_WEBHOOK_URL, json=mensagem, timeout=10.0)
 
             if response.status_code == 200:
                 logger.info("Notificacao Slack enviada com sucesso")

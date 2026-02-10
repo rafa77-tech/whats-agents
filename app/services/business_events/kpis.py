@@ -8,9 +8,10 @@ Sprint 18 - E12: Data Integrity
 - Time-to-Fill: Tempos em cada etapa do funil (desmembrado)
 - Health Score: Pressao, friccao, qualidade, spam
 """
+
 import logging
 from datetime import datetime, timezone
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional, Dict
 
 from app.services.supabase import supabase
@@ -22,9 +23,11 @@ logger = logging.getLogger(__name__)
 # Conversion Rate
 # =============================================================================
 
+
 @dataclass
 class ConversionRate:
     """Taxa de conversao."""
+
     segment_type: str  # global, hospital, especialidade
     segment_value: str
     offers_made: int
@@ -60,8 +63,7 @@ async def get_conversion_rates(
     """
     try:
         response = supabase.rpc(
-            "get_conversion_rates",
-            {"p_hours": hours, "p_hospital_id": hospital_id}
+            "get_conversion_rates", {"p_hours": hours, "p_hospital_id": hospital_id}
         ).execute()
 
         rates = []
@@ -70,14 +72,16 @@ async def get_conversion_rates(
             accepted = int(row.get("offers_accepted") or 0)
             rate = (accepted / made * 100) if made > 0 else 0
 
-            rates.append(ConversionRate(
-                segment_type=row["segment_type"],
-                segment_value=row["segment_value"],
-                offers_made=made,
-                offers_accepted=accepted,
-                conversion_rate=round(rate, 2),
-                period_hours=row["period_hours"],
-            ))
+            rates.append(
+                ConversionRate(
+                    segment_type=row["segment_type"],
+                    segment_value=row["segment_value"],
+                    offers_made=made,
+                    offers_accepted=accepted,
+                    conversion_rate=round(rate, 2),
+                    period_hours=row["period_hours"],
+                )
+            )
 
         # Ordenar por taxa decrescente
         rates.sort(key=lambda x: x.conversion_rate, reverse=True)
@@ -92,9 +96,11 @@ async def get_conversion_rates(
 # Time-to-Fill Breakdown
 # =============================================================================
 
+
 @dataclass
 class TimeMetric:
     """Metrica de tempo."""
+
     metric_name: str  # time_to_reserve, time_to_confirm, time_to_fill
     segment_type: str
     segment_value: str
@@ -142,6 +148,7 @@ class TimeMetric:
 @dataclass
 class TimeToFillBreakdown:
     """Breakdown completo de tempos."""
+
     time_to_reserve: List[TimeMetric]
     time_to_confirm: List[TimeMetric]
     time_to_fill: List[TimeMetric]
@@ -149,9 +156,15 @@ class TimeToFillBreakdown:
     def get_global_metrics(self) -> Dict[str, Optional[TimeMetric]]:
         """Retorna metricas globais de cada tipo."""
         return {
-            "time_to_reserve": next((m for m in self.time_to_reserve if m.segment_type == "global"), None),
-            "time_to_confirm": next((m for m in self.time_to_confirm if m.segment_type == "global"), None),
-            "time_to_fill": next((m for m in self.time_to_fill if m.segment_type == "global"), None),
+            "time_to_reserve": next(
+                (m for m in self.time_to_reserve if m.segment_type == "global"), None
+            ),
+            "time_to_confirm": next(
+                (m for m in self.time_to_confirm if m.segment_type == "global"), None
+            ),
+            "time_to_fill": next(
+                (m for m in self.time_to_fill if m.segment_type == "global"), None
+            ),
         }
 
 
@@ -171,8 +184,7 @@ async def get_time_to_fill_breakdown(
     """
     try:
         response = supabase.rpc(
-            "get_time_to_fill_breakdown",
-            {"p_days": days, "p_hospital_id": hospital_id}
+            "get_time_to_fill_breakdown", {"p_days": days, "p_hospital_id": hospital_id}
         ).execute()
 
         time_to_reserve: List[TimeMetric] = []
@@ -215,9 +227,11 @@ async def get_time_to_fill_breakdown(
 # Health Score
 # =============================================================================
 
+
 @dataclass
 class HealthComponent:
     """Componente do Health Score."""
+
     component: str  # pressao, friccao, qualidade, spam
     metric_name: str
     value: float
@@ -230,6 +244,7 @@ class HealthComponent:
 @dataclass
 class HealthScore:
     """Score de saude composto."""
+
     score: float
     status: str
     components: Dict[str, List[HealthComponent]]
@@ -314,10 +329,10 @@ async def get_health_score() -> HealthScore:
 
         # Score final = 100 - impactos ponderados
         score = 100 - (
-            component_scores["pressao"] * 0.25 +
-            component_scores["friccao"] * 0.35 +
-            component_scores["qualidade"] * 0.25 +
-            component_scores["spam"] * 0.15
+            component_scores["pressao"] * 0.25
+            + component_scores["friccao"] * 0.35
+            + component_scores["qualidade"] * 0.25
+            + component_scores["spam"] * 0.15
         )
         score = max(0, min(100, score))
 
@@ -385,6 +400,7 @@ async def get_health_score() -> HealthScore:
 # Resumo Executivo
 # =============================================================================
 
+
 async def get_kpis_summary() -> dict:
     """
     Retorna resumo dos 3 KPIs principais.
@@ -410,16 +426,28 @@ async def get_kpis_summary() -> dict:
             },
             "time_to_fill": {
                 "time_to_reserve": {
-                    "avg_hours": time_globals["time_to_reserve"].avg_hours if time_globals["time_to_reserve"] else 0,
-                    "status": time_globals["time_to_reserve"].status if time_globals["time_to_reserve"] else "unknown",
+                    "avg_hours": time_globals["time_to_reserve"].avg_hours
+                    if time_globals["time_to_reserve"]
+                    else 0,
+                    "status": time_globals["time_to_reserve"].status
+                    if time_globals["time_to_reserve"]
+                    else "unknown",
                 },
                 "time_to_confirm": {
-                    "avg_hours": time_globals["time_to_confirm"].avg_hours if time_globals["time_to_confirm"] else 0,
-                    "status": time_globals["time_to_confirm"].status if time_globals["time_to_confirm"] else "unknown",
+                    "avg_hours": time_globals["time_to_confirm"].avg_hours
+                    if time_globals["time_to_confirm"]
+                    else 0,
+                    "status": time_globals["time_to_confirm"].status
+                    if time_globals["time_to_confirm"]
+                    else "unknown",
                 },
                 "time_to_fill_full": {
-                    "avg_hours": time_globals["time_to_fill"].avg_hours if time_globals["time_to_fill"] else 0,
-                    "status": time_globals["time_to_fill"].status if time_globals["time_to_fill"] else "unknown",
+                    "avg_hours": time_globals["time_to_fill"].avg_hours
+                    if time_globals["time_to_fill"]
+                    else 0,
+                    "status": time_globals["time_to_fill"].status
+                    if time_globals["time_to_fill"]
+                    else "unknown",
                 },
             },
             "health_score": {

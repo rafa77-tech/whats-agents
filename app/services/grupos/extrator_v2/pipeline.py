@@ -78,10 +78,7 @@ async def extrair_vagas_v2(
 
     # Validação inicial
     if not texto or not texto.strip():
-        return ResultadoExtracaoV2(
-            erro="mensagem_vazia",
-            tempo_processamento_ms=0
-        )
+        return ResultadoExtracaoV2(erro="mensagem_vazia", tempo_processamento_ms=0)
 
     try:
         # 1. Parser de mensagem
@@ -99,19 +96,17 @@ async def extrair_vagas_v2(
             return ResultadoExtracaoV2(
                 erro="sem_hospital",
                 tempo_processamento_ms=int((time.time() - inicio) * 1000),
-                warnings=warnings
+                warnings=warnings,
             )
 
         # 3. Extração de datas/períodos
         datas_periodos = extrair_datas_periodos(
-            msg_parsed.secoes_data,
-            data_referencia=data_referencia or date.today()
+            msg_parsed.secoes_data, data_referencia=data_referencia or date.today()
         )
         if not datas_periodos:
             # Tentar extrair do texto completo
             datas_periodos = extrair_datas_periodos(
-                [texto],
-                data_referencia=data_referencia or date.today()
+                [texto], data_referencia=data_referencia or date.today()
             )
             if datas_periodos:
                 warnings.append("datas_extraidas_texto_completo")
@@ -121,7 +116,7 @@ async def extrair_vagas_v2(
                 hospitais=hospitais,
                 erro="sem_data",
                 tempo_processamento_ms=int((time.time() - inicio) * 1000),
-                warnings=warnings
+                warnings=warnings,
             )
 
         # 4. Extração de valores
@@ -144,8 +139,7 @@ async def extrair_vagas_v2(
 
         # 6. Extração de especialidades (Sprint 51 - fix)
         especialidades = extrair_especialidades_completo(
-            secoes_especialidade=msg_parsed.secoes_especialidade,
-            texto_completo=texto
+            secoes_especialidade=msg_parsed.secoes_especialidade, texto_completo=texto
         )
         if not especialidades:
             warnings.append("sem_especialidade_extraida")
@@ -176,7 +170,7 @@ async def extrair_vagas_v2(
             especialidades=especialidades,  # Sprint 51 - incluir especialidades no resultado
             total_vagas=len(vagas),
             tempo_processamento_ms=tempo_ms,
-            warnings=warnings
+            warnings=warnings,
         )
 
     except ExtracaoError as e:
@@ -184,12 +178,12 @@ async def extrair_vagas_v2(
         return ResultadoExtracaoV2(
             erro=str(e),
             tempo_processamento_ms=int((time.time() - inicio) * 1000),
-            warnings=warnings
+            warnings=warnings,
         )
     except Exception as e:
         logger.exception(f"Erro inesperado na extração: {e}")
         return ResultadoExtracaoV2(
             erro=f"erro_inesperado: {str(e)}",
             tempo_processamento_ms=int((time.time() - inicio) * 1000),
-            warnings=warnings
+            warnings=warnings,
         )

@@ -5,6 +5,7 @@ Sprint 37 - Epic 5
 
 Detecta quando Julia deve comunicar incerteza sobre informações.
 """
+
 import logging
 from dataclasses import dataclass
 from typing import Optional
@@ -86,17 +87,13 @@ class DetectorIncerteza:
         fatores["dados_vagas"] = confianca_vagas if confianca_vagas is not None else 1.0
 
         # Fator 2: Confiança em dados do hospital
-        fatores["dados_hospital"] = (
-            confianca_hospital if confianca_hospital is not None else 1.0
-        )
+        fatores["dados_hospital"] = confianca_hospital if confianca_hospital is not None else 1.0
 
         # Fator 3: Dados do médico
         fatores["dados_medico"] = 1.0 if dados_medico_completos else 0.5
 
         # Fator 4: Similaridade de memórias
-        fatores["memorias"] = (
-            similaridade_memorias if similaridade_memorias is not None else 0.8
-        )
+        fatores["memorias"] = similaridade_memorias if similaridade_memorias is not None else 0.8
 
         # Fator 5: Histórico de confrontos (reduz confiança)
         if contador_confrontos == 0:
@@ -107,9 +104,7 @@ class DetectorIncerteza:
             fatores["confrontos"] = 0.5
 
         # Calcular confiança agregada com pesos
-        confianca_total = sum(
-            fatores[fator] * self.PESOS[fator] for fator in self.PESOS
-        )
+        confianca_total = sum(fatores[fator] * self.PESOS[fator] for fator in self.PESOS)
 
         # Determinar nível de incerteza
         if confianca_total >= self.THRESHOLD_COMUNICAR:

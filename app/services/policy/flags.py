@@ -10,6 +10,7 @@ Implementação:
 - Fallback para Supabase se cache miss ou erro
 - Fallback para valores seguros se tudo falhar
 """
+
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -30,7 +31,7 @@ class ExternalHandoffFlags:
     """Flags da ponte externa (external handoff)."""
 
     enabled: bool = False  # Default: desligado
-    canary_pct: int = 0    # Percentual do canary (0-100)
+    canary_pct: int = 0  # Percentual do canary (0-100)
 
 
 @dataclass
@@ -86,13 +87,7 @@ async def _get_flag_value(key: str) -> Optional[dict]:
 
     # 2. Fallback para Supabase
     try:
-        response = (
-            supabase.table("feature_flags")
-            .select("value")
-            .eq("key", key)
-            .limit(1)
-            .execute()
-        )
+        response = supabase.table("feature_flags").select("value").eq("key", key).limit(1).execute()
 
         if response.data and len(response.data) > 0:
             value = response.data[0]["value"]
@@ -121,9 +116,7 @@ async def get_policy_engine_flags() -> PolicyEngineFlags:
         logger.warning("Flag policy_engine não encontrada, usando default")
         return PolicyEngineFlags()
 
-    return PolicyEngineFlags(
-        enabled=value.get("enabled", True)
-    )
+    return PolicyEngineFlags(enabled=value.get("enabled", True))
 
 
 async def get_safe_mode_flags() -> SafeModeFlags:
@@ -156,9 +149,7 @@ async def get_campaigns_flags() -> CampaignsFlags:
         logger.warning("Flag campaigns não encontrada, usando default")
         return CampaignsFlags()
 
-    return CampaignsFlags(
-        enabled=value.get("enabled", True)
-    )
+    return CampaignsFlags(enabled=value.get("enabled", True))
 
 
 async def get_disabled_rules() -> DisabledRulesFlags:
@@ -173,9 +164,7 @@ async def get_disabled_rules() -> DisabledRulesFlags:
         logger.warning("Flag disabled_rules não encontrada, usando default")
         return DisabledRulesFlags()
 
-    return DisabledRulesFlags(
-        rules=value.get("rules", [])
-    )
+    return DisabledRulesFlags(rules=value.get("rules", []))
 
 
 async def is_rule_disabled(rule_id: str) -> bool:
@@ -295,10 +284,12 @@ async def set_flag(key: str, value: dict, updated_by: str = "system") -> bool:
         # Atualizar no banco
         response = (
             supabase.table("feature_flags")
-            .update({
-                "value": value,
-                "updated_by": updated_by,
-            })
+            .update(
+                {
+                    "value": value,
+                    "updated_by": updated_by,
+                }
+            )
             .eq("key", key)
             .execute()
         )
@@ -415,10 +406,7 @@ async def enable_rule(rule_id: str, updated_by: str = "system") -> bool:
 # === External Handoff Flag Controls ===
 
 
-async def enable_external_handoff(
-    canary_pct: int = 100,
-    updated_by: str = "system"
-) -> bool:
+async def enable_external_handoff(canary_pct: int = 100, updated_by: str = "system") -> bool:
     """
     Ativa ponte externa com rollout opcional.
 
@@ -455,10 +443,7 @@ async def disable_external_handoff(updated_by: str = "system") -> bool:
     )
 
 
-async def set_external_handoff_canary(
-    canary_pct: int,
-    updated_by: str = "system"
-) -> bool:
+async def set_external_handoff_canary(canary_pct: int, updated_by: str = "system") -> bool:
     """
     Ajusta percentual do canary da ponte externa.
 

@@ -6,9 +6,9 @@ Sprint 30 - Epic 07
 Templates armazenados no banco de dados com cache Redis
 para permitir atualizacoes dinamicas sem deploy.
 """
+
 import logging
-import re
-from typing import Optional, Dict, Any, List
+from typing import Optional, List
 from dataclasses import dataclass
 
 from app.services.supabase import supabase
@@ -24,6 +24,7 @@ CACHE_PREFIX = "template:"
 @dataclass
 class MessageTemplate:
     """Entidade de template de mensagem."""
+
     id: str
     slug: str
     categoria: str
@@ -195,8 +196,14 @@ class TemplateRepository:
             logger.error(f"Erro ao atualizar template {slug}: {e}")
             return None
 
-    async def criar(self, slug: str, categoria: str, conteudo: str,
-                    descricao: str = None, variaveis: List[str] = None) -> Optional[MessageTemplate]:
+    async def criar(
+        self,
+        slug: str,
+        categoria: str,
+        conteudo: str,
+        descricao: str = None,
+        variaveis: List[str] = None,
+    ) -> Optional[MessageTemplate]:
         """
         Cria novo template.
 
@@ -219,11 +226,7 @@ class TemplateRepository:
                 "variaveis": variaveis or [],
             }
 
-            response = (
-                self.db.table(self.table_name)
-                .insert(data)
-                .execute()
-            )
+            response = self.db.table(self.table_name).insert(data).execute()
 
             if response.data:
                 logger.info(f"Template {slug} criado")

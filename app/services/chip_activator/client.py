@@ -6,6 +6,7 @@ Sprint 27 - E05
 Este modulo permite chamar a API de ativacao automatizada
 que roda no VPS DigitalOcean.
 """
+
 import asyncio
 import logging
 from typing import Optional
@@ -27,7 +28,9 @@ class ChipActivatorClient:
     """Cliente para API de Ativacao de Chips."""
 
     def __init__(self):
-        self.base_url = settings.CHIP_ACTIVATOR_URL.rstrip("/") if settings.CHIP_ACTIVATOR_URL else ""
+        self.base_url = (
+            settings.CHIP_ACTIVATOR_URL.rstrip("/") if settings.CHIP_ACTIVATOR_URL else ""
+        )
         self.api_key = settings.CHIP_ACTIVATOR_API_KEY
         self.timeout = 30  # Timeout para chamadas individuais
 
@@ -128,7 +131,9 @@ class ChipActivatorClient:
                 return data
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"[ChipActivator] HTTP Error: {e.response.status_code} - {e.response.text}")
+            logger.error(
+                f"[ChipActivator] HTTP Error: {e.response.status_code} - {e.response.text}"
+            )
             raise ChipActivatorError(f"Erro HTTP: {e.response.status_code}")
         except httpx.RequestError as e:
             logger.error(f"[ChipActivator] Request Error: {e}")

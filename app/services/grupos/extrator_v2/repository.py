@@ -58,10 +58,7 @@ async def salvar_vagas_atomicas(
 
 
 async def atualizar_mensagem_processada(
-    mensagem_id: UUID,
-    qtd_vagas: int,
-    sucesso: bool,
-    erro: Optional[str] = None
+    mensagem_id: UUID, qtd_vagas: int, sucesso: bool, erro: Optional[str] = None
 ) -> None:
     """
     Atualiza status da mensagem após processamento.
@@ -75,12 +72,14 @@ async def atualizar_mensagem_processada(
     try:
         status = "extraida_v2" if sucesso and qtd_vagas > 0 else "extracao_v2_falhou"
 
-        supabase.table("mensagens_grupo").update({
-            "status": status,
-            "qtd_vagas_extraidas": qtd_vagas,
-            "processado_em": datetime.now(UTC).isoformat(),
-            "erro_extracao": erro,
-        }).eq("id", str(mensagem_id)).execute()
+        supabase.table("mensagens_grupo").update(
+            {
+                "status": status,
+                "qtd_vagas_extraidas": qtd_vagas,
+                "processado_em": datetime.now(UTC).isoformat(),
+                "erro_extracao": erro,
+            }
+        ).eq("id", str(mensagem_id)).execute()
 
     except Exception as e:
         logger.error(f"Erro ao atualizar mensagem {mensagem_id}: {e}")

@@ -13,8 +13,13 @@ from typing import Optional
 
 from app.core.timezone import agora_utc
 from .types import (
-    DoctorState, PolicyDecision, PrimaryAction, Tone,
-    PermissionState, ObjectionSeverity, LifecycleStage,
+    DoctorState,
+    PolicyDecision,
+    PrimaryAction,
+    Tone,
+    PermissionState,
+    ObjectionSeverity,
+    LifecycleStage,
 )
 
 
@@ -33,7 +38,7 @@ def rule_opted_out(state: DoctorState, **kwargs) -> Optional[PolicyDecision]:
             tone=Tone.LEVE,  # Não vai responder, mas precisa de um valor
             requires_human=False,
             constraints_text="MÉDICO FEZ OPT-OUT. NÃO RESPONDER.",
-            reasoning="permission_state=opted_out (terminal)"
+            reasoning="permission_state=opted_out (terminal)",
         )
     return None
 
@@ -73,7 +78,7 @@ def rule_cooling_off(state: DoctorState, **kwargs) -> Optional[PolicyDecision]:
                         "- Se ele mandou mensagem, responda de forma mínima e cautelosa\n"
                         "- NÃO ofereça vagas"
                     ),
-                    reasoning=f"cooling_off até {until.isoformat()}"
+                    reasoning=f"cooling_off até {until.isoformat()}",
                 )
     return None
 
@@ -82,10 +87,7 @@ def rule_grave_objection(state: DoctorState, **kwargs) -> Optional[PolicyDecisio
     """
     Regra: objeção grave ativa → handoff para humano.
     """
-    if (
-        state.has_unresolved_objection()
-        and state.objection_severity == ObjectionSeverity.GRAVE
-    ):
+    if state.has_unresolved_objection() and state.objection_severity == ObjectionSeverity.GRAVE:
         return PolicyDecision(
             primary_action=PrimaryAction.HANDOFF,
             allowed_actions=["acknowledge", "transfer", "apologize"],
@@ -98,7 +100,7 @@ def rule_grave_objection(state: DoctorState, **kwargs) -> Optional[PolicyDecisio
                 "- Transfira para humano\n"
                 "- NÃO tente resolver sozinha"
             ),
-            reasoning=f"objection_severity=grave, tipo={state.active_objection}"
+            reasoning=f"objection_severity=grave, tipo={state.active_objection}",
         )
     return None
 
@@ -107,10 +109,7 @@ def rule_high_objection(state: DoctorState, **kwargs) -> Optional[PolicyDecision
     """
     Regra: objeção HIGH ativa → cautela extra.
     """
-    if (
-        state.has_unresolved_objection()
-        and state.objection_severity == ObjectionSeverity.HIGH
-    ):
+    if state.has_unresolved_objection() and state.objection_severity == ObjectionSeverity.HIGH:
         return PolicyDecision(
             primary_action=PrimaryAction.FOLLOWUP,
             allowed_actions=["clarify", "apologize", "offer_help", "ask"],
@@ -123,7 +122,7 @@ def rule_high_objection(state: DoctorState, **kwargs) -> Optional[PolicyDecision
                 "- Esclareça dúvidas antes de oferecer\n"
                 "- Se escalar, transfira para humano"
             ),
-            reasoning=f"objection_severity=high, tipo={state.active_objection}"
+            reasoning=f"objection_severity=high, tipo={state.active_objection}",
         )
     return None
 
@@ -132,10 +131,7 @@ def rule_medium_objection(state: DoctorState, **kwargs) -> Optional[PolicyDecisi
     """
     Regra: objeção MEDIUM ativa → tratar com cuidado.
     """
-    if (
-        state.has_unresolved_objection()
-        and state.objection_severity == ObjectionSeverity.MEDIUM
-    ):
+    if state.has_unresolved_objection() and state.objection_severity == ObjectionSeverity.MEDIUM:
         return PolicyDecision(
             primary_action=PrimaryAction.FOLLOWUP,
             allowed_actions=["clarify", "negotiate", "offer_alternative", "ask"],
@@ -148,16 +144,13 @@ def rule_medium_objection(state: DoctorState, **kwargs) -> Optional[PolicyDecisi
                 "- Pode negociar ou oferecer alternativas\n"
                 "- NÃO pressione"
             ),
-            reasoning=f"objection_severity=medium, tipo={state.active_objection}"
+            reasoning=f"objection_severity=medium, tipo={state.active_objection}",
         )
     return None
 
 
 def rule_new_doctor_first_contact(
-    state: DoctorState,
-    is_first_message: bool = False,
-    conversa_status: str = "active",
-    **kwargs
+    state: DoctorState, is_first_message: bool = False, conversa_status: str = "active", **kwargs
 ) -> Optional[PolicyDecision]:
     """
     Regra: médico novo, primeira mensagem → discovery.
@@ -180,7 +173,7 @@ def rule_new_doctor_first_contact(
                 "- NÃO ofereça vagas ainda\n"
                 "- NÃO peça documentos"
             ),
-            reasoning="lifecycle=novo, first_message=True"
+            reasoning="lifecycle=novo, first_message=True",
         )
     return None
 
@@ -189,7 +182,7 @@ def rule_silence_reactivation(
     state: DoctorState,
     conversa_status: str = "active",
     conversa_last_message_at: Optional[datetime] = None,
-    **kwargs
+    **kwargs,
 ) -> Optional[PolicyDecision]:
     """
     Regra: silêncio > 7d + temperatura quente + Julia falou por último → reativação.
@@ -238,11 +231,7 @@ def rule_silence_reactivation(
             julia_spoke_last = last_out > last_in
 
     # Condições: 7+ dias, temperatura >= 0.3, Julia falou por último
-    if (
-        days_since_outbound >= 7
-        and state.temperature >= 0.3
-        and julia_spoke_last
-    ):
+    if days_since_outbound >= 7 and state.temperature >= 0.3 and julia_spoke_last:
         return PolicyDecision(
             primary_action=PrimaryAction.REACTIVATION,
             allowed_actions=["gentle_followup", "offer_new_shift", "check_in", "ask_availability"],
@@ -255,7 +244,7 @@ def rule_silence_reactivation(
                 "- Ofereça algo novo/diferente\n"
                 "- NÃO pressione ou cobre resposta"
             ),
-            reasoning=f"silence={days_since_outbound}d, temp={state.temperature}, julia_last=True"
+            reasoning=f"silence={days_since_outbound}d, temp={state.temperature}, julia_last=True",
         )
 
     return None
@@ -278,7 +267,7 @@ def rule_cold_temperature(state: DoctorState, **kwargs) -> Optional[PolicyDecisi
                 "- NÃO ofereça múltiplas vagas\n"
                 "- Foque em entender o que ele precisa"
             ),
-            reasoning=f"temperature={state.temperature} (cold)"
+            reasoning=f"temperature={state.temperature} (cold)",
         )
     return None
 
@@ -304,7 +293,7 @@ def rule_hot_temperature(state: DoctorState, **kwargs) -> Optional[PolicyDecisio
                 "- Seja leve e amigável\n"
                 "- Pode negociar se necessário"
             ),
-            reasoning=f"temperature={state.temperature} (hot), no_objection"
+            reasoning=f"temperature={state.temperature} (hot), no_objection",
         )
     return None
 
@@ -364,21 +353,21 @@ def rule_default(state: DoctorState, **kwargs) -> PolicyDecision:
         tone=tone,
         requires_human=False,
         constraints_text=constraints,
-        reasoning=f"default_rule, permission={state.permission_state.value}, temp={state.temperature}"
+        reasoning=f"default_rule, permission={state.permission_state.value}, temp={state.temperature}",
     )
 
 
 # Ordem de avaliação (primeira que retorna não-None vence)
 # IMPORTANTE: Ordem importa! Mais restritivas primeiro.
 RULES_IN_ORDER = [
-    rule_opted_out,           # Terminal
-    rule_cooling_off,         # Bloqueio temporário
-    rule_grave_objection,     # Crise → handoff
-    rule_high_objection,      # Atenção extra
-    rule_medium_objection,    # Objeção tratável
+    rule_opted_out,  # Terminal
+    rule_cooling_off,  # Bloqueio temporário
+    rule_grave_objection,  # Crise → handoff
+    rule_high_objection,  # Atenção extra
+    rule_medium_objection,  # Objeção tratável
     # rule_new_doctor_first_contact precisa de parâmetros extras (avaliada separadamente)
     rule_silence_reactivation,
-    rule_cold_temperature,    # Médico frio
-    rule_hot_temperature,     # Médico quente
+    rule_cold_temperature,  # Médico frio
+    rule_hot_temperature,  # Médico quente
     # rule_default é fallback (avaliada separadamente)
 ]

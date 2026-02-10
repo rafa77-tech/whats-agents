@@ -14,11 +14,11 @@ Fatores considerados:
 - Dias sem incidente (estabilidade)
 - Fase de warmup (progressao)
 """
+
 import logging
 from enum import Enum
-from typing import Optional
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
@@ -28,16 +28,18 @@ logger = logging.getLogger(__name__)
 
 class TrustLevel(str, Enum):
     """Niveis de confianca do chip."""
-    VERDE = "verde"       # 80-100: Excelente, todas permissoes
-    AMARELO = "amarelo"   # 60-79: Bom, maioria das permissoes
-    LARANJA = "laranja"   # 40-59: Atencao, permissoes reduzidas
-    VERMELHO = "vermelho" # 20-39: Alerta, modo restrito
-    CRITICO = "critico"   # 0-19: Critico, apenas resposta
+
+    VERDE = "verde"  # 80-100: Excelente, todas permissoes
+    AMARELO = "amarelo"  # 60-79: Bom, maioria das permissoes
+    LARANJA = "laranja"  # 40-59: Atencao, permissoes reduzidas
+    VERMELHO = "vermelho"  # 20-39: Alerta, modo restrito
+    CRITICO = "critico"  # 0-19: Critico, apenas resposta
 
 
 @dataclass
 class TrustFactors:
     """Fatores que compoem o Trust Score."""
+
     idade_dias: int = 0
     taxa_resposta: float = 0.0
     taxa_delivery: float = 1.0
@@ -55,6 +57,7 @@ class TrustFactors:
 @dataclass
 class Permissoes:
     """Permissoes calculadas do Trust Score."""
+
     pode_prospectar: bool = False
     pode_followup: bool = False
     pode_responder: bool = True
@@ -68,15 +71,15 @@ class TrustScoreEngine:
 
     # Pesos dos fatores (somam 100)
     PESOS = {
-        "idade": 15,              # Quanto mais velho, melhor
-        "taxa_resposta": 20,      # Respostas indicam engajamento real
-        "taxa_delivery": 15,      # Entregas bem-sucedidas
-        "taxa_block": -20,        # Bloqueios sao muito negativos
+        "idade": 15,  # Quanto mais velho, melhor
+        "taxa_resposta": 20,  # Respostas indicam engajamento real
+        "taxa_delivery": 15,  # Entregas bem-sucedidas
+        "taxa_block": -20,  # Bloqueios sao muito negativos
         "diversidade_midia": 10,  # Uso variado e mais natural
-        "erros_24h": -10,         # Erros recentes
-        "conversas_bi": 15,       # Conversas reais
-        "dias_sem_erro": 10,      # Estabilidade
-        "fase_bonus": 15,         # Bonus por fase avancada
+        "erros_24h": -10,  # Erros recentes
+        "conversas_bi": 15,  # Conversas reais
+        "dias_sem_erro": 10,  # Estabilidade
+        "fase_bonus": 15,  # Bonus por fase avancada
     }
 
     # Limites por fase de warmup
@@ -306,19 +309,21 @@ async def calcular_trust_score(chip_id: str) -> dict:
     supabase.table("chips").update(update_data).eq("id", chip_id).execute()
 
     # Registrar historico
-    supabase.table("chip_trust_history").insert({
-        "chip_id": chip_id,
-        "score": score,
-        "level": nivel.value,
-        "factors": update_data["trust_factors"],
-        "permissoes": {
-            "pode_prospectar": permissoes.pode_prospectar,
-            "pode_followup": permissoes.pode_followup,
-            "pode_responder": permissoes.pode_responder,
-            "limite_hora": permissoes.limite_hora,
-            "limite_dia": permissoes.limite_dia,
-        },
-    }).execute()
+    supabase.table("chip_trust_history").insert(
+        {
+            "chip_id": chip_id,
+            "score": score,
+            "level": nivel.value,
+            "factors": update_data["trust_factors"],
+            "permissoes": {
+                "pode_prospectar": permissoes.pode_prospectar,
+                "pode_followup": permissoes.pode_followup,
+                "pode_responder": permissoes.pode_responder,
+                "limite_hora": permissoes.limite_hora,
+                "limite_dia": permissoes.limite_dia,
+            },
+        }
+    ).execute()
 
     logger.info(f"[TrustScore] Chip {chip_id}: {score} ({nivel.value})")
 
@@ -348,10 +353,16 @@ async def obter_permissoes(chip_id: str) -> Permissoes:
     Returns:
         Permissoes do chip
     """
-    result = supabase.table("chips").select(
-        "pode_prospectar, pode_followup, pode_responder, "
-        "limite_hora, limite_dia, delay_minimo_segundos"
-    ).eq("id", chip_id).single().execute()
+    result = (
+        supabase.table("chips")
+        .select(
+            "pode_prospectar, pode_followup, pode_responder, "
+            "limite_hora, limite_dia, delay_minimo_segundos"
+        )
+        .eq("id", chip_id)
+        .single()
+        .execute()
+    )
 
     if not result.data:
         raise ValueError(f"Chip {chip_id} nao encontrado")

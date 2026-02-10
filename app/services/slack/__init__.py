@@ -5,6 +5,7 @@ Modulo principal para integracao com Slack.
 Sprint 10 - S10.E2.1, S10.E2.2
 Sprint 47 - Helena: Funcoes de notificacao removidas
 """
+
 # Re-export funcoes do arquivo slack.py original
 # Workaround para conflito de namespace (diretorio slack/ vs arquivo slack.py)
 import sys
@@ -12,8 +13,7 @@ import importlib.util
 
 # Carregar slack.py diretamente
 _spec = importlib.util.spec_from_file_location(
-    "slack_notifications",
-    str(__file__).replace("slack/__init__.py", "slack.py")
+    "slack_notifications", str(__file__).replace("slack/__init__.py", "slack.py")
 )
 _slack_notifications = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_slack_notifications)
@@ -45,6 +45,8 @@ async def enviar_mensagem_slack(canal: str, texto: str, force: bool = False) -> 
     """
     mensagem = {"text": texto}
     return await enviar_slack(mensagem, force=force)
+
+
 from .session import SessionManager
 from .tool_executor import ToolExecutor
 from .prompts import SYSTEM_PROMPT_AGENTE

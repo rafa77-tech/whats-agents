@@ -6,7 +6,7 @@ Sprint 17 - E05
 Detecta quando médico recusa uma oferta e emite offer_declined.
 Abordagem conservadora baseada em padrões de texto (sem LLM).
 """
-import asyncio
+
 import logging
 import re
 from dataclasses import dataclass
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RecusaResult:
     """Resultado da detecção de recusa."""
+
     is_recusa: bool
     confianca: float  # 0.0 a 1.0
     padrao_matched: Optional[str] = None
@@ -215,22 +216,24 @@ async def processar_possivel_recusa(
 
     # Emitir evento
     try:
-        await emit_event(BusinessEvent(
-            event_type=EventType.OFFER_DECLINED,
-            source=EventSource.HEURISTIC,
-            cliente_id=cliente_id,
-            vaga_id=ultima_oferta.get("vaga_id"),
-            hospital_id=ultima_oferta.get("hospital_id"),
-            conversation_id=conversation_id,
-            interaction_id=interaction_id,
-            event_props={
-                "tipo_recusa": result.tipo,
-                "confianca": result.confianca,
-                "padrao_matched": result.padrao_matched,
-                "offer_made_event_id": ultima_oferta.get("id"),
-                "horas_desde_oferta": _calcular_horas_desde(ultima_oferta.get("ts")),
-            },
-        ))
+        await emit_event(
+            BusinessEvent(
+                event_type=EventType.OFFER_DECLINED,
+                source=EventSource.HEURISTIC,
+                cliente_id=cliente_id,
+                vaga_id=ultima_oferta.get("vaga_id"),
+                hospital_id=ultima_oferta.get("hospital_id"),
+                conversation_id=conversation_id,
+                interaction_id=interaction_id,
+                event_props={
+                    "tipo_recusa": result.tipo,
+                    "confianca": result.confianca,
+                    "padrao_matched": result.padrao_matched,
+                    "offer_made_event_id": ultima_oferta.get("id"),
+                    "horas_desde_oferta": _calcular_horas_desde(ultima_oferta.get("ts")),
+                },
+            )
+        )
 
         logger.info(
             f"offer_declined emitido: cliente={cliente_id[:8]} "

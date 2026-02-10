@@ -13,8 +13,9 @@ Escopos:
 - hospital: Diretriz para todas as vagas de um hospital
 - especialidade: Diretriz para todas as vagas de uma especialidade
 """
+
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
@@ -51,6 +52,7 @@ MOTIVO_TIMEOUT = "timeout"
 # =============================================================================
 # FUNÇÕES DE CRIAÇÃO
 # =============================================================================
+
 
 async def criar_margem_vaga(
     vaga_id: str,
@@ -231,6 +233,7 @@ async def criar_instrucao_especial(
 # FUNÇÕES DE BUSCA
 # =============================================================================
 
+
 async def buscar_margem_para_negociacao(
     vaga_id: Optional[str] = None,
     cliente_id: Optional[str] = None,
@@ -312,8 +315,7 @@ async def buscar_margem_para_negociacao(
         }
 
         diretrizes_ordenadas = sorted(
-            diretrizes,
-            key=lambda d: precedencia.get(d.get("escopo"), 99)
+            diretrizes, key=lambda d: precedencia.get(d.get("escopo"), 99)
         )
 
         # Retornar a mais específica
@@ -413,11 +415,7 @@ async def listar_diretrizes_ativas(
         Lista de diretrizes
     """
     try:
-        query = (
-            supabase.table("diretrizes_contextuais")
-            .select("*")
-            .eq("status", STATUS_ATIVA)
-        )
+        query = supabase.table("diretrizes_contextuais").select("*").eq("status", STATUS_ATIVA)
 
         if tipo:
             query = query.eq("tipo", tipo)
@@ -438,6 +436,7 @@ async def listar_diretrizes_ativas(
 # FUNÇÕES DE EXPIRAÇÃO
 # =============================================================================
 
+
 async def expirar_diretriz(
     diretriz_id: str,
     motivo: str,
@@ -455,11 +454,13 @@ async def expirar_diretriz(
     try:
         response = (
             supabase.table("diretrizes_contextuais")
-            .update({
-                "status": STATUS_EXPIRADA,
-                "expirado_em": datetime.now(timezone.utc).isoformat(),
-                "motivo_expiracao": motivo,
-            })
+            .update(
+                {
+                    "status": STATUS_EXPIRADA,
+                    "expirado_em": datetime.now(timezone.utc).isoformat(),
+                    "motivo_expiracao": motivo,
+                }
+            )
             .eq("id", diretriz_id)
             .eq("status", STATUS_ATIVA)
             .execute()
@@ -490,11 +491,13 @@ async def expirar_diretrizes_vaga(vaga_id: str, motivo: str = MOTIVO_VAGA_PREENC
     try:
         response = (
             supabase.table("diretrizes_contextuais")
-            .update({
-                "status": STATUS_EXPIRADA,
-                "expirado_em": datetime.now(timezone.utc).isoformat(),
-                "motivo_expiracao": motivo,
-            })
+            .update(
+                {
+                    "status": STATUS_EXPIRADA,
+                    "expirado_em": datetime.now(timezone.utc).isoformat(),
+                    "motivo_expiracao": motivo,
+                }
+            )
             .eq("vaga_id", vaga_id)
             .eq("status", STATUS_ATIVA)
             .execute()
@@ -511,7 +514,9 @@ async def expirar_diretrizes_vaga(vaga_id: str, motivo: str = MOTIVO_VAGA_PREENC
         return 0
 
 
-async def expirar_diretrizes_medico(cliente_id: str, motivo: str = MOTIVO_MEDICO_SEM_INTERESSE) -> int:
+async def expirar_diretrizes_medico(
+    cliente_id: str, motivo: str = MOTIVO_MEDICO_SEM_INTERESSE
+) -> int:
     """
     Expira todas as diretrizes de um médico (quando sem interesse).
 
@@ -525,11 +530,13 @@ async def expirar_diretrizes_medico(cliente_id: str, motivo: str = MOTIVO_MEDICO
     try:
         response = (
             supabase.table("diretrizes_contextuais")
-            .update({
-                "status": STATUS_EXPIRADA,
-                "expirado_em": datetime.now(timezone.utc).isoformat(),
-                "motivo_expiracao": motivo,
-            })
+            .update(
+                {
+                    "status": STATUS_EXPIRADA,
+                    "expirado_em": datetime.now(timezone.utc).isoformat(),
+                    "motivo_expiracao": motivo,
+                }
+            )
             .eq("cliente_id", cliente_id)
             .eq("status", STATUS_ATIVA)
             .execute()
@@ -558,11 +565,13 @@ async def processar_expiracoes_por_tempo() -> dict:
     try:
         response = (
             supabase.table("diretrizes_contextuais")
-            .update({
-                "status": STATUS_EXPIRADA,
-                "expirado_em": agora.isoformat(),
-                "motivo_expiracao": MOTIVO_TIMEOUT,
-            })
+            .update(
+                {
+                    "status": STATUS_EXPIRADA,
+                    "expirado_em": agora.isoformat(),
+                    "motivo_expiracao": MOTIVO_TIMEOUT,
+                }
+            )
             .eq("status", STATUS_ATIVA)
             .lt("expira_em", agora.isoformat())
             .execute()
@@ -593,12 +602,14 @@ async def cancelar_diretriz(diretriz_id: str, cancelado_por: str) -> dict:
     try:
         response = (
             supabase.table("diretrizes_contextuais")
-            .update({
-                "status": STATUS_CANCELADA,
-                "cancelado_por": cancelado_por,
-                "expirado_em": datetime.now(timezone.utc).isoformat(),
-                "motivo_expiracao": MOTIVO_CANCELADO_GESTOR,
-            })
+            .update(
+                {
+                    "status": STATUS_CANCELADA,
+                    "cancelado_por": cancelado_por,
+                    "expirado_em": datetime.now(timezone.utc).isoformat(),
+                    "motivo_expiracao": MOTIVO_CANCELADO_GESTOR,
+                }
+            )
             .eq("id", diretriz_id)
             .eq("status", STATUS_ATIVA)
             .execute()
@@ -618,6 +629,7 @@ async def cancelar_diretriz(diretriz_id: str, cancelado_por: str) -> dict:
 # =============================================================================
 # FUNÇÕES INTERNAS
 # =============================================================================
+
 
 async def _criar_diretriz(
     tipo: str,
@@ -661,11 +673,7 @@ async def _criar_diretriz(
         if expira_em:
             data["expira_em"] = expira_em.isoformat()
 
-        response = (
-            supabase.table("diretrizes_contextuais")
-            .insert(data)
-            .execute()
-        )
+        response = supabase.table("diretrizes_contextuais").insert(data).execute()
 
         logger.info(f"Diretriz criada: {diretriz_id} ({tipo}/{escopo})")
         return response.data[0] if response.data else data
@@ -713,6 +721,7 @@ async def _buscar_diretrizes_ativas(
 # =============================================================================
 # FUNÇÕES PARA INTEGRAÇÃO COM JULIA
 # =============================================================================
+
 
 async def obter_contexto_negociacao(
     vaga: dict,

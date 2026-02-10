@@ -4,10 +4,10 @@ Servico de deteccao de mencoes a bot/IA.
 Registra e monitora quando medicos percebem que estao falando com uma IA.
 Meta: taxa de deteccao < 5% (docs/METRICAS_MVP.md)
 """
+
 import re
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from app.services.supabase import supabase
 
@@ -35,7 +35,6 @@ PADROES_DETECCAO = [
     r"\brobozinho\b",
     r"\brobozinha\b",
     r"\bsistema automatizado\b",
-
     # Perguntas suspeitas
     r"isso [eé] autom[aá]tico",
     r"[eé] um? bot",
@@ -69,6 +68,7 @@ _padroes_compilados = [re.compile(p, re.IGNORECASE) for p in PADROES_DETECCAO]
 # FUNCOES DE DETECCAO
 # =============================================================================
 
+
 def detectar_mencao_bot(mensagem: str) -> dict:
     """
     Detecta se mensagem indica que medico percebeu que e bot.
@@ -83,36 +83,20 @@ def detectar_mencao_bot(mensagem: str) -> dict:
         - trecho: str (parte da mensagem que matchou)
     """
     if not mensagem:
-        return {
-            "detectado": False,
-            "padrao": None,
-            "trecho": None
-        }
+        return {"detectado": False, "padrao": None, "trecho": None}
 
     mensagem_limpa = mensagem.lower().strip()
 
     for padrao in _padroes_compilados:
         match = padrao.search(mensagem_limpa)
         if match:
-            return {
-                "detectado": True,
-                "padrao": padrao.pattern,
-                "trecho": match.group(0)
-            }
+            return {"detectado": True, "padrao": padrao.pattern, "trecho": match.group(0)}
 
-    return {
-        "detectado": False,
-        "padrao": None,
-        "trecho": None
-    }
+    return {"detectado": False, "padrao": None, "trecho": None}
 
 
 async def registrar_deteccao_bot(
-    cliente_id: str,
-    conversa_id: str,
-    mensagem: str,
-    padrao: str,
-    trecho: str
+    cliente_id: str, conversa_id: str, mensagem: str, padrao: str, trecho: str
 ):
     """
     Registra deteccao de bot na tabela de metricas.
@@ -125,18 +109,18 @@ async def registrar_deteccao_bot(
         trecho: Trecho especifico que indicou deteccao
     """
     try:
-        supabase.table("metricas_deteccao_bot").insert({
-            "cliente_id": cliente_id,
-            "conversa_id": conversa_id,
-            "mensagem": mensagem[:500],  # Limitar tamanho
-            "padrao_detectado": padrao,
-            "trecho": trecho,
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }).execute()
+        supabase.table("metricas_deteccao_bot").insert(
+            {
+                "cliente_id": cliente_id,
+                "conversa_id": conversa_id,
+                "mensagem": mensagem[:500],  # Limitar tamanho
+                "padrao_detectado": padrao,
+                "trecho": trecho,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).execute()
 
-        logger.warning(
-            f"DETECCAO BOT: cliente={cliente_id[:8]}..., trecho='{trecho}'"
-        )
+        logger.warning(f"DETECCAO BOT: cliente={cliente_id[:8]}..., trecho='{trecho}'")
 
     except Exception as e:
         logger.error(f"Erro ao registrar deteccao bot: {e}")
@@ -175,10 +159,9 @@ async def calcular_taxa_deteccao(dias: int = 7) -> dict:
             .execute()
         )
         # Contar conversas unicas com deteccao
-        conversas_com_deteccao = len(set(
-            d["conversa_id"] for d in deteccoes_resp.data or []
-            if d.get("conversa_id")
-        ))
+        conversas_com_deteccao = len(
+            set(d["conversa_id"] for d in deteccoes_resp.data or [] if d.get("conversa_id"))
+        )
 
         total = conversas_resp.count or 0
         taxa = (conversas_com_deteccao / total * 100) if total > 0 else 0
@@ -187,17 +170,12 @@ async def calcular_taxa_deteccao(dias: int = 7) -> dict:
             "total_conversas": total,
             "deteccoes": conversas_com_deteccao,
             "taxa_percentual": round(taxa, 2),
-            "periodo_dias": dias
+            "periodo_dias": dias,
         }
 
     except Exception as e:
         logger.error(f"Erro ao calcular taxa de deteccao: {e}")
-        return {
-            "total_conversas": 0,
-            "deteccoes": 0,
-            "taxa_percentual": 0,
-            "periodo_dias": dias
-        }
+        return {"total_conversas": 0, "deteccoes": 0, "taxa_percentual": 0, "periodo_dias": dias}
 
 
 async def calcular_taxa_deteccao_periodo(inicio: datetime, fim: datetime) -> dict:
@@ -233,10 +211,9 @@ async def calcular_taxa_deteccao_periodo(inicio: datetime, fim: datetime) -> dic
             .execute()
         )
         # Contar conversas unicas com deteccao
-        conversas_com_deteccao = len(set(
-            d["conversa_id"] for d in deteccoes_resp.data or []
-            if d.get("conversa_id")
-        ))
+        conversas_com_deteccao = len(
+            set(d["conversa_id"] for d in deteccoes_resp.data or [] if d.get("conversa_id"))
+        )
 
         total = conversas_resp.count or 0
         taxa = (conversas_com_deteccao / total * 100) if total > 0 else 0
@@ -244,16 +221,12 @@ async def calcular_taxa_deteccao_periodo(inicio: datetime, fim: datetime) -> dic
         return {
             "total_conversas": total,
             "deteccoes": conversas_com_deteccao,
-            "taxa_percentual": round(taxa, 2)
+            "taxa_percentual": round(taxa, 2),
         }
 
     except Exception as e:
         logger.error(f"Erro ao calcular taxa de deteccao do periodo: {e}")
-        return {
-            "total_conversas": 0,
-            "deteccoes": 0,
-            "taxa_percentual": 0
-        }
+        return {"total_conversas": 0, "deteccoes": 0, "taxa_percentual": 0}
 
 
 async def listar_deteccoes_recentes(limite: int = 10) -> list:
@@ -291,10 +264,9 @@ async def marcar_falso_positivo(deteccao_id: str, revisor: str):
         revisor: Nome/email de quem revisou
     """
     try:
-        supabase.table("metricas_deteccao_bot").update({
-            "falso_positivo": True,
-            "revisado_por": revisor
-        }).eq("id", deteccao_id).execute()
+        supabase.table("metricas_deteccao_bot").update(
+            {"falso_positivo": True, "revisado_por": revisor}
+        ).eq("id", deteccao_id).execute()
 
         logger.info(f"Deteccao {deteccao_id} marcada como falso positivo por {revisor}")
 

@@ -2,6 +2,7 @@
 Servico de deteccao de triggers de handoff.
 Identifica quando Julia deve passar a conversa para um humano.
 """
+
 import logging
 import re
 from typing import Optional
@@ -67,12 +68,24 @@ def _normalizar_texto(texto: str) -> str:
     """
     return (
         texto.lower()
-        .replace('ã', 'a').replace('á', 'a').replace('â', 'a').replace('à', 'a')
-        .replace('é', 'e').replace('ê', 'e').replace('è', 'e')
-        .replace('í', 'i').replace('î', 'i').replace('ì', 'i')
-        .replace('ó', 'o').replace('ô', 'o').replace('õ', 'o').replace('ò', 'o')
-        .replace('ú', 'u').replace('û', 'u').replace('ù', 'u')
-        .replace('ç', 'c')
+        .replace("ã", "a")
+        .replace("á", "a")
+        .replace("â", "a")
+        .replace("à", "a")
+        .replace("é", "e")
+        .replace("ê", "e")
+        .replace("è", "e")
+        .replace("í", "i")
+        .replace("î", "i")
+        .replace("ì", "i")
+        .replace("ó", "o")
+        .replace("ô", "o")
+        .replace("õ", "o")
+        .replace("ò", "o")
+        .replace("ú", "u")
+        .replace("û", "u")
+        .replace("ù", "u")
+        .replace("ç", "c")
     )
 
 
@@ -128,26 +141,24 @@ def detectar_trigger_handoff(texto: str) -> Optional[dict]:
         return {
             "trigger": True,
             "motivo": "Medico pediu para falar com humano",
-            "tipo": "pedido_humano"
+            "tipo": "pedido_humano",
         }
 
     # 2. Verificar situacao juridica
     if detectar_situacao_juridica(texto_normalizado):
         logger.info(f"Trigger handoff: juridico em '{texto[:50]}'")
-        return {
-            "trigger": True,
-            "motivo": "Situacao juridica/formal detectada",
-            "tipo": "juridico"
-        }
+        return {"trigger": True, "motivo": "Situacao juridica/formal detectada", "tipo": "juridico"}
 
     # 3. Verificar sentimento negativo forte (2+ palavras)
     negativos = contar_palavras_negativas(texto_normalizado)
     if negativos >= 2:
-        logger.info(f"Trigger handoff: sentimento_negativo ({negativos} palavras) em '{texto[:50]}'")
+        logger.info(
+            f"Trigger handoff: sentimento_negativo ({negativos} palavras) em '{texto[:50]}'"
+        )
         return {
             "trigger": True,
             "motivo": "Sentimento muito negativo detectado",
-            "tipo": "sentimento_negativo"
+            "tipo": "sentimento_negativo",
         }
 
     return None

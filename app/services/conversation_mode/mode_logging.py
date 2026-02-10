@@ -7,6 +7,7 @@ Cada decisão é registrada para auditoria e debugging.
 Este é o "black box recorder" da Julia.
 Quando der ruim, explica em 30 segundos.
 """
+
 import logging
 import hashlib
 import json
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ModeDecisionLog:
     """Registro estruturado de decisão do Mode Router."""
+
     timestamp: datetime
     conversa_id: str
     current_mode: str
@@ -86,9 +88,7 @@ def log_mode_decision(
     )
 
     # Log estruturado
-    logger.info(
-        f"MODE_DECISION: {json.dumps(log_entry.to_dict())}"
-    )
+    logger.info(f"MODE_DECISION: {json.dumps(log_entry.to_dict())}")
 
     return log_entry
 
@@ -177,6 +177,5 @@ def log_pending_resolved(
     """
     status = "CONFIRMED" if confirmed else "CANCELLED"
     logger.info(
-        f"PENDING_{status}: conversa={conversa_id} "
-        f"pending={pending_mode} reason='{reason}'"
+        f"PENDING_{status}: conversa={conversa_id} pending={pending_mode} reason='{reason}'"
     )

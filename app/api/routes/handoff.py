@@ -4,6 +4,7 @@ Endpoints para confirmacao de external handoff.
 Sprint 20 - E05 - Links de confirmacao.
 Sprint 21 - E03 - Rate limiting por IP.
 """
+
 import logging
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import HTMLResponse

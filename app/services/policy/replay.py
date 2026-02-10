@@ -8,6 +8,7 @@ Permite reproduzir decisões passadas para:
 - Validação de mudanças em regras
 - Testes de regressão
 """
+
 import hashlib
 import json
 import logging
@@ -17,7 +18,6 @@ from typing import Optional
 
 from .types import (
     DoctorState,
-    PolicyDecision,
     PermissionState,
     TemperatureBand,
     TemperatureTrend,
@@ -168,8 +168,8 @@ async def replay_decision(
         if flags_override is None:
             flags_override = {
                 "policy_engine_enabled": True,  # Sempre habilitado no replay
-                "safe_mode_active": False,       # Sem safe mode no replay
-                "disabled_rules": [],            # Nenhuma regra desabilitada
+                "safe_mode_active": False,  # Sem safe mode no replay
+                "disabled_rules": [],  # Nenhuma regra desabilitada
             }
 
         # 3. Verificar integridade do state_input
@@ -198,10 +198,7 @@ async def replay_decision(
         replayed_rule = replayed_decision.rule_id
         replayed_action = replayed_decision.primary_action.value
 
-        match = (
-            original_rule == replayed_rule and
-            original_action == replayed_action
-        )
+        match = original_rule == replayed_rule and original_action == replayed_action
 
         # 7. Identificar diferenças
         differences = []
@@ -276,10 +273,12 @@ async def replay_batch(
                 stats["match"] += 1
             else:
                 stats["mismatch"] += 1
-                stats["mismatches"].append({
-                    "decision_id": result.original_decision_id,
-                    "differences": result.differences,
-                })
+                stats["mismatches"].append(
+                    {
+                        "decision_id": result.original_decision_id,
+                        "differences": result.differences,
+                    }
+                )
             if not result.hash_match:
                 stats["hash_mismatch"] += 1
 

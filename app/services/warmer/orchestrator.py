@@ -9,32 +9,24 @@ Coordena todos os componentes do warmer:
 - Scheduler para agendamento
 - Transições de fase
 """
+
 import logging
 import asyncio
-from typing import List, Optional, Dict, Any
+from typing import Optional
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 
 from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.warmer.trust_score import (
     calcular_trust_score,
-    TrustLevel,
-    obter_permissoes,
-)
-from app.services.warmer.human_simulator import (
-    HumanSimulator,
-    get_simulator,
-    simular_envio_natural,
 )
 from app.services.warmer.conversation_generator import (
     gerar_conversa_warmup,
-    gerar_mensagem_inicial,
 )
 from app.services.warmer.pairing_engine import (
     encontrar_par,
-    criar_pares,
     pairing_engine,
 )
 from app.services.warmer.scheduler import (
@@ -48,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 class FaseWarmup(str, Enum):
     """Fases do processo de warmup."""
+
     REPOUSO = "repouso"
     SETUP = "setup"
     PRIMEIROS_CONTATOS = "primeiros_contatos"
@@ -60,6 +53,7 @@ class FaseWarmup(str, Enum):
 @dataclass
 class CriteriosTransicao:
     """Critérios para transição de fase."""
+
     dias_minimos: int
     msgs_enviadas_min: int
     msgs_recebidas_min: int
@@ -158,9 +152,13 @@ class WarmingOrchestrator:
         logger.info(f"[Orchestrator] Iniciando warmup para chip {chip_id[:8]}...")
 
         # Verificar se chip existe e está conectado
-        result = supabase.table("chips").select(
-            "id, telefone, status, fase_warmup"
-        ).eq("id", chip_id).single().execute()
+        result = (
+            supabase.table("chips")
+            .select("id, telefone, status, fase_warmup")
+            .eq("id", chip_id)
+            .single()
+            .execute()
+        )
 
         if not result.data:
             return {"success": False, "error": "Chip não encontrado"}
@@ -175,15 +173,17 @@ class WarmingOrchestrator:
         if fase_atual != "repouso":
             return {
                 "success": True,
-                "message": f"Chip já em warmup",
+                "message": "Chip já em warmup",
                 "fase": fase_atual,
             }
 
         # Iniciar na fase setup
-        supabase.table("chips").update({
-            "fase_warmup": FaseWarmup.SETUP.value,
-            "warmup_iniciado_em": agora_brasilia().isoformat(),
-        }).eq("id", chip_id).execute()
+        supabase.table("chips").update(
+            {
+                "fase_warmup": FaseWarmup.SETUP.value,
+                "warmup_iniciado_em": agora_brasilia().isoformat(),
+            }
+        ).eq("id", chip_id).execute()
 
         # Calcular trust score inicial
         trust_result = await calcular_trust_score(chip_id)
@@ -227,11 +227,13 @@ class WarmingOrchestrator:
         canceladas = await scheduler.cancelar_atividades(chip_id, motivo)
 
         # Atualizar status
-        supabase.table("chips").update({
-            "fase_warmup": FaseWarmup.REPOUSO.value,
-            "warmup_pausado_em": agora_brasilia().isoformat(),
-            "warmup_motivo_pausa": motivo,
-        }).eq("id", chip_id).execute()
+        supabase.table("chips").update(
+            {
+                "fase_warmup": FaseWarmup.REPOUSO.value,
+                "warmup_pausado_em": agora_brasilia().isoformat(),
+                "warmup_motivo_pausa": motivo,
+            }
+        ).eq("id", chip_id).execute()
 
         logger.info(f"[Orchestrator] Chip {chip_id[:8]}... pausado: {motivo}")
 
@@ -323,17 +325,17 @@ class WarmingOrchestrator:
             Dict com resultado
         """
         # Buscar fase atual
-        result = supabase.table("chips").select(
-            "fase_warmup"
-        ).eq("id", chip_id).single().execute()
+        result = supabase.table("chips").select("fase_warmup").eq("id", chip_id).single().execute()
 
         fase_atual = result.data.get("fase_warmup", "repouso") if result.data else "repouso"
 
         # Atualizar chip
-        supabase.table("chips").update({
-            "fase_warmup": nova_fase,
-            "ultima_transicao": agora_brasilia().isoformat(),
-        }).eq("id", chip_id).execute()
+        supabase.table("chips").update(
+            {
+                "fase_warmup": nova_fase,
+                "ultima_transicao": agora_brasilia().isoformat(),
+            }
+        ).eq("id", chip_id).execute()
 
         # Registrar transição
         motivo = "transicao_automatica" if automatico else "transicao_manual"
@@ -348,8 +350,7 @@ class WarmingOrchestrator:
         await scheduler.salvar_agenda(atividades)
 
         logger.info(
-            f"[Orchestrator] Chip {chip_id[:8]}... transicionou: "
-            f"{fase_atual} -> {nova_fase}"
+            f"[Orchestrator] Chip {chip_id[:8]}... transicionou: {fase_atual} -> {nova_fase}"
         )
 
         return {
@@ -368,12 +369,14 @@ class WarmingOrchestrator:
         motivo: str,
     ):
         """Registra transição no histórico."""
-        supabase.table("chip_transitions").insert({
-            "chip_id": chip_id,
-            "fase_de": fase_de,
-            "fase_para": fase_para,
-            "motivo": motivo,
-        }).execute()
+        supabase.table("chip_transitions").insert(
+            {
+                "chip_id": chip_id,
+                "fase_de": fase_de,
+                "fase_para": fase_para,
+                "motivo": motivo,
+            }
+        ).execute()
 
     async def executar_atividade(
         self,
@@ -443,9 +446,7 @@ class WarmingOrchestrator:
             return {"success": False, "error": "Nenhum par disponível"}
 
         # Buscar fase do chip
-        result = supabase.table("chips").select(
-            "fase_warmup"
-        ).eq("id", chip_id).single().execute()
+        result = supabase.table("chips").select("fase_warmup").eq("id", chip_id).single().execute()
 
         fase = result.data.get("fase_warmup", "setup") if result.data else "setup"
 
@@ -562,9 +563,13 @@ class WarmingOrchestrator:
                 await asyncio.sleep(2)
 
             # 3. Verificar transições de fase
-            chips_result = supabase.table("chips").select(
-                "id"
-            ).neq("fase_warmup", "repouso").neq("fase_warmup", "operacao").execute()
+            chips_result = (
+                supabase.table("chips")
+                .select("id")
+                .neq("fase_warmup", "repouso")
+                .neq("fase_warmup", "operacao")
+                .execute()
+            )
 
             for chip in chips_result.data or []:
                 nova_fase = await self.verificar_transicao(chip["id"])
@@ -590,9 +595,7 @@ class WarmingOrchestrator:
         Returns:
             Dict com estatísticas do pool
         """
-        result = supabase.table("chips").select(
-            "fase_warmup, trust_score, status"
-        ).execute()
+        result = supabase.table("chips").select("fase_warmup, trust_score, status").execute()
 
         stats = {
             "total": 0,

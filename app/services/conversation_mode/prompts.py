@@ -14,6 +14,7 @@ Exemplos ERRADOS:
 ❌ "Quer que eu reserve pra você?" (Julia NÃO reserva)
 ❌ "Posso confirmar?" (Julia NÃO confirma)
 """
+
 from .types import ConversationMode
 
 
@@ -28,13 +29,12 @@ MICRO_CONFIRMATION_PROMPTS: dict[tuple[ConversationMode, ConversationMode], str]
         "3. NÃO fale de valores\n"
         "4. Aguarde a resposta antes de mostrar opções\n\n"
         "Exemplos de micro-confirmação:\n"
-        "- \"Que legal! Só pra eu entender melhor - vc já tem CRM ativo em SP?\"\n"
-        "- \"Show! Vc tá procurando mais fixo ou avulso?\"\n"
-        "- \"Boa! Qual região vc prefere?\"\n"
-        "- \"Legal! Prefere diurno ou noturno?\"\n\n"
+        '- "Que legal! Só pra eu entender melhor - vc já tem CRM ativo em SP?"\n'
+        '- "Show! Vc tá procurando mais fixo ou avulso?"\n'
+        '- "Boa! Qual região vc prefere?"\n'
+        '- "Legal! Prefere diurno ou noturno?"\n\n'
         "LEMBRE-SE: Você é INTERMEDIÁRIA - não negocia valores nem confirma reservas."
     ),
-
     # followup → oferta (verificar interesse em nova oportunidade)
     (ConversationMode.FOLLOWUP, ConversationMode.OFERTA): (
         "\n\n## ATENÇÃO: MICRO-CONFIRMAÇÃO NECESSÁRIA\n"
@@ -43,9 +43,9 @@ MICRO_CONFIRMATION_PROMPTS: dict[tuple[ConversationMode, ConversationMode], str]
         "2. NÃO apresente a vaga ainda\n"
         "3. NÃO fale de valores\n\n"
         "Exemplos:\n"
-        "- \"Surgiu uma vaga interessante - quer que eu mande os detalhes?\"\n"
-        "- \"Lembrei de vc pq abriu uma boa, quer ver?\"\n"
-        "- \"Tem uma oportunidade nova aqui, quer saber mais?\"\n\n"
+        '- "Surgiu uma vaga interessante - quer que eu mande os detalhes?"\n'
+        '- "Lembrei de vc pq abriu uma boa, quer ver?"\n'
+        '- "Tem uma oportunidade nova aqui, quer saber mais?"\n\n'
         "LEMBRE-SE: Você é INTERMEDIÁRIA - conecta com o responsável, não fecha."
     ),
 }

@@ -1,6 +1,7 @@
 """
 Tags pré-definidas para categorização de conversas.
 """
+
 TAGS_PREDEFINIDAS = {
     "qualidade": [
         "resposta_excelente",
@@ -30,4 +31,3 @@ TAGS_PREDEFINIDAS = {
         "bug_detectado",
     ],
 }
-

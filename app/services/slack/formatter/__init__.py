@@ -4,6 +4,7 @@ Formatador de respostas para Slack.
 Re-exports de todos os modulos de formatacao.
 Sprint 10 - S10.E2.1
 """
+
 from .primitives import (
     bold,
     italic,

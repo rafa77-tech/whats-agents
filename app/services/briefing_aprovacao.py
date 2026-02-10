@@ -8,12 +8,13 @@ Gerencia o ciclo de vida de um briefing:
 2. Gestor responde -> detectar intencao
 3. Aprovado/Ajuste/Duvida/Cancelado
 """
+
 import logging
 import json
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 from enum import Enum
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
@@ -24,7 +25,6 @@ from app.services.briefing_analyzer import (
     formatar_plano_para_slack,
 )
 from app.services.google_docs import (
-    ler_documento,
     atualizar_secao_plano,
     adicionar_linha_historico,
 )
@@ -36,8 +36,10 @@ logger = logging.getLogger(__name__)
 # TIPOS
 # =============================================================================
 
+
 class StatusAprovacao(str, Enum):
     """Estados possiveis de um briefing."""
+
     AGUARDANDO = "aguardando"
     APROVADO = "aprovado"
     AJUSTE_SOLICITADO = "ajuste"
@@ -50,6 +52,7 @@ class StatusAprovacao(str, Enum):
 @dataclass
 class BriefingPendente:
     """Briefing aguardando aprovacao."""
+
     id: str
     doc_id: str
     doc_nome: str
@@ -68,29 +71,64 @@ class BriefingPendente:
 # =============================================================================
 
 KEYWORDS_APROVACAO = [
-    "pode ir", "vai la", "manda ver", "manda bala",
-    "sim", "aprovado", "ok", "blz", "beleza",
-    "go", "show", "perfeito", "otimo", "otima",
-    "pode executar", "pode rodar", "pode comecar",
-    "aprovo", "aprovei", "ta bom", "fechado",
+    "pode ir",
+    "vai la",
+    "manda ver",
+    "manda bala",
+    "sim",
+    "aprovado",
+    "ok",
+    "blz",
+    "beleza",
+    "go",
+    "show",
+    "perfeito",
+    "otimo",
+    "otima",
+    "pode executar",
+    "pode rodar",
+    "pode comecar",
+    "aprovo",
+    "aprovei",
+    "ta bom",
+    "fechado",
 ]
 
 KEYWORDS_CANCELAR = [
-    "cancela", "para", "esquece", "deixa pra la",
-    "nao precisa", "mudou", "nao vai mais",
-    "desiste", "para tudo", "aborta",
+    "cancela",
+    "para",
+    "esquece",
+    "deixa pra la",
+    "nao precisa",
+    "mudou",
+    "nao vai mais",
+    "desiste",
+    "para tudo",
+    "aborta",
 ]
 
 KEYWORDS_AJUSTE = [
-    "ajusta", "muda", "altera", "remove", "adiciona",
-    "na verdade", "mas", "esqueci", "faltou",
-    "corrige", "troca", "inverte", "tira", "poe",
+    "ajusta",
+    "muda",
+    "altera",
+    "remove",
+    "adiciona",
+    "na verdade",
+    "mas",
+    "esqueci",
+    "faltou",
+    "corrige",
+    "troca",
+    "inverte",
+    "tira",
+    "poe",
 ]
 
 
 # =============================================================================
 # SERVICO DE APROVACAO
 # =============================================================================
+
 
 class BriefingAprovacaoService:
     """Gerencia fluxo de aprovacao de briefings."""
@@ -102,7 +140,7 @@ class BriefingAprovacaoService:
         doc_url: str,
         channel_id: str,
         user_id: str,
-        plano: AnaliseResult
+        plano: AnaliseResult,
     ) -> str:
         """
         Cria registro de briefing pendente de aprovacao.
@@ -157,14 +195,16 @@ class BriefingAprovacaoService:
         """
         agora = agora_brasilia().isoformat()
 
-        result = supabase.table("briefings_pendentes")\
-            .select("*")\
-            .eq("channel_id", channel_id)\
-            .eq("status", StatusAprovacao.AGUARDANDO.value)\
-            .gt("expira_em", agora)\
-            .order("criado_em", desc=True)\
-            .limit(1)\
+        result = (
+            supabase.table("briefings_pendentes")
+            .select("*")
+            .eq("channel_id", channel_id)
+            .eq("status", StatusAprovacao.AGUARDANDO.value)
+            .gt("expira_em", agora)
+            .order("criado_em", desc=True)
+            .limit(1)
             .execute()
+        )
 
         if not result.data:
             return None
@@ -190,9 +230,7 @@ class BriefingAprovacaoService:
         )
 
     async def processar_resposta(
-        self,
-        briefing: BriefingPendente,
-        resposta: str
+        self, briefing: BriefingPendente, resposta: str
     ) -> Tuple[StatusAprovacao, str]:
         """
         Processa resposta do gestor.
@@ -214,13 +252,13 @@ class BriefingAprovacaoService:
                 briefing.doc_id,
                 formatar_plano_para_documento(briefing.plano).replace(
                     "Aguardando aprovacao",
-                    f"Aprovado em {agora_brasilia().strftime('%d/%m/%Y %H:%M')}"
-                )
+                    f"Aprovado em {agora_brasilia().strftime('%d/%m/%Y %H:%M')}",
+                ),
             )
             await adicionar_linha_historico(briefing.doc_id, "Plano aprovado", "-")
             return (
                 StatusAprovacao.APROVADO,
-                "Show! Vou comecar a executar o plano. Te aviso quando tiver novidades!"
+                "Show! Vou comecar a executar o plano. Te aviso quando tiver novidades!",
             )
 
         elif intencao == StatusAprovacao.CANCELADO:
@@ -228,7 +266,7 @@ class BriefingAprovacaoService:
             await adicionar_linha_historico(briefing.doc_id, "Plano cancelado", "Gestor cancelou")
             return (
                 StatusAprovacao.CANCELADO,
-                "Blz, cancelei o plano. Se precisar de novo eh soh pedir!"
+                "Blz, cancelei o plano. Se precisar de novo eh soh pedir!",
             )
 
         elif intencao == StatusAprovacao.AJUSTE_SOLICITADO:
@@ -236,13 +274,13 @@ class BriefingAprovacaoService:
             await adicionar_linha_historico(briefing.doc_id, "Ajuste solicitado", resposta[:50])
             return (
                 StatusAprovacao.AJUSTE_SOLICITADO,
-                f"Entendi! Voce quer que eu ajuste: {resposta}\n\nMe fala mais detalhes do que precisa mudar?"
+                f"Entendi! Voce quer que eu ajuste: {resposta}\n\nMe fala mais detalhes do que precisa mudar?",
             )
 
         else:  # DUVIDA
             return (
                 StatusAprovacao.DUVIDA,
-                "Opa, pode perguntar! To aqui pra ajudar a entender o plano."
+                "Opa, pode perguntar! To aqui pra ajudar a entender o plano.",
             )
 
     def _detectar_intencao(self, resposta: str) -> StatusAprovacao:
@@ -273,38 +311,44 @@ class BriefingAprovacaoService:
 
     async def _marcar_status(self, briefing_id: str, status: StatusAprovacao) -> None:
         """Atualiza status de um briefing."""
-        supabase.table("briefings_pendentes").update({
-            "status": status.value,
-            "atualizado_em": agora_brasilia().isoformat()
-        }).eq("id", briefing_id).execute()
+        supabase.table("briefings_pendentes").update(
+            {"status": status.value, "atualizado_em": agora_brasilia().isoformat()}
+        ).eq("id", briefing_id).execute()
 
     def _dict_para_analise(self, data: dict) -> AnaliseResult:
         """Converte dict para AnaliseResult."""
         from app.services.briefing_analyzer import (
-            AnaliseResult, TipoDemanda, PassoPlano, NecessidadeIdentificada
+            AnaliseResult,
+            TipoDemanda,
+            PassoPlano,
+            NecessidadeIdentificada,
         )
 
         # Converter passos
         passos = []
         for p in data.get("passos", []):
-            passos.append(PassoPlano(
-                numero=p.get("numero", 0),
-                descricao=p.get("descricao", ""),
-                prazo=p.get("prazo"),
-                requer_ajuda=p.get("requer_ajuda", False),
-                tipo_ajuda=p.get("tipo_ajuda")
-            ))
+            passos.append(
+                PassoPlano(
+                    numero=p.get("numero", 0),
+                    descricao=p.get("descricao", ""),
+                    prazo=p.get("prazo"),
+                    requer_ajuda=p.get("requer_ajuda", False),
+                    tipo_ajuda=p.get("tipo_ajuda"),
+                )
+            )
 
         # Converter necessidades
         necessidades = []
         for n in data.get("necessidades", []):
-            necessidades.append(NecessidadeIdentificada(
-                tipo=n.get("tipo", "dados"),
-                descricao=n.get("descricao", ""),
-                caso_uso=n.get("caso_uso", ""),
-                alternativa_temporaria=n.get("alternativa_temporaria"),
-                prioridade=n.get("prioridade", "media")
-            ))
+            necessidades.append(
+                NecessidadeIdentificada(
+                    tipo=n.get("tipo", "dados"),
+                    descricao=n.get("descricao", ""),
+                    caso_uso=n.get("caso_uso", ""),
+                    alternativa_temporaria=n.get("alternativa_temporaria"),
+                    prioridade=n.get("prioridade", "media"),
+                )
+            )
 
         # Tipo de demanda
         tipo_str = data.get("tipo_demanda", "operacional")
@@ -332,7 +376,7 @@ class BriefingAprovacaoService:
             necessidades=necessidades,
             viavel=data.get("viavel", True),
             ressalvas=data.get("ressalvas", []),
-            avaliacao_honesta=data.get("avaliacao_honesta", "")
+            avaliacao_honesta=data.get("avaliacao_honesta", ""),
         )
 
 
@@ -340,13 +384,9 @@ class BriefingAprovacaoService:
 # FLUXO COMPLETO DE BRIEFING
 # =============================================================================
 
+
 async def processar_briefing_completo(
-    doc_id: str,
-    doc_nome: str,
-    conteudo: str,
-    doc_url: str,
-    channel_id: str,
-    user_id: str
+    doc_id: str, doc_nome: str, conteudo: str, doc_url: str, channel_id: str, user_id: str
 ) -> Tuple[str, str]:
     """
     Processa briefing completo: analisa, escreve no doc, cria pendente.
@@ -379,7 +419,7 @@ async def processar_briefing_completo(
         doc_url=doc_url,
         channel_id=channel_id,
         user_id=user_id,
-        plano=analise
+        plano=analise,
     )
 
     # 4. Formatar mensagem para Slack

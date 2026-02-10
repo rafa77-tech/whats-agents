@@ -9,6 +9,7 @@ Julia e INTERMEDIARIA:
 
 Estas tools implementam o papel de intermediaria da Julia.
 """
+
 import logging
 from typing import Any
 
@@ -67,22 +68,20 @@ PARAMETROS:
         "properties": {
             "vaga_id": {
                 "type": "string",
-                "description": "UUID da vaga - DEVE ser o ID exato retornado por buscar_vagas (formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). NAO invente IDs!"
+                "description": "UUID da vaga - DEVE ser o ID exato retornado por buscar_vagas (formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). NAO invente IDs!",
             },
             "motivo": {
                 "type": "string",
-                "description": "Breve descricao do interesse (ex: 'medico quer saber valor', 'medico quer reservar')"
-            }
+                "description": "Breve descricao do interesse (ex: 'medico quer saber valor', 'medico quer reservar')",
+            },
         },
-        "required": ["vaga_id", "motivo"]
-    }
+        "required": ["vaga_id", "motivo"],
+    },
 }
 
 
 async def handle_criar_handoff_externo(
-    tool_input: dict,
-    medico: dict,
-    conversa: dict
+    tool_input: dict, medico: dict, conversa: dict
 ) -> dict[str, Any]:
     """
     Cria ponte entre medico e responsavel da vaga.
@@ -105,7 +104,7 @@ async def handle_criar_handoff_externo(
         return {
             "success": False,
             "error": "ID da vaga nao informado",
-            "mensagem_sugerida": "Qual vaga voce tem interesse? Me conta mais que eu te conecto com o responsavel"
+            "mensagem_sugerida": "Qual vaga voce tem interesse? Me conta mais que eu te conecto com o responsavel",
         }
 
     cliente_id = medico.get("id")
@@ -114,7 +113,7 @@ async def handle_criar_handoff_externo(
         return {
             "success": False,
             "error": "Dados do medico incompletos",
-            "mensagem_sugerida": "Tive um probleminha aqui. Pode repetir qual vaga te interessou?"
+            "mensagem_sugerida": "Tive um probleminha aqui. Pode repetir qual vaga te interessou?",
         }
 
     # Verificar se ja existe handoff para essa vaga/medico
@@ -142,22 +141,24 @@ async def handle_criar_handoff_externo(
                 "mensagem_sugerida": (
                     f"Ja passei seu interesse pro {divulgador_nome}! "
                     f"Ele deve te ligar em breve. Se nao der retorno hoje, me avisa que eu cobro ele"
-                )
+                ),
             }
 
     # Buscar dados da vaga
     try:
-        response = supabase.table("vagas") \
-            .select("*, hospitais(*), periodos(*), setores(*), source, source_id") \
-            .eq("id", vaga_id) \
+        response = (
+            supabase.table("vagas")
+            .select("*, hospitais(*), periodos(*), setores(*), source, source_id")
+            .eq("id", vaga_id)
             .execute()
+        )
 
         if not response.data:
             logger.warning(f"Vaga {vaga_id} nao encontrada")
             return {
                 "success": False,
                 "error": "Vaga nao encontrada",
-                "mensagem_sugerida": "Nao encontrei essa vaga. Quer que eu veja as disponiveis?"
+                "mensagem_sugerida": "Nao encontrei essa vaga. Quer que eu veja as disponiveis?",
             }
 
         vaga = response.data[0]
@@ -167,7 +168,7 @@ async def handle_criar_handoff_externo(
         return {
             "success": False,
             "error": str(e),
-            "mensagem_sugerida": "Tive um probleminha. Me conta de novo qual vaga te interessou"
+            "mensagem_sugerida": "Tive um probleminha. Me conta de novo qual vaga te interessou",
         }
 
     # Verificar se e vaga de grupo (tem divulgador)
@@ -190,7 +191,7 @@ async def handle_criar_handoff_externo(
             "mensagem_sugerida": (
                 f"Essa vaga e direto com {hospital}! "
                 f"Vou passar seus dados pra eles te ligarem e confirmar tudo, blz?"
-            )
+            ),
         }
 
     # Criar ponte externa (vaga de grupo)
@@ -208,7 +209,7 @@ async def handle_criar_handoff_externo(
         return {
             "success": False,
             "error": str(e),
-            "mensagem_sugerida": "Tive um probleminha pra te conectar. Tenta de novo daqui a pouco?"
+            "mensagem_sugerida": "Tive um probleminha pra te conectar. Tenta de novo daqui a pouco?",
         }
 
     if not resultado.get("success"):
@@ -223,7 +224,7 @@ async def handle_criar_handoff_externo(
                 "mensagem_sugerida": (
                     "O responsavel por essa vaga nao aceita contato automatizado. "
                     "Vou pedir pra minha supervisora te ajudar com essa, blz?"
-                )
+                ),
             }
         elif reason == "outside_business_hours":
             return {
@@ -233,13 +234,13 @@ async def handle_criar_handoff_externo(
                 "mensagem_sugerida": (
                     "To fora do horario comercial agora, entao nao consigo contatar o responsavel. "
                     "Amanha cedo te aviso, pode ser?"
-                )
+                ),
             }
         else:
             return {
                 "success": False,
                 "error": error,
-                "mensagem_sugerida": "Tive um problema pra te conectar. Vou tentar de novo depois, tudo bem?"
+                "mensagem_sugerida": "Tive um problema pra te conectar. Vou tentar de novo depois, tudo bem?",
             }
 
     # Ponte criada com sucesso
@@ -249,8 +250,7 @@ async def handle_criar_handoff_externo(
     handoff_id = resultado.get("handoff_id")
 
     logger.info(
-        f"Ponte criada: handoff={handoff_id}, "
-        f"medico={cliente_id[:8]}, divulgador={divulgador_nome}"
+        f"Ponte criada: handoff={handoff_id}, medico={cliente_id[:8]}, divulgador={divulgador_nome}"
     )
 
     # Emitir evento de intermediacao
@@ -287,7 +287,7 @@ async def handle_criar_handoff_externo(
             f"Pronto! Passei seu interesse pro {divulgador_nome}. "
             f"Ele ja tem seu contato e deve te ligar em breve pra combinar os detalhes. "
             f"Me avisa depois se deu certo?"
-        )
+        ),
     }
 
 
@@ -319,29 +319,24 @@ PARAMETROS:
     "input_schema": {
         "type": "object",
         "properties": {
-            "vaga_id": {
-                "type": "string",
-                "description": "UUID da vaga"
-            },
+            "vaga_id": {"type": "string", "description": "UUID da vaga"},
             "status": {
                 "type": "string",
                 "enum": ["fechado", "sem_resposta", "desistiu"],
-                "description": "Novo status da intermediacao"
+                "description": "Novo status da intermediacao",
             },
             "observacao": {
                 "type": "string",
-                "description": "Detalhes sobre o status (ex: 'medico disse que fechou por R$ 2.500')"
-            }
+                "description": "Detalhes sobre o status (ex: 'medico disse que fechou por R$ 2.500')",
+            },
         },
-        "required": ["vaga_id", "status"]
-    }
+        "required": ["vaga_id", "status"],
+    },
 }
 
 
 async def handle_registrar_status_intermediacao(
-    tool_input: dict,
-    medico: dict,
-    conversa: dict
+    tool_input: dict, medico: dict, conversa: dict
 ) -> dict[str, Any]:
     """
     Registra status de uma intermediacao existente.
@@ -364,23 +359,20 @@ async def handle_registrar_status_intermediacao(
         return {
             "success": False,
             "error": "ID da vaga nao informado",
-            "mensagem_sugerida": "Qual vaga voce ta me falando?"
+            "mensagem_sugerida": "Qual vaga voce ta me falando?",
         }
 
     if not novo_status:
         return {
             "success": False,
             "error": "Status nao informado",
-            "mensagem_sugerida": "O que aconteceu? Fechou a vaga ou ta tendo problema?"
+            "mensagem_sugerida": "O que aconteceu? Fechou a vaga ou ta tendo problema?",
         }
 
     cliente_id = medico.get("id")
     if not cliente_id:
         logger.error("handle_registrar_status_intermediacao: medico sem ID")
-        return {
-            "success": False,
-            "error": "Dados do medico incompletos"
-        }
+        return {"success": False, "error": "Dados do medico incompletos"}
 
     # Mapear status para o formato do banco
     status_map = {
@@ -394,14 +386,11 @@ async def handle_registrar_status_intermediacao(
     handoff = await buscar_handoff_existente(vaga_id, cliente_id)
 
     if not handoff:
-        logger.warning(
-            f"Handoff nao encontrado para vaga={vaga_id}, "
-            f"cliente={cliente_id[:8]}"
-        )
+        logger.warning(f"Handoff nao encontrado para vaga={vaga_id}, cliente={cliente_id[:8]}")
         return {
             "success": False,
             "error": "Intermediacao nao encontrada",
-            "mensagem_sugerida": "Nao achei registro dessa vaga pra voce. Qual vaga ta falando?"
+            "mensagem_sugerida": "Nao achei registro dessa vaga pra voce. Qual vaga ta falando?",
         }
 
     handoff_id = handoff.get("id")
@@ -412,18 +401,19 @@ async def handle_registrar_status_intermediacao(
         return {
             "success": False,
             "error": "Intermediacao ja confirmada",
-            "mensagem_sugerida": "Essa vaga ja ta confirmada! Ta tudo certo?"
+            "mensagem_sugerida": "Essa vaga ja ta confirmada! Ta tudo certo?",
         }
 
     if status_atual in ["expired", "cancelled"]:
         return {
             "success": False,
             "error": f"Intermediacao {status_atual}",
-            "mensagem_sugerida": "Essa intermediacao ja foi encerrada. Quer ver outras vagas?"
+            "mensagem_sugerida": "Essa intermediacao ja foi encerrada. Quer ver outras vagas?",
         }
 
     # Atualizar status
     from datetime import datetime, timezone
+
     confirmed_at = datetime.now(timezone.utc) if novo_status == "fechado" else None
 
     try:
@@ -439,14 +429,14 @@ async def handle_registrar_status_intermediacao(
         return {
             "success": False,
             "error": str(e),
-            "mensagem_sugerida": "Tive um probleminha. Pode repetir?"
+            "mensagem_sugerida": "Tive um probleminha. Pode repetir?",
         }
 
     if not sucesso:
         return {
             "success": False,
             "error": "Falha ao atualizar status",
-            "mensagem_sugerida": "Nao consegui atualizar. Pode tentar de novo?"
+            "mensagem_sugerida": "Nao consegui atualizar. Pode tentar de novo?",
         }
 
     logger.info(
@@ -480,9 +470,8 @@ async def handle_registrar_status_intermediacao(
                 "Parabenize e pergunte se pode ajudar com algo mais."
             ),
             "mensagem_sugerida": (
-                "Show! Fico feliz que deu certo! "
-                "Qualquer coisa que precisar, me chama aqui"
-            )
+                "Show! Fico feliz que deu certo! Qualquer coisa que precisar, me chama aqui"
+            ),
         }
 
     elif novo_status == "sem_resposta":
@@ -496,9 +485,8 @@ async def handle_registrar_status_intermediacao(
                 "Oferecer para tentar de novo ou mostrar outras vagas."
             ),
             "mensagem_sugerida": (
-                "Poxa, vou cobrar ele aqui. "
-                "Quer que eu tente de novo ou prefere ver outras vagas?"
-            )
+                "Poxa, vou cobrar ele aqui. Quer que eu tente de novo ou prefere ver outras vagas?"
+            ),
         }
 
     else:  # desistiu
@@ -507,14 +495,11 @@ async def handle_registrar_status_intermediacao(
             "handoff_id": handoff_id,
             "status_anterior": status_atual,
             "status_novo": status_banco,
-            "instrucao": (
-                "Medico desistiu da vaga. "
-                "Agradecer e oferecer ajuda futura."
-            ),
+            "instrucao": ("Medico desistiu da vaga. Agradecer e oferecer ajuda futura."),
             "mensagem_sugerida": (
                 "Tudo bem! Quando surgir outra oportunidade te aviso. "
                 "Se precisar de algo, me chama!"
-            )
+            ),
         }
 
 

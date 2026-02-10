@@ -1,6 +1,7 @@
 """
 Respostas especiais para tipos de mensagem não-texto.
 """
+
 import random
 
 RESPOSTAS_AUDIO = [
@@ -72,4 +73,3 @@ def obter_resposta_documento() -> str:
 def obter_resposta_video() -> str:
     """Retorna resposta para vídeo."""
     return random.choice(RESPOSTAS_VIDEO)
-

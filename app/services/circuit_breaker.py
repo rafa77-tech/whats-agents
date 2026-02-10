@@ -7,8 +7,8 @@ Sprint 36 - T02.2: Backoff exponencial no reset
 Sprint 36 - T02.3: Diferenciar tipos de erro
 Sprint 44 - T06.5: Distributed circuit breaker via Redis
 """
+
 import asyncio
-import json
 import logging
 from datetime import datetime, timezone
 from typing import Callable, Any, Optional
@@ -17,36 +17,41 @@ from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
+
 # Sprint 44 T06.5: Lazy import do Redis
 def _get_redis():
     """Lazy import para evitar circular import."""
     from app.services.redis import redis_client
+
     return redis_client
 
 
 def _get_supabase():
     """Lazy import para evitar circular import com supabase.py."""
     from app.services.supabase import supabase
+
     return supabase
 
 
 class CircuitState(Enum):
-    CLOSED = "closed"        # Normal, chamadas passam
-    OPEN = "open"            # Bloqueando chamadas
+    CLOSED = "closed"  # Normal, chamadas passam
+    OPEN = "open"  # Bloqueando chamadas
     HALF_OPEN = "half_open"  # Testando recuperação
 
 
 class ErrorType(Enum):
     """Sprint 36 - T02.3: Tipos de erro para diferenciação."""
-    TIMEOUT = "timeout"           # Não conta para abrir circuit
-    CLIENT_ERROR = "client_4xx"   # Conta - erro do cliente
-    SERVER_ERROR = "server_5xx"   # Conta - erro do servidor
-    NETWORK = "network"           # Conta - erro de rede
-    UNKNOWN = "unknown"           # Conta - erro desconhecido
+
+    TIMEOUT = "timeout"  # Não conta para abrir circuit
+    CLIENT_ERROR = "client_4xx"  # Conta - erro do cliente
+    SERVER_ERROR = "server_5xx"  # Conta - erro do servidor
+    NETWORK = "network"  # Conta - erro de rede
+    UNKNOWN = "unknown"  # Conta - erro desconhecido
 
 
 class CircuitOpenError(Exception):
     """Exceção quando circuit breaker está aberto."""
+
     pass
 
 
@@ -87,12 +92,13 @@ class CircuitBreaker:
 
     Sprint 44 T01.3: Thread-safe com asyncio.Lock
     """
+
     nome: str
-    falhas_para_abrir: int = 5           # Falhas consecutivas para abrir
-    timeout_segundos: float = 30.0       # Timeout para chamadas
-    tempo_reset_inicial: int = 60        # Primeiro reset (segundos)
-    tempo_reset_max: int = 600           # Máximo 10 minutos
-    multiplicador_backoff: float = 2.0   # Dobra a cada falha no half-open
+    falhas_para_abrir: int = 5  # Falhas consecutivas para abrir
+    timeout_segundos: float = 30.0  # Timeout para chamadas
+    tempo_reset_inicial: int = 60  # Primeiro reset (segundos)
+    tempo_reset_max: int = 600  # Máximo 10 minutos
+    multiplicador_backoff: float = 2.0  # Dobra a cada falha no half-open
 
     # Estado interno
     estado: CircuitState = field(default=CircuitState.CLOSED)
@@ -119,9 +125,7 @@ class CircuitBreaker:
 
     def _calcular_tempo_reset(self) -> int:
         """Sprint 36 - T02.2: Calcula tempo de reset com backoff exponencial."""
-        tempo = self.tempo_reset_inicial * (
-            self.multiplicador_backoff ** self.tentativas_half_open
-        )
+        tempo = self.tempo_reset_inicial * (self.multiplicador_backoff**self.tentativas_half_open)
         return min(int(tempo), self.tempo_reset_max)
 
     def _verificar_transicao_half_open(self):
@@ -148,21 +152,22 @@ class CircuitBreaker:
         self.estado = novo_estado
 
         logger.info(
-            f"Circuit {self.nome}: {estado_anterior.value} -> {novo_estado.value} "
-            f"({motivo})"
+            f"Circuit {self.nome}: {estado_anterior.value} -> {novo_estado.value} ({motivo})"
         )
 
         # Registrar transição no banco (async em background)
         try:
-            _get_supabase().table("circuit_transitions").insert({
-                "circuit_name": self.nome,
-                "from_state": estado_anterior.value,
-                "to_state": novo_estado.value,
-                "reason": motivo,
-                "falhas_consecutivas": self.falhas_consecutivas,
-                "tentativas_half_open": self.tentativas_half_open,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            }).execute()
+            _get_supabase().table("circuit_transitions").insert(
+                {
+                    "circuit_name": self.nome,
+                    "from_state": estado_anterior.value,
+                    "to_state": novo_estado.value,
+                    "reason": motivo,
+                    "falhas_consecutivas": self.falhas_consecutivas,
+                    "tentativas_half_open": self.tentativas_half_open,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+            ).execute()
         except Exception as e:
             # Não falhar se não conseguir registrar
             logger.debug(f"[CircuitBreaker] Erro ao registrar transição: {e}")
@@ -194,9 +199,7 @@ class CircuitBreaker:
 
             # Sprint 36 - T02.3: Timeout não conta como falha para abrir circuit
             if tipo_erro == ErrorType.TIMEOUT:
-                logger.warning(
-                    f"Circuit {self.nome}: timeout (não conta como falha) - {erro}"
-                )
+                logger.warning(f"Circuit {self.nome}: timeout (não conta como falha) - {erro}")
                 return
 
             self.falhas_consecutivas += 1
@@ -209,18 +212,14 @@ class CircuitBreaker:
             if self.estado == CircuitState.HALF_OPEN:
                 # Sprint 36 - T02.2: Incrementa backoff
                 self.tentativas_half_open += 1
-                self._transicionar(CircuitState.OPEN, f"falha_half_open_tentativa_{self.tentativas_half_open}")
+                self._transicionar(
+                    CircuitState.OPEN, f"falha_half_open_tentativa_{self.tentativas_half_open}"
+                )
 
             elif self.falhas_consecutivas >= self.falhas_para_abrir:
                 self._transicionar(CircuitState.OPEN, f"muitas_falhas_{self.falhas_consecutivas}")
 
-    async def executar(
-        self,
-        func: Callable,
-        *args,
-        fallback: Callable = None,
-        **kwargs
-    ) -> Any:
+    async def executar(self, func: Callable, *args, fallback: Callable = None, **kwargs) -> Any:
         """
         Executa função com proteção do circuit breaker.
 
@@ -250,10 +249,7 @@ class CircuitBreaker:
 
         # Tentar executar
         try:
-            resultado = await asyncio.wait_for(
-                func(*args, **kwargs),
-                timeout=self.timeout_segundos
-            )
+            resultado = await asyncio.wait_for(func(*args, **kwargs), timeout=self.timeout_segundos)
             # Sprint 44 T01.3: Métodos agora são async
             await self._registrar_sucesso()
             return resultado
@@ -291,15 +287,17 @@ class CircuitBreaker:
 
         # Registrar reset
         try:
-            _get_supabase().table("circuit_transitions").insert({
-                "circuit_name": self.nome,
-                "from_state": estado_anterior.value,
-                "to_state": "closed",
-                "reason": "reset_manual",
-                "falhas_consecutivas": 0,
-                "tentativas_half_open": 0,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            }).execute()
+            _get_supabase().table("circuit_transitions").insert(
+                {
+                    "circuit_name": self.nome,
+                    "from_state": estado_anterior.value,
+                    "to_state": "closed",
+                    "reason": "reset_manual",
+                    "falhas_consecutivas": 0,
+                    "tentativas_half_open": 0,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+            ).execute()
         except Exception:
             pass
 
@@ -350,7 +348,7 @@ class DistributedCircuitBreaker:
     def estado(self) -> CircuitState:
         """Obtém estado atual (tenta Redis, fallback local)."""
         try:
-            redis = _get_redis()
+            _get_redis()
             # Operação síncrona - usar em contextos onde async não é possível
             # Para uso async, usar _get_state_async
             return self._local_state
@@ -363,7 +361,9 @@ class DistributedCircuitBreaker:
             redis = _get_redis()
             state_str = await redis.get(f"{self._redis_prefix}:state")
             if state_str:
-                return CircuitState(state_str.decode() if isinstance(state_str, bytes) else state_str)
+                return CircuitState(
+                    state_str.decode() if isinstance(state_str, bytes) else state_str
+                )
             return CircuitState.CLOSED
         except Exception as e:
             logger.warning(f"[DistributedCB] Erro ao ler estado Redis: {e}")
@@ -480,7 +480,7 @@ class DistributedCircuitBreaker:
 
     def _calcular_tempo_reset(self, tentativas: int = 0) -> int:
         """Calcula tempo de reset com backoff exponencial."""
-        tempo = self.tempo_reset_inicial * (self.multiplicador_backoff ** tentativas)
+        tempo = self.tempo_reset_inicial * (self.multiplicador_backoff**tentativas)
         return min(int(tempo), self.tempo_reset_max)
 
     async def _verificar_transicao_half_open(self):
@@ -500,18 +500,22 @@ class DistributedCircuitBreaker:
         if tempo_desde_falha.total_seconds() >= tempo_reset:
             await self._set_state_async(CircuitState.HALF_OPEN, f"timeout_reset_{tempo_reset}s")
 
-    def _registrar_transicao_db(self, estado_anterior: CircuitState, novo_estado: CircuitState, motivo: str):
+    def _registrar_transicao_db(
+        self, estado_anterior: CircuitState, novo_estado: CircuitState, motivo: str
+    ):
         """Registra transição no banco de dados."""
         try:
-            _get_supabase().table("circuit_transitions").insert({
-                "circuit_name": self.nome,
-                "from_state": estado_anterior.value,
-                "to_state": novo_estado.value,
-                "reason": motivo,
-                "falhas_consecutivas": self._local_failures,
-                "tentativas_half_open": self._local_half_open_attempts,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            }).execute()
+            _get_supabase().table("circuit_transitions").insert(
+                {
+                    "circuit_name": self.nome,
+                    "from_state": estado_anterior.value,
+                    "to_state": novo_estado.value,
+                    "reason": motivo,
+                    "falhas_consecutivas": self._local_failures,
+                    "tentativas_half_open": self._local_half_open_attempts,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+            ).execute()
         except Exception as e:
             logger.debug(f"[DistributedCB] Erro ao registrar transição: {e}")
 
@@ -532,9 +536,7 @@ class DistributedCircuitBreaker:
 
             # Timeout não conta como falha
             if tipo_erro == ErrorType.TIMEOUT:
-                logger.warning(
-                    f"Circuit {self.nome}: timeout (não conta como falha) - {erro}"
-                )
+                logger.warning(f"Circuit {self.nome}: timeout (não conta como falha) - {erro}")
                 return
 
             failures = await self._incr_failures_async()
@@ -548,18 +550,14 @@ class DistributedCircuitBreaker:
             if estado == CircuitState.HALF_OPEN:
                 await self._incr_half_open_attempts_async()
                 tentativas = await self._get_half_open_attempts_async()
-                await self._set_state_async(CircuitState.OPEN, f"falha_half_open_tentativa_{tentativas}")
+                await self._set_state_async(
+                    CircuitState.OPEN, f"falha_half_open_tentativa_{tentativas}"
+                )
 
             elif failures >= self.falhas_para_abrir:
                 await self._set_state_async(CircuitState.OPEN, f"muitas_falhas_{failures}")
 
-    async def executar(
-        self,
-        func: Callable,
-        *args,
-        fallback: Callable = None,
-        **kwargs
-    ) -> Any:
+    async def executar(self, func: Callable, *args, fallback: Callable = None, **kwargs) -> Any:
         """Executa função com proteção do circuit breaker."""
         await self._verificar_transicao_half_open()
 
@@ -573,10 +571,7 @@ class DistributedCircuitBreaker:
             raise CircuitOpenError(f"Circuit {self.nome} está aberto")
 
         try:
-            resultado = await asyncio.wait_for(
-                func(*args, **kwargs),
-                timeout=self.timeout_segundos
-            )
+            resultado = await asyncio.wait_for(func(*args, **kwargs), timeout=self.timeout_segundos)
             await self._registrar_sucesso()
             return resultado
 
@@ -613,7 +608,9 @@ class DistributedCircuitBreaker:
             "nome": self.nome,
             "estado": self._local_state.value,
             "falhas_consecutivas": self._local_failures,
-            "ultima_falha": self._local_last_failure.isoformat() if self._local_last_failure else None,
+            "ultima_falha": self._local_last_failure.isoformat()
+            if self._local_last_failure
+            else None,
             "tentativas_half_open": self._local_half_open_attempts,
             "tempo_reset_atual": self._calcular_tempo_reset(self._local_half_open_attempts),
             "distributed": True,
@@ -621,7 +618,7 @@ class DistributedCircuitBreaker:
 
     async def reset_async(self):
         """Reseta o circuit breaker manualmente (async)."""
-        estado_anterior = await self._get_state_async()
+        await self._get_state_async()
         await self._reset_failures_async()
         await self._reset_half_open_attempts_async()
         await self._set_state_async(CircuitState.CLOSED, "reset_manual")
@@ -638,10 +635,10 @@ class DistributedCircuitBreaker:
 # Instâncias globais para cada serviço
 circuit_evolution = CircuitBreaker(
     nome="evolution",
-    falhas_para_abrir=5,          # 5 falhas consecutivas para abrir
-    timeout_segundos=30.0,        # Timeout de 30s por chamada
-    tempo_reset_inicial=300,      # 5 minutos - erros WhatsApp não se resolvem rápido
-    tempo_reset_max=1800,         # Máximo 30 minutos
+    falhas_para_abrir=5,  # 5 falhas consecutivas para abrir
+    timeout_segundos=30.0,  # Timeout de 30s por chamada
+    tempo_reset_inicial=300,  # 5 minutos - erros WhatsApp não se resolvem rápido
+    tempo_reset_max=1800,  # Máximo 30 minutos
 )
 
 circuit_claude = CircuitBreaker(
@@ -712,9 +709,13 @@ async def obter_historico_transicoes(circuit_name: str = None, horas: int = 24) 
 
     limite = (datetime.now(timezone.utc) - timedelta(hours=horas)).isoformat()
 
-    query = _get_supabase().table("circuit_transitions").select("*").gte(
-        "created_at", limite
-    ).order("created_at", desc=True)
+    query = (
+        _get_supabase()
+        .table("circuit_transitions")
+        .select("*")
+        .gte("created_at", limite)
+        .order("created_at", desc=True)
+    )
 
     if circuit_name:
         query = query.eq("circuit_name", circuit_name)

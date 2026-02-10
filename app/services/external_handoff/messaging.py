@@ -3,6 +3,7 @@ Mensagens para external handoff.
 
 Sprint 20 - E03 - Templates e envio.
 """
+
 import logging
 from datetime import datetime
 
@@ -87,7 +88,7 @@ async def enviar_mensagem_medico(
     info_empresa = f" ({empresa})" if empresa else ""
 
     # Formatar telefone para link WhatsApp
-    telefone_limpo = telefone_divulgador.replace("+", "").replace(" ", "").replace("-", "")
+    telefone_divulgador.replace("+", "").replace(" ", "").replace("-", "")
 
     mensagem = (
         f"Perfeito! Reservei essa vaga pra voce.\n\n"

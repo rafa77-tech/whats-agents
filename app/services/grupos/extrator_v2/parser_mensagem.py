@@ -215,16 +215,15 @@ PATTERN_HORARIO = re.compile(
 
 # Valor monetário - exige R$ ou valor típico de plantão (>= 1.000)
 PATTERN_VALOR_COM_RS = re.compile(
-    r"R\$\s*\d{1,3}(?:[.,]\d{3})*", re.IGNORECASE  # R$ 1.800, R$1800
+    r"R\$\s*\d{1,3}(?:[.,]\d{3})*",
+    re.IGNORECASE,  # R$ 1.800, R$1800
 )
 
 PATTERN_VALOR_GRANDE = re.compile(
     r"\d{1,2}[.,]\d{3}"  # 1.800, 1,800 (valores com milhar)
 )
 
-PATTERN_TELEFONE = re.compile(
-    r"(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?(?:9\s?)?\d{4}[-.\s]?\d{4}"
-)
+PATTERN_TELEFONE = re.compile(r"(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?(?:9\s?)?\d{4}[-.\s]?\d{4}")
 
 PATTERN_WHATSAPP_LINK = re.compile(r"wa\.me/\d+")
 
@@ -265,9 +264,7 @@ def _classificar_linha(linha: str, indice: int) -> LinhaParsed:
     linha_stripped = linha.strip()
 
     if not linha_stripped:
-        return LinhaParsed(
-            texto=linha, tipo=TipoSecao.DESCONHECIDO, indice=indice, confianca=0.0
-        )
+        return LinhaParsed(texto=linha, tipo=TipoSecao.DESCONHECIDO, indice=indice, confianca=0.0)
 
     scores = {
         TipoSecao.LOCAL: 0.0,
@@ -281,7 +278,9 @@ def _classificar_linha(linha: str, indice: int) -> LinhaParsed:
     tem_rs = "r$" in linha_lower or PATTERN_VALOR_COM_RS.search(linha_stripped)
     tem_valor_grande = PATTERN_VALOR_GRANDE.search(linha_stripped)
     tem_data_pattern = PATTERN_DATA.search(linha_stripped)
-    tem_telefone = PATTERN_TELEFONE.search(linha_stripped) or PATTERN_WHATSAPP_LINK.search(linha_stripped)
+    tem_telefone = PATTERN_TELEFONE.search(linha_stripped) or PATTERN_WHATSAPP_LINK.search(
+        linha_stripped
+    )
 
     # 1. Emojis (peso 0.5)
     if _tem_emoji(linha_stripped, EMOJIS_LOCAL):
@@ -345,9 +344,7 @@ def _classificar_linha(linha: str, indice: int) -> LinhaParsed:
     if score_max < 0.1:
         tipo_max = TipoSecao.DESCONHECIDO
 
-    return LinhaParsed(
-        texto=linha, tipo=tipo_max, indice=indice, confianca=min(score_max, 1.0)
-    )
+    return LinhaParsed(texto=linha, tipo=tipo_max, indice=indice, confianca=min(score_max, 1.0))
 
 
 def _agrupar_secoes(linhas: List[LinhaParsed]) -> MensagemParsed:

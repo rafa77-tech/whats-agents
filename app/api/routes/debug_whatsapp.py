@@ -2,6 +2,7 @@
 Rotas de teste para validar WhatsApp.
 Remover em producao.
 """
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 

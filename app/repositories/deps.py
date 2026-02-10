@@ -24,8 +24,8 @@ Uso em testes:
         repo = ClienteRepository(mock_db)
         # Testar sem patches!
 """
+
 from functools import lru_cache
-from typing import Generator
 
 from app.services.supabase import supabase
 from .cliente import ClienteRepository

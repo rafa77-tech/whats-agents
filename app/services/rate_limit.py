@@ -8,6 +8,7 @@ Implementação:
 - Limites configuráveis por endpoint
 - Suporte a múltiplas janelas (minuto, hora)
 """
+
 import logging
 import time
 from typing import Tuple
@@ -68,17 +69,13 @@ async def check_rate_limit(
         # Verificar limite por minuto
         if count_minute >= limit_per_minute:
             retry_after = 60 - int(now - one_minute_ago)
-            logger.warning(
-                f"Rate limit atingido (minuto): key={key}, count={count_minute}"
-            )
+            logger.warning(f"Rate limit atingido (minuto): key={key}, count={count_minute}")
             return False, "rate_limit_minute", max(1, retry_after)
 
         # Verificar limite por hora
         if count_hour >= limit_per_hour:
             retry_after = 3600 - int(now - one_hour_ago)
-            logger.warning(
-                f"Rate limit atingido (hora): key={key}, count={count_hour}"
-            )
+            logger.warning(f"Rate limit atingido (hora): key={key}, count={count_hour}")
             return False, "rate_limit_hour", max(1, retry_after)
 
         # Adicionar request atual às janelas
@@ -86,7 +83,7 @@ async def check_rate_limit(
         pipe2.zadd(minute_key, {str(now): now})
         pipe2.zadd(hour_key, {str(now): now})
         pipe2.expire(minute_key, 120)  # TTL 2 min (margem)
-        pipe2.expire(hour_key, 7200)   # TTL 2 horas (margem)
+        pipe2.expire(hour_key, 7200)  # TTL 2 horas (margem)
         await pipe2.execute()
 
         return True, "", 0

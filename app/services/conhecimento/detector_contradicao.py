@@ -5,6 +5,7 @@ Sprint 37 - Epic 8
 
 Detecta quando Julia contradiz informações que deu anteriormente.
 """
+
 import logging
 import re
 from dataclasses import dataclass
@@ -106,9 +107,7 @@ class DetectorContradicao:
             acao_recomendada="Continuar normalmente",
         )
 
-    def _verificar_contradicao_valor(
-        self, resposta_atual: str
-    ) -> Optional[ResultadoContradicao]:
+    def _verificar_contradicao_valor(self, resposta_atual: str) -> Optional[ResultadoContradicao]:
         """Verifica contradição de valores monetários."""
         valores_atuais = PADRAO_VALOR.findall(resposta_atual)
 
@@ -125,9 +124,7 @@ class DetectorContradicao:
 
             # Se valores são diferentes por mais de 10%
             if abs(v_atual - v_anterior) / v_anterior > 0.1:
-                logger.info(
-                    f"DetectorContradicao: VALOR anterior={v_anterior}, atual={v_atual}"
-                )
+                logger.info(f"DetectorContradicao: VALOR anterior={v_anterior}, atual={v_atual}")
                 return ResultadoContradicao(
                     tem_contradicao=True,
                     tipo_contradicao="valor",

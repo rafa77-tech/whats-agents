@@ -2,6 +2,7 @@
 Rotas de teste para validar LLM.
 Remover em producao.
 """
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -62,9 +63,7 @@ async def test_julia_resposta(request: JuliaRequest):
         }
 
         resposta = await gerar_resposta_julia(
-            mensagem=request.mensagem,
-            contexto=contexto,
-            incluir_historico=False
+            mensagem=request.mensagem, contexto=contexto, incluir_historico=False
         )
 
         return {
@@ -75,7 +74,7 @@ async def test_julia_resposta(request: JuliaRequest):
                 "medico": request.nome_medico,
                 "especialidade": request.especialidade,
                 "primeira_msg": request.primeira_msg,
-            }
+            },
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro Julia: {str(e)}")

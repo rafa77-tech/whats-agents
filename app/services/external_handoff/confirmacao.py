@@ -3,6 +3,7 @@ Processamento de confirmacao de handoff.
 
 Sprint 20 - E05 - Logica de confirmacao.
 """
+
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -59,10 +60,7 @@ async def processar_confirmacao(
     )
 
     # Atualizar vaga
-    supabase.table("vagas") \
-        .update({"status": novo_status_vaga}) \
-        .eq("id", vaga_id) \
-        .execute()
+    supabase.table("vagas").update({"status": novo_status_vaga}).eq("id", vaga_id).execute()
 
     logger.info(f"Vaga {vaga_id} atualizada para status={novo_status_vaga}")
 
@@ -86,16 +84,22 @@ async def processar_confirmacao(
     cor = "#10B981" if action == "confirmed" else "#F59E0B"
     mensagem_slack = {
         "text": f"{emoji} Handoff {action.upper()}",
-        "attachments": [{
-            "color": cor,
-            "title": f"Handoff {action.upper()}",
-            "fields": [
-                {"title": "Divulgador", "value": handoff.get("divulgador_nome", "N/A"), "short": True},
-                {"title": "Via", "value": confirmed_by, "short": True},
-                {"title": "Vaga", "value": vaga_id[:8], "short": True},
-            ],
-            "footer": "Agente Julia - Sprint 20",
-        }]
+        "attachments": [
+            {
+                "color": cor,
+                "title": f"Handoff {action.upper()}",
+                "fields": [
+                    {
+                        "title": "Divulgador",
+                        "value": handoff.get("divulgador_nome", "N/A"),
+                        "short": True,
+                    },
+                    {"title": "Via", "value": confirmed_by, "short": True},
+                    {"title": "Vaga", "value": vaga_id[:8], "short": True},
+                ],
+                "footer": "Agente Julia - Sprint 20",
+            }
+        ],
     }
     try:
         await enviar_slack(mensagem_slack)
@@ -132,8 +136,7 @@ async def _notificar_medico(
 
     if action == "confirmed":
         mensagem = (
-            f"Boa noticia! {divulgador_nome} confirmou seu plantao!\n\n"
-            "Qualquer coisa me avisa aqui"
+            f"Boa noticia! {divulgador_nome} confirmou seu plantao!\n\nQualquer coisa me avisa aqui"
         )
     else:
         mensagem = (

@@ -1,6 +1,7 @@
 """
 Tool para agendar lembretes.
 """
+
 from datetime import datetime, timezone
 from typing import Any
 import logging
@@ -28,27 +29,23 @@ IMPORTANTE: Converta a solicitacao para data/hora ISO considerando a data atual.
         "properties": {
             "data_hora": {
                 "type": "string",
-                "description": "Data e hora para o lembrete no formato ISO (YYYY-MM-DDTHH:MM). Considere a data/hora atual para calcular datas relativas como 'amanha' ou 'segunda-feira'."
+                "description": "Data e hora para o lembrete no formato ISO (YYYY-MM-DDTHH:MM). Considere a data/hora atual para calcular datas relativas como 'amanha' ou 'segunda-feira'.",
             },
             "contexto": {
                 "type": "string",
-                "description": "Breve descricao do que estava sendo discutido (ex: 'vaga no Hospital Brasil', 'interesse em plantao noturno')"
+                "description": "Breve descricao do que estava sendo discutido (ex: 'vaga no Hospital Brasil', 'interesse em plantao noturno')",
             },
             "mensagem_retorno": {
                 "type": "string",
-                "description": "Mensagem personalizada para enviar no momento do lembrete. Deve ser natural e retomar o contexto."
-            }
+                "description": "Mensagem personalizada para enviar no momento do lembrete. Deve ser natural e retomar o contexto.",
+            },
         },
-        "required": ["data_hora", "contexto"]
-    }
+        "required": ["data_hora", "contexto"],
+    },
 }
 
 
-async def handle_agendar_lembrete(
-    tool_input: dict,
-    medico: dict,
-    conversa: dict
-) -> dict[str, Any]:
+async def handle_agendar_lembrete(tool_input: dict, medico: dict, conversa: dict) -> dict[str, Any]:
     """
     Processa chamada da tool agendar_lembrete.
 
@@ -84,7 +81,10 @@ async def handle_agendar_lembrete(
             except ValueError:
                 continue
         else:
-            return {"success": False, "error": "Formato de data/hora invalido. Use YYYY-MM-DDTHH:MM"}
+            return {
+                "success": False,
+                "error": "Formato de data/hora invalido. Use YYYY-MM-DDTHH:MM",
+            }
     except Exception as e:
         return {"success": False, "error": f"Erro ao parsear data: {e}"}
 
@@ -111,10 +111,7 @@ async def handle_agendar_lembrete(
             tipo="lembrete_solicitado",
             prioridade=7,  # Prioridade alta (medico pediu!)
             agendar_para=data_hora,
-            metadata={
-                "contexto": contexto,
-                "solicitado_em": agora.isoformat()
-            }
+            metadata={"contexto": contexto, "solicitado_em": agora.isoformat()},
         )
 
         if resultado:
@@ -126,7 +123,7 @@ async def handle_agendar_lembrete(
             return {
                 "success": True,
                 "agendado_para": data_formatada,
-                "mensagem": f"Lembrete agendado para {data_formatada}"
+                "mensagem": f"Lembrete agendado para {data_formatada}",
             }
         else:
             return {"success": False, "error": "Erro ao salvar lembrete"}

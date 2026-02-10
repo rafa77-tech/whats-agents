@@ -3,6 +3,7 @@ Indexador de documentação Julia.
 
 Converte markdown em chunks com metadados para embedding.
 """
+
 import re
 import logging
 from pathlib import Path
@@ -137,9 +138,7 @@ class ParserMarkdown:
 
         return chunks
 
-    def _detectar_subtipo(
-        self, secao: str, texto: str, tipo: str
-    ) -> Optional[str]:
+    def _detectar_subtipo(self, secao: str, texto: str, tipo: str) -> Optional[str]:
         """Detecta subtipo baseado no conteúdo."""
         texto_lower = (secao + " " + texto).lower()
 
@@ -160,11 +159,7 @@ class ParserMarkdown:
         elif tipo == "objecao":
             if "preço" in texto_lower or "valor" in texto_lower or "pag" in texto_lower:
                 return "preco"
-            elif (
-                "tempo" in texto_lower
-                or "agenda" in texto_lower
-                or "ocupado" in texto_lower
-            ):
+            elif "tempo" in texto_lower or "agenda" in texto_lower or "ocupado" in texto_lower:
                 return "tempo"
             elif "confia" in texto_lower or "conhec" in texto_lower:
                 return "confianca"
@@ -300,9 +295,7 @@ class IndexadorConhecimento:
             raise FileNotFoundError(f"Arquivo não encontrado: {caminho}")
 
         # Remover chunks antigos deste arquivo
-        supabase.table("conhecimento_julia").delete().eq(
-            "arquivo", nome_arquivo
-        ).execute()
+        supabase.table("conhecimento_julia").delete().eq("arquivo", nome_arquivo).execute()
 
         chunks = self.parser.parsear_arquivo(caminho)
         count = 0

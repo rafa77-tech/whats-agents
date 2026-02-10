@@ -3,6 +3,7 @@ Repository para external_handoffs.
 
 Sprint 20 - E03 - Operacoes de banco.
 """
+
 import logging
 import re
 from datetime import datetime, timezone
@@ -46,9 +47,7 @@ async def criar_handoff(
     }
 
     try:
-        response = supabase.table("external_handoffs") \
-            .insert(dados) \
-            .execute()
+        response = supabase.table("external_handoffs").insert(dados).execute()
 
         if response.data:
             handoff = response.data[0]
@@ -78,10 +77,7 @@ async def buscar_handoff_por_id(handoff_id: str) -> Optional[dict]:
         Dict com dados do handoff ou None
     """
     try:
-        response = supabase.table("external_handoffs") \
-            .select("*") \
-            .eq("id", handoff_id) \
-            .execute()
+        response = supabase.table("external_handoffs").select("*").eq("id", handoff_id).execute()
 
         if response.data:
             return response.data[0]
@@ -105,11 +101,13 @@ async def buscar_handoff_existente(vaga_id: str, cliente_id: str) -> Optional[di
         Dict com dados do handoff ou None
     """
     try:
-        response = supabase.table("external_handoffs") \
-            .select("*") \
-            .eq("vaga_id", vaga_id) \
-            .eq("cliente_id", cliente_id) \
+        response = (
+            supabase.table("external_handoffs")
+            .select("*")
+            .eq("vaga_id", vaga_id)
+            .eq("cliente_id", cliente_id)
             .execute()
+        )
 
         if response.data:
             return response.data[0]
@@ -132,7 +130,7 @@ async def buscar_handoff_pendente_por_telefone(telefone: str) -> Optional[dict]:
         Handoff pendente ou None
     """
     # Normalizar telefone (remover formatacao)
-    telefone_normalizado = re.sub(r'\D', '', telefone)
+    telefone_normalizado = re.sub(r"\D", "", telefone)
 
     # Buscar apenas os ultimos 8-9 digitos para flexibilidade
     if len(telefone_normalizado) > 9:
@@ -141,13 +139,15 @@ async def buscar_handoff_pendente_por_telefone(telefone: str) -> Optional[dict]:
         telefone_sufixo = telefone_normalizado
 
     try:
-        response = supabase.table("external_handoffs") \
-            .select("*") \
-            .in_("status", ["pending", "contacted"]) \
-            .like("divulgador_telefone", f"%{telefone_sufixo}") \
-            .order("created_at", desc=True) \
-            .limit(1) \
+        response = (
+            supabase.table("external_handoffs")
+            .select("*")
+            .in_("status", ["pending", "contacted"])
+            .like("divulgador_telefone", f"%{telefone_sufixo}")
+            .order("created_at", desc=True)
+            .limit(1)
             .execute()
+        )
 
         if response.data:
             return response.data[0]
@@ -193,10 +193,7 @@ async def atualizar_status_handoff(
         dados["expired_at"] = expired_at.isoformat()
 
     try:
-        supabase.table("external_handoffs") \
-            .update(dados) \
-            .eq("id", handoff_id) \
-            .execute()
+        supabase.table("external_handoffs").update(dados).eq("id", handoff_id).execute()
 
         logger.info(f"Handoff {handoff_id[:8]} atualizado para {novo_status}")
         return True
@@ -214,11 +211,13 @@ async def listar_handoffs_pendentes() -> List[dict]:
         Lista de handoffs
     """
     try:
-        response = supabase.table("external_handoffs") \
-            .select("*") \
-            .in_("status", ["pending", "contacted"]) \
-            .order("created_at", desc=False) \
+        response = (
+            supabase.table("external_handoffs")
+            .select("*")
+            .in_("status", ["pending", "contacted"])
+            .order("created_at", desc=False)
             .execute()
+        )
 
         return response.data or []
 
@@ -239,13 +238,12 @@ async def atualizar_followup(handoff_id: str, followup_count: int) -> bool:
         True se atualizado com sucesso
     """
     try:
-        supabase.table("external_handoffs") \
-            .update({
+        supabase.table("external_handoffs").update(
+            {
                 "followup_count": followup_count,
                 "last_followup_at": datetime.now(timezone.utc).isoformat(),
-            }) \
-            .eq("id", handoff_id) \
-            .execute()
+            }
+        ).eq("id", handoff_id).execute()
 
         return True
 

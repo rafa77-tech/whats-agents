@@ -4,6 +4,7 @@ Tools para o agente Julia no Slack.
 Modulo reorganizado com tools separadas por categoria.
 Sprint 10 - S10.E2.3
 """
+
 import logging
 from typing import Any
 
@@ -148,7 +149,10 @@ TOOLS_CRITICAS = {
 # EXECUTOR CENTRAL
 # =============================================================================
 
-async def executar_tool(nome: str, params: dict, user_id: str, channel_id: str = "") -> dict[str, Any]:
+
+async def executar_tool(
+    nome: str, params: dict, user_id: str, channel_id: str = ""
+) -> dict[str, Any]:
     """
     Executa uma tool pelo nome.
 

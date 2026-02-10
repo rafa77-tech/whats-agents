@@ -1,0 +1,51 @@
+# Pre-commit hooks configuration
+# Install: uv run pre-commit install
+# Run manually: uv run pre-commit run --all-files
+#
+# See https://pre-commit.com for more information
+
+repos:
+  # Ruff - Fast Python linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.6
+    hooks:
+      # Run the linter with auto-fix
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      # Run the formatter
+      - id: ruff-format
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Prevent large files from being committed
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      # Check for files that would conflict on case-insensitive filesystems
+      - id: check-case-conflict
+      # Check for merge conflict strings
+      - id: check-merge-conflict
+      # Check YAML syntax
+      - id: check-yaml
+        args: [--unsafe]
+      # Check TOML syntax
+      - id: check-toml
+      # Check JSON syntax
+      - id: check-json
+      # Ensure files end with a newline
+      - id: end-of-file-fixer
+        exclude: '\.min\.(js|css)$'
+      # Remove trailing whitespace
+      - id: trailing-whitespace
+        exclude: '\.min\.(js|css)$'
+      # Prevent committing to main/master directly
+      - id: no-commit-to-branch
+        args: ['--branch', 'main', '--branch', 'master']
+
+# CI configuration
+ci:
+  autofix_commit_msg: 'style: auto-fix by pre-commit hooks'
+  autofix_prs: true
+  autoupdate_commit_msg: 'chore: update pre-commit hooks'
+  autoupdate_schedule: monthly

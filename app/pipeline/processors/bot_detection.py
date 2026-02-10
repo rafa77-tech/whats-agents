@@ -3,6 +3,7 @@ Processador de detecção de bot.
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 
 from ..base import PreProcessor, ProcessorContext, ProcessorResult
@@ -16,6 +17,7 @@ class BotDetectionProcessor(PreProcessor):
 
     Prioridade: 35 (apos optout, antes de media)
     """
+
     name = "bot_detection"
     priority = 35
 
@@ -34,7 +36,7 @@ class BotDetectionProcessor(PreProcessor):
                 conversa_id=context.conversa["id"],
                 mensagem=context.mensagem_texto,
                 padrao=deteccao["padrao"],
-                trecho=deteccao["trecho"]
+                trecho=deteccao["trecho"],
             )
             context.metadata["bot_detected"] = True
             # Nao bloqueia processamento, apenas registra

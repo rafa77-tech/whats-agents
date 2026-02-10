@@ -3,6 +3,7 @@ Tools de sistema para Helena.
 
 Sprint 47: Status e operações.
 """
+
 import logging
 from datetime import datetime, timezone
 
@@ -34,9 +35,7 @@ RETORNA:
 }
 
 
-async def handle_status_sistema(
-    params: dict, user_id: str, channel_id: str
-) -> dict:
+async def handle_status_sistema(params: dict, user_id: str, channel_id: str) -> dict:
     """Handler para status_sistema."""
     try:
         # Chips
@@ -91,9 +90,7 @@ async def handle_status_sistema(
             "chips": chips_result.data or [],
             "fila_24h": fila_result.data or [],
             "handoffs_pendentes": (
-                handoffs_result.data[0]["pendentes"]
-                if handoffs_result.data
-                else 0
+                handoffs_result.data[0]["pendentes"] if handoffs_result.data else 0
             ),
         }
 
@@ -136,9 +133,7 @@ RETORNA:
 }
 
 
-async def handle_listar_handoffs(
-    params: dict, user_id: str, channel_id: str
-) -> dict:
+async def handle_listar_handoffs(params: dict, user_id: str, channel_id: str) -> dict:
     """Handler para listar_handoffs."""
     status = params.get("status", "pendente")
     limite = min(params.get("limite", 10), 50)

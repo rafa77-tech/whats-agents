@@ -2,6 +2,7 @@
 Configurações da aplicação.
 Carrega variáveis de ambiente.
 """
+
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -201,7 +202,9 @@ class Settings(BaseSettings):
             "redis_host": extract_host(self.REDIS_URL),
             "julia_api_host": extract_host(self.JULIA_API_URL),
             "chip_activator_host": extract_host(self.CHIP_ACTIVATOR_URL),
-            "supabase_project": extract_host(self.SUPABASE_URL).split(".")[0] if self.SUPABASE_URL else "(not configured)",
+            "supabase_project": extract_host(self.SUPABASE_URL).split(".")[0]
+            if self.SUPABASE_URL
+            else "(not configured)",
         }
 
     @property
@@ -241,6 +244,7 @@ class Settings(BaseSettings):
             if self.ENVIRONMENT == "production":
                 # Log warning mas permite (para não quebrar deploy)
                 import logging
+
                 logging.warning(
                     "⚠️ CORS_ORIGINS='*' em produção. "
                     "Configure origens específicas para maior segurança."
@@ -345,8 +349,8 @@ class DatabaseConfig:
     INTERVALO_MAX_SEGUNDOS: int = 180
 
     # Horario comercial
-    HORA_INICIO: int = 8   # 08:00
-    HORA_FIM: int = 20     # 20:00
+    HORA_INICIO: int = 8  # 08:00
+    HORA_FIM: int = 20  # 20:00
 
     # Retry
     MAX_RETRIES: int = 3

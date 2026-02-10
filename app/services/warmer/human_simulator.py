@@ -8,6 +8,7 @@ Evita detecção de automação através de:
 - Pausas aleatórias entre ações
 - Variações de horário realistas
 """
+
 import random
 import asyncio
 import logging
@@ -23,23 +24,25 @@ logger = logging.getLogger(__name__)
 
 class TypingSpeed(str, Enum):
     """Velocidades de digitação simuladas."""
-    RAPIDO = "rapido"      # 300+ CPM (chars per minute)
-    NORMAL = "normal"      # 200-300 CPM
-    LENTO = "lento"        # 100-200 CPM
+
+    RAPIDO = "rapido"  # 300+ CPM (chars per minute)
+    NORMAL = "normal"  # 200-300 CPM
+    LENTO = "lento"  # 100-200 CPM
     MUITO_LENTO = "muito_lento"  # <100 CPM
 
 
 @dataclass
 class HumanProfile:
     """Perfil de comportamento humano."""
+
     typing_speed: TypingSpeed = TypingSpeed.NORMAL
-    read_delay_min: float = 1.0      # Segundos antes de marcar lido
+    read_delay_min: float = 1.0  # Segundos antes de marcar lido
     read_delay_max: float = 5.0
-    think_delay_min: float = 2.0     # Segundos "pensando" antes de digitar
+    think_delay_min: float = 2.0  # Segundos "pensando" antes de digitar
     think_delay_max: float = 8.0
-    typo_chance: float = 0.05        # Chance de "errar" e corrigir
-    emoji_chance: float = 0.1        # Chance de adicionar emoji casual
-    break_chance: float = 0.02       # Chance de pausar (simula distração)
+    typo_chance: float = 0.05  # Chance de "errar" e corrigir
+    emoji_chance: float = 0.1  # Chance de adicionar emoji casual
+    break_chance: float = 0.02  # Chance de pausar (simula distração)
     break_duration_min: float = 10.0
     break_duration_max: float = 60.0
 
@@ -153,10 +156,7 @@ class HumanSimulator:
             Segundos de delay
         """
         # Base do perfil
-        base = random.uniform(
-            self.profile.read_delay_min,
-            self.profile.read_delay_max
-        )
+        base = random.uniform(self.profile.read_delay_min, self.profile.read_delay_max)
 
         # Mensagens maiores demoram mais para "ler"
         chars = len(mensagem)
@@ -171,17 +171,11 @@ class HumanSimulator:
         Returns:
             Segundos de delay
         """
-        base = random.uniform(
-            self.profile.think_delay_min,
-            self.profile.think_delay_max
-        )
+        base = random.uniform(self.profile.think_delay_min, self.profile.think_delay_max)
 
         # Chance de pausa extra (distração)
         if random.random() < self.profile.break_chance:
-            pausa = random.uniform(
-                self.profile.break_duration_min,
-                self.profile.break_duration_max
-            )
+            pausa = random.uniform(self.profile.break_duration_min, self.profile.break_duration_max)
             logger.debug(f"[HumanSim] Simulando pausa de {pausa:.1f}s")
             base += pausa
 
@@ -192,14 +186,8 @@ class HumanSimulator:
         agora = agora_brasilia().time()
 
         # Variação de +/- 30 minutos
-        inicio_variado = time(
-            self.HORARIO_INICIO.hour,
-            random.randint(0, 30)
-        )
-        fim_variado = time(
-            self.HORARIO_FIM.hour,
-            random.randint(0, 30)
-        )
+        inicio_variado = time(self.HORARIO_INICIO.hour, random.randint(0, 30))
+        fim_variado = time(self.HORARIO_FIM.hour, random.randint(0, 30))
 
         return inicio_variado <= agora <= fim_variado
 
@@ -283,8 +271,7 @@ class HumanSimulator:
         resultado["delay_total"] = delay_pensamento + delay_digitacao
 
         logger.info(
-            f"[HumanSim] Ciclo completo: {resultado['delay_total']:.1f}s "
-            f"para {len(mensagem)} chars"
+            f"[HumanSim] Ciclo completo: {resultado['delay_total']:.1f}s para {len(mensagem)} chars"
         )
 
         return resultado
@@ -335,14 +322,12 @@ class HumanSimulator:
         if agora.time() >= self.HORARIO_FIM:
             # Depois do expediente - próximo dia útil às 8h
             proximo = agora.replace(
-                hour=self.HORARIO_INICIO.hour,
-                minute=random.randint(0, 30),
-                second=0,
-                microsecond=0
+                hour=self.HORARIO_INICIO.hour, minute=random.randint(0, 30), second=0, microsecond=0
             )
 
             # Avançar para próximo dia útil
             from datetime import timedelta
+
             proximo += timedelta(days=1)
             while proximo.weekday() >= 5:  # Sábado ou domingo
                 proximo += timedelta(days=1)
@@ -352,24 +337,19 @@ class HumanSimulator:
         elif agora.time() < self.HORARIO_INICIO:
             # Antes do expediente - hoje às 8h
             return agora.replace(
-                hour=self.HORARIO_INICIO.hour,
-                minute=random.randint(0, 30),
-                second=0,
-                microsecond=0
+                hour=self.HORARIO_INICIO.hour, minute=random.randint(0, 30), second=0, microsecond=0
             )
 
         else:
             # Final de semana - próxima segunda
             from datetime import timedelta
+
             proximo = agora
             while proximo.weekday() >= 5:
                 proximo += timedelta(days=1)
 
             return proximo.replace(
-                hour=self.HORARIO_INICIO.hour,
-                minute=random.randint(0, 30),
-                second=0,
-                microsecond=0
+                hour=self.HORARIO_INICIO.hour, minute=random.randint(0, 30), second=0, microsecond=0
             )
 
 
@@ -411,10 +391,7 @@ async def simular_envio_natural(
     """
     simulator = get_simulator(profile_name)
 
-    resultado = await simulator.simular_digitacao_completa(
-        mensagem,
-        callback_typing
-    )
+    resultado = await simulator.simular_digitacao_completa(mensagem, callback_typing)
 
     if callback_send:
         try:

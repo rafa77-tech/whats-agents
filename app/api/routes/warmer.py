@@ -7,6 +7,7 @@ Endpoints para:
 - Alertas e early warning
 - Status do pool
 """
+
 import logging
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
@@ -27,12 +28,9 @@ from app.services.warmer import (
     # Early Warning
     analisar_chip,
     monitorar_pool,
-    obter_alertas,
     SeveridadeAlerta,
     # Scheduler
     planejar_dia_chip,
-    obter_proximas,
-    # Meta RAG
     consultar_politicas,
     verificar_conformidade,
     seed_politicas,
@@ -50,13 +48,16 @@ router = APIRouter(prefix="/warmer", tags=["warmer"])
 # Request/Response Models
 # ============================================================================
 
+
 class IniciarWarmupRequest(BaseModel):
     """Request para iniciar warmup."""
+
     chip_id: str
 
 
 class IniciarWarmupResponse(BaseModel):
     """Response de iniciar warmup."""
+
     success: bool
     fase: Optional[str] = None
     trust_score: Optional[int] = None
@@ -67,12 +68,14 @@ class IniciarWarmupResponse(BaseModel):
 
 class PausarWarmupRequest(BaseModel):
     """Request para pausar warmup."""
+
     chip_id: str
     motivo: str = "pausa_manual"
 
 
 class TrustScoreResponse(BaseModel):
     """Response com trust score."""
+
     chip_id: str
     score: int
     nivel: str
@@ -82,6 +85,7 @@ class TrustScoreResponse(BaseModel):
 
 class PermissoesResponse(BaseModel):
     """Response com permissões."""
+
     pode_prospectar: bool
     pode_followup: bool
     pode_responder: bool
@@ -92,6 +96,7 @@ class PermissoesResponse(BaseModel):
 
 class AlertaResponse(BaseModel):
     """Response de alerta."""
+
     chip_id: str
     tipo: str
     severidade: str
@@ -103,6 +108,7 @@ class AlertaResponse(BaseModel):
 
 class StatusPoolResponse(BaseModel):
     """Response com status do pool."""
+
     total: int
     por_fase: dict
     por_status: dict
@@ -112,6 +118,7 @@ class StatusPoolResponse(BaseModel):
 
 class PoliticaResponse(BaseModel):
     """Response de política Meta."""
+
     id: Optional[str] = None
     categoria: str
     titulo: str
@@ -122,6 +129,7 @@ class PoliticaResponse(BaseModel):
 
 class ConformidadeResponse(BaseModel):
     """Response de verificação de conformidade."""
+
     permitido: bool
     riscos: List[str]
     recomendacoes: List[str]
@@ -130,6 +138,7 @@ class ConformidadeResponse(BaseModel):
 
 class TransicaoRequest(BaseModel):
     """Request para transição manual de fase."""
+
     chip_id: str
     nova_fase: str
 
@@ -137,6 +146,7 @@ class TransicaoRequest(BaseModel):
 # ============================================================================
 # Chip Warmup Endpoints
 # ============================================================================
+
 
 @router.post("/iniciar", response_model=IniciarWarmupResponse)
 async def api_iniciar_warmup(request: IniciarWarmupRequest):
@@ -180,10 +190,7 @@ async def api_transicao_fase(request: TransicaoRequest):
         try:
             FaseWarmup(request.nova_fase)
         except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Fase inválida: {request.nova_fase}"
-            )
+            raise HTTPException(status_code=400, detail=f"Fase inválida: {request.nova_fase}")
 
         resultado = await orchestrator.executar_transicao(
             request.chip_id,
@@ -213,6 +220,7 @@ async def api_executar_ciclo(background_tasks: BackgroundTasks):
 # Trust Score Endpoints
 # ============================================================================
 
+
 @router.get("/trust/{chip_id}", response_model=TrustScoreResponse)
 async def api_obter_trust_score(chip_id: str, recalcular: bool = False):
     """
@@ -228,11 +236,18 @@ async def api_obter_trust_score(chip_id: str, recalcular: bool = False):
         else:
             # Buscar do banco
             from app.services.supabase import supabase
-            result = supabase.table("chips").select(
-                "trust_score, trust_level, trust_factors, "
-                "pode_prospectar, pode_followup, pode_responder, "
-                "limite_hora, limite_dia, delay_minimo_segundos"
-            ).eq("id", chip_id).single().execute()
+
+            result = (
+                supabase.table("chips")
+                .select(
+                    "trust_score, trust_level, trust_factors, "
+                    "pode_prospectar, pode_followup, pode_responder, "
+                    "limite_hora, limite_dia, delay_minimo_segundos"
+                )
+                .eq("id", chip_id)
+                .single()
+                .execute()
+            )
 
             if not result.data:
                 raise HTTPException(status_code=404, detail="Chip não encontrado")
@@ -285,6 +300,7 @@ async def api_obter_permissoes(chip_id: str):
 # Early Warning Endpoints
 # ============================================================================
 
+
 @router.get("/alertas", response_model=List[AlertaResponse])
 async def api_listar_alertas(
     chip_id: Optional[str] = None,
@@ -303,10 +319,7 @@ async def api_listar_alertas(
             try:
                 sev_filter = SeveridadeAlerta(severidade)
             except ValueError:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Severidade inválida: {severidade}"
-                )
+                raise HTTPException(status_code=400, detail=f"Severidade inválida: {severidade}")
 
         alertas = await early_warning.obter_alertas_ativos(chip_id, sev_filter)
 
@@ -382,6 +395,7 @@ async def api_resolver_alerta(alerta_id: str, resolucao: str = "resolvido_manual
 # Pool Status Endpoints
 # ============================================================================
 
+
 @router.get("/status", response_model=StatusPoolResponse)
 async def api_status_pool():
     """Obtém status geral do pool de chips."""
@@ -407,6 +421,7 @@ async def api_estatisticas_chip(chip_id: str):
 # ============================================================================
 # Scheduler Endpoints
 # ============================================================================
+
 
 @router.post("/agenda/{chip_id}/planejar")
 async def api_planejar_dia(chip_id: str):
@@ -460,6 +475,7 @@ async def api_proximas_atividades(
 # ============================================================================
 # Meta RAG Endpoints
 # ============================================================================
+
 
 @router.get("/politicas", response_model=List[PoliticaResponse])
 async def api_consultar_politicas(
@@ -529,6 +545,7 @@ async def api_seed_politicas():
 # Fases Endpoints
 # ============================================================================
 
+
 @router.get("/fases")
 async def api_listar_fases():
     """Lista todas as fases de warmup disponíveis."""
@@ -550,7 +567,7 @@ async def api_listar_fases():
 async def api_listar_trust_levels():
     """Lista níveis de trust score."""
     return {
-        "levels": [l.value for l in TrustLevel],
+        "levels": [level.value for level in TrustLevel],
         "descricoes": {
             "verde": "Excelente (80-100) - Todas permissões",
             "amarelo": "Bom (60-79) - Maioria das permissões",

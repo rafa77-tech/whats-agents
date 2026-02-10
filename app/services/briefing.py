@@ -4,6 +4,7 @@ Servico de sincronizacao de briefing com Google Docs.
 Sincroniza diretrizes do gestor a partir de um documento
 Google Docs, atualizando o banco de dados com as configuracoes.
 """
+
 from datetime import datetime, timezone
 from typing import Optional
 import logging
@@ -38,7 +39,7 @@ async def sincronizar_briefing() -> dict:
         return {
             "success": False,
             "error": "Google Docs nao configurado",
-            "detalhes": config["erros"]
+            "detalhes": config["erros"],
         }
 
     # 1. Buscar documento
@@ -69,13 +70,15 @@ async def sincronizar_briefing() -> dict:
 
     # 8. Salvar registro de sincronizacao
     try:
-        supabase.table("briefing_sync_log").insert({
-            "doc_hash": doc["hash"],
-            "doc_title": doc["title"],
-            "conteudo_raw": doc["content"][:5000],  # Limitar tamanho
-            "parseado": json.dumps(briefing, ensure_ascii=False, default=str),
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }).execute()
+        supabase.table("briefing_sync_log").insert(
+            {
+                "doc_hash": doc["hash"],
+                "doc_title": doc["title"],
+                "conteudo_raw": doc["content"][:5000],  # Limitar tamanho
+                "parseado": json.dumps(briefing, ensure_ascii=False, default=str),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).execute()
     except Exception as e:
         logger.error(f"Erro ao salvar log de sincronizacao: {e}")
 
@@ -91,7 +94,7 @@ async def sincronizar_briefing() -> dict:
         "hash": doc["hash"],
         "titulo": briefing.get("titulo"),
         "secoes_atualizadas": validacao["secoes_encontradas"],
-        "avisos": validacao["avisos"]
+        "avisos": validacao["avisos"],
     }
 
 
@@ -101,33 +104,25 @@ async def _atualizar_diretrizes(briefing: dict):
         # Foco da semana
         if briefing.get("foco_semana"):
             await _upsert_diretriz(
-                tipo="foco_semana",
-                conteudo="\n".join(briefing["foco_semana"]),
-                prioridade=10
+                tipo="foco_semana", conteudo="\n".join(briefing["foco_semana"]), prioridade=10
             )
 
         # Tom da semana
         if briefing.get("tom_semana"):
             await _upsert_diretriz(
-                tipo="tom_semana",
-                conteudo="\n".join(briefing["tom_semana"]),
-                prioridade=9
+                tipo="tom_semana", conteudo="\n".join(briefing["tom_semana"]), prioridade=9
             )
 
         # Margem de negociacao
         if briefing.get("margem_negociacao"):
             await _upsert_diretriz(
-                tipo="margem_negociacao",
-                conteudo=str(briefing["margem_negociacao"]),
-                prioridade=8
+                tipo="margem_negociacao", conteudo=str(briefing["margem_negociacao"]), prioridade=8
             )
 
         # Observacoes
         if briefing.get("observacoes"):
             await _upsert_diretriz(
-                tipo="observacoes",
-                conteudo="\n".join(briefing["observacoes"]),
-                prioridade=5
+                tipo="observacoes", conteudo="\n".join(briefing["observacoes"]), prioridade=5
             )
 
         logger.info("Diretrizes atualizadas com sucesso")
@@ -143,20 +138,24 @@ async def _upsert_diretriz(tipo: str, conteudo: str, prioridade: int):
         existing = supabase.table("diretrizes").select("id").eq("tipo", tipo).execute()
 
         if existing.data:
-            supabase.table("diretrizes").update({
-                "conteudo": conteudo,
-                "prioridade": prioridade,
-                "ativo": True,
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }).eq("tipo", tipo).execute()
+            supabase.table("diretrizes").update(
+                {
+                    "conteudo": conteudo,
+                    "prioridade": prioridade,
+                    "ativo": True,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            ).eq("tipo", tipo).execute()
         else:
-            supabase.table("diretrizes").insert({
-                "tipo": tipo,
-                "conteudo": conteudo,
-                "prioridade": prioridade,
-                "ativo": True,
-                "origem": "google_docs"
-            }).execute()
+            supabase.table("diretrizes").insert(
+                {
+                    "tipo": tipo,
+                    "conteudo": conteudo,
+                    "prioridade": prioridade,
+                    "ativo": True,
+                    "origem": "google_docs",
+                }
+            ).execute()
 
     except Exception as e:
         logger.error(f"Erro ao upsert diretriz {tipo}: {e}")
@@ -169,19 +168,21 @@ async def _atualizar_vagas_prioritarias(vagas: list):
         if hospital:
             try:
                 # Buscar hospital pelo nome
-                hospital_resp = supabase.table("hospitais").select("id").ilike(
-                    "nome", f"%{hospital}%"
-                ).limit(1).execute()
+                hospital_resp = (
+                    supabase.table("hospitais")
+                    .select("id")
+                    .ilike("nome", f"%{hospital}%")
+                    .limit(1)
+                    .execute()
+                )
 
                 if hospital_resp.data:
                     hospital_id = hospital_resp.data[0]["id"]
 
                     # Marcar vagas do hospital como urgente
-                    supabase.table("vagas").update({
-                        "prioridade": "urgente"
-                    }).eq("hospital_id", hospital_id).eq(
-                        "status", "aberta"
-                    ).execute()
+                    supabase.table("vagas").update({"prioridade": "urgente"}).eq(
+                        "hospital_id", hospital_id
+                    ).eq("status", "aberta").execute()
 
                     logger.debug(f"Vagas do hospital {hospital} marcadas como urgente")
 
@@ -198,34 +199,32 @@ async def _notificar_atualizacao(briefing: dict):
         tom = briefing.get("tom_semana", [])
         primeiro_tom = tom[0][:50] if tom else "N/A"
 
-        await enviar_slack({
-            "text": "📋 Briefing atualizado!",
-            "attachments": [{
-                "color": "#36a64f",
-                "fields": [
+        await enviar_slack(
+            {
+                "text": "📋 Briefing atualizado!",
+                "attachments": [
                     {
-                        "title": "Foco da Semana",
-                        "value": primeiro_foco,
-                        "short": False
-                    },
-                    {
-                        "title": "Tom",
-                        "value": primeiro_tom,
-                        "short": False
-                    },
-                    {
-                        "title": "Vagas Prioritarias",
-                        "value": str(len(briefing.get("vagas_prioritarias", []))),
-                        "short": True
-                    },
-                    {
-                        "title": "Margem Negociacao",
-                        "value": f"{briefing.get('margem_negociacao', 0)}%" if briefing.get("margem_negociacao") else "N/A",
-                        "short": True
+                        "color": "#36a64f",
+                        "fields": [
+                            {"title": "Foco da Semana", "value": primeiro_foco, "short": False},
+                            {"title": "Tom", "value": primeiro_tom, "short": False},
+                            {
+                                "title": "Vagas Prioritarias",
+                                "value": str(len(briefing.get("vagas_prioritarias", []))),
+                                "short": True,
+                            },
+                            {
+                                "title": "Margem Negociacao",
+                                "value": f"{briefing.get('margem_negociacao', 0)}%"
+                                if briefing.get("margem_negociacao")
+                                else "N/A",
+                                "short": True,
+                            },
+                        ],
                     }
-                ]
-            }]
-        })
+                ],
+            }
+        )
         logger.info("Notificacao de briefing enviada para Slack")
 
     except Exception as e:
@@ -240,9 +239,13 @@ async def obter_ultimo_briefing() -> Optional[dict]:
         dict com briefing parseado ou None
     """
     try:
-        response = supabase.table("briefing_sync_log").select(
-            "parseado, doc_title, created_at"
-        ).order("created_at", desc=True).limit(1).execute()
+        response = (
+            supabase.table("briefing_sync_log")
+            .select("parseado, doc_title, created_at")
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
 
         if response.data:
             item = response.data[0]
@@ -255,7 +258,7 @@ async def obter_ultimo_briefing() -> Optional[dict]:
             return {
                 "titulo": item.get("doc_title"),
                 "sincronizado_em": item.get("created_at"),
-                **parseado
+                **parseado,
             }
 
         return None
@@ -273,9 +276,13 @@ async def carregar_diretrizes_ativas() -> dict:
         dict com diretrizes por tipo
     """
     try:
-        response = supabase.table("diretrizes").select(
-            "tipo, conteudo"
-        ).eq("ativo", True).order("prioridade", desc=True).execute()
+        response = (
+            supabase.table("diretrizes")
+            .select("tipo, conteudo")
+            .eq("ativo", True)
+            .order("prioridade", desc=True)
+            .execute()
+        )
 
         diretrizes = {}
         for d in response.data or []:

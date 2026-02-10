@@ -3,6 +3,7 @@ Core processor - geracao de resposta via LLM.
 
 Sprint 16: Propaga policy_decision_id para post-processors.
 """
+
 import logging
 
 from .base import ProcessorContext, ProcessorResult
@@ -29,7 +30,7 @@ class LLMCoreProcessor:
                 mensagem_texto=context.mensagem_texto,
                 medico=context.medico,
                 conversa=context.conversa,
-                vagas=None  # TODO: buscar vagas relevantes
+                vagas=None,  # TODO: buscar vagas relevantes
             )
 
             # Sprint 16: Propagar policy_decision_id para post-processors
@@ -39,20 +40,10 @@ class LLMCoreProcessor:
 
             if not resultado or not resultado.resposta:
                 logger.warning("Julia nao gerou resposta")
-                return ProcessorResult(
-                    success=True,
-                    response=None,
-                    metadata={"no_response": True}
-                )
+                return ProcessorResult(success=True, response=None, metadata={"no_response": True})
 
-            return ProcessorResult(
-                success=True,
-                response=resultado.resposta
-            )
+            return ProcessorResult(success=True, response=resultado.resposta)
 
         except Exception as e:
             logger.error(f"Erro no core processor: {e}", exc_info=True)
-            return ProcessorResult(
-                success=False,
-                error=str(e)
-            )
+            return ProcessorResult(success=False, error=str(e))

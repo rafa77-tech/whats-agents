@@ -3,8 +3,9 @@ Service para processamento de fila de mensagens.
 
 Sprint 10 - S10.E3.1
 """
+
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from app.services.supabase import supabase
 from app.services.fila import fila_service
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class StatsFilaMensagens:
     """Estatisticas do processamento da fila."""
+
     processadas: int = 0
     enviadas: int = 0
     bloqueadas_optout: int = 0
@@ -120,7 +122,7 @@ async def _processar_mensagem(mensagem: dict) -> str:
         # Salvar interação
         if conversa_id:
             # Sprint 41: Extrair chip_id do resultado
-            chip_id = result.chip_id if hasattr(result, 'chip_id') else None
+            chip_id = result.chip_id if hasattr(result, "chip_id") else None
 
             await salvar_interacao(
                 conversa_id=conversa_id,
@@ -143,18 +145,13 @@ async def _processar_mensagem(mensagem: dict) -> str:
 async def _verificar_optout_cliente(cliente_id: str) -> bool:
     """Verifica se cliente fez opt-out."""
     cliente_resp = (
-        supabase.table("clientes")
-        .select("opted_out")
-        .eq("id", cliente_id)
-        .single()
-        .execute()
+        supabase.table("clientes").select("opted_out").eq("id", cliente_id).single().execute()
     )
     return cliente_resp.data and cliente_resp.data.get("opted_out", False)
 
 
 async def _cancelar_mensagem_optout(mensagem_id: str) -> None:
     """Cancela mensagem por opt-out."""
-    supabase.table("fila_mensagens").update({
-        "status": "cancelada",
-        "erro": "Cliente fez opt-out"
-    }).eq("id", mensagem_id).execute()
+    supabase.table("fila_mensagens").update(
+        {"status": "cancelada", "erro": "Cliente fez opt-out"}
+    ).eq("id", mensagem_id).execute()

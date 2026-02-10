@@ -5,9 +5,8 @@ Sprint 53: Discovery Intelligence Pipeline.
 """
 
 from fastapi import APIRouter, Query, HTTPException, BackgroundTasks
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel
-from datetime import datetime
 import logging
 
 from app.services.supabase import supabase
@@ -30,8 +29,10 @@ logger = logging.getLogger(__name__)
 # Schemas
 # =============================================================================
 
+
 class BackfillRequest(BaseModel):
     """Request para disparar backfill."""
+
     dias: int = 30
     campanha_id: Optional[int] = None
     dry_run: bool = False
@@ -40,6 +41,7 @@ class BackfillRequest(BaseModel):
 
 class BackfillResponse(BaseModel):
     """Response do backfill."""
+
     status: str
     message: str
     task_id: Optional[str] = None
@@ -47,6 +49,7 @@ class BackfillResponse(BaseModel):
 
 class InsightSummary(BaseModel):
     """Resumo de um insight."""
+
     id: int
     interesse: Optional[str]
     interesse_score: Optional[float]
@@ -58,6 +61,7 @@ class InsightSummary(BaseModel):
 
 class CampaignInsightsSummary(BaseModel):
     """Resumo de insights de uma campanha."""
+
     campaign_id: int
     campanha_nome: Optional[str]
     total_interacoes: int
@@ -72,11 +76,9 @@ class CampaignInsightsSummary(BaseModel):
 # Endpoints - Consultas
 # =============================================================================
 
+
 @router.get("/insights/conversation/{conversation_id}")
-async def get_insights_conversa(
-    conversation_id: str,
-    limit: int = Query(default=10, le=50)
-):
+async def get_insights_conversa(conversation_id: str, limit: int = Query(default=10, le=50)):
     """
     Busca insights de uma conversa especifica.
 
@@ -97,10 +99,7 @@ async def get_insights_conversa(
 
 
 @router.get("/insights/cliente/{cliente_id}")
-async def get_insights_cliente(
-    cliente_id: str,
-    limit: int = Query(default=20, le=100)
-):
+async def get_insights_cliente(cliente_id: str, limit: int = Query(default=20, le=100)):
     """
     Busca historico de insights de um cliente/medico.
 
@@ -136,10 +135,7 @@ async def get_insights_cliente(
 
 
 @router.get("/insights/campaign/{campaign_id}")
-async def get_insights_campanha(
-    campaign_id: int,
-    limit: int = Query(default=100, le=500)
-):
+async def get_insights_campanha(campaign_id: int, limit: int = Query(default=100, le=500)):
     """
     Busca insights de uma campanha especifica.
 
@@ -180,7 +176,7 @@ async def get_insights_campanha(
 @router.get("/campaign/{campaign_id}/report")
 async def get_campaign_report(
     campaign_id: int,
-    force_refresh: bool = Query(default=False, description="Ignorar cache e regenerar")
+    force_refresh: bool = Query(default=False, description="Ignorar cache e regenerar"),
 ):
     """
     Gera relatorio Julia para uma campanha.
@@ -236,6 +232,7 @@ async def get_campaign_summary():
 # Endpoints - Estatisticas
 # =============================================================================
 
+
 @router.get("/stats")
 async def get_extraction_stats():
     """
@@ -247,36 +244,26 @@ async def get_extraction_stats():
 
         # Estatisticas adicionais
         # Total de insights
-        insights_result = supabase.table("conversation_insights").select(
-            "id", count="exact"
-        ).execute()
+        insights_result = (
+            supabase.table("conversation_insights").select("id", count="exact").execute()
+        )
         total_insights = insights_result.count or 0
 
         # Distribuicao de interesse
-        dist_query = """
-            SELECT interesse, COUNT(*) as total
-            FROM conversation_insights
-            WHERE interesse IS NOT NULL
-            GROUP BY interesse
-        """
         # Usar RPC ou query direta se disponivel
-        dist_result = supabase.table("conversation_insights").select(
-            "interesse"
-        ).execute()
+        dist_result = supabase.table("conversation_insights").select("interesse").execute()
 
         interesse_dist = {}
-        for row in (dist_result.data or []):
+        for row in dist_result.data or []:
             interesse = row.get("interesse")
             if interesse:
                 interesse_dist[interesse] = interesse_dist.get(interesse, 0) + 1
 
         # Proximo passo distribuicao
-        passo_result = supabase.table("conversation_insights").select(
-            "proximo_passo"
-        ).execute()
+        passo_result = supabase.table("conversation_insights").select("proximo_passo").execute()
 
         passo_dist = {}
-        for row in (passo_result.data or []):
+        for row in passo_result.data or []:
             passo = row.get("proximo_passo")
             if passo:
                 passo_dist[passo] = passo_dist.get(passo, 0) + 1
@@ -296,6 +283,7 @@ async def get_extraction_stats():
 # =============================================================================
 # Endpoints - Backfill
 # =============================================================================
+
 
 @router.post("/backfill")
 async def trigger_backfill(
@@ -347,6 +335,7 @@ async def get_backfill_status():
 # Endpoints - Oportunidades
 # =============================================================================
 
+
 @router.get("/opportunities")
 async def get_opportunities(
     limit: int = Query(default=50, le=200),
@@ -362,8 +351,10 @@ async def get_opportunities(
     """
     try:
         # Buscar insights recentes com acoes pendentes
-        query = supabase.table("conversation_insights").select(
-            """
+        query = (
+            supabase.table("conversation_insights")
+            .select(
+                """
             id,
             cliente_id,
             conversation_id,
@@ -379,10 +370,11 @@ async def get_opportunities(
             confianca,
             created_at
             """
-        ).in_(
-            "proximo_passo",
-            ["enviar_vagas", "agendar_followup", "escalar_humano"]
-        ).order("created_at", desc=True).limit(limit)
+            )
+            .in_("proximo_passo", ["enviar_vagas", "agendar_followup", "escalar_humano"])
+            .order("created_at", desc=True)
+            .limit(limit)
+        )
 
         if proximo_passo:
             query = query.eq("proximo_passo", proximo_passo)
@@ -400,18 +392,24 @@ async def get_opportunities(
 
         # Buscar dados dos clientes
         cliente_ids = list(set(i.get("cliente_id") for i in insights if i.get("cliente_id")))
-        clientes_result = supabase.table("clientes").select(
-            "id, primeiro_nome, sobrenome, especialidade, telefone"
-        ).in_("id", cliente_ids).execute()
+        clientes_result = (
+            supabase.table("clientes")
+            .select("id, primeiro_nome, sobrenome, especialidade, telefone")
+            .in_("id", cliente_ids)
+            .execute()
+        )
 
         clientes_map = {c["id"]: c for c in (clientes_result.data or [])}
 
         # Buscar nomes das campanhas
         campaign_ids = list(set(i.get("campaign_id") for i in insights if i.get("campaign_id")))
         if campaign_ids:
-            campanhas_result = supabase.table("campanhas").select(
-                "id, nome_template"
-            ).in_("id", campaign_ids).execute()
+            campanhas_result = (
+                supabase.table("campanhas")
+                .select("id, nome_template")
+                .in_("id", campaign_ids)
+                .execute()
+            )
             campanhas_map = {c["id"]: c["nome_template"] for c in (campanhas_result.data or [])}
         else:
             campanhas_map = {}
@@ -458,6 +456,7 @@ async def get_opportunities(
 # =============================================================================
 # Endpoints - Refresh View
 # =============================================================================
+
 
 @router.post("/refresh-campaign-view")
 async def refresh_campaign_view():

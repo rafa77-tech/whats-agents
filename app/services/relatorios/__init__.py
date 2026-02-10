@@ -3,6 +3,7 @@ Services de relatorios.
 
 Sprint 10 - S10.E3.3
 """
+
 from .periodo import (
     gerar_report_periodo,
     enviar_report_periodo_slack,

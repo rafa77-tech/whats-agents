@@ -12,6 +12,7 @@ Quando hospital é desbloqueado:
 1. Registro atualizado
 2. Vagas válidas restauradas para tabela vagas
 """
+
 import json
 import logging
 from datetime import datetime, timezone
@@ -34,6 +35,7 @@ STATUS_DESBLOQUEADO = "desbloqueado"
 # =============================================================================
 # FUNÇÕES PRINCIPAIS
 # =============================================================================
+
 
 async def bloquear_hospital(
     hospital_id: str,
@@ -70,13 +72,15 @@ async def bloquear_hospital(
 
         # Criar registro de bloqueio
         bloqueio_id = str(uuid4())
-        supabase.table("hospitais_bloqueados").insert({
-            "id": bloqueio_id,
-            "hospital_id": hospital_id,
-            "motivo": motivo,
-            "bloqueado_por": bloqueado_por,
-            "status": STATUS_BLOQUEADO,
-        }).execute()
+        supabase.table("hospitais_bloqueados").insert(
+            {
+                "id": bloqueio_id,
+                "hospital_id": hospital_id,
+                "motivo": motivo,
+                "bloqueado_por": bloqueado_por,
+                "status": STATUS_BLOQUEADO,
+            }
+        ).execute()
 
         # Mover vagas para tabela de bloqueados
         vagas_movidas = await _mover_vagas_para_bloqueados(
@@ -137,12 +141,14 @@ async def desbloquear_hospital(
             return {"success": False, "error": "Hospital não está bloqueado"}
 
         # Atualizar registro
-        supabase.table("hospitais_bloqueados").update({
-            "status": STATUS_DESBLOQUEADO,
-            "desbloqueado_por": desbloqueado_por,
-            "desbloqueado_em": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("hospital_id", hospital_id).eq("status", STATUS_BLOQUEADO).execute()
+        supabase.table("hospitais_bloqueados").update(
+            {
+                "status": STATUS_DESBLOQUEADO,
+                "desbloqueado_por": desbloqueado_por,
+                "desbloqueado_em": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("hospital_id", hospital_id).eq("status", STATUS_BLOQUEADO).execute()
 
         # Restaurar vagas válidas
         vagas_restauradas = 0
@@ -263,10 +269,7 @@ async def contar_vagas_bloqueadas(hospital_id: Optional[str] = None) -> int:
         Número de vagas bloqueadas
     """
     try:
-        query = (
-            supabase.table("vagas_hospitais_bloqueados")
-            .select("id", count="exact")
-        )
+        query = supabase.table("vagas_hospitais_bloqueados").select("id", count="exact")
 
         if hospital_id:
             query = query.eq("hospital_id", hospital_id)
@@ -283,6 +286,7 @@ async def contar_vagas_bloqueadas(hospital_id: Optional[str] = None) -> int:
 # =============================================================================
 # FUNÇÕES INTERNAS
 # =============================================================================
+
 
 async def _buscar_hospital(hospital_id: str) -> Optional[dict]:
     """Busca dados de um hospital."""
@@ -324,28 +328,32 @@ async def _mover_vagas_para_bloqueados(
         for vaga in vagas:
             try:
                 # Inserir na tabela de bloqueados
-                supabase.table("vagas_hospitais_bloqueados").insert({
-                    "id": vaga["id"],
-                    "hospital_id": vaga["hospital_id"],
-                    "data": vaga.get("data"),
-                    "valor": vaga.get("valor"),
-                    "status": vaga.get("status"),
-                    "especialidade_id": vaga.get("especialidade_id"),
-                    "setor_id": vaga.get("setor_id"),
-                    "periodo_id": vaga.get("periodo_id"),
-                    "cliente_id": vaga.get("cliente_id"),
-                    "tipo_vaga_id": vaga.get("tipo_vaga_id"),
-                    "forma_recebimento_id": vaga.get("forma_recebimento_id"),
-                    "observacoes": vaga.get("observacoes"),
-                    "dados_originais": json.dumps(vaga),
-                    "movido_por": movido_por,
-                    "motivo_bloqueio": motivo,
-                }).execute()
+                supabase.table("vagas_hospitais_bloqueados").insert(
+                    {
+                        "id": vaga["id"],
+                        "hospital_id": vaga["hospital_id"],
+                        "data": vaga.get("data"),
+                        "valor": vaga.get("valor"),
+                        "status": vaga.get("status"),
+                        "especialidade_id": vaga.get("especialidade_id"),
+                        "setor_id": vaga.get("setor_id"),
+                        "periodo_id": vaga.get("periodo_id"),
+                        "cliente_id": vaga.get("cliente_id"),
+                        "tipo_vaga_id": vaga.get("tipo_vaga_id"),
+                        "forma_recebimento_id": vaga.get("forma_recebimento_id"),
+                        "observacoes": vaga.get("observacoes"),
+                        "dados_originais": json.dumps(vaga),
+                        "movido_por": movido_por,
+                        "motivo_bloqueio": motivo,
+                    }
+                ).execute()
 
                 # Soft delete na tabela original
-                supabase.table("vagas").update({
-                    "deleted_at": datetime.now(timezone.utc).isoformat(),
-                }).eq("id", vaga["id"]).execute()
+                supabase.table("vagas").update(
+                    {
+                        "deleted_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                ).eq("id", vaga["id"]).execute()
 
                 movidas += 1
 
@@ -379,10 +387,11 @@ async def _restaurar_vagas_de_bloqueados(hospital_id: str) -> int:
             try:
                 # Verificar se vaga ainda é válida (data futura e status aberta)
                 data_vaga = vaga.get("data")
-                status = vaga.get("status")
+                vaga.get("status")
 
                 if data_vaga:
                     from datetime import datetime as dt
+
                     data_obj = dt.strptime(data_vaga, "%Y-%m-%d").date()
                     if data_obj < hoje:
                         # Vaga passada, não restaurar
@@ -430,7 +439,7 @@ async def _notificar_bloqueio(
                     "type": "plain_text",
                     "text": "🚫 Hospital Bloqueado",
                     "emoji": True,
-                }
+                },
             },
             {
                 "type": "section",
@@ -439,15 +448,15 @@ async def _notificar_bloqueio(
                     {"type": "mrkdwn", "text": f"*Bloqueado por:*\n{bloqueado_por}"},
                     {"type": "mrkdwn", "text": f"*Motivo:*\n{motivo}"},
                     {"type": "mrkdwn", "text": f"*Vagas afetadas:*\n{vagas_afetadas}"},
-                ]
+                ],
             },
             {
                 "type": "context",
                 "elements": [
                     {"type": "mrkdwn", "text": "Julia não oferecerá mais vagas deste hospital."}
-                ]
-            }
-        ]
+                ],
+            },
+        ],
     }
 
     await enviar_slack(mensagem, force=True)
@@ -468,7 +477,7 @@ async def _notificar_desbloqueio(
                     "type": "plain_text",
                     "text": "✅ Hospital Desbloqueado",
                     "emoji": True,
-                }
+                },
             },
             {
                 "type": "section",
@@ -476,15 +485,15 @@ async def _notificar_desbloqueio(
                     {"type": "mrkdwn", "text": f"*Hospital:*\n{hospital_nome}"},
                     {"type": "mrkdwn", "text": f"*Desbloqueado por:*\n{desbloqueado_por}"},
                     {"type": "mrkdwn", "text": f"*Vagas restauradas:*\n{vagas_restauradas}"},
-                ]
+                ],
             },
             {
                 "type": "context",
                 "elements": [
                     {"type": "mrkdwn", "text": "Julia voltará a oferecer vagas deste hospital."}
-                ]
-            }
-        ]
+                ],
+            },
+        ],
     }
 
     await enviar_slack(mensagem, force=True)
@@ -493,6 +502,7 @@ async def _notificar_desbloqueio(
 # =============================================================================
 # FUNÇÃO PARA INTEGRAÇÃO COM JULIA
 # =============================================================================
+
 
 async def hospital_esta_bloqueado(hospital_id: str) -> bool:
     """

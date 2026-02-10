@@ -27,19 +27,21 @@ logger = get_logger(__name__)
 # Dataclasses
 # =============================================================================
 
+
 @dataclass
 class DadosVagaExtraida:
     """Dados extraídos de uma vaga."""
+
     hospital: Optional[str] = None
     especialidade: Optional[str] = None
     data: Optional[date] = None
     hora_inicio: Optional[str] = None
     hora_fim: Optional[str] = None
     # Campos de valor flexível (Sprint 19)
-    valor: Optional[int] = None           # Valor exato (quando fixo)
-    valor_minimo: Optional[int] = None    # Faixa mínima
-    valor_maximo: Optional[int] = None    # Faixa máxima
-    valor_tipo: str = "a_combinar"        # 'fixo', 'a_combinar', 'faixa'
+    valor: Optional[int] = None  # Valor exato (quando fixo)
+    valor_minimo: Optional[int] = None  # Faixa mínima
+    valor_maximo: Optional[int] = None  # Faixa máxima
+    valor_tipo: str = "a_combinar"  # 'fixo', 'a_combinar', 'faixa'
     periodo: Optional[str] = None
     setor: Optional[str] = None
     tipo_vaga: Optional[str] = None
@@ -50,6 +52,7 @@ class DadosVagaExtraida:
 @dataclass
 class ConfiancaExtracao:
     """Scores de confiança por campo."""
+
     hospital: float = 0.0
     especialidade: float = 0.0
     data: float = 0.0
@@ -69,12 +72,12 @@ class ConfiancaExtracao:
         }
         total_peso = sum(pesos.values())
         soma = (
-            self.hospital * pesos["hospital"] +
-            self.especialidade * pesos["especialidade"] +
-            self.data * pesos["data"] +
-            self.hora_inicio * pesos["hora_inicio"] +
-            self.hora_fim * pesos["hora_fim"] +
-            self.valor * pesos["valor"]
+            self.hospital * pesos["hospital"]
+            + self.especialidade * pesos["especialidade"]
+            + self.data * pesos["data"]
+            + self.hora_inicio * pesos["hora_inicio"]
+            + self.hora_fim * pesos["hora_fim"]
+            + self.valor * pesos["valor"]
         )
         return soma / total_peso
 
@@ -82,6 +85,7 @@ class ConfiancaExtracao:
 @dataclass
 class VagaExtraida:
     """Uma vaga extraída da mensagem."""
+
     dados: DadosVagaExtraida
     confianca: ConfiancaExtracao
     data_valida: bool = True
@@ -91,6 +95,7 @@ class VagaExtraida:
 @dataclass
 class ResultadoExtracao:
     """Resultado da extração de uma mensagem."""
+
     vagas: List[VagaExtraida]
     total_vagas: int
     tokens_usados: int = 0
@@ -100,6 +105,7 @@ class ResultadoExtracao:
 # =============================================================================
 # S05.2 - Cliente LLM para Extração
 # =============================================================================
+
 
 def _parsear_valor_seguro(valor_raw) -> Optional[int]:
     """
@@ -123,7 +129,7 @@ def _parsear_valor_seguro(valor_raw) -> Optional[int]:
     if isinstance(valor_raw, str):
         # Tentar extrair número da string
         # Ex: "1.800", "1800", "R$ 1.800", "1800 reais"
-        numeros = re.sub(r'[^\d]', '', valor_raw)
+        numeros = re.sub(r"[^\d]", "", valor_raw)
         if numeros:
             try:
                 valor_int = int(numeros)
@@ -137,10 +143,7 @@ def _parsear_valor_seguro(valor_raw) -> Optional[int]:
 
 
 def _validar_valor(
-    valor_tipo: str,
-    valor: Optional[int],
-    valor_minimo: Optional[int],
-    valor_maximo: Optional[int]
+    valor_tipo: str, valor: Optional[int], valor_minimo: Optional[int], valor_maximo: Optional[int]
 ) -> tuple:
     """
     Valida e corrige consistência dos campos de valor.
@@ -224,18 +227,18 @@ def _normalizar_especialidade_raw(texto: Optional[str]) -> Optional[str]:
     resultado = texto.strip()
 
     # 1. Remover parênteses e seu conteúdo
-    resultado = re.sub(r'\s*\([^)]*\)', '', resultado)
+    resultado = re.sub(r"\s*\([^)]*\)", "", resultado)
 
     # 2. Se for lista com vírgulas, pegar apenas a primeira
-    if ',' in resultado:
-        partes = [p.strip() for p in resultado.split(',')]
+    if "," in resultado:
+        partes = [p.strip() for p in resultado.split(",")]
         resultado = partes[0] if partes else resultado
 
     # 3. Substituir hífens e barras por espaços
-    resultado = resultado.replace('-', ' ').replace('/', ' ')
+    resultado = resultado.replace("-", " ").replace("/", " ")
 
     # 4. Remover espaços extras
-    resultado = ' '.join(resultado.split())
+    resultado = " ".join(resultado.split())
 
     return resultado if resultado else None
 
@@ -246,7 +249,7 @@ def _reparar_json(texto: str) -> str:
     texto = texto.strip()
 
     # Encontrar o início e fim do JSON de forma mais precisa
-    inicio = texto.find('{')
+    inicio = texto.find("{")
     if inicio == -1:
         return texto
 
@@ -260,7 +263,7 @@ def _reparar_json(texto: str) -> str:
         if escape:
             escape = False
             continue
-        if char == '\\':
+        if char == "\\":
             escape = True
             continue
         if char == '"' and not escape:
@@ -268,9 +271,9 @@ def _reparar_json(texto: str) -> str:
             continue
         if em_string:
             continue
-        if char == '{':
+        if char == "{":
             nivel += 1
-        elif char == '}':
+        elif char == "}":
             nivel -= 1
             if nivel == 0:
                 fim = i + 1
@@ -285,12 +288,12 @@ def _reparar_json(texto: str) -> str:
         if texto.count('"') % 2 == 1:
             texto += '"'
         # Fechar arrays abertos
-        texto += ']' * (texto.count('[') - texto.count(']'))
+        texto += "]" * (texto.count("[") - texto.count("]"))
         # Fechar objetos abertos
-        texto += '}' * (texto.count('{') - texto.count('}'))
+        texto += "}" * (texto.count("{") - texto.count("}"))
 
     # Corrigir trailing commas antes de } ou ]
-    texto = re.sub(r',(\s*[}\]])', r'\1', texto)
+    texto = re.sub(r",(\s*[}\]])", r"\1", texto)
 
     # Corrigir aspas simples para duplas (cuidado com apóstrofos)
     # Apenas se parecer ser um problema sistemático
@@ -306,7 +309,7 @@ def _parsear_resposta_extracao(texto: str) -> ResultadoExtracao:
 
     # Extrair e reparar JSON
     if not texto.startswith("{"):
-        match = re.search(r'\{[\s\S]+\}', texto)
+        match = re.search(r"\{[\s\S]+\}", texto)
         if match:
             texto = match.group()
         else:
@@ -324,11 +327,7 @@ def _parsear_resposta_extracao(texto: str) -> ResultadoExtracao:
         except json.JSONDecodeError:
             # Última tentativa: retornar resultado vazio em vez de falhar
             logger.warning(f"JSON irreparável, retornando vazio. Preview: {texto[:200]}...")
-            return ResultadoExtracao(
-                vagas=[],
-                total_vagas=0,
-                erro="json_irreparavel"
-            )
+            return ResultadoExtracao(vagas=[], total_vagas=0, erro="json_irreparavel")
 
     vagas = []
     for vaga_json in dados.get("vagas", []):
@@ -393,22 +392,12 @@ def _parsear_resposta_extracao(texto: str) -> ResultadoExtracao:
 
         vagas.append(vaga)
 
-    return ResultadoExtracao(
-        vagas=vagas,
-        total_vagas=len(vagas)
-    )
+    return ResultadoExtracao(vagas=vagas, total_vagas=len(vagas))
 
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=1, max=10),
-    reraise=True
-)
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10), reraise=True)
 async def extrair_dados_mensagem(
-    texto: str,
-    nome_grupo: str = "",
-    regiao_grupo: str = "",
-    nome_contato: str = ""
+    texto: str, nome_grupo: str = "", regiao_grupo: str = "", nome_contato: str = ""
 ) -> ResultadoExtracao:
     """
     Extrai dados estruturados de uma mensagem (async).
@@ -441,9 +430,7 @@ async def extrair_dados_mensagem(
             model="claude-3-haiku-20240307",
             max_tokens=4096,  # Máximo para evitar truncamento
             temperature=0,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=[{"role": "user", "content": prompt}],
         )
 
         resposta_texto = response.content[0].text.strip()
@@ -454,35 +441,30 @@ async def extrair_dados_mensagem(
 
     except json.JSONDecodeError as e:
         logger.warning(f"Erro ao parsear JSON de extração: {e}")
-        return ResultadoExtracao(
-            vagas=[],
-            total_vagas=0,
-            erro=f"erro_parse: {str(e)}"
-        )
+        return ResultadoExtracao(vagas=[], total_vagas=0, erro=f"erro_parse: {str(e)}")
     except anthropic.APIError as e:
         logger.error(f"Erro API Anthropic: {e}")
         raise
     except Exception as e:
         logger.error(f"Erro inesperado na extração: {e}")
-        return ResultadoExtracao(
-            vagas=[],
-            total_vagas=0,
-            erro=f"erro_desconhecido: {str(e)}"
-        )
+        return ResultadoExtracao(vagas=[], total_vagas=0, erro=f"erro_desconhecido: {str(e)}")
 
 
 # =============================================================================
 # S05.3 - Processador Batch
 # =============================================================================
 
+
 async def buscar_mensagens_para_extracao(limite: int = 50) -> List[dict]:
     """Busca mensagens classificadas como oferta."""
-    result = supabase.table("mensagens_grupo") \
-        .select("id, texto, grupo_id, contato_id") \
-        .eq("status", "classificada_oferta") \
-        .order("created_at") \
-        .limit(limite) \
+    result = (
+        supabase.table("mensagens_grupo")
+        .select("id, texto, grupo_id, contato_id")
+        .eq("status", "classificada_oferta")
+        .order("created_at")
+        .limit(limite)
         .execute()
+    )
 
     return result.data
 
@@ -493,11 +475,13 @@ async def buscar_contexto_grupo(grupo_id: str) -> tuple:
     regiao = ""
 
     try:
-        grupo = supabase.table("grupos_whatsapp") \
-            .select("nome, regiao") \
-            .eq("id", grupo_id) \
-            .single() \
+        grupo = (
+            supabase.table("grupos_whatsapp")
+            .select("nome, regiao")
+            .eq("id", grupo_id)
+            .single()
             .execute()
+        )
 
         if grupo.data:
             nome = grupo.data.get("nome", "")
@@ -509,10 +493,7 @@ async def buscar_contexto_grupo(grupo_id: str) -> tuple:
 
 
 async def salvar_vaga_extraida(
-    mensagem_id: UUID,
-    grupo_id: UUID,
-    contato_id: Optional[UUID],
-    vaga: VagaExtraida
+    mensagem_id: UUID, grupo_id: UUID, contato_id: Optional[UUID], vaga: VagaExtraida
 ) -> Optional[UUID]:
     """
     Salva uma vaga extraída no banco.
@@ -534,7 +515,6 @@ async def salvar_vaga_extraida(
         "mensagem_id": str(mensagem_id),
         "grupo_origem_id": str(grupo_id),
         "contato_responsavel_id": str(contato_id) if contato_id else None,
-
         # Dados raw
         "hospital_raw": vaga.dados.hospital,
         "especialidade_raw": vaga.dados.especialidade,
@@ -542,7 +522,6 @@ async def salvar_vaga_extraida(
         "setor_raw": vaga.dados.setor,
         "tipo_vaga_raw": vaga.dados.tipo_vaga,
         "forma_pagamento_raw": vaga.dados.forma_pagamento,
-
         # Dados estruturados
         "data": vaga.dados.data.isoformat() if vaga.dados.data else None,
         "hora_inicio": vaga.dados.hora_inicio,
@@ -553,7 +532,6 @@ async def salvar_vaga_extraida(
         "valor_maximo": vaga.dados.valor_maximo,
         "valor_tipo": vaga.dados.valor_tipo,
         "observacoes": vaga.dados.observacoes,
-
         # Confiança
         "confianca_geral": vaga.confianca.media_ponderada(),
         "confianca_hospital": vaga.confianca.hospital,
@@ -561,7 +539,6 @@ async def salvar_vaga_extraida(
         "confianca_data": vaga.confianca.data,
         "confianca_valor": vaga.confianca.valor,
         "campos_faltando": vaga.campos_faltando,
-
         # Status inicial
         "status": "nova",
         "data_valida": vaga.data_valida,
@@ -597,11 +574,13 @@ async def extrair_batch(limite: int = 50) -> dict:
 
             if msg.get("contato_id"):
                 try:
-                    contato = supabase.table("contatos_grupo") \
-                        .select("nome") \
-                        .eq("id", msg["contato_id"]) \
-                        .single() \
+                    contato = (
+                        supabase.table("contatos_grupo")
+                        .select("nome")
+                        .eq("id", msg["contato_id"])
+                        .single()
                         .execute()
+                    )
                     nome_contato = contato.data.get("nome", "") if contato.data else ""
                 except Exception:
                     pass
@@ -611,7 +590,7 @@ async def extrair_batch(limite: int = 50) -> dict:
                 texto=msg["texto"],
                 nome_grupo=nome_grupo,
                 regiao_grupo=regiao_grupo,
-                nome_contato=nome_contato
+                nome_contato=nome_contato,
             )
 
             stats["tokens_total"] += resultado.tokens_usados
@@ -623,7 +602,7 @@ async def extrair_batch(limite: int = 50) -> dict:
                     mensagem_id=UUID(msg["id"]),
                     grupo_id=UUID(msg["grupo_id"]),
                     contato_id=UUID(msg["contato_id"]) if msg.get("contato_id") else None,
-                    vaga=vaga
+                    vaga=vaga,
                 )
 
                 if vaga_id:
@@ -633,14 +612,13 @@ async def extrair_batch(limite: int = 50) -> dict:
 
             # Atualizar mensagem
             novo_status = "extraida" if vagas_salvas > 0 else "extracao_falhou"
-            supabase.table("mensagens_grupo") \
-                .update({
+            supabase.table("mensagens_grupo").update(
+                {
                     "status": novo_status,
                     "qtd_vagas_extraidas": vagas_salvas,
                     "processado_em": datetime.now(UTC).isoformat(),
-                }) \
-                .eq("id", msg["id"]) \
-                .execute()
+                }
+            ).eq("id", msg["id"]).execute()
 
             stats["mensagens_processadas"] += 1
             stats["vagas_extraidas"] += vagas_salvas

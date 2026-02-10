@@ -3,6 +3,7 @@ Fragmentos do agente Julia.
 
 NOTA: Renomeado de templates para fragmentos (Sprint 32).
 """
+
 from .aberturas import (
     SAUDACOES,
     APRESENTACOES,

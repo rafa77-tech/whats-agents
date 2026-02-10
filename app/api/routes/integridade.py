@@ -3,6 +3,7 @@ Endpoints de integridade de dados e KPIs operacionais.
 
 Sprint 18 - E10, E11, E12: Data Integrity
 """
+
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 from typing import Optional
@@ -58,10 +59,7 @@ async def executar_auditoria(
         return result.to_dict()
     except Exception as e:
         logger.error(f"Erro na auditoria: {e}")
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=500
-        )
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 @router.get("/violacoes")
@@ -90,13 +88,15 @@ async def listar_violacoes(
         for v in violations:
             if v.violation_type not in by_type:
                 by_type[v.violation_type] = []
-            by_type[v.violation_type].append({
-                "event_id": v.event_id,
-                "vaga_id": v.vaga_id,
-                "cliente_id": v.cliente_id,
-                "invariant": v.invariant_name,
-                "details": v.details,
-            })
+            by_type[v.violation_type].append(
+                {
+                    "event_id": v.event_id,
+                    "vaga_id": v.vaga_id,
+                    "cliente_id": v.cliente_id,
+                    "invariant": v.invariant_name,
+                    "details": v.details,
+                }
+            )
 
         return {
             "period_days": days,
@@ -105,10 +105,7 @@ async def listar_violacoes(
         }
     except Exception as e:
         logger.error(f"Erro ao listar violacoes: {e}")
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=500
-        )
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 # =============================================================================
@@ -132,10 +129,7 @@ async def executar_reconciliacao():
         return result
     except Exception as e:
         logger.error(f"Erro na reconciliacao: {e}")
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=500
-        )
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 @router.get("/anomalias")
@@ -170,10 +164,7 @@ async def listar_anomalias_endpoint(
         return result
     except Exception as e:
         logger.error(f"Erro ao listar anomalias: {e}")
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=500
-        )
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 @router.get("/anomalias/recorrentes")
@@ -193,10 +184,7 @@ async def listar_recorrentes(
         return result
     except Exception as e:
         logger.error(f"Erro ao listar recorrentes: {e}")
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=500
-        )
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 class ResolverAnomaliaRequest(BaseModel):
@@ -226,10 +214,7 @@ async def resolver_anomalia_endpoint(
         return result
     except Exception as e:
         logger.error(f"Erro ao resolver anomalia {anomaly_id}: {e}")
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=500
-        )
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 # =============================================================================
@@ -254,10 +239,7 @@ async def obter_kpis_summary():
         return result
     except Exception as e:
         logger.error(f"Erro ao obter KPIs: {e}")
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=500
-        )
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 @router.get("/kpis/conversion")
@@ -292,14 +274,11 @@ async def obter_conversion_rates(
                     "status": r.status,
                 }
                 for r in rates
-            ]
+            ],
         }
     except Exception as e:
         logger.error(f"Erro ao obter conversion rates: {e}")
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=500
-        )
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 @router.get("/kpis/time-to-fill")
@@ -372,14 +351,11 @@ async def obter_time_to_fill(
                     for m in breakdown.time_to_fill
                     if m.segment_type != "global"
                 ],
-            }
+            },
         }
     except Exception as e:
         logger.error(f"Erro ao obter time-to-fill: {e}")
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=500
-        )
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 @router.get("/kpis/health")
@@ -400,7 +376,4 @@ async def obter_health_score():
         return health.to_dict()
     except Exception as e:
         logger.error(f"Erro ao obter health score: {e}")
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=500
-        )
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)

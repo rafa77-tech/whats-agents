@@ -9,7 +9,6 @@ Pendente -> Heurística -> Classificação -> Extração -> Normalização -> De
 
 import asyncio
 from uuid import UUID
-from typing import Optional
 
 from app.core.logging import get_logger
 from app.services.grupos.fila import (
@@ -27,12 +26,7 @@ logger = get_logger(__name__)
 class GruposWorker:
     """Worker para processar mensagens de grupos."""
 
-    def __init__(
-        self,
-        batch_size: int = 50,
-        intervalo_segundos: int = 10,
-        max_workers: int = 5
-    ):
+    def __init__(self, batch_size: int = 50, intervalo_segundos: int = 10, max_workers: int = 5):
         """
         Inicializa o worker.
 
@@ -110,8 +104,7 @@ class GruposWorker:
                         # Se extração criou múltiplas vagas, criar itens separados
                         if resultado.vagas_criadas and len(resultado.vagas_criadas) > 0:
                             await criar_itens_para_vagas(
-                                mensagem_id=resultado.mensagem_id,
-                                vagas_ids=resultado.vagas_criadas
+                                mensagem_id=resultado.mensagem_id, vagas_ids=resultado.vagas_criadas
                             )
                             # Item original marcado como finalizado (vagas já criadas)
                             await atualizar_estagio(
@@ -124,7 +117,7 @@ class GruposWorker:
                                 item_id=UUID(item["id"]),
                                 novo_estagio=EstagioPipeline(proximo_estagio),
                                 vaga_grupo_id=resultado.vaga_grupo_id,
-                                erro=resultado.motivo if resultado.acao == "erro" else None
+                                erro=resultado.motivo if resultado.acao == "erro" else None,
                             )
 
                         stats["processados"] += 1
@@ -134,18 +127,13 @@ class GruposWorker:
                         logger.error(f"Erro ao processar item {item['id']}: {e}")
                         # Mantém no mesmo estágio para retry
                         await atualizar_estagio(
-                            item_id=UUID(item["id"]),
-                            novo_estagio=estagio_atual,
-                            erro=str(e)[:500]
+                            item_id=UUID(item["id"]), novo_estagio=estagio_atual, erro=str(e)[:500]
                         )
                         stats["erros"] += 1
                         self._stats["erros"] += 1
 
             # Executar todos em paralelo
-            await asyncio.gather(*[
-                processar_item(item, estagio)
-                for item in itens
-            ])
+            await asyncio.gather(*[processar_item(item, estagio) for item in itens])
 
         if stats["processados"] > 0 or stats["erros"] > 0:
             logger.info(f"Ciclo concluído: {stats}")
@@ -162,10 +150,8 @@ class GruposWorker:
 # Função para execução via job/endpoint
 # =============================================================================
 
-async def processar_ciclo_grupos(
-    batch_size: int = 50,
-    max_workers: int = 5
-) -> dict:
+
+async def processar_ciclo_grupos(batch_size: int = 50, max_workers: int = 5) -> dict:
     """
     Processa um ciclo de mensagens de grupos.
 
@@ -178,10 +164,7 @@ async def processar_ciclo_grupos(
     Returns:
         Resultado do processamento
     """
-    worker = GruposWorker(
-        batch_size=batch_size,
-        max_workers=max_workers
-    )
+    worker = GruposWorker(batch_size=batch_size, max_workers=max_workers)
 
     try:
         stats = await worker.processar_ciclo()
@@ -189,18 +172,11 @@ async def processar_ciclo_grupos(
         # Obter estatísticas da fila
         fila_stats = await obter_estatisticas_fila()
 
-        return {
-            "sucesso": True,
-            "ciclo": stats,
-            "fila": fila_stats
-        }
+        return {"sucesso": True, "ciclo": stats, "fila": fila_stats}
 
     except Exception as e:
         logger.error(f"Erro ao processar ciclo de grupos: {e}", exc_info=True)
-        return {
-            "sucesso": False,
-            "erro": str(e)
-        }
+        return {"sucesso": False, "erro": str(e)}
 
 
 async def obter_status_worker() -> dict:
@@ -210,8 +186,7 @@ async def obter_status_worker() -> dict:
     Returns:
         Status com métricas da fila
     """
-    from datetime import datetime, timedelta, UTC
-    from app.services.supabase import supabase
+    from datetime import datetime, UTC
     from app.services.grupos.fila import obter_itens_travados
 
     # Estatísticas da fila
@@ -231,5 +206,5 @@ async def obter_status_worker() -> dict:
         "status": status,
         "fila": fila_stats,
         "travados": len(travados),
-        "timestamp": datetime.now(UTC).isoformat()
+        "timestamp": datetime.now(UTC).isoformat(),
     }

@@ -4,9 +4,9 @@ RAG de Politicas Meta.
 Armazena e consulta politicas do WhatsApp Business
 para informar decisoes do Trust Score e Warmer.
 """
+
 import logging
 from typing import List, Optional
-from datetime import date
 
 from app.services.supabase import supabase
 from app.services.embedding import gerar_embedding
@@ -52,7 +52,6 @@ POLITICAS_SEED = [
         "fonte_url": "https://learn.turn.io/l/en/article/uvdz8tz40l-quality-ratings-and-messaging-limits",
         "fonte_nome": "Turn.io Learn",
     },
-
     # Quality Rating
     {
         "categoria": "quality_rating",
@@ -76,7 +75,6 @@ POLITICAS_SEED = [
         "fonte_url": "https://docs.360dialog.com/partner/messaging-and-calling/messaging-health-and-troubleshooting/messaging-limits-and-quality-rating",
         "fonte_nome": "360Dialog Partner Docs",
     },
-
     # Motivos de Ban
     {
         "categoria": "motivos_ban",
@@ -115,7 +113,6 @@ POLITICAS_SEED = [
         "fonte_url": "https://whautomate.com/top-reasons-why-whatsapp-accounts-get-banned-in-2025-and-how-to-avoid-them/",
         "fonte_nome": "WhAutomate Blog",
     },
-
     # Boas Praticas
     {
         "categoria": "boas_praticas",
@@ -165,7 +162,6 @@ POLITICAS_SEED = [
         "fonte_url": "Internal Best Practices",
         "fonte_nome": "Julia Warmer Docs",
     },
-
     # Proibicoes
     {
         "categoria": "proibicoes",
@@ -204,14 +200,17 @@ async def seed_politicas():
             embedding = await gerar_embedding(politica["conteudo"])
 
             # Inserir no banco
-            supabase.table("meta_policies").upsert({
-                "categoria": politica["categoria"],
-                "titulo": politica["titulo"],
-                "conteudo": politica["conteudo"],
-                "fonte_url": politica.get("fonte_url"),
-                "fonte_nome": politica.get("fonte_nome"),
-                "embedding": embedding,
-            }, on_conflict="titulo").execute()
+            supabase.table("meta_policies").upsert(
+                {
+                    "categoria": politica["categoria"],
+                    "titulo": politica["titulo"],
+                    "conteudo": politica["conteudo"],
+                    "fonte_url": politica.get("fonte_url"),
+                    "fonte_nome": politica.get("fonte_nome"),
+                    "embedding": embedding,
+                },
+                on_conflict="titulo",
+            ).execute()
 
             count += 1
 
@@ -261,9 +260,13 @@ async def consultar_politicas(
 
         # Fallback: busca simples por categoria
         if categoria:
-            result = supabase.table("meta_policies").select(
-                "id, categoria, titulo, conteudo, fonte_url"
-            ).eq("categoria", categoria).limit(limite).execute()
+            result = (
+                supabase.table("meta_policies")
+                .select("id, categoria, titulo, conteudo, fonte_url")
+                .eq("categoria", categoria)
+                .limit(limite)
+                .execute()
+            )
             return result.data or []
 
         return []
@@ -328,8 +331,12 @@ async def listar_categorias() -> List[str]:
 
 async def buscar_por_categoria(categoria: str) -> List[dict]:
     """Busca todas as politicas de uma categoria."""
-    result = supabase.table("meta_policies").select(
-        "id, titulo, conteudo, fonte_url, fonte_nome"
-    ).eq("categoria", categoria).order("titulo").execute()
+    result = (
+        supabase.table("meta_policies")
+        .select("id, titulo, conteudo, fonte_url, fonte_nome")
+        .eq("categoria", categoria)
+        .order("titulo")
+        .execute()
+    )
 
     return result.data or []

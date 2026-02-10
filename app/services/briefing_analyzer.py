@@ -6,9 +6,9 @@ Sprint 11 - Epic 02: Analise Inteligente
 Usa Claude Sonnet para interpretar briefings em linguagem natural
 e criar planos de acao estruturados.
 """
+
 import logging
 import json
-from datetime import datetime, timedelta
 from typing import Optional
 from dataclasses import dataclass, field, asdict
 from enum import Enum
@@ -26,11 +26,13 @@ logger = logging.getLogger(__name__)
 # TIPOS E ESTRUTURAS
 # =============================================================================
 
+
 class TipoDemanda(str, Enum):
     """Tipos de demanda que Julia pode receber."""
+
     OPERACIONAL = "operacional"  # Fechar escala, preencher vagas
-    MAPEAMENTO = "mapeamento"    # Descobrir info sobre medicos/mercado
-    EXPANSAO = "expansao"        # Conseguir novos contatos, indicacoes
+    MAPEAMENTO = "mapeamento"  # Descobrir info sobre medicos/mercado
+    EXPANSAO = "expansao"  # Conseguir novos contatos, indicacoes
     INTELIGENCIA = "inteligencia"  # Analisar dados, entender padroes
     NOVO_TERRITORIO = "novo_territorio"  # Regiao/segmento novo
     MISTO = "misto"  # Combinacao
@@ -39,6 +41,7 @@ class TipoDemanda(str, Enum):
 @dataclass
 class PassoPlano:
     """Um passo do plano de acao."""
+
     numero: int
     descricao: str
     prazo: Optional[str] = None
@@ -49,6 +52,7 @@ class PassoPlano:
 @dataclass
 class NecessidadeIdentificada:
     """Necessidade de ferramenta/dados identificada."""
+
     tipo: str  # ferramenta, dados, campo_banco
     descricao: str
     caso_uso: str
@@ -59,6 +63,7 @@ class NecessidadeIdentificada:
 @dataclass
 class AnaliseResult:
     """Resultado completo da analise de um briefing."""
+
     # Identificacao
     doc_id: str
     doc_nome: str
@@ -226,6 +231,7 @@ Responda APENAS com um JSON valido neste formato exato:
 # FUNCOES DE CONTEXTO
 # =============================================================================
 
+
 async def _buscar_dados_contexto() -> str:
     """Busca dados atuais para enriquecer a analise."""
     contexto_partes = []
@@ -244,7 +250,9 @@ async def _buscar_dados_contexto() -> str:
                 esp = c.get("especialidade") or "Nao informada"
                 especialidades[esp] = especialidades.get(esp, 0) + 1
             top_esp = sorted(especialidades.items(), key=lambda x: -x[1])[:5]
-            contexto_partes.append(f"- Especialidades principais: {', '.join([f'{e[0]} ({e[1]})' for e in top_esp])}")
+            contexto_partes.append(
+                f"- Especialidades principais: {', '.join([f'{e[0]} ({e[1]})' for e in top_esp])}"
+            )
 
         # Vagas abertas
         resp = supabase.table("vagas").select("id", count="exact").eq("status", "aberta").execute()
@@ -252,14 +260,25 @@ async def _buscar_dados_contexto() -> str:
         contexto_partes.append(f"- Vagas abertas: {vagas_abertas}")
 
         # Conversas ativas
-        resp = supabase.table("conversations").select("id", count="exact").eq("status", "ativa").execute()
+        resp = (
+            supabase.table("conversations")
+            .select("id", count="exact")
+            .eq("status", "ativa")
+            .execute()
+        )
         conversas_ativas = resp.count or 0
         contexto_partes.append(f"- Conversas ativas: {conversas_ativas}")
 
         # Taxa de resposta geral (ultimos 7 dias)
         from datetime import timedelta
+
         uma_semana = (agora_brasilia() - timedelta(days=7)).isoformat()
-        resp = supabase.table("interacoes").select("id", count="exact").gte("created_at", uma_semana).execute()
+        resp = (
+            supabase.table("interacoes")
+            .select("id", count="exact")
+            .gte("created_at", uma_semana)
+            .execute()
+        )
         interacoes_semana = resp.count or 0
         contexto_partes.append(f"- Interacoes na ultima semana: {interacoes_semana}")
 
@@ -273,6 +292,7 @@ async def _buscar_dados_contexto() -> str:
 # =============================================================================
 # ANALISADOR
 # =============================================================================
+
 
 class BriefingAnalyzer:
     """Analisador de briefings usando Claude Sonnet."""
@@ -299,19 +319,12 @@ class BriefingAnalyzer:
         dados_contexto = await _buscar_dados_contexto()
 
         # Montar prompt
-        prompt = PROMPT_ANALISE.format(
-            dados_contexto=dados_contexto,
-            briefing_content=conteudo
-        )
+        prompt = PROMPT_ANALISE.format(dados_contexto=dados_contexto, briefing_content=conteudo)
 
         try:
             # Chamar Sonnet
             response = self.client.messages.create(
-                model=self.model,
-                max_tokens=4000,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ]
+                model=self.model, max_tokens=4000, messages=[{"role": "user", "content": prompt}]
             )
 
             # Extrair resposta
@@ -334,7 +347,7 @@ class BriefingAnalyzer:
                 doc_nome=doc_nome,
                 resumo_demanda=f"Erro ao analisar: {str(e)}",
                 viavel=False,
-                avaliacao_honesta="Nao consegui analisar o briefing. Tenta de novo ou simplifica o texto."
+                avaliacao_honesta="Nao consegui analisar o briefing. Tenta de novo ou simplifica o texto.",
             )
 
     def _parsear_resposta(self, texto: str) -> dict:
@@ -358,7 +371,8 @@ class BriefingAnalyzer:
             logger.warning(f"Erro ao parsear JSON: {e}")
             # Tentar encontrar JSON no texto
             import re
-            match = re.search(r'\{.*\}', texto, re.DOTALL)
+
+            match = re.search(r"\{.*\}", texto, re.DOTALL)
             if match:
                 try:
                     return json.loads(match.group())
@@ -371,24 +385,28 @@ class BriefingAnalyzer:
         # Converter passos
         passos = []
         for p in data.get("passos", []):
-            passos.append(PassoPlano(
-                numero=p.get("numero", 0),
-                descricao=p.get("descricao", ""),
-                prazo=p.get("prazo"),
-                requer_ajuda=p.get("requer_ajuda", False),
-                tipo_ajuda=p.get("tipo_ajuda")
-            ))
+            passos.append(
+                PassoPlano(
+                    numero=p.get("numero", 0),
+                    descricao=p.get("descricao", ""),
+                    prazo=p.get("prazo"),
+                    requer_ajuda=p.get("requer_ajuda", False),
+                    tipo_ajuda=p.get("tipo_ajuda"),
+                )
+            )
 
         # Converter necessidades
         necessidades = []
         for n in data.get("necessidades", []):
-            necessidades.append(NecessidadeIdentificada(
-                tipo=n.get("tipo", "dados"),
-                descricao=n.get("descricao", ""),
-                caso_uso=n.get("caso_uso", ""),
-                alternativa_temporaria=n.get("alternativa_temporaria"),
-                prioridade=n.get("prioridade", "media")
-            ))
+            necessidades.append(
+                NecessidadeIdentificada(
+                    tipo=n.get("tipo", "dados"),
+                    descricao=n.get("descricao", ""),
+                    caso_uso=n.get("caso_uso", ""),
+                    alternativa_temporaria=n.get("alternativa_temporaria"),
+                    prioridade=n.get("prioridade", "media"),
+                )
+            )
 
         # Converter tipo de demanda
         tipo_str = data.get("tipo_demanda", "operacional")
@@ -415,13 +433,14 @@ class BriefingAnalyzer:
             necessidades=necessidades,
             viavel=data.get("viavel", True),
             ressalvas=data.get("ressalvas", []),
-            avaliacao_honesta=data.get("avaliacao_honesta", "")
+            avaliacao_honesta=data.get("avaliacao_honesta", ""),
         )
 
 
 # =============================================================================
 # FORMATADOR DE PLANO
 # =============================================================================
+
 
 def formatar_plano_para_documento(analise: AnaliseResult) -> str:
     """

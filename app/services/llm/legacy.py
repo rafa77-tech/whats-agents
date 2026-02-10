@@ -1,6 +1,7 @@
 """
 Cliente Anthropic para geracao de respostas via Claude.
 """
+
 import anthropic
 import asyncio
 from functools import lru_cache
@@ -8,7 +9,7 @@ import logging
 from typing import Any
 
 from app.core.config import settings
-from app.services.circuit_breaker import circuit_claude, CircuitOpenError
+from app.services.circuit_breaker import circuit_claude
 
 logger = logging.getLogger(__name__)
 
@@ -140,21 +141,13 @@ async def gerar_resposta_com_tools(
     response = await circuit_claude.executar(_chamar_api_async)
 
     # Processar resposta
-    result = {
-        "text": None,
-        "tool_use": [],
-        "stop_reason": response.stop_reason
-    }
+    result = {"text": None, "tool_use": [], "stop_reason": response.stop_reason}
 
     for block in response.content:
         if block.type == "text":
             result["text"] = block.text
         elif block.type == "tool_use":
-            result["tool_use"].append({
-                "id": block.id,
-                "name": block.name,
-                "input": block.input
-            })
+            result["tool_use"].append({"id": block.id, "name": block.name, "input": block.input})
 
     return result
 
@@ -188,10 +181,7 @@ async def continuar_apos_tool(
 
     # Adicionar resultados das tools
     messages = historico.copy()
-    messages.append({
-        "role": "user",
-        "content": tool_results
-    })
+    messages.append({"role": "user", "content": tool_results})
 
     kwargs = {
         "model": modelo,
@@ -216,21 +206,13 @@ async def continuar_apos_tool(
     response = await circuit_claude.executar(_chamar_api_async)
 
     # Processar resposta
-    result = {
-        "text": None,
-        "tool_use": [],
-        "stop_reason": response.stop_reason
-    }
+    result = {"text": None, "tool_use": [], "stop_reason": response.stop_reason}
 
     for block in response.content:
         if block.type == "text":
             result["text"] = block.text
         elif block.type == "tool_use":
-            result["tool_use"].append({
-                "id": block.id,
-                "name": block.name,
-                "input": block.input
-            })
+            result["tool_use"].append({"id": block.id, "name": block.name, "input": block.input})
 
     return result
 

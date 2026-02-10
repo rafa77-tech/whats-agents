@@ -4,30 +4,32 @@ Conversation Generator - Gera conversas naturais para aquecimento.
 Cria conteúdo variado e orgânico para troca entre chips durante
 o processo de warmup, simulando conversas reais.
 """
+
 import random
 import logging
 from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 
 class TipoConversa(str, Enum):
     """Tipos de conversa para warmup."""
-    CASUAL = "casual"              # Papo do dia a dia
-    TRABALHO = "trabalho"          # Assuntos profissionais genéricos
-    COMBINADO = "combinado"        # Combinar algo (almoço, reunião)
-    NOVIDADE = "novidade"          # Compartilhar algo novo
-    PERGUNTA = "pergunta"          # Tirar dúvida
-    CONFIRMACAO = "confirmacao"    # Confirmar algo
+
+    CASUAL = "casual"  # Papo do dia a dia
+    TRABALHO = "trabalho"  # Assuntos profissionais genéricos
+    COMBINADO = "combinado"  # Combinar algo (almoço, reunião)
+    NOVIDADE = "novidade"  # Compartilhar algo novo
+    PERGUNTA = "pergunta"  # Tirar dúvida
+    CONFIRMACAO = "confirmacao"  # Confirmar algo
     AGRADECIMENTO = "agradecimento"  # Agradecer
-    PIADA = "piada"                # Humor leve
+    PIADA = "piada"  # Humor leve
 
 
 class TipoMidia(str, Enum):
     """Tipos de mídia para variedade."""
+
     TEXTO = "texto"
     AUDIO = "audio"
     IMAGEM = "imagem"
@@ -39,6 +41,7 @@ class TipoMidia(str, Enum):
 @dataclass
 class MensagemGerada:
     """Mensagem gerada para envio."""
+
     texto: str
     tipo_midia: TipoMidia
     sugestao_resposta: Optional[str] = None
@@ -54,12 +57,10 @@ TEMPLATES_CONVERSA = {
         ("Esse calor tá demais né", "Sim! Nem dá pra sair de casa"),
         ("Finalmente esfriou um pouco", "Até que enfim né"),
         ("Chove demais aqui hoje", "Aqui tá sol ainda"),
-
         # Fim de semana
         ("O que vc fez no fds?", "Descansei em casa, e vc?"),
         ("Bom dia! Conseguiu descansar?", "Consegui sim, precisava"),
         ("Fds passou voando né", "Nem me fala, já segunda de novo"),
-
         # Dia a dia
         ("Já almoçou?", "Tô indo agora, e vc?"),
         ("Vc viu o jogo ontem?", "Vi! Que jogo hein"),
@@ -68,7 +69,6 @@ TEMPLATES_CONVERSA = {
         ("Bom dia!", "Bom dia! Tudo bem?"),
         ("Boa tarde!", "Boa tarde! Como tá o dia?"),
     ],
-
     TipoConversa.TRABALHO: [
         ("Conseguiu resolver aquilo lá?", "Ainda não, tô vendo aqui"),
         ("Deu certo o que vc tava fazendo?", "Deu sim, finalmente"),
@@ -78,7 +78,6 @@ TEMPLATES_CONVERSA = {
         ("Viu a mensagem que mandei?", "Vi sim, vou responder já"),
         ("Precisa de ajuda com algo?", "Por enquanto tá ok, valeu!"),
     ],
-
     TipoConversa.COMBINADO: [
         ("Vamos almoçar amanhã?", "Bora! Que horas?"),
         ("Podemos marcar uma call?", "Pode ser, quando vc pode?"),
@@ -87,7 +86,6 @@ TEMPLATES_CONVERSA = {
         ("Tá livre pra uma ligação rápida?", "Tô sim, pode ligar"),
         ("Sexta vc tá livre?", "Acho que sim, por que?"),
     ],
-
     TipoConversa.NOVIDADE: [
         ("Vc viu isso aqui? [link]", "Ainda não, vou ver!"),
         ("Descobri um lugar novo pra almoçar", "Onde? Conta aí"),
@@ -95,7 +93,6 @@ TEMPLATES_CONVERSA = {
         ("Trocaram o gerente lá", "Nossa, não sabia"),
         ("Abriu uma loja nova perto de casa", "Que tipo de loja?"),
     ],
-
     TipoConversa.PERGUNTA: [
         ("Vc sabe o telefone do fulano?", "Deixa eu ver aqui"),
         ("Lembra o nome daquele lugar?", "Qual lugar?"),
@@ -103,7 +100,6 @@ TEMPLATES_CONVERSA = {
         ("Vc tá no escritório?", "Tô sim, por que?"),
         ("Tem o contato do ciclano?", "Tenho, vou te mandar"),
     ],
-
     TipoConversa.CONFIRMACAO: [
         ("Tá confirmado pra amanhã?", "Tá sim, pode contar comigo"),
         ("Vc vem né?", "Vou sim!"),
@@ -111,14 +107,12 @@ TEMPLATES_CONVERSA = {
         ("Recebeu o que mandei?", "Recebi, valeu!"),
         ("Anotou o endereço?", "Anotei, tá salvo aqui"),
     ],
-
     TipoConversa.AGRADECIMENTO: [
         ("Muito obrigado pela ajuda!", "Imagina, precisando é só falar"),
         ("Valeu demais!", "De nada!"),
         ("Vc me salvou", "Que isso, foi nada"),
         ("Ajudou muito, obrigado", "Sempre às ordens"),
     ],
-
     TipoConversa.PIADA: [
         ("Kkkk olha isso", "Kkkkk boa"),
         ("Cara, muito bom isso", "Rsrs demais"),
@@ -243,11 +237,7 @@ class ConversationGenerator:
         tipos, pesos = zip(*opcoes)
         return random.choices(tipos, weights=pesos, k=1)[0]
 
-    def _adicionar_emoji_opcional(
-        self,
-        texto: str,
-        contexto: str = "positivo"
-    ) -> str:
+    def _adicionar_emoji_opcional(self, texto: str, contexto: str = "positivo") -> str:
         """
         Adiciona emoji opcional ao texto.
 

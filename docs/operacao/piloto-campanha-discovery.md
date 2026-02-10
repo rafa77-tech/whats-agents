@@ -2,8 +2,11 @@
 
 > Guia operacional para execucao de campanha de descoberta (primeiro contato) via Dashboard Julia
 
-**Versao:** 1.0
-**Ultima atualizacao:** 17/01/2026
+**Versao:** 1.1
+**Ultima atualizacao:** 10/02/2026
+**Status:** VALIDADO - Manual ainda relevante e acurado
+
+**IMPORTANTE:** Este manual foi verificado contra o código atual (Sprint 57) e permanece acurado.
 
 ---
 
@@ -63,9 +66,10 @@ Vc costuma fazer plantoes extras?
 | Componente | Status Necessario | Como Verificar |
 |------------|-------------------|----------------|
 | Dashboard Julia | Acessivel | Abrir URL do dashboard |
-| API Backend | Rodando | `curl {API_URL}/health` |
-| WhatsApp | Conectado | Dashboard > Status WhatsApp |
-| Worker | Ativo | Railway logs ou dashboard |
+| API Backend | Rodando | `curl {API_URL}/health` ou `/health/ready` |
+| WhatsApp | Conectado | Dashboard > Status WhatsApp ou `/health/whatsapp` |
+| Worker | Ativo | Railway logs (`railway logs`) ou `/health/jobs` |
+| Fila Mensagens | Saudavel | `/health/fila` |
 
 ### Permissoes
 
@@ -609,11 +613,24 @@ _________________________________
 
 ---
 
+---
+
+## Referencia de Codigo
+
+- **API Campanhas:** `app/api/routes/campanhas.py` - endpoints de criacao/gestao
+- **Service Campanhas:** `app/services/campanhas/` - logica de negocio
+- **Jobs Campanhas:** `app/services/jobs/campanhas.py` - processamento agendado
+- **Fila Mensagens:** `app/services/jobs/fila_mensagens.py` - worker de envio
+- **Dashboard:** `/dashboard/app/(dashboard)/campanhas/` - UI Next.js
+
+---
+
 ## Historico de Versoes
 
 | Versao | Data | Autor | Alteracoes |
 |--------|------|-------|------------|
 | 1.0 | 17/01/2026 | - | Versao inicial |
+| 1.1 | 10/02/2026 | - | Verificacao Sprint 57 - validado como acurado, endpoints de health atualizados |
 
 ---
 

@@ -3,6 +3,7 @@ Endpoints para gerenciamento de campanhas.
 
 Sprint 35 - Epic 05: Atualizado para usar novos modulos
 """
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -23,43 +24,36 @@ router = APIRouter(prefix="/campanhas", tags=["campanhas"])
 
 class CriarCampanhaRequest(BaseModel):
     """Request para criar campanha."""
+
     nome_template: str = Field(..., description="Nome da campanha")
     tipo_campanha: str = Field(
         default="oferta",
-        description="Tipo: discovery, oferta, oferta_plantao, reativacao, followup"
+        description="Tipo: discovery, oferta, oferta_plantao, reativacao, followup",
     )
     corpo: Optional[str] = Field(
-        None,
-        description="Corpo da mensagem com placeholders {nome}, {especialidade}"
+        None, description="Corpo da mensagem com placeholders {nome}, {especialidade}"
     )
     tom: Optional[str] = Field(default="amigavel", description="Tom da mensagem")
     objetivo: Optional[str] = Field(None, description="Objetivo da campanha")
     especialidades: Optional[List[str]] = Field(
-        default=None,
-        description="Filtro de especialidades"
+        default=None, description="Filtro de especialidades"
     )
-    regioes: Optional[List[str]] = Field(
-        default=None,
-        description="Filtro de regioes"
-    )
+    regioes: Optional[List[str]] = Field(default=None, description="Filtro de regioes")
     quantidade_alvo: int = Field(default=50, description="Quantidade alvo de envios")
     modo_selecao: str = Field(
         default="deterministico",
-        description="Modo de selecao: deterministico (prioriza nunca contatados) ou aleatorio"
+        description="Modo de selecao: deterministico (prioriza nunca contatados) ou aleatorio",
     )
-    agendar_para: Optional[datetime] = Field(
-        None,
-        description="Data/hora para agendamento"
-    )
+    agendar_para: Optional[datetime] = Field(None, description="Data/hora para agendamento")
     pode_ofertar: bool = Field(default=True, description="Se pode ofertar vagas")
     chips_excluidos: Optional[List[str]] = Field(
-        default=None,
-        description="IDs de chips a NAO usar nesta campanha"
+        default=None, description="IDs de chips a NAO usar nesta campanha"
     )
 
 
 class CampanhaResponse(BaseModel):
     """Response de campanha."""
+
     id: int
     nome_template: str
     tipo_campanha: str
@@ -83,8 +77,7 @@ async def criar_campanha(dados: CriarCampanhaRequest):
         tipo = TipoCampanha(dados.tipo_campanha)
     except ValueError:
         raise HTTPException(
-            status_code=400,
-            detail=f"Tipo de campanha invalido: {dados.tipo_campanha}"
+            status_code=400, detail=f"Tipo de campanha invalido: {dados.tipo_campanha}"
         )
 
     # Montar filtros para contagem
@@ -122,10 +115,7 @@ async def criar_campanha(dados: CriarCampanhaRequest):
         raise HTTPException(status_code=500, detail="Erro ao criar campanha")
 
     # Atualizar total de destinatarios
-    await campanha_repository.atualizar_total_destinatarios(
-        campanha.id,
-        total_destinatarios
-    )
+    await campanha_repository.atualizar_total_destinatarios(campanha.id, total_destinatarios)
 
     return CampanhaResponse(
         id=campanha.id,
@@ -154,10 +144,14 @@ async def iniciar_campanha(campanha_id: int):
 
     # Verificar status
     # Aceita ATIVA também para casos onde a campanha foi ativada mas não executada
-    if campanha.status not in (StatusCampanha.AGENDADA, StatusCampanha.RASCUNHO, StatusCampanha.ATIVA):
+    if campanha.status not in (
+        StatusCampanha.AGENDADA,
+        StatusCampanha.RASCUNHO,
+        StatusCampanha.ATIVA,
+    ):
         raise HTTPException(
             status_code=400,
-            detail=f"Campanha com status '{campanha.status.value}' nao pode ser iniciada"
+            detail=f"Campanha com status '{campanha.status.value}' nao pode ser iniciada",
         )
 
     # Executar campanha
@@ -169,7 +163,7 @@ async def iniciar_campanha(campanha_id: int):
     return {
         "status": "iniciada",
         "campanha_id": campanha_id,
-        "message": "Campanha iniciada com sucesso"
+        "message": "Campanha iniciada com sucesso",
     }
 
 
@@ -189,10 +183,10 @@ async def preview_segmento(filtros: Dict[str, Any]):
             {
                 "nome": m.get("primeiro_nome"),
                 "especialidade": m.get("especialidade_nome"),
-                "regiao": m.get("regiao")
+                "regiao": m.get("regiao"),
             }
             for m in amostra
-        ]
+        ],
     }
 
 
@@ -239,7 +233,7 @@ async def relatorio_campanha(campanha_id: int):
             "enviados": enviados_fila,
             "erros": erros,
             "pendentes": pendentes,
-            "taxa_entrega": enviados_fila / len(envios) if envios else 0
+            "taxa_entrega": enviados_fila / len(envios) if envios else 0,
         },
         "periodo": {
             "criada_em": campanha.created_at.isoformat() if campanha.created_at else None,
@@ -247,7 +241,9 @@ async def relatorio_campanha(campanha_id: int):
             "iniciada_em": campanha.iniciada_em.isoformat() if campanha.iniciada_em else None,
             "concluida_em": campanha.concluida_em.isoformat() if campanha.concluida_em else None,
         },
-        "audience_filters": campanha.audience_filters.to_dict() if campanha.audience_filters else {},
+        "audience_filters": campanha.audience_filters.to_dict()
+        if campanha.audience_filters
+        else {},
     }
 
 
@@ -273,18 +269,20 @@ async def listar_campanhas(
 
     campanhas = []
     for row in resp.data or []:
-        campanhas.append({
-            "id": row["id"],
-            "nome_template": row.get("nome_template"),
-            "tipo_campanha": row.get("tipo_campanha"),
-            "status": row.get("status"),
-            "total_destinatarios": row.get("total_destinatarios", 0),
-            "enviados": row.get("enviados", 0),
-            "entregues": row.get("entregues", 0),
-            "respondidos": row.get("respondidos", 0),
-            "created_at": row.get("created_at"),
-            "agendar_para": row.get("agendar_para"),
-        })
+        campanhas.append(
+            {
+                "id": row["id"],
+                "nome_template": row.get("nome_template"),
+                "tipo_campanha": row.get("tipo_campanha"),
+                "status": row.get("status"),
+                "total_destinatarios": row.get("total_destinatarios", 0),
+                "enviados": row.get("enviados", 0),
+                "entregues": row.get("entregues", 0),
+                "respondidos": row.get("respondidos", 0),
+                "created_at": row.get("created_at"),
+                "agendar_para": row.get("agendar_para"),
+            }
+        )
 
     return {"campanhas": campanhas, "total": len(campanhas)}
 
@@ -311,10 +309,7 @@ async def atualizar_status_campanha(campanha_id: int, novo_status: str):
     try:
         status = StatusCampanha(novo_status)
     except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Status invalido: {novo_status}"
-        )
+        raise HTTPException(status_code=400, detail=f"Status invalido: {novo_status}")
 
     # Verificar se campanha existe
     campanha = await campanha_repository.buscar_por_id(campanha_id)

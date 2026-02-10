@@ -1,10 +1,10 @@
 """
 Endpoints administrativos para gestor avaliar conversas.
 """
+
 from fastapi import APIRouter, Query
 from typing import Optional, List
 from pydantic import BaseModel
-from datetime import datetime
 import logging
 
 from app.core.timezone import agora_utc
@@ -19,12 +19,7 @@ logger = logging.getLogger(__name__)
 async def buscar_cliente_por_telefone(telefone: str):
     """Busca cliente pelo telefone."""
     try:
-        response = (
-            supabase.table("clientes")
-            .select("*")
-            .eq("telefone", telefone)
-            .execute()
-        )
+        response = supabase.table("clientes").select("*").eq("telefone", telefone).execute()
         if response.data:
             return response.data[0]
         return {"erro": "Cliente não encontrado", "telefone": telefone}
@@ -38,7 +33,7 @@ async def listar_conversas(
     status: Optional[str] = None,
     avaliada: Optional[bool] = None,
     limite: int = Query(default=20, le=100),
-    offset: int = 0
+    offset: int = 0,
 ):
     """
     Lista conversas para avaliação do gestor.
@@ -69,28 +64,18 @@ async def listar_conversas(
         # Filtrar por avaliação se necessário
         if avaliada is not None:
             conversas = [
-                c for c in conversas
+                c
+                for c in conversas
                 if any(
-                    a.get("avaliador") == "gestor"
-                    for a in (c.get("avaliacoes_qualidade") or [])
-                ) == avaliada
+                    a.get("avaliador") == "gestor" for a in (c.get("avaliacoes_qualidade") or [])
+                )
+                == avaliada
             ]
 
-        return {
-            "conversas": conversas,
-            "total": len(conversas),
-            "offset": offset,
-            "limite": limite
-        }
+        return {"conversas": conversas, "total": len(conversas), "offset": offset, "limite": limite}
     except Exception as e:
         logger.error(f"Erro ao listar conversas: {e}")
-        return {
-            "conversas": [],
-            "total": 0,
-            "offset": offset,
-            "limite": limite,
-            "erro": str(e)
-        }
+        return {"conversas": [], "total": 0, "offset": offset, "limite": limite, "erro": str(e)}
 
 
 @router.get("/conversas/{conversa_id}")
@@ -123,19 +108,10 @@ async def obter_conversa_detalhada(conversa_id: str):
         )
         avaliacoes = avaliacoes_response.data or []
 
-        return {
-            "conversa": conversa,
-            "interacoes": interacoes,
-            "avaliacoes": avaliacoes
-        }
+        return {"conversa": conversa, "interacoes": interacoes, "avaliacoes": avaliacoes}
     except Exception as e:
         logger.error(f"Erro ao obter conversa detalhada: {e}")
-        return {
-            "conversa": None,
-            "interacoes": [],
-            "avaliacoes": [],
-            "erro": str(e)
-        }
+        return {"conversa": None, "interacoes": [], "avaliacoes": [], "erro": str(e)}
 
 
 class AvaliacaoGestor(BaseModel):
@@ -152,26 +128,26 @@ class AvaliacaoGestor(BaseModel):
 async def criar_avaliacao_gestor(avaliacao: AvaliacaoGestor):
     """Salva avaliação do gestor."""
     try:
-        score_geral = round((
-            avaliacao.naturalidade +
-            avaliacao.persona +
-            avaliacao.objetivo +
-            avaliacao.satisfacao
-        ) / 4)
+        score_geral = round(
+            (avaliacao.naturalidade + avaliacao.persona + avaliacao.objetivo + avaliacao.satisfacao)
+            / 4
+        )
 
         response = (
             supabase.table("avaliacoes_qualidade")
-            .insert({
-                "conversa_id": avaliacao.conversa_id,
-                "naturalidade": avaliacao.naturalidade,
-                "persona": avaliacao.persona,
-                "objetivo": avaliacao.objetivo,
-                "satisfacao": avaliacao.satisfacao,
-                "score_geral": score_geral,
-                "notas": avaliacao.notas,
-                "avaliador": "gestor",
-                "tags": avaliacao.tags or []
-            })
+            .insert(
+                {
+                    "conversa_id": avaliacao.conversa_id,
+                    "naturalidade": avaliacao.naturalidade,
+                    "persona": avaliacao.persona,
+                    "objetivo": avaliacao.objetivo,
+                    "satisfacao": avaliacao.satisfacao,
+                    "score_geral": score_geral,
+                    "notas": avaliacao.notas,
+                    "avaliador": "gestor",
+                    "tags": avaliacao.tags or [],
+                }
+            )
             .execute()
         )
         return response.data[0] if response.data else None
@@ -225,11 +201,7 @@ class SugestaoPrompt(BaseModel):
 async def criar_sugestao(sugestao: SugestaoPrompt):
     """Cria sugestão de melhoria do prompt."""
     try:
-        response = (
-            supabase.table("sugestoes_prompt")
-            .insert(sugestao.dict())
-            .execute()
-        )
+        response = supabase.table("sugestoes_prompt").insert(sugestao.dict()).execute()
         return response.data[0] if response.data else None
     except Exception as e:
         logger.error(f"Erro ao criar sugestão: {e}")
@@ -262,10 +234,7 @@ async def atualizar_sugestao(sugestao_id: str, status: str):
             atualizacao["implementada_em"] = agora_utc().isoformat()
 
         response = (
-            supabase.table("sugestoes_prompt")
-            .update(atualizacao)
-            .eq("id", sugestao_id)
-            .execute()
+            supabase.table("sugestoes_prompt").update(atualizacao).eq("id", sugestao_id).execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -278,6 +247,7 @@ async def obter_sugestoes_agregadas():
     """Retorna sugestões agrupadas por tipo."""
     try:
         from app.services.feedback import agregar_sugestoes
+
         return await agregar_sugestoes()
     except Exception as e:
         logger.error(f"Erro ao obter sugestões agregadas: {e}")
@@ -288,6 +258,7 @@ async def obter_sugestoes_agregadas():
 async def obter_tags_predefinidas():
     """Retorna tags pré-definidas disponíveis."""
     from app.constants.tags import TAGS_PREDEFINIDAS
+
     return TAGS_PREDEFINIDAS
 
 
@@ -320,13 +291,14 @@ async def health_check():
     return {
         "status": "healthy" if not problemas else "degraded",
         "problemas": problemas,
-        "metricas": resumo
+        "metricas": resumo,
     }
 
 
 # ==============================================================================
 # Endpoints de Validação de Output (Sprint 8)
 # ==============================================================================
+
 
 class TesteValidacao(BaseModel):
     texto: str
@@ -340,6 +312,7 @@ async def metricas_validacao():
     Mostra quantas validações foram feitas e falhas por tipo.
     """
     from app.services.validacao_output import output_validator
+
     return output_validator.get_metricas()
 
 
@@ -364,13 +337,13 @@ async def testar_validacao(dados: TesteValidacao):
             "motivo": resultado.motivo,
             "tipo_violacao": resultado.tipo_violacao,
             "trecho_problematico": resultado.trecho_problematico,
-            "severidade": resultado.severidade
+            "severidade": resultado.severidade,
         },
         "correcao": {
             "foi_modificado": foi_modificado,
             "texto_corrigido": texto_corrigido if foi_modificado else None,
-            "seria_bloqueado": foi_modificado and not texto_corrigido
-        }
+            "seria_bloqueado": foi_modificado and not texto_corrigido,
+        },
     }
 
 
@@ -384,7 +357,7 @@ async def listar_padroes_validacao():
     from app.services.validacao_output import (
         PADROES_REVELACAO_IA,
         PADROES_FORMATO_PROIBIDO,
-        PADROES_LINGUAGEM_ROBOTICA
+        PADROES_LINGUAGEM_ROBOTICA,
     )
 
     return {
@@ -392,36 +365,34 @@ async def listar_padroes_validacao():
             "revelacao_ia": {
                 "total": len(PADROES_REVELACAO_IA),
                 "padroes": [
-                    {"tipo": tipo, "severidade": sev}
-                    for _, tipo, sev in PADROES_REVELACAO_IA
-                ]
+                    {"tipo": tipo, "severidade": sev} for _, tipo, sev in PADROES_REVELACAO_IA
+                ],
             },
             "formato_proibido": {
                 "total": len(PADROES_FORMATO_PROIBIDO),
                 "padroes": [
-                    {"tipo": tipo, "severidade": sev}
-                    for _, tipo, sev in PADROES_FORMATO_PROIBIDO
-                ]
+                    {"tipo": tipo, "severidade": sev} for _, tipo, sev in PADROES_FORMATO_PROIBIDO
+                ],
             },
             "linguagem_robotica": {
                 "total": len(PADROES_LINGUAGEM_ROBOTICA),
                 "padroes": [
-                    {"tipo": tipo, "severidade": sev}
-                    for _, tipo, sev in PADROES_LINGUAGEM_ROBOTICA
-                ]
-            }
+                    {"tipo": tipo, "severidade": sev} for _, tipo, sev in PADROES_LINGUAGEM_ROBOTICA
+                ],
+            },
         },
         "total_padroes": (
-            len(PADROES_REVELACAO_IA) +
-            len(PADROES_FORMATO_PROIBIDO) +
-            len(PADROES_LINGUAGEM_ROBOTICA)
-        )
+            len(PADROES_REVELACAO_IA)
+            + len(PADROES_FORMATO_PROIBIDO)
+            + len(PADROES_LINGUAGEM_ROBOTICA)
+        ),
     }
 
 
 # ==============================================================================
 # Endpoints de Aberturas (Sprint 8)
 # ==============================================================================
+
 
 class DadosMedico(BaseModel):
     nome: str
@@ -442,7 +413,7 @@ async def gerar_variacao_abertura(medico: DadosMedico):
         SAUDACOES,
         APRESENTACOES,
         CONTEXTOS,
-        GANCHOS
+        GANCHOS,
     )
     import random
 
@@ -461,8 +432,8 @@ async def gerar_variacao_abertura(medico: DadosMedico):
             "saudacoes_disponiveis": len(SAUDACOES),
             "apresentacoes_disponiveis": len(APRESENTACOES),
             "contextos_disponiveis": len(CONTEXTOS),
-            "ganchos_disponiveis": len(GANCHOS)
-        }
+            "ganchos_disponiveis": len(GANCHOS),
+        },
     }
 
 
@@ -491,6 +462,5 @@ async def corrigir_texto(dados: TesteValidacao):
         "texto_original": dados.texto,
         "texto_corrigido": texto_corrigido,
         "foi_modificado": foi_modificado,
-        "sucesso": texto_corrigido is not None
+        "sucesso": texto_corrigido is not None,
     }
-

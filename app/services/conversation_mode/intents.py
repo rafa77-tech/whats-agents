@@ -7,17 +7,18 @@ IMPORTANTE: Este detector NÃO decide o modo.
 Ele apenas identifica o que o médico está sinalizando.
 A decisão passa pela matriz ALLOWED_TRANSITIONS.
 """
+
 import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
 class DetectedIntent(Enum):
     """Intenção detectada na mensagem do médico."""
+
     INTERESSE_VAGA = "interesse_vaga"
     DUVIDA_PERFIL = "duvida_perfil"
     PRONTO_FECHAR = "pronto_fechar"
@@ -113,6 +114,7 @@ RECUSA_KEYWORDS = [
 @dataclass
 class IntentResult:
     """Resultado da detecção de intent."""
+
     intent: DetectedIntent
     confidence: float
     evidence: str

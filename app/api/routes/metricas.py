@@ -3,8 +3,9 @@ Endpoints para métricas e dashboard.
 
 Sprint 17 - E06: Endpoints de funil
 """
+
 from fastapi import APIRouter, Query
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Optional
 import logging
 
@@ -59,7 +60,9 @@ async def obter_resumo(dias: int = 7):
 
         # Calcular métricas
         total_conversas = len(conversas)
-        conversas_ativas = len([c for c in conversas if c.get("status") == "active" or c.get("status") == "ativa"])
+        conversas_ativas = len(
+            [c for c in conversas if c.get("status") == "active" or c.get("status") == "ativa"]
+        )
 
         msgs_entrada = len([i for i in interacoes if i.get("direcao") == "entrada"])
         msgs_saida = len([i for i in interacoes if i.get("direcao") == "saida"])
@@ -92,7 +95,7 @@ async def obter_resumo(dias: int = 7):
             "taxas": {
                 "resposta": taxa_resposta,
                 "handoff": taxa_handoff,
-            }
+            },
         }
     except Exception as e:
         logger.error(f"Erro ao obter resumo de métricas: {e}")
@@ -102,7 +105,7 @@ async def obter_resumo(dias: int = 7):
             "mensagens": {"recebidas": 0, "enviadas": 0},
             "handoffs": {"total": 0, "por_tipo": {}},
             "taxas": {"resposta": 0, "handoff": 0},
-            "erro": str(e)
+            "erro": str(e),
         }
 
 
@@ -295,15 +298,16 @@ async def medicos_com_app_enviado(
             if cliente_id and cliente_id not in medicos_vistos:
                 medicos_vistos.add(cliente_id)
                 medico = medicos_map.get(cliente_id, {})
-                resultado.append({
-                    "id": cliente_id,
-                    "nome": medico.get("primeiro_nome", ""),
-                    "telefone": medico.get("telefone", ""),
-                    "enviado_em": e.get("created_at"),
-                })
+                resultado.append(
+                    {
+                        "id": cliente_id,
+                        "nome": medico.get("primeiro_nome", ""),
+                        "telefone": medico.get("telefone", ""),
+                        "enviado_em": e.get("created_at"),
+                    }
+                )
 
         return {"medicos": resultado}
     except Exception as e:
         logger.error(f"Erro ao listar médicos com app enviado: {e}")
         return {"medicos": [], "erro": str(e)}
-

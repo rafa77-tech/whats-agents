@@ -7,11 +7,12 @@ Distribui atividades de warmup ao longo do dia respeitando:
 - Intervalos humanos entre ações
 - Balanceamento entre chips
 """
+
 import logging
 import random
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 from enum import Enum
 
 from app.core.timezone import agora_brasilia
@@ -23,17 +24,19 @@ logger = logging.getLogger(__name__)
 
 class TipoAtividade(str, Enum):
     """Tipos de atividade de warmup."""
-    CONVERSA_PAR = "conversa_par"           # Conversa com outro chip
-    ENTRAR_GRUPO = "entrar_grupo"           # Entrar em grupo
-    MENSAGEM_GRUPO = "mensagem_grupo"       # Enviar no grupo
-    ATUALIZAR_PERFIL = "atualizar_perfil"   # Mudar foto/status
-    ENVIAR_MIDIA = "enviar_midia"           # Enviar áudio/imagem
-    MARCAR_LIDO = "marcar_lido"             # Marcar msgs como lidas
+
+    CONVERSA_PAR = "conversa_par"  # Conversa com outro chip
+    ENTRAR_GRUPO = "entrar_grupo"  # Entrar em grupo
+    MENSAGEM_GRUPO = "mensagem_grupo"  # Enviar no grupo
+    ATUALIZAR_PERFIL = "atualizar_perfil"  # Mudar foto/status
+    ENVIAR_MIDIA = "enviar_midia"  # Enviar áudio/imagem
+    MARCAR_LIDO = "marcar_lido"  # Marcar msgs como lidas
 
 
 @dataclass
 class AtividadeAgendada:
     """Uma atividade agendada."""
+
     id: Optional[str] = None
     chip_id: str = ""
     tipo: TipoAtividade = TipoAtividade.CONVERSA_PAR
@@ -105,8 +108,8 @@ ATIVIDADES_POR_FASE = {
 
 # Distribuição de horários (mais atividade no meio do dia)
 DISTRIBUICAO_HORARIA = {
-    8: 0.5,   # 8h - pouca atividade
-    9: 0.8,   # 9h - aumentando
+    8: 0.5,  # 8h - pouca atividade
+    9: 0.8,  # 9h - aumentando
     10: 1.0,  # 10h - normal
     11: 1.2,  # 11h - pico
     12: 0.7,  # 12h - almoço
@@ -185,7 +188,7 @@ class WarmingScheduler:
         # Calcular janela disponível
         inicio = data.replace(hour=self.HORA_INICIO, minute=0, second=0)
         fim = data.replace(hour=self.HORA_FIM, minute=0, second=0)
-        duracao_total = (fim - inicio).total_seconds() / 60  # Em minutos
+        (fim - inicio).total_seconds() / 60  # Em minutos
 
         # Distribuir baseado nos pesos horários
         slots = []
@@ -248,9 +251,13 @@ class WarmingScheduler:
             data = agora_brasilia()
 
         # Buscar dados do chip
-        result = supabase.table("chips").select(
-            "fase_warmup, trust_score, limite_dia, limite_hora"
-        ).eq("id", chip_id).single().execute()
+        result = (
+            supabase.table("chips")
+            .select("fase_warmup, trust_score, limite_dia, limite_hora")
+            .eq("id", chip_id)
+            .single()
+            .execute()
+        )
 
         if not result.data:
             logger.error(f"[Scheduler] Chip {chip_id} não encontrado")
@@ -274,9 +281,7 @@ class WarmingScheduler:
 
         # Gerar horários
         horarios = self._gerar_horarios_distribuidos(
-            data,
-            quantidade,
-            config["intervalo_min_minutos"]
+            data, quantidade, config["intervalo_min_minutos"]
         )
 
         # Criar atividades
@@ -323,14 +328,16 @@ class WarmingScheduler:
 
         registros = []
         for atv in atividades:
-            registros.append({
-                "chip_id": atv.chip_id,
-                "tipo": atv.tipo.value,
-                "scheduled_for": atv.horario.isoformat(),
-                "dados": atv.dados,
-                "prioridade": atv.prioridade,
-                "status": "agendada",
-            })
+            registros.append(
+                {
+                    "chip_id": atv.chip_id,
+                    "tipo": atv.tipo.value,
+                    "scheduled_for": atv.horario.isoformat(),
+                    "dados": atv.dados,
+                    "prioridade": atv.prioridade,
+                    "status": "agendada",
+                }
+            )
 
         result = supabase.table("warmup_schedule").insert(registros).execute()
 
@@ -356,13 +363,15 @@ class WarmingScheduler:
         """
         agora = agora_brasilia()
 
-        query = supabase.table("warmup_schedule").select("*").eq(
-            "status", "agendada"
-        ).gte(
-            "scheduled_for", (agora - timedelta(minutes=5)).isoformat()
-        ).lte(
-            "scheduled_for", (agora + timedelta(hours=1)).isoformat()
-        ).order("scheduled_for").limit(limite)
+        query = (
+            supabase.table("warmup_schedule")
+            .select("*")
+            .eq("status", "agendada")
+            .gte("scheduled_for", (agora - timedelta(minutes=5)).isoformat())
+            .lte("scheduled_for", (agora + timedelta(hours=1)).isoformat())
+            .order("scheduled_for")
+            .limit(limite)
+        )
 
         if chip_id:
             query = query.eq("chip_id", chip_id)
@@ -371,17 +380,17 @@ class WarmingScheduler:
 
         atividades = []
         for row in result.data or []:
-            atividades.append(AtividadeAgendada(
-                id=row["id"],
-                chip_id=row["chip_id"],
-                tipo=TipoAtividade(row["tipo"]),
-                horario=datetime.fromisoformat(
-                    row["scheduled_for"].replace("Z", "+00:00")
-                ),
-                dados=row.get("dados", {}),
-                prioridade=row.get("prioridade", 5),
-                status=row["status"],
-            ))
+            atividades.append(
+                AtividadeAgendada(
+                    id=row["id"],
+                    chip_id=row["chip_id"],
+                    tipo=TipoAtividade(row["tipo"]),
+                    horario=datetime.fromisoformat(row["scheduled_for"].replace("Z", "+00:00")),
+                    dados=row.get("dados", {}),
+                    prioridade=row.get("prioridade", 5),
+                    status=row["status"],
+                )
+            )
 
         return atividades
 
@@ -401,11 +410,13 @@ class WarmingScheduler:
         """
         status = "executada" if sucesso else "falhou"
 
-        supabase.table("warmup_schedule").update({
-            "status": status,
-            "executed_at": agora_brasilia().isoformat(),
-            "resultado": resultado or {},
-        }).eq("id", atividade_id).execute()
+        supabase.table("warmup_schedule").update(
+            {
+                "status": status,
+                "executed_at": agora_brasilia().isoformat(),
+                "resultado": resultado or {},
+            }
+        ).eq("id", atividade_id).execute()
 
         logger.debug(f"[Scheduler] Atividade {atividade_id} marcada como {status}")
 
@@ -424,10 +435,18 @@ class WarmingScheduler:
         Returns:
             Número de atividades canceladas
         """
-        result = supabase.table("warmup_schedule").update({
-            "status": "cancelada",
-            "resultado": {"motivo": motivo},
-        }).eq("chip_id", chip_id).eq("status", "agendada").execute()
+        result = (
+            supabase.table("warmup_schedule")
+            .update(
+                {
+                    "status": "cancelada",
+                    "resultado": {"motivo": motivo},
+                }
+            )
+            .eq("chip_id", chip_id)
+            .eq("status", "agendada")
+            .execute()
+        )
 
         count = len(result.data) if result.data else 0
         logger.info(f"[Scheduler] {count} atividades canceladas para chip {chip_id[:8]}...")
@@ -455,10 +474,11 @@ class WarmingScheduler:
         inicio_dia = data.replace(hour=0, minute=0, second=0)
         fim_dia = data.replace(hour=23, minute=59, second=59)
 
-        query = supabase.table("warmup_schedule").select(
-            "status, tipo"
-        ).gte("scheduled_for", inicio_dia.isoformat()).lte(
-            "scheduled_for", fim_dia.isoformat()
+        query = (
+            supabase.table("warmup_schedule")
+            .select("status, tipo")
+            .gte("scheduled_for", inicio_dia.isoformat())
+            .lte("scheduled_for", fim_dia.isoformat())
         )
 
         if chip_id:

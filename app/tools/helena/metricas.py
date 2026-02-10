@@ -3,6 +3,7 @@ Tools de métricas para Helena.
 
 Sprint 47: Métricas pré-definidas otimizadas.
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -43,9 +44,7 @@ RETORNA:
 }
 
 
-async def handle_metricas_periodo(
-    params: dict, user_id: str, channel_id: str
-) -> dict:
+async def handle_metricas_periodo(params: dict, user_id: str, channel_id: str) -> dict:
     """Handler para metricas_periodo."""
     periodo = params.get("periodo", "hoje")
 
@@ -149,9 +148,7 @@ RETORNA:
 }
 
 
-async def handle_metricas_conversao(
-    params: dict, user_id: str, channel_id: str
-) -> dict:
+async def handle_metricas_conversao(params: dict, user_id: str, channel_id: str) -> dict:
     """Handler para metricas_conversao."""
     dias = params.get("dias", 7)
     inicio = datetime.now(timezone.utc).date() - timedelta(days=dias)
@@ -241,9 +238,7 @@ RETORNA:
 }
 
 
-async def handle_metricas_campanhas(
-    params: dict, user_id: str, channel_id: str
-) -> dict:
+async def handle_metricas_campanhas(params: dict, user_id: str, channel_id: str) -> dict:
     """Handler para metricas_campanhas."""
     status = params.get("status", "todas")
     limite = min(params.get("limite", 10), 50)

@@ -19,7 +19,6 @@ from app.services.supabase import supabase
 from app.services.group_entry.chip_selector import (
     buscar_config,
     listar_chips_disponiveis,
-    verificar_janela_horaria,
     capacidade_total_disponivel,
 )
 
@@ -43,9 +42,7 @@ async def agendar_entrada(
         Entrada agendada ou None se não foi possível
     """
     # Verificar se link existe e está validado
-    result = (
-        supabase.table("group_links").select("*").eq("id", link_id).single().execute()
-    )
+    result = supabase.table("group_links").select("*").eq("id", link_id).single().execute()
 
     if not result.data:
         logger.warning(f"[Scheduler] Link não encontrado: {link_id}")
@@ -54,9 +51,7 @@ async def agendar_entrada(
     link = result.data
 
     if link["status"] not in ("validado", "erro"):
-        logger.warning(
-            f"[Scheduler] Link {link_id} não está validado (status={link['status']})"
-        )
+        logger.warning(f"[Scheduler] Link {link_id} não está validado (status={link['status']})")
         return None
 
     # Verificar se já está na fila
@@ -100,8 +95,7 @@ async def agendar_entrada(
         ).eq("id", link_id).execute()
 
         logger.info(
-            f"[Scheduler] Entrada agendada: link={link_id}, "
-            f"horário={proximo_horario.isoformat()}"
+            f"[Scheduler] Entrada agendada: link={link_id}, horário={proximo_horario.isoformat()}"
         )
 
         return result.data[0]
@@ -138,11 +132,7 @@ async def agendar_lote(
     limite_real = min(limite, capacidade["slots_6h_total"])
 
     # Buscar links validados
-    query = (
-        supabase.table("group_links")
-        .select("*")
-        .eq("status", "validado")
-    )
+    query = supabase.table("group_links").select("*").eq("status", "validado")
 
     if categoria:
         query = query.eq("categoria", categoria)
@@ -204,9 +194,7 @@ async def _calcular_proximo_horario(chip_id: Optional[str] = None) -> Optional[d
 
     # Buscar chips disponíveis
     if chip_id:
-        result = (
-            supabase.table("chips").select("*").eq("id", chip_id).single().execute()
-        )
+        result = supabase.table("chips").select("*").eq("id", chip_id).single().execute()
         chips = [result.data] if result.data else []
     else:
         chips = await listar_chips_disponiveis()
@@ -223,9 +211,7 @@ async def _calcular_proximo_horario(chip_id: Optional[str] = None) -> Optional[d
     delay_minimo = limites.get("delay", 180)
 
     # Adicionar randomização (10-50% extra)
-    delay_random = delay_minimo + random.randint(
-        int(delay_minimo * 0.1), int(delay_minimo * 0.5)
-    )
+    delay_random = delay_minimo + random.randint(int(delay_minimo * 0.1), int(delay_minimo * 0.5))
 
     # Calcular horário base
     agora = datetime.now(UTC)
@@ -307,14 +293,12 @@ async def cancelar_agendamento(queue_id: str) -> bool:
     entrada = result.data
 
     # Atualizar fila
-    supabase.table("group_entry_queue").update(
-        {"status": "cancelado"}
-    ).eq("id", queue_id).execute()
+    supabase.table("group_entry_queue").update({"status": "cancelado"}).eq("id", queue_id).execute()
 
     # Reverter status do link
-    supabase.table("group_links").update(
-        {"status": "validado", "agendado_em": None}
-    ).eq("id", entrada["link_id"]).execute()
+    supabase.table("group_links").update({"status": "validado", "agendado_em": None}).eq(
+        "id", entrada["link_id"]
+    ).execute()
 
     logger.info(f"[Scheduler] Agendamento cancelado: {queue_id}")
 
@@ -350,9 +334,9 @@ async def reagendar_com_erro(queue_id: str, erro: str) -> bool:
 
     if tentativas >= max_tentativas:
         # Desistir
-        supabase.table("group_entry_queue").update(
-            {"status": "erro", "erro": erro}
-        ).eq("id", queue_id).execute()
+        supabase.table("group_entry_queue").update({"status": "erro", "erro": erro}).eq(
+            "id", queue_id
+        ).execute()
 
         supabase.table("group_links").update(
             {
@@ -362,14 +346,12 @@ async def reagendar_com_erro(queue_id: str, erro: str) -> bool:
             }
         ).eq("id", entrada["link_id"]).execute()
 
-        logger.warning(
-            f"[Scheduler] Desistindo após {tentativas} tentativas: {entrada['link_id']}"
-        )
+        logger.warning(f"[Scheduler] Desistindo após {tentativas} tentativas: {entrada['link_id']}")
         return False
 
     # Reagendar com backoff exponencial
     delay_base = 300  # 5 minutos
-    delay_backoff = delay_base * (2 ** tentativas)  # 5min, 10min, 20min...
+    delay_backoff = delay_base * (2**tentativas)  # 5min, 10min, 20min...
     proximo = datetime.now(UTC) + timedelta(seconds=delay_backoff)
 
     supabase.table("group_entry_queue").update(

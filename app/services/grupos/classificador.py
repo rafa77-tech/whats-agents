@@ -10,12 +10,15 @@ Processa mensagens aplicando:
 
 import asyncio
 from datetime import datetime, UTC
-from typing import List
+from typing import TYPE_CHECKING, List
 from uuid import UUID
 
 from app.core.logging import get_logger
 from app.services.supabase import supabase
 from app.services.grupos.heuristica import calcular_score_heuristica, ResultadoHeuristica
+
+if TYPE_CHECKING:
+    from app.services.grupos.classificador_llm import ResultadoClassificacaoLLM
 
 logger = get_logger(__name__)
 
@@ -34,20 +37,19 @@ async def buscar_mensagens_pendentes(limite: int = 100) -> List[dict]:
     Returns:
         Lista de mensagens pendentes
     """
-    result = supabase.table("mensagens_grupo") \
-        .select("id, texto") \
-        .eq("status", "pendente") \
-        .order("created_at") \
-        .limit(limite) \
+    result = (
+        supabase.table("mensagens_grupo")
+        .select("id, texto")
+        .eq("status", "pendente")
+        .order("created_at")
+        .limit(limite)
         .execute()
+    )
 
     return result.data
 
 
-async def atualizar_resultado_heuristica(
-    mensagem_id: UUID,
-    resultado: ResultadoHeuristica
-) -> None:
+async def atualizar_resultado_heuristica(mensagem_id: UUID, resultado: ResultadoHeuristica) -> None:
     """
     Atualiza mensagem com resultado da heurística.
 
@@ -57,17 +59,16 @@ async def atualizar_resultado_heuristica(
     """
     novo_status = "heuristica_passou" if resultado.passou else "heuristica_rejeitou"
 
-    supabase.table("mensagens_grupo") \
-        .update({
+    supabase.table("mensagens_grupo").update(
+        {
             "status": novo_status,
             "passou_heuristica": resultado.passou,
             "score_heuristica": resultado.score,
             "keywords_encontradas": resultado.keywords_encontradas,
             "motivo_descarte": resultado.motivo_rejeicao,
             "processado_em": datetime.now(UTC).isoformat(),
-        }) \
-        .eq("id", str(mensagem_id)) \
-        .execute()
+        }
+    ).eq("id", str(mensagem_id)).execute()
 
 
 async def classificar_batch_heuristica(limite: int = 100) -> dict:
@@ -93,10 +94,7 @@ async def classificar_batch_heuristica(limite: int = 100) -> dict:
         try:
             resultado = calcular_score_heuristica(msg.get("texto", ""))
 
-            await atualizar_resultado_heuristica(
-                mensagem_id=UUID(msg["id"]),
-                resultado=resultado
-            )
+            await atualizar_resultado_heuristica(mensagem_id=UUID(msg["id"]), resultado=resultado)
 
             if resultado.passou:
                 stats["passou"] += 1
@@ -137,16 +135,19 @@ async def classificar_mensagem_individual(mensagem_id: UUID, texto: str) -> Resu
 # E04 - Classificação LLM
 # =============================================================================
 
+
 async def buscar_mensagens_para_classificacao_llm(limite: int = 50) -> List[dict]:
     """
     Busca mensagens que passaram na heurística para classificação LLM.
     """
-    result = supabase.table("mensagens_grupo") \
-        .select("id, texto, grupo_id, contato_id") \
-        .eq("status", "heuristica_passou") \
-        .order("created_at") \
-        .limit(limite) \
+    result = (
+        supabase.table("mensagens_grupo")
+        .select("id, texto, grupo_id, contato_id")
+        .eq("status", "heuristica_passou")
+        .order("created_at")
+        .limit(limite)
         .execute()
+    )
 
     return result.data
 
@@ -158,19 +159,23 @@ async def buscar_contexto_mensagem(grupo_id: str, contato_id: str) -> tuple:
 
     try:
         if grupo_id:
-            grupo = supabase.table("grupos_whatsapp") \
-                .select("nome") \
-                .eq("id", grupo_id) \
-                .single() \
+            grupo = (
+                supabase.table("grupos_whatsapp")
+                .select("nome")
+                .eq("id", grupo_id)
+                .single()
                 .execute()
+            )
             nome_grupo = grupo.data.get("nome", "") if grupo.data else ""
 
         if contato_id:
-            contato = supabase.table("contatos_grupo") \
-                .select("nome") \
-                .eq("id", contato_id) \
-                .single() \
+            contato = (
+                supabase.table("contatos_grupo")
+                .select("nome")
+                .eq("id", contato_id)
+                .single()
                 .execute()
+            )
             nome_contato = contato.data.get("nome", "") if contato.data else ""
     except Exception:
         pass
@@ -179,26 +184,23 @@ async def buscar_contexto_mensagem(grupo_id: str, contato_id: str) -> tuple:
 
 
 async def atualizar_resultado_classificacao_llm(
-    mensagem_id: UUID,
-    resultado: "ResultadoClassificacaoLLM"
+    mensagem_id: UUID, resultado: "ResultadoClassificacaoLLM"
 ) -> None:
     """Atualiza mensagem com resultado da classificação LLM."""
-    from app.services.grupos.classificador_llm import ResultadoClassificacaoLLM
 
     novo_status = "classificada_oferta" if resultado.eh_oferta else "classificada_nao_oferta"
 
     if resultado.erro:
         novo_status = "erro_classificacao"
 
-    supabase.table("mensagens_grupo") \
-        .update({
+    supabase.table("mensagens_grupo").update(
+        {
             "status": novo_status,
             "eh_oferta": resultado.eh_oferta,
             "confianca_classificacao": resultado.confianca,
             "processado_em": datetime.now(UTC).isoformat(),
-        }) \
-        .eq("id", str(mensagem_id)) \
-        .execute()
+        }
+    ).eq("id", str(mensagem_id)).execute()
 
 
 async def classificar_batch_llm(limite: int = 50) -> dict:
@@ -228,21 +230,17 @@ async def classificar_batch_llm(limite: int = 50) -> dict:
         try:
             # Buscar contexto
             nome_grupo, nome_contato = await buscar_contexto_mensagem(
-                msg.get("grupo_id"),
-                msg.get("contato_id")
+                msg.get("grupo_id"), msg.get("contato_id")
             )
 
             # Classificar
             resultado = await classificar_com_llm(
-                texto=msg.get("texto", ""),
-                nome_grupo=nome_grupo,
-                nome_contato=nome_contato
+                texto=msg.get("texto", ""), nome_grupo=nome_grupo, nome_contato=nome_contato
             )
 
             # Atualizar banco
             await atualizar_resultado_classificacao_llm(
-                mensagem_id=UUID(msg["id"]),
-                resultado=resultado
+                mensagem_id=UUID(msg["id"]), resultado=resultado
             )
 
             if resultado.eh_oferta:

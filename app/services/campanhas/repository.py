@@ -5,6 +5,7 @@ Acesso ao banco de dados com nomes de colunas corretos.
 
 Sprint 35 - Epic 03
 """
+
 import logging
 from datetime import datetime
 from typing import List, Optional
@@ -38,11 +39,7 @@ class CampanhaRepository:
         """
         try:
             response = (
-                supabase.table(self.TABLE)
-                .select("*")
-                .eq("id", campanha_id)
-                .single()
-                .execute()
+                supabase.table(self.TABLE).select("*").eq("id", campanha_id).single().execute()
             )
 
             if not response.data:
@@ -253,10 +250,12 @@ class CampanhaRepository:
             atual = response.data.get("enviados", 0) or 0
 
             # Atualizar
-            supabase.table(self.TABLE).update({
-                "enviados": atual + quantidade,
-                "updated_at": agora_utc().isoformat(),
-            }).eq("id", campanha_id).execute()
+            supabase.table(self.TABLE).update(
+                {
+                    "enviados": atual + quantidade,
+                    "updated_at": agora_utc().isoformat(),
+                }
+            ).eq("id", campanha_id).execute()
 
             return True
 
@@ -280,10 +279,12 @@ class CampanhaRepository:
             True se atualizado com sucesso
         """
         try:
-            supabase.table(self.TABLE).update({
-                "total_destinatarios": total,
-                "updated_at": agora_utc().isoformat(),
-            }).eq("id", campanha_id).execute()
+            supabase.table(self.TABLE).update(
+                {
+                    "total_destinatarios": total,
+                    "updated_at": agora_utc().isoformat(),
+                }
+            ).eq("id", campanha_id).execute()
 
             return True
 

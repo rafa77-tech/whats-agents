@@ -7,7 +7,7 @@ Sprint 14 - E06 - Fuzzy Match de Entidades
 import re
 import unicodedata
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Optional
 from uuid import UUID
 
 from app.core.logging import get_logger
@@ -19,6 +19,7 @@ logger = get_logger(__name__)
 # =============================================================================
 # S06.1 - Normalização de Texto
 # =============================================================================
+
 
 def normalizar_para_busca(texto: str) -> str:
     """
@@ -38,17 +39,17 @@ def normalizar_para_busca(texto: str) -> str:
 
     # Remover parênteses e seu conteúdo ANTES de remover caracteres especiais
     # Ex: "ultrassonografista (usg)" -> "ultrassonografista"
-    texto = re.sub(r'\s*\([^)]*\)', '', texto)
+    texto = re.sub(r"\s*\([^)]*\)", "", texto)
 
     # Remover acentos
-    texto = unicodedata.normalize('NFKD', texto)
-    texto = ''.join(c for c in texto if not unicodedata.combining(c))
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
 
     # Remover caracteres especiais (manter apenas letras, números e espaços)
-    texto = re.sub(r'[^\w\s]', '', texto)
+    texto = re.sub(r"[^\w\s]", "", texto)
 
     # Remover espaços extras
-    texto = ' '.join(texto.split())
+    texto = " ".join(texto.split())
 
     return texto
 
@@ -64,9 +65,33 @@ def extrair_tokens(texto: str) -> set:
 
     # Stopwords em português
     stopwords = {
-        'de', 'do', 'da', 'dos', 'das', 'e', 'ou', 'o', 'a', 'os', 'as',
-        'um', 'uma', 'uns', 'umas', 'em', 'no', 'na', 'nos', 'nas',
-        'para', 'pra', 'por', 'com', 'sem', 'que', 'se'
+        "de",
+        "do",
+        "da",
+        "dos",
+        "das",
+        "e",
+        "ou",
+        "o",
+        "a",
+        "os",
+        "as",
+        "um",
+        "uma",
+        "uns",
+        "umas",
+        "em",
+        "no",
+        "na",
+        "nos",
+        "nas",
+        "para",
+        "pra",
+        "por",
+        "com",
+        "sem",
+        "que",
+        "se",
     }
     tokens = tokens - stopwords
 
@@ -77,9 +102,11 @@ def extrair_tokens(texto: str) -> set:
 # S06.2 - Busca em Alias (Hospital)
 # =============================================================================
 
+
 @dataclass
 class ResultadoMatch:
     """Resultado de um match de entidade."""
+
     entidade_id: UUID
     nome: str
     score: float
@@ -99,19 +126,21 @@ async def buscar_hospital_por_alias(texto: str) -> Optional[ResultadoMatch]:
         return None
 
     try:
-        result = supabase.table("hospitais_alias") \
-            .select("hospital_id, hospitais(nome)") \
-            .eq("alias_normalizado", texto_norm) \
-            .limit(1) \
+        result = (
+            supabase.table("hospitais_alias")
+            .select("hospital_id, hospitais(nome)")
+            .eq("alias_normalizado", texto_norm)
+            .limit(1)
             .execute()
+        )
 
         if result.data and result.data[0].get("hospitais"):
             # Atualizar contador de uso (atômico via RPC)
             try:
-                supabase.rpc("incrementar_vezes_usado", {
-                    "p_tabela": "hospitais_alias",
-                    "p_alias_normalizado": texto_norm
-                }).execute()
+                supabase.rpc(
+                    "incrementar_vezes_usado",
+                    {"p_tabela": "hospitais_alias", "p_alias_normalizado": texto_norm},
+                ).execute()
             except Exception:
                 pass  # Contador é apenas para analytics, não crítico
 
@@ -119,7 +148,7 @@ async def buscar_hospital_por_alias(texto: str) -> Optional[ResultadoMatch]:
                 entidade_id=UUID(result.data[0]["hospital_id"]),
                 nome=result.data[0]["hospitais"]["nome"],
                 score=1.0,
-                fonte="alias_exato"
+                fonte="alias_exato",
             )
     except Exception as e:
         logger.warning(f"Erro ao buscar hospital por alias: {e}")
@@ -131,9 +160,9 @@ async def buscar_hospital_por_alias(texto: str) -> Optional[ResultadoMatch]:
 # S06.3 - Similaridade com Trigrams
 # =============================================================================
 
+
 async def buscar_hospital_por_similaridade(
-    texto: str,
-    threshold: float = 0.3
+    texto: str, threshold: float = 0.3
 ) -> Optional[ResultadoMatch]:
     """
     Busca hospital por similaridade de texto usando pg_trgm.
@@ -153,8 +182,7 @@ async def buscar_hospital_por_similaridade(
     try:
         # Buscar primeiro em aliases
         result = supabase.rpc(
-            "buscar_hospital_por_similaridade",
-            {"p_texto": texto_norm, "p_threshold": threshold}
+            "buscar_hospital_por_similaridade", {"p_texto": texto_norm, "p_threshold": threshold}
         ).execute()
 
         if result.data and len(result.data) > 0:
@@ -164,25 +192,27 @@ async def buscar_hospital_por_similaridade(
                     entidade_id=UUID(match["hospital_id"]),
                     nome=match["nome"],
                     score=match["score"],
-                    fonte="alias_similar" if match.get("fonte") == "alias" else "nome_similar"
+                    fonte="alias_similar" if match.get("fonte") == "alias" else "nome_similar",
                 )
     except Exception as e:
         logger.warning(f"Erro ao buscar hospital por similaridade: {e}")
 
         # Fallback: busca simples no nome
         try:
-            result = supabase.table("hospitais") \
-                .select("id, nome") \
-                .ilike("nome", f"%{texto_norm}%") \
-                .limit(1) \
+            result = (
+                supabase.table("hospitais")
+                .select("id, nome")
+                .ilike("nome", f"%{texto_norm}%")
+                .limit(1)
                 .execute()
+            )
 
             if result.data:
                 return ResultadoMatch(
                     entidade_id=UUID(result.data[0]["id"]),
                     nome=result.data[0]["nome"],
                     score=0.5,  # Score médio para match parcial
-                    fonte="nome_similar"
+                    fonte="nome_similar",
                 )
         except Exception as e2:
             logger.warning(f"Erro no fallback de busca: {e2}")
@@ -218,6 +248,7 @@ async def normalizar_hospital(texto: str) -> Optional[ResultadoMatch]:
 # S06.4 - Match de Especialidade
 # =============================================================================
 
+
 async def buscar_especialidade_por_alias(texto: str) -> Optional[ResultadoMatch]:
     """Busca especialidade por alias exato."""
     texto_norm = normalizar_para_busca(texto)
@@ -226,18 +257,20 @@ async def buscar_especialidade_por_alias(texto: str) -> Optional[ResultadoMatch]
         return None
 
     try:
-        result = supabase.table("especialidades_alias") \
-            .select("especialidade_id, especialidades(nome)") \
-            .eq("alias_normalizado", texto_norm) \
-            .limit(1) \
+        result = (
+            supabase.table("especialidades_alias")
+            .select("especialidade_id, especialidades(nome)")
+            .eq("alias_normalizado", texto_norm)
+            .limit(1)
             .execute()
+        )
 
         if result.data and result.data[0].get("especialidades"):
             return ResultadoMatch(
                 entidade_id=UUID(result.data[0]["especialidade_id"]),
                 nome=result.data[0]["especialidades"]["nome"],
                 score=1.0,
-                fonte="alias_exato"
+                fonte="alias_exato",
             )
     except Exception as e:
         logger.warning(f"Erro ao buscar especialidade por alias: {e}")
@@ -246,8 +279,7 @@ async def buscar_especialidade_por_alias(texto: str) -> Optional[ResultadoMatch]
 
 
 async def buscar_especialidade_por_similaridade(
-    texto: str,
-    threshold: float = 0.3
+    texto: str, threshold: float = 0.3
 ) -> Optional[ResultadoMatch]:
     """Busca especialidade por similaridade."""
     texto_norm = normalizar_para_busca(texto)
@@ -258,7 +290,7 @@ async def buscar_especialidade_por_similaridade(
     try:
         result = supabase.rpc(
             "buscar_especialidade_por_similaridade",
-            {"p_texto": texto_norm, "p_threshold": threshold}
+            {"p_texto": texto_norm, "p_threshold": threshold},
         ).execute()
 
         if result.data and len(result.data) > 0:
@@ -268,25 +300,27 @@ async def buscar_especialidade_por_similaridade(
                     entidade_id=UUID(match["especialidade_id"]),
                     nome=match["nome"],
                     score=match["score"],
-                    fonte="alias_similar" if match.get("fonte") == "alias" else "nome_similar"
+                    fonte="alias_similar" if match.get("fonte") == "alias" else "nome_similar",
                 )
     except Exception as e:
         logger.warning(f"Erro ao buscar especialidade por similaridade: {e}")
 
         # Fallback
         try:
-            result = supabase.table("especialidades") \
-                .select("id, nome") \
-                .ilike("nome", f"%{texto_norm}%") \
-                .limit(1) \
+            result = (
+                supabase.table("especialidades")
+                .select("id, nome")
+                .ilike("nome", f"%{texto_norm}%")
+                .limit(1)
                 .execute()
+            )
 
             if result.data:
                 return ResultadoMatch(
                     entidade_id=UUID(result.data[0]["id"]),
                     nome=result.data[0]["nome"],
                     score=0.5,
-                    fonte="nome_similar"
+                    fonte="nome_similar",
                 )
         except Exception as e2:
             logger.warning(f"Erro no fallback: {e2}")
@@ -437,11 +471,7 @@ async def normalizar_periodo(texto: str) -> Optional[UUID]:
         return None
 
     try:
-        result = supabase.table("periodos") \
-            .select("id") \
-            .eq("nome", nome_periodo) \
-            .limit(1) \
-            .execute()
+        result = supabase.table("periodos").select("id").eq("nome", nome_periodo).limit(1).execute()
 
         return UUID(result.data[0]["id"]) if result.data else None
     except Exception as e:
@@ -466,11 +496,7 @@ async def normalizar_setor(texto: str) -> Optional[UUID]:
         return None
 
     try:
-        result = supabase.table("setores") \
-            .select("id") \
-            .eq("nome", nome_setor) \
-            .limit(1) \
-            .execute()
+        result = supabase.table("setores").select("id").eq("nome", nome_setor).limit(1).execute()
 
         return UUID(result.data[0]["id"]) if result.data else None
     except Exception as e:
@@ -495,11 +521,7 @@ async def normalizar_tipo_vaga(texto: str) -> Optional[UUID]:
         return None
 
     try:
-        result = supabase.table("tipos_vaga") \
-            .select("id") \
-            .eq("nome", nome_tipo) \
-            .limit(1) \
-            .execute()
+        result = supabase.table("tipos_vaga").select("id").eq("nome", nome_tipo).limit(1).execute()
 
         return UUID(result.data[0]["id"]) if result.data else None
     except Exception as e:
@@ -524,11 +546,13 @@ async def normalizar_forma_pagamento(texto: str) -> Optional[UUID]:
         return None
 
     try:
-        result = supabase.table("formas_recebimento") \
-            .select("id") \
-            .eq("nome", nome_forma) \
-            .limit(1) \
+        result = (
+            supabase.table("formas_recebimento")
+            .select("id")
+            .eq("nome", nome_forma)
+            .limit(1)
             .execute()
+        )
 
         return UUID(result.data[0]["id"]) if result.data else None
     except Exception as e:
@@ -540,9 +564,11 @@ async def normalizar_forma_pagamento(texto: str) -> Optional[UUID]:
 # S06.6 - Processador de Normalização
 # =============================================================================
 
+
 @dataclass
 class ResultadoNormalizacao:
     """Resultado da normalização de uma vaga."""
+
     hospital_id: Optional[UUID] = None
     hospital_nome: Optional[str] = None
     hospital_score: float = 0.0
@@ -570,11 +596,7 @@ async def normalizar_vaga(vaga_id: UUID) -> ResultadoNormalizacao:
 
     try:
         # Buscar vaga
-        vaga = supabase.table("vagas_grupo") \
-            .select("*") \
-            .eq("id", str(vaga_id)) \
-            .single() \
-            .execute()
+        vaga = supabase.table("vagas_grupo").select("*").eq("id", str(vaga_id)).single().execute()
 
         if not vaga.data:
             resultado.status = "erro"
@@ -592,11 +614,13 @@ async def normalizar_vaga(vaga_id: UUID) -> ResultadoNormalizacao:
             regiao_grupo = ""
             if dados.get("grupo_origem_id"):
                 try:
-                    grupo = supabase.table("grupos_whatsapp") \
-                        .select("regiao") \
-                        .eq("id", dados["grupo_origem_id"]) \
-                        .single() \
+                    grupo = (
+                        supabase.table("grupos_whatsapp")
+                        .select("regiao")
+                        .eq("id", dados["grupo_origem_id"])
+                        .single()
                         .execute()
+                    )
                     regiao_grupo = grupo.data.get("regiao", "") if grupo.data else ""
                 except Exception:
                     pass
@@ -632,7 +656,7 @@ async def normalizar_vaga(vaga_id: UUID) -> ResultadoNormalizacao:
         if not periodo_id and dados.get("hora_inicio"):
             periodo_inferido = inferir_periodo_por_horario(
                 str(dados.get("hora_inicio")),
-                str(dados.get("hora_fim")) if dados.get("hora_fim") else None
+                str(dados.get("hora_fim")) if dados.get("hora_fim") else None,
             )
             if periodo_inferido:
                 periodo_id = await normalizar_periodo(periodo_inferido)
@@ -689,10 +713,7 @@ async def normalizar_vaga(vaga_id: UUID) -> ResultadoNormalizacao:
 
         # Salvar atualizações
         if updates:
-            supabase.table("vagas_grupo") \
-                .update(updates) \
-                .eq("id", str(vaga_id)) \
-                .execute()
+            supabase.table("vagas_grupo").update(updates).eq("id", str(vaga_id)).execute()
 
         return resultado
 
@@ -719,11 +740,9 @@ async def normalizar_batch(limite: int = 50) -> dict:
 
     try:
         # Buscar vagas pendentes
-        result = supabase.table("vagas_grupo") \
-            .select("id") \
-            .eq("status", "nova") \
-            .limit(limite) \
-            .execute()
+        result = (
+            supabase.table("vagas_grupo").select("id").eq("status", "nova").limit(limite).execute()
+        )
 
         for vaga in result.data:
             resultado = await normalizar_vaga(UUID(vaga["id"]))
@@ -752,11 +771,9 @@ async def normalizar_batch(limite: int = 50) -> dict:
 # Funções auxiliares para criar alias
 # =============================================================================
 
+
 async def criar_alias_hospital(
-    hospital_id: UUID,
-    alias: str,
-    origem: str = "extracao",
-    criado_por: str = "sistema"
+    hospital_id: UUID, alias: str, origem: str = "extracao", criado_por: str = "sistema"
 ) -> bool:
     """Cria um novo alias para hospital."""
     alias_norm = normalizar_para_busca(alias)
@@ -765,15 +782,17 @@ async def criar_alias_hospital(
         return False
 
     try:
-        supabase.table("hospitais_alias").insert({
-            "hospital_id": str(hospital_id),
-            "alias": alias,
-            "alias_normalizado": alias_norm,
-            "origem": origem,
-            "criado_por": criado_por,
-            "confianca": 0.5,  # Confiança inicial média
-            "confirmado": False,
-        }).execute()
+        supabase.table("hospitais_alias").insert(
+            {
+                "hospital_id": str(hospital_id),
+                "alias": alias,
+                "alias_normalizado": alias_norm,
+                "origem": origem,
+                "criado_por": criado_por,
+                "confianca": 0.5,  # Confiança inicial média
+                "confirmado": False,
+            }
+        ).execute()
         return True
     except Exception as e:
         logger.warning(f"Erro ao criar alias de hospital: {e}")
@@ -781,10 +800,7 @@ async def criar_alias_hospital(
 
 
 async def criar_alias_especialidade(
-    especialidade_id: UUID,
-    alias: str,
-    origem: str = "extracao",
-    criado_por: str = "sistema"
+    especialidade_id: UUID, alias: str, origem: str = "extracao", criado_por: str = "sistema"
 ) -> bool:
     """Cria um novo alias para especialidade."""
     alias_norm = normalizar_para_busca(alias)
@@ -793,15 +809,17 @@ async def criar_alias_especialidade(
         return False
 
     try:
-        supabase.table("especialidades_alias").insert({
-            "especialidade_id": str(especialidade_id),
-            "alias": alias,
-            "alias_normalizado": alias_norm,
-            "origem": origem,
-            "criado_por": criado_por,
-            "confianca": 0.5,
-            "confirmado": False,
-        }).execute()
+        supabase.table("especialidades_alias").insert(
+            {
+                "especialidade_id": str(especialidade_id),
+                "alias": alias,
+                "alias_normalizado": alias_norm,
+                "origem": origem,
+                "criado_por": criado_por,
+                "confianca": 0.5,
+                "confirmado": False,
+            }
+        ).execute()
         return True
     except Exception as e:
         logger.warning(f"Erro ao criar alias de especialidade: {e}")

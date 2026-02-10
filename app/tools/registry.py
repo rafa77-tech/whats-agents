@@ -9,8 +9,9 @@ Permite:
 - Execução centralizada com tratamento de erros
 - Suporte a confirmação para ações críticas
 """
+
 import logging
-from typing import Callable, Dict, Any, Optional, List
+from typing import Callable, Dict, Optional, List
 from functools import wraps
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,7 @@ def register_tool(
             # Implementação
             pass
     """
+
     def decorator(func: Callable):
         _TOOL_REGISTRY[name] = {
             "name": name,
@@ -68,6 +70,7 @@ def register_tool(
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
@@ -218,7 +221,11 @@ def register_legacy_tools():
         (TOOL_AGENDAR_LEMBRETE, handle_agendar_lembrete, "lembretes"),
         (TOOL_SALVAR_MEMORIA, handle_salvar_memoria, "memoria"),
         (TOOL_CRIAR_HANDOFF_EXTERNO, handle_criar_handoff_externo, "intermediacao"),
-        (TOOL_REGISTRAR_STATUS_INTERMEDIACAO, handle_registrar_status_intermediacao, "intermediacao"),
+        (
+            TOOL_REGISTRAR_STATUS_INTERMEDIACAO,
+            handle_registrar_status_intermediacao,
+            "intermediacao",
+        ),
     ]
 
     for tool_def, handler, category in legacy_tools:

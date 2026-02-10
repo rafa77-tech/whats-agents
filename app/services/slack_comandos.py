@@ -13,6 +13,7 @@ V2 - Slack baixo ruido (31/12/2025):
 - Rate limiting por usuario para evitar spam
 - Deduplicacao de respostas
 """
+
 import re
 import logging
 from datetime import datetime, timezone
@@ -48,7 +49,7 @@ async def processar_comando(texto: str, channel: str, user: str):
 
     # Remover mencao ao bot do texto
     # Formato: <@U123ABC> mensagem
-    texto_limpo = re.sub(r'<@[A-Z0-9]+>', '', texto).strip()
+    texto_limpo = re.sub(r"<@[A-Z0-9]+>", "", texto).strip()
 
     logger.info(f"Mensagem recebida: '{texto_limpo}' de {user} em {channel}")
 
@@ -78,6 +79,7 @@ async def processar_comando(texto: str, channel: str, user: str):
 # FUNCOES AUXILIARES
 # =============================================================================
 
+
 async def _responder_slack(channel: str, mensagem: str):
     """
     Envia resposta para o canal do Slack.
@@ -92,14 +94,10 @@ async def _responder_slack(channel: str, mensagem: str):
                 "https://slack.com/api/chat.postMessage",
                 headers={
                     "Authorization": f"Bearer {settings.SLACK_BOT_TOKEN}",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
                 },
-                json={
-                    "channel": channel,
-                    "text": mensagem,
-                    "unfurl_links": False
-                },
-                timeout=10.0
+                json={"channel": channel, "text": mensagem, "unfurl_links": False},
+                timeout=10.0,
             )
 
             data = response.json()
@@ -110,7 +108,9 @@ async def _responder_slack(channel: str, mensagem: str):
         logger.error(f"Erro ao enviar resposta Slack: {e}")
 
 
-async def _salvar_comando(texto_original: str, texto_limpo: str, user: str, channel: str) -> Optional[str]:
+async def _salvar_comando(
+    texto_original: str, texto_limpo: str, user: str, channel: str
+) -> Optional[str]:
     """
     Salva comando no banco para historico.
     """
@@ -119,14 +119,20 @@ async def _salvar_comando(texto_original: str, texto_limpo: str, user: str, chan
         comando = partes[0] if partes else ""
         args = partes[1].split() if len(partes) > 1 else []
 
-        result = supabase.table("slack_comandos").insert({
-            "texto_original": texto_original,
-            "comando": comando,
-            "argumentos": args,
-            "user_id": user,
-            "channel_id": channel,
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }).execute()
+        result = (
+            supabase.table("slack_comandos")
+            .insert(
+                {
+                    "texto_original": texto_original,
+                    "comando": comando,
+                    "argumentos": args,
+                    "user_id": user,
+                    "channel_id": channel,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+            .execute()
+        )
 
         if result.data:
             return result.data[0].get("id")
@@ -145,12 +151,14 @@ async def _atualizar_comando(comando_id: Optional[str], resposta: str, sucesso: 
         return
 
     try:
-        supabase.table("slack_comandos").update({
-            "resposta": resposta,
-            "respondido": True,
-            "respondido_em": datetime.now(timezone.utc).isoformat(),
-            "erro": None if sucesso else resposta
-        }).eq("id", comando_id).execute()
+        supabase.table("slack_comandos").update(
+            {
+                "resposta": resposta,
+                "respondido": True,
+                "respondido_em": datetime.now(timezone.utc).isoformat(),
+                "erro": None if sucesso else resposta,
+            }
+        ).eq("id", comando_id).execute()
 
     except Exception as e:
         logger.error(f"Erro ao atualizar comando: {e}")
@@ -159,6 +167,7 @@ async def _atualizar_comando(comando_id: Optional[str], resposta: str, sucesso: 
 # =============================================================================
 # V2: RATE LIMITING
 # =============================================================================
+
 
 async def _usuario_em_rate_limit(user: str, channel: str) -> bool:
     """
@@ -188,9 +197,8 @@ async def _marcar_processamento(user: str, channel: str):
     cache_key = f"slack:ratelimit:{user}:{channel}"
 
     try:
-        await cache_set_json(cache_key, {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "user": user
-        }, ttl=30)  # 30 segundos
+        await cache_set_json(
+            cache_key, {"timestamp": datetime.now(timezone.utc).isoformat(), "user": user}, ttl=30
+        )  # 30 segundos
     except Exception as e:
         logger.debug(f"Erro ao marcar processamento: {e}")

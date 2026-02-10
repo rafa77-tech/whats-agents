@@ -3,6 +3,7 @@ Modulo de eventos de negocio.
 
 Sprint 17 - E02, E04, E05, E08
 """
+
 from .repository import (
     emit_event,
     get_events_by_type,

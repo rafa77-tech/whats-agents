@@ -8,6 +8,7 @@ Sprint 36 - Melhorias:
 - T04.3: Jitter nos intervalos
 - T04.4: Fallback para Supabase se Redis cair
 """
+
 import logging
 import random
 from datetime import datetime, timezone
@@ -32,20 +33,21 @@ DIAS_PERMITIDOS = [0, 1, 2, 3, 4]  # Seg-Sex (0=Segunda)
 
 class TipoMensagem(Enum):
     """Sprint 36 - T04.2: Tipos de mensagem para rate limiting diferenciado."""
-    PROSPECCAO = "prospeccao"      # Mensagem fria - limite mais restrito
-    FOLLOWUP = "followup"          # Follow-up - limite médio
-    RESPOSTA = "resposta"          # Resposta a médico - limite alto
-    CAMPANHA = "campanha"          # Campanha - limite específico
-    SISTEMA = "sistema"            # Sistema - sem limite
+
+    PROSPECCAO = "prospeccao"  # Mensagem fria - limite mais restrito
+    FOLLOWUP = "followup"  # Follow-up - limite médio
+    RESPOSTA = "resposta"  # Resposta a médico - limite alto
+    CAMPANHA = "campanha"  # Campanha - limite específico
+    SISTEMA = "sistema"  # Sistema - sem limite
 
 
 # Sprint 36 - T04.2: Limites por tipo de mensagem (por hora)
 LIMITES_POR_TIPO = {
-    TipoMensagem.PROSPECCAO: 10,   # Máximo 10 prospecções/hora
-    TipoMensagem.FOLLOWUP: 15,     # Máximo 15 follow-ups/hora
-    TipoMensagem.RESPOSTA: 50,     # Respostas têm limite alto
-    TipoMensagem.CAMPANHA: 20,     # Campanhas têm limite próprio
-    TipoMensagem.SISTEMA: 1000,    # Sistema praticamente sem limite
+    TipoMensagem.PROSPECCAO: 10,  # Máximo 10 prospecções/hora
+    TipoMensagem.FOLLOWUP: 15,  # Máximo 15 follow-ups/hora
+    TipoMensagem.RESPOSTA: 50,  # Respostas têm limite alto
+    TipoMensagem.CAMPANHA: 20,  # Campanhas têm limite próprio
+    TipoMensagem.SISTEMA: 1000,  # Sistema praticamente sem limite
 }
 
 # Sprint 36 - T04.1: Limites por cliente (mensagens/hora)
@@ -54,6 +56,7 @@ LIMITE_POR_CLIENTE_HORA = 3  # Máximo 3 msgs/hora para mesmo cliente
 
 class RateLimitExceeded(Exception):
     """Exceção quando limite de rate é excedido."""
+
     def __init__(self, motivo: str, retry_after: int = None):
         self.motivo = motivo
         self.retry_after = retry_after
@@ -279,6 +282,7 @@ async def obter_estatisticas() -> dict:
 # Sprint 36 - T04.1: Rate limiting por cliente
 # ============================================================
 
+
 async def verificar_limite_cliente(cliente_id: str) -> Tuple[bool, int]:
     """
     Sprint 36 - T04.1: Verifica limite de mensagens por cliente.
@@ -315,13 +319,13 @@ async def _fallback_verificar_limite_cliente(cliente_id: str) -> Tuple[bool, int
         agora = datetime.now(timezone.utc)
         uma_hora_atras = (agora - timedelta(hours=1)).isoformat()
 
-        result = supabase.table("fila_mensagens").select(
-            "id", count="exact"
-        ).eq(
-            "cliente_id", cliente_id
-        ).gte(
-            "created_at", uma_hora_atras
-        ).execute()
+        result = (
+            supabase.table("fila_mensagens")
+            .select("id", count="exact")
+            .eq("cliente_id", cliente_id)
+            .gte("created_at", uma_hora_atras)
+            .execute()
+        )
 
         count = result.count or 0
         return count < LIMITE_POR_CLIENTE_HORA, count
@@ -349,8 +353,9 @@ async def registrar_envio_cliente(cliente_id: str) -> None:
 # Sprint 36 - T04.2: Rate limiting por tipo de mensagem
 # ============================================================
 
+
 async def verificar_limite_tipo(
-    tipo: TipoMensagem = TipoMensagem.RESPOSTA
+    tipo: TipoMensagem = TipoMensagem.RESPOSTA,
 ) -> Tuple[bool, int, int]:
     """
     Sprint 36 - T04.2: Verifica limite por tipo de mensagem.
@@ -391,10 +396,9 @@ async def registrar_envio_tipo(tipo: TipoMensagem) -> None:
 # Sprint 36 - T04.3: Jitter nos intervalos
 # ============================================================
 
+
 def calcular_delay_com_jitter(
-    base_min: int = None,
-    base_max: int = None,
-    jitter_pct: float = 0.2
+    base_min: int = None, base_max: int = None, jitter_pct: float = 0.2
 ) -> int:
     """
     Sprint 36 - T04.3: Calcula delay com jitter para parecer mais humano.
@@ -459,6 +463,7 @@ def calcular_delay_por_tipo(tipo: TipoMensagem) -> int:
 # Sprint 36 - T04.4: Fallback para Supabase
 # ============================================================
 
+
 async def _fallback_verificar_limite_hora() -> Tuple[bool, int]:
     """
     Sprint 36 - T04.4: Fallback para Supabase quando Redis cai.
@@ -472,13 +477,13 @@ async def _fallback_verificar_limite_hora() -> Tuple[bool, int]:
         agora = datetime.now(timezone.utc)
         uma_hora_atras = (agora - timedelta(hours=1)).isoformat()
 
-        result = supabase.table("fila_mensagens").select(
-            "id", count="exact"
-        ).in_(
-            "status", ["enviada", "processando"]
-        ).gte(
-            "created_at", uma_hora_atras
-        ).execute()
+        result = (
+            supabase.table("fila_mensagens")
+            .select("id", count="exact")
+            .in_("status", ["enviada", "processando"])
+            .gte("created_at", uma_hora_atras)
+            .execute()
+        )
 
         count = result.count or 0
         logger.info(f"[rate_limiter] Fallback Supabase: {count} msgs/hora")
@@ -498,18 +503,17 @@ async def _fallback_verificar_limite_dia() -> Tuple[bool, int]:
     """
     try:
         from app.services.supabase import supabase
-        from datetime import timedelta
 
         agora = datetime.now(timezone.utc)
         inicio_dia = agora.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        result = supabase.table("fila_mensagens").select(
-            "id", count="exact"
-        ).in_(
-            "status", ["enviada", "processando"]
-        ).gte(
-            "created_at", inicio_dia.isoformat()
-        ).execute()
+        result = (
+            supabase.table("fila_mensagens")
+            .select("id", count="exact")
+            .in_("status", ["enviada", "processando"])
+            .gte("created_at", inicio_dia.isoformat())
+            .execute()
+        )
 
         count = result.count or 0
         logger.info(f"[rate_limiter] Fallback Supabase: {count} msgs/dia")
@@ -525,10 +529,9 @@ async def _fallback_verificar_limite_dia() -> Tuple[bool, int]:
 # Função principal com todas as verificações Sprint 36
 # ============================================================
 
+
 async def pode_enviar_completo(
-    telefone: str,
-    cliente_id: Optional[str] = None,
-    tipo: TipoMensagem = TipoMensagem.RESPOSTA
+    telefone: str, cliente_id: Optional[str] = None, tipo: TipoMensagem = TipoMensagem.RESPOSTA
 ) -> Tuple[bool, str]:
     """
     Sprint 36: Verificação completa de rate limiting.
@@ -584,9 +587,7 @@ async def pode_enviar_completo(
 
 
 async def registrar_envio_completo(
-    telefone: str,
-    cliente_id: Optional[str] = None,
-    tipo: TipoMensagem = TipoMensagem.RESPOSTA
+    telefone: str, cliente_id: Optional[str] = None, tipo: TipoMensagem = TipoMensagem.RESPOSTA
 ) -> None:
     """
     Sprint 36: Registra envio em todos os contadores.

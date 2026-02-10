@@ -4,6 +4,7 @@ Guardrails para controle de outbound.
 Sprint 17 - Ponto único de controle para envios proativos.
 Sprint 23 E01 - SendOutcome enum para rastreamento detalhado.
 """
+
 from .types import (
     OutboundChannel,
     OutboundMethod,

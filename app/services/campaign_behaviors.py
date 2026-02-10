@@ -20,6 +20,7 @@ Estrutura esperada no Google Drive:
 
 A Julia busca diariamente o arquivo mais recente de cada pasta.
 """
+
 import os
 import re
 import logging
@@ -41,6 +42,7 @@ CAMPAIGN_TYPES = ["discovery", "oferta", "reativacao", "followup", "feedback"]
 @dataclass
 class CampaignBehavior:
     """Comportamento de campanha parseado."""
+
     tipo: str
     nome_arquivo: str
     data_arquivo: Optional[datetime]
@@ -82,15 +84,19 @@ async def listar_pastas_behaviors() -> list[dict]:
         # Buscar subpastas
         query = f"'{BEHAVIORS_FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
 
-        results = service.files().list(
-            q=query,
-            fields="files(id, name)",
-            pageSize=20,
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True
-        ).execute()
+        results = (
+            service.files()
+            .list(
+                q=query,
+                fields="files(id, name)",
+                pageSize=20,
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True,
+            )
+            .execute()
+        )
 
-        folders = results.get('files', [])
+        folders = results.get("files", [])
         logger.info(f"Encontradas {len(folders)} pastas de behaviors")
 
         return [{"id": f["id"], "nome": f["name"]} for f in folders]
@@ -127,16 +133,20 @@ async def buscar_arquivo_mais_recente(folder_id: str, folder_name: str) -> Optio
         # Buscar arquivos Google Docs na pasta
         query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.document' and trashed=false"
 
-        results = service.files().list(
-            q=query,
-            fields="files(id, name, modifiedTime)",
-            orderBy="modifiedTime desc",
-            pageSize=20,
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True
-        ).execute()
+        results = (
+            service.files()
+            .list(
+                q=query,
+                fields="files(id, name, modifiedTime)",
+                orderBy="modifiedTime desc",
+                pageSize=20,
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True,
+            )
+            .execute()
+        )
 
-        files = results.get('files', [])
+        files = results.get("files", [])
 
         if not files:
             logger.warning(f"Nenhum arquivo encontrado na pasta {folder_name}")
@@ -145,7 +155,7 @@ async def buscar_arquivo_mais_recente(folder_id: str, folder_name: str) -> Optio
         # Tentar ordenar por data no nome do arquivo
         def extrair_data_nome(nome: str) -> Optional[datetime]:
             """Extrai data do nome do arquivo (ex: discovery_2025-01-15.md)"""
-            match = re.search(r'(\d{4}-\d{2}-\d{2})', nome)
+            match = re.search(r"(\d{4}-\d{2}-\d{2})", nome)
             if match:
                 try:
                     return datetime.strptime(match.group(1), "%Y-%m-%d")
@@ -156,25 +166,21 @@ async def buscar_arquivo_mais_recente(folder_id: str, folder_name: str) -> Optio
         # Ordenar: primeiro por data no nome, depois por modifiedTime
         files_com_data = []
         for f in files:
-            data_nome = extrair_data_nome(f['name'])
-            modified = datetime.fromisoformat(f['modifiedTime'].replace('Z', '+00:00'))
-            files_com_data.append({
-                **f,
-                'data_nome': data_nome,
-                'modified': modified
-            })
+            data_nome = extrair_data_nome(f["name"])
+            modified = datetime.fromisoformat(f["modifiedTime"].replace("Z", "+00:00"))
+            files_com_data.append({**f, "data_nome": data_nome, "modified": modified})
 
         # Ordenar: data_nome desc (None vai pro fim), depois modified desc
         files_ordenados = sorted(
             files_com_data,
-            key=lambda x: (x['data_nome'] or datetime.min, x['modified']),
-            reverse=True
+            key=lambda x: (x["data_nome"] or datetime.min, x["modified"]),
+            reverse=True,
         )
 
         arquivo_mais_recente = files_ordenados[0]
 
         # Ler conteúdo
-        doc = await ler_documento(arquivo_mais_recente['id'])
+        doc = await ler_documento(arquivo_mais_recente["id"])
 
         if not doc:
             logger.error(f"Erro ao ler documento {arquivo_mais_recente['name']}")
@@ -183,10 +189,10 @@ async def buscar_arquivo_mais_recente(folder_id: str, folder_name: str) -> Optio
         logger.info(f"Behavior mais recente de {folder_name}: {arquivo_mais_recente['name']}")
 
         return {
-            "id": arquivo_mais_recente['id'],
-            "nome": arquivo_mais_recente['name'],
-            "data_nome": arquivo_mais_recente['data_nome'],
-            "conteudo": doc.conteudo
+            "id": arquivo_mais_recente["id"],
+            "nome": arquivo_mais_recente["name"],
+            "data_nome": arquivo_mais_recente["data_nome"],
+            "conteudo": doc.conteudo,
         }
 
     except Exception as e:
@@ -220,44 +226,44 @@ def parsear_behavior(conteudo: str, tipo: str, nome_arquivo: str) -> CampaignBeh
         nome_arquivo=nome_arquivo,
         data_arquivo=_extrair_data_nome(nome_arquivo),
         ultima_sync=datetime.now(timezone.utc),
-        conteudo_raw=conteudo
+        conteudo_raw=conteudo,
     )
 
     # Extrair seções usando regex
-    secoes = re.split(r'\n##\s+', conteudo)
+    secoes = re.split(r"\n##\s+", conteudo)
 
     for secao in secoes:
-        linhas = secao.strip().split('\n')
+        linhas = secao.strip().split("\n")
         if not linhas:
             continue
 
         titulo = linhas[0].lower().strip()
-        corpo = '\n'.join(linhas[1:]).strip()
+        corpo = "\n".join(linhas[1:]).strip()
 
-        if 'objetivo' in titulo:
+        if "objetivo" in titulo:
             behavior.objetivo = corpo
 
-        elif 'tom' in titulo:
+        elif "tom" in titulo:
             behavior.tom = corpo
 
-        elif 'informa' in titulo and 'importante' in titulo:
+        elif "informa" in titulo and "importante" in titulo:
             # Extrair itens (linhas com - ou *)
-            itens = re.findall(r'^[-*]\s*(.+)$', corpo, re.MULTILINE)
+            itens = re.findall(r"^[-*]\s*(.+)$", corpo, re.MULTILINE)
             behavior.informacoes_importantes = itens if itens else [corpo]
 
-        elif 'n[aã]o fazer' in titulo or 'nao fazer' in titulo:
-            itens = re.findall(r'^[-*]\s*(.+)$', corpo, re.MULTILINE)
+        elif "n[aã]o fazer" in titulo or "nao fazer" in titulo:
+            itens = re.findall(r"^[-*]\s*(.+)$", corpo, re.MULTILINE)
             behavior.o_que_nao_fazer = itens if itens else [corpo]
 
-        elif 'exemplo' in titulo and 'abertura' in titulo:
+        elif "exemplo" in titulo and "abertura" in titulo:
             behavior.exemplo_abertura = corpo
 
-        elif 'follow' in titulo:
+        elif "follow" in titulo:
             behavior.regras_followup = corpo
 
-        elif 'margem' in titulo or 'negoci' in titulo:
+        elif "margem" in titulo or "negoci" in titulo:
             # Tentar extrair percentual
-            match = re.search(r'(\d+)\s*%', corpo)
+            match = re.search(r"(\d+)\s*%", corpo)
             if match:
                 behavior.margem_negociacao = int(match.group(1))
 
@@ -270,7 +276,7 @@ parsear_template = parsear_behavior
 
 def _extrair_data_nome(nome: str) -> Optional[datetime]:
     """Extrai data do nome do arquivo."""
-    match = re.search(r'(\d{4}-\d{2}-\d{2})', nome)
+    match = re.search(r"(\d{4}-\d{2}-\d{2})", nome)
     if match:
         try:
             return datetime.strptime(match.group(1), "%Y-%m-%d")
@@ -288,12 +294,7 @@ async def sincronizar_behaviors() -> dict:
     Returns:
         Dict com estatísticas de sync
     """
-    resultado = {
-        "success": True,
-        "behaviors_atualizados": 0,
-        "erros": [],
-        "detalhes": []
-    }
+    resultado = {"success": True, "behaviors_atualizados": 0, "erros": [], "detalhes": []}
 
     # Listar pastas de behaviors
     pastas = await listar_pastas_behaviors()
@@ -325,11 +326,15 @@ async def sincronizar_behaviors() -> dict:
         try:
             await _salvar_behavior_banco(behavior)
             resultado["behaviors_atualizados"] += 1
-            resultado["detalhes"].append({
-                "tipo": tipo,
-                "arquivo": arquivo["nome"],
-                "objetivo": behavior.objetivo[:100] + "..." if len(behavior.objetivo) > 100 else behavior.objetivo
-            })
+            resultado["detalhes"].append(
+                {
+                    "tipo": tipo,
+                    "arquivo": arquivo["nome"],
+                    "objetivo": behavior.objetivo[:100] + "..."
+                    if len(behavior.objetivo) > 100
+                    else behavior.objetivo,
+                }
+            )
         except Exception as e:
             resultado["erros"].append(f"Erro ao salvar {tipo}: {e}")
 
@@ -354,26 +359,32 @@ async def _salvar_behavior_banco(behavior: CampaignBehavior) -> None:
     # Serializar behavior para JSON
     import json
 
-    behavior_json = json.dumps({
-        "objetivo": behavior.objetivo,
-        "tom": behavior.tom,
-        "informacoes_importantes": behavior.informacoes_importantes,
-        "o_que_nao_fazer": behavior.o_que_nao_fazer,
-        "exemplo_abertura": behavior.exemplo_abertura,
-        "regras_followup": behavior.regras_followup,
-        "margem_negociacao": behavior.margem_negociacao,
-        "nome_arquivo": behavior.nome_arquivo,
-        "data_arquivo": behavior.data_arquivo.isoformat() if behavior.data_arquivo else None,
-    }, ensure_ascii=False)
+    behavior_json = json.dumps(
+        {
+            "objetivo": behavior.objetivo,
+            "tom": behavior.tom,
+            "informacoes_importantes": behavior.informacoes_importantes,
+            "o_que_nao_fazer": behavior.o_que_nao_fazer,
+            "exemplo_abertura": behavior.exemplo_abertura,
+            "regras_followup": behavior.regras_followup,
+            "margem_negociacao": behavior.margem_negociacao,
+            "nome_arquivo": behavior.nome_arquivo,
+            "data_arquivo": behavior.data_arquivo.isoformat() if behavior.data_arquivo else None,
+        },
+        ensure_ascii=False,
+    )
 
     # Upsert na tabela diretrizes (mantém prefix template_ por compatibilidade com dados existentes)
-    supabase.table("diretrizes").upsert({
-        "tipo": f"template_{behavior.tipo}",
-        "conteudo": behavior_json,
-        "prioridade": 5,  # Behaviors têm prioridade média
-        "ativo": True,
-        "updated_at": datetime.now(timezone.utc).isoformat()
-    }, on_conflict="tipo").execute()
+    supabase.table("diretrizes").upsert(
+        {
+            "tipo": f"template_{behavior.tipo}",
+            "conteudo": behavior_json,
+            "prioridade": 5,  # Behaviors têm prioridade média
+            "ativo": True,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        },
+        on_conflict="tipo",
+    ).execute()
 
     logger.debug(f"Behavior {behavior.tipo} salvo no banco")
 
@@ -391,9 +402,14 @@ async def buscar_behavior(tipo: str) -> Optional[CampaignBehavior]:
     import json
 
     try:
-        response = supabase.table("diretrizes").select("*").eq(
-            "tipo", f"template_{tipo}"
-        ).eq("ativo", True).single().execute()
+        response = (
+            supabase.table("diretrizes")
+            .select("*")
+            .eq("tipo", f"template_{tipo}")
+            .eq("ativo", True)
+            .single()
+            .execute()
+        )
 
         if not response.data:
             return None
@@ -403,7 +419,9 @@ async def buscar_behavior(tipo: str) -> Optional[CampaignBehavior]:
         return CampaignBehavior(
             tipo=tipo,
             nome_arquivo=data.get("nome_arquivo", ""),
-            data_arquivo=datetime.fromisoformat(data["data_arquivo"]) if data.get("data_arquivo") else None,
+            data_arquivo=datetime.fromisoformat(data["data_arquivo"])
+            if data.get("data_arquivo")
+            else None,
             ultima_sync=datetime.fromisoformat(response.data["updated_at"].replace("Z", "+00:00")),
             objetivo=data.get("objetivo", ""),
             tom=data.get("tom", ""),
@@ -433,28 +451,36 @@ async def buscar_todos_behaviors() -> list[CampaignBehavior]:
     import json
 
     try:
-        response = supabase.table("diretrizes").select("*").like(
-            "tipo", "template_%"
-        ).eq("ativo", True).execute()
+        response = (
+            supabase.table("diretrizes")
+            .select("*")
+            .like("tipo", "template_%")
+            .eq("ativo", True)
+            .execute()
+        )
 
         behaviors = []
         for row in response.data or []:
             tipo = row["tipo"].replace("template_", "")
             data = json.loads(row["conteudo"])
 
-            behaviors.append(CampaignBehavior(
-                tipo=tipo,
-                nome_arquivo=data.get("nome_arquivo", ""),
-                data_arquivo=datetime.fromisoformat(data["data_arquivo"]) if data.get("data_arquivo") else None,
-                ultima_sync=datetime.fromisoformat(row["updated_at"].replace("Z", "+00:00")),
-                objetivo=data.get("objetivo", ""),
-                tom=data.get("tom", ""),
-                informacoes_importantes=data.get("informacoes_importantes", []),
-                o_que_nao_fazer=data.get("o_que_nao_fazer", []),
-                exemplo_abertura=data.get("exemplo_abertura", ""),
-                regras_followup=data.get("regras_followup", ""),
-                margem_negociacao=data.get("margem_negociacao"),
-            ))
+            behaviors.append(
+                CampaignBehavior(
+                    tipo=tipo,
+                    nome_arquivo=data.get("nome_arquivo", ""),
+                    data_arquivo=datetime.fromisoformat(data["data_arquivo"])
+                    if data.get("data_arquivo")
+                    else None,
+                    ultima_sync=datetime.fromisoformat(row["updated_at"].replace("Z", "+00:00")),
+                    objetivo=data.get("objetivo", ""),
+                    tom=data.get("tom", ""),
+                    informacoes_importantes=data.get("informacoes_importantes", []),
+                    o_que_nao_fazer=data.get("o_que_nao_fazer", []),
+                    exemplo_abertura=data.get("exemplo_abertura", ""),
+                    regras_followup=data.get("regras_followup", ""),
+                    margem_negociacao=data.get("margem_negociacao"),
+                )
+            )
 
         return behaviors
 
@@ -501,7 +527,7 @@ def formatar_behavior_para_prompt(behavior: CampaignBehavior) -> str:
     if behavior.margem_negociacao:
         partes.append(f"\n**Margem de negociação:** até {behavior.margem_negociacao}%")
 
-    return '\n'.join(partes)
+    return "\n".join(partes)
 
 
 # Alias para compatibilidade

@@ -3,6 +3,7 @@ Serviço de validação de telefones via Evolution API.
 
 Sprint 32 E04 - Validação prévia evita desperdício de mensagens.
 """
+
 import logging
 from datetime import datetime, timezone
 from typing import Optional
@@ -63,9 +64,7 @@ async def marcar_como_validando(cliente_id: str) -> bool:
 
 
 async def atualizar_status_telefone(
-    cliente_id: str,
-    status: str,
-    erro: Optional[str] = None
+    cliente_id: str, status: str, erro: Optional[str] = None
 ) -> bool:
     """
     Atualiza status do telefone após validação.
@@ -87,12 +86,7 @@ async def atualizar_status_telefone(
         if erro:
             dados["telefone_erro"] = erro[:500]  # Limitar tamanho
 
-        response = (
-            supabase.table("clientes")
-            .update(dados)
-            .eq("id", cliente_id)
-            .execute()
-        )
+        response = supabase.table("clientes").update(dados).eq("id", cliente_id).execute()
 
         return len(response.data or []) > 0
 
@@ -128,11 +122,7 @@ async def validar_telefone(cliente_id: str, telefone: str) -> str:
 
         elif resultado.get("error"):
             # Erro de API - tentar novamente depois
-            await atualizar_status_telefone(
-                cliente_id,
-                "erro",
-                erro=resultado.get("error")
-            )
+            await atualizar_status_telefone(cliente_id, "erro", erro=resultado.get("error"))
             logger.warning(f"Erro ao validar {telefone}: {resultado.get('error')}")
             return "erro"
 
@@ -175,10 +165,7 @@ async def processar_lote_validacao(limit: int = 50) -> dict:
     logger.info(f"Processando {len(pendentes)} telefones pendentes")
 
     for cliente in pendentes:
-        resultado = await validar_telefone(
-            cliente["id"],
-            cliente["telefone"]
-        )
+        resultado = await validar_telefone(cliente["id"], cliente["telefone"])
 
         stats["processados"] += 1
 
@@ -208,9 +195,7 @@ async def obter_estatisticas_validacao() -> dict:
     """
     try:
         # Query agregada por status via RPC
-        response = supabase.rpc(
-            "count_by_status_telefone"
-        ).execute()
+        response = supabase.rpc("count_by_status_telefone").execute()
 
         if response.data:
             # Converter lista para dict

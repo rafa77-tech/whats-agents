@@ -3,6 +3,7 @@ Mensagens de transicao para handoff.
 
 Sprint 10 - S10.E3.4
 """
+
 import random
 
 # Mensagens de transicao para cada tipo de handoff

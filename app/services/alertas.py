@@ -6,6 +6,7 @@ V2 - Slack baixo ruido (31/12/2025):
 - Cooldown global por severidade
 - Condicao "houve envios" para alerta "sem_respostas"
 """
+
 from datetime import datetime, timedelta
 from typing import List, Dict
 import logging
@@ -20,13 +21,13 @@ logger = logging.getLogger(__name__)
 # V2: Configuracao de janela operacional e cooldown
 ALERTAS_CONFIG = {
     "janela_operacional": {
-        "inicio": 8,   # 08:00
-        "fim": 20,     # 20:00
+        "inicio": 8,  # 08:00
+        "fim": 20,  # 20:00
     },
     "cooldown_por_severidade": {
-        "info": 60,      # 60 min
-        "warning": 30,   # 30 min
-        "error": 30,     # 30 min
+        "info": 60,  # 60 min
+        "warning": 30,  # 30 min
+        "error": 30,  # 30 min
         "critical": 45,  # 45 min
     },
     # Alertas que IGNORAM janela operacional (infra critica)
@@ -38,25 +39,25 @@ ALERTAS = {
         "descricao": "Taxa de handoff acima do normal",
         "threshold": 0.20,  # > 20%
         "janela_minutos": 60,
-        "severidade": "warning"
+        "severidade": "warning",
     },
     "tempo_resposta_alto": {
         "descricao": "Tempo médio de resposta muito alto",
         "threshold": 120,  # > 120 segundos
         "janela_minutos": 30,
-        "severidade": "warning"
+        "severidade": "warning",
     },
     "score_qualidade_baixo": {
         "descricao": "Score de qualidade abaixo do aceitável",
         "threshold": 5,  # < 5/10
         "janela_minutos": 60,
-        "severidade": "error"
+        "severidade": "error",
     },
     "sem_respostas": {
         "descricao": "Nenhuma resposta enviada",
         "threshold": 0,
         "janela_minutos": 30,
-        "severidade": "critical"
+        "severidade": "critical",
     },
 }
 
@@ -76,30 +77,26 @@ async def verificar_taxa_handoff() -> List[Dict]:
     try:
         # Buscar conversas e handoffs
         conversas_response = (
-            supabase.table("conversations")
-            .select("id")
-            .gte("created_at", desde)
-            .execute()
+            supabase.table("conversations").select("id").gte("created_at", desde).execute()
         )
         conversas = conversas_response.data or []
 
         handoffs_response = (
-            supabase.table("handoffs")
-            .select("id")
-            .gte("created_at", desde)
-            .execute()
+            supabase.table("handoffs").select("id").gte("created_at", desde).execute()
         )
         handoffs = handoffs_response.data or []
 
         if len(conversas) > 0:
             taxa = len(handoffs) / len(conversas)
             if taxa > config["threshold"]:
-                return [{
-                    "tipo": "taxa_handoff_alta",
-                    "mensagem": f"Taxa de handoff em {taxa*100:.1f}% (threshold: {config['threshold']*100}%)",
-                    "severidade": config["severidade"],
-                    "valor": taxa
-                }]
+                return [
+                    {
+                        "tipo": "taxa_handoff_alta",
+                        "mensagem": f"Taxa de handoff em {taxa * 100:.1f}% (threshold: {config['threshold'] * 100}%)",
+                        "severidade": config["severidade"],
+                        "valor": taxa,
+                    }
+                ]
 
         return []
     except Exception as e:
@@ -123,16 +120,22 @@ async def verificar_tempo_resposta() -> List[Dict]:
         metricas = metricas_response.data or []
 
         if metricas:
-            tempos = [m.get("tempo_medio_resposta_segundos") for m in metricas if m.get("tempo_medio_resposta_segundos")]
+            tempos = [
+                m.get("tempo_medio_resposta_segundos")
+                for m in metricas
+                if m.get("tempo_medio_resposta_segundos")
+            ]
             if tempos:
                 tempo_medio = sum(tempos) / len(tempos)
                 if tempo_medio > config["threshold"]:
-                    return [{
-                        "tipo": "tempo_resposta_alto",
-                        "mensagem": f"Tempo médio de resposta: {tempo_medio:.1f}s (threshold: {config['threshold']}s)",
-                        "severidade": config["severidade"],
-                        "valor": tempo_medio
-                    }]
+                    return [
+                        {
+                            "tipo": "tempo_resposta_alto",
+                            "mensagem": f"Tempo médio de resposta: {tempo_medio:.1f}s (threshold: {config['threshold']}s)",
+                            "severidade": config["severidade"],
+                            "valor": tempo_medio,
+                        }
+                    ]
 
         return []
     except Exception as e:
@@ -160,12 +163,14 @@ async def verificar_score_qualidade() -> List[Dict]:
             if scores:
                 score_medio = sum(scores) / len(scores)
                 if score_medio < config["threshold"]:
-                    return [{
-                        "tipo": "score_qualidade_baixo",
-                        "mensagem": f"Score médio de qualidade: {score_medio:.1f}/10 (threshold: {config['threshold']}/10)",
-                        "severidade": config["severidade"],
-                        "valor": score_medio
-                    }]
+                    return [
+                        {
+                            "tipo": "score_qualidade_baixo",
+                            "mensagem": f"Score médio de qualidade: {score_medio:.1f}/10 (threshold: {config['threshold']}/10)",
+                            "severidade": config["severidade"],
+                            "valor": score_medio,
+                        }
+                    ]
 
         return []
     except Exception as e:
@@ -219,12 +224,14 @@ async def verificar_atividade() -> List[Dict]:
 
             # So alertar se medicos mandaram msg mas Julia nao respondeu
             if total_entradas > 0:
-                return [{
-                    "tipo": "sem_respostas",
-                    "mensagem": f"{total_entradas} mensagens recebidas sem resposta nos ultimos {config['janela_minutos']} minutos",
-                    "severidade": config["severidade"],
-                    "valor": total_entradas
-                }]
+                return [
+                    {
+                        "tipo": "sem_respostas",
+                        "mensagem": f"{total_entradas} mensagens recebidas sem resposta nos ultimos {config['janela_minutos']} minutos",
+                        "severidade": config["severidade"],
+                        "valor": total_entradas,
+                    }
+                ]
 
         return []
     except Exception as e:
@@ -235,7 +242,7 @@ async def verificar_atividade() -> List[Dict]:
 async def verificar_performance() -> List[Dict]:
     """Verifica performance e envia alertas se necessário."""
     from app.core.metrics import metrics
-    
+
     resumo = metrics.obter_resumo()
     alertas = []
 
@@ -243,20 +250,24 @@ async def verificar_performance() -> List[Dict]:
         if isinstance(dados, dict) and "media_ms" in dados:
             # Tempo médio > 2s
             if dados["media_ms"] > 2000:
-                alertas.append({
-                    "tipo": "performance_critica",
-                    "mensagem": f"{nome}: tempo médio {dados['media_ms']:.0f}ms",
-                    "severidade": "critical",
-                    "valor": dados["media_ms"]
-                })
+                alertas.append(
+                    {
+                        "tipo": "performance_critica",
+                        "mensagem": f"{nome}: tempo médio {dados['media_ms']:.0f}ms",
+                        "severidade": "critical",
+                        "valor": dados["media_ms"],
+                    }
+                )
             # Tempo médio > 1s
             elif dados["media_ms"] > 1000:
-                alertas.append({
-                    "tipo": "performance_warning",
-                    "mensagem": f"{nome}: tempo médio {dados['media_ms']:.0f}ms",
-                    "severidade": "warning",
-                    "valor": dados["media_ms"]
-                })
+                alertas.append(
+                    {
+                        "tipo": "performance_warning",
+                        "mensagem": f"{nome}: tempo médio {dados['media_ms']:.0f}ms",
+                        "severidade": "warning",
+                        "valor": dados["media_ms"],
+                    }
+                )
 
     return alertas
 
@@ -281,7 +292,7 @@ async def verificar_alertas() -> List[Dict]:
 
     # Sem respostas
     alertas_ativos.extend(await verificar_atividade())
-    
+
     # Performance
     alertas_ativos.extend(await verificar_performance())
 
@@ -304,7 +315,7 @@ async def enviar_alerta_slack(alerta: Dict):
     log_fn = nivel_log.get(alerta["severidade"], logger.warning)
     log_fn(
         f"Alerta [{alerta['severidade'].upper()}] {alerta['tipo']}: {alerta['mensagem']}",
-        extra={"alerta_tipo": alerta["tipo"], "severidade": alerta["severidade"]}
+        extra={"alerta_tipo": alerta["tipo"], "severidade": alerta["severidade"]},
     )
 
 
@@ -340,10 +351,9 @@ async def _registrar_envio_alerta(tipo: str):
     """V2: Registra envio de alerta para cooldown."""
     cache_key = f"alerta:cooldown:{tipo}"
     try:
-        await cache_set_json(cache_key, {
-            "timestamp": agora_brasilia().isoformat(),
-            "tipo": tipo
-        }, ttl=7200)  # 2 horas
+        await cache_set_json(
+            cache_key, {"timestamp": agora_brasilia().isoformat(), "tipo": tipo}, ttl=7200
+        )  # 2 horas
     except Exception as e:
         logger.error(f"Erro ao registrar envio alerta: {e}")
 
@@ -370,12 +380,14 @@ async def executar_verificacao_alertas():
 
             # Salvar no banco para histórico (se tabela existir)
             try:
-                supabase.table("alertas_enviados").insert({
-                    "tipo": tipo,
-                    "mensagem": alerta["mensagem"],
-                    "severidade": severidade,
-                    "valor": alerta.get("valor")
-                }).execute()
+                supabase.table("alertas_enviados").insert(
+                    {
+                        "tipo": tipo,
+                        "mensagem": alerta["mensagem"],
+                        "severidade": severidade,
+                        "valor": alerta.get("valor"),
+                    }
+                ).execute()
             except Exception as e:
                 # Tabela pode não existir ainda
                 logger.debug(f"Tabela alertas_enviados não existe ou erro ao salvar: {e}")
@@ -414,6 +426,7 @@ async def _verificar_alertas_business_events():
 # Sprint 44 T07.5: Alertas de Infraestrutura Crítica
 # =============================================================================
 
+
 async def alertar_circuit_breaker_aberto(
     servico: str,
     falhas: int,
@@ -434,7 +447,7 @@ async def alertar_circuit_breaker_aberto(
             "falhas": falhas,
             "ultimo_erro": ultimo_erro[:200],
             "alerta_tipo": "circuit_breaker_aberto",
-        }
+        },
     )
 
 
@@ -455,7 +468,7 @@ async def alertar_handoff_sem_notificacao(
             "handoff_id": handoff_id,
             "motivo": motivo[:200],
             "alerta_tipo": "handoff_sem_notificacao",
-        }
+        },
     )
 
 
@@ -476,7 +489,7 @@ async def alertar_llm_timeout(
             "telefone_masked": mask_phone(telefone),
             "tempo_segundos": tempo_segundos,
             "alerta_tipo": "llm_timeout",
-        }
+        },
     )
 
 
@@ -495,6 +508,5 @@ async def alertar_database_error(
             "tabela": tabela or "N/A",
             "erro": erro[:300],
             "alerta_tipo": "database_error",
-        }
+        },
     )
-

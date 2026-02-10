@@ -4,6 +4,7 @@ PolicyDecide - Motor de decisão determinística.
 Sprint 15 - Policy Engine
 Sprint 16 - Kill Switch e Safe Mode
 """
+
 import logging
 from datetime import datetime
 from typing import Optional
@@ -194,9 +195,7 @@ class PolicyDecide:
         )
 
         if decision.requires_human:
-            logger.warning(
-                f"HANDOFF REQUIRED: {state.cliente_id} - {decision.reasoning}"
-            )
+            logger.warning(f"HANDOFF REQUIRED: {state.cliente_id} - {decision.reasoning}")
 
 
 # Instância singleton para uso conveniente

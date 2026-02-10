@@ -4,10 +4,10 @@ Agente Helena - Analytics e Gestão via Slack.
 Sprint 47: Agente com capacidade de SQL dinâmico.
 Helena funciona APENAS no Slack, nunca no WhatsApp.
 """
+
 import json
 import logging
 from datetime import datetime
-from typing import Any
 
 import anthropic
 
@@ -54,6 +54,7 @@ class AgenteHelena:
         """Lazy load das tools para evitar import circular."""
         if self._tools is None:
             from app.tools.helena import HELENA_TOOLS
+
             self._tools = HELENA_TOOLS
         return self._tools
 
@@ -115,9 +116,7 @@ class AgenteHelena:
 
         return await self._processar_resposta(response, retry_count)
 
-    async def _processar_resposta(
-        self, response: anthropic.types.Message, retry_count: int
-    ) -> str:
+    async def _processar_resposta(self, response: anthropic.types.Message, retry_count: int) -> str:
         """
         Processa resposta do LLM, executando tools se necessário.
 
@@ -171,11 +170,13 @@ class AgenteHelena:
                     self.channel_id,
                 )
 
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": tool_call.id,
-                    "content": json.dumps(result, ensure_ascii=False, default=str),
-                })
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": tool_call.id,
+                        "content": json.dumps(result, ensure_ascii=False, default=str),
+                    }
+                )
 
                 # Salvar no contexto para referência futura
                 self.session.atualizar_contexto(
@@ -190,12 +191,14 @@ class AgenteHelena:
                 if block.type == "text":
                     assistant_content.append({"type": "text", "text": block.text})
                 elif block.type == "tool_use":
-                    assistant_content.append({
-                        "type": "tool_use",
-                        "id": block.id,
-                        "name": block.name,
-                        "input": block.input,
-                    })
+                    assistant_content.append(
+                        {
+                            "type": "tool_use",
+                            "id": block.id,
+                            "name": block.name,
+                            "input": block.input,
+                        }
+                    )
 
             self.session.adicionar_mensagem("assistant", assistant_content)
             self.session.adicionar_mensagem("user", tool_results)

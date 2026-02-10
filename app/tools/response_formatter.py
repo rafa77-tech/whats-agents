@@ -6,6 +6,7 @@ Sprint 31 - S31.E5.3
 Centraliza a formatação de respostas das tools para o LLM,
 garantindo consistência e facilitando manutenção.
 """
+
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -85,9 +86,7 @@ class VagasResponseFormatter:
         return "nao informado"
 
     def formatar_vagas_resumo(
-        self,
-        vagas: list[dict],
-        especialidade_nome: Optional[str] = None
+        self, vagas: list[dict], especialidade_nome: Optional[str] = None
     ) -> list[dict]:
         """
         Formata lista de vagas para resumo da tool.
@@ -107,25 +106,27 @@ class VagasResponseFormatter:
             setores = v.get("setores") or {}
             especialidades = v.get("especialidades") or {}
 
-            resumo.append({
-                # UUID PARA USO INTERNO - use este ID ao chamar criar_handoff_externo
-                "VAGA_ID_PARA_HANDOFF": v.get("id"),
-                "hospital": hospitais.get("nome") if isinstance(hospitais, dict) else None,
-                "cidade": hospitais.get("cidade") if isinstance(hospitais, dict) else None,
-                "data": v.get("data"),
-                "periodo": periodos.get("nome") if isinstance(periodos, dict) else None,
-                # Campos de valor expandidos (Sprint 19)
-                "valor": v.get("valor"),
-                "valor_minimo": v.get("valor_minimo"),
-                "valor_maximo": v.get("valor_maximo"),
-                "valor_tipo": v.get("valor_tipo", "fixo"),
-                "valor_display": self.formatar_valor_display(v),
-                "setor": setores.get("nome") if isinstance(setores, dict) else None,
-                "especialidade": (
-                    (especialidades.get("nome") if isinstance(especialidades, dict) else None)
-                    or especialidade_nome
-                ),
-            })
+            resumo.append(
+                {
+                    # UUID PARA USO INTERNO - use este ID ao chamar criar_handoff_externo
+                    "VAGA_ID_PARA_HANDOFF": v.get("id"),
+                    "hospital": hospitais.get("nome") if isinstance(hospitais, dict) else None,
+                    "cidade": hospitais.get("cidade") if isinstance(hospitais, dict) else None,
+                    "data": v.get("data"),
+                    "periodo": periodos.get("nome") if isinstance(periodos, dict) else None,
+                    # Campos de valor expandidos (Sprint 19)
+                    "valor": v.get("valor"),
+                    "valor_minimo": v.get("valor_minimo"),
+                    "valor_maximo": v.get("valor_maximo"),
+                    "valor_tipo": v.get("valor_tipo", "fixo"),
+                    "valor_display": self.formatar_valor_display(v),
+                    "setor": setores.get("nome") if isinstance(setores, dict) else None,
+                    "especialidade": (
+                        (especialidades.get("nome") if isinstance(especialidades, dict) else None)
+                        or especialidade_nome
+                    ),
+                }
+            )
 
         return resumo
 
@@ -133,7 +134,7 @@ class VagasResponseFormatter:
         self,
         especialidade_nome: str,
         especialidade_diferente: bool = False,
-        especialidade_cadastrada: Optional[str] = None
+        especialidade_cadastrada: Optional[str] = None,
     ) -> str:
         """
         Constrói instrução base para apresentação de vagas.
@@ -179,7 +180,7 @@ class VagasResponseFormatter:
         total_sem_filtros: int = 0,
         filtros_aplicados: Optional[list[str]] = None,
         especialidade_diferente: bool = False,
-        especialidade_cadastrada: Optional[str] = None
+        especialidade_cadastrada: Optional[str] = None,
     ) -> str:
         """
         Gera mensagem sugerida quando não há vagas.
@@ -209,7 +210,9 @@ class VagasResponseFormatter:
             )
 
         # Mensagem padrão
-        return f"Nao tem vaga de {especialidade_nome} no momento. Mas assim que surgir algo, te aviso!"
+        return (
+            f"Nao tem vaga de {especialidade_nome} no momento. Mas assim que surgir algo, te aviso!"
+        )
 
     def mensagem_especialidade_nao_encontrada(self, especialidade: str) -> str:
         """Mensagem quando especialidade não existe."""

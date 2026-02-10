@@ -4,7 +4,7 @@ Endpoints de configuracao do sistema.
 Sprint 32 - E20: Toggle Modo Piloto via Dashboard
 Sprint 35: Controle granular de features autonomas
 """
-from datetime import datetime
+
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Path

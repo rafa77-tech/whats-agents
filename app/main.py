@@ -1,13 +1,42 @@
 """
 Agente Júlia - API Principal
 """
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.routes import health, test_db, debug_llm, debug_whatsapp, webhook, chatwoot, jobs, metricas, metricas_grupos, admin, piloto, campanhas, integridade, handoff, warmer, group_entry, webhook_router, webhook_zapi, chips_dashboard, sistema, guardrails, policy, dashboard_conversations, extraction, supervisor_channel, sse, incidents
+from app.api.routes import (
+    health,
+    test_db,
+    debug_llm,
+    debug_whatsapp,
+    webhook,
+    chatwoot,
+    jobs,
+    metricas,
+    metricas_grupos,
+    admin,
+    piloto,
+    campanhas,
+    integridade,
+    handoff,
+    warmer,
+    group_entry,
+    webhook_router,
+    webhook_zapi,
+    chips_dashboard,
+    sistema,
+    guardrails,
+    policy,
+    dashboard_conversations,
+    extraction,
+    supervisor_channel,
+    sse,
+    incidents,
+)
 from app.api.error_handlers import register_exception_handlers
 from app.api.middleware import TracingMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -27,6 +56,7 @@ async def lifespan(app: FastAPI):
     # Sprint 44 T06.2: Fechar HTTP client singleton
     try:
         from app.services.http_client import close_http_client
+
         await close_http_client()
     except Exception as e:
         print(f"Erro ao fechar HTTP client: {e}")
@@ -51,7 +81,9 @@ app.add_middleware(TracingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_credentials=True if settings.CORS_ORIGINS != "*" else False,  # Credentials só com origens específicas
+    allow_credentials=True
+    if settings.CORS_ORIGINS != "*"
+    else False,  # Credentials só com origens específicas
     allow_methods=["*"],
     allow_headers=["*"],
 )

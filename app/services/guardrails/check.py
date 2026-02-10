@@ -17,6 +17,7 @@ R5   - campaign_cooldown: 3 dias entre campanhas diferentes
 
 Toda decisão BLOCK ou BYPASS gera business_event para auditoria.
 """
+
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -38,10 +39,10 @@ from .types import (
 logger = logging.getLogger(__name__)
 
 # Configurações
-CONTACT_CAP_7D_DEFAULT = 5      # Máximo de contatos em 7 dias
-REPLY_WINDOW_MINUTES = 30       # Janela máxima para considerar reply válido
-CAMPAIGN_COOLDOWN_DAYS = 3      # Dias entre campanhas diferentes (Sprint 24 E04)
-PROVIDER = "evolution"          # Provider atual (para auditoria)
+CONTACT_CAP_7D_DEFAULT = 5  # Máximo de contatos em 7 dias
+REPLY_WINDOW_MINUTES = 30  # Janela máxima para considerar reply válido
+CAMPAIGN_COOLDOWN_DAYS = 3  # Dias entre campanhas diferentes (Sprint 24 E04)
+PROVIDER = "evolution"  # Provider atual (para auditoria)
 
 
 def _has_valid_inbound_proof(ctx: OutboundContext) -> bool:
@@ -73,7 +74,7 @@ def _has_valid_inbound_proof(ctx: OutboundContext) -> bool:
 
         if delta > timedelta(minutes=REPLY_WINDOW_MINUTES):
             logger.warning(
-                f"Inbound muito antigo para reply: {delta.total_seconds()/60:.1f}min "
+                f"Inbound muito antigo para reply: {delta.total_seconds() / 60:.1f}min "
                 f"(max {REPLY_WINDOW_MINUTES}min)"
             )
             return False
@@ -130,11 +131,11 @@ def _check_campaign_cooldown_state(ctx: OutboundContext, state) -> Optional[Guar
     if not state:
         return None
 
-    last_touch_method = getattr(state, 'last_touch_method', None)
+    last_touch_method = getattr(state, "last_touch_method", None)
     if last_touch_method != "campaign":
         return None
 
-    last_touch_at = getattr(state, 'last_touch_at', None)
+    last_touch_at = getattr(state, "last_touch_at", None)
     if not last_touch_at:
         return None
 
@@ -153,12 +154,10 @@ def _check_campaign_cooldown_state(ctx: OutboundContext, state) -> Optional[Guar
         return None
 
     # Mesma campanha? (followup isento)
-    last_campaign_id = getattr(state, 'last_touch_campaign_id', None)
+    last_campaign_id = getattr(state, "last_touch_campaign_id", None)
     if ctx.campaign_id and last_campaign_id:
         if str(ctx.campaign_id) == str(last_campaign_id):
-            logger.debug(
-                f"Campaign cooldown isento: mesma campanha {ctx.campaign_id}"
-            )
+            logger.debug(f"Campaign cooldown isento: mesma campanha {ctx.campaign_id}")
             return None
 
     # BLOCK - campanhas diferentes dentro do cooldown
@@ -170,7 +169,7 @@ def _check_campaign_cooldown_state(ctx: OutboundContext, state) -> Optional[Guar
             "required": CAMPAIGN_COOLDOWN_DAYS,
             "last_campaign_id": str(last_campaign_id) if last_campaign_id else None,
             "current_campaign_id": str(ctx.campaign_id) if ctx.campaign_id else None,
-        }
+        },
     )
 
 
@@ -255,7 +254,7 @@ async def _emit_guardrail_event(
         logger.warning(f"INTEGRITY_WARNING: {w} cliente={ctx.cliente_id}")
 
     # Construir dedupe_key: cliente + reason + janela 5min
-    ts_bucket = datetime.now(timezone.utc).strftime('%Y%m%d%H%M')[:11]
+    ts_bucket = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")[:11]
     dedupe = f"{event_type}:{ctx.cliente_id}:{result.reason_code}:{ts_bucket}"
 
     event = BusinessEvent(
@@ -323,16 +322,19 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
     if ctx.method == OutboundMethod.REPLY:
         if _has_valid_inbound_proof(ctx):
             is_valid_reply = True
-            logger.debug(f"Reply válido para {ctx.cliente_id}: interaction={ctx.inbound_interaction_id}")
+            logger.debug(
+                f"Reply válido para {ctx.cliente_id}: interaction={ctx.inbound_interaction_id}"
+            )
         else:
             logger.warning(
-                f"Reply sem inbound_proof válido para {ctx.cliente_id}: "
-                f"tratando como proativo"
+                f"Reply sem inbound_proof válido para {ctx.cliente_id}: tratando como proativo"
             )
 
     # Determinar se é realmente proativo
     # Reply válido NÃO é proativo; reply sem prova É proativo
-    is_actually_proactive = ctx.is_proactive or (ctx.method == OutboundMethod.REPLY and not is_valid_reply)
+    is_actually_proactive = ctx.is_proactive or (
+        ctx.method == OutboundMethod.REPLY and not is_valid_reply
+    )
 
     # =========================================================================
     # R0: opted_out é absoluto
@@ -345,17 +347,17 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
             return GuardrailResult(
                 decision=GuardrailDecision.ALLOW,
                 reason_code="reply_to_opted_out",
-                details={"inbound_interaction_id": ctx.inbound_interaction_id}
+                details={"inbound_interaction_id": ctx.inbound_interaction_id},
             )
 
         # Bypass humano via Slack COM bypass_reason
         if _is_human_slack_bypass(ctx):
             if not ctx.bypass_reason:
-                logger.warning(f"Bypass opted_out negado: bypass_reason obrigatório")
+                logger.warning("Bypass opted_out negado: bypass_reason obrigatório")
                 result = GuardrailResult(
                     decision=GuardrailDecision.BLOCK,
                     reason_code="opted_out_bypass_no_reason",
-                    details={"error": "bypass_reason obrigatório para opted_out"}
+                    details={"error": "bypass_reason obrigatório para opted_out"},
                 )
                 await _emit_guardrail_event(ctx, result, "outbound_blocked")
                 return result
@@ -367,17 +369,16 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
                 details={
                     "bypass_reason": ctx.bypass_reason,
                     "authorized_by": ctx.actor_id,
-                }
+                },
             )
             await _emit_guardrail_event(ctx, result, "outbound_bypass")
-            logger.warning(f"BYPASS opted_out: {ctx.cliente_id} por {ctx.actor_id} motivo='{ctx.bypass_reason}'")
+            logger.warning(
+                f"BYPASS opted_out: {ctx.cliente_id} por {ctx.actor_id} motivo='{ctx.bypass_reason}'"
+            )
             return result
 
         # Bloqueia
-        result = GuardrailResult(
-            decision=GuardrailDecision.BLOCK,
-            reason_code="opted_out"
-        )
+        result = GuardrailResult(decision=GuardrailDecision.BLOCK, reason_code="opted_out")
         await _emit_guardrail_event(ctx, result, "outbound_blocked")
         logger.info(f"BLOCK opted_out: {ctx.cliente_id}")
         return result
@@ -388,7 +389,7 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
     if not is_actually_proactive:
         return GuardrailResult(
             decision=GuardrailDecision.ALLOW,
-            reason_code="reply_valid" if is_valid_reply else "non_proactive"
+            reason_code="reply_valid" if is_valid_reply else "non_proactive",
         )
 
     # =========================================================================
@@ -404,7 +405,7 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
                 decision=GuardrailDecision.ALLOW,
                 reason_code="quiet_hours",
                 human_bypass=True,
-                details={"hora_atual": now.strftime("%H:%M"), "bypass_por": ctx.actor_id}
+                details={"hora_atual": now.strftime("%H:%M"), "bypass_por": ctx.actor_id},
             )
             await _emit_guardrail_event(ctx, result, "outbound_bypass")
             logger.warning(f"BYPASS quiet_hours: {ctx.cliente_id} por {ctx.actor_id}")
@@ -413,7 +414,10 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
         result = GuardrailResult(
             decision=GuardrailDecision.BLOCK,
             reason_code="quiet_hours",
-            details={"hora_atual": now.strftime("%H:%M"), "horario_comercial": "08:00-20:00 seg-sex"}
+            details={
+                "hora_atual": now.strftime("%H:%M"),
+                "horario_comercial": "08:00-20:00 seg-sex",
+            },
         )
         await _emit_guardrail_event(ctx, result, "outbound_blocked")
         logger.info(f"BLOCK quiet_hours: {ctx.cliente_id} (fora do horário comercial)")
@@ -429,7 +433,7 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
                     decision=GuardrailDecision.ALLOW,
                     reason_code="cooling_off",
                     human_bypass=True,
-                    details={"until": state.cooling_off_until.isoformat()}
+                    details={"until": state.cooling_off_until.isoformat()},
                 )
                 await _emit_guardrail_event(ctx, result, "outbound_bypass")
                 logger.warning(f"BYPASS cooling_off: {ctx.cliente_id} por {ctx.actor_id}")
@@ -438,7 +442,7 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
             result = GuardrailResult(
                 decision=GuardrailDecision.BLOCK,
                 reason_code="cooling_off",
-                details={"until": state.cooling_off_until.isoformat()}
+                details={"until": state.cooling_off_until.isoformat()},
             )
             await _emit_guardrail_event(ctx, result, "outbound_blocked")
             logger.info(f"BLOCK cooling_off: {ctx.cliente_id} até {state.cooling_off_until}")
@@ -453,7 +457,7 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
                 decision=GuardrailDecision.ALLOW,
                 reason_code="next_allowed_at",
                 human_bypass=True,
-                details={"next_allowed_at": state.next_allowed_at.isoformat()}
+                details={"next_allowed_at": state.next_allowed_at.isoformat()},
             )
             await _emit_guardrail_event(ctx, result, "outbound_bypass")
             logger.warning(f"BYPASS next_allowed_at: {ctx.cliente_id} por {ctx.actor_id}")
@@ -462,7 +466,7 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
         result = GuardrailResult(
             decision=GuardrailDecision.BLOCK,
             reason_code="next_allowed_at",
-            details={"next_allowed_at": state.next_allowed_at.isoformat()}
+            details={"next_allowed_at": state.next_allowed_at.isoformat()},
         )
         await _emit_guardrail_event(ctx, result, "outbound_blocked")
         logger.info(f"BLOCK next_allowed_at: {ctx.cliente_id} até {state.next_allowed_at}")
@@ -478,7 +482,7 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
                 decision=GuardrailDecision.ALLOW,
                 reason_code="contact_cap",
                 human_bypass=True,
-                details={"cap": contact_cap, "count": state.contact_count_7d}
+                details={"cap": contact_cap, "count": state.contact_count_7d},
             )
             await _emit_guardrail_event(ctx, result, "outbound_bypass")
             logger.warning(f"BYPASS contact_cap: {ctx.cliente_id} por {ctx.actor_id}")
@@ -487,7 +491,7 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
         result = GuardrailResult(
             decision=GuardrailDecision.BLOCK,
             reason_code="contact_cap",
-            details={"cap": contact_cap, "count": state.contact_count_7d}
+            details={"cap": contact_cap, "count": state.contact_count_7d},
         )
         await _emit_guardrail_event(ctx, result, "outbound_blocked")
         logger.info(f"BLOCK contact_cap: {ctx.cliente_id} ({state.contact_count_7d}/{contact_cap})")
@@ -500,8 +504,7 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
         campaigns_flags = await get_campaigns_flags()
         if not campaigns_flags.enabled:
             result = GuardrailResult(
-                decision=GuardrailDecision.BLOCK,
-                reason_code="campaigns_disabled"
+                decision=GuardrailDecision.BLOCK, reason_code="campaigns_disabled"
             )
             await _emit_guardrail_event(ctx, result, "outbound_blocked")
             logger.info(f"BLOCK campaigns_disabled: {ctx.cliente_id}")
@@ -511,10 +514,7 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
     # R4b: safe_mode bloqueia todo proativo
     # =========================================================================
     if await is_safe_mode_active():
-        result = GuardrailResult(
-            decision=GuardrailDecision.BLOCK,
-            reason_code="safe_mode"
-        )
+        result = GuardrailResult(decision=GuardrailDecision.BLOCK, reason_code="safe_mode")
         await _emit_guardrail_event(ctx, result, "outbound_blocked")
         logger.info(f"BLOCK safe_mode: {ctx.cliente_id}")
         return result
@@ -531,7 +531,7 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
                 decision=GuardrailDecision.ALLOW,
                 reason_code="campaign_cooldown",
                 human_bypass=True,
-                details=cooldown_result.details or {}
+                details=cooldown_result.details or {},
             )
             await _emit_guardrail_event(ctx, result, "outbound_bypass")
             logger.warning(
@@ -551,7 +551,4 @@ async def check_outbound_guardrails(ctx: OutboundContext) -> GuardrailResult:
     # =========================================================================
     # Passou por todos os guardrails
     # =========================================================================
-    return GuardrailResult(
-        decision=GuardrailDecision.ALLOW,
-        reason_code="ok"
-    )
+    return GuardrailResult(decision=GuardrailDecision.ALLOW, reason_code="ok")

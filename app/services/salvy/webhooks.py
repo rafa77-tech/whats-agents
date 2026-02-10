@@ -3,6 +3,7 @@ Webhook para receber SMS da Salvy.
 
 Usado para receber codigo de verificacao do WhatsApp.
 """
+
 import re
 import logging
 import hashlib
@@ -28,7 +29,7 @@ def verificar_assinatura_svix(
     Returns:
         True se assinatura valida
     """
-    webhook_secret = getattr(settings, 'SALVY_WEBHOOK_SECRET', None)
+    webhook_secret = getattr(settings, "SALVY_WEBHOOK_SECRET", None)
     if not webhook_secret:
         logger.warning("[Salvy Webhook] SALVY_WEBHOOK_SECRET nao configurado")
         return True  # Permitir em dev
@@ -48,17 +49,14 @@ def verificar_assinatura_svix(
     secret = webhook_secret.replace("whsec_", "")
 
     # Calcular assinatura
-    expected = hmac.new(
-        secret.encode(),
-        signed_content.encode(),
-        hashlib.sha256
-    ).digest()
+    expected = hmac.new(secret.encode(), signed_content.encode(), hashlib.sha256).digest()
 
     # Comparar com assinaturas enviadas (podem ser multiplas)
     for sig in svix_signature.split():
         version, signature = sig.split(",", 1)
         if version == "v1":
             import base64
+
             expected_b64 = base64.b64encode(expected).decode()
             if hmac.compare_digest(signature, expected_b64):
                 return True
@@ -79,9 +77,9 @@ def extrair_codigo_whatsapp(mensagem: str) -> Optional[str]:
     """
     # Padroes comuns de codigo WhatsApp
     patterns = [
-        r'(?:codigo|code)[:\s]*(\d{6})',  # "Codigo: 123456" ou "Code 123456"
-        r'(\d{6})\s*(?:e|is|seu)',         # "123456 e seu codigo"
-        r'\b(\d{6})\b',                     # Qualquer sequencia de 6 digitos
+        r"(?:codigo|code)[:\s]*(\d{6})",  # "Codigo: 123456" ou "Code 123456"
+        r"(\d{6})\s*(?:e|is|seu)",  # "123456 e seu codigo"
+        r"\b(\d{6})\b",  # Qualquer sequencia de 6 digitos
     ]
 
     for pattern in patterns:

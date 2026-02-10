@@ -4,6 +4,8 @@ Pos-processadores do pipeline.
 Sprint 16: Integração com policy_events via update_effect_interaction_id.
 Sprint 22: Delay inteligente por contexto via delay_engine.
 """
+
+import asyncio
 import logging
 import time
 
@@ -14,7 +16,7 @@ from app.services.agente import enviar_resposta
 from app.services.interacao import salvar_interacao
 from app.services.metricas import metricas_service
 from app.services.whatsapp import mostrar_digitando
-from app.services.validacao_output import validar_e_corrigir, output_validator
+from app.services.validacao_output import validar_e_corrigir
 from app.services.policy.events_repository import update_effect_interaction_id
 from app.services.outbound import criar_contexto_reply
 from datetime import datetime, timezone
@@ -33,14 +35,11 @@ class ValidateOutputProcessor(PostProcessor):
 
     Prioridade: 5 (roda ANTES de todos)
     """
+
     name = "validate_output"
     priority = 5
 
-    async def process(
-        self,
-        context: ProcessorContext,
-        response: str
-    ) -> ProcessorResult:
+    async def process(self, context: ProcessorContext, response: str) -> ProcessorResult:
         if not response:
             return ProcessorResult(success=True, response=response)
 
@@ -54,18 +53,11 @@ class ValidateOutputProcessor(PostProcessor):
                 context.metadata["resposta_original"] = response
             else:
                 # Resposta bloqueada (revelacao critica de IA)
-                logger.critical(
-                    f"Resposta BLOQUEADA! Revelaria IA. "
-                    f"Original: {response[:100]}..."
-                )
+                logger.critical(f"Resposta BLOQUEADA! Revelaria IA. Original: {response[:100]}...")
                 context.metadata["resposta_bloqueada"] = True
                 context.metadata["resposta_original"] = response
                 # Retorna vazio - nao envia nada
-                return ProcessorResult(
-                    success=True,
-                    response="",
-                    metadata={"blocked": True}
-                )
+                return ProcessorResult(success=True, response="", metadata={"blocked": True})
 
         return ProcessorResult(success=True, response=resposta_validada)
 
@@ -81,14 +73,11 @@ class TimingProcessor(PostProcessor):
 
     Prioridade: 10 (roda primeiro)
     """
+
     name = "timing"
     priority = 10
 
-    async def process(
-        self,
-        context: ProcessorContext,
-        response: str
-    ) -> ProcessorResult:
+    async def process(self, context: ProcessorContext, response: str) -> ProcessorResult:
         if not response:
             return ProcessorResult(success=True, response=response)
 
@@ -134,14 +123,11 @@ class SendMessageProcessor(PostProcessor):
 
     Prioridade: 20
     """
+
     name = "send_message"
     priority = 20
 
-    async def process(
-        self,
-        context: ProcessorContext,
-        response: str
-    ) -> ProcessorResult:
+    async def process(self, context: ProcessorContext, response: str) -> ProcessorResult:
         if not response:
             return ProcessorResult(success=True, response=response)
 
@@ -155,7 +141,7 @@ class SendMessageProcessor(PostProcessor):
                     tipo="entrada",
                     conteudo=context.mensagem_texto or "[midia]",
                     autor_tipo="medico",
-                    message_id=context.message_id
+                    message_id=context.message_id,
                 )
                 context.metadata["entrada_salva"] = True
                 inbound_interaction_id = interacao_entrada.get("id") if interacao_entrada else None
@@ -180,30 +166,30 @@ class SendMessageProcessor(PostProcessor):
         )
 
         # Sprint 18.1: OutboundResult handling
-        if hasattr(resultado, 'blocked') and resultado.blocked:
+        if hasattr(resultado, "blocked") and resultado.blocked:
             logger.warning(f"Mensagem bloqueada por guardrail: {resultado.block_reason}")
             return ProcessorResult(
-                success=False,
-                error=f"Guardrail bloqueou: {resultado.block_reason}"
+                success=False, error=f"Guardrail bloqueou: {resultado.block_reason}"
             )
 
-        if hasattr(resultado, 'success') and not resultado.success:
+        if hasattr(resultado, "success") and not resultado.success:
             logger.error(f"Falha ao enviar mensagem: {resultado.error}")
             return ProcessorResult(
-                success=False,
-                error=resultado.error or "Falha ao enviar mensagem"
+                success=False, error=resultado.error or "Falha ao enviar mensagem"
             )
 
         # Sucesso
         context.metadata["message_sent"] = True
-        if hasattr(resultado, 'evolution_response') and resultado.evolution_response:
-            context.metadata["sent_message_id"] = resultado.evolution_response.get("key", {}).get("id")
+        if hasattr(resultado, "evolution_response") and resultado.evolution_response:
+            context.metadata["sent_message_id"] = resultado.evolution_response.get("key", {}).get(
+                "id"
+            )
         elif isinstance(resultado, dict):
             # Fallback para dict legado
             context.metadata["sent_message_id"] = resultado.get("key", {}).get("id")
 
         # Sprint 41: Capturar chip_id do resultado para rastreamento
-        if hasattr(resultado, 'chip_id') and resultado.chip_id:
+        if hasattr(resultado, "chip_id") and resultado.chip_id:
             context.metadata["chip_id"] = resultado.chip_id
 
         logger.info(f"Mensagem enviada para {context.telefone[:8]}...")
@@ -227,19 +213,13 @@ class SendMessageProcessor(PostProcessor):
 
         try:
             await marcar_ack_enviado(
-                registro_id=registro_id,
-                mensagem_id=mensagem_id,
-                template_tipo=template_tipo
+                registro_id=registro_id, mensagem_id=mensagem_id, template_tipo=template_tipo
             )
             logger.debug(f"ACK fora do horário marcado como enviado: {registro_id}")
         except Exception as e:
             logger.warning(f"Erro ao marcar ACK fora do horário (não crítico): {e}")
 
-    async def _emitir_outbound_event(
-        self,
-        context: ProcessorContext,
-        response: str
-    ) -> None:
+    async def _emitir_outbound_event(self, context: ProcessorContext, response: str) -> None:
         """Emite evento doctor_outbound se no rollout."""
         from app.services.business_events import (
             emit_event,
@@ -260,16 +240,18 @@ class SendMessageProcessor(PostProcessor):
 
         # Emitir evento em background
         safe_create_task(
-            emit_event(BusinessEvent(
-                event_type=EventType.DOCTOR_OUTBOUND,
-                source=EventSource.PIPELINE,
-                cliente_id=cliente_id,
-                conversation_id=context.conversa.get("id") if context.conversa else None,
-                event_props={
-                    "message_length": len(response),
-                },
-            )),
-            name="emit_doctor_outbound"
+            emit_event(
+                BusinessEvent(
+                    event_type=EventType.DOCTOR_OUTBOUND,
+                    source=EventSource.PIPELINE,
+                    cliente_id=cliente_id,
+                    conversation_id=context.conversa.get("id") if context.conversa else None,
+                    event_props={
+                        "message_length": len(response),
+                    },
+                )
+            ),
+            name="emit_doctor_outbound",
         )
 
         logger.debug(f"doctor_outbound emitido para cliente {cliente_id[:8]}")
@@ -281,23 +263,20 @@ class SaveInteractionProcessor(PostProcessor):
 
     Prioridade: 30
     """
+
     name = "save_interaction"
     priority = 30
 
-    async def process(
-        self,
-        context: ProcessorContext,
-        response: str
-    ) -> ProcessorResult:
+    async def process(self, context: ProcessorContext, response: str) -> ProcessorResult:
         try:
             # Salvar interacao de entrada (se ainda nao salvou)
             interacao_entrada = None
             if not context.metadata.get("entrada_salva"):
                 # Sprint 41: Tentar extrair chip_id para mensagens recebidas
                 chip_id_entrada = (
-                    context.metadata.get("chip_id") or
-                    context.mensagem_raw.get("_zapi_chip_id") or
-                    context.mensagem_raw.get("_chip_id")
+                    context.metadata.get("chip_id")
+                    or context.mensagem_raw.get("_zapi_chip_id")
+                    or context.mensagem_raw.get("_chip_id")
                 )
 
                 interacao_entrada = await salvar_interacao(
@@ -341,7 +320,9 @@ class SaveInteractionProcessor(PostProcessor):
                             effect_type="message_sent",
                             interaction_id=interaction_id,
                         )
-                        logger.debug(f"Policy effect atualizado com interaction_id: {interaction_id}")
+                        logger.debug(
+                            f"Policy effect atualizado com interaction_id: {interaction_id}"
+                        )
 
             logger.debug("Interacoes salvas")
 
@@ -390,14 +371,11 @@ class ChatwootResponseProcessor(PostProcessor):
 
     Prioridade: 25 (logo apos SendMessage)
     """
+
     name = "chatwoot_response"
     priority = 25
 
-    async def process(
-        self,
-        context: ProcessorContext,
-        response: str
-    ) -> ProcessorResult:
+    async def process(self, context: ProcessorContext, response: str) -> ProcessorResult:
         # So sincroniza se tiver ID da conversa do Chatwoot
         chatwoot_conversation_id = context.metadata.get("chatwoot_conversation_id")
         if not chatwoot_conversation_id:
@@ -411,19 +389,23 @@ class ChatwootResponseProcessor(PostProcessor):
                 await chatwoot_service.enviar_mensagem(
                     conversation_id=chatwoot_conversation_id,
                     content=context.mensagem_texto,
-                    message_type="incoming"
+                    message_type="incoming",
                 )
                 context.metadata["chatwoot_incoming_sent"] = True
-                logger.info(f"Mensagem do usuario sincronizada com Chatwoot conversa {chatwoot_conversation_id}")
+                logger.info(
+                    f"Mensagem do usuario sincronizada com Chatwoot conversa {chatwoot_conversation_id}"
+                )
 
             # 2. Enviar resposta da Julia como outgoing (se mensagem foi enviada)
             if response and context.metadata.get("message_sent"):
                 await chatwoot_service.enviar_mensagem(
                     conversation_id=chatwoot_conversation_id,
                     content=response,
-                    message_type="outgoing"
+                    message_type="outgoing",
                 )
-                logger.info(f"Resposta sincronizada com Chatwoot conversa {chatwoot_conversation_id}")
+                logger.info(
+                    f"Resposta sincronizada com Chatwoot conversa {chatwoot_conversation_id}"
+                )
 
         except Exception as e:
             # Erro na sincronizacao nao deve parar o pipeline
@@ -438,22 +420,18 @@ class MetricsProcessor(PostProcessor):
 
     Prioridade: 40
     """
+
     name = "metrics"
     priority = 40
 
-    async def process(
-        self,
-        context: ProcessorContext,
-        response: str
-    ) -> ProcessorResult:
+    async def process(self, context: ProcessorContext, response: str) -> ProcessorResult:
         try:
             tempo_inicio = context.metadata.get("tempo_inicio", time.time())
             tempo_resposta = time.time() - tempo_inicio
 
             # Registrar mensagem do medico
             await metricas_service.registrar_mensagem(
-                conversa_id=context.conversa["id"],
-                origem="medico"
+                conversa_id=context.conversa["id"], origem="medico"
             )
 
             # Registrar resposta da Julia
@@ -461,7 +439,7 @@ class MetricsProcessor(PostProcessor):
                 await metricas_service.registrar_mensagem(
                     conversa_id=context.conversa["id"],
                     origem="ai",
-                    tempo_resposta_segundos=tempo_resposta
+                    tempo_resposta_segundos=tempo_resposta,
                 )
 
         except Exception as e:

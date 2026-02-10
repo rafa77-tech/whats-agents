@@ -5,6 +5,7 @@ Sprint 37 - Epic 10
 
 Valida se respostas de Julia estão de acordo com a persona definida.
 """
+
 import re
 from dataclasses import dataclass, field
 from typing import Optional
@@ -119,9 +120,7 @@ def validar_resposta_persona(
 
     # 5. Verificar uso de abreviações (opcional)
     if verificar_abreviacoes:
-        tem_abreviacao = any(
-            abrev in resposta.lower() for abrev in ABREVIACOES_INFORMAIS
-        )
+        tem_abreviacao = any(abrev in resposta.lower() for abrev in ABREVIACOES_INFORMAIS)
         if not tem_abreviacao and len(resposta) > 50:
             # Só penaliza se a resposta é longa e não tem nenhuma abreviação
             score -= 0.05
@@ -243,9 +242,7 @@ def calcular_score_naturalidade(resposta: str) -> float:
         score -= 0.1
 
     # Bonificar uso de abreviações informais
-    abreviacoes_usadas = sum(
-        1 for abrev in ABREVIACOES_INFORMAIS if abrev in texto_lower
-    )
+    abreviacoes_usadas = sum(1 for abrev in ABREVIACOES_INFORMAIS if abrev in texto_lower)
     score += min(0.1, abreviacoes_usadas * 0.02)
 
     # Garantir entre 0 e 1
