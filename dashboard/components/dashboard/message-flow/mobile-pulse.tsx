@@ -16,9 +16,7 @@ export function MobilePulse({ data }: MobilePulseProps) {
   const totalInbound = data.chips.reduce((sum, c) => sum + c.recentInbound, 0)
 
   // Pulse speed: faster when more active (2s base, down to 0.8s)
-  const pulseSpeed = isActive
-    ? `${Math.max(0.8, 2 - data.messagesPerMinute * 0.05)}s`
-    : '2s'
+  const pulseSpeed = isActive ? `${Math.max(0.8, 2 - data.messagesPerMinute * 0.05)}s` : '2s'
 
   return (
     <div className="flex flex-col gap-2 py-1">
@@ -30,18 +28,12 @@ export function MobilePulse({ data }: MobilePulseProps) {
               isActive ? 'mf-mobile-pulse bg-primary' : 'bg-muted-foreground'
             }`}
             style={
-              isActive
-                ? ({ '--mf-pulse-speed': pulseSpeed } as React.CSSProperties)
-                : undefined
+              isActive ? ({ '--mf-pulse-speed': pulseSpeed } as React.CSSProperties) : undefined
             }
           />
-          <span className="text-sm font-medium">
-            Julia {isActive ? 'Ativa' : 'Idle'}
-          </span>
+          <span className="text-sm font-medium">Julia {isActive ? 'Ativa' : 'Idle'}</span>
         </div>
-        <span className="text-sm text-muted-foreground">
-          {data.messagesPerMinute} msg/min
-        </span>
+        <span className="text-sm text-muted-foreground">{data.messagesPerMinute} msg/min</span>
       </div>
 
       {/* Row 2: Chip bar */}
@@ -62,11 +54,11 @@ export function MobilePulse({ data }: MobilePulseProps) {
       {/* Row 3: Inbound/Outbound counters */}
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
-          <ArrowUp className="h-3 w-3 text-blue-500" />
+          <ArrowUp className="h-3 w-3 text-status-info-solid" />
           {totalOutbound} enviadas
         </span>
         <span className="flex items-center gap-1">
-          <ArrowDown className="h-3 w-3 text-green-500" />
+          <ArrowDown className="h-3 w-3 text-status-success-solid" />
           {totalInbound} recebidas
         </span>
       </div>

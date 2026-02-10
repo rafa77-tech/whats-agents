@@ -8,10 +8,7 @@ import { MessageFlowWidget } from '@/components/dashboard/message-flow/message-f
 import type { MessageFlowData, ChipNode, RecentMessage } from '@/types/dashboard'
 
 // Mock CSS import
-vi.mock(
-  '@/components/dashboard/message-flow/message-flow.css',
-  () => ({})
-)
+vi.mock('@/components/dashboard/message-flow/message-flow.css', () => ({}))
 
 function createMockChip(overrides: Partial<ChipNode> = {}): ChipNode {
   return {

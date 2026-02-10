@@ -40,9 +40,7 @@ export function ParticleSystem({
             cx={startX}
             cy={startY}
             r={3}
-            className={`mf-particle ${
-              isOutbound ? 'mf-particle-outbound' : 'mf-particle-inbound'
-            }`}
+            className={`mf-particle ${isOutbound ? 'mf-particle-outbound' : 'mf-particle-inbound'}`}
             style={
               {
                 '--mf-dx': `${dx}px`,

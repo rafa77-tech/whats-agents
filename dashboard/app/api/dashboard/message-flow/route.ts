@@ -7,12 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import type {
-  ChipNode,
-  ChipNodeStatus,
-  MessageFlowData,
-  RecentMessage,
-} from '@/types/dashboard'
+import type { ChipNode, ChipNodeStatus, MessageFlowData, RecentMessage } from '@/types/dashboard'
 
 export const dynamic = 'force-dynamic'
 
@@ -100,9 +95,7 @@ export async function GET(): Promise<NextResponse> {
     // 4. Calcular atividade recente por chip (últimos 2 min = "ativo")
     const twoMinAgo = new Date(now.getTime() - 2 * 60 * 1000)
     const activeChipIds = new Set(
-      recentInteracoes
-        .filter((m) => new Date(m.created_at) >= twoMinAgo)
-        .map((m) => m.chip_id)
+      recentInteracoes.filter((m) => new Date(m.created_at) >= twoMinAgo).map((m) => m.chip_id)
     )
 
     // Contadores de mensagens recentes por chip

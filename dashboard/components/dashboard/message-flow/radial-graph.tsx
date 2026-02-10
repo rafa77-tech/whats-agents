@@ -60,16 +60,15 @@ const TT_HEIGHT = 62
 const TT_PADDING = 8
 const TT_LINE_HEIGHT = 13
 
-export function RadialGraph({
-  chips,
-  recentMessages,
-  messagesPerMinute,
-}: RadialGraphProps) {
+export function RadialGraph({ chips, recentMessages, messagesPerMinute }: RadialGraphProps) {
   const router = useRouter()
   const [hoveredChipId, setHoveredChipId] = useState<string | null>(null)
   const [juliaHovered, setJuliaHovered] = useState(false)
 
-  const viewHeight = Math.max(VIEW_HEIGHT, chips.length * (CHIP_RADIUS * 2 + CHIP_VERTICAL_GAP) + 40)
+  const viewHeight = Math.max(
+    VIEW_HEIGHT,
+    chips.length * (CHIP_RADIUS * 2 + CHIP_VERTICAL_GAP) + 40
+  )
 
   const chipPositions = useMemo(() => {
     const map = new Map<string, { x: number; y: number }>()
@@ -107,7 +106,6 @@ export function RadialGraph({
         role="img"
         aria-label={`Fluxo de mensagens: ${chips.length} chips, ${messagesPerMinute} mensagens por minuto`}
       >
-
         {/* Layer 1: Connection lines */}
         <g className="mf-connections">
           {chips.map((chip) => {
@@ -153,12 +151,7 @@ export function RadialGraph({
                 className="cursor-pointer"
               >
                 {/* Invisible larger hit area */}
-                <circle
-                  cx={pos.x}
-                  cy={pos.y}
-                  r={CHIP_HIT_RADIUS}
-                  fill="transparent"
-                />
+                <circle cx={pos.x} cy={pos.y} r={CHIP_HIT_RADIUS} fill="transparent" />
                 <circle
                   cx={pos.x}
                   cy={pos.y}
@@ -235,13 +228,29 @@ export function RadialGraph({
               strokeWidth={0.5}
               filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
             />
-            <text x={TT_PADDING} y={TT_PADDING + TT_LINE_HEIGHT} fontSize="10" fontWeight="600" className="fill-foreground">
+            <text
+              x={TT_PADDING}
+              y={TT_PADDING + TT_LINE_HEIGHT}
+              fontSize="10"
+              fontWeight="600"
+              className="fill-foreground"
+            >
               Jull.ia · Agente IA
             </text>
-            <text x={TT_PADDING} y={TT_PADDING + TT_LINE_HEIGHT * 2 + 2} fontSize="9" className="fill-muted-foreground">
+            <text
+              x={TT_PADDING}
+              y={TT_PADDING + TT_LINE_HEIGHT * 2 + 2}
+              fontSize="9"
+              className="fill-muted-foreground"
+            >
               {chips.length} chips conectados
             </text>
-            <text x={TT_PADDING} y={TT_PADDING + TT_LINE_HEIGHT * 3 + 4} fontSize="9" className="fill-muted-foreground">
+            <text
+              x={TT_PADDING}
+              y={TT_PADDING + TT_LINE_HEIGHT * 3 + 4}
+              fontSize="9"
+              className="fill-muted-foreground"
+            >
               {messagesPerMinute} msg/min · {isIdle ? 'Idle' : 'Ativa'}
             </text>
           </g>
@@ -259,13 +268,29 @@ export function RadialGraph({
               strokeWidth={0.5}
               filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
             />
-            <text x={TT_PADDING} y={TT_PADDING + TT_LINE_HEIGHT} fontSize="10" fontWeight="600" className="fill-foreground">
+            <text
+              x={TT_PADDING}
+              y={TT_PADDING + TT_LINE_HEIGHT}
+              fontSize="10"
+              fontWeight="600"
+              className="fill-foreground"
+            >
               {hoveredChip.name}
             </text>
-            <text x={TT_PADDING} y={TT_PADDING + TT_LINE_HEIGHT * 2 + 2} fontSize="9" className="fill-muted-foreground">
+            <text
+              x={TT_PADDING}
+              y={TT_PADDING + TT_LINE_HEIGHT * 2 + 2}
+              fontSize="9"
+              className="fill-muted-foreground"
+            >
               {STATUS_LABELS[hoveredChip.status]} · Trust {hoveredChip.trustScore}%
             </text>
-            <text x={TT_PADDING} y={TT_PADDING + TT_LINE_HEIGHT * 3 + 4} fontSize="9" className="fill-muted-foreground">
+            <text
+              x={TT_PADDING}
+              y={TT_PADDING + TT_LINE_HEIGHT * 3 + 4}
+              fontSize="9"
+              className="fill-muted-foreground"
+            >
               ↑ {hoveredChip.recentOutbound} enviadas · ↓ {hoveredChip.recentInbound} recebidas
             </text>
           </g>

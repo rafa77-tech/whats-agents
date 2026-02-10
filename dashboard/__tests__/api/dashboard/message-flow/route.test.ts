@@ -119,11 +119,46 @@ describe('GET /api/dashboard/message-flow', () => {
   it('mapeia status do banco para ChipNodeStatus corretamente', async () => {
     setupMockQueries({
       chips: [
-        { id: 'c1', instance_name: 'A', status: 'active', trust_score: 90, msgs_enviadas_hoje: 0, msgs_recebidas_hoje: 0 },
-        { id: 'c2', instance_name: 'B', status: 'warming', trust_score: 50, msgs_enviadas_hoje: 0, msgs_recebidas_hoje: 0 },
-        { id: 'c3', instance_name: 'C', status: 'ready', trust_score: 60, msgs_enviadas_hoje: 0, msgs_recebidas_hoje: 0 },
-        { id: 'c4', instance_name: 'D', status: 'degraded', trust_score: 30, msgs_enviadas_hoje: 0, msgs_recebidas_hoje: 0 },
-        { id: 'c5', instance_name: 'E', status: 'paused', trust_score: 70, msgs_enviadas_hoje: 0, msgs_recebidas_hoje: 0 },
+        {
+          id: 'c1',
+          instance_name: 'A',
+          status: 'active',
+          trust_score: 90,
+          msgs_enviadas_hoje: 0,
+          msgs_recebidas_hoje: 0,
+        },
+        {
+          id: 'c2',
+          instance_name: 'B',
+          status: 'warming',
+          trust_score: 50,
+          msgs_enviadas_hoje: 0,
+          msgs_recebidas_hoje: 0,
+        },
+        {
+          id: 'c3',
+          instance_name: 'C',
+          status: 'ready',
+          trust_score: 60,
+          msgs_enviadas_hoje: 0,
+          msgs_recebidas_hoje: 0,
+        },
+        {
+          id: 'c4',
+          instance_name: 'D',
+          status: 'degraded',
+          trust_score: 30,
+          msgs_enviadas_hoje: 0,
+          msgs_recebidas_hoje: 0,
+        },
+        {
+          id: 'c5',
+          instance_name: 'E',
+          status: 'paused',
+          trust_score: 70,
+          msgs_enviadas_hoje: 0,
+          msgs_recebidas_hoje: 0,
+        },
       ],
     })
 
@@ -141,11 +176,16 @@ describe('GET /api/dashboard/message-flow', () => {
     const now = new Date()
     setupMockQueries({
       chips: [
-        { id: 'c1', instance_name: 'A', status: 'active', trust_score: 90, msgs_enviadas_hoje: 5, msgs_recebidas_hoje: 3 },
+        {
+          id: 'c1',
+          instance_name: 'A',
+          status: 'active',
+          trust_score: 90,
+          msgs_enviadas_hoje: 5,
+          msgs_recebidas_hoje: 3,
+        },
       ],
-      interacoes: [
-        { id: 1, chip_id: 'c1', tipo: 'saida', created_at: now.toISOString() },
-      ],
+      interacoes: [{ id: 1, chip_id: 'c1', tipo: 'saida', created_at: now.toISOString() }],
     })
 
     const response = await GET()
@@ -157,7 +197,14 @@ describe('GET /api/dashboard/message-flow', () => {
   it('mensagens recentes mapeiam direction corretamente', async () => {
     setupMockQueries({
       chips: [
-        { id: 'c1', instance_name: 'A', status: 'active', trust_score: 90, msgs_enviadas_hoje: 0, msgs_recebidas_hoje: 0 },
+        {
+          id: 'c1',
+          instance_name: 'A',
+          status: 'active',
+          trust_score: 90,
+          msgs_enviadas_hoje: 0,
+          msgs_recebidas_hoje: 0,
+        },
       ],
       interacoes: [
         { id: 1, chip_id: 'c1', tipo: 'saida', created_at: new Date().toISOString() },

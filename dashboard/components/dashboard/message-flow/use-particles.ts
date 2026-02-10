@@ -33,9 +33,7 @@ export function useParticles({
   const cleanup = useCallback(() => {
     const now = Date.now()
     setParticles((prev) => {
-      const alive = prev.filter(
-        (p) => now - p.createdAt < animationDuration + 100
-      )
+      const alive = prev.filter((p) => now - p.createdAt < animationDuration + 100)
       // Clean up seenIds for removed particles
       const aliveIds = new Set(alive.map((p) => p.id))
       seenIdsRef.current.forEach((id) => {
@@ -84,13 +82,11 @@ export function useParticles({
         const dropped = sorted.slice(combined.length - maxParticles)
         // Clean seenIds for dropped particles
         const keptIds = new Set(dropped.map((p) => p.id))
-        sorted
-          .slice(0, combined.length - maxParticles)
-          .forEach((p) => {
-            if (!keptIds.has(p.id)) {
-              seenIdsRef.current.delete(p.id)
-            }
-          })
+        sorted.slice(0, combined.length - maxParticles).forEach((p) => {
+          if (!keptIds.has(p.id)) {
+            seenIdsRef.current.delete(p.id)
+          }
+        })
         return dropped
       }
       return combined
