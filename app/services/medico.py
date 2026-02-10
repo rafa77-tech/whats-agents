@@ -8,6 +8,7 @@ import logging
 from app.services.supabase import supabase
 from app.services.redis import cache_get_json, cache_set_json, cache_delete
 from app.core.config import DatabaseConfig
+from app.services.telefone import normalizar_telefone
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ async def buscar_medico_por_telefone(telefone: str) -> Optional[dict]:
     Returns:
         Dados do medico ou None se nao encontrado
     """
+    telefone = normalizar_telefone(telefone)
     cache_key = f"medico:telefone:{telefone}"
 
     # Tentar cache primeiro
@@ -66,6 +68,7 @@ async def criar_medico(telefone: str, nome: Optional[str] = None, **kwargs) -> O
     Returns:
         Dados do medico criado
     """
+    telefone = normalizar_telefone(telefone)
     try:
         dados = {
             "telefone": telefone,

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from .base import BaseRepository
+from app.services.telefone import normalizar_telefone
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +114,7 @@ class ClienteRepository(BaseRepository[Cliente]):
         Returns:
             Cliente ou None
         """
-        telefone_limpo = "".join(filter(str.isdigit, telefone))
+        telefone_limpo = normalizar_telefone(telefone)
         try:
             response = (
                 self.db.table(self.table_name).select("*").eq("telefone", telefone_limpo).execute()
@@ -150,7 +151,7 @@ class ClienteRepository(BaseRepository[Cliente]):
         """Cria novo cliente."""
         # Normalizar telefone
         if "telefone" in data:
-            data["telefone"] = "".join(filter(str.isdigit, data["telefone"]))
+            data["telefone"] = normalizar_telefone(data["telefone"])
 
         try:
             response = self.db.table(self.table_name).insert(data).execute()
