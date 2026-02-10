@@ -393,4 +393,4 @@ prompt = await montar_prompt_julia(
 
 ---
 
-*Documentacao atualizada em 16/12/2025*
+**Validado em 10/02/2026**

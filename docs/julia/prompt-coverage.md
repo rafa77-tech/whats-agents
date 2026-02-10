@@ -201,3 +201,7 @@ O código tem `FALLBACK_PROMPTS` hardcoded em `app/prompts/loader.py` com versã
 |------|--------|---------|
 | 31/12/2025 | 2.0 | julia_base v2 com sentinelas, validação em /health/deep |
 | 31/12/2025 | 1.0 | Documento inicial |
+
+---
+
+**Validado em 10/02/2026**

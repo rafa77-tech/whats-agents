@@ -63,4 +63,4 @@ Estes documentos sao indexados pelo sistema de conhecimento dinamico (Sprint 13)
 
 ---
 
-*Atualizado em 29/12/2025*
+**Validado em 10/02/2026**

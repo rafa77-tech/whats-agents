@@ -197,5 +197,8 @@ campanha = {
 ## Ver Tambem
 
 - [Modo Piloto](../operacao/runbook-sprint32.md#modo-piloto)
-- [Canal de Ajuda](./canal-ajuda.md)
-- [Diretrizes Contextuais](./diretrizes.md)
+- [Sistema de Prompts](./sistema-prompts.md)
+
+---
+
+**Validado em 10/02/2026**
