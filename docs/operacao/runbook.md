@@ -325,6 +325,182 @@ railway logs | grep -i error
 
 ### Alertas
 
-Configurados via Slack:
-- Deploy success/failure
-- Health check failures (manual verificar)
+Configurados via Dashboard:
+- Health Center com alertas sonoros e notificações do browser
+- Timeline de incidentes com MTTR e uptime
+
+---
+
+## Rotacao de Secrets
+
+### Frequencia Recomendada
+
+| Secret | Frequencia | Provider | URL |
+|--------|------------|----------|-----|
+| `ANTHROPIC_API_KEY` | 90 dias | Anthropic | https://console.anthropic.com |
+| `SUPABASE_SERVICE_KEY` | 90 dias | Supabase | https://app.supabase.com |
+| `EVOLUTION_API_KEY` | 90 dias | Self-hosted | Admin do Evolution |
+| `SLACK_BOT_TOKEN` | Quando comprometido | Slack | https://api.slack.com/apps |
+| `VOYAGE_API_KEY` | 90 dias | Voyage AI | https://dash.voyageai.com |
+| `GOOGLE_SERVICE_ACCOUNT` | 180 dias | Google Cloud | https://console.cloud.google.com |
+
+### Processo de Rotacao
+
+**Pre-requisitos:**
+- Acesso ao Railway Dashboard
+- Credenciais dos providers
+
+**Passos:**
+
+1. **Gerar nova key no provider**
+   - Acessar console do provider
+   - Criar nova API key
+   - Copiar a key (so aparece uma vez)
+
+2. **Atualizar no Railway**
+   ```bash
+   # Via CLI
+   railway variables set NOME_DA_VARIAVEL="nova-key"
+
+   # Ou via Dashboard:
+   # Railway → Service → Variables → Edit
+   ```
+
+3. **Aguardar deploy**
+   - Railway faz deploy automatico quando variavel muda
+   - Monitorar logs durante o deploy
+
+4. **Validar funcionamento**
+   ```bash
+   # Verificar health
+   curl https://whats-agents-production.up.railway.app/health/deep
+
+   # Verificar logs por erros de autenticacao
+   railway logs -n 50 | grep -i "auth\|key\|unauthorized"
+   ```
+
+5. **Revogar key antiga**
+   - Aguardar 24h de funcionamento estavel
+   - Voltar ao provider e revogar a key antiga
+   - Confirmar que nao ha erros nos logs
+
+### Troubleshooting
+
+**Erro: "Invalid API Key" apos rotacao**
+- Verificar se a key foi colada corretamente (sem espacos)
+- Verificar se o nome da variavel esta correto
+- Fazer redeploy manual: `railway up`
+
+**Erro: "Rate limit exceeded" apos rotacao**
+- Key nova pode ter limite diferente
+- Verificar plano/tier no provider
+
+---
+
+## Manutencao do Banco de Dados
+
+### Verificacao de Saude
+
+**Executar semanalmente ou apos grandes operacoes:**
+
+```sql
+-- 1. Verificar tabelas que precisam VACUUM
+SELECT
+    relname as tabela,
+    n_live_tup as linhas,
+    n_dead_tup as linhas_mortas,
+    pg_size_pretty(pg_total_relation_size(relid)) as tamanho,
+    last_vacuum,
+    last_analyze
+FROM pg_stat_user_tables
+WHERE schemaname = 'public'
+ORDER BY n_dead_tup DESC
+LIMIT 10;
+
+-- 2. Verificar indices nao utilizados (rodar apos 1+ semana de uso)
+SELECT
+    relname as tabela,
+    indexrelname as indice,
+    idx_scan as usos,
+    pg_size_pretty(pg_relation_size(indexrelid)) as tamanho
+FROM pg_stat_user_indexes
+WHERE idx_scan = 0
+  AND schemaname = 'public'
+ORDER BY pg_relation_size(indexrelid) DESC
+LIMIT 10;
+
+-- 3. Verificar bloat (espaco desperdicado)
+SELECT
+    relname as tabela,
+    pg_size_pretty(pg_total_relation_size(relid)) as tamanho_total,
+    pg_size_pretty(pg_relation_size(relid)) as tamanho_dados
+FROM pg_stat_user_tables
+ORDER BY pg_total_relation_size(relid) DESC
+LIMIT 10;
+```
+
+### Quando Executar ANALYZE
+
+O Supabase executa autovacuum, mas pode ser necessario ANALYZE manual:
+
+```sql
+-- Apos importacao em massa de dados
+ANALYZE nome_da_tabela;
+
+-- Apos DELETE de muitas linhas
+ANALYZE nome_da_tabela;
+
+-- Para atualizar estatisticas de todas tabelas
+ANALYZE;
+```
+
+### Quando Executar VACUUM
+
+```sql
+-- VACUUM simples (nao bloqueia)
+VACUUM nome_da_tabela;
+
+-- VACUUM ANALYZE (recomendado)
+VACUUM ANALYZE nome_da_tabela;
+
+-- VACUUM FULL (bloqueia, usar com cuidado em prod)
+-- So se houver muito bloat
+VACUUM FULL nome_da_tabela;
+```
+
+### Tabelas de Alto Volume
+
+Monitorar especialmente:
+
+| Tabela | Volume Esperado | Acao |
+|--------|-----------------|------|
+| `job_executions` | ~10k/dia | VACUUM semanal |
+| `interacoes` | ~1k/dia | VACUUM quinzenal |
+| `business_events` | ~5k/dia | VACUUM semanal |
+| `mensagens_grupo` | ~2k/dia | VACUUM quinzenal |
+| `health_incidents` | ~10/semana | VACUUM mensal |
+
+### Indices - Boas Praticas
+
+1. **FKs sempre precisam de indice** (PostgreSQL nao cria automaticamente)
+2. **Verificar uso** antes de remover indice nao utilizado
+3. **Usar CONCURRENTLY** para criar indices em producao:
+   ```sql
+   CREATE INDEX CONCURRENTLY idx_nome ON tabela(coluna);
+   ```
+
+### Indices Criados (Sprint 55)
+
+Indices adicionados para FKs criticas:
+
+| Tabela | Indice |
+|--------|--------|
+| interacoes | idx_interacoes_cliente_id |
+| interacoes | idx_interacoes_conversa_id |
+| job_executions | idx_job_executions_job_name |
+| campanhas | idx_campanhas_criado_por |
+| envios | idx_envios_campanha_id |
+| mensagens_grupo | idx_mensagens_grupo_grupo_id |
+| conversas_grupo | idx_conversas_grupo_grupo_id |
+| business_events | idx_business_events_medico_id |
+| business_events | idx_business_events_conversa_id |

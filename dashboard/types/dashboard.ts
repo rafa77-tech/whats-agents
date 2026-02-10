@@ -344,3 +344,46 @@ export interface DashboardExportData {
     change: number
   }>
 }
+
+// ============================================================================
+// Message Flow Visualization Types (Sprint 56)
+// ============================================================================
+
+/** Direção da mensagem no fluxo visual */
+export type MessageDirection = 'inbound' | 'outbound'
+
+/** Status visual de um chip no grafo radial */
+export type ChipNodeStatus = 'active' | 'warming' | 'degraded' | 'paused' | 'offline'
+
+/** Um nó de chip no grafo radial */
+export interface ChipNode {
+  id: string
+  name: string
+  status: ChipNodeStatus
+  trustScore: number
+  /** Mensagens enviadas nos últimos 5 minutos */
+  recentOutbound: number
+  /** Mensagens recebidas nos últimos 5 minutos */
+  recentInbound: number
+  /** Se o chip está em conversa ativa agora */
+  isActive: boolean
+}
+
+/** Uma mensagem recente para animar como partícula */
+export interface RecentMessage {
+  id: string
+  chipId: string
+  direction: MessageDirection
+  /** Timestamp ISO para ordenação */
+  timestamp: string
+}
+
+/** Dados completos do widget de message flow */
+export interface MessageFlowData {
+  chips: ChipNode[]
+  recentMessages: RecentMessage[]
+  /** Total de mensagens/minuto (inbound + outbound) */
+  messagesPerMinute: number
+  /** Timestamp da última atualização */
+  updatedAt: string
+}

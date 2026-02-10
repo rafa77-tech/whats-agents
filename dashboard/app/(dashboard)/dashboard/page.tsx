@@ -20,6 +20,7 @@ import { FunnelDrilldownModal } from '@/components/dashboard/funnel-drilldown-mo
 import { TrendsSection } from '@/components/dashboard/trends-section'
 import { AlertsList } from '@/components/dashboard/alerts-list'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
+import { MessageFlowWidget } from '@/components/dashboard/message-flow'
 import { CriticalAlertsBanner } from '@/components/shared'
 import {
   type DashboardPeriod,
@@ -32,6 +33,7 @@ import {
   type TrendsData,
   type AlertsData,
   type ActivityFeedData,
+  type MessageFlowData,
 } from '@/types/dashboard'
 
 // Default empty states
@@ -88,6 +90,7 @@ export default function DashboardPage() {
   const [trendsData, setTrendsData] = useState<TrendsData>(defaultTrends)
   const [alertsData, setAlertsData] = useState<AlertsData>(defaultAlerts)
   const [activityData, setActivityData] = useState<ActivityFeedData>(defaultActivity)
+  const [messageFlowData, setMessageFlowData] = useState<MessageFlowData | null>(null)
 
   // Header data
   const [juliaStatus, setJuliaStatus] = useState<'online' | 'offline' | 'degraded'>('offline')
@@ -338,6 +341,27 @@ export default function DashboardPage() {
     }
   }, [])
 
+  const fetchMessageFlow = useCallback(async () => {
+    try {
+      const response = await fetch('/api/dashboard/message-flow')
+      if (response.ok) {
+        const data: MessageFlowData = await response.json()
+        setMessageFlowData(data)
+      }
+    } catch (error) {
+      console.error('[dashboard] message-flow fetch error:', error)
+      // Keep last valid state on error (no flicker)
+    }
+  }, [])
+
+  // Polling 5s for message flow (independent of other widgets)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void fetchMessageFlow()
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [fetchMessageFlow])
+
   useEffect(() => {
     const fetchAllData = async () => {
       setIsLoading(true)
@@ -348,6 +372,7 @@ export default function DashboardPage() {
         fetchMetrics(),
         fetchQuality(),
         fetchOperational(),
+        fetchMessageFlow(),
         fetchFunnel(),
         fetchTrends(),
         fetchAlerts(),
@@ -365,6 +390,7 @@ export default function DashboardPage() {
     fetchMetrics,
     fetchQuality,
     fetchOperational,
+    fetchMessageFlow,
     fetchFunnel,
     fetchTrends,
     fetchAlerts,
@@ -384,6 +410,7 @@ export default function DashboardPage() {
       fetchMetrics(),
       fetchQuality(),
       fetchOperational(),
+      fetchMessageFlow(),
       fetchFunnel(),
       fetchTrends(),
       fetchAlerts(),
@@ -397,6 +424,7 @@ export default function DashboardPage() {
     fetchMetrics,
     fetchQuality,
     fetchOperational,
+    fetchMessageFlow,
     fetchFunnel,
     fetchTrends,
     fetchAlerts,
@@ -485,6 +513,10 @@ export default function DashboardPage() {
 
         <section aria-label="Status Operacional">
           <OperationalStatus data={operationalData} />
+        </section>
+
+        <section aria-label="Fluxo de Mensagens">
+          <MessageFlowWidget data={messageFlowData} isLoading={isLoading} />
         </section>
 
         <section aria-label="Pool de Chips" className="space-y-6">

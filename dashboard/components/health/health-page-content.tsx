@@ -4,13 +4,35 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, AlertTriangle, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import {
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Bell,
+  BellOff,
+  Volume2,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { HealthGauge } from './health-gauge'
 import { CircuitBreakersPanel } from './circuit-breakers-panel'
 import { AlertsPanel } from './alerts-panel'
 import { RateLimitPanel } from './rate-limit-panel'
 import { QueueStatusPanel } from './queue-status-panel'
+import { IncidentsTimeline } from './incidents-timeline'
+
+// Sprint 55 E02: Alertas Proativos
+import { useHealthAlert, type HealthStatus } from '@/hooks/use-health-alert'
+import { useTabAlert } from '@/hooks/use-tab-alert'
+import { playAlertSound, playRecoverySound, requestSoundPermission } from '@/lib/alert-sound'
+import {
+  sendCriticalNotification,
+  sendRecoveryNotification,
+  sendDegradedNotification,
+  requestNotificationPermission,
+  isNotificationGranted,
+} from '@/lib/browser-notifications'
 
 interface HealthData {
   score: number
@@ -57,6 +79,83 @@ export function HealthPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [refreshInterval, setRefreshInterval] = useState(30000)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+
+  // Sprint 55 E02: Alertas Proativos
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [soundEnabled, setSoundEnabled] = useState(false)
+
+  // Check permissions on mount
+  useEffect(() => {
+    setNotificationsEnabled(isNotificationGranted())
+  }, [])
+
+  // Health status change detection
+  const { isCritical } = useHealthAlert(data?.status as HealthStatus | null, {
+    onCritical: () => {
+      if (soundEnabled) {
+        playAlertSound()
+      }
+      if (notificationsEnabled) {
+        const alertCount = data?.alerts.length ?? 0
+        sendCriticalNotification(
+          `Sistema em estado critico! ${alertCount} alerta${alertCount !== 1 ? 's' : ''} ativo${alertCount !== 1 ? 's' : ''}.`
+        )
+      }
+    },
+    onRecovery: () => {
+      if (soundEnabled) {
+        playRecoverySound()
+      }
+      if (notificationsEnabled) {
+        sendRecoveryNotification()
+      }
+    },
+    onStatusChange: (from, to) => {
+      // Notify on degradation too
+      if (to === 'degraded' && from === 'healthy' && notificationsEnabled) {
+        sendDegradedNotification('O sistema entrou em estado degradado.')
+      }
+
+      // Sprint 55 E03: Register incident
+      fetch('/api/incidents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from_status: from,
+          to_status: to,
+          from_score: null, // We don't track previous score
+          to_score: data?.score ?? 0,
+          trigger_source: 'dashboard',
+          details: {
+            alerts: data?.alerts?.length ?? 0,
+            services: data?.services?.filter((s) => s.status !== 'ok').map((s) => s.name) ?? [],
+          },
+        }),
+      }).catch((err) => console.error('Failed to register incident:', err))
+    },
+  })
+
+  // Tab title blink when critical
+  useTabAlert({
+    enabled: isCritical,
+    originalTitle: 'Health Center | Julia',
+    alertTitle: '🔴 CRITICO - Julia',
+  })
+
+  // Request permissions
+  const handleEnableNotifications = async () => {
+    const granted = await requestNotificationPermission()
+    setNotificationsEnabled(granted)
+  }
+
+  const handleEnableSound = async () => {
+    const enabled = await requestSoundPermission()
+    setSoundEnabled(enabled)
+    if (enabled) {
+      // Play a test beep so user knows it's working
+      playRecoverySound()
+    }
+  }
 
   const fetchHealthData = useCallback(async () => {
     try {
@@ -217,6 +316,34 @@ export function HealthPageContent() {
           <p className="text-muted-foreground">Monitoramento consolidado de saude do sistema</p>
         </div>
         <div className="flex items-center gap-4">
+          {/* Alert toggles */}
+          <div className="flex items-center gap-1">
+            <Button
+              onClick={handleEnableSound}
+              variant="ghost"
+              size="sm"
+              className={cn('h-8 w-8 p-0', soundEnabled && 'text-revoluna-500')}
+              title={soundEnabled ? 'Som de alerta ativo' : 'Ativar som de alerta'}
+            >
+              <Volume2 className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={handleEnableNotifications}
+              variant="ghost"
+              size="sm"
+              className={cn('h-8 w-8 p-0', notificationsEnabled && 'text-revoluna-500')}
+              title={
+                notificationsEnabled ? 'Notificacoes ativas' : 'Ativar notificacoes do browser'
+              }
+            >
+              {notificationsEnabled ? (
+                <Bell className="h-4 w-4" />
+              ) : (
+                <BellOff className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+
           {/* Refresh interval selector */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Auto-refresh:</span>
@@ -320,6 +447,9 @@ export function HealthPageContent() {
 
       {/* Queue Status */}
       <QueueStatusPanel queue={data?.queue} />
+
+      {/* Incidents Timeline - Sprint 55 E03 */}
+      <IncidentsTimeline />
 
       {/* Last Updated */}
       {lastUpdated && (

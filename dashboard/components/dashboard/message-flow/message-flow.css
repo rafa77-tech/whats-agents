@@ -1,0 +1,109 @@
+/* === Message Flow Widget Animations (Sprint 56) === */
+/* Prefixo mf- para evitar conflitos com animações existentes */
+
+/* Respiração da Julia quando idle */
+@keyframes mf-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+.mf-breathe {
+  animation: mf-breathe 3s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+/* Pulse de chip ativo */
+@keyframes mf-chip-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+}
+
+.mf-chip-pulse {
+  animation: mf-chip-pulse 2s ease-in-out infinite;
+}
+
+/* Viagem da partícula (usa CSS custom properties) */
+@keyframes mf-particle-travel {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(var(--mf-dx), var(--mf-dy));
+    opacity: 0;
+  }
+}
+
+.mf-particle {
+  will-change: transform, opacity;
+  animation: mf-particle-travel var(--mf-duration, 1500ms) ease-in-out forwards;
+  pointer-events: none;
+}
+
+.mf-particle-outbound {
+  fill: hsl(210 80% 60%);
+}
+
+.mf-particle-inbound {
+  fill: hsl(150 70% 50%);
+}
+
+/* Pulse do indicador mobile */
+@keyframes mf-mobile-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 6px hsl(var(--primary) / 0);
+  }
+}
+
+.mf-mobile-pulse {
+  animation: mf-mobile-pulse var(--mf-pulse-speed, 2s) ease-in-out infinite;
+}
+
+/* Dark mode adjustments */
+.dark .mf-particle-outbound {
+  fill: hsl(210 90% 70%);
+}
+
+.dark .mf-particle-inbound {
+  fill: hsl(150 80% 60%);
+}
+
+/* Reduced motion: disable all animations */
+@media (prefers-reduced-motion: reduce) {
+  .mf-breathe,
+  .mf-chip-pulse,
+  .mf-particle,
+  .mf-mobile-pulse {
+    animation: none !important;
+  }
+
+  .mf-particle {
+    transform: translate(var(--mf-dx), var(--mf-dy));
+    opacity: 0.5;
+  }
+}
