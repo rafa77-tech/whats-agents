@@ -27,6 +27,7 @@ ALLOWED_EVOLUTION_IMPORTERS = {
     "app/api/routes/debug_whatsapp.py",  # Endpoint de debug/teste
     # Pipeline pre-processors (apenas mostrar_online, não envio)
     "app/pipeline/pre_processors.py",
+    "app/pipeline/processors/presence.py",  # Sprint 44: Extraído - apenas presença
     # Grupos (ingestão, não envio outbound)
     "app/services/grupos/ingestor.py",
     # Agente (fallback legado com warning - TODO: remover)

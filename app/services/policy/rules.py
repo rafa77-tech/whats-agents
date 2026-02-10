@@ -8,7 +8,7 @@ IMPORTANTE:
 
 Sprint 15 - Policy Engine
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.core.timezone import agora_utc
@@ -53,10 +53,11 @@ def rule_cooling_off(state: DoctorState, **kwargs) -> Optional[PolicyDecision]:
             if isinstance(until, str):
                 try:
                     until = datetime.fromisoformat(until.replace("Z", "+00:00"))
-                    if until.tzinfo:
-                        until = until.replace(tzinfo=None)
                 except ValueError:
                     until = now
+            # Garantir que until é timezone-aware (UTC)
+            if isinstance(until, datetime) and until.tzinfo is None:
+                until = until.replace(tzinfo=timezone.utc)
 
             if now < until:
                 days_left = (until - now).days
@@ -208,10 +209,11 @@ def rule_silence_reactivation(
     if isinstance(last_out, str):
         try:
             last_out = datetime.fromisoformat(last_out.replace("Z", "+00:00"))
-            if last_out.tzinfo:
-                last_out = last_out.replace(tzinfo=None)
         except ValueError:
             return None
+    # Garantir timezone-aware
+    if isinstance(last_out, datetime) and last_out.tzinfo is None:
+        last_out = last_out.replace(tzinfo=timezone.utc)
 
     now = agora_utc()
     days_since_outbound = (now - last_out).days
@@ -223,12 +225,17 @@ def rule_silence_reactivation(
         if isinstance(last_in, str):
             try:
                 last_in = datetime.fromisoformat(last_in.replace("Z", "+00:00"))
-                if last_in.tzinfo:
-                    last_in = last_in.replace(tzinfo=None)
             except ValueError:
                 pass
             else:
+                # Garantir timezone-aware
+                if last_in.tzinfo is None:
+                    last_in = last_in.replace(tzinfo=timezone.utc)
                 julia_spoke_last = last_out > last_in
+        elif isinstance(last_in, datetime):
+            if last_in.tzinfo is None:
+                last_in = last_in.replace(tzinfo=timezone.utc)
+            julia_spoke_last = last_out > last_in
 
     # Condições: 7+ dias, temperatura >= 0.3, Julia falou por último
     if (
