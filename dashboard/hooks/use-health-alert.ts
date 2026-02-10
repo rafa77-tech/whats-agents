@@ -72,8 +72,7 @@ export function useHealthAlert(
 
   return {
     previousStatus: previousStatus.current,
-    isTransition:
-      previousStatus.current !== null && previousStatus.current !== currentStatus,
+    isTransition: previousStatus.current !== null && previousStatus.current !== currentStatus,
     isCritical: currentStatus === 'critical',
     wasCritical: previousStatus.current === 'critical',
   }

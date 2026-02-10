@@ -322,10 +322,7 @@ export function HealthPageContent() {
               onClick={handleEnableSound}
               variant="ghost"
               size="sm"
-              className={cn(
-                'h-8 w-8 p-0',
-                soundEnabled && 'text-revoluna-500'
-              )}
+              className={cn('h-8 w-8 p-0', soundEnabled && 'text-revoluna-500')}
               title={soundEnabled ? 'Som de alerta ativo' : 'Ativar som de alerta'}
             >
               <Volume2 className="h-4 w-4" />
@@ -334,14 +331,9 @@ export function HealthPageContent() {
               onClick={handleEnableNotifications}
               variant="ghost"
               size="sm"
-              className={cn(
-                'h-8 w-8 p-0',
-                notificationsEnabled && 'text-revoluna-500'
-              )}
+              className={cn('h-8 w-8 p-0', notificationsEnabled && 'text-revoluna-500')}
               title={
-                notificationsEnabled
-                  ? 'Notificacoes ativas'
-                  : 'Ativar notificacoes do browser'
+                notificationsEnabled ? 'Notificacoes ativas' : 'Ativar notificacoes do browser'
               }
             >
               {notificationsEnabled ? (

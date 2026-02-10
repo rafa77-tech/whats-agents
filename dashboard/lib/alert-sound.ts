@@ -20,9 +20,10 @@ export function playAlertSound(): void {
   try {
     // Criar contexto se não existir
     if (!audioContext) {
-      audioContext = new (window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext)()
+      audioContext = new (
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      )()
     }
 
     // Primeiro beep
@@ -66,9 +67,10 @@ function playBeep(ctx: AudioContext, delay: number): void {
 export function playRecoverySound(): void {
   try {
     if (!audioContext) {
-      audioContext = new (window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext)()
+      audioContext = new (
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      )()
     }
 
     const oscillator = audioContext.createOscillator()
@@ -99,9 +101,10 @@ export function playRecoverySound(): void {
 export async function requestSoundPermission(): Promise<boolean> {
   try {
     if (!audioContext) {
-      audioContext = new (window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext)()
+      audioContext = new (
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      )()
     }
 
     if (audioContext.state === 'suspended') {

@@ -61,6 +61,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error registering incident:', error)
-    return NextResponse.json({ success: false, error: 'Failed to register incident' }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: 'Failed to register incident' },
+      { status: 500 }
+    )
   }
 }
