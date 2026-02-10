@@ -53,11 +53,12 @@ jobs:
 
       - name: Run Ruff linter
         run: uv run ruff check app/
-        continue-on-error: true
 
       - name: Run Ruff formatter check
         run: uv run ruff format --check app/
-        continue-on-error: true
+
+      - name: Run mypy type checker
+        run: uv run mypy app/ --no-error-summary || echo "::warning::Type errors found - review recommended"
 
   # Job 2: Testes
   test:
@@ -111,7 +112,6 @@ jobs:
           EVOLUTION_API_KEY: test
           EVOLUTION_INSTANCE: test
         run: uv run pytest -v --tb=short
-        continue-on-error: true
 
       - name: Skip tests notice
         if: steps.check_secrets.outputs.secrets_available == 'false'
