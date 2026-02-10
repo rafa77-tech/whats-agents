@@ -60,6 +60,14 @@ vi.mock('@/components/dashboard/activity-feed', () => ({
   ActivityFeed: () => <div data-testid="activity">Activity</div>,
 }))
 
+vi.mock('@/components/dashboard/message-flow', () => ({
+  MessageFlowWidget: ({ data }: any) => (
+    <div data-testid="message-flow-widget">
+      {data ? `${data.chips?.length ?? 0} chips` : 'no data'}
+    </div>
+  ),
+}))
+
 vi.mock('@/components/shared', () => ({
   CriticalAlertsBanner: () => <div data-testid="critical-alerts">Critical Alerts</div>,
 }))
