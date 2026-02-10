@@ -273,10 +273,12 @@ class InstanceManager:
     async def _atualizar_chip_conectado(self, instance_name: str) -> None:
         """Atualiza status do chip quando conectado."""
         try:
-            supabase.table("chips").update({
-                "status": "warming",
-                "fase_warmup": "primeiros_contatos",
-            }).eq("instance_name", instance_name).execute()
+            supabase.table("chips").update(
+                {
+                    "status": "warming",
+                    "fase_warmup": "primeiros_contatos",
+                }
+            ).eq("instance_name", instance_name).execute()
 
             logger.info(f"[InstanceManager] Chip {instance_name} atualizado para warming")
 
@@ -308,9 +310,11 @@ class InstanceManager:
                     return DeleteInstanceResult(success=False, error=error_msg)
 
                 # Atualizar status do chip no banco
-                supabase.table("chips").update({
-                    "status": "cancelled",
-                }).eq("instance_name", instance_name).execute()
+                supabase.table("chips").update(
+                    {
+                        "status": "cancelled",
+                    }
+                ).eq("instance_name", instance_name).execute()
 
                 logger.info(f"[InstanceManager] Instancia {instance_name} deletada")
 

@@ -38,9 +38,9 @@ async def obter_ou_criar_grupo(jid: str, nome: Optional[str] = None) -> UUID:
         if not nome_atual:
             nome_api = await _buscar_nome_grupo_api(jid)
             if nome_api:
-                supabase.table("grupos_whatsapp").update({
-                    "nome": nome_api
-                }).eq("id", grupo_id).execute()
+                supabase.table("grupos_whatsapp").update({"nome": nome_api}).eq(
+                    "id", grupo_id
+                ).execute()
                 logger.info(f"Nome do grupo atualizado: {nome_api}")
 
         logger.debug(f"Grupo existente: {grupo_id}")
@@ -94,7 +94,7 @@ async def obter_ou_criar_contato(
     jid: str,
     nome: Optional[str] = None,
     telefone: Optional[str] = None,
-    grupo_jid: Optional[str] = None
+    grupo_jid: Optional[str] = None,
 ) -> UUID:
     """
     Obtém ou cria registro de contato.
@@ -223,8 +223,15 @@ def separar_nome_empresa(nome_completo: str) -> tuple[str, Optional[str]]:
 
     # Padrão 3: Empresas conhecidas no final
     empresas_conhecidas = [
-        "Quero Plantão", "SMPV", "SERGES", "Medtrust", "Hapvida",
-        "Medscalle", "Medopen", "mpdoctor", "MP Doctor",
+        "Quero Plantão",
+        "SMPV",
+        "SERGES",
+        "Medtrust",
+        "Hapvida",
+        "Medscalle",
+        "Medopen",
+        "mpdoctor",
+        "MP Doctor",
     ]
 
     for emp in empresas_conhecidas:
@@ -235,7 +242,7 @@ def separar_nome_empresa(nome_completo: str) -> tuple[str, Optional[str]]:
                 # Remover sufixos comuns como "Adm Jr", "Adm", etc
                 for sufixo in [" Adm Jr", " Adm", " Jr", " -"]:
                     if nome.endswith(sufixo):
-                        nome = nome[:-len(sufixo)].strip()
+                        nome = nome[: -len(sufixo)].strip()
                 return (nome, emp)
 
     # Sem empresa identificada
@@ -243,10 +250,7 @@ def separar_nome_empresa(nome_completo: str) -> tuple[str, Optional[str]]:
 
 
 async def salvar_mensagem_grupo(
-    grupo_id: UUID,
-    contato_id: UUID,
-    mensagem: MensagemRecebida,
-    dados_raw: dict
+    grupo_id: UUID, contato_id: UUID, mensagem: MensagemRecebida, dados_raw: dict
 ) -> UUID:
     """
     Salva mensagem de grupo no banco.
@@ -302,8 +306,13 @@ async def salvar_mensagem_grupo(
         "texto": mensagem.texto,
         "tipo_midia": tipo_midia,
         "tem_midia": tem_midia,
-        "timestamp_msg": mensagem.timestamp.isoformat() if mensagem.timestamp else datetime.now(UTC).isoformat(),
-        "is_forwarded": dados_raw.get("message", {}).get("extendedTextMessage", {}).get("contextInfo", {}).get("isForwarded", False),
+        "timestamp_msg": mensagem.timestamp.isoformat()
+        if mensagem.timestamp
+        else datetime.now(UTC).isoformat(),
+        "is_forwarded": dados_raw.get("message", {})
+        .get("extendedTextMessage", {})
+        .get("contextInfo", {})
+        .get("isForwarded", False),
         "status": status,
     }
 
@@ -324,10 +333,7 @@ async def atualizar_contadores(grupo_id: UUID, contato_id: UUID) -> None:
         logger.warning(f"Erro ao atualizar contadores: {e}")
 
 
-async def ingerir_mensagem_grupo(
-    mensagem: MensagemRecebida,
-    dados_raw: dict
-) -> Optional[UUID]:
+async def ingerir_mensagem_grupo(mensagem: MensagemRecebida, dados_raw: dict) -> Optional[UUID]:
     """
     Função principal de ingestão.
 
@@ -357,7 +363,7 @@ async def ingerir_mensagem_grupo(
         # Obter/criar grupo
         grupo_id = await obter_ou_criar_grupo(
             jid=grupo_jid,
-            nome=dados_raw.get("groupName")  # Nem sempre vem
+            nome=dados_raw.get("groupName"),  # Nem sempre vem
         )
 
         # Extrair telefone do sender (pode ser LID, será resolvido depois)
@@ -368,15 +374,12 @@ async def ingerir_mensagem_grupo(
             jid=sender_jid,
             nome=mensagem.nome_contato,
             telefone=telefone,
-            grupo_jid=grupo_jid  # Para resolver LID -> telefone real
+            grupo_jid=grupo_jid,  # Para resolver LID -> telefone real
         )
 
         # Salvar mensagem
         mensagem_id = await salvar_mensagem_grupo(
-            grupo_id=grupo_id,
-            contato_id=contato_id,
-            mensagem=mensagem,
-            dados_raw=dados_raw
+            grupo_id=grupo_id, contato_id=contato_id, mensagem=mensagem, dados_raw=dados_raw
         )
 
         # Atualizar contadores
@@ -385,13 +388,16 @@ async def ingerir_mensagem_grupo(
         # Enfileirar para processamento (apenas mensagens válidas)
         # Mensagens ignoradas (mídia, curtas) não vão para o pipeline
         from app.services.grupos.fila import enfileirar_mensagem
+
         try:
             # Verificar se mensagem foi salva como pendente
-            msg_status = supabase.table("mensagens_grupo") \
-                .select("status") \
-                .eq("id", str(mensagem_id)) \
-                .single() \
+            msg_status = (
+                supabase.table("mensagens_grupo")
+                .select("status")
+                .eq("id", str(mensagem_id))
+                .single()
                 .execute()
+            )
 
             if msg_status.data and msg_status.data.get("status") == "pendente":
                 await enfileirar_mensagem(mensagem_id)

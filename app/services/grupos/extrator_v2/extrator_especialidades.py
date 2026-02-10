@@ -25,61 +25,50 @@ ESPECIALIDADES_PATTERNS = {
     r"\bcl[ií]nica\s*m[eé]dica\b": "Clínica Médica",
     r"\b(?<!\w)cm(?!\w)": "Clínica Médica",
     r"\bcl[ií]nico\s*geral\b": "Clínica Médica",
-
     # Pediatria
     r"\bpediatria\b": "Pediatria",
     r"\bpediatra\b": "Pediatria",
     r"\b(?<!\w)ped(?!\w)": "Pediatria",
-
     # Ginecologia e Obstetrícia
     r"\bginecologia\s*(?:e|\/|\s)\s*obstetr[ií]cia\b": "Ginecologia e Obstetrícia",
     r"\bgo\b": "Ginecologia e Obstetrícia",
     r"\bgineco(?:logia)?\b": "Ginecologia",
     r"\bobstetr[ií]cia\b": "Obstetrícia",
     r"\bobstetra\b": "Obstetrícia",
-
     # Ortopedia
     r"\bortopedia\b": "Ortopedia",
     r"\bortopedista\b": "Ortopedia",
     r"\b(?<!\w)orto(?!\w)": "Ortopedia",
-
     # Cardiologia
     r"\bcardiologia\b": "Cardiologia",
     r"\bcardiologista\b": "Cardiologia",
     r"\b(?<!\w)cardio(?!\w)": "Cardiologia",
-
     # Cirurgia Geral
     r"\bcirurgia\s*geral\b": "Cirurgia Geral",
     r"\bcirurgi[aã]o\s*geral\b": "Cirurgia Geral",
     r"\b(?<!\w)cg(?!\w)": "Cirurgia Geral",
-
     # Neurologia
     r"\bneurologia\b": "Neurologia",
     r"\bneurologista\b": "Neurologia",
     r"\b(?<!\w)neuro(?!\w)": "Neurologia",
-
     # Psiquiatria
     r"\bpsiquiatria\b": "Psiquiatria",
     r"\bpsiquiatra\b": "Psiquiatria",
     r"\b(?<!\w)psiq(?!\w)": "Psiquiatria",
-
     # Anestesiologia
     r"\banestesiologia\b": "Anestesiologia",
     r"\banestesista\b": "Anestesiologia",
     r"\b(?<!\w)anestesio(?!\w)": "Anestesiologia",
-
     # Emergência/Urgência
     r"\bemerg[eê]ncia\b": "Emergência",
     r"\burg[eê]ncia\b": "Urgência",
     r"\bps\b": "Pronto Socorro",
     r"\bpronto\s*socorro\b": "Pronto Socorro",
     r"\bpronto\s*atendimento\b": "Pronto Atendimento",
-
     # UTI
     r"\buti\b": "UTI",
     r"\bterapia\s*intensiva\b": "UTI",
     r"\bintensivista\b": "UTI",
-
     # Outras especialidades comuns
     r"\bdermatologia\b": "Dermatologia",
     r"\boftalmologia\b": "Oftalmologia",
@@ -97,7 +86,6 @@ ESPECIALIDADES_PATTERNS = {
     r"\bgeriatria\b": "Geriatria",
     r"\bneonatologia\b": "Neonatologia",
     r"\binfectologia\b": "Infectologia",
-
     # Exames/Procedimentos
     r"\bultrass?onografia\b": "Ultrassonografia",
     r"\busg\b": "Ultrassonografia",
@@ -110,8 +98,7 @@ ESPECIALIDADES_PATTERNS = {
 
 # Compilar patterns
 COMPILED_PATTERNS = [
-    (re.compile(pattern, re.IGNORECASE), nome)
-    for pattern, nome in ESPECIALIDADES_PATTERNS.items()
+    (re.compile(pattern, re.IGNORECASE), nome) for pattern, nome in ESPECIALIDADES_PATTERNS.items()
 ]
 
 
@@ -142,14 +129,12 @@ def extrair_especialidades(secoes: List[str]) -> List[EspecialidadeExtraida]:
                 especialidades_encontradas.append(
                     EspecialidadeExtraida(
                         nome=nome,
-                        confianca=0.8 if len(nome) > 3 else 0.6  # Abreviações têm menos confiança
+                        confianca=0.8 if len(nome) > 3 else 0.6,  # Abreviações têm menos confiança
                     )
                 )
 
     if especialidades_encontradas:
-        logger.debug(
-            f"Especialidades extraídas: {[e.nome for e in especialidades_encontradas]}"
-        )
+        logger.debug(f"Especialidades extraídas: {[e.nome for e in especialidades_encontradas]}")
 
     return especialidades_encontradas
 
@@ -190,8 +175,7 @@ def extrair_especialidade_do_titulo(texto: str) -> Optional[EspecialidadeExtraid
 
 
 def extrair_especialidades_completo(
-    secoes_especialidade: List[str],
-    texto_completo: str
+    secoes_especialidade: List[str], texto_completo: str
 ) -> List[EspecialidadeExtraida]:
     """
     Extração completa de especialidades.

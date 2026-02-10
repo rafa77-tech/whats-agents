@@ -3,9 +3,6 @@ Fragmentos de mensagens para campanhas.
 
 NOTA: Renomeado de templates para fragmentos (Sprint 32).
 """
-from typing import Optional
-from app.config.especialidades import obter_config_especialidade
-
 
 MENSAGEM_PRIMEIRO_CONTATO = """Oi Dr(a) {nome}! Tudo bem?
 
@@ -41,7 +38,7 @@ def obter_saudacao_especialidade(especialidade: str) -> str:
     nome_normalizado = especialidade.lower().replace(" ", "_").strip()
     return SAUDACOES_ESPECIALIDADE.get(
         nome_normalizado,
-        f"Vi que vc é {especialidade.lower()}, certo? Temos umas vagas bem interessantes essa semana"
+        f"Vi que vc é {especialidade.lower()}, certo? Temos umas vagas bem interessantes essa semana",
     )
 
 
@@ -58,10 +55,7 @@ def formatar_primeiro_contato(medico: dict) -> str:
 
     saudacao = obter_saudacao_especialidade(especialidade_nome)
 
-    return MENSAGEM_PRIMEIRO_CONTATO.format(
-        nome=nome,
-        saudacao_especialidade=saudacao
-    )
+    return MENSAGEM_PRIMEIRO_CONTATO.format(nome=nome, saudacao_especialidade=saudacao)
 
 
 # ============================================================================
@@ -86,7 +80,7 @@ TEMPLATES_DOWNLOAD_APP = [
         "Baixa nosso app que la vc ve todas as vagas disponiveis e pode se candidatar direto",
         "iPhone: {link_ios}",
         "Android: {link_android}",
-        "Qualquer duvida me chama aqui!"
+        "Qualquer duvida me chama aqui!",
     ],
     # Variação 2 - Explicativa
     [
@@ -95,7 +89,7 @@ TEMPLATES_DOWNLOAD_APP = [
         "E pode se candidatar com um clique",
         "Segue os links:",
         "iOS: {link_ios}",
-        "Android: {link_android}"
+        "Android: {link_android}",
     ],
     # Variação 3 - Casual
     [
@@ -103,7 +97,7 @@ TEMPLATES_DOWNLOAD_APP = [
         "Baixa o app da Revoluna que la tem tudo",
         "Se for iPhone: {link_ios}",
         "Se for Android: {link_android}",
-        "Depois me conta o que achou"
+        "Depois me conta o que achou",
     ],
     # Variação 4 - Prestativa
     [
@@ -111,7 +105,7 @@ TEMPLATES_DOWNLOAD_APP = [
         "La vc ve as vagas da regiao, valores, e consegue se inscrever rapidinho",
         "Apple: {link_ios}",
         "Google Play: {link_android}",
-        "Se precisar de ajuda pra baixar ou usar, me avisa!"
+        "Se precisar de ajuda pra baixar ou usar, me avisa!",
     ],
 ]
 
@@ -144,10 +138,7 @@ def obter_mensagens_download_app(variacao: int = None) -> list[str]:
     variacao = variacao % len(TEMPLATES_DOWNLOAD_APP)
     template = TEMPLATES_DOWNLOAD_APP[variacao]
 
-    return [
-        msg.format(link_ios=LINK_APP_IOS, link_android=LINK_APP_ANDROID)
-        for msg in template
-    ]
+    return [msg.format(link_ios=LINK_APP_IOS, link_android=LINK_APP_ANDROID) for msg in template]
 
 
 def obter_mensagem_download_app_unica() -> str:
@@ -157,7 +148,4 @@ def obter_mensagem_download_app_unica() -> str:
     Returns:
         String com mensagem formatada
     """
-    return TEMPLATE_DOWNLOAD_APP_UNICO.format(
-        link_ios=LINK_APP_IOS,
-        link_android=LINK_APP_ANDROID
-    )
+    return TEMPLATE_DOWNLOAD_APP_UNICO.format(link_ios=LINK_APP_IOS, link_android=LINK_APP_ANDROID)

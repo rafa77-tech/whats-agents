@@ -22,11 +22,12 @@ Considera:
 """
 
 import logging
-from typing import Optional, List, Dict, Literal, Tuple
+from typing import Optional, List, Dict, Literal
 from datetime import datetime, timedelta, timezone
 
 from app.services.supabase import supabase
-from app.services.chips.circuit_breaker import ChipCircuitBreaker, CircuitState
+from app.services.chips.circuit_breaker import ChipCircuitBreaker
+
 # Sprint 44 T01.8: Import Redis para reserva atômica
 from app.services.redis import redis_client
 
@@ -89,7 +90,9 @@ class ChipSelector:
             if chip_existente and chip_existente.get("pode_responder"):
                 # Sprint 36 - T05.6: Verificar se não está na lista de exclusão
                 if chip_existente["id"] not in excluir_chips:
-                    logger.debug(f"[ChipSelector] Usando chip existente da conversa: {chip_existente['telefone']}")
+                    logger.debug(
+                        f"[ChipSelector] Usando chip existente da conversa: {chip_existente['telefone']}"
+                    )
                     return chip_existente
 
         # 2. Buscar chips elegiveis
@@ -124,9 +127,7 @@ class ChipSelector:
 
         # 3. Verificar historico com o contato (affinity)
         if telefone_destino:
-            chip_historico = await self._buscar_chip_historico(
-                telefone_destino, chips
-            )
+            chip_historico = await self._buscar_chip_historico(telefone_destino, chips)
             if chip_historico:
                 return chip_historico
 
@@ -145,8 +146,7 @@ class ChipSelector:
         )
 
         logger.debug(
-            f"[ChipSelector] Selecionado {chip_selecionado['telefone']} "
-            f"para {tipo_mensagem}"
+            f"[ChipSelector] Selecionado {chip_selecionado['telefone']} para {tipo_mensagem}"
         )
 
         return chip_selecionado
@@ -160,13 +160,14 @@ class ChipSelector:
         """
         # Usar relationship hint para evitar ambiguidade
         # (conversation_chips tem 2 FKs para chips: chip_id e migrated_from)
-        result = supabase.table("conversation_chips").select(
-            "chip_id, chips!conversation_chips_chip_id_fkey(*)"
-        ).eq(
-            "conversa_id", conversa_id
-        ).eq(
-            "active", True
-        ).limit(1).execute()
+        result = (
+            supabase.table("conversation_chips")
+            .select("chip_id, chips!conversation_chips_chip_id_fkey(*)")
+            .eq("conversa_id", conversa_id)
+            .eq("active", True)
+            .limit(1)
+            .execute()
+        )
 
         if result.data and result.data[0].get("chips"):
             chip = result.data[0]["chips"]
@@ -259,9 +260,7 @@ class ChipSelector:
             else:
                 # Evolution: verificar evolution_connected
                 if not chip.get("evolution_connected"):
-                    logger.debug(
-                        f"[ChipSelector] Chip Evolution {chip['telefone']} não conectado"
-                    )
+                    logger.debug(f"[ChipSelector] Chip Evolution {chip['telefone']} não conectado")
                     chips_desconectados += 1
                     continue
 
@@ -332,34 +331,28 @@ class ChipSelector:
 
         return chips_disponiveis
 
-    async def _buscar_chip_historico(
-        self,
-        telefone: str,
-        chips: List[Dict]
-    ) -> Optional[Dict]:
+    async def _buscar_chip_historico(self, telefone: str, chips: List[Dict]) -> Optional[Dict]:
         """
         Verifica se algum dos chips ja conversou com este telefone.
         Preferir para manter consistencia (affinity).
         """
         chip_ids = [c["id"] for c in chips]
 
-        result = supabase.table("chip_interactions").select(
-            "chip_id"
-        ).eq(
-            "destinatario", telefone
-        ).in_(
-            "chip_id", chip_ids
-        ).order(
-            "created_at", desc=True
-        ).limit(1).execute()
+        result = (
+            supabase.table("chip_interactions")
+            .select("chip_id")
+            .eq("destinatario", telefone)
+            .in_("chip_id", chip_ids)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
 
         if result.data:
             chip_id = result.data[0]["chip_id"]
             for chip in chips:
                 if chip["id"] == chip_id:
-                    logger.debug(
-                        f"[ChipSelector] Usando chip com historico: {chip['telefone']}"
-                    )
+                    logger.debug(f"[ChipSelector] Usando chip com historico: {chip['telefone']}")
                     return chip
 
         return None
@@ -368,25 +361,21 @@ class ChipSelector:
         """Conta mensagens enviadas na ultima hora."""
         uma_hora_atras = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
 
-        result = supabase.table("chip_interactions").select(
-            "id", count="exact"
-        ).eq(
-            "chip_id", chip_id
-        ).eq(
-            "tipo", "msg_enviada"
-        ).gte(
-            "created_at", uma_hora_atras
-        ).execute()
+        result = (
+            supabase.table("chip_interactions")
+            .select("id", count="exact")
+            .eq("chip_id", chip_id)
+            .eq("tipo", "msg_enviada")
+            .gte("created_at", uma_hora_atras)
+            .execute()
+        )
 
         return result.count or 0
 
     async def _selecionar_menor_uso(self, chips: List[Dict]) -> Dict:
         """Seleciona chip com menor uso na hora atual."""
         # Ordenar por uso da hora (menor primeiro), depois por Trust (maior primeiro)
-        return sorted(
-            chips,
-            key=lambda c: (c.get("_uso_hora", 0), -(c.get("trust_score", 0)))
-        )[0]
+        return sorted(chips, key=lambda c: (c.get("_uso_hora", 0), -(c.get("trust_score", 0))))[0]
 
     async def _reservar_slot_atomico(self, chip: Dict) -> bool:
         """
@@ -510,8 +499,7 @@ class ChipSelector:
         # 4. Tentar selecionar por menor uso com reserva atômica
         # Ordenar por uso (menor primeiro), trust (maior primeiro)
         chips_ordenados = sorted(
-            chips,
-            key=lambda c: (c.get("_uso_hora", 0), -(c.get("trust_score", 0)))
+            chips, key=lambda c: (c.get("_uso_hora", 0), -(c.get("trust_score", 0)))
         )
 
         for chip in chips_ordenados:
@@ -563,22 +551,24 @@ class ChipSelector:
             fallback_mode: Se estava em modo fallback
         """
         try:
-            supabase.table("chip_selection_log").insert({
-                "tipo_mensagem": tipo_mensagem,
-                "conversa_id": conversa_id,
-                "telefone_destino": telefone_destino[-4:] if telefone_destino else None,
-                "chips_elegiveis_count": len(chips_elegiveis),
-                "chips_elegiveis_ids": [c["id"] for c in chips_elegiveis[:10]],  # Limitar
-                "chip_selecionado_id": chip_selecionado["id"] if chip_selecionado else None,
-                "chip_selecionado_telefone": (
-                    chip_selecionado.get("telefone")[-4:]
-                    if chip_selecionado and chip_selecionado.get("telefone")
-                    else None
-                ),
-                "motivo": motivo,
-                "fallback_mode": fallback_mode,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            }).execute()
+            supabase.table("chip_selection_log").insert(
+                {
+                    "tipo_mensagem": tipo_mensagem,
+                    "conversa_id": conversa_id,
+                    "telefone_destino": telefone_destino[-4:] if telefone_destino else None,
+                    "chips_elegiveis_count": len(chips_elegiveis),
+                    "chips_elegiveis_ids": [c["id"] for c in chips_elegiveis[:10]],  # Limitar
+                    "chip_selecionado_id": chip_selecionado["id"] if chip_selecionado else None,
+                    "chip_selecionado_telefone": (
+                        chip_selecionado.get("telefone")[-4:]
+                        if chip_selecionado and chip_selecionado.get("telefone")
+                        else None
+                    ),
+                    "motivo": motivo,
+                    "fallback_mode": fallback_mode,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+            ).execute()
 
         except Exception as e:
             # Não falhar seleção por erro de log
@@ -601,46 +591,63 @@ class ChipSelector:
             telefone_destino: Telefone destino
         """
         # 1. Atualizar/criar mapeamento conversa-chip
-        existing = supabase.table("conversation_chips").select("id").eq(
-            "conversa_id", conversa_id
-        ).eq(
-            "active", True
-        ).execute()
+        existing = (
+            supabase.table("conversation_chips")
+            .select("id")
+            .eq("conversa_id", conversa_id)
+            .eq("active", True)
+            .execute()
+        )
 
         if existing.data:
             # Atualizar se o chip mudou
-            supabase.table("conversation_chips").update({
-                "chip_id": chip_id,
-            }).eq("conversa_id", conversa_id).eq("active", True).execute()
+            supabase.table("conversation_chips").update(
+                {
+                    "chip_id": chip_id,
+                }
+            ).eq("conversa_id", conversa_id).eq("active", True).execute()
         else:
             # Criar novo mapeamento
-            supabase.table("conversation_chips").insert({
-                "conversa_id": conversa_id,
-                "chip_id": chip_id,
-                "active": True,
-            }).execute()
+            supabase.table("conversation_chips").insert(
+                {
+                    "conversa_id": conversa_id,
+                    "chip_id": chip_id,
+                    "active": True,
+                }
+            ).execute()
 
         # 2. Registrar interacao
-        supabase.table("chip_interactions").insert({
-            "chip_id": chip_id,
-            "tipo": "msg_enviada",
-            "destinatario": telefone_destino,
-            "metadata": {"tipo_mensagem": tipo_mensagem},
-        }).execute()
+        supabase.table("chip_interactions").insert(
+            {
+                "chip_id": chip_id,
+                "tipo": "msg_enviada",
+                "destinatario": telefone_destino,
+                "metadata": {"tipo_mensagem": tipo_mensagem},
+            }
+        ).execute()
 
         # 3. Incrementar contadores
         try:
-            supabase.rpc("incrementar_msgs_chip", {
-                "p_chip_id": chip_id,
-            }).execute()
+            supabase.rpc(
+                "incrementar_msgs_chip",
+                {
+                    "p_chip_id": chip_id,
+                },
+            ).execute()
         except Exception as e:
             logger.warning(f"[ChipSelector] Erro ao incrementar contador: {e}")
             # Fallback: update direto
-            supabase.table("chips").update({
-                "msgs_enviadas_hoje": supabase.table("chips").select(
-                    "msgs_enviadas_hoje"
-                ).eq("id", chip_id).single().execute().data.get("msgs_enviadas_hoje", 0) + 1
-            }).eq("id", chip_id).execute()
+            supabase.table("chips").update(
+                {
+                    "msgs_enviadas_hoje": supabase.table("chips")
+                    .select("msgs_enviadas_hoje")
+                    .eq("id", chip_id)
+                    .single()
+                    .execute()
+                    .data.get("msgs_enviadas_hoje", 0)
+                    + 1
+                }
+            ).eq("id", chip_id).execute()
 
     async def registrar_recebimento(
         self,
@@ -654,22 +661,30 @@ class ChipSelector:
             chip_id: ID do chip que recebeu
             telefone_remetente: Telefone de quem enviou
         """
-        supabase.table("chip_interactions").insert({
-            "chip_id": chip_id,
-            "tipo": "msg_recebida",
-            "destinatario": telefone_remetente,
-        }).execute()
+        supabase.table("chip_interactions").insert(
+            {
+                "chip_id": chip_id,
+                "tipo": "msg_recebida",
+                "destinatario": telefone_remetente,
+            }
+        ).execute()
 
         # Incrementar contador de recebidas
-        result = supabase.table("chips").select(
-            "msgs_recebidas_total, msgs_recebidas_hoje"
-        ).eq("id", chip_id).single().execute()
+        result = (
+            supabase.table("chips")
+            .select("msgs_recebidas_total, msgs_recebidas_hoje")
+            .eq("id", chip_id)
+            .single()
+            .execute()
+        )
 
         if result.data:
-            supabase.table("chips").update({
-                "msgs_recebidas_total": (result.data.get("msgs_recebidas_total") or 0) + 1,
-                "msgs_recebidas_hoje": (result.data.get("msgs_recebidas_hoje") or 0) + 1,
-            }).eq("id", chip_id).execute()
+            supabase.table("chips").update(
+                {
+                    "msgs_recebidas_total": (result.data.get("msgs_recebidas_total") or 0) + 1,
+                    "msgs_recebidas_hoje": (result.data.get("msgs_recebidas_hoje") or 0) + 1,
+                }
+            ).eq("id", chip_id).execute()
 
     async def obter_chip_por_instance(self, instance_name: str) -> Optional[Dict]:
         """
@@ -681,15 +696,18 @@ class ChipSelector:
         Returns:
             Chip ou None
         """
-        result = supabase.table("chips").select("*").eq(
-            "instance_name", instance_name
-        ).single().execute()
+        result = (
+            supabase.table("chips")
+            .select("*")
+            .eq("instance_name", instance_name)
+            .single()
+            .execute()
+        )
 
         return result.data if result.data else None
 
     async def listar_chips_disponiveis(
-        self,
-        tipo_mensagem: Optional[TipoMensagem] = None
+        self, tipo_mensagem: Optional[TipoMensagem] = None
     ) -> List[Dict]:
         """
         Lista chips disponiveis para envio.
@@ -703,17 +721,18 @@ class ChipSelector:
         if tipo_mensagem:
             return await self._buscar_chips_elegiveis(tipo_mensagem)
 
-        result = supabase.table("chips").select("*").eq(
-            "status", "active"
-        ).order("trust_score", desc=True).execute()
+        result = (
+            supabase.table("chips")
+            .select("*")
+            .eq("status", "active")
+            .order("trust_score", desc=True)
+            .execute()
+        )
 
         return result.data or []
 
-
     async def aplicar_rampup_gradual(
-        self,
-        chip_id: str,
-        motivo: str = "recuperacao_cooldown"
+        self, chip_id: str, motivo: str = "recuperacao_cooldown"
     ) -> Dict:
         """
         Sprint 36 - T10.3: Aplica ramp-up gradual para chip saindo de restrição.
@@ -744,9 +763,13 @@ class ChipSelector:
 
         try:
             # Buscar chip
-            chip_result = supabase.table("chips").select(
-                "id, telefone, limite_hora, limite_dia"
-            ).eq("id", chip_id).single().execute()
+            chip_result = (
+                supabase.table("chips")
+                .select("id, telefone, limite_hora, limite_dia")
+                .eq("id", chip_id)
+                .single()
+                .execute()
+            )
 
             if not chip_result.data:
                 return {"erro": "Chip não encontrado"}
@@ -754,12 +777,14 @@ class ChipSelector:
             chip = chip_result.data
 
             # Aplicar ramp-up: definir início e fase inicial
-            supabase.table("chips").update({
-                "rampup_inicio": agora.isoformat(),
-                "rampup_fase": 1,
-                "rampup_motivo": motivo,
-                "updated_at": agora.isoformat(),
-            }).eq("id", chip_id).execute()
+            supabase.table("chips").update(
+                {
+                    "rampup_inicio": agora.isoformat(),
+                    "rampup_fase": 1,
+                    "rampup_motivo": motivo,
+                    "updated_at": agora.isoformat(),
+                }
+            ).eq("id", chip_id).execute()
 
             logger.info(
                 f"[ChipSelector] T10.3: Ramp-up iniciado para chip {chip.get('telefone')[-4:]}: "
@@ -811,13 +836,9 @@ class ChipSelector:
 
         try:
             if isinstance(rampup_inicio, str):
-                rampup_inicio = datetime.fromisoformat(
-                    rampup_inicio.replace("Z", "+00:00")
-                )
+                rampup_inicio = datetime.fromisoformat(rampup_inicio.replace("Z", "+00:00"))
 
-            horas_desde_inicio = (
-                datetime.now(timezone.utc) - rampup_inicio
-            ).total_seconds() / 3600
+            horas_desde_inicio = (datetime.now(timezone.utc) - rampup_inicio).total_seconds() / 3600
 
             # Determinar fase e percentual
             if horas_desde_inicio < 2:
@@ -870,13 +891,13 @@ class ChipSelector:
 
         try:
             # Buscar chips em ramp-up
-            result = supabase.table("chips").select(
-                "id, telefone, rampup_inicio, rampup_fase"
-            ).eq(
-                "status", "active"
-            ).not_.is_(
-                "rampup_inicio", "null"
-            ).execute()
+            result = (
+                supabase.table("chips")
+                .select("id, telefone, rampup_inicio, rampup_fase")
+                .eq("status", "active")
+                .not_.is_("rampup_inicio", "null")
+                .execute()
+            )
 
             chips_atualizados = 0
             chips_finalizados = 0
@@ -892,12 +913,14 @@ class ChipSelector:
                 if nova_fase != fase_atual:
                     if nova_fase == 4:
                         # Ramp-up completo - limpar campos
-                        supabase.table("chips").update({
-                            "rampup_inicio": None,
-                            "rampup_fase": None,
-                            "rampup_motivo": None,
-                            "updated_at": agora.isoformat(),
-                        }).eq("id", chip_id).execute()
+                        supabase.table("chips").update(
+                            {
+                                "rampup_inicio": None,
+                                "rampup_fase": None,
+                                "rampup_motivo": None,
+                                "updated_at": agora.isoformat(),
+                            }
+                        ).eq("id", chip_id).execute()
                         chips_finalizados += 1
 
                         logger.info(
@@ -905,10 +928,12 @@ class ChipSelector:
                         )
                     else:
                         # Atualizar fase
-                        supabase.table("chips").update({
-                            "rampup_fase": nova_fase,
-                            "updated_at": agora.isoformat(),
-                        }).eq("id", chip_id).execute()
+                        supabase.table("chips").update(
+                            {
+                                "rampup_fase": nova_fase,
+                                "updated_at": agora.isoformat(),
+                            }
+                        ).eq("id", chip_id).execute()
 
                         logger.info(
                             f"[ChipSelector] Ramp-up fase {nova_fase} ({limite_info['percentual']}%) "
@@ -916,13 +941,15 @@ class ChipSelector:
                         )
 
                     chips_atualizados += 1
-                    detalhes.append({
-                        "chip_id": chip_id,
-                        "telefone": chip.get("telefone", "")[-4:],
-                        "fase_anterior": fase_atual,
-                        "fase_nova": nova_fase,
-                        "percentual": limite_info["percentual"],
-                    })
+                    detalhes.append(
+                        {
+                            "chip_id": chip_id,
+                            "telefone": chip.get("telefone", "")[-4:],
+                            "fase_anterior": fase_atual,
+                            "fase_nova": nova_fase,
+                            "percentual": limite_info["percentual"],
+                        }
+                    )
 
             return {
                 "chips_atualizados": chips_atualizados,
@@ -941,22 +968,26 @@ class ChipSelector:
         Returns:
             Lista de chips com informações de ramp-up
         """
-        result = supabase.table("chips").select(
-            "id, telefone, trust_score, rampup_inicio, rampup_fase, rampup_motivo, "
-            "limite_hora, limite_dia"
-        ).eq(
-            "status", "active"
-        ).not_.is_(
-            "rampup_inicio", "null"
-        ).execute()
+        result = (
+            supabase.table("chips")
+            .select(
+                "id, telefone, trust_score, rampup_inicio, rampup_fase, rampup_motivo, "
+                "limite_hora, limite_dia"
+            )
+            .eq("status", "active")
+            .not_.is_("rampup_inicio", "null")
+            .execute()
+        )
 
         chips_rampup = []
         for chip in result.data or []:
             limite_info = self.calcular_limite_rampup(chip)
-            chips_rampup.append({
-                **chip,
-                **limite_info,
-            })
+            chips_rampup.append(
+                {
+                    **chip,
+                    **limite_info,
+                }
+            )
 
         return chips_rampup
 

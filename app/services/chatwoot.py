@@ -5,6 +5,7 @@ IMPORTANTE: A integracao nativa Evolution API <-> Chatwoot ja faz
 a sincronizacao de mensagens/contatos/conversas. Este servico
 e apenas para CONSULTA de IDs e processamento de webhooks.
 """
+
 import httpx
 import logging
 from typing import Optional
@@ -30,10 +31,7 @@ class ChatwootService:
 
     @property
     def headers(self) -> dict:
-        return {
-            "api_access_token": self.api_token,
-            "Content-Type": "application/json"
-        }
+        return {"api_access_token": self.api_token, "Content-Type": "application/json"}
 
     @property
     def configurado(self) -> bool:
@@ -62,11 +60,7 @@ class ChatwootService:
         async with httpx.AsyncClient(timeout=10.0) as client:
             for query in queries:
                 try:
-                    response = await client.get(
-                        url,
-                        params={"q": query},
-                        headers=self.headers
-                    )
+                    response = await client.get(url, params={"q": query}, headers=self.headers)
                     response.raise_for_status()
                     data = response.json()
 
@@ -93,8 +87,7 @@ class ChatwootService:
             return []
 
         url = (
-            f"{self.base_url}/api/v1/accounts/{self.account_id}"
-            f"/contacts/{contact_id}/conversations"
+            f"{self.base_url}/api/v1/accounts/{self.account_id}/contacts/{contact_id}/conversations"
         )
 
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -120,10 +113,7 @@ class ChatwootService:
         if not self.configurado:
             return None
 
-        url = (
-            f"{self.base_url}/api/v1/accounts/{self.account_id}"
-            f"/conversations/{conversation_id}"
-        )
+        url = f"{self.base_url}/api/v1/accounts/{self.account_id}/conversations/{conversation_id}"
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
@@ -160,17 +150,16 @@ class ChatwootService:
             # Remover caracteres não numéricos (ex: +55 11 99999-9999 -> 5511999999999)
             phone_clean = "".join(c for c in phone if c.isdigit())
             if len(phone_clean) >= 10:
-                logger.info(f"Telefone resolvido via Chatwoot conversation {conversation_id}: {phone_clean[:6]}...")
+                logger.info(
+                    f"Telefone resolvido via Chatwoot conversation {conversation_id}: {phone_clean[:6]}..."
+                )
                 return phone_clean
 
         logger.warning(f"Telefone nao encontrado na conversa Chatwoot {conversation_id}")
         return None
 
     async def enviar_mensagem(
-        self,
-        conversation_id: int,
-        content: str,
-        message_type: str = "outgoing"
+        self, conversation_id: int, content: str, message_type: str = "outgoing"
     ) -> bool:
         """
         Envia mensagem para uma conversa no Chatwoot.
@@ -196,10 +185,7 @@ class ChatwootService:
             f"/conversations/{conversation_id}/messages"
         )
 
-        payload = {
-            "content": content,
-            "message_type": message_type
-        }
+        payload = {"content": content, "message_type": message_type}
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
@@ -288,7 +274,7 @@ class ChatwootService:
             return True
 
         # Remover label
-        novas_labels = [l for l in labels_atuais if l != label]
+        novas_labels = [lbl for lbl in labels_atuais if lbl != label]
 
         url = (
             f"{self.base_url}/api/v1/accounts/{self.account_id}"
@@ -325,10 +311,7 @@ async def sincronizar_ids_chatwoot(cliente_id: str, telefone: str) -> dict:
     Returns:
         Dict com chatwoot_contact_id e chatwoot_conversation_id
     """
-    resultado = {
-        "chatwoot_contact_id": None,
-        "chatwoot_conversation_id": None
-    }
+    resultado = {"chatwoot_contact_id": None, "chatwoot_conversation_id": None}
 
     # Buscar contato no Chatwoot
     contato = await chatwoot_service.buscar_contato_por_telefone(telefone)
@@ -341,9 +324,9 @@ async def sincronizar_ids_chatwoot(cliente_id: str, telefone: str) -> dict:
 
     # Atualizar cliente com chatwoot_contact_id
     try:
-        supabase.table("clientes").update({
-            "chatwoot_contact_id": str(contato["id"])
-        }).eq("id", cliente_id).execute()
+        supabase.table("clientes").update({"chatwoot_contact_id": str(contato["id"])}).eq(
+            "id", cliente_id
+        ).execute()
     except Exception as e:
         logger.error(f"Erro ao atualizar chatwoot_contact_id: {e}")
 
@@ -357,9 +340,9 @@ async def sincronizar_ids_chatwoot(cliente_id: str, telefone: str) -> dict:
 
         # Atualizar nossa conversa ativa
         try:
-            supabase.table("conversations").update({
-                "chatwoot_conversation_id": str(conversa_chatwoot["id"])
-            }).eq("cliente_id", cliente_id).eq("status", "active").execute()
+            supabase.table("conversations").update(
+                {"chatwoot_conversation_id": str(conversa_chatwoot["id"])}
+            ).eq("cliente_id", cliente_id).eq("status", "active").execute()
         except Exception as e:
             logger.error(f"Erro ao atualizar chatwoot_conversation_id: {e}")
 

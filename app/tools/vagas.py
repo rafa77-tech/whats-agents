@@ -3,12 +3,12 @@ Tools relacionadas a vagas e plantoes.
 
 Sprint 31 - S31.E5: Refatorado para usar services
 """
+
 import logging
 from typing import Any
 
 from app.core.timezone import agora_brasilia
 from app.services.vagas import (
-    buscar_vaga_por_id,
     buscar_vagas_compativeis,
     buscar_vagas_por_regiao,
     reservar_vaga,
@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # Compatibilidade - função wrapper para código legado
 # =============================================================================
+
 
 async def _buscar_especialidade_id_por_nome(nome: str) -> str | None:
     """
@@ -86,42 +87,38 @@ NAO use esta tool se:
         "properties": {
             "especialidade": {
                 "type": "string",
-                "description": "Especialidade solicitada pelo medico (ex: 'cardiologia', 'anestesiologia'). Se nao especificada, usa a especialidade cadastrada do medico."
+                "description": "Especialidade solicitada pelo medico (ex: 'cardiologia', 'anestesiologia'). Se nao especificada, usa a especialidade cadastrada do medico.",
             },
             "regiao": {
                 "type": "string",
-                "description": "Regiao de preferencia do medico (ex: 'zona sul', 'ABC', 'centro'). Extrair da mensagem se mencionado."
+                "description": "Regiao de preferencia do medico (ex: 'zona sul', 'ABC', 'centro'). Extrair da mensagem se mencionado.",
             },
             "periodo": {
                 "type": "string",
                 "enum": ["diurno", "noturno", "12h", "24h", "qualquer"],
-                "description": "Tipo de plantao preferido. Use 'qualquer' se nao especificado."
+                "description": "Tipo de plantao preferido. Use 'qualquer' se nao especificado.",
             },
             "valor_minimo": {
                 "type": "number",
-                "description": "Valor minimo do plantao em reais. Extrair se medico mencionar (ex: 'acima de 2000')."
+                "description": "Valor minimo do plantao em reais. Extrair se medico mencionar (ex: 'acima de 2000').",
             },
             "dias_semana": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "Dias preferidos (ex: ['segunda', 'terca']). Deixar vazio para qualquer dia."
+                "description": "Dias preferidos (ex: ['segunda', 'terca']). Deixar vazio para qualquer dia.",
             },
             "limite": {
                 "type": "integer",
                 "default": 5,
-                "description": "Maximo de vagas a retornar (padrao: 5, max: 10)."
-            }
+                "description": "Maximo de vagas a retornar (padrao: 5, max: 10).",
+            },
         },
-        "required": []
-    }
+        "required": [],
+    },
 }
 
 
-async def handle_buscar_vagas(
-    tool_input: dict,
-    medico: dict,
-    conversa: dict
-) -> dict[str, Any]:
+async def handle_buscar_vagas(tool_input: dict, medico: dict, conversa: dict) -> dict[str, Any]:
     """
     Processa chamada da tool buscar_vagas.
 
@@ -155,11 +152,11 @@ async def handle_buscar_vagas(
     limite = min(tool_input.get("limite", 5), 10)
 
     # 2. Resolver especialidade
-    especialidade_id, especialidade_nome, especialidade_diferente = (
-        await especialidade_service.resolver_especialidade_medico(
-            especialidade_solicitada, medico
-        )
-    )
+    (
+        especialidade_id,
+        especialidade_nome,
+        especialidade_diferente,
+    ) = await especialidade_service.resolver_especialidade_medico(especialidade_solicitada, medico)
 
     # Validar especialidade
     if especialidade_solicitada and not especialidade_id:
@@ -167,7 +164,9 @@ async def handle_buscar_vagas(
             "success": False,
             "error": f"Especialidade '{especialidade_solicitada}' nao encontrada",
             "vagas": [],
-            "mensagem_sugerida": formatter.mensagem_especialidade_nao_encontrada(especialidade_solicitada)
+            "mensagem_sugerida": formatter.mensagem_especialidade_nao_encontrada(
+                especialidade_solicitada
+            ),
         }
 
     if not especialidade_id:
@@ -176,7 +175,7 @@ async def handle_buscar_vagas(
             "success": False,
             "error": "Especialidade nao identificada",
             "vagas": [],
-            "mensagem_sugerida": formatter.mensagem_especialidade_nao_identificada()
+            "mensagem_sugerida": formatter.mensagem_especialidade_nao_identificada(),
         }
 
     logger.info(
@@ -201,14 +200,20 @@ async def handle_buscar_vagas(
         # 5. Formatar resposta
         if not vagas_final:
             return _construir_resposta_sem_vagas(
-                formatter, especialidade_nome, total_inicial,
-                filtros_aplicados, especialidade_diferente,
-                medico.get("especialidade")
+                formatter,
+                especialidade_nome,
+                total_inicial,
+                filtros_aplicados,
+                especialidade_diferente,
+                medico.get("especialidade"),
             )
 
         return _construir_resposta_com_vagas(
-            formatter, vagas_final, especialidade_nome,
-            especialidade_diferente, medico.get("especialidade")
+            formatter,
+            vagas_final,
+            especialidade_nome,
+            especialidade_diferente,
+            medico.get("especialidade"),
         )
 
     except Exception as e:
@@ -217,7 +222,7 @@ async def handle_buscar_vagas(
             "success": False,
             "error": str(e),
             "vagas": [],
-            "mensagem_sugerida": formatter.mensagem_erro_generico()
+            "mensagem_sugerida": formatter.mensagem_erro_generico(),
         }
 
 
@@ -228,6 +233,7 @@ def _limpar_especialidade_input(especialidade: str | None) -> str | None:
 
     if especialidade.startswith("["):
         import json
+
         try:
             parsed = json.loads(especialidade)
             if isinstance(parsed, list) and parsed:
@@ -263,7 +269,7 @@ def _construir_resposta_sem_vagas(
     total_inicial: int,
     filtros_aplicados: list[str],
     especialidade_diferente: bool,
-    especialidade_cadastrada: str | None
+    especialidade_cadastrada: str | None,
 ) -> dict:
     """Constrói resposta quando não há vagas."""
     logger.info(f"Nenhuma vaga encontrada para especialidade {especialidade_nome}")
@@ -273,7 +279,7 @@ def _construir_resposta_sem_vagas(
         total_sem_filtros=total_inicial,
         filtros_aplicados=filtros_aplicados if filtros_aplicados else None,
         especialidade_diferente=especialidade_diferente,
-        especialidade_cadastrada=especialidade_cadastrada
+        especialidade_cadastrada=especialidade_cadastrada,
     )
 
     result = {
@@ -281,7 +287,7 @@ def _construir_resposta_sem_vagas(
         "vagas": [],
         "total_encontradas": 0,
         "especialidade_buscada": especialidade_nome,
-        "mensagem_sugerida": mensagem
+        "mensagem_sugerida": mensagem,
     }
 
     if filtros_aplicados:
@@ -299,7 +305,7 @@ def _construir_resposta_com_vagas(
     vagas: list[dict],
     especialidade_nome: str,
     especialidade_diferente: bool,
-    especialidade_cadastrada: str | None
+    especialidade_cadastrada: str | None,
 ) -> dict:
     """Constrói resposta com vagas encontradas."""
     logger.info(f"Encontradas {len(vagas)} vagas")
@@ -312,7 +318,7 @@ def _construir_resposta_com_vagas(
     instrucao = formatter.construir_instrucao_vagas(
         especialidade_nome=especialidade_nome,
         especialidade_diferente=especialidade_diferente,
-        especialidade_cadastrada=especialidade_cadastrada
+        especialidade_cadastrada=especialidade_cadastrada,
     )
 
     return {
@@ -323,7 +329,7 @@ def _construir_resposta_com_vagas(
         "especialidade_cadastrada": especialidade_cadastrada,
         "especialidade_diferente": especialidade_diferente,
         "contexto": contexto_formatado,
-        "instrucao": instrucao
+        "instrucao": instrucao,
     }
 
 
@@ -375,6 +381,7 @@ def _filtrar_por_periodo(vagas: list[dict], periodo_desejado: str) -> list[dict]
     Note: Retorna lista vazia se não houver match (comportamento original).
     """
     from app.services.vagas.filtros import filtrar_por_periodo
+
     resultado, _ = filtrar_por_periodo(vagas, periodo_desejado)
     return resultado
 
@@ -389,6 +396,7 @@ def _filtrar_por_dias_semana(vagas: list[dict], dias_desejados: list[str]) -> li
     Note: Retorna lista vazia se não houver match (comportamento original).
     """
     from app.services.vagas.filtros import filtrar_por_dias_semana
+
     resultado, _ = filtrar_por_dias_semana(vagas, dias_desejados)
     return resultado
 
@@ -416,15 +424,15 @@ IMPORTANTE: Se o medico quer VER vagas antes de reservar, use 'buscar_vagas' pri
         "properties": {
             "data_plantao": {
                 "type": "string",
-                "description": "Data do plantao no formato YYYY-MM-DD (ex: 2025-12-12). OBRIGATORIO."
+                "description": "Data do plantao no formato YYYY-MM-DD (ex: 2025-12-12). OBRIGATORIO.",
             },
             "confirmacao": {
                 "type": "string",
-                "description": "Breve descricao da confirmacao do medico (ex: 'medico disse pode reservar')"
-            }
+                "description": "Breve descricao da confirmacao do medico (ex: 'medico disse pode reservar')",
+            },
         },
-        "required": ["data_plantao", "confirmacao"]
-    }
+        "required": ["data_plantao", "confirmacao"],
+    },
 }
 
 
@@ -452,7 +460,9 @@ async def _buscar_vaga_por_data(data: str, especialidade_id: str) -> dict | None
             .execute()
         )
 
-        logger.info(f"_buscar_vaga_por_data: encontradas {len(response.data) if response.data else 0} vagas")
+        logger.info(
+            f"_buscar_vaga_por_data: encontradas {len(response.data) if response.data else 0} vagas"
+        )
 
         if response.data:
             vaga = response.data[0]
@@ -462,7 +472,9 @@ async def _buscar_vaga_por_data(data: str, especialidade_id: str) -> dict | None
             )
             return vaga
 
-        logger.warning(f"_buscar_vaga_por_data: nenhuma vaga encontrada para data={data}, especialidade_id={especialidade_id}")
+        logger.warning(
+            f"_buscar_vaga_por_data: nenhuma vaga encontrada para data={data}, especialidade_id={especialidade_id}"
+        )
         return None
 
     except Exception as e:
@@ -470,11 +482,7 @@ async def _buscar_vaga_por_data(data: str, especialidade_id: str) -> dict | None
         return None
 
 
-async def handle_reservar_plantao(
-    tool_input: dict,
-    medico: dict,
-    conversa: dict
-) -> dict[str, Any]:
+async def handle_reservar_plantao(tool_input: dict, medico: dict, conversa: dict) -> dict[str, Any]:
     """
     Processa chamada da tool reservar_plantao.
 
@@ -487,7 +495,7 @@ async def handle_reservar_plantao(
         Dict com resultado da operacao
     """
     data_plantao = tool_input.get("data_plantao")
-    confirmacao = tool_input.get("confirmacao", "")
+    tool_input.get("confirmacao", "")
 
     logger.info(f"handle_reservar_plantao: tool_input={tool_input}, medico_id={medico.get('id')}")
 
@@ -495,21 +503,21 @@ async def handle_reservar_plantao(
         return {
             "success": False,
             "error": "Data do plantao nao informada",
-            "mensagem_sugerida": "Qual a data do plantao que vc quer? Me fala no formato dia/mes"
+            "mensagem_sugerida": "Qual a data do plantao que vc quer? Me fala no formato dia/mes",
         }
 
     # Normalizar data (aceitar formatos variados)
     import re
+
     data_normalizada = data_plantao
 
     # Se vier como DD/MM/YYYY, converter para YYYY-MM-DD
-    if re.match(r'^\d{2}/\d{2}/\d{4}$', data_plantao):
-        partes = data_plantao.split('/')
+    if re.match(r"^\d{2}/\d{2}/\d{4}$", data_plantao):
+        partes = data_plantao.split("/")
         data_normalizada = f"{partes[2]}-{partes[1]}-{partes[0]}"
     # Se vier como DD/MM, assumir ano atual
-    elif re.match(r'^\d{2}/\d{2}$', data_plantao):
-        from datetime import datetime
-        partes = data_plantao.split('/')
+    elif re.match(r"^\d{2}/\d{2}$", data_plantao):
+        partes = data_plantao.split("/")
         ano = agora_brasilia().year
         data_normalizada = f"{ano}-{partes[1]}-{partes[0]}"
 
@@ -521,7 +529,9 @@ async def handle_reservar_plantao(
 
     if not especialidade_id:
         especialidade_nome = medico.get("especialidade")
-        logger.info(f"handle_reservar_plantao: especialidade_nome={especialidade_nome}, buscando ID...")
+        logger.info(
+            f"handle_reservar_plantao: especialidade_nome={especialidade_nome}, buscando ID..."
+        )
         if especialidade_nome:
             especialidade_id = await _buscar_especialidade_id_por_nome(especialidade_nome)
             logger.info(f"handle_reservar_plantao: especialidade_id resolvido={especialidade_id}")
@@ -530,7 +540,7 @@ async def handle_reservar_plantao(
         return {
             "success": False,
             "error": "Especialidade do medico nao identificada",
-            "mensagem_sugerida": "Qual sua especialidade?"
+            "mensagem_sugerida": "Qual sua especialidade?",
         }
 
     # Buscar vaga pela data
@@ -539,19 +549,18 @@ async def handle_reservar_plantao(
         return {
             "success": False,
             "error": f"Nao encontrei vaga para a data {data_normalizada}",
-            "mensagem_sugerida": "Nao achei vaga pra essa data. Quer que eu veja as vagas disponiveis?"
+            "mensagem_sugerida": "Nao achei vaga pra essa data. Quer que eu veja as vagas disponiveis?",
         }
 
     vaga_id = vaga["id"]
-    logger.info(f"Vaga encontrada por data: {vaga_id} - {vaga.get('hospitais', {}).get('nome')} em {data_normalizada}")
+    logger.info(
+        f"Vaga encontrada por data: {vaga_id} - {vaga.get('hospitais', {}).get('nome')} em {data_normalizada}"
+    )
 
     try:
         # Reservar vaga
         vaga_atualizada = await reservar_vaga(
-            vaga_id=vaga_id,
-            cliente_id=medico["id"],
-            medico=medico,
-            notificar_gestor=True
+            vaga_id=vaga_id, cliente_id=medico["id"], medico=medico, notificar_gestor=True
         )
 
         # Formatar mensagem de confirmacao
@@ -598,7 +607,7 @@ async def handle_reservar_plantao(
                 "valor_maximo": vaga.get("valor_maximo"),
                 "valor_tipo": vaga.get("valor_tipo", "fixo"),
                 "valor_display": _formatar_valor_display(vaga),
-                "status": vaga_atualizada.get("status")
+                "status": vaga_atualizada.get("status"),
             },
         }
 
@@ -622,17 +631,11 @@ async def handle_reservar_plantao(
 
     except ValueError as e:
         logger.warning(f"Erro ao reservar plantao: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
     except Exception as e:
         logger.error(f"Erro inesperado ao reservar plantao: {e}")
-        return {
-            "success": False,
-            "error": "Erro ao processar reserva. Tente novamente."
-        }
+        return {"success": False, "error": "Erro ao processar reserva. Tente novamente."}
 
 
 # =============================================================================
@@ -658,19 +661,15 @@ PARAMETROS:
         "properties": {
             "nome_hospital": {
                 "type": "string",
-                "description": "Nome do hospital (ou parte dele) para buscar. Ex: 'Salvalus', 'Santa Casa'"
+                "description": "Nome do hospital (ou parte dele) para buscar. Ex: 'Salvalus', 'Santa Casa'",
             }
         },
-        "required": ["nome_hospital"]
-    }
+        "required": ["nome_hospital"],
+    },
 }
 
 
-async def handle_buscar_info_hospital(
-    tool_input: dict,
-    medico: dict,
-    conversa: dict
-) -> dict:
+async def handle_buscar_info_hospital(tool_input: dict, medico: dict, conversa: dict) -> dict:
     """
     Busca informacoes de um hospital pelo nome.
 
@@ -688,7 +687,7 @@ async def handle_buscar_info_hospital(
         return {
             "success": False,
             "error": "Nome do hospital nao informado",
-            "mensagem_sugerida": "Qual hospital voce quer saber o endereco?"
+            "mensagem_sugerida": "Qual hospital voce quer saber o endereco?",
         }
 
     logger.info(f"Buscando info do hospital: {nome_hospital}")
@@ -707,7 +706,7 @@ async def handle_buscar_info_hospital(
             return {
                 "success": False,
                 "error": f"Hospital '{nome_hospital}' nao encontrado",
-                "mensagem_sugerida": f"Nao encontrei o hospital '{nome_hospital}' no nosso sistema. Pode me dar o nome completo?"
+                "mensagem_sugerida": f"Nao encontrei o hospital '{nome_hospital}' no nosso sistema. Pode me dar o nome completo?",
             }
 
         hospital = response.data[0]
@@ -725,7 +724,7 @@ async def handle_buscar_info_hospital(
                 "estado": hospital.get("estado"),
                 "cep": hospital.get("cep"),
             },
-            "instrucao": f"Informe o endereco ao medico: {hospital.get('endereco_formatado') or 'endereco nao disponivel'}"
+            "instrucao": f"Informe o endereco ao medico: {hospital.get('endereco_formatado') or 'endereco nao disponivel'}",
         }
 
     except Exception as e:
@@ -733,7 +732,7 @@ async def handle_buscar_info_hospital(
         return {
             "success": False,
             "error": str(e),
-            "mensagem_sugerida": "Tive um probleminha pra buscar o endereco. Deixa eu verificar aqui e ja te mando"
+            "mensagem_sugerida": "Tive um probleminha pra buscar o endereco. Deixa eu verificar aqui e ja te mando",
         }
 
 

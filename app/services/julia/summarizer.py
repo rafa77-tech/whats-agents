@@ -14,9 +14,9 @@ Estratégia:
   - Mantém as últimas MSGS_RECENTES completas
   - Contexto final = [resumo] + [mensagens_recentes]
 """
+
 import logging
 from typing import List, Dict, Optional, Tuple
-from datetime import datetime, timezone
 
 from anthropic import AsyncAnthropic
 from app.core.config import settings
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 # Configuração de thresholds
 THRESHOLD_MSGS = 12  # Sumarizar se tiver mais que isso
-MSGS_RECENTES = 5    # Manter as últimas N mensagens completas
+MSGS_RECENTES = 5  # Manter as últimas N mensagens completas
 MAX_TOKENS_RESUMO = 500  # Tokens máximos para o resumo
 
 
@@ -151,7 +151,7 @@ def _gerar_resumo_fallback(mensagens: List[Dict]) -> str:
     """Gera resumo simplificado sem usar LLM (fallback)."""
     total = len(mensagens)
     msgs_medico = [m for m in mensagens if m.get("autor_tipo") == "medico"]
-    msgs_julia = [m for m in mensagens if m.get("autor_tipo") != "medico"]
+    [m for m in mensagens if m.get("autor_tipo") != "medico"]
 
     # Extrair primeira e última mensagem do médico
     primeira_medico = msgs_medico[0].get("conteudo", "")[:100] if msgs_medico else ""
@@ -159,8 +159,8 @@ def _gerar_resumo_fallback(mensagens: List[Dict]) -> str:
 
     resumo = (
         f"[Resumo de {total} mensagens anteriores] "
-        f"Médico iniciou com: \"{primeira_medico}...\" "
-        f"Última msg do médico: \"{ultima_medico}...\""
+        f'Médico iniciou com: "{primeira_medico}..." '
+        f'Última msg do médico: "{ultima_medico}..."'
     )
 
     return resumo

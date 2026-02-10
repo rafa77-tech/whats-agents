@@ -9,10 +9,10 @@ Responsavel por:
 3. Atualizar historico no documento
 4. Notificar progresso no Slack
 """
+
 import logging
-import json
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 
@@ -30,8 +30,10 @@ logger = logging.getLogger(__name__)
 # TIPOS E ESTRUTURAS
 # =============================================================================
 
+
 class StatusPasso(str, Enum):
     """Status de execucao de um passo."""
+
     PENDENTE = "pendente"
     EXECUTANDO = "executando"
     CONCLUIDO = "concluido"
@@ -43,6 +45,7 @@ class StatusPasso(str, Enum):
 @dataclass
 class PassoResult:
     """Resultado da execucao de um passo."""
+
     numero: int
     descricao: str
     status: StatusPasso
@@ -62,6 +65,7 @@ class PassoResult:
 @dataclass
 class ExecutionResult:
     """Resultado completo da execucao de um briefing."""
+
     briefing_id: str
     doc_nome: str
     inicio: datetime
@@ -96,27 +100,46 @@ class ExecutionResult:
 # Keywords que indicam qual tool usar
 TOOL_KEYWORDS = {
     "enviar_mensagem": [
-        "enviar", "mandar", "mensagem", "msg", "whatsapp",
-        "contatar", "contactar", "falar com", "avisar"
+        "enviar",
+        "mandar",
+        "mensagem",
+        "msg",
+        "whatsapp",
+        "contatar",
+        "contactar",
+        "falar com",
+        "avisar",
     ],
     "buscar_medico": [
-        "buscar medico", "encontrar medico", "achar medico",
-        "medico por", "informacoes do medico"
+        "buscar medico",
+        "encontrar medico",
+        "achar medico",
+        "medico por",
+        "informacoes do medico",
     ],
     "listar_medicos": [
-        "listar medicos", "lista de medicos", "medicos da",
-        "todos os medicos", "medicos que", "filtrar medicos"
+        "listar medicos",
+        "lista de medicos",
+        "medicos da",
+        "todos os medicos",
+        "medicos que",
+        "filtrar medicos",
     ],
     "buscar_vagas": [
-        "buscar vagas", "procurar vagas", "vagas disponiveis",
-        "vagas abertas", "verificar vagas"
+        "buscar vagas",
+        "procurar vagas",
+        "vagas disponiveis",
+        "vagas abertas",
+        "verificar vagas",
     ],
-    "reservar_vaga": [
-        "reservar", "agendar", "marcar vaga", "confirmar vaga"
-    ],
+    "reservar_vaga": ["reservar", "agendar", "marcar vaga", "confirmar vaga"],
     "buscar_metricas": [
-        "metricas", "estatisticas", "relatorio", "performance",
-        "taxa de resposta", "conversao"
+        "metricas",
+        "estatisticas",
+        "relatorio",
+        "performance",
+        "taxa de resposta",
+        "conversao",
     ],
 }
 
@@ -164,6 +187,7 @@ def extrair_parametros_passo(passo: PassoPlano, tool_name: str) -> dict:
 # EXECUTOR
 # =============================================================================
 
+
 class BriefingExecutor:
     """Executor de briefings aprovados."""
 
@@ -178,11 +202,7 @@ class BriefingExecutor:
         self.channel_id = channel_id
         self.user_id = user_id
 
-    async def executar(
-        self,
-        briefing_id: str,
-        plano: AnaliseResult
-    ) -> ExecutionResult:
+    async def executar(self, briefing_id: str, plano: AnaliseResult) -> ExecutionResult:
         """
         Executa os passos de um briefing aprovado.
 
@@ -196,9 +216,7 @@ class BriefingExecutor:
         logger.info(f"Iniciando execucao do briefing: {plano.doc_nome}")
 
         resultado = ExecutionResult(
-            briefing_id=briefing_id,
-            doc_nome=plano.doc_nome,
-            inicio=agora_brasilia()
+            briefing_id=briefing_id, doc_nome=plano.doc_nome, inicio=agora_brasilia()
         )
 
         # Atualizar status para executando
@@ -224,12 +242,10 @@ class BriefingExecutor:
 
             # Determinar status final
             passos_falhos = sum(
-                1 for p in resultado.passos_resultados
-                if p.status == StatusPasso.FALHOU
+                1 for p in resultado.passos_resultados if p.status == StatusPasso.FALHOU
             )
             passos_aguardando = sum(
-                1 for p in resultado.passos_resultados
-                if p.status == StatusPasso.AGUARDANDO_AJUDA
+                1 for p in resultado.passos_resultados if p.status == StatusPasso.AGUARDANDO_AJUDA
             )
 
             if passos_aguardando > 0:
@@ -280,7 +296,7 @@ class BriefingExecutor:
             numero=passo.numero,
             descricao=passo.descricao,
             status=StatusPasso.EXECUTANDO,
-            inicio=agora_brasilia()
+            inicio=agora_brasilia(),
         )
 
         # Se passo requer ajuda, marcar como aguardando
@@ -290,7 +306,7 @@ class BriefingExecutor:
             await adicionar_linha_historico(
                 doc_id,
                 f"Passo {passo.numero}: Aguardando ajuda",
-                f"{passo.tipo_ajuda or 'nao especificado'}"
+                f"{passo.tipo_ajuda or 'nao especificado'}",
             )
             return resultado
 
@@ -303,9 +319,7 @@ class BriefingExecutor:
             resultado.status = StatusPasso.PULADO
             resultado.fim = agora_brasilia()
             await adicionar_linha_historico(
-                doc_id,
-                f"Passo {passo.numero}: Pulado",
-                "Nao automatizavel"
+                doc_id, f"Passo {passo.numero}: Pulado", "Nao automatizavel"
             )
             return resultado
 
@@ -322,17 +336,13 @@ class BriefingExecutor:
             if tool_result.get("success"):
                 resultado.status = StatusPasso.CONCLUIDO
                 await adicionar_linha_historico(
-                    doc_id,
-                    f"Passo {passo.numero}: Concluido",
-                    tool_name
+                    doc_id, f"Passo {passo.numero}: Concluido", tool_name
                 )
             else:
                 resultado.status = StatusPasso.FALHOU
                 resultado.erro = tool_result.get("error", "Erro desconhecido")
                 await adicionar_linha_historico(
-                    doc_id,
-                    f"Passo {passo.numero}: Falhou",
-                    resultado.erro[:50]
+                    doc_id, f"Passo {passo.numero}: Falhou", resultado.erro[:50]
                 )
 
         except Exception as e:
@@ -364,25 +374,17 @@ class BriefingExecutor:
             "duracao_segundos": duracao_total,
         }
 
-    async def _atualizar_status_briefing(
-        self,
-        briefing_id: str,
-        status: StatusAprovacao
-    ) -> None:
+    async def _atualizar_status_briefing(self, briefing_id: str, status: StatusAprovacao) -> None:
         """Atualiza status do briefing no banco."""
         try:
-            supabase.table("briefings_pendentes").update({
-                "status": status.value,
-                "atualizado_em": agora_brasilia().isoformat()
-            }).eq("id", briefing_id).execute()
+            supabase.table("briefings_pendentes").update(
+                {"status": status.value, "atualizado_em": agora_brasilia().isoformat()}
+            ).eq("id", briefing_id).execute()
         except Exception as e:
             logger.error(f"Erro ao atualizar status do briefing: {e}")
 
     async def _notificar_progresso(
-        self,
-        doc_nome: str,
-        passo: PassoPlano,
-        resultado: PassoResult
+        self, doc_nome: str, passo: PassoPlano, resultado: PassoResult
     ) -> None:
         """Notifica progresso no Slack."""
         emoji = {
@@ -395,10 +397,12 @@ class BriefingExecutor:
         # Notificar apenas passos importantes (nao todos)
         if resultado.status in [StatusPasso.FALHOU, StatusPasso.AGUARDANDO_AJUDA]:
             try:
-                await enviar_slack({
-                    "text": f"{emoji} *{doc_nome}* - Passo {passo.numero}: {resultado.status.value}",
-                    "channel": self.channel_id
-                })
+                await enviar_slack(
+                    {
+                        "text": f"{emoji} *{doc_nome}* - Passo {passo.numero}: {resultado.status.value}",
+                        "channel": self.channel_id,
+                    }
+                )
             except Exception as e:
                 logger.warning(f"Erro ao notificar progresso: {e}")
 
@@ -409,30 +413,29 @@ class BriefingExecutor:
 
         mensagem = f"""{emoji} *Briefing executado: {resultado.doc_nome}*
 
-*Resultado:* {metricas['passos_concluidos']}/{metricas['total_passos']} passos concluidos
-*Duracao:* {metricas['duracao_segundos']:.0f}s"""
+*Resultado:* {metricas["passos_concluidos"]}/{metricas["total_passos"]} passos concluidos
+*Duracao:* {metricas["duracao_segundos"]:.0f}s"""
 
-        if metricas['passos_falhos'] > 0:
+        if metricas["passos_falhos"] > 0:
             mensagem += f"\n*Falhas:* {metricas['passos_falhos']} passos"
 
-        if metricas['passos_aguardando'] > 0:
+        if metricas["passos_aguardando"] > 0:
             mensagem += f"\n*Aguardando ajuda:* {metricas['passos_aguardando']} passos"
 
         try:
-            await enviar_slack({
-                "text": mensagem,
-                "channel": self.channel_id
-            })
+            await enviar_slack({"text": mensagem, "channel": self.channel_id})
         except Exception as e:
             logger.warning(f"Erro ao notificar conclusao: {e}")
 
     async def _notificar_erro(self, doc_nome: str, erro: str) -> None:
         """Notifica erro no Slack."""
         try:
-            await enviar_slack({
-                "text": f" *Erro na execucao: {doc_nome}*\n{erro[:200]}",
-                "channel": self.channel_id
-            })
+            await enviar_slack(
+                {
+                    "text": f" *Erro na execucao: {doc_nome}*\n{erro[:200]}",
+                    "channel": self.channel_id,
+                }
+            )
         except Exception as e:
             logger.warning(f"Erro ao notificar erro: {e}")
 
@@ -441,11 +444,9 @@ class BriefingExecutor:
 # FUNCAO DE CONVENIENCIA
 # =============================================================================
 
+
 async def executar_briefing(
-    briefing_id: str,
-    plano: AnaliseResult,
-    channel_id: str,
-    user_id: str
+    briefing_id: str, plano: AnaliseResult, channel_id: str, user_id: str
 ) -> ExecutionResult:
     """
     Funcao de conveniencia para executar briefing.

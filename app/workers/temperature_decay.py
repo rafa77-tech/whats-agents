@@ -8,8 +8,9 @@ Executa periodicamente para:
 
 Sprint 15 - Policy Engine
 """
+
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from app.core.timezone import agora_utc
 from app.services.supabase import supabase
@@ -88,10 +89,12 @@ async def expire_cooling_off() -> int:
     try:
         response = (
             supabase.table("doctor_state")
-            .update({
-                "permission_state": "active",
-                "cooling_off_until": None,
-            })
+            .update(
+                {
+                    "permission_state": "active",
+                    "cooling_off_until": None,
+                }
+            )
             .eq("permission_state", "cooling_off")
             .lt("cooling_off_until", now)
             .execute()

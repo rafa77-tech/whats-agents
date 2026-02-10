@@ -4,6 +4,7 @@ Servico de follow-up automatico.
 Cadencia: 48h -> 5d -> 15d -> pausa 60d
 Documentado em docs/FLUXOS.md
 """
+
 import logging
 import random
 from datetime import datetime, timedelta, timezone
@@ -27,6 +28,7 @@ logger = logging.getLogger(__name__)
 # FUNCOES PRINCIPAIS (NOVA IMPLEMENTACAO)
 # =============================================================================
 
+
 async def processar_followups_pendentes() -> dict:
     """
     Processa todas as conversas que precisam de follow-up.
@@ -39,12 +41,7 @@ async def processar_followups_pendentes() -> dict:
     Returns:
         dict com estatisticas de processamento
     """
-    stats = {
-        "processadas": 0,
-        "followups_agendados": 0,
-        "erros": 0,
-        "por_tipo": {}
-    }
+    stats = {"processadas": 0, "followups_agendados": 0, "erros": 0, "por_tipo": {}}
 
     for stage in STAGES_FOLLOWUP:
         config = _get_config_para_stage(stage)
@@ -131,15 +128,14 @@ async def _agendar_followup(conversa: dict, config: dict):
         conversa_id=conversa_id,
         conteudo=mensagem,
         tipo=f"followup_{config['key']}",
-        prioridade=5
+        prioridade=5,
     )
 
     # Atualizar stage da conversa
     novo_stage = config["stage_proximo"]
-    supabase.table("conversations").update({
-        "stage": novo_stage,
-        "updated_at": datetime.now(timezone.utc).isoformat()
-    }).eq("id", conversa_id).execute()
+    supabase.table("conversations").update(
+        {"stage": novo_stage, "updated_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", conversa_id).execute()
 
     logger.info(f"Follow-up {config['key']} agendado para conversa {conversa_id}")
 
@@ -173,9 +169,7 @@ async def _gerar_followup_com_vaga(medico: dict, config: dict) -> str:
     # Buscar vaga real
     try:
         vagas = await buscar_vagas_compativeis(
-            especialidade_id=especialidade_id,
-            cliente_id=medico.get("id"),
-            limite=1
+            especialidade_id=especialidade_id, cliente_id=medico.get("id"), limite=1
         )
     except Exception as e:
         logger.warning(f"Erro ao buscar vagas para follow-up: {e}")
@@ -205,6 +199,7 @@ async def _gerar_followup_com_vaga(medico: dict, config: dict) -> str:
 # PAUSA DE 60 DIAS
 # =============================================================================
 
+
 async def aplicar_pausa_60_dias(conversa_id: str):
     """
     Aplica pausa de 60 dias em conversa que nao respondeu.
@@ -213,9 +208,9 @@ async def aplicar_pausa_60_dias(conversa_id: str):
     """
     pausa_ate = datetime.now(timezone.utc) + PAUSA_APOS_NAO_RESPOSTA
 
-    supabase.table("conversations").update({
-        "pausado_ate": pausa_ate.isoformat()
-    }).eq("id", conversa_id).execute()
+    supabase.table("conversations").update({"pausado_ate": pausa_ate.isoformat()}).eq(
+        "id", conversa_id
+    ).execute()
 
     logger.info(f"Conversa {conversa_id} pausada ate {pausa_ate.date()}")
 
@@ -243,11 +238,9 @@ async def processar_pausas_expiradas() -> dict:
 
         for conversa in response.data or []:
             try:
-                supabase.table("conversations").update({
-                    "stage": STAGE_RECONTATO,
-                    "pausado_ate": None,
-                    "updated_at": agora
-                }).eq("id", conversa["id"]).execute()
+                supabase.table("conversations").update(
+                    {"stage": STAGE_RECONTATO, "pausado_ate": None, "updated_at": agora}
+                ).eq("id", conversa["id"]).execute()
 
                 logger.info(f"Conversa {conversa['id']} reativada apos pausa de 60 dias")
                 stats["reativadas"] += 1
@@ -265,6 +258,7 @@ async def processar_pausas_expiradas() -> dict:
 # =============================================================================
 # CLASSE LEGADA (para compatibilidade com jobs.py existente)
 # =============================================================================
+
 
 class FollowupService:
     """Gerencia follow-ups automaticos (legado - usa nova implementacao)."""
@@ -323,11 +317,7 @@ class FollowupService:
                             created_at = created_at.replace("Z", "+00:00")
                         ultima_data = datetime.fromisoformat(created_at)
                         if ultima_data < data_limite:
-                            pendentes.append({
-                                "conversa": conv,
-                                "tipo": tipo,
-                                "config": config
-                            })
+                            pendentes.append({"conversa": conv, "tipo": tipo, "config": config})
                     except (ValueError, KeyError) as e:
                         logger.warning(f"Erro ao processar data: {e}")
                         continue
@@ -367,9 +357,7 @@ class FollowupService:
 
         # Escolher mensagem aleatoria
         template = random.choice(config["mensagens"])
-        mensagem = template.format(
-            nome=cliente.get("primeiro_nome", "")
-        )
+        mensagem = template.format(nome=cliente.get("primeiro_nome", ""))
 
         # Enfileirar
         await fila_service.enfileirar(
@@ -378,7 +366,7 @@ class FollowupService:
             conteudo=mensagem,
             tipo="followup",
             prioridade=4,
-            metadata={"tipo_followup": tipo}
+            metadata={"tipo_followup": tipo},
         )
 
         logger.info(f"Follow-up enfileirado para conversa {conversa_id}")

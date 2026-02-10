@@ -11,6 +11,7 @@ Este arquivo foi reorganizado em:
 Use: from app.services.vagas import buscar_vagas_compativeis, reservar_vaga
 Sprint 10 - S10.E3.2
 """
+
 import warnings
 
 warnings.warn(

@@ -5,14 +5,15 @@ Coordena os 3 detectores e busca conhecimento relevante.
 
 Sprint 44 T02.7: Adicionado tracing detalhado para debugging.
 """
+
 import logging
 import time
 from dataclasses import dataclass
 from typing import Optional
 
-from .detector_objecao import DetectorObjecao, TipoObjecao, ResultadoDeteccao
+from .detector_objecao import DetectorObjecao, ResultadoDeteccao
 from .detector_perfil import DetectorPerfil, PerfilMedico, ResultadoPerfil
-from .detector_objetivo import DetectorObjetivo, ObjetivoConversa, ResultadoObjetivo
+from .detector_objetivo import DetectorObjetivo, ResultadoObjetivo
 from .buscador import BuscadorConhecimento, ResultadoBusca
 
 logger = logging.getLogger(__name__)
@@ -122,15 +123,19 @@ class OrquestradorConhecimento:
                 "conversa_id": conversa_id,
                 "chunks_encontrados": len(conhecimento),
                 "chunk_ids": [k.id for k in conhecimento[:5]] if conhecimento else [],
-                "scores": [round(k.similaridade, 3) for k in conhecimento[:5]] if conhecimento else [],
-                "objecao_detectada": resultado_objecao.tipo.value if resultado_objecao.tem_objecao else None,
+                "scores": [round(k.similaridade, 3) for k in conhecimento[:5]]
+                if conhecimento
+                else [],
+                "objecao_detectada": resultado_objecao.tipo.value
+                if resultado_objecao.tem_objecao
+                else None,
                 "objecao_confianca": round(resultado_objecao.confianca, 3),
                 "perfil_detectado": resultado_perfil.perfil.value,
                 "perfil_confianca": round(resultado_perfil.confianca, 3),
                 "objetivo_detectado": resultado_objetivo.objetivo.value,
                 "objetivo_confianca": round(resultado_objetivo.confianca, 3),
                 "tempo_ms": round(tempo_ms, 2),
-            }
+            },
         )
 
         return ContextoSituacao(
@@ -236,7 +241,5 @@ class OrquestradorConhecimento:
             "tipo_objecao": objecao.tipo.value if objecao.tem_objecao else None,
             "perfil": perfil.perfil.value,
             "objetivo": objetivo.objetivo.value,
-            "confianca_media": (
-                objecao.confianca + perfil.confianca + objetivo.confianca
-            ) / 3,
+            "confianca_media": (objecao.confianca + perfil.confianca + objetivo.confianca) / 3,
         }

@@ -41,6 +41,7 @@ USO:
     if not require_pilot_disabled(AutonomousFeature.OFERTA):
         return
 """
+
 import logging
 from enum import Enum
 from functools import wraps
@@ -129,6 +130,7 @@ def skip_if_pilot(feature: AutonomousFeature) -> Callable[[Callable[P, T]], Call
             # Só executa se feature está habilitada
             ...
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
@@ -164,6 +166,7 @@ def skip_if_pilot(feature: AutonomousFeature) -> Callable[[Callable[P, T]], Call
 
         # Detecta se é async ou sync
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore
@@ -194,7 +197,9 @@ def get_pilot_status() -> dict[str, Any]:
         message = "Todas as funcionalidades autônomas desabilitadas"
     else:
         enabled_names = [k for k, v in features.items() if v]
-        message = f"{enabled_count}/{total_count} funcionalidades habilitadas: {', '.join(enabled_names)}"
+        message = (
+            f"{enabled_count}/{total_count} funcionalidades habilitadas: {', '.join(enabled_names)}"
+        )
 
     return {
         "pilot_mode": settings.is_pilot_mode,

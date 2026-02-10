@@ -3,6 +3,7 @@ Servico de selecao de aberturas.
 
 Seleciona variacoes de mensagens de abertura evitando repeticao.
 """
+
 import json
 import logging
 import random
@@ -12,13 +13,12 @@ from typing import Optional
 from app.core.timezone import agora_brasilia, agora_utc
 from app.fragmentos.aberturas import (
     SAUDACOES,
-    SAUDACOES_SEM_NOME,
     APRESENTACOES,
     CONTEXTOS,
     CONTEXTOS_SOFT,
     GANCHOS,
     GANCHOS_SOFT,
-    montar_abertura_completa
+    montar_abertura_completa,
 )
 from app.services.redis import cache_get, cache_set
 from app.services.supabase import supabase
@@ -28,10 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 async def obter_abertura(
-    cliente_id: str,
-    nome: str,
-    hora_atual: datetime = None,
-    soft: bool = False
+    cliente_id: str, nome: str, hora_atual: datetime = None, soft: bool = False
 ) -> list[str]:
     """
     Obtem abertura personalizada para medico.
@@ -58,8 +55,7 @@ async def obter_abertura(
 
     # Selecionar demais componentes evitando repeticao
     apresentacao = _selecionar_sem_repetir(
-        APRESENTACOES,
-        ultima_abertura.get("apresentacao") if ultima_abertura else None
+        APRESENTACOES, ultima_abertura.get("apresentacao") if ultima_abertura else None
     )
 
     # Usar listas soft ou normais
@@ -67,13 +63,11 @@ async def obter_abertura(
     lista_ganchos = GANCHOS_SOFT if soft else GANCHOS
 
     contexto = _selecionar_sem_repetir(
-        lista_contextos,
-        ultima_abertura.get("contexto") if ultima_abertura else None
+        lista_contextos, ultima_abertura.get("contexto") if ultima_abertura else None
     )
 
     gancho = _selecionar_sem_repetir(
-        lista_ganchos,
-        ultima_abertura.get("gancho") if ultima_abertura else None
+        lista_ganchos, ultima_abertura.get("gancho") if ultima_abertura else None
     )
 
     # Decidir se inclui contexto (70% das vezes)
@@ -87,7 +81,7 @@ async def obter_abertura(
         contexto_id=contexto[0] if incluir_contexto else None,
         gancho_id=gancho[0],
         incluir_contexto=incluir_contexto,
-        soft=soft
+        soft=soft,
     )
 
     # Salvar para evitar repeticao
@@ -96,7 +90,7 @@ async def obter_abertura(
         saudacao[0],
         apresentacao[0],
         contexto[0] if incluir_contexto else None,
-        gancho[0]
+        gancho[0],
     )
 
     logger.info(
@@ -109,10 +103,7 @@ async def obter_abertura(
 
 
 async def obter_abertura_texto(
-    cliente_id: str,
-    nome: str,
-    hora_atual: datetime = None,
-    soft: bool = False
+    cliente_id: str, nome: str, hora_atual: datetime = None, soft: bool = False
 ) -> str:
     """
     Obtem abertura como texto unico.
@@ -168,7 +159,7 @@ async def _salvar_abertura_usada(
     saudacao_id: str,
     apresentacao_id: str,
     contexto_id: Optional[str],
-    gancho_id: str
+    gancho_id: str,
 ):
     """Salva abertura usada para evitar repeticao."""
     abertura = {
@@ -176,7 +167,7 @@ async def _salvar_abertura_usada(
         "apresentacao": apresentacao_id,
         "contexto": contexto_id,
         "gancho": gancho_id,
-        "timestamp": agora_utc().isoformat()
+        "timestamp": agora_utc().isoformat(),
     }
 
     # Cache
@@ -185,17 +176,14 @@ async def _salvar_abertura_usada(
 
     # Banco (async, nao bloqueia)
     try:
-        supabase.table("clientes").update({
-            "ultima_abertura": abertura
-        }).eq("id", cliente_id).execute()
+        supabase.table("clientes").update({"ultima_abertura": abertura}).eq(
+            "id", cliente_id
+        ).execute()
     except Exception as e:
         logger.warning(f"Erro ao salvar abertura no banco: {e}")
 
 
-def _selecionar_saudacao(
-    hora: datetime,
-    ultima: dict = None
-) -> tuple:
+def _selecionar_saudacao(hora: datetime, ultima: dict = None) -> tuple:
     """
     Seleciona saudacao baseada no horario.
 
@@ -214,17 +202,11 @@ def _selecionar_saudacao(
         periodo = "noite"
 
     # Buscar saudacoes do periodo ou genericas
-    candidatas = [
-        s for s in SAUDACOES
-        if s[2] == periodo or s[2] is None
-    ]
+    candidatas = [s for s in SAUDACOES if s[2] == periodo or s[2] is None]
 
     # Evitar repetir
     if ultima and ultima.get("saudacao"):
-        candidatas_sem_repetir = [
-            s for s in candidatas
-            if s[0] != ultima["saudacao"]
-        ]
+        candidatas_sem_repetir = [s for s in candidatas if s[0] != ultima["saudacao"]]
         if candidatas_sem_repetir:
             candidatas = candidatas_sem_repetir
 
@@ -236,10 +218,7 @@ def _selecionar_saudacao(
     return random.choice(SAUDACOES)
 
 
-def _selecionar_sem_repetir(
-    opcoes: list[tuple],
-    ultimo_id: str = None
-) -> tuple:
+def _selecionar_sem_repetir(opcoes: list[tuple], ultimo_id: str = None) -> tuple:
     """Seleciona opcao evitando a ultima usada."""
     if ultimo_id:
         candidatas = [o for o in opcoes if o[0] != ultimo_id]
@@ -265,12 +244,11 @@ async def resetar_abertura_cliente(cliente_id: str) -> bool:
         # Limpar cache
         cache_key = f"abertura:ultima:{cliente_id}"
         from app.services.redis import cache_delete
+
         await cache_delete(cache_key)
 
         # Limpar banco
-        supabase.table("clientes").update({
-            "ultima_abertura": None
-        }).eq("id", cliente_id).execute()
+        supabase.table("clientes").update({"ultima_abertura": None}).eq("id", cliente_id).execute()
 
         logger.info(f"Abertura resetada para cliente {cliente_id}")
         return True
@@ -288,4 +266,5 @@ def obter_estatisticas_aberturas() -> dict:
         Dicionario com estatisticas
     """
     from app.fragmentos.aberturas import contar_variacoes
+
     return contar_variacoes()

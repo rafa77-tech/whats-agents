@@ -3,6 +3,7 @@ Sistema de matching de preferencias do medico.
 
 Sprint 10 - S10.E3.2
 """
+
 import logging
 
 logger = logging.getLogger(__name__)

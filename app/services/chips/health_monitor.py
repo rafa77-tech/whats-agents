@@ -66,9 +66,7 @@ class HealthMonitor:
         Returns:
             Lista de alertas gerados
         """
-        result = supabase.table("chips").select("*").eq(
-            "status", "active"
-        ).execute()
+        result = supabase.table("chips").select("*").eq("status", "active").execute()
 
         alertas = []
 
@@ -84,53 +82,63 @@ class HealthMonitor:
 
         # 1. Verificar conexao
         if not chip.get("evolution_connected"):
-            alertas.append(await self._criar_alerta(
-                chip_id=chip["id"],
-                tipo="desconectado",
-                severity="critical",
-                message=f"Chip {chip['telefone']} desconectado",
-            ))
+            alertas.append(
+                await self._criar_alerta(
+                    chip_id=chip["id"],
+                    tipo="desconectado",
+                    severity="critical",
+                    message=f"Chip {chip['telefone']} desconectado",
+                )
+            )
 
         # 2. Verificar taxa de resposta
         taxa = chip.get("taxa_resposta") or 0
         if taxa < self.thresholds["taxa_resposta_minima"]:
-            alertas.append(await self._criar_alerta(
-                chip_id=chip["id"],
-                tipo="taxa_resposta_baixa",
-                severity="warning",
-                message=f"Chip {chip['telefone']}: Taxa de resposta {taxa:.1%} < 20%",
-            ))
+            alertas.append(
+                await self._criar_alerta(
+                    chip_id=chip["id"],
+                    tipo="taxa_resposta_baixa",
+                    severity="warning",
+                    message=f"Chip {chip['telefone']}: Taxa de resposta {taxa:.1%} < 20%",
+                )
+            )
 
         # 3. Verificar erros
         erros = chip.get("erros_ultimas_24h") or 0
         limite_erros = self.thresholds["erros_por_hora_max"] * 24
         if erros > limite_erros:
-            alertas.append(await self._criar_alerta(
-                chip_id=chip["id"],
-                tipo="muitos_erros",
-                severity="warning",
-                message=f"Chip {chip['telefone']}: {erros} erros nas ultimas 24h",
-            ))
+            alertas.append(
+                await self._criar_alerta(
+                    chip_id=chip["id"],
+                    tipo="muitos_erros",
+                    severity="warning",
+                    message=f"Chip {chip['telefone']}: {erros} erros nas ultimas 24h",
+                )
+            )
 
         # 4. Verificar queda de Trust Score
         queda = await self._verificar_queda_trust(chip)
         if queda >= self.thresholds["trust_drop_alerta"]:
-            alertas.append(await self._criar_alerta(
-                chip_id=chip["id"],
-                tipo="trust_caindo",
-                severity="warning",
-                message=f"Chip {chip['telefone']}: Trust Score caiu {queda} pontos nas ultimas 24h",
-            ))
+            alertas.append(
+                await self._criar_alerta(
+                    chip_id=chip["id"],
+                    tipo="trust_caindo",
+                    severity="warning",
+                    message=f"Chip {chip['telefone']}: Trust Score caiu {queda} pontos nas ultimas 24h",
+                )
+            )
 
         # 5. Verificar Trust Score critico
         trust = chip.get("trust_score") or 50
         if trust < 40:
-            alertas.append(await self._criar_alerta(
-                chip_id=chip["id"],
-                tipo="trust_critico",
-                severity="critical",
-                message=f"Chip {chip['telefone']}: Trust Score critico ({trust})",
-            ))
+            alertas.append(
+                await self._criar_alerta(
+                    chip_id=chip["id"],
+                    tipo="trust_critico",
+                    severity="critical",
+                    message=f"Chip {chip['telefone']}: Trust Score critico ({trust})",
+                )
+            )
 
         return alertas
 
@@ -143,13 +151,14 @@ class HealthMonitor:
     ) -> Dict:
         """Cria alerta se nao existir um ativo do mesmo tipo."""
         # Verificar se ja existe alerta ativo
-        existing = supabase.table("chip_alerts").select("id").eq(
-            "chip_id", chip_id
-        ).eq(
-            "tipo", tipo
-        ).eq(
-            "resolved", False
-        ).execute()
+        existing = (
+            supabase.table("chip_alerts")
+            .select("id")
+            .eq("chip_id", chip_id)
+            .eq("tipo", tipo)
+            .eq("resolved", False)
+            .execute()
+        )
 
         if existing.data:
             # Ja existe alerta ativo
@@ -162,12 +171,18 @@ class HealthMonitor:
             }
 
         # Criar novo alerta
-        result = supabase.table("chip_alerts").insert({
-            "chip_id": chip_id,
-            "tipo": tipo,
-            "severity": severity,
-            "message": message,
-        }).execute()
+        result = (
+            supabase.table("chip_alerts")
+            .insert(
+                {
+                    "chip_id": chip_id,
+                    "tipo": tipo,
+                    "severity": severity,
+                    "message": message,
+                }
+            )
+            .execute()
+        )
 
         return {
             "chip_id": chip_id,
@@ -182,15 +197,15 @@ class HealthMonitor:
         """Verifica queda de Trust Score nas ultimas 24h."""
         ontem = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
 
-        result = supabase.table("chip_trust_history").select(
-            "score"
-        ).eq(
-            "chip_id", chip["id"]
-        ).gte(
-            "recorded_at", ontem
-        ).order(
-            "recorded_at", desc=False
-        ).limit(1).execute()
+        result = (
+            supabase.table("chip_trust_history")
+            .select("score")
+            .eq("chip_id", chip["id"])
+            .gte("recorded_at", ontem)
+            .order("recorded_at", desc=False)
+            .limit(1)
+            .execute()
+        )
 
         if result.data:
             score_ontem = result.data[0]["score"]
@@ -212,9 +227,7 @@ class HealthMonitor:
                 "chips_criticos": N
             }
         """
-        result = supabase.table("chips").select("*").eq(
-            "status", "active"
-        ).execute()
+        result = supabase.table("chips").select("*").eq("status", "active").execute()
 
         chips = result.data or []
 
@@ -224,9 +237,7 @@ class HealthMonitor:
         criticos = [c for c in chips if (c.get("trust_score") or 0) < 60]
 
         # Buscar alertas nao resolvidos
-        alertas = supabase.table("chip_alerts").select("*").eq(
-            "resolved", False
-        ).execute()
+        alertas = supabase.table("chip_alerts").select("*").eq("resolved", False).execute()
 
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -239,8 +250,7 @@ class HealthMonitor:
             "alertas_ativos": alertas.data or [],
             "alertas_count": len(alertas.data or []),
             "trust_medio": (
-                sum(c.get("trust_score") or 0 for c in chips) / len(chips)
-                if chips else 0
+                sum(c.get("trust_score") or 0 for c in chips) / len(chips) if chips else 0
             ),
             "msgs_hoje": sum(c.get("msgs_enviadas_hoje") or 0 for c in chips),
             "chips_conectados": len([c for c in chips if c.get("evolution_connected")]),
@@ -272,12 +282,14 @@ class HealthMonitor:
 
         try:
             # 1. Atualizar status do chip para 'demoved'
-            supabase.table("chips").update({
-                "status": "demoved",
-                "demoved_at": datetime.now(timezone.utc).isoformat(),
-                "demoved_motivo": motivo,
-                "demoved_by": "health_monitor_auto",
-            }).eq("id", chip_id).execute()
+            supabase.table("chips").update(
+                {
+                    "status": "demoved",
+                    "demoved_at": datetime.now(timezone.utc).isoformat(),
+                    "demoved_motivo": motivo,
+                    "demoved_by": "health_monitor_auto",
+                }
+            ).eq("id", chip_id).execute()
 
             # 2. Criar alerta
             await self._criar_alerta(
@@ -294,12 +306,10 @@ class HealthMonitor:
                 f"• Motivo: {motivo}\n"
                 f"• Trust Score: {chip.get('trust_score', 'N/A')}\n"
                 f"• Action: Chip removido do pool ativo",
-                canal="alertas"
+                canal="alertas",
             )
 
-            logger.warning(
-                f"[HealthMonitor] Auto-demove: chip={telefone}, motivo={motivo}"
-            )
+            logger.warning(f"[HealthMonitor] Auto-demove: chip={telefone}, motivo={motivo}")
 
             return {
                 "sucesso": True,
@@ -342,13 +352,10 @@ class HealthMonitor:
                 f"[HealthMonitor] Chip {telefone} candidato a auto-demove: "
                 f"trust={trust} < {self.thresholds['trust_auto_demove']}"
             )
-            return await self.auto_demover_chip(
-                chip,
-                motivo=f"Trust Score crítico ({trust})"
-            )
+            return await self.auto_demover_chip(chip, motivo=f"Trust Score crítico ({trust})")
 
         # Verificar circuit breaker (via dados do chip ou estado em memória)
-        from app.services.chips.circuit_breaker import ChipCircuitBreaker, CircuitState
+        from app.services.chips.circuit_breaker import ChipCircuitBreaker
 
         circuit = ChipCircuitBreaker.get_circuit(chip["id"], telefone)
         if circuit.falhas_consecutivas >= self.thresholds["falhas_consecutivas_demove"]:
@@ -357,8 +364,7 @@ class HealthMonitor:
                 f"{circuit.falhas_consecutivas} falhas consecutivas"
             )
             return await self.auto_demover_chip(
-                chip,
-                motivo=f"{circuit.falhas_consecutivas} falhas consecutivas"
+                chip, motivo=f"{circuit.falhas_consecutivas} falhas consecutivas"
             )
 
         return None
@@ -375,38 +381,39 @@ class HealthMonitor:
             Lista de alertas gerados
         """
         alertas = []
-        agora = datetime.now(timezone.utc)
+        datetime.now(timezone.utc)
 
         # Buscar chips ativos
-        result = supabase.table("chips").select("*").eq(
-            "status", "active"
-        ).eq(
-            "evolution_connected", True
-        ).execute()
+        result = (
+            supabase.table("chips")
+            .select("*")
+            .eq("status", "active")
+            .eq("evolution_connected", True)
+            .execute()
+        )
 
         chips = result.data or []
 
         if not chips:
             # Crítico: nenhum chip disponível
-            alertas.append(await self._criar_alerta_pool(
-                tipo="pool_vazio",
-                severity="critical",
-                message="Pool de chips está vazio! Nenhum chip conectado disponível.",
-            ))
+            alertas.append(
+                await self._criar_alerta_pool(
+                    tipo="pool_vazio",
+                    severity="critical",
+                    message="Pool de chips está vazio! Nenhum chip conectado disponível.",
+                )
+            )
             return alertas
 
         # Contar chips por capacidade (com trust adequado)
         chips_prospeccao = [
-            c for c in chips
-            if c.get("pode_prospectar") and (c.get("trust_score") or 0) >= 60
+            c for c in chips if c.get("pode_prospectar") and (c.get("trust_score") or 0) >= 60
         ]
         chips_followup = [
-            c for c in chips
-            if c.get("pode_followup") and (c.get("trust_score") or 0) >= 40
+            c for c in chips if c.get("pode_followup") and (c.get("trust_score") or 0) >= 40
         ]
         chips_resposta = [
-            c for c in chips
-            if c.get("pode_responder") and (c.get("trust_score") or 0) >= 20
+            c for c in chips if c.get("pode_responder") and (c.get("trust_score") or 0) >= 20
         ]
 
         # Verificar mínimos por operação
@@ -468,22 +475,31 @@ class HealthMonitor:
         self._last_pool_alert[tipo] = agora
 
         # Verificar se já existe alerta ativo
-        existing = supabase.table("chip_alerts").select("id").eq(
-            "tipo", tipo
-        ).eq(
-            "resolved", False
-        ).is_("chip_id", "null").execute()
+        existing = (
+            supabase.table("chip_alerts")
+            .select("id")
+            .eq("tipo", tipo)
+            .eq("resolved", False)
+            .is_("chip_id", "null")
+            .execute()
+        )
 
         if existing.data:
             return {"tipo": tipo, "severity": severity, "message": message, "duplicado": True}
 
         # Criar alerta (sem chip_id pois é do pool geral)
-        result = supabase.table("chip_alerts").insert({
-            "chip_id": None,
-            "tipo": tipo,
-            "severity": severity,
-            "message": message,
-        }).execute()
+        result = (
+            supabase.table("chip_alerts")
+            .insert(
+                {
+                    "chip_id": None,
+                    "tipo": tipo,
+                    "severity": severity,
+                    "message": message,
+                }
+            )
+            .execute()
+        )
 
         return {
             "tipo": tipo,
@@ -496,7 +512,9 @@ class HealthMonitor:
     async def _notificar_pool_baixo(self, alertas: List[Dict], chips: List[Dict]) -> None:
         """Notifica Slack sobre pool baixo."""
         mensagens = "\n".join([f"• {a['message']}" for a in alertas])
-        severity_max = "critical" if any(a["severity"] == "critical" for a in alertas) else "warning"
+        severity_max = (
+            "critical" if any(a["severity"] == "critical" for a in alertas) else "warning"
+        )
 
         emoji = ":rotating_light:" if severity_max == "critical" else ":warning:"
 
@@ -509,7 +527,7 @@ class HealthMonitor:
             f"• Trust >= 60: {len([c for c in chips if (c.get('trust_score') or 0) >= 60])}\n"
             f"• Trust >= 40: {len([c for c in chips if (c.get('trust_score') or 0) >= 40])}\n\n"
             f"_Considere ativar novos chips ou investigar os problemas._",
-            canal="alertas"
+            canal="alertas",
         )
 
     async def resolver_alerta(self, alerta_id: str, resolved_by: str = "manual") -> Dict:
@@ -523,11 +541,18 @@ class HealthMonitor:
         Returns:
             Resultado da operacao
         """
-        result = supabase.table("chip_alerts").update({
-            "resolved": True,
-            "resolved_at": datetime.now(timezone.utc).isoformat(),
-            "resolved_by": resolved_by,
-        }).eq("id", alerta_id).execute()
+        (
+            supabase.table("chip_alerts")
+            .update(
+                {
+                    "resolved": True,
+                    "resolved_at": datetime.now(timezone.utc).isoformat(),
+                    "resolved_by": resolved_by,
+                }
+            )
+            .eq("id", alerta_id)
+            .execute()
+        )
 
         return {"sucesso": True, "alerta_id": alerta_id}
 
@@ -571,9 +596,7 @@ class HealthMonitor:
             alertas = await self.verificar_saude_chips()
 
             # Sprint 36 - T11.1: Verificar auto-demove para chips ativos
-            result = supabase.table("chips").select("*").eq(
-                "status", "active"
-            ).execute()
+            result = supabase.table("chips").select("*").eq("status", "active").execute()
 
             chips_demovidos = 0
             for chip in result.data or []:
@@ -582,9 +605,7 @@ class HealthMonitor:
                     chips_demovidos += 1
 
             if chips_demovidos > 0:
-                logger.warning(
-                    f"[HealthMonitor] Auto-demove: {chips_demovidos} chip(s) removidos"
-                )
+                logger.warning(f"[HealthMonitor] Auto-demove: {chips_demovidos} chip(s) removidos")
 
             # Sprint 36 - T11.3: Verificar pool baixo
             alertas_pool = await self.verificar_pool_baixo()
@@ -599,7 +620,7 @@ class HealthMonitor:
                 mensagens = "\n".join([f"- {a['message']}" for a in criticos])
                 await notificar_slack(
                     f":rotating_light: *{len(criticos)} alerta(s) critico(s)*\n{mensagens}",
-                    canal="alertas"
+                    canal="alertas",
                 )
 
             # Log resumo
@@ -634,7 +655,6 @@ class HealthMonitor:
         self._running = False
         logger.info("[HealthMonitor] Parando...")
 
-
     async def resetar_erros_24h(self) -> Dict:
         """
         Sprint 36 - T08.4: Reseta contador de erros_24h automaticamente.
@@ -654,13 +674,13 @@ class HealthMonitor:
         try:
             # Buscar chips ativos com erros mas sem erro recente
             # (último erro > 6 horas atrás)
-            result = supabase.table("chips").select(
-                "id, telefone, erros_ultimas_24h, ultimo_erro, trust_score"
-            ).eq(
-                "status", "active"
-            ).gt(
-                "erros_ultimas_24h", 0
-            ).execute()
+            result = (
+                supabase.table("chips")
+                .select("id, telefone, erros_ultimas_24h, ultimo_erro, trust_score")
+                .eq("status", "active")
+                .gt("erros_ultimas_24h", 0)
+                .execute()
+            )
 
             chips_para_resetar = []
             for chip in result.data or []:
@@ -681,17 +701,21 @@ class HealthMonitor:
                 erros_anteriores = chip.get("erros_ultimas_24h", 0)
 
                 # Resetar para 0
-                supabase.table("chips").update({
-                    "erros_ultimas_24h": 0,
-                    "updated_at": agora.isoformat(),
-                }).eq("id", chip_id).execute()
+                supabase.table("chips").update(
+                    {
+                        "erros_ultimas_24h": 0,
+                        "updated_at": agora.isoformat(),
+                    }
+                ).eq("id", chip_id).execute()
 
-                detalhes.append({
-                    "chip_id": chip_id,
-                    "telefone": chip.get("telefone", "")[-4:],
-                    "erros_anteriores": erros_anteriores,
-                    "trust_score": chip.get("trust_score"),
-                })
+                detalhes.append(
+                    {
+                        "chip_id": chip_id,
+                        "telefone": chip.get("telefone", "")[-4:],
+                        "erros_anteriores": erros_anteriores,
+                        "trust_score": chip.get("trust_score"),
+                    }
+                )
 
             logger.info(
                 f"[HealthMonitor] T08.4: Resetados erros_24h de {len(chips_para_resetar)} chips"
@@ -728,15 +752,15 @@ class HealthMonitor:
             resultado["erros_resetados"] = await self.resetar_erros_24h()
 
             # 2. Resolver alertas antigos (> 48h)
-            dois_dias_atras = (
-                datetime.now(timezone.utc) - timedelta(hours=48)
-            ).isoformat()
+            dois_dias_atras = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
 
-            alertas_antigos = supabase.table("chip_alerts").select("id").eq(
-                "resolved", False
-            ).lt(
-                "created_at", dois_dias_atras
-            ).execute()
+            alertas_antigos = (
+                supabase.table("chip_alerts")
+                .select("id")
+                .eq("resolved", False)
+                .lt("created_at", dois_dias_atras)
+                .execute()
+            )
 
             for alerta in alertas_antigos.data or []:
                 await self.resolver_alerta(alerta["id"], resolved_by="auto_expire")

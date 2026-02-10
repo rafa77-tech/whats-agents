@@ -9,6 +9,7 @@ Responsabilidades:
 - Gerenciar lógica de retry
 - Processar stop_reason
 """
+
 import logging
 from typing import Optional, List, Dict, Any
 
@@ -19,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 # Padrões que indicam resposta incompleta
 PADROES_RESPOSTA_INCOMPLETA = [
-    ":",           # "Vou verificar o que temos:"
-    "...",         # Reticências no final
+    ":",  # "Vou verificar o que temos:"
+    "...",  # Reticências no final
     "vou verificar",
     "deixa eu ver",
     "um momento",
@@ -127,10 +128,7 @@ class ResponseHandler:
         stop_reason = resultado.get("stop_reason") or "end_turn"
 
         # Marcar se precisa retry (incompleta e sem tool calls)
-        needs_retry = (
-            not tool_calls and
-            self.resposta_incompleta(text, stop_reason)
-        )
+        needs_retry = not tool_calls and self.resposta_incompleta(text, stop_reason)
 
         return GenerationResult(
             text=text,

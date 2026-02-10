@@ -15,6 +15,7 @@ Sprint 16 - Observability
 - Persiste eventos na tabela policy_events
 - Permite métricas e replay offline
 """
+
 import asyncio
 import hashlib
 import json
@@ -49,7 +50,9 @@ def _serialize_doctor_state_input(state: DoctorState) -> dict:
         "active_objection": state.active_objection,
         "objection_severity": state.objection_severity.value if state.objection_severity else None,
         "contact_count_7d": state.contact_count_7d,
-        "cooling_off_until": state.cooling_off_until.isoformat() if state.cooling_off_until else None,
+        "cooling_off_until": state.cooling_off_until.isoformat()
+        if state.cooling_off_until
+        else None,
         "last_inbound_at": state.last_inbound_at.isoformat() if state.last_inbound_at else None,
         "last_outbound_at": state.last_outbound_at.isoformat() if state.last_outbound_at else None,
     }
@@ -142,9 +145,7 @@ def log_policy_decision(
     }
 
     # Log em formato JSON estruturado
-    logger.info(
-        f"POLICY_DECISION: {json.dumps(log_event, ensure_ascii=False)}"
-    )
+    logger.info(f"POLICY_DECISION: {json.dumps(log_event, ensure_ascii=False)}")
 
     # Log resumido para console (human-readable)
     logger.debug(
@@ -239,9 +240,7 @@ def log_policy_effect(
         "details": details or {},
     }
 
-    logger.info(
-        f"POLICY_EFFECT: {json.dumps(log_event, ensure_ascii=False)}"
-    )
+    logger.info(f"POLICY_EFFECT: {json.dumps(log_event, ensure_ascii=False)}")
 
     # Sprint 16: Persistir no banco (fire-and-forget, não bloqueia)
     if _persist_enabled:

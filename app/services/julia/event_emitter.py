@@ -8,6 +8,7 @@ Responsabilidades:
 - Emitir eventos de fallback outbound
 - Centralizar lógica de emissão de eventos do agente
 """
+
 import logging
 from typing import Optional, List
 
@@ -56,33 +57,37 @@ async def emitir_offer_events(
             # Trava de segurança: só emite se vaga estiver aberta/anunciada
             if await vaga_pode_receber_oferta(vaga_id):
                 safe_create_task(
-                    emit_event(BusinessEvent(
-                        event_type=EventType.OFFER_MADE,
-                        source=EventSource.BACKEND,
-                        cliente_id=cliente_id,
-                        conversation_id=conversa_id,
-                        vaga_id=vaga_id,
-                        policy_decision_id=policy_decision_id,
-                        event_props={},
-                    )),
-                    name="emit_offer_made"
+                    emit_event(
+                        BusinessEvent(
+                            event_type=EventType.OFFER_MADE,
+                            source=EventSource.BACKEND,
+                            cliente_id=cliente_id,
+                            conversation_id=conversa_id,
+                            vaga_id=vaga_id,
+                            policy_decision_id=policy_decision_id,
+                            event_props={},
+                        )
+                    ),
+                    name="emit_offer_made",
                 )
                 logger.debug(f"offer_made emitido para vaga {vaga_id[:8]}")
 
     # Se não tem vaga específica mas menciona oportunidades, emitir teaser
     elif resposta and tem_mencao_oportunidade(resposta):
         safe_create_task(
-            emit_event(BusinessEvent(
-                event_type=EventType.OFFER_TEASER_SENT,
-                source=EventSource.BACKEND,
-                cliente_id=cliente_id,
-                conversation_id=conversa_id,
-                policy_decision_id=policy_decision_id,
-                event_props={
-                    "resposta_length": len(resposta),
-                },
-            )),
-            name="emit_offer_teaser_sent"
+            emit_event(
+                BusinessEvent(
+                    event_type=EventType.OFFER_TEASER_SENT,
+                    source=EventSource.BACKEND,
+                    cliente_id=cliente_id,
+                    conversation_id=conversa_id,
+                    policy_decision_id=policy_decision_id,
+                    event_props={
+                        "resposta_length": len(resposta),
+                    },
+                )
+            ),
+            name="emit_offer_teaser_sent",
         )
         logger.debug(f"offer_teaser_sent emitido para cliente {cliente_id[:8]}")
 
@@ -99,16 +104,18 @@ async def emitir_fallback_event(telefone: str, function_name: str) -> None:
     """
     try:
         # Criar evento de fallback
-        await emit_event(BusinessEvent(
-            event_type=EventType.OUTBOUND_FALLBACK,
-            source=EventSource.BACKEND,
-            cliente_id=None,  # Não temos o ID no fallback legado
-            event_props={
-                "function": function_name,
-                "telefone_prefix": telefone[:8] if telefone else "unknown",
-                "warning": "Fallback legado usado - migrar para OutboundContext",
-            },
-        ))
+        await emit_event(
+            BusinessEvent(
+                event_type=EventType.OUTBOUND_FALLBACK,
+                source=EventSource.BACKEND,
+                cliente_id=None,  # Não temos o ID no fallback legado
+                event_props={
+                    "function": function_name,
+                    "telefone_prefix": telefone[:8] if telefone else "unknown",
+                    "warning": "Fallback legado usado - migrar para OutboundContext",
+                },
+            )
+        )
         logger.debug(f"outbound_fallback emitido para {function_name}")
     except Exception as e:
         # Se EventType.OUTBOUND_FALLBACK não existir, apenas log
@@ -160,16 +167,20 @@ async def emitir_app_download_event(
         trigger: O que disparou o envio (interesse_demonstrado, perguntou_vagas, quer_cadastrar)
     """
     try:
-        await emit_event(BusinessEvent(
-            event_type=EventType.APP_DOWNLOAD_SENT,
-            source=EventSource.BACKEND,
-            cliente_id=cliente_id,
-            conversation_id=conversa_id,
-            event_props={
-                "trigger": trigger,
-            },
-            dedupe_key=f"app_download:{cliente_id}",  # 1 por médico
-        ))
-        logger.info(f"app_download_sent emitido para cliente {cliente_id[:8]}... (trigger={trigger})")
+        await emit_event(
+            BusinessEvent(
+                event_type=EventType.APP_DOWNLOAD_SENT,
+                source=EventSource.BACKEND,
+                cliente_id=cliente_id,
+                conversation_id=conversa_id,
+                event_props={
+                    "trigger": trigger,
+                },
+                dedupe_key=f"app_download:{cliente_id}",  # 1 por médico
+            )
+        )
+        logger.info(
+            f"app_download_sent emitido para cliente {cliente_id[:8]}... (trigger={trigger})"
+        )
     except Exception as e:
         logger.warning(f"Erro ao emitir app_download_sent: {e}")

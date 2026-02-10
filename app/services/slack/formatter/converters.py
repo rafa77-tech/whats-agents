@@ -4,6 +4,7 @@ Conversores de dados para exibicao no Slack.
 Funcoes para formatacao de telefones, datas, valores, etc.
 Sprint 10 - S10.E2.1
 """
+
 import re
 from datetime import datetime, date
 from typing import Union
@@ -21,7 +22,7 @@ def formatar_telefone(telefone: str) -> str:
     Returns:
         Telefone formatado como codigo: `11 99999-9999`
     """
-    tel_limpo = re.sub(r'\D', '', telefone)
+    tel_limpo = re.sub(r"\D", "", telefone)
     if len(tel_limpo) >= 11:
         return f"`{tel_limpo[:2]} {tel_limpo[2:7]}-{tel_limpo[7:]}`"
     elif len(tel_limpo) >= 8:
@@ -45,10 +46,7 @@ def formatar_valor(valor: Union[float, int]) -> str:
 
 
 def formatar_valor_completo(
-    valor: int = None,
-    valor_minimo: int = None,
-    valor_maximo: int = None,
-    valor_tipo: str = "fixo"
+    valor: int = None, valor_minimo: int = None, valor_maximo: int = None, valor_tipo: str = "fixo"
 ) -> str:
     """
     Formata valor baseado no tipo para exibicao no Slack.
@@ -156,7 +154,17 @@ def formatar_data_longa(data: Union[str, datetime, date]) -> str:
             return data
 
     meses = [
-        "janeiro", "fevereiro", "marco", "abril", "maio", "junho",
-        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+        "janeiro",
+        "fevereiro",
+        "marco",
+        "abril",
+        "maio",
+        "junho",
+        "julho",
+        "agosto",
+        "setembro",
+        "outubro",
+        "novembro",
+        "dezembro",
     ]
     return f"{data.day} de {meses[data.month - 1]}"

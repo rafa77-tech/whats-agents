@@ -1,9 +1,9 @@
 """
 Serviço de segmentação de médicos.
 """
+
 import logging
 from typing import Dict, List, Optional
-from datetime import datetime, timedelta
 
 from app.services.supabase import supabase
 
@@ -14,22 +14,10 @@ class SegmentacaoService:
     """Gerencia segmentação de médicos para campanhas."""
 
     CRITERIOS = {
-        "especialidade": {
-            "campo": "especialidade_nome",
-            "operador": "eq"
-        },
-        "regiao": {
-            "campo": "regiao",
-            "operador": "eq"
-        },
-        "status": {
-            "campo": "status",
-            "operador": "eq"
-        },
-        "tag": {
-            "campo": "tags",
-            "operador": "contains"
-        },
+        "especialidade": {"campo": "especialidade_nome", "operador": "eq"},
+        "regiao": {"campo": "regiao", "operador": "eq"},
+        "status": {"campo": "status", "operador": "eq"},
+        "tag": {"campo": "tags", "operador": "contains"},
     }
 
     async def contar_segmento(self, filtros: Dict) -> int:
@@ -116,17 +104,20 @@ class SegmentacaoService:
             - last_outbound_at, contact_count_7d
         """
         try:
-            response = supabase.rpc("buscar_alvos_campanha", {
-                "p_filtros": filtros or {},
-                "p_dias_sem_contato": dias_sem_contato,
-                "p_excluir_cooling": excluir_cooling,
-                "p_excluir_em_atendimento": excluir_em_atendimento,
-                "p_contact_cap": contact_cap,
-                "p_limite": limite,
-                "p_pressure_score_max": pressure_score_max,
-                "p_modo_selecao": modo_selecao,
-                "p_clientes_especificos": clientes_especificos,
-            }).execute()
+            response = supabase.rpc(
+                "buscar_alvos_campanha",
+                {
+                    "p_filtros": filtros or {},
+                    "p_dias_sem_contato": dias_sem_contato,
+                    "p_excluir_cooling": excluir_cooling,
+                    "p_excluir_em_atendimento": excluir_em_atendimento,
+                    "p_contact_cap": contact_cap,
+                    "p_limite": limite,
+                    "p_pressure_score_max": pressure_score_max,
+                    "p_modo_selecao": modo_selecao,
+                    "p_clientes_especificos": clientes_especificos,
+                },
+            ).execute()
 
             alvos = response.data or []
 
@@ -153,14 +144,10 @@ SEGMENTOS_PREDEFINIDOS = {
         "nome": "Novos últimos 7 dias",
         "filtros": {
             # TODO: implementar filtro por data de criação
-        }
+        },
     },
     "anestesistas_abc": {
         "nome": "Anestesistas do ABC",
-        "filtros": {
-            "especialidade": "Anestesiologia",
-            "regiao": "abc"
-        }
+        "filtros": {"especialidade": "Anestesiologia", "regiao": "abc"},
     },
 }
-

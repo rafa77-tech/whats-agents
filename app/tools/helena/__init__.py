@@ -3,6 +3,7 @@ Tools da Helena - Agente de Gestão.
 
 Sprint 47: Tools pré-definidas + SQL dinâmico.
 """
+
 from app.tools.helena.metricas import (
     TOOL_METRICAS_PERIODO,
     TOOL_METRICAS_CONVERSAO,

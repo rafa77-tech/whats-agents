@@ -4,6 +4,7 @@ Prompts do sistema para o agente Julia.
 Este arquivo mantem funcoes de compatibilidade que internamente
 usam o novo sistema de prompts dinamicos do banco.
 """
+
 from app.prompts.builder import construir_prompt_julia as _construir_prompt
 
 # Constantes legadas (mantidas para fallback)

@@ -3,6 +3,7 @@ Decorators utilitarios do Agente Julia.
 
 Sprint 10 - S10.E4.2
 """
+
 import functools
 import logging
 from typing import Any, Callable, Optional, TypeVar, ParamSpec
@@ -16,9 +17,7 @@ T = TypeVar("T")
 
 
 def handle_errors(
-    default_return: Optional[Any] = None,
-    log_level: str = "error",
-    reraise: bool = False
+    default_return: Optional[Any] = None, log_level: str = "error", reraise: bool = False
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorator para tratamento padronizado de erros.
@@ -37,6 +36,7 @@ def handle_errors(
         async def operacao_critica():
             ...
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -50,14 +50,14 @@ def handle_errors(
                 log_func(
                     f"Erro em {func.__name__}: {e}",
                     exc_info=True,
-                    extra={"function": func.__name__, "error": str(e)}
+                    extra={"function": func.__name__, "error": str(e)},
                 )
 
                 if reraise:
                     raise DatabaseError(
                         f"Erro inesperado em {func.__name__}",
                         details={"error": str(e)},
-                        original_error=e
+                        original_error=e,
                     )
 
                 return default_return
@@ -73,14 +73,14 @@ def handle_errors(
                 log_func(
                     f"Erro em {func.__name__}: {e}",
                     exc_info=True,
-                    extra={"function": func.__name__, "error": str(e)}
+                    extra={"function": func.__name__, "error": str(e)},
                 )
 
                 if reraise:
                     raise DatabaseError(
                         f"Erro inesperado em {func.__name__}",
                         details={"error": str(e)},
-                        original_error=e
+                        original_error=e,
                     )
 
                 return default_return
@@ -94,8 +94,7 @@ def handle_errors(
 
 
 def log_execution(
-    level: str = "info",
-    include_args: bool = False
+    level: str = "info", include_args: bool = False
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorator para logar execucao de funcoes.
@@ -109,6 +108,7 @@ def log_execution(
         async def processar_mensagem(telefone, mensagem):
             ...
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:

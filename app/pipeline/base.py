@@ -3,6 +3,7 @@ Classes base para processadores.
 
 Sprint 44 T03.2: ProcessorContext com métodos imutáveis (híbrido).
 """
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional, Any
@@ -26,14 +27,15 @@ class ProcessorContext:
     Uso novo (imutável - preferido):
         context = context.with_updates(medico=medico)
     """
-    mensagem_raw: dict                    # Payload original
-    mensagem_texto: str = ""              # Texto da mensagem
-    telefone: str = ""                    # Telefone do remetente
-    message_id: str = ""                  # ID da mensagem
-    tipo_mensagem: str = "texto"          # texto, audio, imagem, etc
-    medico: Optional[dict] = None         # Dados do medico
-    conversa: Optional[dict] = None       # Dados da conversa
-    resposta: Optional[str] = None        # Resposta gerada
+
+    mensagem_raw: dict  # Payload original
+    mensagem_texto: str = ""  # Texto da mensagem
+    telefone: str = ""  # Telefone do remetente
+    message_id: str = ""  # ID da mensagem
+    tipo_mensagem: str = "texto"  # texto, audio, imagem, etc
+    medico: Optional[dict] = None  # Dados do medico
+    conversa: Optional[dict] = None  # Dados da conversa
+    resposta: Optional[str] = None  # Resposta gerada
     metadata: dict = field(default_factory=dict)  # Dados extras
 
     def with_updates(self, **kwargs) -> "ProcessorContext":
@@ -98,10 +100,11 @@ class ProcessorContext:
 @dataclass
 class ProcessorResult:
     """Resultado de um processador."""
+
     success: bool = True
-    should_continue: bool = True          # Se deve continuar pipeline
-    response: Optional[str] = None        # Resposta a enviar (se parar)
-    error: Optional[str] = None           # Mensagem de erro
+    should_continue: bool = True  # Se deve continuar pipeline
+    response: Optional[str] = None  # Resposta a enviar (se parar)
+    error: Optional[str] = None  # Mensagem de erro
     metadata: dict = field(default_factory=dict)
 
 
@@ -154,11 +157,7 @@ class PostProcessor(ABC):
     priority: int = 100
 
     @abstractmethod
-    async def process(
-        self,
-        context: ProcessorContext,
-        response: str
-    ) -> ProcessorResult:
+    async def process(self, context: ProcessorContext, response: str) -> ProcessorResult:
         """
         Processa a resposta.
 

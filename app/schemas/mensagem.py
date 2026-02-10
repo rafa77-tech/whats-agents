@@ -1,6 +1,7 @@
 """
 Schema para mensagem parseada (nosso formato interno).
 """
+
 from pydantic import BaseModel
 from typing import Optional, Literal
 from datetime import datetime
@@ -31,10 +32,13 @@ class MensagemRecebida(BaseModel):
     chatwoot_conversation_id: Optional[int] = None
     chatwoot_inbox_id: Optional[int] = None
     remote_jid: Optional[str] = None  # JID original (para enviar resposta)
-    remote_jid_alt: Optional[str] = None  # JID alternativo com telefone real (quando remoteJid é LID)
+    remote_jid_alt: Optional[str] = (
+        None  # JID alternativo com telefone real (quando remoteJid é LID)
+    )
 
 
 class MensagemParaEnviar(BaseModel):
     """Mensagem a ser enviada."""
+
     telefone: str
     texto: str

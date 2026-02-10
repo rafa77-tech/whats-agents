@@ -17,10 +17,7 @@ class EvolutionClient:
         self.base_url = settings.evolution_api_url
         self.api_key = settings.evolution_api_key
         self.instance = settings.evolution_instance
-        self.headers = {
-            "apikey": self.api_key,
-            "Content-Type": "application/json"
-        }
+        self.headers = {"apikey": self.api_key, "Content-Type": "application/json"}
 
     async def send_text(self, phone: str, message: str) -> dict:
         """Envia mensagem de texto."""
@@ -28,18 +25,17 @@ class EvolutionClient:
             response = await client.post(
                 f"{self.base_url}/message/sendText/{self.instance}",
                 headers=self.headers,
-                json={
-                    "number": phone,
-                    "text": message
-                },
-                timeout=30.0
+                json={"number": phone, "text": message},
+                timeout=30.0,
             )
             response.raise_for_status()
             result = response.json()
             logger.info(f"Mensagem enviada para {phone[:8]}...")
             return result
 
-    async def send_presence(self, phone: str, presence: str = "composing", delay: int = 3000) -> dict:
+    async def send_presence(
+        self, phone: str, presence: str = "composing", delay: int = 3000
+    ) -> dict:
         """
         Envia status de presenca.
         presence: 'composing' (digitando), 'recording' (gravando audio), 'available' (online)
@@ -49,12 +45,8 @@ class EvolutionClient:
             response = await client.post(
                 f"{self.base_url}/chat/sendPresence/{self.instance}",
                 headers=self.headers,
-                json={
-                    "number": phone,
-                    "presence": presence,
-                    "delay": delay
-                },
-                timeout=10.0
+                json={"number": phone, "presence": presence, "delay": delay},
+                timeout=10.0,
             )
             response.raise_for_status()
             return response.json()
@@ -69,11 +61,11 @@ class EvolutionClient:
                     "readMessages": [
                         {
                             "remoteJid": phone if "@" in phone else f"{phone}@s.whatsapp.net",
-                            "id": message_id
+                            "id": message_id,
                         }
                     ]
                 },
-                timeout=10.0
+                timeout=10.0,
             )
             response.raise_for_status()
             return response.json()
@@ -92,10 +84,10 @@ class EvolutionClient:
                         "enabled": True,
                         "url": url,
                         "webhookByEvents": False,
-                        "events": events
+                        "events": events,
                     }
                 },
-                timeout=10.0
+                timeout=10.0,
             )
             response.raise_for_status()
             result = response.json()
@@ -106,9 +98,7 @@ class EvolutionClient:
         """Retorna configuracao atual do webhook."""
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{self.base_url}/webhook/find/{self.instance}",
-                headers=self.headers,
-                timeout=10.0
+                f"{self.base_url}/webhook/find/{self.instance}", headers=self.headers, timeout=10.0
             )
             response.raise_for_status()
             return response.json()
@@ -119,7 +109,7 @@ class EvolutionClient:
             response = await client.get(
                 f"{self.base_url}/instance/connectionState/{self.instance}",
                 headers=self.headers,
-                timeout=10.0
+                timeout=10.0,
             )
             response.raise_for_status()
             return response.json()

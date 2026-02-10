@@ -3,6 +3,7 @@ Gerenciador de sessoes do agente Slack.
 
 Sprint 10 - S10.E2.2
 """
+
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -37,15 +38,17 @@ class SessionManager:
             Dados da sessao
         """
         try:
-            result = supabase.table("slack_sessoes").select("*").eq(
-                "user_id", self.user_id
-            ).eq("channel_id", self.channel_id).execute()
+            result = (
+                supabase.table("slack_sessoes")
+                .select("*")
+                .eq("user_id", self.user_id)
+                .eq("channel_id", self.channel_id)
+                .execute()
+            )
 
             if result.data:
                 sessao = result.data[0]
-                expires_at = datetime.fromisoformat(
-                    sessao["expires_at"].replace("Z", "+00:00")
-                )
+                expires_at = datetime.fromisoformat(sessao["expires_at"].replace("Z", "+00:00"))
 
                 # Verificar se expirou
                 if expires_at > datetime.now(timezone.utc):
@@ -76,7 +79,7 @@ class SessionManager:
             "channel_id": self.channel_id,
             "mensagens": [],
             "contexto": {},
-            "acao_pendente": None
+            "acao_pendente": None,
         }
         self.mensagens = []
         logger.info(f"Nova sessao criada para {self.user_id}")
@@ -101,14 +104,11 @@ class SessionManager:
                 "contexto": self.sessao.get("contexto", {}),
                 "acao_pendente": self.sessao.get("acao_pendente"),
                 "updated_at": datetime.now(timezone.utc).isoformat(),
-                "expires_at": expires_at.isoformat()
+                "expires_at": expires_at.isoformat(),
             }
 
             # Upsert
-            supabase.table("slack_sessoes").upsert(
-                data,
-                on_conflict="user_id,channel_id"
-            ).execute()
+            supabase.table("slack_sessoes").upsert(data, on_conflict="user_id,channel_id").execute()
 
         except Exception as e:
             logger.error(f"Erro ao salvar sessao: {e}")
@@ -121,10 +121,7 @@ class SessionManager:
             role: 'user' ou 'assistant'
             content: Conteudo da mensagem
         """
-        self.mensagens.append({
-            "role": role,
-            "content": content
-        })
+        self.mensagens.append({"role": role, "content": content})
 
     def get_acao_pendente(self) -> Optional[dict]:
         """Retorna acao pendente se houver."""

@@ -9,6 +9,7 @@ Este arquivo foi reorganizado em:
 Use: from app.services.relatorios import gerar_relatorio_diario
 Sprint 10 - S10.E3.3
 """
+
 import warnings
 
 warnings.warn(

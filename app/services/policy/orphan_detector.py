@@ -7,6 +7,7 @@ Identifica decisões sem efeitos correspondentes, indicando:
 - Timeouts
 - Bugs de integração
 """
+
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -82,7 +83,7 @@ async def detect_orphans(
         # Buscar em lotes de 100 para evitar query muito grande
         effect_ids: set[str] = set()
         for i in range(0, len(decision_ids), 100):
-            batch = decision_ids[i:i+100]
+            batch = decision_ids[i : i + 100]
             effects_response = (
                 supabase.table("policy_events")
                 .select("policy_decision_id")
@@ -94,10 +95,7 @@ async def detect_orphans(
                 effect_ids.add(e["policy_decision_id"])
 
         # 3. Identificar órfãos
-        orphans = [
-            d for d in decisions
-            if d["policy_decision_id"] not in effect_ids
-        ]
+        orphans = [d for d in decisions if d["policy_decision_id"] not in effect_ids]
 
         # 4. Agregar por regra e ação
         by_rule: dict[str, int] = {}
@@ -169,12 +167,14 @@ async def get_orphan_rate_trend(
             total = decisions_response.count or 0
 
             if total == 0:
-                results.append({
-                    "date": date.isoformat(),
-                    "total": 0,
-                    "orphans": 0,
-                    "rate": 0,
-                })
+                results.append(
+                    {
+                        "date": date.isoformat(),
+                        "total": 0,
+                        "orphans": 0,
+                        "rate": 0,
+                    }
+                )
                 continue
 
             # Buscar IDs das decisions
@@ -202,12 +202,14 @@ async def get_orphan_rate_trend(
             orphans = total - with_effects
             rate = round(orphans / total * 100, 2) if total > 0 else 0
 
-            results.append({
-                "date": date.isoformat(),
-                "total": total,
-                "orphans": orphans,
-                "rate": rate,
-            })
+            results.append(
+                {
+                    "date": date.isoformat(),
+                    "total": total,
+                    "orphans": orphans,
+                    "rate": rate,
+                }
+            )
 
         # Ordenar cronologicamente
         return sorted(results, key=lambda x: x["date"])
@@ -285,10 +287,11 @@ async def investigate_orphan(
             "primary_action": decision.get("primary_action"),
             "ts": decision.get("ts"),
             "time_since": str(
-                datetime.now(timezone.utc) - datetime.fromisoformat(
-                    decision.get("ts", "").replace("Z", "+00:00")
-                )
-            ) if decision.get("ts") else None,
+                datetime.now(timezone.utc)
+                - datetime.fromisoformat(decision.get("ts", "").replace("Z", "+00:00"))
+            )
+            if decision.get("ts")
+            else None,
         }
 
     except Exception as e:
@@ -308,7 +311,6 @@ async def check_health() -> dict:
     # Critérios de saúde
     healthy = analysis.orphan_rate < 5  # Menos de 5% de órfãos
     warning = 5 <= analysis.orphan_rate < 15
-    critical = analysis.orphan_rate >= 15
 
     status = "healthy" if healthy else ("warning" if warning else "critical")
 
@@ -317,7 +319,5 @@ async def check_health() -> dict:
         "orphan_rate": analysis.orphan_rate,
         "total_decisions_1h": analysis.total_decisions,
         "total_orphans_1h": analysis.total_orphans,
-        "top_orphan_rules": dict(
-            sorted(analysis.orphans_by_rule.items(), key=lambda x: -x[1])[:3]
-        ),
+        "top_orphan_rules": dict(sorted(analysis.orphans_by_rule.items(), key=lambda x: -x[1])[:3]),
     }

@@ -7,6 +7,7 @@ Usa Voyage AI voyage-3.5-lite (recomendado pela Anthropic).
 - Contexto 32K tokens
 - Dimensoes 1024 (menor = menos storage)
 """
+
 import logging
 from typing import Optional
 
@@ -37,6 +38,7 @@ def _get_voyage_client():
 
         try:
             import voyageai
+
             _voyage_client = voyageai.Client(api_key=settings.VOYAGE_API_KEY)
             logger.info("Cliente Voyage AI inicializado com sucesso")
         except ImportError:
@@ -49,10 +51,7 @@ def _get_voyage_client():
     return _voyage_client
 
 
-async def gerar_embedding(
-    texto: str,
-    input_type: str = "document"
-) -> Optional[list[float]]:
+async def gerar_embedding(texto: str, input_type: str = "document") -> Optional[list[float]]:
     """
     Gera embedding para um texto usando Voyage AI.
 
@@ -75,11 +74,7 @@ async def gerar_embedding(
         # Limpar texto (Voyage suporta 32K, mas limitamos para economia)
         texto_limpo = texto.strip()[:16000]
 
-        result = client.embed(
-            [texto_limpo],
-            model=settings.VOYAGE_MODEL,
-            input_type=input_type
-        )
+        result = client.embed([texto_limpo], model=settings.VOYAGE_MODEL, input_type=input_type)
 
         embedding = result.embeddings[0]
         logger.debug(f"Embedding gerado: {len(embedding)} dimensoes")
@@ -92,8 +87,7 @@ async def gerar_embedding(
 
 
 async def gerar_embeddings_batch(
-    textos: list[str],
-    input_type: str = "document"
+    textos: list[str], input_type: str = "document"
 ) -> list[Optional[list[float]]]:
     """
     Gera embeddings para multiplos textos em batch.
@@ -127,11 +121,7 @@ async def gerar_embeddings_batch(
         if not textos_validos:
             return [None] * len(textos)
 
-        result = client.embed(
-            textos_validos,
-            model=settings.VOYAGE_MODEL,
-            input_type=input_type
-        )
+        result = client.embed(textos_validos, model=settings.VOYAGE_MODEL, input_type=input_type)
 
         # Reconstruir lista com None para indices que nao tinham texto
         embeddings = [None] * len(textos)
@@ -146,10 +136,7 @@ async def gerar_embeddings_batch(
         return [None] * len(textos)
 
 
-def calcular_similaridade(
-    embedding1: list[float],
-    embedding2: list[float]
-) -> float:
+def calcular_similaridade(embedding1: list[float], embedding2: list[float]) -> float:
     """
     Calcula similaridade de cosseno entre dois embeddings.
 

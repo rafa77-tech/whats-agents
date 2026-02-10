@@ -3,6 +3,7 @@ Helpers para extrair contexto de eventos de negocio.
 
 Sprint 17 - E04
 """
+
 from typing import List
 
 

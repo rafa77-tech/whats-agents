@@ -16,6 +16,7 @@ Atributos comuns:
 - pagamento: Forma e prazo de pagamento
 - contato: Telefone, responsável pela escala
 """
+
 import logging
 from datetime import datetime, timezone
 from typing import Optional
@@ -60,6 +61,7 @@ FONTE_SISTEMA = "sistema"
 # FUNÇÕES DE CRUD
 # =============================================================================
 
+
 async def salvar_conhecimento(
     hospital_id: str,
     atributo: str,
@@ -100,31 +102,37 @@ async def salvar_conhecimento(
             # Atualizar existente
             response = (
                 supabase.table("conhecimento_hospitais")
-                .update({
-                    "valor": valor,
-                    "fonte": fonte,
-                    "criado_por": criado_por,
-                    "pedido_ajuda_id": pedido_ajuda_id,
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                })
+                .update(
+                    {
+                        "valor": valor,
+                        "fonte": fonte,
+                        "criado_por": criado_por,
+                        "pedido_ajuda_id": pedido_ajuda_id,
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
                 .eq("id", existing.data[0]["id"])
                 .execute()
             )
 
-            logger.info(f"Conhecimento atualizado: {atributo_normalizado} para hospital {hospital_id}")
+            logger.info(
+                f"Conhecimento atualizado: {atributo_normalizado} para hospital {hospital_id}"
+            )
         else:
             # Criar novo
             response = (
                 supabase.table("conhecimento_hospitais")
-                .insert({
-                    "id": str(uuid4()),
-                    "hospital_id": hospital_id,
-                    "atributo": atributo_normalizado,
-                    "valor": valor,
-                    "fonte": fonte,
-                    "criado_por": criado_por,
-                    "pedido_ajuda_id": pedido_ajuda_id,
-                })
+                .insert(
+                    {
+                        "id": str(uuid4()),
+                        "hospital_id": hospital_id,
+                        "atributo": atributo_normalizado,
+                        "valor": valor,
+                        "fonte": fonte,
+                        "criado_por": criado_por,
+                        "pedido_ajuda_id": pedido_ajuda_id,
+                    }
+                )
                 .execute()
             )
 
@@ -152,11 +160,7 @@ async def buscar_conhecimento(
         Dict com conhecimento ou lista de conhecimentos
     """
     try:
-        query = (
-            supabase.table("conhecimento_hospitais")
-            .select("*")
-            .eq("hospital_id", hospital_id)
-        )
+        query = supabase.table("conhecimento_hospitais").select("*").eq("hospital_id", hospital_id)
 
         if atributo:
             atributo_normalizado = _normalizar_atributo(atributo)
@@ -237,6 +241,7 @@ async def deletar_conhecimento(
 # =============================================================================
 # FUNÇÕES DE BUSCA AVANÇADA
 # =============================================================================
+
 
 async def buscar_hospitais_com_atributo(
     atributo: str,
@@ -320,6 +325,7 @@ async def obter_ficha_hospital(hospital_id: str) -> dict:
 # =============================================================================
 # FUNÇÕES PARA INTEGRAÇÃO COM JULIA
 # =============================================================================
+
 
 async def julia_sabe_sobre_hospital(
     hospital_id: str,
@@ -443,6 +449,7 @@ async def obter_contexto_hospital(hospital_id: str) -> str:
 # =============================================================================
 # FUNÇÕES INTERNAS
 # =============================================================================
+
 
 def _normalizar_atributo(atributo: str) -> str:
     """Normaliza nome do atributo."""

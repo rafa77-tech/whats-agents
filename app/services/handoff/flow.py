@@ -4,6 +4,7 @@ Fluxo de transicao IA <-> Humano.
 Sprint 10 - S10.E3.4
 Sprint 17 - E04: handoff_created event
 """
+
 from datetime import datetime
 import logging
 from typing import Optional
@@ -11,6 +12,7 @@ from typing import Optional
 from app.core.timezone import agora_utc
 from app.core.tasks import safe_create_task
 from app.services.supabase import supabase
+
 # Sprint 47: notificar_handoff removido - handoffs agora são visualizados no dashboard
 from app.services.chatwoot import chatwoot_service
 from app.services.interacao import salvar_interacao
@@ -72,16 +74,16 @@ async def iniciar_handoff(
         metadata = await _calcular_metadata(conversa_id)
 
         # 1. Enviar mensagem de transicao
-        await _enviar_mensagem_transicao(
-            telefone, conversa_id, cliente_id, trigger_type, conversa
-        )
+        await _enviar_mensagem_transicao(telefone, conversa_id, cliente_id, trigger_type, conversa)
 
         # 2. Atualizar conversa para controle humano
-        supabase.table("conversations").update({
-            "controlled_by": "human",
-            "escalation_reason": motivo,
-            "updated_at": agora_utc().isoformat()
-        }).eq("id", conversa_id).execute()
+        supabase.table("conversations").update(
+            {
+                "controlled_by": "human",
+                "escalation_reason": motivo,
+                "updated_at": agora_utc().isoformat(),
+            }
+        ).eq("id", conversa_id).execute()
 
         logger.info(f"Conversa {conversa_id} atualizada para controle humano")
 
@@ -116,13 +118,13 @@ async def iniciar_handoff(
                 trigger_type=trigger_type,
                 policy_decision_id=policy_decision_id,
             ),
-            name="emit_handoff_created"
+            name="emit_handoff_created",
         )
 
         # 5. Sprint 47: Notificação Slack removida - handoffs visualizados no dashboard
         logger.info(
             f"Handoff {handoff['id']} criado para conversa {conversa_id}",
-            extra={"handoff_id": handoff["id"], "conversa_id": conversa_id}
+            extra={"handoff_id": handoff["id"], "conversa_id": conversa_id},
         )
 
         return handoff
@@ -179,18 +181,20 @@ async def _emitir_handoff_created(
         if not should_emit:
             return
 
-        await emit_event(BusinessEvent(
-            event_type=EventType.HANDOFF_CREATED,
-            source=EventSource.BACKEND,
-            cliente_id=cliente_id,
-            conversation_id=conversa_id,
-            policy_decision_id=policy_decision_id,
-            event_props={
-                "handoff_id": handoff_id,
-                "motivo": motivo,
-                "trigger_type": trigger_type,
-            },
-        ))
+        await emit_event(
+            BusinessEvent(
+                event_type=EventType.HANDOFF_CREATED,
+                source=EventSource.BACKEND,
+                cliente_id=cliente_id,
+                conversation_id=conversa_id,
+                policy_decision_id=policy_decision_id,
+                event_props={
+                    "handoff_id": handoff_id,
+                    "motivo": motivo,
+                    "trigger_type": trigger_type,
+                },
+            )
+        )
 
         logger.debug(f"handoff_created emitido para cliente {cliente_id[:8]}")
 
@@ -199,11 +203,7 @@ async def _emitir_handoff_created(
 
 
 async def _enviar_mensagem_transicao(
-    telefone: str,
-    conversa_id: str,
-    cliente_id: str,
-    trigger_type: str,
-    conversa: dict
+    telefone: str, conversa_id: str, cliente_id: str, trigger_type: str, conversa: dict
 ) -> None:
     """Envia mensagem de transicao e sincroniza com Chatwoot."""
     mensagem = obter_mensagem_transicao(trigger_type)
@@ -241,21 +241,16 @@ async def _enviar_mensagem_transicao(
             cliente_id=cliente_id,
             tipo="saida",
             conteudo=mensagem,
-            autor_tipo="julia"
+            autor_tipo="julia",
         )
 
         # Sincronizar com Chatwoot
         chatwoot_id = conversa.get("chatwoot_conversation_id")
         if chatwoot_id and chatwoot_service.configurado:
             await chatwoot_service.enviar_mensagem(
-                conversation_id=int(chatwoot_id),
-                content=mensagem,
-                message_type="outgoing"
+                conversation_id=int(chatwoot_id), content=mensagem, message_type="outgoing"
             )
-            await chatwoot_service.adicionar_label(
-                conversation_id=int(chatwoot_id),
-                label="humano"
-            )
+            await chatwoot_service.adicionar_label(conversation_id=int(chatwoot_id), label="humano")
     except Exception as e:
         logger.error(f"Erro ao enviar mensagem de transicao: {e}")
 
@@ -263,7 +258,7 @@ async def _enviar_mensagem_transicao(
 async def finalizar_handoff(
     conversa_id: str,
     notas: str = "Gestor removeu label 'humano' no Chatwoot",
-    resolvido_por: str = "gestor"
+    resolvido_por: str = "gestor",
 ) -> bool:
     """
     Finaliza handoff e retorna controle para IA.
@@ -293,11 +288,13 @@ async def finalizar_handoff(
         conversa = conversa_response.data
 
         # 2. Atualizar conversa para controle IA
-        supabase.table("conversations").update({
-            "controlled_by": "ai",
-            "escalation_reason": None,
-            "updated_at": agora_utc().isoformat()
-        }).eq("id", conversa_id).execute()
+        supabase.table("conversations").update(
+            {
+                "controlled_by": "ai",
+                "escalation_reason": None,
+                "updated_at": agora_utc().isoformat(),
+            }
+        ).eq("id", conversa_id).execute()
 
         logger.info(f"Conversa {conversa_id} retornada para controle IA")
 
@@ -306,8 +303,7 @@ async def finalizar_handoff(
         if chatwoot_id and chatwoot_service.configurado:
             try:
                 await chatwoot_service.remover_label(
-                    conversation_id=int(chatwoot_id),
-                    label="humano"
+                    conversation_id=int(chatwoot_id), label="humano"
                 )
             except Exception as e:
                 logger.warning(f"Erro ao remover label do Chatwoot: {e}")
@@ -315,12 +311,14 @@ async def finalizar_handoff(
         # 3. Atualizar handoffs pendentes
         handoff_response = (
             supabase.table("handoffs")
-            .update({
-                "status": "resolvido",
-                "resolvido_em": agora_utc().isoformat(),
-                "resolvido_por": resolvido_por,
-                "notas": notas
-            })
+            .update(
+                {
+                    "status": "resolvido",
+                    "resolvido_em": agora_utc().isoformat(),
+                    "resolvido_por": resolvido_por,
+                    "notas": notas,
+                }
+            )
             .eq("conversa_id", conversa_id)
             .eq("status", "pendente")
             .execute()
@@ -331,7 +329,7 @@ async def finalizar_handoff(
             handoff = handoff_response.data[0]
             logger.info(
                 f"Handoff {handoff['id']} marcado como resolvido",
-                extra={"handoff_id": handoff["id"], "conversa_id": conversa_id}
+                extra={"handoff_id": handoff["id"], "conversa_id": conversa_id},
             )
 
         return True
@@ -342,9 +340,7 @@ async def finalizar_handoff(
 
 
 async def resolver_handoff(
-    handoff_id: str,
-    resolvido_por: Optional[str] = None,
-    notas: Optional[str] = None
+    handoff_id: str, resolvido_por: Optional[str] = None, notas: Optional[str] = None
 ) -> Optional[dict]:
     """
     Marca handoff como resolvido.
@@ -358,22 +354,14 @@ async def resolver_handoff(
         Dados do handoff atualizado ou None
     """
     try:
-        update_data = {
-            "status": "resolvido",
-            "resolvido_em": agora_utc().isoformat()
-        }
+        update_data = {"status": "resolvido", "resolvido_em": agora_utc().isoformat()}
 
         if resolvido_por:
             update_data["resolvido_por"] = resolvido_por
         if notas:
             update_data["notas"] = notas
 
-        response = (
-            supabase.table("handoffs")
-            .update(update_data)
-            .eq("id", handoff_id)
-            .execute()
-        )
+        response = supabase.table("handoffs").update(update_data).eq("id", handoff_id).execute()
 
         if not response.data:
             logger.error(f"Handoff {handoff_id} nao encontrado")

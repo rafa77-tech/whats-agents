@@ -1,9 +1,9 @@
 """
 Servico para gerenciamento de conversas.
 """
+
 from typing import Optional, Literal
 import logging
-from datetime import datetime
 
 from app.core.timezone import agora_utc
 from app.services.supabase import supabase
@@ -39,8 +39,7 @@ async def buscar_conversa_ativa(cliente_id: str) -> Optional[dict]:
 
 
 async def criar_conversa(
-    cliente_id: str,
-    controlled_by: Literal["ai", "human"] = "ai"
+    cliente_id: str, controlled_by: Literal["ai", "human"] = "ai"
 ) -> Optional[dict]:
     """
     Cria nova conversa.
@@ -55,11 +54,13 @@ async def criar_conversa(
     try:
         response = (
             supabase.table("conversations")
-            .insert({
-                "cliente_id": cliente_id,
-                "status": "active",
-                "controlled_by": controlled_by,
-            })
+            .insert(
+                {
+                    "cliente_id": cliente_id,
+                    "status": "active",
+                    "controlled_by": controlled_by,
+                }
+            )
             .execute()
         )
         logger.info(f"Conversa criada para cliente {cliente_id}")
@@ -89,12 +90,13 @@ async def buscar_ou_criar_conversa(cliente_id: str) -> Optional[dict]:
     # Criar nova
     logger.info(f"Criando nova conversa para {cliente_id}")
     conversa = await criar_conversa(cliente_id)
-    
+
     # Iniciar métricas para a nova conversa
     if conversa:
         from app.services.metricas import metricas_service
+
         await metricas_service.iniciar_metricas_conversa(conversa["id"])
-    
+
     return conversa
 
 
@@ -102,12 +104,7 @@ async def atualizar_conversa(conversa_id: str, **campos) -> Optional[dict]:
     """Atualiza campos da conversa."""
     try:
         campos["updated_at"] = agora_utc().isoformat()
-        response = (
-            supabase.table("conversations")
-            .update(campos)
-            .eq("id", conversa_id)
-            .execute()
-        )
+        response = supabase.table("conversations").update(campos).eq("id", conversa_id).execute()
         return response.data[0] if response.data else None
     except Exception as e:
         logger.error(f"Erro ao atualizar conversa: {e}")
@@ -125,10 +122,7 @@ async def fechar_conversa(conversa_id: str, motivo: str = "concluida") -> bool:
 
 async def transferir_para_humano(conversa_id: str) -> bool:
     """Transfere conversa para controle humano."""
-    result = await atualizar_conversa(
-        conversa_id,
-        controlled_by="human"
-    )
+    result = await atualizar_conversa(conversa_id, controlled_by="human")
     return result is not None
 
 
@@ -136,10 +130,7 @@ async def conversa_controlada_por_ia(conversa_id: str) -> bool:
     """Verifica se conversa esta sob controle da IA."""
     try:
         response = (
-            supabase.table("conversations")
-            .select("controlled_by")
-            .eq("id", conversa_id)
-            .execute()
+            supabase.table("conversations").select("controlled_by").eq("id", conversa_id).execute()
         )
         if response.data:
             return response.data[0]["controlled_by"] == "ai"

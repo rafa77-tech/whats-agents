@@ -5,6 +5,7 @@ Sprint 17 - E07
 
 Detecta anomalias e notifica via Slack.
 """
+
 import hashlib
 import logging
 from dataclasses import dataclass, field
@@ -26,16 +27,18 @@ logger = logging.getLogger(__name__)
 
 class AlertType(Enum):
     """Tipos de alerta."""
+
     HANDOFF_SPIKE = "handoff_spike"
     RECUSA_SPIKE = "recusa_spike"
     CONVERSION_DROP = "conversion_drop"
     # Alertas P0 de confirmação de plantão (Sprint 17)
-    CONFIRMATION_OVERDUE = "confirmation_overdue"     # pendentes > 24h
+    CONFIRMATION_OVERDUE = "confirmation_overdue"  # pendentes > 24h
     SHIFT_TRANSITION_FAILED = "shift_transition_failed"  # reservadas vencidas não transicionaram
 
 
 class AlertSeverity(Enum):
     """Severidade do alerta."""
+
     WARNING = "warning"
     CRITICAL = "critical"
 
@@ -43,6 +46,7 @@ class AlertSeverity(Enum):
 @dataclass
 class Alert:
     """Um alerta detectado."""
+
     alert_type: AlertType
     severity: AlertSeverity
     title: str
@@ -106,11 +110,7 @@ async def _get_hospital_name(hospital_id: str) -> str:
     """Busca nome do hospital."""
     try:
         response = (
-            supabase.table("hospitais")
-            .select("nome")
-            .eq("id", hospital_id)
-            .limit(1)
-            .execute()
+            supabase.table("hospitais").select("nome").eq("id", hospital_id).limit(1).execute()
         )
 
         if response.data:
@@ -166,20 +166,24 @@ async def detect_handoff_spike(
             if handoffs_24h >= threshold:
                 hospital_name = await _get_hospital_name(hospital_id)
 
-                alerts.append(Alert(
-                    alert_type=AlertType.HANDOFF_SPIKE,
-                    severity=AlertSeverity.CRITICAL if handoffs_24h >= threshold * 1.5 else AlertSeverity.WARNING,
-                    title=f"Spike de Handoff: {hospital_name}",
-                    description=(
-                        f"Hospital {hospital_name} teve {handoffs_24h} handoffs nas ultimas 24h. "
-                        f"Threshold: {threshold:.0f} (2x media 7d: {avg_daily_7d:.1f}/dia)."
-                    ),
-                    hospital_id=hospital_id,
-                    hospital_name=hospital_name,
-                    current_value=handoffs_24h,
-                    baseline_value=avg_daily_7d,
-                    threshold_pct=threshold,
-                ))
+                alerts.append(
+                    Alert(
+                        alert_type=AlertType.HANDOFF_SPIKE,
+                        severity=AlertSeverity.CRITICAL
+                        if handoffs_24h >= threshold * 1.5
+                        else AlertSeverity.WARNING,
+                        title=f"Spike de Handoff: {hospital_name}",
+                        description=(
+                            f"Hospital {hospital_name} teve {handoffs_24h} handoffs nas ultimas 24h. "
+                            f"Threshold: {threshold:.0f} (2x media 7d: {avg_daily_7d:.1f}/dia)."
+                        ),
+                        hospital_id=hospital_id,
+                        hospital_name=hospital_name,
+                        current_value=handoffs_24h,
+                        baseline_value=avg_daily_7d,
+                        threshold_pct=threshold,
+                    )
+                )
 
     except Exception as e:
         logger.error(f"Erro ao detectar handoff spike: {e}")
@@ -213,19 +217,23 @@ async def detect_decline_spike(
             decline_rate = (declined / offers) * 100
 
             if decline_rate > threshold_pct:
-                alerts.append(Alert(
-                    alert_type=AlertType.RECUSA_SPIKE,
-                    severity=AlertSeverity.CRITICAL if decline_rate > 60 else AlertSeverity.WARNING,
-                    title="Spike de Recusas de Oferta",
-                    description=(
-                        f"Taxa de recusa nas ultimas 24h: {decline_rate:.1f}% "
-                        f"(recusaram {declined} de {offers} ofertas). "
-                        f"Threshold: > {threshold_pct}%."
-                    ),
-                    current_value=decline_rate,
-                    baseline_value=threshold_pct,
-                    threshold_pct=threshold_pct,
-                ))
+                alerts.append(
+                    Alert(
+                        alert_type=AlertType.RECUSA_SPIKE,
+                        severity=AlertSeverity.CRITICAL
+                        if decline_rate > 60
+                        else AlertSeverity.WARNING,
+                        title="Spike de Recusas de Oferta",
+                        description=(
+                            f"Taxa de recusa nas ultimas 24h: {decline_rate:.1f}% "
+                            f"(recusaram {declined} de {offers} ofertas). "
+                            f"Threshold: > {threshold_pct}%."
+                        ),
+                        current_value=decline_rate,
+                        baseline_value=threshold_pct,
+                        threshold_pct=threshold_pct,
+                    )
+                )
 
     except Exception as e:
         logger.error(f"Erro ao detectar spike de recusas: {e}")
@@ -272,19 +280,23 @@ async def detect_conversion_drop(
                 drop = ((avg_rate_7d - current_rate) / avg_rate_7d) * 100
 
                 if drop >= drop_pct:
-                    alerts.append(Alert(
-                        alert_type=AlertType.CONVERSION_DROP,
-                        severity=AlertSeverity.CRITICAL if drop >= 50 else AlertSeverity.WARNING,
-                        title="Queda na Taxa de Aceite",
-                        description=(
-                            f"Taxa de aceite caiu {drop:.1f}% vs media 7d. "
-                            f"Atual: {current_rate:.1f}%, Media 7d: {avg_rate_7d:.1f}%. "
-                            f"(aceitaram {accepted_24h} de {offers_24h} ofertas hoje)."
-                        ),
-                        current_value=current_rate,
-                        baseline_value=avg_rate_7d,
-                        threshold_pct=drop,
-                    ))
+                    alerts.append(
+                        Alert(
+                            alert_type=AlertType.CONVERSION_DROP,
+                            severity=AlertSeverity.CRITICAL
+                            if drop >= 50
+                            else AlertSeverity.WARNING,
+                            title="Queda na Taxa de Aceite",
+                            description=(
+                                f"Taxa de aceite caiu {drop:.1f}% vs media 7d. "
+                                f"Atual: {current_rate:.1f}%, Media 7d: {avg_rate_7d:.1f}%. "
+                                f"(aceitaram {accepted_24h} de {offers_24h} ofertas hoje)."
+                            ),
+                            current_value=current_rate,
+                            baseline_value=avg_rate_7d,
+                            threshold_pct=drop,
+                        )
+                    )
 
     except Exception as e:
         logger.error(f"Erro ao detectar queda de conversao: {e}")
@@ -311,29 +323,31 @@ async def detect_confirmation_overdue(
     try:
         limite = (datetime.now(timezone.utc) - timedelta(hours=max_hours)).isoformat()
 
-        result = supabase.table("vagas").select(
-            "id", count="exact"
-        ).eq(
-            "status", "pendente_confirmacao"
-        ).lt(
-            "pendente_confirmacao_em", limite
-        ).execute()
+        result = (
+            supabase.table("vagas")
+            .select("id", count="exact")
+            .eq("status", "pendente_confirmacao")
+            .lt("pendente_confirmacao_em", limite)
+            .execute()
+        )
 
         count = result.count or 0
 
         if count > 0:
-            alerts.append(Alert(
-                alert_type=AlertType.CONFIRMATION_OVERDUE,
-                severity=AlertSeverity.CRITICAL if count >= 5 else AlertSeverity.WARNING,
-                title="Confirmações de Plantão Atrasadas",
-                description=(
-                    f"{count} plantão(ões) aguardando confirmação há mais de {max_hours}h. "
-                    f"Acesse /jobs/pendentes-confirmacao para revisar."
-                ),
-                current_value=float(count),
-                baseline_value=0,
-                threshold_pct=0,
-            ))
+            alerts.append(
+                Alert(
+                    alert_type=AlertType.CONFIRMATION_OVERDUE,
+                    severity=AlertSeverity.CRITICAL if count >= 5 else AlertSeverity.WARNING,
+                    title="Confirmações de Plantão Atrasadas",
+                    description=(
+                        f"{count} plantão(ões) aguardando confirmação há mais de {max_hours}h. "
+                        f"Acesse /jobs/pendentes-confirmacao para revisar."
+                    ),
+                    current_value=float(count),
+                    baseline_value=0,
+                    threshold_pct=0,
+                )
+            )
 
     except Exception as e:
         logger.error(f"Erro ao detectar confirmações atrasadas: {e}")
@@ -359,31 +373,29 @@ async def detect_shift_transition_failed(
     alerts = []
 
     try:
-        from app.services.confirmacao_plantao import BUFFER_HORAS
-
         # Usar RPC para contar (calcula data+hora corretamente)
         limite = (datetime.now(timezone.utc) - timedelta(hours=buffer_hours)).isoformat()
 
-        result = supabase.rpc("contar_reservadas_vencidas", {
-            "limite_ts": limite
-        }).execute()
+        result = supabase.rpc("contar_reservadas_vencidas", {"limite_ts": limite}).execute()
 
         count = result.data if isinstance(result.data, int) else 0
 
         if count > 0:
-            alerts.append(Alert(
-                alert_type=AlertType.SHIFT_TRANSITION_FAILED,
-                severity=AlertSeverity.CRITICAL,
-                title="Job de Transição de Plantões Falhou",
-                description=(
-                    f"{count} plantão(ões) reservado(s) com data vencida não foram "
-                    f"transicionados para pendente_confirmacao. "
-                    f"Verifique se o job processar_confirmacao_plantao está rodando."
-                ),
-                current_value=float(count),
-                baseline_value=0,
-                threshold_pct=0,
-            ))
+            alerts.append(
+                Alert(
+                    alert_type=AlertType.SHIFT_TRANSITION_FAILED,
+                    severity=AlertSeverity.CRITICAL,
+                    title="Job de Transição de Plantões Falhou",
+                    description=(
+                        f"{count} plantão(ões) reservado(s) com data vencida não foram "
+                        f"transicionados para pendente_confirmacao. "
+                        f"Verifique se o job processar_confirmacao_plantao está rodando."
+                    ),
+                    current_value=float(count),
+                    baseline_value=0,
+                    threshold_pct=0,
+                )
+            )
 
     except Exception as e:
         logger.error(f"Erro ao detectar falha de transição: {e}")
@@ -479,17 +491,21 @@ def _format_slack_message(alert: Alert) -> dict:
     ]
 
     if alert.hospital_name:
-        fields.append({
-            "title": "Hospital",
-            "value": alert.hospital_name,
-            "short": True,
-        })
+        fields.append(
+            {
+                "title": "Hospital",
+                "value": alert.hospital_name,
+                "short": True,
+            }
+        )
 
-    fields.append({
-        "title": "Acoes",
-        "value": _get_action_text(alert).replace("*", "").replace("\n", " "),
-        "short": False,
-    })
+    fields.append(
+        {
+            "title": "Acoes",
+            "value": _get_action_text(alert).replace("*", "").replace("\n", " "),
+            "short": False,
+        }
+    )
 
     return {
         "text": f"{emoji} {alert.title}",
@@ -528,7 +544,7 @@ async def send_alert_to_slack(alert: Alert) -> bool:
             "hospital_name": alert.hospital_name,
             "current_value": alert.current_value,
             "baseline_value": alert.baseline_value,
-        }
+        },
     )
     return True
 
@@ -619,11 +635,7 @@ async def persist_alert(alert: Alert) -> Optional[str]:
             "threshold_pct": alert.threshold_pct,
         }
 
-        response = (
-            supabase.table("business_alerts")
-            .insert(data)
-            .execute()
-        )
+        response = supabase.table("business_alerts").insert(data).execute()
 
         if response.data:
             return response.data[0].get("alert_id")
@@ -637,10 +649,12 @@ async def persist_alert(alert: Alert) -> Optional[str]:
 async def mark_alert_notified(alert_id: str) -> None:
     """Marca alerta como notificado."""
     try:
-        supabase.table("business_alerts").update({
-            "notified": True,
-            "notified_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("alert_id", alert_id).execute()
+        supabase.table("business_alerts").update(
+            {
+                "notified": True,
+                "notified_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("alert_id", alert_id).execute()
     except Exception as e:
         logger.error(f"Erro ao marcar alerta notificado: {e}")
 
@@ -663,10 +677,7 @@ async def get_recent_alerts(
         since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
 
         query = (
-            supabase.table("business_alerts")
-            .select("*")
-            .gte("ts", since)
-            .order("ts", desc=True)
+            supabase.table("business_alerts").select("*").gte("ts", since).order("ts", desc=True)
         )
 
         if alert_type:

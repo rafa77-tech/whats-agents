@@ -4,9 +4,8 @@ Servico de memoria de longo prazo (RAG).
 Busca e formata memorias relevantes sobre o medico
 para enriquecer o contexto do agente.
 """
+
 import logging
-from typing import Optional
-from datetime import datetime
 
 from app.services.supabase import supabase
 from app.services.embedding import gerar_embedding
@@ -15,10 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 async def buscar_memorias_relevantes(
-    cliente_id: str,
-    mensagem: str,
-    limite: int = 5,
-    threshold: float = 0.7
+    cliente_id: str, mensagem: str, limite: int = 5, threshold: float = 0.7
 ) -> list[dict]:
     """
     Busca memorias relevantes para uma mensagem usando RAG.
@@ -56,8 +52,8 @@ async def buscar_memorias_relevantes(
                 "p_cliente_id": cliente_id,
                 "p_embedding": query_embedding,
                 "p_limite": limite,
-                "p_threshold": threshold
-            }
+                "p_threshold": threshold,
+            },
         ).execute()
 
         if not response.data:
@@ -65,9 +61,7 @@ async def buscar_memorias_relevantes(
             return []
 
         memorias = response.data
-        logger.info(
-            f"Encontradas {len(memorias)} memorias relevantes para cliente {cliente_id}"
-        )
+        logger.info(f"Encontradas {len(memorias)} memorias relevantes para cliente {cliente_id}")
 
         return memorias
 
@@ -78,9 +72,7 @@ async def buscar_memorias_relevantes(
 
 
 async def _buscar_memorias_recentes(
-    cliente_id: str,
-    limite: int = 5,
-    tipo: str = None
+    cliente_id: str, limite: int = 5, tipo: str = None
 ) -> list[dict]:
     """
     Fallback: busca memorias mais recentes sem usar embeddings.
@@ -101,11 +93,7 @@ async def _buscar_memorias_recentes(
     try:
         response = supabase.rpc(
             "buscar_memorias_recentes",
-            {
-                "p_cliente_id": cliente_id,
-                "p_limite": limite,
-                "p_tipo": tipo
-            }
+            {"p_cliente_id": cliente_id, "p_limite": limite, "p_tipo": tipo},
         ).execute()
 
         return response.data or []
@@ -218,7 +206,7 @@ async def buscar_preferencias_rapidas(cliente_id: str) -> dict:
         resultado = {
             "preferencias": preferencias.get("preferencias", []),
             "restricoes": preferencias.get("restricoes", []),
-            **conhecidas  # turnos, hospitais_preferidos, etc
+            **conhecidas,  # turnos, hospitais_preferidos, etc
         }
 
         return resultado
@@ -275,10 +263,7 @@ def formatar_preferencias_rapidas(prefs: dict) -> str:
     return "## Preferencias conhecidas:\n" + "\n".join(linhas)
 
 
-async def enriquecer_contexto_com_memorias(
-    cliente_id: str,
-    mensagem_atual: str
-) -> str:
+async def enriquecer_contexto_com_memorias(cliente_id: str, mensagem_atual: str) -> str:
     """
     Funcao principal para enriquecer contexto com memorias.
 
@@ -297,10 +282,7 @@ async def enriquecer_contexto_com_memorias(
 
     # 1. Busca semantica
     memorias = await buscar_memorias_relevantes(
-        cliente_id=cliente_id,
-        mensagem=mensagem_atual,
-        limite=5,
-        threshold=0.7
+        cliente_id=cliente_id, mensagem=mensagem_atual, limite=5, threshold=0.7
     )
 
     memorias_formatadas = formatar_memorias_para_prompt(memorias)

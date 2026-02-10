@@ -3,6 +3,7 @@ Builder de prompts - combina partes em prompt final.
 
 Sprint 32 E02: Adicionado suporte a contexto de campanha.
 """
+
 import logging
 from datetime import datetime
 from typing import Optional, Literal
@@ -266,9 +267,7 @@ class PromptBuilder:
         if prompt:
             self._prompt_campanha = prompt
         else:
-            logger.warning(
-                f"Prompt julia_{campaign_type} não encontrado, usando fallback"
-            )
+            logger.warning(f"Prompt julia_{campaign_type} não encontrado, usando fallback")
 
         return self
 
@@ -355,7 +354,9 @@ class PromptBuilder:
 
         # 0. Policy constraints (PRIORIDADE MÁXIMA - Sprint 15)
         if self._policy_constraints:
-            partes.append(f"## DIRETRIZES DE POLÍTICA (PRIORIDADE MÁXIMA)\n\n{self._policy_constraints}\n\n---")
+            partes.append(
+                f"## DIRETRIZES DE POLÍTICA (PRIORIDADE MÁXIMA)\n\n{self._policy_constraints}\n\n---"
+            )
 
         # 1. Prompt base (obrigatorio)
         if self._prompt_base:

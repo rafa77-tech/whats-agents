@@ -3,6 +3,7 @@ Salvy API Client - Provisioning de numeros virtuais.
 
 Docs: https://docs.salvy.com.br/api-reference/virtual-phone-accounts/introduction
 """
+
 import httpx
 import logging
 from typing import Optional, List
@@ -19,6 +20,7 @@ BASE_URL = "https://api.salvy.com.br/api/v2"
 
 class SalvyNumber(BaseModel):
     """Numero virtual Salvy."""
+
     id: str
     name: Optional[str] = None
     phone_number: str
@@ -29,6 +31,7 @@ class SalvyNumber(BaseModel):
 
 class SalvyError(Exception):
     """Erro da API Salvy."""
+
     def __init__(self, message: str, status_code: int = 0):
         self.message = message
         self.status_code = status_code
@@ -39,7 +42,7 @@ class SalvyClient:
     """Cliente para API Salvy."""
 
     def __init__(self):
-        self.token = getattr(settings, 'SALVY_API_TOKEN', None)
+        self.token = getattr(settings, "SALVY_API_TOKEN", None)
         self.headers = {
             "Authorization": f"Bearer {self.token}" if self.token else "",
             "Content-Type": "application/json",
@@ -50,11 +53,7 @@ class SalvyClient:
         if not self.token:
             raise SalvyError("SALVY_API_TOKEN nao configurado", 401)
 
-    async def criar_numero(
-        self,
-        ddd: int = 11,
-        nome: Optional[str] = None
-    ) -> SalvyNumber:
+    async def criar_numero(self, ddd: int = 11, nome: Optional[str] = None) -> SalvyNumber:
         """
         Cria novo numero virtual.
 
@@ -146,7 +145,9 @@ class SalvyClient:
                 phone_number=data["phoneNumber"],
                 status=data["status"],
                 created_at=datetime.fromisoformat(data["createdAt"].replace("Z", "+00:00")),
-                canceled_at=datetime.fromisoformat(data["canceledAt"].replace("Z", "+00:00")) if data.get("canceledAt") else None,
+                canceled_at=datetime.fromisoformat(data["canceledAt"].replace("Z", "+00:00"))
+                if data.get("canceledAt")
+                else None,
             )
 
     async def listar_numeros(self) -> List[SalvyNumber]:
@@ -170,7 +171,9 @@ class SalvyClient:
                     phone_number=d["phoneNumber"],
                     status=d["status"],
                     created_at=datetime.fromisoformat(d["createdAt"].replace("Z", "+00:00")),
-                    canceled_at=datetime.fromisoformat(d["canceledAt"].replace("Z", "+00:00")) if d.get("canceledAt") else None,
+                    canceled_at=datetime.fromisoformat(d["canceledAt"].replace("Z", "+00:00"))
+                    if d.get("canceledAt")
+                    else None,
                 )
                 for d in response.json()
             ]

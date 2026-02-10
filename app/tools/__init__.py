@@ -1,6 +1,7 @@
 """
 Tools para o agente Julia.
 """
+
 from app.tools.vagas import (
     TOOL_RESERVAR_PLANTAO,
     handle_reservar_plantao,

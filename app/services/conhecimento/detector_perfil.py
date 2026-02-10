@@ -3,11 +3,11 @@ Detector de perfil de médico.
 
 Identifica perfil para adaptar abordagem e buscar conhecimento específico.
 """
+
 import logging
 from dataclasses import dataclass
 from typing import Optional
 from enum import Enum
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -189,9 +189,7 @@ class DetectorPerfil:
             )
 
         # Prioridade 2: Título acadêmico indica SENIOR
-        if titulo and any(
-            t in titulo.lower() for t in ["professor", "doutor", "dr.", "preceptor"]
-        ):
+        if titulo and any(t in titulo.lower() for t in ["professor", "doutor", "dr.", "preceptor"]):
             indicadores.append("titulo_academico")
             return ResultadoPerfil(
                 perfil=PerfilMedico.SENIOR,
@@ -343,7 +341,9 @@ class DetectorPerfil:
 
         contexto = ""
         if dados_cliente:
-            contexto = f"\nDados conhecidos: Especialidade: {dados_cliente.get('especialidade', 'N/A')}"
+            contexto = (
+                f"\nDados conhecidos: Especialidade: {dados_cliente.get('especialidade', 'N/A')}"
+            )
 
         historico = "\n".join([f"- {m}" for m in mensagens[-5:]])
 

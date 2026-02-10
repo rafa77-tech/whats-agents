@@ -7,6 +7,7 @@ Detecta divergencias nas duas direcoes:
 - DB → Eventos esperados
 - Eventos → DB esperado
 """
+
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -23,12 +24,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DataAnomaly:
     """Anomalia de dados detectada."""
-    direction: str              # 'db_to_events' ou 'events_to_db'
-    anomaly_type: str           # 'missing_event', 'state_mismatch', etc
-    entity_type: str            # 'vaga', 'cliente', 'business_event'
+
+    direction: str  # 'db_to_events' ou 'events_to_db'
+    anomaly_type: str  # 'missing_event', 'state_mismatch', etc
+    entity_type: str  # 'vaga', 'cliente', 'business_event'
     entity_id: str
-    expected: str               # O que deveria existir
-    found: Optional[str]        # O que foi encontrado
+    expected: str  # O que deveria existir
+    found: Optional[str]  # O que foi encontrado
     details: dict
     severity: str = "warning"
 
@@ -50,7 +52,7 @@ def _determine_severity(anomaly_type: str, entity_type: str) -> str:
     """Determina severidade da anomalia."""
     critical_patterns = [
         ("state_mismatch", "business_event"),  # Evento sem reflexo no DB
-        ("missing_event", "vaga"),             # Vaga sem evento
+        ("missing_event", "vaga"),  # Vaga sem evento
     ]
     for pattern_type, pattern_entity in critical_patterns:
         if anomaly_type == pattern_type and entity_type == pattern_entity:
@@ -69,10 +71,7 @@ async def run_reconciliation(hours: int = 24) -> List[DataAnomaly]:
         Lista de anomalias detectadas
     """
     try:
-        response = supabase.rpc(
-            "reconcile_all",
-            {"p_hours": hours}
-        ).execute()
+        response = supabase.rpc("reconcile_all", {"p_hours": hours}).execute()
 
         anomalies = []
         for row in response.data or []:
@@ -85,10 +84,7 @@ async def run_reconciliation(hours: int = 24) -> List[DataAnomaly]:
                 found=row.get("found"),
                 details=row.get("details") or {},
             )
-            anomaly.severity = _determine_severity(
-                anomaly.anomaly_type,
-                anomaly.entity_type
-            )
+            anomaly.severity = _determine_severity(anomaly.anomaly_type, anomaly.entity_type)
             anomalies.append(anomaly)
 
         return anomalies
@@ -98,10 +94,7 @@ async def run_reconciliation(hours: int = 24) -> List[DataAnomaly]:
         return []
 
 
-async def persist_anomalies_with_dedup(
-    anomalies: List[DataAnomaly],
-    run_id: str
-) -> dict:
+async def persist_anomalies_with_dedup(anomalies: List[DataAnomaly], run_id: str) -> dict:
     """
     Persiste anomalias com deduplicacao.
 
@@ -137,12 +130,14 @@ async def persist_anomalies_with_dedup(
                 # Atualizar existente (incrementar count)
                 existing_id = existing.data[0]["id"]
                 current_count = existing.data[0]["occurrence_count"] or 1
-                supabase.table("data_anomalies").update({
-                    "last_seen_at": now,
-                    "occurrence_count": current_count + 1,
-                    "details": {**anomaly.details, "direction": anomaly.direction},
-                    "reconciliation_run_id": run_id,
-                }).eq("id", existing_id).execute()
+                supabase.table("data_anomalies").update(
+                    {
+                        "last_seen_at": now,
+                        "occurrence_count": current_count + 1,
+                        "details": {**anomaly.details, "direction": anomaly.direction},
+                        "reconciliation_run_id": run_id,
+                    }
+                ).eq("id", existing_id).execute()
                 updated += 1
             else:
                 # Inserir nova
@@ -160,10 +155,7 @@ async def persist_anomalies_with_dedup(
     return {"inserted": inserted, "updated": updated}
 
 
-async def notify_anomalies_slack(
-    anomalies: List[DataAnomaly],
-    persist_result: dict
-) -> bool:
+async def notify_anomalies_slack(anomalies: List[DataAnomaly], persist_result: dict) -> bool:
     """Notifica anomalias no Slack com sumario."""
     if not anomalies:
         return True
@@ -187,27 +179,21 @@ async def notify_anomalies_slack(
     # DB → Eventos
     if by_direction["db_to_events"]:
         db_items = [f"{k}: {v}" for k, v in by_direction["db_to_events"].items()]
-        fields.append({
-            "title": "DB → Eventos",
-            "value": "\n".join(db_items),
-            "short": True
-        })
+        fields.append({"title": "DB → Eventos", "value": "\n".join(db_items), "short": True})
 
     # Eventos → DB
     if by_direction["events_to_db"]:
         ev_items = [f"{k}: {v}" for k, v in by_direction["events_to_db"].items()]
-        fields.append({
-            "title": "Eventos → DB",
-            "value": "\n".join(ev_items),
-            "short": True
-        })
+        fields.append({"title": "Eventos → DB", "value": "\n".join(ev_items), "short": True})
 
     # Persistencia
-    fields.append({
-        "title": "Persistencia",
-        "value": f"Novas: {persist_result['inserted']}, Recorrentes: {persist_result['updated']}",
-        "short": True
-    })
+    fields.append(
+        {
+            "title": "Persistencia",
+            "value": f"Novas: {persist_result['inserted']}, Recorrentes: {persist_result['updated']}",
+            "short": True,
+        }
+    )
 
     message = {
         "text": f"{emoji} Reconciliacao: {len(anomalies)} divergencia(s)",
@@ -384,12 +370,14 @@ async def resolver_anomalia(
 ) -> dict:
     """Marca anomalia como resolvida."""
     try:
-        supabase.table("data_anomalies").update({
-            "resolved": True,
-            "resolved_at": datetime.now(timezone.utc).isoformat(),
-            "resolved_by": resolved_by,
-            "resolution_notes": resolution_notes,
-        }).eq("id", anomaly_id).execute()
+        supabase.table("data_anomalies").update(
+            {
+                "resolved": True,
+                "resolved_at": datetime.now(timezone.utc).isoformat(),
+                "resolved_by": resolved_by,
+                "resolution_notes": resolution_notes,
+            }
+        ).eq("id", anomaly_id).execute()
 
         return {"status": "ok", "message": "Anomalia resolvida"}
 

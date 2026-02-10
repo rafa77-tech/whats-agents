@@ -23,7 +23,10 @@ from app.services.chips.orchestrator import chip_orchestrator
 from app.services.chips.health_monitor import health_monitor
 from app.services.chips.selector import chip_selector
 from app.services.chips.instance_manager import instance_manager
-from app.services.chips.sync_evolution import sincronizar_chips_com_evolution, buscar_estado_instancia
+from app.services.chips.sync_evolution import (
+    sincronizar_chips_com_evolution,
+    buscar_estado_instancia,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +36,7 @@ router = APIRouter(prefix="/chips", tags=["chips-dashboard"])
 # ════════════════════════════════════════════════════════════
 # POOL STATUS
 # ════════════════════════════════════════════════════════════
+
 
 @router.get("/pool/status")
 async def get_pool_status():
@@ -63,6 +67,7 @@ async def get_pool_deficits():
 # ════════════════════════════════════════════════════════════
 # CHIPS CRUD
 # ════════════════════════════════════════════════════════════
+
 
 @router.get("/")
 async def list_chips(
@@ -168,25 +173,31 @@ async def _executar_diagnostico(
         # ETAPA 1: Verificar MULTI_CHIP_ENABLED
         # ─────────────────────────────────────────────────────────
         multi_chip_enabled = getattr(settings, "MULTI_CHIP_ENABLED", False)
-        diagnostico["etapas"].append({
-            "etapa": 1,
-            "nome": "MULTI_CHIP_ENABLED",
-            "status": "ok" if multi_chip_enabled else "erro",
-            "valor": multi_chip_enabled,
-            "detalhe": "Habilitado" if multi_chip_enabled else "DESABILITADO - mensagens vão para Evolution API legada",
-        })
+        diagnostico["etapas"].append(
+            {
+                "etapa": 1,
+                "nome": "MULTI_CHIP_ENABLED",
+                "status": "ok" if multi_chip_enabled else "erro",
+                "valor": multi_chip_enabled,
+                "detalhe": "Habilitado"
+                if multi_chip_enabled
+                else "DESABILITADO - mensagens vão para Evolution API legada",
+            }
+        )
 
         if not multi_chip_enabled:
             diagnostico["resultado"] = "falha"
             diagnostico["erro_em"] = "MULTI_CHIP_ENABLED está False"
             return diagnostico
     except Exception as e:
-        diagnostico["etapas"].append({
-            "etapa": 1,
-            "nome": "MULTI_CHIP_ENABLED",
-            "status": "erro",
-            "erro": str(e),
-        })
+        diagnostico["etapas"].append(
+            {
+                "etapa": 1,
+                "nome": "MULTI_CHIP_ENABLED",
+                "status": "erro",
+                "erro": str(e),
+            }
+        )
         diagnostico["resultado"] = "falha"
         diagnostico["erro_em"] = f"Erro ao verificar config: {e}"
         return diagnostico
@@ -196,34 +207,44 @@ async def _executar_diagnostico(
     # ─────────────────────────────────────────────────────────
     try:
         # Query direta para ver o que existe
-        result = supabase.table("chips").select(
-            "id, telefone, status, tipo, provider, trust_score, "
-            "pode_prospectar, pode_followup, pode_responder, "
-            "evolution_connected, cooldown_until, circuit_breaker_ativo, "
-            "msgs_enviadas_hoje, limite_dia, limite_hora"
-        ).eq("status", "active").neq("tipo", "listener").execute()
+        result = (
+            supabase.table("chips")
+            .select(
+                "id, telefone, status, tipo, provider, trust_score, "
+                "pode_prospectar, pode_followup, pode_responder, "
+                "evolution_connected, cooldown_until, circuit_breaker_ativo, "
+                "msgs_enviadas_hoje, limite_dia, limite_hora"
+            )
+            .eq("status", "active")
+            .neq("tipo", "listener")
+            .execute()
+        )
 
         chips_ativos = result.data or []
 
-        diagnostico["etapas"].append({
-            "etapa": 2,
-            "nome": "Buscar chips ativos",
-            "status": "ok" if chips_ativos else "aviso",
-            "quantidade": len(chips_ativos),
-            "chips": [
-                {
-                    "id": c["id"][:8] + "...",
-                    "telefone": c["telefone"],
-                    "provider": c.get("provider"),
-                    "trust_score": c.get("trust_score"),
-                    "pode_prospectar": c.get("pode_prospectar"),
-                    "evolution_connected": c.get("evolution_connected"),
-                    "circuit_breaker_ativo": c.get("circuit_breaker_ativo"),
-                }
-                for c in chips_ativos
-            ],
-            "detalhe": f"{len(chips_ativos)} chip(s) ativo(s) encontrado(s)" if chips_ativos else "NENHUM chip ativo encontrado",
-        })
+        diagnostico["etapas"].append(
+            {
+                "etapa": 2,
+                "nome": "Buscar chips ativos",
+                "status": "ok" if chips_ativos else "aviso",
+                "quantidade": len(chips_ativos),
+                "chips": [
+                    {
+                        "id": c["id"][:8] + "...",
+                        "telefone": c["telefone"],
+                        "provider": c.get("provider"),
+                        "trust_score": c.get("trust_score"),
+                        "pode_prospectar": c.get("pode_prospectar"),
+                        "evolution_connected": c.get("evolution_connected"),
+                        "circuit_breaker_ativo": c.get("circuit_breaker_ativo"),
+                    }
+                    for c in chips_ativos
+                ],
+                "detalhe": f"{len(chips_ativos)} chip(s) ativo(s) encontrado(s)"
+                if chips_ativos
+                else "NENHUM chip ativo encontrado",
+            }
+        )
 
         if not chips_ativos:
             diagnostico["resultado"] = "falha"
@@ -231,12 +252,14 @@ async def _executar_diagnostico(
             return diagnostico
 
     except Exception as e:
-        diagnostico["etapas"].append({
-            "etapa": 2,
-            "nome": "Buscar chips ativos",
-            "status": "erro",
-            "erro": str(e),
-        })
+        diagnostico["etapas"].append(
+            {
+                "etapa": 2,
+                "nome": "Buscar chips ativos",
+                "status": "erro",
+                "erro": str(e),
+            }
+        )
         diagnostico["resultado"] = "falha"
         diagnostico["erro_em"] = f"Erro ao buscar chips: {e}"
         return diagnostico
@@ -251,30 +274,40 @@ async def _executar_diagnostico(
         )
 
         if chip_selecionado:
-            diagnostico["etapas"].append({
-                "etapa": 3,
-                "nome": f"Selecionar chip ({tipo_mensagem})",
-                "status": "ok",
-                "chip_selecionado": {
-                    "id": chip_selecionado["id"][:8] + "...",
-                    "telefone": chip_selecionado["telefone"],
-                    "provider": chip_selecionado.get("provider"),
-                    "trust_score": chip_selecionado.get("trust_score"),
-                },
-                "detalhe": f"Chip {chip_selecionado['telefone']} selecionado",
-            })
+            diagnostico["etapas"].append(
+                {
+                    "etapa": 3,
+                    "nome": f"Selecionar chip ({tipo_mensagem})",
+                    "status": "ok",
+                    "chip_selecionado": {
+                        "id": chip_selecionado["id"][:8] + "...",
+                        "telefone": chip_selecionado["telefone"],
+                        "provider": chip_selecionado.get("provider"),
+                        "trust_score": chip_selecionado.get("trust_score"),
+                    },
+                    "detalhe": f"Chip {chip_selecionado['telefone']} selecionado",
+                }
+            )
         else:
             # Tentar entender por que não selecionou
             motivos = []
             for chip in chips_ativos:
                 # Verificar trust mínimo
-                trust_min = {"prospeccao": 80, "followup": 60, "resposta": 40}.get(tipo_mensagem, 40)
+                trust_min = {"prospeccao": 80, "followup": 60, "resposta": 40}.get(
+                    tipo_mensagem, 40
+                )
                 if (chip.get("trust_score") or 0) < trust_min:
-                    motivos.append(f"{chip['telefone']}: trust {chip.get('trust_score')} < {trust_min}")
+                    motivos.append(
+                        f"{chip['telefone']}: trust {chip.get('trust_score')} < {trust_min}"
+                    )
                     continue
 
                 # Verificar permissão
-                perm_field = {"prospeccao": "pode_prospectar", "followup": "pode_followup", "resposta": "pode_responder"}.get(tipo_mensagem)
+                perm_field = {
+                    "prospeccao": "pode_prospectar",
+                    "followup": "pode_followup",
+                    "resposta": "pode_responder",
+                }.get(tipo_mensagem)
                 if perm_field and not chip.get(perm_field):
                     motivos.append(f"{chip['telefone']}: {perm_field}=false")
                     continue
@@ -289,25 +322,31 @@ async def _executar_diagnostico(
                     motivos.append(f"{chip['telefone']}: evolution não conectado")
                     continue
 
-            diagnostico["etapas"].append({
-                "etapa": 3,
-                "nome": f"Selecionar chip ({tipo_mensagem})",
-                "status": "erro",
-                "chip_selecionado": None,
-                "motivos_rejeicao": motivos if motivos else ["Motivo desconhecido - verificar logs"],
-                "detalhe": "Nenhum chip passou nos filtros do selector",
-            })
+            diagnostico["etapas"].append(
+                {
+                    "etapa": 3,
+                    "nome": f"Selecionar chip ({tipo_mensagem})",
+                    "status": "erro",
+                    "chip_selecionado": None,
+                    "motivos_rejeicao": motivos
+                    if motivos
+                    else ["Motivo desconhecido - verificar logs"],
+                    "detalhe": "Nenhum chip passou nos filtros do selector",
+                }
+            )
             diagnostico["resultado"] = "falha"
             diagnostico["erro_em"] = "ChipSelector retornou None"
             return diagnostico
 
     except Exception as e:
-        diagnostico["etapas"].append({
-            "etapa": 3,
-            "nome": f"Selecionar chip ({tipo_mensagem})",
-            "status": "erro",
-            "erro": str(e),
-        })
+        diagnostico["etapas"].append(
+            {
+                "etapa": 3,
+                "nome": f"Selecionar chip ({tipo_mensagem})",
+                "status": "erro",
+                "erro": str(e),
+            }
+        )
         diagnostico["resultado"] = "falha"
         diagnostico["erro_em"] = f"Exceção no ChipSelector: {e}"
         return diagnostico
@@ -318,22 +357,28 @@ async def _executar_diagnostico(
     try:
         provider = get_provider(chip_selecionado)
 
-        diagnostico["etapas"].append({
-            "etapa": 4,
-            "nome": "Criar provider",
-            "status": "ok",
-            "provider_type": provider.provider_type.value if hasattr(provider, 'provider_type') else "unknown",
-            "detalhe": f"Provider {type(provider).__name__} criado com sucesso",
-        })
+        diagnostico["etapas"].append(
+            {
+                "etapa": 4,
+                "nome": "Criar provider",
+                "status": "ok",
+                "provider_type": provider.provider_type.value
+                if hasattr(provider, "provider_type")
+                else "unknown",
+                "detalhe": f"Provider {type(provider).__name__} criado com sucesso",
+            }
+        )
 
     except Exception as e:
-        diagnostico["etapas"].append({
-            "etapa": 4,
-            "nome": "Criar provider",
-            "status": "erro",
-            "erro": str(e),
-            "detalhe": "Falha ao criar provider - verificar credenciais do chip",
-        })
+        diagnostico["etapas"].append(
+            {
+                "etapa": 4,
+                "nome": "Criar provider",
+                "status": "erro",
+                "erro": str(e),
+                "detalhe": "Falha ao criar provider - verificar credenciais do chip",
+            }
+        )
         diagnostico["resultado"] = "falha"
         diagnostico["erro_em"] = f"Exceção ao criar provider: {e}"
         return diagnostico
@@ -344,14 +389,18 @@ async def _executar_diagnostico(
     try:
         status = await provider.get_status()
 
-        diagnostico["etapas"].append({
-            "etapa": 5,
-            "nome": "Verificar conexão",
-            "status": "ok" if status.connected else "aviso",
-            "connected": status.connected,
-            "state": status.state,
-            "detalhe": "Conectado" if status.connected else f"DESCONECTADO (state={status.state})",
-        })
+        diagnostico["etapas"].append(
+            {
+                "etapa": 5,
+                "nome": "Verificar conexão",
+                "status": "ok" if status.connected else "aviso",
+                "connected": status.connected,
+                "state": status.state,
+                "detalhe": "Conectado"
+                if status.connected
+                else f"DESCONECTADO (state={status.state})",
+            }
+        )
 
         if not status.connected:
             diagnostico["resultado"] = "aviso"
@@ -359,12 +408,14 @@ async def _executar_diagnostico(
             # Continua mesmo assim para o teste de envio
 
     except Exception as e:
-        diagnostico["etapas"].append({
-            "etapa": 5,
-            "nome": "Verificar conexão",
-            "status": "erro",
-            "erro": str(e),
-        })
+        diagnostico["etapas"].append(
+            {
+                "etapa": 5,
+                "nome": "Verificar conexão",
+                "status": "erro",
+                "erro": str(e),
+            }
+        )
         # Não falha aqui, tenta enviar mesmo assim
 
     # ─────────────────────────────────────────────────────────
@@ -375,15 +426,19 @@ async def _executar_diagnostico(
             mensagem_teste = f"[TESTE DIAGNÓSTICO] Multi-chip funcionando! Chip: {chip_selecionado['telefone'][-4:]}"
             result = await provider.send_text(telefone_teste, mensagem_teste)
 
-            diagnostico["etapas"].append({
-                "etapa": 6,
-                "nome": "Enviar mensagem teste",
-                "status": "ok" if result.success else "erro",
-                "success": result.success,
-                "message_id": result.message_id if result.success else None,
-                "error": result.error if not result.success else None,
-                "detalhe": f"Mensagem enviada (id={result.message_id})" if result.success else f"Falha: {result.error}",
-            })
+            diagnostico["etapas"].append(
+                {
+                    "etapa": 6,
+                    "nome": "Enviar mensagem teste",
+                    "status": "ok" if result.success else "erro",
+                    "success": result.success,
+                    "message_id": result.message_id if result.success else None,
+                    "error": result.error if not result.success else None,
+                    "detalhe": f"Mensagem enviada (id={result.message_id})"
+                    if result.success
+                    else f"Falha: {result.error}",
+                }
+            )
 
             if result.success:
                 diagnostico["resultado"] = "sucesso"
@@ -392,23 +447,27 @@ async def _executar_diagnostico(
                 diagnostico["erro_em"] = f"Falha no envio: {result.error}"
 
         except Exception as e:
-            diagnostico["etapas"].append({
-                "etapa": 6,
-                "nome": "Enviar mensagem teste",
-                "status": "erro",
-                "erro": str(e),
-            })
+            diagnostico["etapas"].append(
+                {
+                    "etapa": 6,
+                    "nome": "Enviar mensagem teste",
+                    "status": "erro",
+                    "erro": str(e),
+                }
+            )
             diagnostico["resultado"] = "falha"
             diagnostico["erro_em"] = f"Exceção no envio: {e}"
     else:
         if diagnostico["resultado"] == "pendente":
             diagnostico["resultado"] = "ok_sem_envio"
-        diagnostico["etapas"].append({
-            "etapa": 6,
-            "nome": "Enviar mensagem teste",
-            "status": "pulado",
-            "detalhe": "Use enviar_teste=true e telefone_teste=5511... para testar envio real",
-        })
+        diagnostico["etapas"].append(
+            {
+                "etapa": 6,
+                "nome": "Enviar mensagem teste",
+                "status": "pulado",
+                "detalhe": "Use enviar_teste=true e telefone_teste=5511... para testar envio real",
+            }
+        )
 
     return diagnostico
 
@@ -450,11 +509,14 @@ async def get_chip_metrics(
     desde = periodos.get(periodo, periodos["24h"])
 
     # Buscar metricas agregadas
-    result = supabase.table("chip_metrics_hourly").select("*").eq(
-        "chip_id", chip_id
-    ).gte(
-        "hora", desde.isoformat()
-    ).order("hora", desc=False).execute()
+    result = (
+        supabase.table("chip_metrics_hourly")
+        .select("*")
+        .eq("chip_id", chip_id)
+        .gte("hora", desde.isoformat())
+        .order("hora", desc=False)
+        .execute()
+    )
 
     metricas = result.data or []
 
@@ -486,18 +548,26 @@ async def get_chip_history(
     Retorna historico de operacoes e Trust Score de um chip.
     """
     # Operacoes do orchestrator
-    ops = supabase.table("orchestrator_operations").select("*").eq(
-        "chip_id", chip_id
-    ).order("created_at", desc=True).limit(limit).execute()
+    ops = (
+        supabase.table("orchestrator_operations")
+        .select("*")
+        .eq("chip_id", chip_id)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
 
     # Historico de Trust (se existir tabela)
     trust_history = []
     try:
-        trust = supabase.table("chip_trust_history").select(
-            "score, recorded_at"
-        ).eq(
-            "chip_id", chip_id
-        ).order("recorded_at", desc=True).limit(limit).execute()
+        trust = (
+            supabase.table("chip_trust_history")
+            .select("score, recorded_at")
+            .eq("chip_id", chip_id)
+            .order("recorded_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
         trust_history = trust.data or []
     except Exception:
         pass  # Tabela pode nao existir ainda
@@ -531,6 +601,7 @@ async def get_chip_interactions(
 # ════════════════════════════════════════════════════════════
 # ACOES MANUAIS
 # ════════════════════════════════════════════════════════════
+
 
 @router.post("/{chip_id}/pause")
 async def pause_chip(chip_id: str, motivo: str = Query("Manual")):
@@ -597,7 +668,7 @@ async def reactivate_chip(chip_id: str, request: ReactivateChipRequest):
         raise HTTPException(
             400,
             f"Chip nao pode ser reativado (status atual: {chip['status']}). "
-            "Apenas chips banidos ou cancelados podem ser reativados."
+            "Apenas chips banidos ou cancelados podem ser reativados.",
         )
 
     # Atualizar status e registrar motivo
@@ -613,17 +684,19 @@ async def reactivate_chip(chip_id: str, request: ReactivateChipRequest):
     supabase.table("chips").update(update_data).eq("id", chip_id).execute()
 
     # Registrar operacao no historico
-    supabase.table("orchestrator_operations").insert({
-        "chip_id": chip_id,
-        "operacao": "reactivate",
-        "motivo": request.motivo,
-        "metadata": {
-            "status_anterior": chip["status"],
-            "status_novo": request.para_status,
-        },
-        "sucesso": True,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }).execute()
+    supabase.table("orchestrator_operations").insert(
+        {
+            "chip_id": chip_id,
+            "operacao": "reactivate",
+            "motivo": request.motivo,
+            "metadata": {
+                "status_anterior": chip["status"],
+                "status_novo": request.para_status,
+            },
+            "sucesso": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    ).execute()
 
     logger.info(
         f"Chip {chip_id} reativado: {chip['status']} -> {request.para_status}. "
@@ -637,13 +710,14 @@ async def reactivate_chip(chip_id: str, request: ReactivateChipRequest):
         "status_novo": request.para_status,
         "motivo": request.motivo,
         "message": f"Chip reativado com sucesso. "
-                   f"{'Gere o QR Code para reconectar.' if request.para_status == 'pending' else ''}"
+        f"{'Gere o QR Code para reconectar.' if request.para_status == 'pending' else ''}",
     }
 
 
 # ════════════════════════════════════════════════════════════
 # ALERTAS
 # ════════════════════════════════════════════════════════════
+
 
 @router.get("/alertas")
 async def list_alertas(
@@ -672,6 +746,7 @@ async def resolve_alerta(alerta_id: str, resolved_by: str = Query("manual")):
 # ════════════════════════════════════════════════════════════
 # ORCHESTRATOR CONTROL
 # ════════════════════════════════════════════════════════════
+
 
 @router.post("/orchestrator/cycle")
 async def run_orchestrator_cycle():
@@ -730,20 +805,24 @@ async def check_chip_connection(chip_id: str):
             "instance_name": instance_name,
             "connected": False,
             "state": "unknown",
-            "message": "Nao foi possivel verificar estado na Evolution API"
+            "message": "Nao foi possivel verificar estado na Evolution API",
         }
 
     # Estado da Evolution: 'open' = conectado, 'close' = desconectado
-    is_connected = estado.get("state") == "open" or estado.get("instance", {}).get("state") == "open"
+    is_connected = (
+        estado.get("state") == "open" or estado.get("instance", {}).get("state") == "open"
+    )
     state = estado.get("state") or estado.get("instance", {}).get("state", "unknown")
 
     # Atualizar status do chip se necessario
     if is_connected and chip["status"] == "pending":
-        supabase.table("chips").update({
-            "status": "warming",
-            "evolution_connected": True,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", chip_id).execute()
+        supabase.table("chips").update(
+            {
+                "status": "warming",
+                "evolution_connected": True,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", chip_id).execute()
 
         return {
             "chip_id": chip_id,
@@ -752,15 +831,17 @@ async def check_chip_connection(chip_id: str):
             "state": state,
             "status_atualizado": True,
             "novo_status": "warming",
-            "message": "Chip conectado! Status atualizado para warming."
+            "message": "Chip conectado! Status atualizado para warming.",
         }
 
     # Atualizar flag de conexao
     if chip.get("evolution_connected") != is_connected:
-        supabase.table("chips").update({
-            "evolution_connected": is_connected,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", chip_id).execute()
+        supabase.table("chips").update(
+            {
+                "evolution_connected": is_connected,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", chip_id).execute()
 
     return {
         "chip_id": chip_id,
@@ -768,13 +849,14 @@ async def check_chip_connection(chip_id: str):
         "connected": is_connected,
         "state": state,
         "status_atual": chip["status"],
-        "message": "Conectado" if is_connected else "Desconectado"
+        "message": "Conectado" if is_connected else "Desconectado",
     }
 
 
 # ════════════════════════════════════════════════════════════
 # CONFIGURACAO
 # ════════════════════════════════════════════════════════════
+
 
 @router.get("/config")
 async def get_pool_config():
@@ -795,10 +877,19 @@ async def update_pool_config(config: dict):
     Atualiza configuracao do pool.
     """
     allowed_fields = [
-        "producao_min", "producao_max", "ready_min", "warmup_buffer",
-        "warmup_days", "trust_min_for_ready", "trust_degraded_threshold",
-        "trust_critical_threshold", "auto_provision", "default_ddd",
-        "limite_prospeccao_hora", "limite_followup_hora", "limite_resposta_hora",
+        "producao_min",
+        "producao_max",
+        "ready_min",
+        "warmup_buffer",
+        "warmup_days",
+        "trust_min_for_ready",
+        "trust_degraded_threshold",
+        "trust_critical_threshold",
+        "auto_provision",
+        "default_ddd",
+        "limite_prospeccao_hora",
+        "limite_followup_hora",
+        "limite_resposta_hora",
     ]
 
     # Filtrar apenas campos permitidos
@@ -812,9 +903,7 @@ async def update_pool_config(config: dict):
     result = supabase.table("pool_config").select("id").limit(1).execute()
 
     if result.data:
-        supabase.table("pool_config").update(updates).eq(
-            "id", result.data[0]["id"]
-        ).execute()
+        supabase.table("pool_config").update(updates).eq("id", result.data[0]["id"]).execute()
     else:
         supabase.table("pool_config").insert(updates).execute()
 
@@ -827,6 +916,7 @@ async def update_pool_config(config: dict):
 # ════════════════════════════════════════════════════════════
 # SELECAO DE CHIP (TESTE)
 # ════════════════════════════════════════════════════════════
+
 
 @router.get("/selecionar")
 async def selecionar_chip(
@@ -974,5 +1064,3 @@ async def delete_instance(instance_name: str):
         "success": True,
         "message": f"Instancia {instance_name} deletada com sucesso",
     }
-
-

@@ -2,6 +2,7 @@
 Monitor de conexao WhatsApp.
 Detecta problemas de criptografia e conexao, envia alertas e pode reiniciar automaticamente.
 """
+
 import asyncio
 import subprocess
 import logging
@@ -11,6 +12,7 @@ from typing import Tuple
 from app.core.config import settings
 from app.core.timezone import agora_brasilia
 from app.services.whatsapp import evolution
+
 # Sprint 47: enviar_slack removido - alertas agora são apenas logados
 from app.services.redis import cache_get_json, cache_set_json
 
@@ -70,7 +72,7 @@ async def verificar_erros_criptografia_logs() -> Tuple[bool, int]:
             capture_output=True,
             text=True,
             timeout=30,
-            cwd=settings.BASE_DIR if hasattr(settings, 'BASE_DIR') else None
+            cwd=settings.BASE_DIR if hasattr(settings, "BASE_DIR") else None,
         )
 
         logs = result.stdout + result.stderr
@@ -130,11 +132,11 @@ async def enviar_alerta_conexao(tipo: str, mensagem: str, detalhes: dict = None)
     )
 
     # Salvar no cache para cooldown
-    await cache_set_json(CACHE_ULTIMO_ALERTA, {
-        "tipo": tipo,
-        "timestamp": agora_brasilia().isoformat(),
-        "mensagem": mensagem
-    }, ttl=3600)
+    await cache_set_json(
+        CACHE_ULTIMO_ALERTA,
+        {"tipo": tipo, "timestamp": agora_brasilia().isoformat(), "mensagem": mensagem},
+        ttl=3600,
+    )
 
 
 async def _incrementar_checks_falhos() -> int:
@@ -170,8 +172,7 @@ async def reiniciar_evolution_api():
     logger.warning("Reiniciando Evolution API...")
 
     await enviar_alerta_conexao(
-        "reiniciando",
-        "Reiniciando Evolution API devido a erros de criptografia"
+        "reiniciando", "Reiniciando Evolution API devido a erros de criptografia"
     )
 
     try:
@@ -180,7 +181,7 @@ async def reiniciar_evolution_api():
             capture_output=True,
             text=True,
             timeout=60,
-            cwd=settings.BASE_DIR if hasattr(settings, 'BASE_DIR') else None
+            cwd=settings.BASE_DIR if hasattr(settings, "BASE_DIR") else None,
         )
 
         if result.returncode == 0:
@@ -221,7 +222,7 @@ async def executar_verificacao_whatsapp():
                 "status": "desconectado",
                 "mensagem": status_msg,
                 "acao_tomada": "alerta_enviado",
-                "checks_falhos": checks_falhos
+                "checks_falhos": checks_falhos,
             }
         else:
             logger.warning(
@@ -231,7 +232,7 @@ async def executar_verificacao_whatsapp():
             return {
                 "status": "desconectado_aguardando",
                 "mensagem": f"Check {checks_falhos}/{threshold} - aguardando confirmacao",
-                "acao_tomada": None
+                "acao_tomada": None,
             }
     else:
         # Conexao OK - resetar contador de checks falhos
@@ -247,7 +248,7 @@ async def executar_verificacao_whatsapp():
             "criptografia",
             f"Detectados {qtd_erros} erros de criptografia (PreKeyError). "
             f"Mensagens podem nao estar sendo recebidas.",
-            {"erros": qtd_erros}
+            {"erros": qtd_erros},
         )
 
         # Auto-restart se configurado
@@ -261,33 +262,28 @@ async def executar_verificacao_whatsapp():
 
                 if reconectado:
                     await enviar_alerta_conexao(
-                        "reconectado",
-                        "Evolution API reiniciada e reconectada com sucesso"
+                        "reconectado", "Evolution API reiniciada e reconectada com sucesso"
                     )
                     return {
                         "status": "reconectado",
                         "mensagem": "Reiniciado automaticamente",
-                        "acao_tomada": "restart_evolution"
+                        "acao_tomada": "restart_evolution",
                     }
                 else:
                     return {
                         "status": "erro_persistente",
                         "mensagem": "Restart nao resolveu - intervencao manual necessaria",
-                        "acao_tomada": "restart_falhou"
+                        "acao_tomada": "restart_falhou",
                     }
 
         return {
             "status": "erro_criptografia",
             "mensagem": f"{qtd_erros} erros detectados",
-            "acao_tomada": "alerta_enviado"
+            "acao_tomada": "alerta_enviado",
         }
 
     # Tudo OK
-    return {
-        "status": "ok",
-        "mensagem": status_msg,
-        "acao_tomada": None
-    }
+    return {"status": "ok", "mensagem": status_msg, "acao_tomada": None}
 
 
 async def iniciar_monitor_background():

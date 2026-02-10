@@ -1,11 +1,11 @@
 """
 Sistema de coleta de métricas de performance.
 """
+
 import time
 import logging
 from functools import wraps
 from collections import defaultdict
-from datetime import datetime
 from typing import Dict, List, Any
 
 from app.core.timezone import agora_utc
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class MetricsCollector:
     """Coletor de métricas de performance."""
-    
+
     def __init__(self):
         self.tempos: Dict[str, List[Dict]] = defaultdict(list)
         self.contadores: Dict[str, int] = defaultdict(int)
@@ -23,6 +23,7 @@ class MetricsCollector:
 
     def medir_tempo(self, nome: str):
         """Decorator para medir tempo de execução."""
+
         def decorator(func):
             @wraps(func)
             async def async_wrapper(*args, **kwargs):
@@ -35,7 +36,7 @@ class MetricsCollector:
                 except Exception as e:
                     self.registrar_erro(nome, str(e))
                     raise
-            
+
             @wraps(func)
             def sync_wrapper(*args, **kwargs):
                 inicio = time.time()
@@ -47,19 +48,17 @@ class MetricsCollector:
                 except Exception as e:
                     self.registrar_erro(nome, str(e))
                     raise
-            
+
             # Retornar wrapper apropriado
-            if hasattr(func, '__code__') and func.__code__.co_flags & 0x80:  # CO_COROUTINE
+            if hasattr(func, "__code__") and func.__code__.co_flags & 0x80:  # CO_COROUTINE
                 return async_wrapper
             return sync_wrapper
+
         return decorator
 
     def registrar_tempo(self, nome: str, tempo: float):
         """Registra tempo de execução."""
-        self.tempos[nome].append({
-            "tempo": tempo,
-            "timestamp": agora_utc().isoformat()
-        })
+        self.tempos[nome].append({"tempo": tempo, "timestamp": agora_utc().isoformat()})
         # Manter apenas últimos 1000
         if len(self.tempos[nome]) > 1000:
             self.tempos[nome] = self.tempos[nome][-1000:]
@@ -78,7 +77,7 @@ class MetricsCollector:
         resumo: Dict[str, Any] = {
             "tempos": {},
             "contadores": dict(self.contadores),
-            "erros": dict(self.erros)
+            "erros": dict(self.erros),
         }
 
         for nome, tempos in self.tempos.items():
@@ -89,7 +88,9 @@ class MetricsCollector:
                     "max_ms": max(valores) * 1000,
                     "min_ms": min(valores) * 1000,
                     "total": len(tempos),
-                    "p95_ms": sorted(valores)[int(len(valores) * 0.95)] * 1000 if len(valores) > 20 else None
+                    "p95_ms": sorted(valores)[int(len(valores) * 0.95)] * 1000
+                    if len(valores) > 20
+                    else None,
                 }
 
         return resumo
@@ -104,4 +105,3 @@ class MetricsCollector:
 
 # Instância global
 metrics = MetricsCollector()
-

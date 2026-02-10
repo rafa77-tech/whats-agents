@@ -4,6 +4,7 @@ Services de handoff IA <-> Humano.
 Sprint 10 - S10.E3.4
 Sprint 15 - policy_decision_id tracking
 """
+
 from typing import Optional
 
 from .messages import (

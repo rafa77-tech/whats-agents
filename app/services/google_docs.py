@@ -14,6 +14,7 @@ Requer:
 - Credenciais JSON
 - Pasta/documentos compartilhados com o Service Account (Editor)
 """
+
 import os
 import json
 import hashlib
@@ -30,16 +31,16 @@ logger = logging.getLogger(__name__)
 
 # Configuracao
 SCOPES = [
-    'https://www.googleapis.com/auth/documents',  # Leitura e escrita em Docs
-    'https://www.googleapis.com/auth/drive',  # Acesso completo ao Drive (necessário para ver compartilhados)
+    "https://www.googleapis.com/auth/documents",  # Leitura e escrita em Docs
+    "https://www.googleapis.com/auth/drive",  # Acesso completo ao Drive (necessário para ver compartilhados)
 ]
 # Suporta duas formas de credenciais:
 # 1. GOOGLE_APPLICATION_CREDENTIALS = caminho para arquivo JSON (dev local)
 # 2. GOOGLE_CREDENTIALS_JSON = JSON inline como string (Railway/cloud)
-CREDENTIALS_PATH = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-CREDENTIALS_JSON = os.getenv('GOOGLE_CREDENTIALS_JSON')
-DOC_ID = os.getenv('BRIEFING_DOC_ID')  # Legado - doc unico
-FOLDER_ID = os.getenv('GOOGLE_BRIEFINGS_FOLDER_ID')  # Novo - pasta de briefings
+CREDENTIALS_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
+DOC_ID = os.getenv("BRIEFING_DOC_ID")  # Legado - doc unico
+FOLDER_ID = os.getenv("GOOGLE_BRIEFINGS_FOLDER_ID")  # Novo - pasta de briefings
 
 # Cache para evitar reimportar
 _docs_service = None
@@ -52,6 +53,7 @@ DOCS_CACHE_TTL_MINUTES = DatabaseConfig.CACHE_TTL_DOCS // 60  # Centralizado em 
 @dataclass
 class DocInfo:
     """Informacoes de um documento."""
+
     id: str
     nome: str
     ultima_modificacao: datetime
@@ -61,6 +63,7 @@ class DocInfo:
 @dataclass
 class DocContent:
     """Conteudo de um documento."""
+
     info: DocInfo
     conteudo: str
     hash: str
@@ -84,8 +87,7 @@ def _get_credentials():
             credentials_info = json.loads(CREDENTIALS_JSON)
             logger.debug("Usando credenciais Google via GOOGLE_CREDENTIALS_JSON")
             return service_account.Credentials.from_service_account_info(
-                credentials_info,
-                scopes=SCOPES
+                credentials_info, scopes=SCOPES
             )
         except json.JSONDecodeError as e:
             raise ValueError(f"GOOGLE_CREDENTIALS_JSON invalido: {e}")
@@ -97,8 +99,7 @@ def _get_credentials():
 
         logger.debug("Usando credenciais Google via arquivo")
         return service_account.Credentials.from_service_account_file(
-            CREDENTIALS_PATH,
-            scopes=SCOPES
+            CREDENTIALS_PATH, scopes=SCOPES
         )
 
     raise ValueError(
@@ -114,8 +115,9 @@ def _get_docs_service():
 
     if _docs_service is None:
         from googleapiclient.discovery import build
+
         credentials = _get_credentials()
-        _docs_service = build('docs', 'v1', credentials=credentials)
+        _docs_service = build("docs", "v1", credentials=credentials)
 
     return _docs_service
 
@@ -126,29 +128,30 @@ def _get_drive_service():
 
     if _drive_service is None:
         from googleapiclient.discovery import build
+
         credentials = _get_credentials()
-        _drive_service = build('drive', 'v3', credentials=credentials)
+        _drive_service = build("drive", "v3", credentials=credentials)
 
     return _drive_service
 
 
 def _extrair_texto(document: dict) -> str:
     """Extrai texto plano de um documento do Google Docs."""
-    content = document.get('body', {}).get('content', [])
+    content = document.get("body", {}).get("content", [])
     text_parts = []
 
     for element in content:
-        if 'paragraph' in element:
-            for text_run in element['paragraph'].get('elements', []):
-                if 'textRun' in text_run:
-                    text_parts.append(text_run['textRun'].get('content', ''))
+        if "paragraph" in element:
+            for text_run in element["paragraph"].get("elements", []):
+                if "textRun" in text_run:
+                    text_parts.append(text_run["textRun"].get("content", ""))
 
-    return ''.join(text_parts)
+    return "".join(text_parts)
 
 
 def _detectar_secao_plano(conteudo: str) -> Optional[str]:
     """Detecta se documento ja tem secao '## Plano da Julia'."""
-    match = re.search(r'## Plano da Julia.*?(?=\n## |\Z)', conteudo, re.DOTALL)
+    match = re.search(r"## Plano da Julia.*?(?=\n## |\Z)", conteudo, re.DOTALL)
     if match:
         return match.group(0)
     return None
@@ -173,20 +176,14 @@ async def criar_pasta(nome: str, parent_id: Optional[str] = None) -> Optional[st
     try:
         service = _get_drive_service()
 
-        file_metadata = {
-            'name': nome,
-            'mimeType': 'application/vnd.google-apps.folder'
-        }
+        file_metadata = {"name": nome, "mimeType": "application/vnd.google-apps.folder"}
 
         if parent_id:
-            file_metadata['parents'] = [parent_id]
+            file_metadata["parents"] = [parent_id]
 
-        folder = service.files().create(
-            body=file_metadata,
-            fields='id, webViewLink'
-        ).execute()
+        folder = service.files().create(body=file_metadata, fields="id, webViewLink").execute()
 
-        folder_id = folder.get('id')
+        folder_id = folder.get("id")
         logger.info(f"Pasta criada: {nome} (ID: {folder_id})")
         return folder_id
 
@@ -195,7 +192,9 @@ async def criar_pasta(nome: str, parent_id: Optional[str] = None) -> Optional[st
         return None
 
 
-async def criar_documento(nome: str, conteudo: str, parent_id: Optional[str] = None) -> Optional[str]:
+async def criar_documento(
+    nome: str, conteudo: str, parent_id: Optional[str] = None
+) -> Optional[str]:
     """
     Cria um documento no Google Drive com conteudo inicial.
 
@@ -212,33 +211,21 @@ async def criar_documento(nome: str, conteudo: str, parent_id: Optional[str] = N
         docs_service = _get_docs_service()
 
         # Criar documento vazio primeiro
-        file_metadata = {
-            'name': nome,
-            'mimeType': 'application/vnd.google-apps.document'
-        }
+        file_metadata = {"name": nome, "mimeType": "application/vnd.google-apps.document"}
 
         if parent_id:
-            file_metadata['parents'] = [parent_id]
+            file_metadata["parents"] = [parent_id]
 
-        doc = drive_service.files().create(
-            body=file_metadata,
-            fields='id'
-        ).execute()
+        doc = drive_service.files().create(body=file_metadata, fields="id").execute()
 
-        doc_id = doc.get('id')
+        doc_id = doc.get("id")
 
         # Inserir conteudo
         if conteudo:
-            requests = [{
-                'insertText': {
-                    'location': {'index': 1},
-                    'text': conteudo
-                }
-            }]
+            requests = [{"insertText": {"location": {"index": 1}, "text": conteudo}}]
 
             docs_service.documents().batchUpdate(
-                documentId=doc_id,
-                body={'requests': requests}
+                documentId=doc_id, body={"requests": requests}
             ).execute()
 
         logger.info(f"Documento criado: {nome} (ID: {doc_id})")
@@ -264,15 +251,19 @@ async def listar_subpastas(folder_id: str) -> list[dict]:
 
         query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
 
-        results = service.files().list(
-            q=query,
-            fields="files(id, name)",
-            pageSize=50,
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True
-        ).execute()
+        results = (
+            service.files()
+            .list(
+                q=query,
+                fields="files(id, name)",
+                pageSize=50,
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True,
+            )
+            .execute()
+        )
 
-        return results.get('files', [])
+        return results.get("files", [])
 
     except Exception as e:
         logger.error(f"Erro ao listar subpastas de {folder_id}: {e}")
@@ -283,7 +274,10 @@ async def listar_subpastas(folder_id: str) -> list[dict]:
 # FUNCOES DE LISTAGEM (Drive)
 # =============================================================================
 
-async def listar_documentos(folder_id: Optional[str] = None, force_refresh: bool = False) -> list[DocInfo]:
+
+async def listar_documentos(
+    folder_id: Optional[str] = None, force_refresh: bool = False
+) -> list[DocInfo]:
     """
     Lista documentos na pasta de briefings.
 
@@ -316,29 +310,37 @@ async def listar_documentos(folder_id: Optional[str] = None, force_refresh: bool
         # Buscar apenas Google Docs na pasta
         query = f"'{folder}' in parents and mimeType='application/vnd.google-apps.document' and trashed=false"
 
-        results = service.files().list(
-            q=query,
-            fields="files(id, name, modifiedTime, webViewLink)",
-            orderBy="modifiedTime desc",
-            pageSize=50,
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True
-        ).execute()
+        results = (
+            service.files()
+            .list(
+                q=query,
+                fields="files(id, name, modifiedTime, webViewLink)",
+                orderBy="modifiedTime desc",
+                pageSize=50,
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True,
+            )
+            .execute()
+        )
 
-        files = results.get('files', [])
+        files = results.get("files", [])
 
         docs = []
         for f in files:
             # Ignorar docs de referencia (prefixo _)
-            if f['name'].startswith('_'):
+            if f["name"].startswith("_"):
                 continue
 
-            docs.append(DocInfo(
-                id=f['id'],
-                nome=f['name'],
-                ultima_modificacao=datetime.fromisoformat(f['modifiedTime'].replace('Z', '+00:00')),
-                url=f.get('webViewLink', f"https://docs.google.com/document/d/{f['id']}")
-            ))
+            docs.append(
+                DocInfo(
+                    id=f["id"],
+                    nome=f["name"],
+                    ultima_modificacao=datetime.fromisoformat(
+                        f["modifiedTime"].replace("Z", "+00:00")
+                    ),
+                    url=f.get("webViewLink", f"https://docs.google.com/document/d/{f['id']}"),
+                )
+            )
 
         # Atualizar cache
         _docs_cache[folder] = docs
@@ -352,7 +354,9 @@ async def listar_documentos(folder_id: Optional[str] = None, force_refresh: bool
         return []
 
 
-async def buscar_documento_por_nome(nome_parcial: str, folder_id: Optional[str] = None) -> list[DocInfo]:
+async def buscar_documento_por_nome(
+    nome_parcial: str, folder_id: Optional[str] = None
+) -> list[DocInfo]:
     """
     Busca documento por nome parcial.
 
@@ -379,7 +383,9 @@ async def buscar_documento_por_nome(nome_parcial: str, folder_id: Optional[str] 
             matches.append(doc)
 
     # Ordenar por relevancia (match no inicio primeiro)
-    matches.sort(key=lambda d: d.nome.lower().index(nome_lower) if nome_lower in d.nome.lower() else 999)
+    matches.sort(
+        key=lambda d: d.nome.lower().index(nome_lower) if nome_lower in d.nome.lower() else 999
+    )
 
     return matches
 
@@ -387,6 +393,7 @@ async def buscar_documento_por_nome(nome_parcial: str, folder_id: Optional[str] 
 # =============================================================================
 # FUNCOES DE LEITURA (Docs)
 # =============================================================================
+
 
 async def ler_documento(doc_id: str) -> Optional[DocContent]:
     """
@@ -414,22 +421,21 @@ async def ler_documento(doc_id: str) -> Optional[DocContent]:
 
         try:
             drive_service = _get_drive_service()
-            file_meta = drive_service.files().get(
-                fileId=doc_id,
-                fields="modifiedTime, webViewLink"
-            ).execute()
-            ultima_mod = datetime.fromisoformat(
-                file_meta['modifiedTime'].replace('Z', '+00:00')
+            file_meta = (
+                drive_service.files()
+                .get(fileId=doc_id, fields="modifiedTime, webViewLink")
+                .execute()
             )
-            url = file_meta.get('webViewLink', url)
+            ultima_mod = datetime.fromisoformat(file_meta["modifiedTime"].replace("Z", "+00:00"))
+            url = file_meta.get("webViewLink", url)
         except Exception as drive_err:
             logger.debug(f"Drive API indisponivel para metadata: {drive_err}")
 
         info = DocInfo(
             id=doc_id,
-            nome=document.get('title', 'Sem titulo'),
+            nome=document.get("title", "Sem titulo"),
             ultima_modificacao=ultima_mod,
-            url=url
+            url=url,
         )
 
         logger.info(f"Documento lido: {info.nome}")
@@ -439,7 +445,7 @@ async def ler_documento(doc_id: str) -> Optional[DocContent]:
             conteudo=conteudo,
             hash=content_hash,
             ja_processado=secao_plano is not None,
-            secao_plano_existente=secao_plano
+            secao_plano_existente=secao_plano,
         )
 
     except Exception as e:
@@ -474,7 +480,7 @@ async def buscar_documento_briefing() -> dict:
 
     return {
         "success": False,
-        "error": "Nem BRIEFING_DOC_ID nem GOOGLE_BRIEFINGS_FOLDER_ID configurados"
+        "error": "Nem BRIEFING_DOC_ID nem GOOGLE_BRIEFINGS_FOLDER_ID configurados",
     }
 
 
@@ -496,30 +502,21 @@ async def _buscar_briefing_por_id(doc_id: str) -> dict:
             "success": True,
             "content": content,
             "hash": content_hash,
-            "title": document.get('title', 'Briefing'),
-            "doc_id": doc_id
+            "title": document.get("title", "Briefing"),
+            "doc_id": doc_id,
         }
 
     except FileNotFoundError as e:
         logger.warning(f"Credenciais Google Docs nao encontradas: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
     except ValueError as e:
         logger.warning(f"Configuracao Google Docs incompleta: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
     except Exception as e:
         logger.error(f"Erro ao buscar documento Google Docs: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 async def _buscar_briefing_mais_recente() -> dict:
@@ -536,20 +533,19 @@ async def _buscar_briefing_mais_recente() -> dict:
         if not docs:
             return {
                 "success": False,
-                "error": f"Nenhum documento encontrado na pasta de briefings (ID: {FOLDER_ID})"
+                "error": f"Nenhum documento encontrado na pasta de briefings (ID: {FOLDER_ID})",
             }
 
         # Pegar o mais recente (primeiro da lista)
         doc_mais_recente = docs[0]
-        logger.info(f"Briefing mais recente: {doc_mais_recente.nome} (modificado: {doc_mais_recente.ultima_modificacao})")
+        logger.info(
+            f"Briefing mais recente: {doc_mais_recente.nome} (modificado: {doc_mais_recente.ultima_modificacao})"
+        )
 
         # Ler conteudo completo
         doc_content = await ler_documento(doc_mais_recente.id)
         if not doc_content:
-            return {
-                "success": False,
-                "error": f"Erro ao ler documento {doc_mais_recente.nome}"
-            }
+            return {"success": False, "error": f"Erro ao ler documento {doc_mais_recente.nome}"}
 
         return {
             "success": True,
@@ -557,20 +553,18 @@ async def _buscar_briefing_mais_recente() -> dict:
             "hash": doc_content.hash,
             "title": doc_content.info.nome,
             "doc_id": doc_mais_recente.id,
-            "url": doc_mais_recente.url
+            "url": doc_mais_recente.url,
         }
 
     except Exception as e:
         logger.error(f"Erro ao buscar briefing mais recente: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 # =============================================================================
 # FUNCOES DE ESCRITA (Docs)
 # =============================================================================
+
 
 async def escrever_no_documento(doc_id: str, texto: str, posicao: str = "fim") -> bool:
     """
@@ -592,24 +586,16 @@ async def escrever_no_documento(doc_id: str, texto: str, posicao: str = "fim") -
 
         # Calcular indice final
         end_index = 1
-        for element in document.get('body', {}).get('content', []):
-            if 'endIndex' in element:
-                end_index = element['endIndex']
+        for element in document.get("body", {}).get("content", []):
+            if "endIndex" in element:
+                end_index = element["endIndex"]
 
         # Inserir no final (antes do ultimo caractere que e sempre newline)
         insert_index = max(1, end_index - 1)
 
-        requests = [{
-            'insertText': {
-                'location': {'index': insert_index},
-                'text': texto
-            }
-        }]
+        requests = [{"insertText": {"location": {"index": insert_index}, "text": texto}}]
 
-        service.documents().batchUpdate(
-            documentId=doc_id,
-            body={'requests': requests}
-        ).execute()
+        service.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
 
         logger.info(f"Texto inserido no documento {doc_id}")
         return True
@@ -639,18 +625,18 @@ async def atualizar_secao_plano(doc_id: str, plano_formatado: str) -> bool:
             return False
 
         service = _get_docs_service()
-        document = service.documents().get(documentId=doc_id).execute()
+        service.documents().get(documentId=doc_id).execute()
 
         # Se ja tem plano, precisamos encontrar e substituir
         if doc.ja_processado:
             # Encontrar inicio e fim da secao
             conteudo = doc.conteudo
-            match = re.search(r'## Plano da Julia', conteudo)
+            match = re.search(r"## Plano da Julia", conteudo)
 
             if match:
                 # Encontrar fim da secao (proximo ## ou fim do doc)
                 inicio_secao = match.start()
-                fim_match = re.search(r'\n## (?!Plano da Julia)', conteudo[inicio_secao + 1:])
+                fim_match = re.search(r"\n## (?!Plano da Julia)", conteudo[inicio_secao + 1 :])
 
                 if fim_match:
                     fim_secao = inicio_secao + 1 + fim_match.start()
@@ -666,24 +652,15 @@ async def atualizar_secao_plano(doc_id: str, plano_formatado: str) -> bool:
                 # Deletar secao existente e inserir nova
                 requests = [
                     {
-                        'deleteContentRange': {
-                            'range': {
-                                'startIndex': start_index,
-                                'endIndex': end_index
-                            }
+                        "deleteContentRange": {
+                            "range": {"startIndex": start_index, "endIndex": end_index}
                         }
                     },
-                    {
-                        'insertText': {
-                            'location': {'index': start_index},
-                            'text': plano_formatado
-                        }
-                    }
+                    {"insertText": {"location": {"index": start_index}, "text": plano_formatado}},
                 ]
 
                 service.documents().batchUpdate(
-                    documentId=doc_id,
-                    body={'requests': requests}
+                    documentId=doc_id, body={"requests": requests}
                 ).execute()
 
                 logger.info(f"Secao de plano atualizada no documento {doc_id}")
@@ -716,7 +693,9 @@ async def adicionar_linha_historico(doc_id: str, acao: str, resultado: str) -> b
     """
     try:
         agora = agora_brasilia()
-        linha = f"| {agora.strftime('%d/%m')} | {agora.strftime('%H:%M')} | {acao} | {resultado} |\n"
+        linha = (
+            f"| {agora.strftime('%d/%m')} | {agora.strftime('%H:%M')} | {acao} | {resultado} |\n"
+        )
 
         doc = await ler_documento(doc_id)
         if not doc:
@@ -726,7 +705,9 @@ async def adicionar_linha_historico(doc_id: str, acao: str, resultado: str) -> b
         if "## Historico de Execucao" in doc.conteudo or "## Histórico de Execução" in doc.conteudo:
             # Encontrar fim da tabela (ultima linha com |)
             conteudo = doc.conteudo
-            match = re.search(r'## Hist[oó]rico de Execu[cç][aã]o.*?\n\|.*?\n\|[-|]+\|', conteudo, re.DOTALL)
+            match = re.search(
+                r"## Hist[oó]rico de Execu[cç][aã]o.*?\n\|.*?\n\|[-|]+\|", conteudo, re.DOTALL
+            )
 
             if match:
                 # Encontrar ultima linha da tabela
@@ -734,12 +715,11 @@ async def adicionar_linha_historico(doc_id: str, acao: str, resultado: str) -> b
                 resto = conteudo[tabela_inicio:]
 
                 # Encontrar onde a tabela termina (linha sem | no inicio)
-                linhas = resto.split('\n')
-                ultima_linha_tabela = tabela_inicio
+                linhas = resto.split("\n")
 
-                for i, l in enumerate(linhas):
-                    if l.strip().startswith('|'):
-                        ultima_linha_tabela = tabela_inicio + sum(len(x) + 1 for x in linhas[:i+1])
+                for i, line in enumerate(linhas):
+                    if line.strip().startswith("|"):
+                        tabela_inicio + sum(len(x) + 1 for x in linhas[: i + 1])
                     else:
                         break
 
@@ -766,6 +746,7 @@ async def adicionar_linha_historico(doc_id: str, acao: str, resultado: str) -> b
 # VERIFICACAO
 # =============================================================================
 
+
 def verificar_configuracao() -> dict:
     """
     Verifica se a integracao com Google Docs esta configurada.
@@ -780,7 +761,7 @@ def verificar_configuracao() -> dict:
         "doc_id": DOC_ID,
         "folder_id": FOLDER_ID,
         "credentials_existe": False,
-        "erros": []
+        "erros": [],
     }
 
     # Verificar credenciais (aceita JSON inline OU arquivo)

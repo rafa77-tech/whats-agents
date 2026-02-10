@@ -3,6 +3,7 @@ Processadores de handoff.
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 from typing import Optional
 
@@ -18,6 +19,7 @@ class HandoffTriggerProcessor(PreProcessor):
 
     Prioridade: 50
     """
+
     name = "handoff_trigger"
     priority = 50
 
@@ -38,13 +40,13 @@ class HandoffTriggerProcessor(PreProcessor):
             conversa_id=context.conversa["id"],
             cliente_id=context.medico["id"],
             motivo=trigger["motivo"],
-            trigger_type=trigger["tipo"]
+            trigger_type=trigger["tipo"],
         )
 
         return ProcessorResult(
             success=True,
             should_continue=False,  # Nao gera resposta automatica
-            metadata={"handoff_trigger": trigger["tipo"]}
+            metadata={"handoff_trigger": trigger["tipo"]},
         )
 
 
@@ -60,6 +62,7 @@ class HandoffKeywordProcessor(PreProcessor):
     Sprint 20 - E06.
     Sprint 44 T06.6: Pre-compilar regex patterns.
     """
+
     name = "handoff_keyword"
     priority = 55
 
@@ -72,6 +75,7 @@ class HandoffKeywordProcessor(PreProcessor):
     def _get_compiled_patterns(cls):
         """Retorna padrões compilados (lazy initialization)."""
         import re
+
         if cls._PATTERNS_CONFIRMED is None:
             cls._PATTERNS_CONFIRMED = [
                 re.compile(r"\bconfirmado\b", re.IGNORECASE),
@@ -102,7 +106,6 @@ class HandoffKeywordProcessor(PreProcessor):
         return cls._PATTERNS_CONFIRMED, cls._PATTERNS_NOT_CONFIRMED
 
     async def process(self, context: ProcessorContext) -> ProcessorResult:
-        import re
         from app.services.external_handoff.repository import buscar_handoff_pendente_por_telefone
         from app.services.external_handoff.confirmacao import processar_confirmacao
         from app.services.business_events import emit_event, EventType, EventSource, BusinessEvent
@@ -128,14 +131,14 @@ class HandoffKeywordProcessor(PreProcessor):
 
         if not action:
             # Nao detectou keyword, deixar Julia responder normalmente
-            logger.debug(f"Nenhuma keyword detectada na mensagem do divulgador")
+            logger.debug("Nenhuma keyword detectada na mensagem do divulgador")
             return ProcessorResult(success=True)
 
         logger.info(f"Keyword detectada: action={action}")
 
         # Processar confirmacao
         try:
-            resultado = await processar_confirmacao(
+            await processar_confirmacao(
                 handoff=handoff,
                 action=action,
                 confirmed_by="keyword",
@@ -168,7 +171,7 @@ class HandoffKeywordProcessor(PreProcessor):
                     "handoff_keyword": True,
                     "handoff_id": handoff["id"],
                     "action": action,
-                }
+                },
             )
 
         except Exception as e:

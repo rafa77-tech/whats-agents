@@ -1,23 +1,20 @@
 """
 Serviço para agendamento de mensagens.
 """
+
 import logging
 from datetime import datetime
 from typing import Optional
 
 from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
-from app.services.timing import proximo_horario_comercial
 from app.services.outbound import send_outbound_message, criar_contexto_followup
 
 logger = logging.getLogger(__name__)
 
 
 async def agendar_resposta(
-    conversa_id: str,
-    mensagem: str,
-    resposta: str,
-    agendar_para: datetime
+    conversa_id: str, mensagem: str, resposta: str, agendar_para: datetime
 ) -> Optional[dict]:
     """
     Agenda resposta para envio posterior.
@@ -34,13 +31,15 @@ async def agendar_resposta(
     try:
         response = (
             supabase.table("fila_mensagens")
-            .insert({
-                "conversa_id": conversa_id,
-                "mensagem_original": mensagem,
-                "resposta": resposta,
-                "agendar_para": agendar_para.isoformat(),
-                "status": "pendente"
-            })
+            .insert(
+                {
+                    "conversa_id": conversa_id,
+                    "mensagem_original": mensagem,
+                    "resposta": resposta,
+                    "agendar_para": agendar_para.isoformat(),
+                    "status": "pendente",
+                }
+            )
             .execute()
         )
 
@@ -128,20 +127,18 @@ async def processar_fila_mensagens():
 
                 if result.blocked:
                     logger.info(f"Mensagem {msg['id']} bloqueada: {result.block_reason}")
-                    supabase.table("fila_mensagens").update({
-                        "status": "bloqueada",
-                        "erro": f"Guardrail: {result.block_reason}"
-                    }).eq("id", msg["id"]).execute()
+                    supabase.table("fila_mensagens").update(
+                        {"status": "bloqueada", "erro": f"Guardrail: {result.block_reason}"}
+                    ).eq("id", msg["id"]).execute()
                     continue
 
                 if not result.success:
                     raise Exception(result.error)
 
                 # Marcar como enviada
-                supabase.table("fila_mensagens").update({
-                    "status": "enviada",
-                    "enviada_em": agora_brasilia().isoformat()
-                }).eq("id", msg["id"]).execute()
+                supabase.table("fila_mensagens").update(
+                    {"status": "enviada", "enviada_em": agora_brasilia().isoformat()}
+                ).eq("id", msg["id"]).execute()
 
                 logger.info(f"Mensagem agendada {msg['id']} enviada com sucesso")
 

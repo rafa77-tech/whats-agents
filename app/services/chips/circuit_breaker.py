@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class CircuitState(Enum):
-    CLOSED = "closed"        # Normal, chamadas passam
-    OPEN = "open"            # Bloqueando chamadas
+    CLOSED = "closed"  # Normal, chamadas passam
+    OPEN = "open"  # Bloqueando chamadas
     HALF_OPEN = "half_open"  # Testando recuperação
 
 
@@ -37,8 +37,8 @@ class ChipCircuit:
 
     chip_id: str
     telefone: str = ""
-    falhas_para_abrir: int = 3           # Menos tolerante que global
-    tempo_reset_segundos: int = 300      # 5 minutos
+    falhas_para_abrir: int = 3  # Menos tolerante que global
+    tempo_reset_segundos: int = 300  # 5 minutos
 
     # Estado interno
     estado: CircuitState = field(default=CircuitState.CLOSED)
@@ -105,8 +105,7 @@ class ChipCircuit:
 
         elif self.falhas_consecutivas >= self.falhas_para_abrir:
             logger.warning(
-                f"[ChipCircuit] {self.telefone or self.chip_id[:8]}: "
-                f"CLOSED -> OPEN (muitas falhas)"
+                f"[ChipCircuit] {self.telefone or self.chip_id[:8]}: CLOSED -> OPEN (muitas falhas)"
             )
             self.estado = CircuitState.OPEN
 
@@ -133,10 +132,7 @@ class ChipCircuit:
         """Reseta o circuit breaker manualmente."""
         self.estado = CircuitState.CLOSED
         self.falhas_consecutivas = 0
-        logger.info(
-            f"[ChipCircuit] {self.telefone or self.chip_id[:8]}: "
-            f"reset manual para CLOSED"
-        )
+        logger.info(f"[ChipCircuit] {self.telefone or self.chip_id[:8]}: reset manual para CLOSED")
 
 
 class ChipCircuitBreaker:
@@ -164,7 +160,7 @@ class ChipCircuitBreaker:
             cls._circuits[chip_id] = ChipCircuit(
                 chip_id=chip_id,
                 telefone=telefone,
-                falhas_para_abrir=3,       # 3 falhas consecutivas
+                falhas_para_abrir=3,  # 3 falhas consecutivas
                 tempo_reset_segundos=300,  # 5 minutos
             )
         elif telefone and not cls._circuits[chip_id].telefone:
@@ -199,10 +195,7 @@ class ChipCircuitBreaker:
     @classmethod
     def obter_status_todos(cls) -> Dict[str, dict]:
         """Retorna status de todos os circuits."""
-        return {
-            chip_id: circuit.status()
-            for chip_id, circuit in cls._circuits.items()
-        }
+        return {chip_id: circuit.status() for chip_id, circuit in cls._circuits.items()}
 
     @classmethod
     def obter_chips_com_circuit_aberto(cls) -> list:

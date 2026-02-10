@@ -3,8 +3,8 @@ Repositório para conversation_mode.
 
 Sprint 29 - Conversation Mode
 """
+
 import logging
-from datetime import datetime
 from typing import Optional
 
 from app.core.timezone import agora_utc
@@ -85,12 +85,7 @@ async def set_conversation_mode(
         if source:
             update_data["mode_source"] = source
 
-        response = (
-            supabase.table("conversations")
-            .update(update_data)
-            .eq("id", conversa_id)
-            .execute()
-        )
+        (supabase.table("conversations").update(update_data).eq("id", conversa_id).execute())
 
         logger.info(
             f"Mode atualizado: {conversa_id} -> {mode.value}",
@@ -99,7 +94,7 @@ async def set_conversation_mode(
                 "mode": mode.value,
                 "reason": reason,
                 "source": source,
-            }
+            },
         )
         return True
 
@@ -126,12 +121,14 @@ async def set_pending_transition(
         True se sucesso
     """
     try:
-        response = (
+        (
             supabase.table("conversations")
-            .update({
-                "pending_transition": pending_mode.value,
-                "pending_transition_at": agora_utc().isoformat(),
-            })
+            .update(
+                {
+                    "pending_transition": pending_mode.value,
+                    "pending_transition_at": agora_utc().isoformat(),
+                }
+            )
             .eq("id", conversa_id)
             .execute()
         )
@@ -141,7 +138,7 @@ async def set_pending_transition(
             extra={
                 "conversa_id": conversa_id,
                 "pending_mode": pending_mode.value,
-            }
+            },
         )
         return True
 
@@ -165,12 +162,14 @@ async def clear_pending_transition(
         True se sucesso
     """
     try:
-        response = (
+        (
             supabase.table("conversations")
-            .update({
-                "pending_transition": None,
-                "pending_transition_at": None,
-            })
+            .update(
+                {
+                    "pending_transition": None,
+                    "pending_transition_at": None,
+                }
+            )
             .eq("id", conversa_id)
             .execute()
         )
@@ -180,7 +179,7 @@ async def clear_pending_transition(
             extra={
                 "conversa_id": conversa_id,
                 "reason": reason,
-            }
+            },
         )
         return True
 

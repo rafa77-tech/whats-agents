@@ -6,6 +6,7 @@ Sprint 29 - Conversation Mode
 NÃO aplica a transição - apenas propõe.
 A decisão final é do TransitionValidator.
 """
+
 import logging
 from dataclasses import dataclass
 from datetime import datetime
@@ -30,6 +31,7 @@ def _ensure_datetime(value: Optional[Union[datetime, str]]) -> Optional[datetime
     except Exception:
         return None
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,29 +41,29 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 ALLOWED_TRANSITIONS: dict[ConversationMode, set[ConversationMode]] = {
     ConversationMode.DISCOVERY: {
-        ConversationMode.OFERTA,      # Com evidência + micro-confirmação
+        ConversationMode.OFERTA,  # Com evidência + micro-confirmação
         ConversationMode.REATIVACAO,  # Silêncio > 7d (automático)
     },
     ConversationMode.OFERTA: {
-        ConversationMode.FOLLOWUP,    # Ponte feita com responsável
-        ConversationMode.DISCOVERY,   # Recuo tático (objeção)
+        ConversationMode.FOLLOWUP,  # Ponte feita com responsável
+        ConversationMode.DISCOVERY,  # Recuo tático (objeção)
         ConversationMode.REATIVACAO,  # Silêncio > 7d
     },
     ConversationMode.FOLLOWUP: {
-        ConversationMode.OFERTA,      # Nova oportunidade
+        ConversationMode.OFERTA,  # Nova oportunidade
         ConversationMode.REATIVACAO,  # Silêncio > 7d
-        ConversationMode.DISCOVERY,   # Mudou de perfil
+        ConversationMode.DISCOVERY,  # Mudou de perfil
     },
     ConversationMode.REATIVACAO: {
-        ConversationMode.DISCOVERY,   # Médico respondeu com dúvida
-        ConversationMode.OFERTA,      # Médico respondeu com interesse
-        ConversationMode.FOLLOWUP,    # Médico respondeu neutro
+        ConversationMode.DISCOVERY,  # Médico respondeu com dúvida
+        ConversationMode.OFERTA,  # Médico respondeu com interesse
+        ConversationMode.FOLLOWUP,  # Médico respondeu neutro
     },
 }
 
 # Transições automáticas (não requerem confirmação)
 AUTOMATIC_TRANSITIONS: set[tuple[ConversationMode, ConversationMode]] = {
-    (ConversationMode.OFERTA, ConversationMode.FOLLOWUP),      # Ponte feita
+    (ConversationMode.OFERTA, ConversationMode.FOLLOWUP),  # Ponte feita
     (ConversationMode.REATIVACAO, ConversationMode.FOLLOWUP),  # Médico respondeu
 }
 
@@ -90,6 +92,7 @@ SILENCE_DAYS_FOR_REACTIVATION = 7
 @dataclass
 class TransitionProposal:
     """Proposta de transição de modo."""
+
     should_transition: bool
     from_mode: ConversationMode
     to_mode: Optional[ConversationMode]
@@ -129,16 +132,12 @@ class TransitionProposer:
             TransitionProposal com sugestão
         """
         # 1. Regras automáticas primeiro (alta prioridade)
-        auto_proposal = self._check_automatic_rules(
-            current_mode, last_message_at, ponte_feita
-        )
+        auto_proposal = self._check_automatic_rules(current_mode, last_message_at, ponte_feita)
         if auto_proposal.should_transition:
             return auto_proposal
 
         # 2. Baseado no intent detectado
-        return self._propose_from_intent(
-            intent_result, current_mode, objecao_resolvida
-        )
+        return self._propose_from_intent(intent_result, current_mode, objecao_resolvida)
 
     def _check_automatic_rules(
         self,
@@ -245,7 +244,7 @@ class TransitionProposer:
                 needs_confirmation=False,
                 is_automatic=False,
                 trigger="not_allowed",
-                evidence=f"transição não permitida na matriz",
+                evidence="transição não permitida na matriz",
                 confidence=0.0,
             )
 

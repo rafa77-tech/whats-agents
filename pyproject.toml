@@ -42,6 +42,18 @@ dev = [
 line-length = 100
 target-version = "py313"
 
+[tool.ruff.lint]
+# Ignorar erros intencionais
+ignore = [
+    "E402",  # module level import not at top of file (conditional imports)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Re-exports em __init__.py são intencionais
+"__init__.py" = ["F401", "F403"]
+# Backward compatibility re-exports
+"app/services/slack_formatter.py" = ["F401", "F403"]
+
 [tool.black]
 line-length = 100
 target-version = ["py313"]

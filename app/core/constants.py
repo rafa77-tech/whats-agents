@@ -38,8 +38,8 @@ MIN_RESPONSE_LENGTH = 20
 
 # Padrões que indicam resposta incompleta
 INCOMPLETE_RESPONSE_PATTERNS = [
-    ":",           # "Vou verificar o que temos:"
-    "...",         # Reticências no final
+    ":",  # "Vou verificar o que temos:"
+    "...",  # Reticências no final
     "vou verificar",
     "deixa eu ver",
     "um momento",
@@ -61,8 +61,8 @@ MIN_INTERVAL_SECONDS = 45
 MAX_INTERVAL_SECONDS = 180
 
 # Horário comercial
-BUSINESS_HOURS_START = 8   # 08:00
-BUSINESS_HOURS_END = 20    # 20:00
+BUSINESS_HOURS_START = 8  # 08:00
+BUSINESS_HOURS_END = 20  # 20:00
 
 # =============================================================================
 # Circuit Breaker

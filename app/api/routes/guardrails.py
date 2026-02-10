@@ -8,7 +8,7 @@ Expõe funcionalidades de controle operacional:
 - Modo emergência
 - Audit trail
 """
-from datetime import datetime
+
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
@@ -17,7 +17,6 @@ from pydantic import BaseModel, Field
 from app.core.logging import get_logger
 from app.services.sistema_guardrails import (
     FeatureFlag,
-    AcaoAuditoria,
     obter_feature_flag,
     definir_feature_flag,
     listar_feature_flags,

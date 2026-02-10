@@ -14,7 +14,6 @@ import re
 import logging
 from pathlib import Path
 from typing import Optional, Tuple, List
-from datetime import datetime, UTC
 
 from pydantic import BaseModel
 
@@ -97,12 +96,7 @@ async def verificar_duplicado(invite_code: str) -> bool:
     Returns:
         True se já existe
     """
-    result = (
-        supabase.table("group_links")
-        .select("id")
-        .eq("invite_code", invite_code)
-        .execute()
-    )
+    result = supabase.table("group_links").select("id").eq("invite_code", invite_code).execute()
 
     return len(result.data) > 0 if result.data else False
 
@@ -292,11 +286,7 @@ async def importar_excel(
 
         # Extrair invite code
         invite_code = extrair_invite_code(
-            str(
-                row_dict.get("invite_code")
-                or row_dict.get("url")
-                or row_dict.get("link", "")
-            )
+            str(row_dict.get("invite_code") or row_dict.get("url") or row_dict.get("link", ""))
         )
 
         if not invite_code:
@@ -314,14 +304,9 @@ async def importar_excel(
                 "invite_url": str(row_dict.get("url") or row_dict.get("link") or ""),
                 "nome": str(row_dict.get("name") or row_dict.get("nome") or ""),
                 "categoria": str(
-                    row_dict.get("category")
-                    or row_dict.get("categoria")
-                    or categoria
-                    or ""
+                    row_dict.get("category") or row_dict.get("categoria") or categoria or ""
                 ),
-                "estado": str(
-                    row_dict.get("state") or row_dict.get("estado") or estado or ""
-                ),
+                "estado": str(row_dict.get("state") or row_dict.get("estado") or estado or ""),
                 "regiao": str(row_dict.get("regiao") or row_dict.get("region") or ""),
                 "fonte": arquivo.name,
                 "status": "pendente",

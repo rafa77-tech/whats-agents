@@ -8,12 +8,11 @@ Novos codigos devem usar:
 
 Sprint 10 - S10.E2.2
 """
+
 import warnings
 
 warnings.warn(
-    "agente_slack is deprecated. Use app.services.slack instead.",
-    DeprecationWarning,
-    stacklevel=2
+    "agente_slack is deprecated. Use app.services.slack instead.", DeprecationWarning, stacklevel=2
 )
 
 # Re-export para backward compatibility

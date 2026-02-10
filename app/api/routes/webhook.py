@@ -1,6 +1,7 @@
 """
 Endpoints de webhook para integracoes externas.
 """
+
 import asyncio
 import hashlib
 import hmac
@@ -11,7 +12,6 @@ import logging
 
 from app.core.config import settings
 from app.pipeline.setup import message_pipeline
-from app.pipeline.base import ProcessorResult
 
 router = APIRouter(prefix="/webhook", tags=["Webhooks"])
 logger = logging.getLogger(__name__)
@@ -23,10 +23,7 @@ _semaforo_processamento = asyncio.Semaphore(settings.PIPELINE_MAX_CONCURRENT)
 
 
 @router.post("/evolution")
-async def evolution_webhook(
-    request: Request,
-    background_tasks: BackgroundTasks
-):
+async def evolution_webhook(request: Request, background_tasks: BackgroundTasks):
     """
     Recebe webhooks da Evolution API.
 
@@ -97,13 +94,14 @@ async def _marcar_se_nao_processada(message_id: str) -> bool:
         True se marcou (primeira vez), False se já existia (duplicata)
     """
     from app.services.redis import redis_client
+
     try:
         # SETNX é atômico - só retorna True se a key não existia
         result = await redis_client.set(
             f"evolution:msg:{message_id}",
             "1",
             nx=True,  # SET if Not eXists
-            ex=300    # TTL 5 minutos
+            ex=300,  # TTL 5 minutos
         )
         return result is not None
     except Exception as e:
@@ -119,6 +117,7 @@ async def _mensagem_ja_processada(message_id: str) -> bool:
     Mantido para compatibilidade.
     """
     from app.services.redis import cache_get_json
+
     try:
         result = await cache_get_json(f"evolution:msg:{message_id}")
         return result is not None
@@ -132,6 +131,7 @@ async def _marcar_mensagem_processada(message_id: str):
     Mantido para compatibilidade.
     """
     from app.services.redis import cache_set_json
+
     try:
         await cache_set_json(f"evolution:msg:{message_id}", {"processed": True}, ttl=300)
     except Exception as e:
@@ -172,6 +172,7 @@ async def processar_mensagem_pipeline(data: dict):
 # SLACK WEBHOOK
 # ============================================================
 
+
 def _verificar_assinatura_slack(body: bytes, timestamp: str, signature: str) -> bool:
     """
     Verifica se a requisicao veio realmente do Slack.
@@ -194,20 +195,20 @@ def _verificar_assinatura_slack(body: bytes, timestamp: str, signature: str) -> 
 
     # Calcular assinatura esperada
     sig_basestring = f"v0:{timestamp}:{body.decode('utf-8')}"
-    my_signature = 'v0=' + hmac.new(
-        settings.SLACK_SIGNING_SECRET.encode('utf-8'),
-        sig_basestring.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest()
+    my_signature = (
+        "v0="
+        + hmac.new(
+            settings.SLACK_SIGNING_SECRET.encode("utf-8"),
+            sig_basestring.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+    )
 
     return hmac.compare_digest(my_signature, signature)
 
 
 @router.post("/slack")
-async def slack_webhook(
-    request: Request,
-    background_tasks: BackgroundTasks
-):
+async def slack_webhook(request: Request, background_tasks: BackgroundTasks):
     """
     Recebe eventos do Slack (mencoes, comandos).
 
@@ -275,6 +276,7 @@ async def slack_webhook(
 async def _evento_ja_processado(event_id: str) -> bool:
     """V2: Verifica se evento Slack ja foi processado."""
     from app.services.redis import cache_get_json
+
     try:
         result = await cache_get_json(f"slack:event:{event_id}")
         return result is not None
@@ -285,6 +287,7 @@ async def _evento_ja_processado(event_id: str) -> bool:
 async def _marcar_evento_processado(event_id: str):
     """V2: Marca evento como processado (TTL 5 min)."""
     from app.services.redis import cache_set_json
+
     try:
         await cache_set_json(f"slack:event:{event_id}", {"processed": True}, ttl=300)
     except Exception as e:
@@ -323,9 +326,7 @@ async def _processar_comando_slack(event: dict):
         # Sprint 47: Detectar se é para Helena (case insensitive)
         if "helena" in texto_limpo.lower():
             # Remover "helena" do texto para processar
-            texto_para_helena = re.sub(
-                r"\bhelena\b", "", texto_limpo, flags=re.IGNORECASE
-            ).strip()
+            texto_para_helena = re.sub(r"\bhelena\b", "", texto_limpo, flags=re.IGNORECASE).strip()
 
             logger.info(f"Slack -> Helena: {texto_para_helena[:50]}...")
 
@@ -342,11 +343,7 @@ async def _processar_comando_slack(event: dict):
 
         from app.services.slack_comandos import processar_comando
 
-        await processar_comando(
-            texto=texto,
-            channel=channel,
-            user=user
-        )
+        await processar_comando(texto=texto, channel=channel, user=user)
 
     except Exception as e:
         logger.error(f"Erro ao processar comando Slack: {e}", exc_info=True)
@@ -357,10 +354,12 @@ async def _enviar_resposta_slack(channel_id: str, texto: str) -> None:
     from app.services.slack import enviar_slack
 
     try:
-        await enviar_slack({
-            "channel": channel_id,
-            "text": texto,
-        })
+        await enviar_slack(
+            {
+                "channel": channel_id,
+                "text": texto,
+            }
+        )
     except Exception as e:
         logger.error(f"Erro ao enviar resposta Slack: {e}")
 
@@ -368,6 +367,7 @@ async def _enviar_resposta_slack(channel_id: str, texto: str) -> None:
 # =============================================================================
 # Slack Interactivity (Botões)
 # =============================================================================
+
 
 @router.post("/slack/interactivity")
 async def slack_interactivity(request: Request):
@@ -418,14 +418,14 @@ async def slack_interactivity(request: Request):
                     vaga_id=vaga_id,
                     realizado=True,
                     confirmado_por=user_name,
-                    response_url=response_url
+                    response_url=response_url,
                 )
             elif action_id == "confirmar_nao_ocorreu":
                 await _processar_confirmacao_plantao(
                     vaga_id=vaga_id,
                     realizado=False,
                     confirmado_por=user_name,
-                    response_url=response_url
+                    response_url=response_url,
                 )
 
     # Responder imediatamente (Slack espera resposta em 3s)
@@ -433,10 +433,7 @@ async def slack_interactivity(request: Request):
 
 
 async def _processar_confirmacao_plantao(
-    vaga_id: str,
-    realizado: bool,
-    confirmado_por: str,
-    response_url: str
+    vaga_id: str, realizado: bool, confirmado_por: str, response_url: str
 ):
     """
     Processa confirmação de plantão via Slack.
@@ -447,7 +444,7 @@ async def _processar_confirmacao_plantao(
     """
     from app.services.confirmacao_plantao import (
         confirmar_plantao_realizado,
-        confirmar_plantao_nao_ocorreu
+        confirmar_plantao_nao_ocorreu,
     )
     from app.services.slack import atualizar_mensagem_confirmada
 
@@ -459,14 +456,16 @@ async def _processar_confirmacao_plantao(
             resultado = await confirmar_plantao_nao_ocorreu(vaga_id, confirmado_por)
 
         if resultado.sucesso:
-            logger.info(f"Plantão {vaga_id} confirmado como {'realizado' if realizado else 'não ocorreu'}")
+            logger.info(
+                f"Plantão {vaga_id} confirmado como {'realizado' if realizado else 'não ocorreu'}"
+            )
 
             # Atualizar mensagem no Slack
             await atualizar_mensagem_confirmada(
                 response_url=response_url,
                 vaga_id=vaga_id,
                 confirmado_por=confirmado_por,
-                realizado=realizado
+                realizado=realizado,
             )
         else:
             logger.warning(f"Erro ao confirmar plantão {vaga_id}: {resultado.erro}")

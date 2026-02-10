@@ -13,7 +13,6 @@ Endpoints:
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -31,13 +30,16 @@ router = APIRouter(prefix="/supervisor/channel", tags=["supervisor-channel"])
 # Request Models
 # ============================================
 
+
 class ChannelMessageRequest(BaseModel):
     """Request para mensagem no channel."""
+
     content: str
 
 
 class InstructRequest(BaseModel):
     """Request para instrucao com preview."""
+
     instruction: str
 
 
@@ -45,22 +47,30 @@ class InstructRequest(BaseModel):
 # Helpers
 # ============================================
 
+
 async def _get_conversation_context(conversation_id: str) -> dict:
     """Monta contexto completo da conversa para Julia responder ao supervisor."""
     # Buscar conversa + cliente
-    conv = supabase.table("conversations").select(
-        "*, clientes(id, nome, telefone, crm, especialidade, stage_jornada)"
-    ).eq("id", conversation_id).single().execute()
+    conv = (
+        supabase.table("conversations")
+        .select("*, clientes(id, nome, telefone, crm, especialidade, stage_jornada)")
+        .eq("id", conversation_id)
+        .single()
+        .execute()
+    )
 
     if not conv.data:
         raise HTTPException(404, "Conversa nao encontrada")
 
     # Buscar historico recente (ultimas 30 mensagens)
-    interacoes = supabase.table("interacoes").select(
-        "tipo, conteudo, created_at"
-    ).eq("conversation_id", conversation_id).order(
-        "created_at", desc=True
-    ).limit(30).execute()
+    interacoes = (
+        supabase.table("interacoes")
+        .select("tipo, conteudo, created_at")
+        .eq("conversation_id", conversation_id)
+        .order("created_at", desc=True)
+        .limit(30)
+        .execute()
+    )
 
     historico_msgs = list(reversed(interacoes.data or []))
 
@@ -68,11 +78,14 @@ async def _get_conversation_context(conversation_id: str) -> dict:
     cliente_id = conv.data.get("cliente_id")
     memorias = []
     if cliente_id:
-        mem_result = supabase.table("doctor_context").select(
-            "content, tipo"
-        ).eq("cliente_id", cliente_id).eq(
-            "valido", True
-        ).limit(15).execute()
+        mem_result = (
+            supabase.table("doctor_context")
+            .select("content, tipo")
+            .eq("cliente_id", cliente_id)
+            .eq("valido", True)
+            .limit(15)
+            .execute()
+        )
         memorias = mem_result.data or []
 
     return {
@@ -90,26 +103,29 @@ def _build_supervisor_system_prompt(context: dict) -> str:
     memorias = context["memorias"]
     conversation = context["conversation"]
 
-    historico_texto = "\n".join([
-        f"{'Medico' if m['tipo'] == 'entrada' else 'Julia'}: {m['conteudo']}"
-        for m in historico[-20:]
-    ])
+    historico_texto = "\n".join(
+        [
+            f"{'Medico' if m['tipo'] == 'entrada' else 'Julia'}: {m['conteudo']}"
+            for m in historico[-20:]
+        ]
+    )
 
-    memorias_texto = "\n".join([
-        f"- [{m.get('tipo', 'geral')}] {m['content']}"
-        for m in memorias
-    ]) if memorias else "Nenhuma memoria registrada."
+    memorias_texto = (
+        "\n".join([f"- [{m.get('tipo', 'geral')}] {m['content']}" for m in memorias])
+        if memorias
+        else "Nenhuma memoria registrada."
+    )
 
     return f"""Voce e Julia, escalista da Revoluna, respondendo ao seu supervisor sobre uma conversa com um medico.
 
 CONTEXTO DA CONVERSA:
-- Medico: {cliente.get('nome', 'Desconhecido')}
-- Especialidade: {cliente.get('especialidade', 'N/A')}
-- CRM: {cliente.get('crm', 'N/A')}
-- Stage: {cliente.get('stage_jornada', 'N/A')}
-- Status da conversa: {conversation.get('status', 'N/A')}
-- Controle: {conversation.get('controlled_by', 'ai')}
-- Pausada: {'Sim' if conversation.get('pausada_em') else 'Nao'}
+- Medico: {cliente.get("nome", "Desconhecido")}
+- Especialidade: {cliente.get("especialidade", "N/A")}
+- CRM: {cliente.get("crm", "N/A")}
+- Stage: {cliente.get("stage_jornada", "N/A")}
+- Status da conversa: {conversation.get("status", "N/A")}
+- Controle: {conversation.get("controlled_by", "ai")}
+- Pausada: {"Sim" if conversation.get("pausada_em") else "Nao"}
 
 MEMORIAS DO MEDICO:
 {memorias_texto}
@@ -132,15 +148,18 @@ def _build_instruction_system_prompt(context: dict, instruction: str) -> str:
     historico = context["historico"]
     memorias = context["memorias"]
 
-    historico_texto = "\n".join([
-        f"{'Medico' if m['tipo'] == 'entrada' else 'Julia'}: {m['conteudo']}"
-        for m in historico[-20:]
-    ])
+    historico_texto = "\n".join(
+        [
+            f"{'Medico' if m['tipo'] == 'entrada' else 'Julia'}: {m['conteudo']}"
+            for m in historico[-20:]
+        ]
+    )
 
-    memorias_texto = "\n".join([
-        f"- [{m.get('tipo', 'geral')}] {m['content']}"
-        for m in memorias
-    ]) if memorias else "Nenhuma memoria registrada."
+    memorias_texto = (
+        "\n".join([f"- [{m.get('tipo', 'geral')}] {m['content']}" for m in memorias])
+        if memorias
+        else "Nenhuma memoria registrada."
+    )
 
     return f"""Voce e Julia Mendes, escalista da Revoluna, de 27 anos.
 
@@ -150,9 +169,9 @@ INSTRUCAO DO SUPERVISOR:
 {instruction}
 
 CONTEXTO DA CONVERSA:
-- Medico: {cliente.get('nome', 'Desconhecido')}
-- Especialidade: {cliente.get('especialidade', 'N/A')}
-- Stage: {cliente.get('stage_jornada', 'N/A')}
+- Medico: {cliente.get("nome", "Desconhecido")}
+- Especialidade: {cliente.get("especialidade", "N/A")}
+- Stage: {cliente.get("stage_jornada", "N/A")}
 
 MEMORIAS DO MEDICO:
 {memorias_texto}
@@ -173,17 +192,19 @@ REGRAS:
 # Endpoints
 # ============================================
 
+
 @router.get("/{conversation_id}/history")
 async def listar_historico_channel(conversation_id: str, limit: int = 50):
     """Retorna historico do supervisor channel."""
     try:
-        result = supabase.table("supervisor_channel").select(
-            "id, role, content, metadata, created_at"
-        ).eq(
-            "conversation_id", conversation_id
-        ).order(
-            "created_at", desc=True
-        ).limit(limit).execute()
+        result = (
+            supabase.table("supervisor_channel")
+            .select("id, role, content, metadata, created_at")
+            .eq("conversation_id", conversation_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
 
         messages = list(reversed(result.data or []))
         return {"messages": messages}
@@ -206,23 +227,28 @@ async def enviar_mensagem_channel(conversation_id: str, request: ChannelMessageR
 
     try:
         # 1. Salvar mensagem do supervisor
-        supabase.table("supervisor_channel").insert({
-            "conversation_id": conversation_id,
-            "role": "supervisor",
-            "content": request.content,
-            "metadata": {"type": "question"},
-        }).execute()
+        supabase.table("supervisor_channel").insert(
+            {
+                "conversation_id": conversation_id,
+                "role": "supervisor",
+                "content": request.content,
+                "metadata": {"type": "question"},
+            }
+        ).execute()
 
         # 2. Montar contexto
         context = await _get_conversation_context(conversation_id)
         system_prompt = _build_supervisor_system_prompt(context)
 
         # 3. Buscar historico do channel para contexto
-        channel_history = supabase.table("supervisor_channel").select(
-            "role, content"
-        ).eq(
-            "conversation_id", conversation_id
-        ).order("created_at", desc=False).limit(20).execute()
+        channel_history = (
+            supabase.table("supervisor_channel")
+            .select("role, content")
+            .eq("conversation_id", conversation_id)
+            .order("created_at", desc=False)
+            .limit(20)
+            .execute()
+        )
 
         messages_history = []
         for msg in (channel_history.data or [])[:-1]:  # Excluir a msg que acabamos de salvar
@@ -238,12 +264,18 @@ async def enviar_mensagem_channel(conversation_id: str, request: ChannelMessageR
         )
 
         # 5. Salvar resposta da Julia
-        julia_msg = supabase.table("supervisor_channel").insert({
-            "conversation_id": conversation_id,
-            "role": "julia",
-            "content": resposta,
-            "metadata": {"type": "response"},
-        }).execute()
+        julia_msg = (
+            supabase.table("supervisor_channel")
+            .insert(
+                {
+                    "conversation_id": conversation_id,
+                    "role": "julia",
+                    "content": resposta,
+                    "metadata": {"type": "response"},
+                }
+            )
+            .execute()
+        )
 
         logger.info(f"Channel msg: conv={conversation_id}")
 
@@ -286,23 +318,29 @@ async def criar_instrucao_com_preview(conversation_id: str, request: InstructReq
             historico_msgs.append({"role": role, "content": msg["conteudo"]})
 
         preview = await gerar_resposta(
-            mensagem=f"Gere a mensagem seguindo a instrucao do supervisor.",
+            mensagem="Gere a mensagem seguindo a instrucao do supervisor.",
             historico=historico_msgs,
             system_prompt=system_prompt,
             max_tokens=300,
         )
 
         # 3. Salvar instrucao no channel com status pending
-        instruction_msg = supabase.table("supervisor_channel").insert({
-            "conversation_id": conversation_id,
-            "role": "supervisor",
-            "content": request.instruction,
-            "metadata": {
-                "type": "instruction",
-                "status": "pending",
-                "preview": preview,
-            },
-        }).execute()
+        instruction_msg = (
+            supabase.table("supervisor_channel")
+            .insert(
+                {
+                    "conversation_id": conversation_id,
+                    "role": "supervisor",
+                    "content": request.instruction,
+                    "metadata": {
+                        "type": "instruction",
+                        "status": "pending",
+                        "preview": preview,
+                    },
+                }
+            )
+            .execute()
+        )
 
         instruction_id = instruction_msg.data[0]["id"] if instruction_msg.data else None
 
@@ -331,11 +369,14 @@ async def confirmar_instrucao(conversation_id: str, instruction_id: str):
     """
     try:
         # 1. Buscar instrucao
-        instr = supabase.table("supervisor_channel").select(
-            "id, metadata"
-        ).eq("id", instruction_id).eq(
-            "conversation_id", conversation_id
-        ).single().execute()
+        instr = (
+            supabase.table("supervisor_channel")
+            .select("id, metadata")
+            .eq("id", instruction_id)
+            .eq("conversation_id", conversation_id)
+            .single()
+            .execute()
+        )
 
         if not instr.data:
             raise HTTPException(404, "Instrucao nao encontrada")
@@ -349,9 +390,13 @@ async def confirmar_instrucao(conversation_id: str, instruction_id: str):
             raise HTTPException(400, "Preview vazio")
 
         # 2. Buscar conversa + chip para envio
-        conv = supabase.table("conversations").select(
-            "*, clientes(id, telefone)"
-        ).eq("id", conversation_id).single().execute()
+        conv = (
+            supabase.table("conversations")
+            .select("*, clientes(id, telefone)")
+            .eq("id", conversation_id)
+            .single()
+            .execute()
+        )
 
         if not conv.data:
             raise HTTPException(404, "Conversa nao encontrada")
@@ -363,11 +408,14 @@ async def confirmar_instrucao(conversation_id: str, instruction_id: str):
             raise HTTPException(400, "Cliente sem telefone")
 
         # Buscar chip associado
-        chip_result = supabase.table("conversation_chips").select(
-            "chip_id, chips!conversation_chips_chip_id_fkey(*)"
-        ).eq("conversa_id", conversation_id).eq(
-            "active", True
-        ).limit(1).execute()
+        chip_result = (
+            supabase.table("conversation_chips")
+            .select("chip_id, chips!conversation_chips_chip_id_fkey(*)")
+            .eq("conversa_id", conversation_id)
+            .eq("active", True)
+            .limit(1)
+            .execute()
+        )
 
         chip = None
         if chip_result.data and chip_result.data[0].get("chips"):
@@ -375,9 +423,9 @@ async def confirmar_instrucao(conversation_id: str, instruction_id: str):
 
         if not chip:
             # Fallback: chip ativo qualquer
-            active_chip = supabase.table("chips").select("*").eq(
-                "status", "active"
-            ).limit(1).execute()
+            active_chip = (
+                supabase.table("chips").select("*").eq("status", "active").limit(1).execute()
+            )
             if active_chip.data:
                 chip = active_chip.data[0]
 
@@ -393,36 +441,44 @@ async def confirmar_instrucao(conversation_id: str, instruction_id: str):
 
         # 4. Registrar interacao
         cliente_id = conv.data.get("cliente_id") or cliente.get("id")
-        supabase.table("interacoes").insert({
-            "conversation_id": conversation_id,
-            "cliente_id": cliente_id,
-            "origem": "supervisor_instruction",
-            "tipo": "saida",
-            "canal": "whatsapp",
-            "conteudo": preview_message,
-            "autor_nome": "Julia (instruida)",
-            "autor_tipo": "agente",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }).execute()
+        supabase.table("interacoes").insert(
+            {
+                "conversation_id": conversation_id,
+                "cliente_id": cliente_id,
+                "origem": "supervisor_instruction",
+                "tipo": "saida",
+                "canal": "whatsapp",
+                "conteudo": preview_message,
+                "autor_nome": "Julia (instruida)",
+                "autor_tipo": "agente",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).execute()
 
         # 5. Atualizar status da instrucao
-        supabase.table("supervisor_channel").update({
-            "metadata": {**metadata, "status": "confirmed"},
-        }).eq("id", instruction_id).execute()
+        supabase.table("supervisor_channel").update(
+            {
+                "metadata": {**metadata, "status": "confirmed"},
+            }
+        ).eq("id", instruction_id).execute()
 
         # 6. Salvar confirmacao no channel
-        supabase.table("supervisor_channel").insert({
-            "conversation_id": conversation_id,
-            "role": "julia",
-            "content": f"Mensagem enviada: {preview_message}",
-            "metadata": {"type": "instruction_confirmed", "instruction_id": instruction_id},
-        }).execute()
+        supabase.table("supervisor_channel").insert(
+            {
+                "conversation_id": conversation_id,
+                "role": "julia",
+                "content": f"Mensagem enviada: {preview_message}",
+                "metadata": {"type": "instruction_confirmed", "instruction_id": instruction_id},
+            }
+        ).execute()
 
         # 7. Atualizar last_message_at
-        supabase.table("conversations").update({
-            "last_message_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", conversation_id).execute()
+        supabase.table("conversations").update(
+            {
+                "last_message_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", conversation_id).execute()
 
         logger.info(f"Instrucao confirmada e enviada: conv={conversation_id}")
 
@@ -443,11 +499,14 @@ async def confirmar_instrucao(conversation_id: str, instruction_id: str):
 async def rejeitar_instrucao(conversation_id: str, instruction_id: str):
     """Rejeita instrucao - nenhuma mensagem e enviada ao medico."""
     try:
-        instr = supabase.table("supervisor_channel").select(
-            "id, metadata"
-        ).eq("id", instruction_id).eq(
-            "conversation_id", conversation_id
-        ).single().execute()
+        instr = (
+            supabase.table("supervisor_channel")
+            .select("id, metadata")
+            .eq("id", instruction_id)
+            .eq("conversation_id", conversation_id)
+            .single()
+            .execute()
+        )
 
         if not instr.data:
             raise HTTPException(404, "Instrucao nao encontrada")
@@ -457,9 +516,11 @@ async def rejeitar_instrucao(conversation_id: str, instruction_id: str):
             raise HTTPException(400, f"Instrucao ja processada: {metadata.get('status')}")
 
         # Atualizar status
-        supabase.table("supervisor_channel").update({
-            "metadata": {**metadata, "status": "rejected"},
-        }).eq("id", instruction_id).execute()
+        supabase.table("supervisor_channel").update(
+            {
+                "metadata": {**metadata, "status": "rejected"},
+            }
+        ).eq("id", instruction_id).execute()
 
         logger.info(f"Instrucao rejeitada: conv={conversation_id}, id={instruction_id}")
 

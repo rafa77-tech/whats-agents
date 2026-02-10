@@ -5,6 +5,7 @@ Permite carregar, versionar e testar prompts sem deploy.
 
 Sprint 32 E02: Adicionado suporte a contexto de campanha.
 """
+
 from .loader import (
     carregar_prompt,
     carregar_prompt_especialidade,

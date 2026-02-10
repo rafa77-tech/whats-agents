@@ -70,9 +70,7 @@ async def buscar_estado_instancia(instance_name: str) -> Optional[dict]:
             if response.status_code == 200:
                 return response.json()
             else:
-                logger.warning(
-                    f"Erro ao buscar estado de {instance_name}: {response.status_code}"
-                )
+                logger.warning(f"Erro ao buscar estado de {instance_name}: {response.status_code}")
                 return None
 
     except httpx.TimeoutException:
@@ -119,10 +117,20 @@ async def sincronizar_chips_com_evolution() -> dict:
     for inst in instancias:
         # Evolution API v2 retorna formato diferente
         # Campos: name, connectionStatus (open/close), ownerJid
-        name = inst.get("name") or inst.get("instanceName") or inst.get("instance", {}).get("instanceName")
+        name = (
+            inst.get("name")
+            or inst.get("instanceName")
+            or inst.get("instance", {}).get("instanceName")
+        )
         # connectionStatus pode ser "open" ou "close"
-        state = inst.get("connectionStatus") or inst.get("state") or inst.get("instance", {}).get("state", "unknown")
-        phone = inst.get("ownerJid", "").split("@")[0] if inst.get("ownerJid") else inst.get("number")
+        state = (
+            inst.get("connectionStatus")
+            or inst.get("state")
+            or inst.get("instance", {}).get("state", "unknown")
+        )
+        phone = (
+            inst.get("ownerJid", "").split("@")[0] if inst.get("ownerJid") else inst.get("number")
+        )
 
         if name:
             instancias_map[name] = {
@@ -134,7 +142,11 @@ async def sincronizar_chips_com_evolution() -> dict:
 
     # 3. Buscar chips existentes no banco
     try:
-        response = supabase.table("chips").select("id, instance_name, status, evolution_connected").execute()
+        response = (
+            supabase.table("chips")
+            .select("id, instance_name, status, evolution_connected")
+            .execute()
+        )
         chips_existentes = {chip["instance_name"]: chip for chip in response.data}
     except Exception as e:
         logger.error(f"Erro ao buscar chips existentes: {e}")
@@ -149,7 +161,7 @@ async def sincronizar_chips_com_evolution() -> dict:
             if instance_name in chips_existentes:
                 # Chip existe, atualizar status
                 chip = chips_existentes[instance_name]
-                was_connected = chip.get("evolution_connected", False)
+                chip.get("evolution_connected", False)
 
                 # Determinar novo status baseado na conexão
                 new_status = chip["status"]
@@ -203,13 +215,19 @@ async def sincronizar_chips_com_evolution() -> dict:
         if instance_name not in instancias_map:
             try:
                 if chip.get("evolution_connected", False):
-                    supabase.table("chips").update({
-                        "evolution_connected": False,
-                        "status": "pending" if chip["status"] in ("active", "warming", "ready") else chip["status"],
-                        "updated_at": datetime.now(timezone.utc).isoformat(),
-                    }).eq("id", chip["id"]).execute()
+                    supabase.table("chips").update(
+                        {
+                            "evolution_connected": False,
+                            "status": "pending"
+                            if chip["status"] in ("active", "warming", "ready")
+                            else chip["status"],
+                            "updated_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    ).eq("id", chip["id"]).execute()
                     stats["chips_desconectados"] += 1
-                    logger.warning(f"Chip {instance_name} não encontrado na Evolution, marcado como desconectado")
+                    logger.warning(
+                        f"Chip {instance_name} não encontrado na Evolution, marcado como desconectado"
+                    )
             except Exception as e:
                 logger.error(f"Erro ao marcar chip {instance_name} como desconectado: {e}")
                 stats["erros"] += 1

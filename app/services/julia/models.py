@@ -6,9 +6,9 @@ Sprint 31 - S31.E2.1
 Dataclasses que representam o estado e fluxo de dados
 durante a geração de respostas.
 """
+
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
-from enum import Enum
 
 
 @dataclass
@@ -19,6 +19,7 @@ class JuliaContext:
     Agrupa todos os dados necessários para gerar uma resposta,
     eliminando a necessidade de passar múltiplos parâmetros.
     """
+
     mensagem: str
     medico: Dict[str, Any]
     conversa: Dict[str, Any]
@@ -51,6 +52,7 @@ class PolicyContext:
 
     Agrupa informações da Policy Engine e Conversation Mode.
     """
+
     policy_constraints: str = ""
     capabilities_gate: Any = None  # CapabilitiesGate
     mode_info: Any = None  # ModeInfo
@@ -64,6 +66,7 @@ class ToolExecutionResult:
 
     Encapsula o resultado e status de uma chamada de tool.
     """
+
     tool_call_id: str
     tool_name: str
     result: Dict[str, Any]
@@ -86,6 +89,7 @@ class GenerationResult:
 
     Normaliza a resposta do LLM para processamento interno.
     """
+
     text: str
     tool_calls: List[Dict] = field(default_factory=list)
     stop_reason: str = "end_turn"
@@ -118,6 +122,7 @@ class JuliaResponse:
 
     Inclui a resposta e metadata para logging/debugging.
     """
+
     texto: str
     tool_calls_executadas: int = 0
     retry_necessario: bool = False

@@ -3,6 +3,7 @@ Tipos do Conversation Mode.
 
 Sprint 29 - Conversation Mode
 """
+
 from enum import Enum
 from dataclasses import dataclass
 from datetime import datetime
@@ -16,15 +17,17 @@ class ConversationMode(Enum):
     IMPORTANTE: Julia é INTERMEDIÁRIA em todos os modos.
     Ela conecta médico com responsável, não fecha vagas.
     """
-    DISCOVERY = "discovery"      # Conhecer o médico
-    OFERTA = "oferta"            # Intermediar (conectar com responsável)
-    FOLLOWUP = "followup"        # Acompanhar desfecho
-    REATIVACAO = "reativacao"    # Reativar inativo
+
+    DISCOVERY = "discovery"  # Conhecer o médico
+    OFERTA = "oferta"  # Intermediar (conectar com responsável)
+    FOLLOWUP = "followup"  # Acompanhar desfecho
+    REATIVACAO = "reativacao"  # Reativar inativo
 
 
 @dataclass
 class ModeInfo:
     """Informações do modo atual de uma conversa."""
+
     conversa_id: str
     mode: ConversationMode
     updated_at: Optional[datetime] = None
@@ -55,6 +58,7 @@ class ModeInfo:
 @dataclass
 class ModeTransition:
     """Representa uma transição de modo."""
+
     from_mode: ConversationMode
     to_mode: ConversationMode
     reason: str

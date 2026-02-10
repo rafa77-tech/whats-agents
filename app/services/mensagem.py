@@ -1,7 +1,7 @@
 """
 Utilitários para processamento de mensagens.
 """
-import re
+
 import logging
 
 from app.core.config import settings
@@ -9,8 +9,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 RESPOSTA_MENSAGEM_LONGA = (
-    "Eita, muita coisa aí! 😅\n\n"
-    "Consegue me resumir o principal? Assim consigo te ajudar melhor"
+    "Eita, muita coisa aí! 😅\n\nConsegue me resumir o principal? Assim consigo te ajudar melhor"
 )
 
 
@@ -46,7 +45,7 @@ def quebrar_mensagem(texto: str, max_chars: int = 400) -> list[str]:
         # Prioridade: ponto final, exclamação, interrogação, vírgula
         ponto_quebra = -1
 
-        for separador in ['. ', '! ', '? ', ', ', ' ']:
+        for separador in [". ", "! ", "? ", ", ", " "]:
             # Procurar última ocorrência antes do limite
             idx = resto.rfind(separador, 0, max_chars)
             if idx > 0:
@@ -85,9 +84,8 @@ def tratar_mensagem_longa(texto: str) -> tuple[str, str]:
 
     if tamanho <= settings.MAX_MENSAGEM_CHARS_TRUNCAR:
         # Truncar e avisar
-        texto_truncado = texto[:settings.MAX_MENSAGEM_CHARS] + "..."
+        texto_truncado = texto[: settings.MAX_MENSAGEM_CHARS] + "..."
         return texto_truncado, "truncada"
 
     # Muito longa, pedir resumo
     return texto[:1000], "pedir_resumo"
-

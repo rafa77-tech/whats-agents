@@ -1,6 +1,7 @@
 """
 Configurações específicas do piloto.
 """
+
 from dataclasses import dataclass
 
 
@@ -23,4 +24,3 @@ class PilotoConfig:
 
 # Instância global
 piloto_config = PilotoConfig()
-

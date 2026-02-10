@@ -5,6 +5,7 @@ Detecta o tipo de interacao para determinar delay apropriado.
 
 Sprint 22 - Responsividade Inteligente
 """
+
 import re
 import logging
 from dataclasses import dataclass
@@ -18,17 +19,19 @@ logger = logging.getLogger(__name__)
 
 class ContextType(str, Enum):
     """Tipos de contexto de mensagem."""
-    REPLY_DIRETA = "reply_direta"       # Resposta a pergunta do medico
-    ACEITE_VAGA = "aceite_vaga"         # Medico aceitou/confirmou vaga
-    CONFIRMACAO = "confirmacao"          # Confirmar dados/detalhes
-    OFERTA_ATIVA = "oferta_ativa"       # Julia oferecendo vaga proativamente
-    FOLLOWUP = "followup"                # Follow-up de conversa anterior
-    CAMPANHA_FRIA = "campanha_fria"     # Primeiro contato/prospecao
+
+    REPLY_DIRETA = "reply_direta"  # Resposta a pergunta do medico
+    ACEITE_VAGA = "aceite_vaga"  # Medico aceitou/confirmou vaga
+    CONFIRMACAO = "confirmacao"  # Confirmar dados/detalhes
+    OFERTA_ATIVA = "oferta_ativa"  # Julia oferecendo vaga proativamente
+    FOLLOWUP = "followup"  # Follow-up de conversa anterior
+    CAMPANHA_FRIA = "campanha_fria"  # Primeiro contato/prospecao
 
 
 @dataclass
 class ContextClassification:
     """Resultado da classificacao de contexto."""
+
     tipo: ContextType
     prioridade: int  # 1 = mais urgente, 5 = menos urgente
     confianca: float  # 0.0 a 1.0
@@ -86,7 +89,7 @@ def _classificar_por_mensagem(mensagem: str) -> ContextClassification:
             tipo=ContextType.ACEITE_VAGA,
             prioridade=1,
             confianca=0.9,
-            razao="Detectado padrao de aceite/confirmacao"
+            razao="Detectado padrao de aceite/confirmacao",
         )
 
     # Pergunta direta - ALTA PRIORIDADE
@@ -95,7 +98,7 @@ def _classificar_por_mensagem(mensagem: str) -> ContextClassification:
             tipo=ContextType.REPLY_DIRETA,
             prioridade=1,
             confianca=0.85,
-            razao="Detectada pergunta do medico"
+            razao="Detectada pergunta do medico",
         )
 
     # Mensagem curta = provavelmente reply rapida
@@ -104,7 +107,7 @@ def _classificar_por_mensagem(mensagem: str) -> ContextClassification:
             tipo=ContextType.REPLY_DIRETA,
             prioridade=1,
             confianca=0.7,
-            razao="Mensagem curta indica conversa ativa"
+            razao="Mensagem curta indica conversa ativa",
         )
 
     # Default para reply direta com confianca moderada
@@ -112,7 +115,7 @@ def _classificar_por_mensagem(mensagem: str) -> ContextClassification:
         tipo=ContextType.REPLY_DIRETA,
         prioridade=2,
         confianca=0.6,
-        razao="Classificacao padrao para mensagem inbound"
+        razao="Classificacao padrao para mensagem inbound",
     )
 
 
@@ -132,16 +135,13 @@ def classificar_por_outbound_context(ctx: OutboundContext) -> ContextClassificat
             tipo=ContextType.REPLY_DIRETA,
             prioridade=1,
             confianca=0.95,
-            razao="OutboundMethod.REPLY indica resposta a inbound"
+            razao="OutboundMethod.REPLY indica resposta a inbound",
         )
 
     # FOLLOWUP = follow-up automatico
     if ctx.method == OutboundMethod.FOLLOWUP:
         return ContextClassification(
-            tipo=ContextType.FOLLOWUP,
-            prioridade=4,
-            confianca=0.9,
-            razao="OutboundMethod.FOLLOWUP"
+            tipo=ContextType.FOLLOWUP, prioridade=4, confianca=0.9, razao="OutboundMethod.FOLLOWUP"
         )
 
     # REACTIVATION = reativacao
@@ -150,7 +150,7 @@ def classificar_por_outbound_context(ctx: OutboundContext) -> ContextClassificat
             tipo=ContextType.FOLLOWUP,
             prioridade=4,
             confianca=0.9,
-            razao="OutboundMethod.REACTIVATION"
+            razao="OutboundMethod.REACTIVATION",
         )
 
     # CAMPAIGN = campanha fria
@@ -159,7 +159,7 @@ def classificar_por_outbound_context(ctx: OutboundContext) -> ContextClassificat
             tipo=ContextType.CAMPANHA_FRIA,
             prioridade=5,
             confianca=0.95,
-            razao="OutboundMethod.CAMPAIGN"
+            razao="OutboundMethod.CAMPAIGN",
         )
 
     # BUTTON/COMMAND = acao humana via Slack
@@ -168,15 +168,12 @@ def classificar_por_outbound_context(ctx: OutboundContext) -> ContextClassificat
             tipo=ContextType.OFERTA_ATIVA,
             prioridade=3,
             confianca=0.9,
-            razao=f"OutboundMethod.{ctx.method.value} - acao humana"
+            razao=f"OutboundMethod.{ctx.method.value} - acao humana",
         )
 
     # Default
     return ContextClassification(
-        tipo=ContextType.OFERTA_ATIVA,
-        prioridade=3,
-        confianca=0.5,
-        razao="Classificacao padrao"
+        tipo=ContextType.OFERTA_ATIVA, prioridade=3, confianca=0.5, razao="Classificacao padrao"
     )
 
 
@@ -224,5 +221,5 @@ async def classificar_contexto(
         tipo=ContextType.REPLY_DIRETA,
         prioridade=2,
         confianca=0.5,
-        razao="Fallback - sem mensagem ou contexto"
+        razao="Fallback - sem mensagem ou contexto",
     )

@@ -1,6 +1,7 @@
 """
 Serviço para avaliação automática de qualidade de conversas.
 """
+
 import json
 import logging
 from typing import Optional
@@ -47,10 +48,12 @@ async def avaliar_qualidade_conversa(conversa_id: str) -> Optional[dict]:
             return None
 
         # Montar conversa
-        conversa_texto = "\n".join([
-            f"{'MÉDICO' if i.get('direcao') == 'entrada' or i.get('autor_tipo') == 'medico' else 'JÚLIA'}: {i.get('conteudo', '')}"
-            for i in interacoes
-        ])
+        conversa_texto = "\n".join(
+            [
+                f"{'MÉDICO' if i.get('direcao') == 'entrada' or i.get('autor_tipo') == 'medico' else 'JÚLIA'}: {i.get('conteudo', '')}"
+                for i in interacoes
+            ]
+        )
 
         prompt = f"""
 Avalie esta conversa entre uma escalista (Júlia) e um médico.
@@ -78,13 +81,11 @@ Responda APENAS em JSON válido, sem markdown, sem explicações:
 """
 
         response = client.messages.create(
-            model=settings.LLM_MODEL,
-            max_tokens=500,
-            messages=[{"role": "user", "content": prompt}]
+            model=settings.LLM_MODEL, max_tokens=500, messages=[{"role": "user", "content": prompt}]
         )
 
         texto_resposta = response.content[0].text.strip()
-        
+
         # Remover markdown se houver
         if texto_resposta.startswith("```"):
             texto_resposta = texto_resposta.split("```")[1]
@@ -102,26 +103,25 @@ Responda APENAS em JSON válido, sem markdown, sem explicações:
         return None
 
 
-async def salvar_avaliacao_qualidade(
-    conversa_id: str,
-    avaliacao: dict
-) -> Optional[dict]:
+async def salvar_avaliacao_qualidade(conversa_id: str, avaliacao: dict) -> Optional[dict]:
     """Salva avaliação de qualidade no banco."""
     try:
         response = (
             supabase.table("avaliacoes_qualidade")
-            .insert({
-                "conversa_id": conversa_id,
-                "naturalidade": avaliacao.get("naturalidade"),
-                "persona": avaliacao.get("persona"),
-                "objetivo": avaliacao.get("objetivo"),
-                "satisfacao": avaliacao.get("satisfacao"),
-                "score_geral": avaliacao.get("score_geral"),
-                "pontos_positivos": avaliacao.get("pontos_positivos", []),
-                "pontos_negativos": avaliacao.get("pontos_negativos", []),
-                "sugestoes": avaliacao.get("sugestoes", []),
-                "avaliador": "auto"
-            })
+            .insert(
+                {
+                    "conversa_id": conversa_id,
+                    "naturalidade": avaliacao.get("naturalidade"),
+                    "persona": avaliacao.get("persona"),
+                    "objetivo": avaliacao.get("objetivo"),
+                    "satisfacao": avaliacao.get("satisfacao"),
+                    "score_geral": avaliacao.get("score_geral"),
+                    "pontos_positivos": avaliacao.get("pontos_positivos", []),
+                    "pontos_negativos": avaliacao.get("pontos_negativos", []),
+                    "sugestoes": avaliacao.get("sugestoes", []),
+                    "avaliador": "auto",
+                }
+            )
             .execute()
         )
         return response.data[0] if response.data else None
@@ -180,4 +180,3 @@ async def avaliar_conversas_pendentes(limite: int = 50):
 
     except Exception as e:
         logger.error(f"Erro ao avaliar conversas pendentes: {e}")
-

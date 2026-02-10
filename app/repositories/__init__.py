@@ -35,6 +35,7 @@ Uso em testes:
 Entidades disponiveis:
 - Cliente: Representa um medico no sistema
 """
+
 from .base import BaseRepository, QueryResult
 from .cliente import ClienteRepository, Cliente
 from .deps import get_cliente_repo, create_cliente_repo

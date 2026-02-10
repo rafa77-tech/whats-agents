@@ -3,6 +3,7 @@ Repositório para doctor_state.
 
 Sprint 15 - Policy Engine
 """
+
 import logging
 from datetime import datetime
 from typing import Optional
@@ -11,8 +12,13 @@ from app.core.timezone import agora_utc
 from app.services.supabase import supabase
 from app.services.redis import cache_get_json, cache_set_json, cache_delete
 from .types import (
-    DoctorState, PermissionState, TemperatureTrend,
-    TemperatureBand, ObjectionSeverity, RiskTolerance, LifecycleStage
+    DoctorState,
+    PermissionState,
+    TemperatureTrend,
+    TemperatureBand,
+    ObjectionSeverity,
+    RiskTolerance,
+    LifecycleStage,
 )
 
 logger = logging.getLogger(__name__)
@@ -116,12 +122,7 @@ async def load_doctor_state(cliente_id: str) -> Optional[DoctorState]:
 
     # Buscar no banco
     try:
-        response = (
-            supabase.table("doctor_state")
-            .select("*")
-            .eq("cliente_id", cliente_id)
-            .execute()
-        )
+        response = supabase.table("doctor_state").select("*").eq("cliente_id", cliente_id).execute()
 
         if response.data and len(response.data) > 0:
             row = response.data[0]
@@ -147,11 +148,7 @@ async def load_doctor_state(cliente_id: str) -> Optional[DoctorState]:
 async def create_default_state(cliente_id: str) -> DoctorState:
     """Cria registro default para médico novo."""
     try:
-        response = (
-            supabase.table("doctor_state")
-            .insert({"cliente_id": cliente_id})
-            .execute()
-        )
+        response = supabase.table("doctor_state").insert({"cliente_id": cliente_id}).execute()
 
         if response.data and len(response.data) > 0:
             return _row_to_state(response.data[0])
@@ -188,12 +185,7 @@ async def save_doctor_state_updates(cliente_id: str, updates: dict) -> bool:
             logger.warning(f"Erro ao invalidar cache: {e}")
 
         # Atualizar banco
-        response = (
-            supabase.table("doctor_state")
-            .update(updates)
-            .eq("cliente_id", cliente_id)
-            .execute()
-        )
+        (supabase.table("doctor_state").update(updates).eq("cliente_id", cliente_id).execute())
 
         logger.debug(f"doctor_state atualizado: {cliente_id} -> {list(updates.keys())}")
         return True
@@ -212,9 +204,12 @@ async def resolve_objection(cliente_id: str) -> bool:
     - Médico confirma resolução explicitamente
     - Ação pendente foi concluída
     """
-    return await save_doctor_state_updates(cliente_id, {
-        "objection_resolved_at": agora_utc().isoformat(),
-    })
+    return await save_doctor_state_updates(
+        cliente_id,
+        {
+            "objection_resolved_at": agora_utc().isoformat(),
+        },
+    )
 
 
 async def buscar_states_para_decay(dias_minimo: int = 1) -> list[dict]:

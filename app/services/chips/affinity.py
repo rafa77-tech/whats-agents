@@ -33,12 +33,14 @@ async def registrar_interacao_chip_medico(
     """
     try:
         # Registrar na tabela chip_interactions
-        supabase.table("chip_interactions").insert({
-            "chip_id": chip_id,
-            "tipo": tipo,
-            "destinatario": telefone_medico,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }).execute()
+        supabase.table("chip_interactions").insert(
+            {
+                "chip_id": chip_id,
+                "tipo": tipo,
+                "destinatario": telefone_medico,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).execute()
 
         logger.debug(
             f"[ChipAffinity] Interação registrada: "
@@ -76,15 +78,15 @@ async def buscar_chip_com_afinidade(
 
     try:
         # Buscar interações com este telefone
-        result = supabase.table("chip_interactions").select(
-            "chip_id, tipo, created_at"
-        ).eq(
-            "destinatario", telefone_medico
-        ).in_(
-            "chip_id", chip_ids
-        ).order(
-            "created_at", desc=True
-        ).limit(50).execute()
+        result = (
+            supabase.table("chip_interactions")
+            .select("chip_id, tipo, created_at")
+            .eq("destinatario", telefone_medico)
+            .in_("chip_id", chip_ids)
+            .order("created_at", desc=True)
+            .limit(50)
+            .execute()
+        )
 
         if not result.data:
             return None
@@ -118,9 +120,8 @@ async def buscar_chip_com_afinidade(
         melhor_chip_id = max(
             afinidade_scores.keys(),
             key=lambda cid: (
-                afinidade_scores[cid]["respostas"] * 3 +
-                afinidade_scores[cid]["total"]
-            )
+                afinidade_scores[cid]["respostas"] * 3 + afinidade_scores[cid]["total"]
+            ),
         )
 
         # Retornar o chip correspondente
@@ -159,11 +160,12 @@ async def obter_afinidade_resumo(
         }
     """
     try:
-        result = supabase.table("chip_interactions").select(
-            "chip_id, tipo"
-        ).eq(
-            "destinatario", telefone_medico
-        ).execute()
+        result = (
+            supabase.table("chip_interactions")
+            .select("chip_id, tipo")
+            .eq("destinatario", telefone_medico)
+            .execute()
+        )
 
         chips: Dict[str, Dict] = {}
 
@@ -208,28 +210,27 @@ async def registrar_conversa_bidirecional(
 
         ontem = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
 
-        result = supabase.table("chip_interactions").select(
-            "id"
-        ).eq(
-            "chip_id", chip_id
-        ).eq(
-            "destinatario", telefone_medico
-        ).eq(
-            "tipo", "msg_enviada"
-        ).gte(
-            "created_at", ontem
-        ).is_(
-            "obteve_resposta", "null"
-        ).order(
-            "created_at", desc=True
-        ).limit(1).execute()
+        result = (
+            supabase.table("chip_interactions")
+            .select("id")
+            .eq("chip_id", chip_id)
+            .eq("destinatario", telefone_medico)
+            .eq("tipo", "msg_enviada")
+            .gte("created_at", ontem)
+            .is_("obteve_resposta", "null")
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
 
         if result.data:
             # Marcar como bidirecional
-            supabase.table("chip_interactions").update({
-                "obteve_resposta": True,
-                "resposta_em": datetime.now(timezone.utc).isoformat(),
-            }).eq("id", result.data[0]["id"]).execute()
+            supabase.table("chip_interactions").update(
+                {
+                    "obteve_resposta": True,
+                    "resposta_em": datetime.now(timezone.utc).isoformat(),
+                }
+            ).eq("id", result.data[0]["id"]).execute()
 
             logger.info(
                 f"[ChipAffinity] Conversa bidirecional: "
@@ -252,15 +253,21 @@ async def _incrementar_conversas_bidirecionais(chip_id: str) -> None:
     """Incrementa contador de conversas bidirecionais do chip."""
     try:
         # Buscar valor atual
-        result = supabase.table("chips").select(
-            "conversas_bidirecionais"
-        ).eq("id", chip_id).single().execute()
+        result = (
+            supabase.table("chips")
+            .select("conversas_bidirecionais")
+            .eq("id", chip_id)
+            .single()
+            .execute()
+        )
 
         atual = (result.data or {}).get("conversas_bidirecionais") or 0
 
-        supabase.table("chips").update({
-            "conversas_bidirecionais": atual + 1,
-        }).eq("id", chip_id).execute()
+        supabase.table("chips").update(
+            {
+                "conversas_bidirecionais": atual + 1,
+            }
+        ).eq("id", chip_id).execute()
 
     except Exception as e:
         logger.warning(f"[ChipAffinity] Erro ao incrementar bidirecionais: {e}")
@@ -282,20 +289,17 @@ async def calcular_taxa_resposta(chip_id: str, dias: int = 7) -> float:
     try:
         from datetime import timedelta
 
-        periodo_inicio = (
-            datetime.now(timezone.utc) - timedelta(days=dias)
-        ).isoformat()
+        periodo_inicio = (datetime.now(timezone.utc) - timedelta(days=dias)).isoformat()
 
         # Total de mensagens enviadas no período
-        enviadas = supabase.table("chip_interactions").select(
-            "id", count="exact"
-        ).eq(
-            "chip_id", chip_id
-        ).eq(
-            "tipo", "msg_enviada"
-        ).gte(
-            "created_at", periodo_inicio
-        ).execute()
+        enviadas = (
+            supabase.table("chip_interactions")
+            .select("id", count="exact")
+            .eq("chip_id", chip_id)
+            .eq("tipo", "msg_enviada")
+            .gte("created_at", periodo_inicio)
+            .execute()
+        )
 
         total_enviadas = enviadas.count or 0
 
@@ -303,17 +307,15 @@ async def calcular_taxa_resposta(chip_id: str, dias: int = 7) -> float:
             return 0.0
 
         # Mensagens que obtiveram resposta
-        com_resposta = supabase.table("chip_interactions").select(
-            "id", count="exact"
-        ).eq(
-            "chip_id", chip_id
-        ).eq(
-            "tipo", "msg_enviada"
-        ).eq(
-            "obteve_resposta", True
-        ).gte(
-            "created_at", periodo_inicio
-        ).execute()
+        com_resposta = (
+            supabase.table("chip_interactions")
+            .select("id", count="exact")
+            .eq("chip_id", chip_id)
+            .eq("tipo", "msg_enviada")
+            .eq("obteve_resposta", True)
+            .gte("created_at", periodo_inicio)
+            .execute()
+        )
 
         total_com_resposta = com_resposta.count or 0
 
@@ -347,20 +349,17 @@ async def calcular_taxa_delivery(chip_id: str, dias: int = 7) -> float:
     try:
         from datetime import timedelta
 
-        periodo_inicio = (
-            datetime.now(timezone.utc) - timedelta(days=dias)
-        ).isoformat()
+        periodo_inicio = (datetime.now(timezone.utc) - timedelta(days=dias)).isoformat()
 
         # Total de envios (sucessos + erros)
-        total_result = supabase.table("chip_interactions").select(
-            "id", count="exact"
-        ).eq(
-            "chip_id", chip_id
-        ).in_(
-            "tipo", ["msg_enviada", "msg_erro"]
-        ).gte(
-            "created_at", periodo_inicio
-        ).execute()
+        total_result = (
+            supabase.table("chip_interactions")
+            .select("id", count="exact")
+            .eq("chip_id", chip_id)
+            .in_("tipo", ["msg_enviada", "msg_erro"])
+            .gte("created_at", periodo_inicio)
+            .execute()
+        )
 
         total_tentativas = total_result.count or 0
 
@@ -368,15 +367,14 @@ async def calcular_taxa_delivery(chip_id: str, dias: int = 7) -> float:
             return 1.0  # Sem dados = 100% por default
 
         # Envios com sucesso
-        sucessos = supabase.table("chip_interactions").select(
-            "id", count="exact"
-        ).eq(
-            "chip_id", chip_id
-        ).eq(
-            "tipo", "msg_enviada"
-        ).gte(
-            "created_at", periodo_inicio
-        ).execute()
+        sucessos = (
+            supabase.table("chip_interactions")
+            .select("id", count="exact")
+            .eq("chip_id", chip_id)
+            .eq("tipo", "msg_enviada")
+            .gte("created_at", periodo_inicio)
+            .execute()
+        )
 
         total_sucessos = sucessos.count or 0
 
@@ -413,17 +411,23 @@ async def atualizar_metricas_chip(chip_id: str) -> Dict:
 
     try:
         # Buscar contador de bidirecionais
-        result = supabase.table("chips").select(
-            "conversas_bidirecionais"
-        ).eq("id", chip_id).single().execute()
+        result = (
+            supabase.table("chips")
+            .select("conversas_bidirecionais")
+            .eq("id", chip_id)
+            .single()
+            .execute()
+        )
 
         conversas_bi = (result.data or {}).get("conversas_bidirecionais") or 0
 
         # Atualizar chip
-        supabase.table("chips").update({
-            "taxa_resposta": taxa_resposta,
-            "taxa_delivery": taxa_delivery,
-        }).eq("id", chip_id).execute()
+        supabase.table("chips").update(
+            {
+                "taxa_resposta": taxa_resposta,
+                "taxa_delivery": taxa_delivery,
+            }
+        ).eq("id", chip_id).execute()
 
         logger.debug(
             f"[ChipAffinity] Métricas atualizadas chip {chip_id[:8]}: "

@@ -9,6 +9,7 @@ ARQUITETURA:
 
 Sprint 15 - Policy Engine
 """
+
 from enum import Enum
 from typing import Optional
 import logging
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class ObjectionSeverity(Enum):
     """Severidade de objeção (espelhado de policy.types para evitar import)."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -30,25 +32,21 @@ SEVERITY_BY_TYPE = {
     # LOW - objeções leves, fácil contornar
     "comunicacao": ObjectionSeverity.LOW,
     "disponibilidade": ObjectionSeverity.LOW,
-
     # MEDIUM - objeções comuns, tratáveis pela Julia
     "preco": ObjectionSeverity.MEDIUM,
     "tempo": ObjectionSeverity.MEDIUM,
     "processo": ObjectionSeverity.MEDIUM,
     "motivacao": ObjectionSeverity.MEDIUM,
     "lealdade": ObjectionSeverity.MEDIUM,
-
     # HIGH - atenção redobrada, pode escalar
     "confianca": ObjectionSeverity.HIGH,
     "qualidade": ObjectionSeverity.HIGH,
     "risco": ObjectionSeverity.HIGH,
-
     # Tipos que não existem no detector mas podem ser detectados por keywords
     "opt_out": ObjectionSeverity.GRAVE,
     "ameaca": ObjectionSeverity.GRAVE,
     "agressao": ObjectionSeverity.GRAVE,
     "pedido_humano": ObjectionSeverity.GRAVE,
-
     # Default
     "nenhuma": ObjectionSeverity.LOW,
 }
@@ -69,7 +67,6 @@ GRAVE_KEYWORDS = [
     "não me ligue",
     "não me mande",
     "sai da minha vida",
-
     # Ameaças legais
     "vou denunciar",
     "vou processar",
@@ -80,7 +77,6 @@ GRAVE_KEYWORDS = [
     "ministério público",
     "delegacia",
     "boletim de ocorrência",
-
     # Agressividade explícita
     "isso é spam",
     "spammer",
@@ -98,7 +94,6 @@ GRAVE_KEYWORDS = [
     "filho da",
     "vai a merda",
     "vai pro inferno",
-
     # Pedido explícito de humano
     "quero falar com uma pessoa",
     "quero falar com um humano",
@@ -122,7 +117,6 @@ HIGH_KEYWORDS = [
     "parece fraude",
     "muito suspeito",
     "estranho isso",
-
     # Reclamações sérias
     "vou reclamar",
     "péssimo atendimento",
@@ -130,7 +124,6 @@ HIGH_KEYWORDS = [
     "ridículo",
     "absurdo",
     "inadmissível",
-
     # Sinais de irritação
     "estou irritado",
     "estou cansado",

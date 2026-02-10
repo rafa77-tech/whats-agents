@@ -3,6 +3,7 @@ Cache de vagas usando Redis.
 
 Sprint 10 - S10.E3.2
 """
+
 import logging
 from typing import Optional
 

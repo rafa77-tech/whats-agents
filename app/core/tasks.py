@@ -6,6 +6,7 @@ Sprint 30 - S30.E4.1
 Este modulo fornece wrappers seguros para asyncio.create_task
 com error handling, logging e metricas.
 """
+
 import asyncio
 import logging
 from typing import Coroutine, Any, Optional, Callable
@@ -18,9 +19,7 @@ _task_failures: dict[str, int] = {}
 
 
 async def _safe_wrapper(
-    coro: Coroutine,
-    task_name: str,
-    on_error: Optional[Callable[[Exception], None]] = None
+    coro: Coroutine, task_name: str, on_error: Optional[Callable[[Exception], None]] = None
 ) -> Any:
     """
     Wrapper que executa coroutine com error handling.
@@ -45,8 +44,8 @@ async def _safe_wrapper(
             extra={
                 "task_name": task_name,
                 "error_type": type(e).__name__,
-                "total_failures": _task_failures[task_name]
-            }
+                "total_failures": _task_failures[task_name],
+            },
         )
 
         if on_error:
@@ -62,7 +61,7 @@ async def _safe_wrapper(
 def safe_create_task(
     coro: Coroutine,
     name: Optional[str] = None,
-    on_error: Optional[Callable[[Exception], None]] = None
+    on_error: Optional[Callable[[Exception], None]] = None,
 ) -> asyncio.Task:
     """
     Cria task com error handling automatico.
@@ -99,7 +98,7 @@ def safe_create_task(
             on_error=log_falha
         )
     """
-    task_name = name or (coro.__qualname__ if hasattr(coro, '__qualname__') else "unknown")
+    task_name = name or (coro.__qualname__ if hasattr(coro, "__qualname__") else "unknown")
     wrapped = _safe_wrapper(coro, task_name, on_error)
     return asyncio.create_task(wrapped, name=task_name)
 
@@ -121,13 +120,16 @@ def fire_and_forget(name: Optional[str] = None):
     Note:
         O retorno da funcao decorada eh a Task, nao o resultado.
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             coro = func(*args, **kwargs)
             task_name = name or func.__name__
             return safe_create_task(coro, name=task_name)
+
         return wrapper
+
     return decorator
 
 
@@ -148,17 +150,12 @@ async def safe_gather(*coros, return_exceptions: bool = True) -> list:
 
     Diferente de safe_create_task, este aguarda todas as tasks.
     """
-    tasks = [
-        _safe_wrapper(coro, f"gather_task_{i}", None)
-        for i, coro in enumerate(coros)
-    ]
+    tasks = [_safe_wrapper(coro, f"gather_task_{i}", None) for i, coro in enumerate(coros)]
     return await asyncio.gather(*tasks, return_exceptions=return_exceptions)
 
 
 def schedule_with_delay(
-    coro: Coroutine,
-    delay_seconds: float,
-    name: Optional[str] = None
+    coro: Coroutine, delay_seconds: float, name: Optional[str] = None
 ) -> asyncio.Task:
     """
     Agenda task para executar apos delay.
@@ -170,6 +167,7 @@ def schedule_with_delay(
             name="followup_agendado"
         )
     """
+
     async def delayed():
         await asyncio.sleep(delay_seconds)
         return await coro

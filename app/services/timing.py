@@ -2,9 +2,9 @@
 Serviço de timing para humanização de respostas.
 Simula comportamento humano no tempo de resposta e digitação.
 """
+
 import random
 import logging
-import time
 from datetime import datetime, time as dt_time, timedelta
 
 from app.core.timezone import TZ_BRASILIA, agora_brasilia
@@ -15,15 +15,12 @@ logger = logging.getLogger(__name__)
 TZ_BRASIL = TZ_BRASILIA
 
 # Horário comercial
-HORARIO_INICIO = dt_time(8, 0)   # 8h
-HORARIO_FIM = dt_time(20, 0)     # 20h
+HORARIO_INICIO = dt_time(8, 0)  # 8h
+HORARIO_FIM = dt_time(20, 0)  # 20h
 DIAS_UTEIS = [0, 1, 2, 3, 4]  # Segunda a sexta (0=segunda)
 
 
-def calcular_delay_resposta(
-    mensagem: str,
-    hora_atual: datetime = None
-) -> float:
+def calcular_delay_resposta(mensagem: str, hora_atual: datetime = None) -> float:
     """
     Calcula delay apropriado para resposta.
 
@@ -48,7 +45,7 @@ def calcular_delay_resposta(
     tempo_leitura = palavras * 0.3  # ~0.3s por palavra
 
     # Fator: complexidade
-    eh_pergunta = '?' in mensagem
+    eh_pergunta = "?" in mensagem
     tem_numeros = any(c.isdigit() for c in mensagem)
     complexidade = 0
     if eh_pergunta:
@@ -96,7 +93,7 @@ def calcular_tempo_digitacao(texto: str) -> float:
         Tempo em segundos
     """
     palavras = len(texto.split())
-    caracteres = len(texto)
+    len(texto)
 
     # Base: 30 palavras por minuto = 2 segundos por palavra
     tempo_base = palavras * 2
@@ -129,8 +126,8 @@ def log_timing(mensagem: str, delay: float, tempo_real: float):
             "delay_calculado": delay,
             "tempo_real": tempo_real,
             "tamanho_mensagem": len(mensagem),
-            "palavras": len(mensagem.split())
-        }
+            "palavras": len(mensagem.split()),
+        },
     )
 
 
@@ -185,10 +182,7 @@ def proximo_horario_comercial(dt: datetime = None) -> datetime:
             # Se antes do horário de início
             if dt.time() < HORARIO_INICIO:
                 return dt.replace(
-                    hour=HORARIO_INICIO.hour,
-                    minute=HORARIO_INICIO.minute,
-                    second=0,
-                    microsecond=0
+                    hour=HORARIO_INICIO.hour, minute=HORARIO_INICIO.minute, second=0, microsecond=0
                 )
             # Se dentro do horário
             elif dt.time() <= HORARIO_FIM:
@@ -197,9 +191,5 @@ def proximo_horario_comercial(dt: datetime = None) -> datetime:
 
         # Avançar para próximo dia às 8h
         dt = (dt + timedelta(days=1)).replace(
-            hour=HORARIO_INICIO.hour,
-            minute=HORARIO_INICIO.minute,
-            second=0,
-            microsecond=0
+            hour=HORARIO_INICIO.hour, minute=HORARIO_INICIO.minute, second=0, microsecond=0
         )
-

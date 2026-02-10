@@ -4,9 +4,9 @@ Service para processamento de campanhas agendadas.
 Sprint 10 - S10.E3.1
 Sprint 35 - E04: Atualizado para usar campanha_executor
 """
+
 import logging
 from dataclasses import dataclass
-from datetime import datetime
 
 from app.core.timezone import agora_utc
 from app.services.campanhas import campanha_executor, campanha_repository
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ResultadoCampanhas:
     """Resultado do processamento de campanhas."""
+
     campanhas_encontradas: int = 0
     campanhas_iniciadas: int = 0
 

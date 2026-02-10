@@ -3,6 +3,7 @@ Processador de presença (online, digitando).
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 
 from ..base import PreProcessor, ProcessorContext, ProcessorResult
@@ -17,6 +18,7 @@ class PresenceProcessor(PreProcessor):
 
     Prioridade: 15 (logo apos parse)
     """
+
     name = "presence"
     priority = 15
 
@@ -30,10 +32,7 @@ class PresenceProcessor(PreProcessor):
         try:
             # Usar remote_jid original para marcar como lida (pode ser LID ou JID normal)
             remote_jid = context.metadata.get("remote_jid") or context.telefone
-            await evolution.marcar_como_lida(
-                remote_jid,
-                context.message_id
-            )
+            await evolution.marcar_como_lida(remote_jid, context.message_id)
 
             # Mostrar online usando telefone
             await mostrar_online(context.telefone)

@@ -14,7 +14,6 @@ import logging
 import re
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta, UTC
-from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup
@@ -48,9 +47,7 @@ class CrawlerManager:
             }
         """
         # Buscar fonte
-        result = supabase.table("group_sources").select("*").eq(
-            "id", source_id
-        ).single().execute()
+        result = supabase.table("group_sources").select("*").eq("id", source_id).single().execute()
 
         if not result.data:
             return {"status": "erro", "erro": "Fonte não encontrada"}
@@ -76,25 +73,29 @@ class CrawlerManager:
             duracao = int((datetime.now(UTC) - inicio).total_seconds())
 
             # Atualizar fonte
-            supabase.table("group_sources").update({
-                "ultimo_crawl": datetime.now(UTC).isoformat(),
-                "proximo_crawl": (
-                    datetime.now(UTC) + timedelta(days=fonte["frequencia_dias"])
-                ).isoformat(),
-                "total_grupos_extraidos": (fonte.get("total_grupos_extraidos") or 0)
-                + resultado["links_novos"],
-                "falhas_consecutivas": 0,
-            }).eq("id", source_id).execute()
+            supabase.table("group_sources").update(
+                {
+                    "ultimo_crawl": datetime.now(UTC).isoformat(),
+                    "proximo_crawl": (
+                        datetime.now(UTC) + timedelta(days=fonte["frequencia_dias"])
+                    ).isoformat(),
+                    "total_grupos_extraidos": (fonte.get("total_grupos_extraidos") or 0)
+                    + resultado["links_novos"],
+                    "falhas_consecutivas": 0,
+                }
+            ).eq("id", source_id).execute()
 
             # Registrar histórico
-            supabase.table("crawl_history").insert({
-                "source_id": source_id,
-                "status": "sucesso",
-                "duracao_segundos": duracao,
-                "links_encontrados": resultado["links_encontrados"],
-                "links_novos": resultado["links_novos"],
-                "links_duplicados": resultado["links_duplicados"],
-            }).execute()
+            supabase.table("crawl_history").insert(
+                {
+                    "source_id": source_id,
+                    "status": "sucesso",
+                    "duracao_segundos": duracao,
+                    "links_encontrados": resultado["links_encontrados"],
+                    "links_novos": resultado["links_novos"],
+                    "links_duplicados": resultado["links_duplicados"],
+                }
+            ).execute()
 
             logger.info(
                 f"[Crawler] {fonte['dominio']}: "
@@ -111,20 +112,24 @@ class CrawlerManager:
             falhas = (fonte.get("falhas_consecutivas") or 0) + 1
             status = "erro" if falhas >= 3 else "ativo"
 
-            supabase.table("group_sources").update({
-                "falhas_consecutivas": falhas,
-                "status": status,
-                "proximo_crawl": (
-                    datetime.now(UTC) + timedelta(days=1)  # Retry amanhã
-                ).isoformat(),
-            }).eq("id", source_id).execute()
+            supabase.table("group_sources").update(
+                {
+                    "falhas_consecutivas": falhas,
+                    "status": status,
+                    "proximo_crawl": (
+                        datetime.now(UTC) + timedelta(days=1)  # Retry amanhã
+                    ).isoformat(),
+                }
+            ).eq("id", source_id).execute()
 
             # Registrar histórico
-            supabase.table("crawl_history").insert({
-                "source_id": source_id,
-                "status": "erro",
-                "erro": str(e)[:500],
-            }).execute()
+            supabase.table("crawl_history").insert(
+                {
+                    "source_id": source_id,
+                    "status": "erro",
+                    "erro": str(e)[:500],
+                }
+            ).execute()
 
             return {"status": "erro", "erro": str(e)}
 
@@ -158,11 +163,13 @@ class CrawlerManager:
                             if title:
                                 nome = title.get_text(strip=True)
 
-                    links.append({
-                        "invite_code": invite_code,
-                        "invite_url": href,
-                        "nome": nome[:100] if nome else None,
-                    })
+                    links.append(
+                        {
+                            "invite_code": invite_code,
+                            "invite_url": href,
+                            "nome": nome[:100] if nome else None,
+                        }
+                    )
 
         return links
 
@@ -189,15 +196,11 @@ class CrawlerManager:
 
                 # Scroll para carregar lazy content
                 for _ in range(5):
-                    await page.evaluate(
-                        "window.scrollTo(0, document.body.scrollHeight)"
-                    )
+                    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                     await page.wait_for_timeout(1000)
 
                 # Extrair links
-                whatsapp_links = await page.query_selector_all(
-                    'a[href*="chat.whatsapp.com"]'
-                )
+                whatsapp_links = await page.query_selector_all('a[href*="chat.whatsapp.com"]')
 
                 for link in whatsapp_links:
                     href = await link.get_attribute("href")
@@ -205,11 +208,13 @@ class CrawlerManager:
 
                     invite_code = extrair_invite_code(href or "")
                     if invite_code:
-                        links.append({
-                            "invite_code": invite_code,
-                            "invite_url": href,
-                            "nome": nome[:100] if nome else None,
-                        })
+                        links.append(
+                            {
+                                "invite_code": invite_code,
+                                "invite_url": href,
+                                "nome": nome[:100] if nome else None,
+                            }
+                        )
 
             finally:
                 await browser.close()
@@ -229,9 +234,9 @@ class CrawlerManager:
             invite_code = link["invite_code"]
 
             # Verificar se já existe
-            exists = supabase.table("group_links").select("id").eq(
-                "invite_code", invite_code
-            ).execute()
+            exists = (
+                supabase.table("group_links").select("id").eq("invite_code", invite_code).execute()
+            )
 
             if exists.data:
                 resultado["links_duplicados"] += 1
@@ -239,13 +244,15 @@ class CrawlerManager:
 
             # Inserir novo
             try:
-                supabase.table("group_links").insert({
-                    "invite_code": invite_code,
-                    "invite_url": link.get("invite_url"),
-                    "nome": link.get("nome"),
-                    "fonte": fonte["dominio"],
-                    "status": "pendente",
-                }).execute()
+                supabase.table("group_links").insert(
+                    {
+                        "invite_code": invite_code,
+                        "invite_url": link.get("invite_url"),
+                        "nome": link.get("nome"),
+                        "fonte": fonte["dominio"],
+                        "status": "pendente",
+                    }
+                ).execute()
                 resultado["links_novos"] += 1
             except Exception:
                 resultado["links_duplicados"] += 1
@@ -263,11 +270,14 @@ class CrawlerManager:
             }
         """
         # Buscar fontes prontas
-        result = supabase.table("group_sources").select("id, dominio").eq(
-            "status", "ativo"
-        ).lte(
-            "proximo_crawl", datetime.now(UTC).isoformat()
-        ).limit(limite).execute()
+        result = (
+            supabase.table("group_sources")
+            .select("id, dominio")
+            .eq("status", "ativo")
+            .lte("proximo_crawl", datetime.now(UTC).isoformat())
+            .limit(limite)
+            .execute()
+        )
 
         fontes = result.data or []
 
@@ -287,9 +297,7 @@ class CrawlerManager:
         self, source_id: Optional[str] = None, limite: int = 20
     ) -> List[Dict]:
         """Lista histórico de crawls."""
-        query = supabase.table("crawl_history").select(
-            "*, group_sources!source_id(dominio, nome)"
-        )
+        query = supabase.table("crawl_history").select("*, group_sources!source_id(dominio, nome)")
 
         if source_id:
             query = query.eq("source_id", source_id)
@@ -302,9 +310,12 @@ class CrawlerManager:
         # Últimos 7 dias
         uma_semana = (datetime.now(UTC) - timedelta(days=7)).isoformat()
 
-        result = supabase.table("crawl_history").select(
-            "status, links_encontrados, links_novos, duracao_segundos"
-        ).gte("created_at", uma_semana).execute()
+        result = (
+            supabase.table("crawl_history")
+            .select("status, links_encontrados, links_novos, duracao_segundos")
+            .gte("created_at", uma_semana)
+            .execute()
+        )
 
         crawls = result.data or []
 

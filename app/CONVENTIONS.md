@@ -274,3 +274,288 @@ from app.core.timezone import agora_brasilia, agora_utc
 hora_brt = agora_brasilia().hour
 dt_utc = agora_utc()
 ```
+
+## Modulos de Extracao (Sprint 52-53)
+
+O projeto usa modulos especializados para extracao de dados de conversas usando LLM.
+
+### Estrutura de Modulos
+
+| Modulo | Responsabilidade | Localizacao |
+|--------|------------------|-------------|
+| `extraction` | Extracao generica de insights de conversas | `app/services/extraction/` |
+| `grupos/extrator_v2` | Extracao de vagas de grupos WhatsApp (regex) | `app/services/grupos/extrator_v2/` |
+| `grupos/extrator_v3` | Extracao de vagas usando LLM unificado | `app/services/grupos/extrator_v2/extrator_llm.py` |
+
+### Nomenclatura de Funcoes de Extracao
+
+| Operacao | Prefixo | Exemplo |
+|----------|---------|---------|
+| Extrair dados via LLM | `extrair_` | `extrair_dados_conversa()`, `extrair_com_llm()` |
+| Salvar dados extraidos | `salvar_` | `salvar_insight()`, `salvar_memorias_extraidas()` |
+| Gerar relatorio/output | `gerar_` | `gerar_relatorio_campanha()` |
+| Buscar dados extraidos | `buscar_` | `buscar_insights_conversa()`, `buscar_insights_cliente()` |
+| Converter formato | `converter_` | `converter_para_vagas_atomicas()` |
+| Normalizar dados | `_normalizar_` | `_normalizar_telefone()` (privada) |
+| Parsear resposta | `_parsear_` | `_parsear_resposta()`, `_parsear_objecao()` (privada) |
+
+### Convencoes Especificas
+
+```python
+# Extratores sempre retornam dataclasses tipadas
+async def extrair_dados_conversa(context: ExtractionContext) -> ExtractionResult:
+    """Extrai dados estruturados de um turno de conversa."""
+    pass
+
+# Cache usa hash MD5 do conteudo normalizado
+def _gerar_cache_key(context: ExtractionContext) -> str:
+    """Gera chave de cache baseada no conteudo."""
+    content = f"{context.mensagem_medico}|{context.resposta_julia}"
+    hash_value = hashlib.md5(content.encode()).hexdigest()
+    return f"{CACHE_PREFIX}{hash_value}"
+
+# Funcoes privadas de LLM usam retry decorator
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
+async def _chamar_llm(prompt: str) -> tuple[str, int, int]:
+    """Chama o LLM para extracao com retry."""
+    pass
+
+# Sempre retornar metricas de tokens e latencia
+result.tokens_input = tokens_input
+result.tokens_output = tokens_output
+result.latencia_ms = int((time.time() - start_time) * 1000)
+```
+
+## Pipeline de Grupos v2/v3 (Sprint 51-53)
+
+Pipeline de extracao de vagas de mensagens de grupos WhatsApp.
+
+### Estrutura de Pipeline
+
+| Componente | Responsabilidade | Arquivo |
+|------------|------------------|---------|
+| Parser | Classifica linhas por tipo (LOCAL, DATA, VALOR) | `parser_mensagem.py` |
+| Extratores | Extraem dados especificos (hospitais, datas, valores) | `extrator_*.py` |
+| Gerador | Combina dados em vagas atomicas | `gerador_vagas.py` |
+| Pipeline v2 | Orquestra extratores regex | `pipeline.py` |
+| Pipeline v3 | Extracao unificada via LLM | `extrator_llm.py` |
+
+### Nomenclatura de Funcoes
+
+| Operacao | Prefixo | Exemplo |
+|----------|---------|---------|
+| Extrair componente | `extrair_` | `extrair_hospitais()`, `extrair_datas_periodos()` |
+| Parsear mensagem | `parsear_` | `parsear_mensagem()` |
+| Gerar vagas | `gerar_` | `gerar_vagas()` |
+| Validar vagas | `validar_` | `validar_vagas()` |
+| Deduplicar vagas | `deduplicar_` | `deduplicar_vagas()` |
+| Normalizar dado | `_normalizar_` | `_normalizar_telefone()` (privada) |
+| Converter tipo | `_*_from_str` | `_dia_semana_from_str()`, `_periodo_from_str()` |
+
+### Convencoes Especificas
+
+```python
+# Funcao principal de pipeline sempre retorna ResultadoExtracaoV2
+async def extrair_vagas_v2(
+    texto: str,
+    mensagem_id: Optional[UUID] = None,
+    grupo_id: Optional[UUID] = None,
+    data_referencia: Optional[date] = None,
+) -> ResultadoExtracaoV2:
+    """Extrai vagas atomicas de uma mensagem de grupo."""
+    pass
+
+# Extratores recebem listas de linhas classificadas
+def extrair_hospitais(linhas_local: List[str]) -> List[HospitalExtraido]:
+    """Extrai hospitais das linhas de LOCAL."""
+    pass
+
+# Sempre incluir confianca no resultado
+contato = ContatoExtraido(
+    nome=nome,
+    whatsapp=telefone_normalizado,
+    whatsapp_raw=telefone_raw,
+    confianca=0.95  # Alta confianca se nome + telefone
+)
+
+# Warnings sao strings descritivas, nao exceptions
+warnings.append("hospital_extraido_texto_completo")
+warnings.append("sem_valor_extraido")
+```
+
+## Endpoints SSE (Sprint 54)
+
+Server-Sent Events para atualizacoes em tempo real.
+
+### Estrutura de Endpoint SSE
+
+```python
+@router.get("/dashboard/sse/conversations/{conversation_id}")
+async def stream_conversation(conversation_id: str):
+    """Stream SSE de eventos para uma conversa."""
+
+    async def event_generator():
+        """Gera eventos SSE via polling do banco."""
+        # Estado inicial
+        last_message_at = None
+
+        # Evento de conexao
+        yield f"event: connected\ndata: {json.dumps({'conversation_id': conversation_id})}\n\n"
+
+        while True:
+            await asyncio.sleep(POLL_INTERVAL)
+
+            # Detectar mudancas
+            if current_msg_at != last_message_at:
+                yield f"event: new_message\ndata: {json.dumps({'last_message_at': current_msg_at})}\n\n"
+
+            # Heartbeat
+            yield f": heartbeat {datetime.now(timezone.utc).isoformat()}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+```
+
+### Convencoes Especificas
+
+| Convencao | Regra |
+|-----------|-------|
+| Nome do endpoint | `/dashboard/sse/{recurso}/{id}` |
+| Event generator | Funcao interna async `event_generator()` |
+| Eventos nomeados | `event: nome_evento\ndata: json\n\n` |
+| Heartbeat | `": heartbeat {timestamp}\n\n"` (comentario SSE) |
+| Headers obrigatorios | `Cache-Control: no-cache`, `Connection: keep-alive`, `X-Accel-Buffering: no` |
+| Polling interval | Constante `POLL_INTERVAL` no topo do arquivo |
+| Estado inicial | Sempre enviar evento `connected` primeiro |
+
+## Sistema de Incidentes (Sprint 55)
+
+Endpoints para registro e consulta de incidentes de saude do sistema.
+
+### Estrutura de Endpoints
+
+```python
+@router.post("/incidents")
+async def registrar_incidente(request: RegistrarIncidenteRequest):
+    """Registra uma mudanca de status."""
+    pass
+
+@router.get("/incidents")
+async def listar_incidentes(limit: int = 20, status: Optional[str] = None):
+    """Lista historico de incidentes."""
+    pass
+
+@router.get("/incidents/stats")
+async def estatisticas_incidentes(dias: int = 30):
+    """Retorna estatisticas de incidentes."""
+    pass
+```
+
+### Convencoes Especificas
+
+| Convencao | Regra |
+|-----------|-------|
+| Request/Response models | Sempre usar Pydantic BaseModel |
+| Funcoes auxiliares | Prefixo `_` para funcoes privadas de resolucao |
+| Metricas calculadas | MTTR, uptime_percent, etc em `stats` endpoint |
+| Timestamps | Sempre usar `agora_utc().isoformat()` |
+| Resolucao automatica | Funcao `_resolver_incidente_ativo()` privada |
+
+```python
+# Request sempre com defaults razoaveis
+class RegistrarIncidenteRequest(BaseModel):
+    from_status: Optional[str] = None
+    to_status: str
+    trigger_source: str = "api"
+    details: Optional[dict] = None
+
+# Response sempre com campos completos
+class IncidenteResponse(BaseModel):
+    id: str
+    from_status: Optional[str]
+    to_status: str
+    started_at: str
+    resolved_at: Optional[str]
+    duration_seconds: Optional[int]
+
+# Funcao de resolucao eh privada e async
+async def _resolver_incidente_ativo():
+    """Resolve o incidente critico ativo (se houver)."""
+    pass
+```
+
+## Agente Helena (Sprint 47)
+
+Agente de analytics para Slack com capacidade de SQL dinamico.
+
+### Estrutura de Agente
+
+| Componente | Responsabilidade | Arquivo |
+|------------|------------------|---------|
+| Agent | Logica principal do agente | `agent.py` |
+| Session | Gerenciamento de sessao | `session.py` |
+| Prompts | System prompts | `prompts.py` |
+| Tools | Ferramentas disponiveis | `app/tools/helena/` |
+
+### Nomenclatura de Metodos
+
+| Operacao | Prefixo | Exemplo |
+|----------|---------|---------|
+| Processar mensagem | `processar_` | `processar_mensagem()` |
+| Chamar LLM | `_chamar_` | `_chamar_llm()` (privado) |
+| Processar resposta | `_processar_` | `_processar_resposta()` (privado) |
+| Verificar condicao | `_*_incompleta` | `_resposta_incompleta()` (privado) |
+| Carregar dados | `carregar` | `carregar()` (sem prefixo para session) |
+| Salvar dados | `salvar` | `salvar()` (sem prefixo para session) |
+
+### Convencoes Especificas
+
+```python
+# Agente sempre recebe user_id e channel_id no construtor
+class AgenteHelena:
+    def __init__(self, user_id: str, channel_id: str):
+        self.user_id = user_id
+        self.channel_id = channel_id
+        self.session = SessionManager(user_id, channel_id)
+
+# Processar mensagem retorna string formatada para Slack
+async def processar_mensagem(self, texto: str) -> str:
+    """Processa mensagem do usuario."""
+    # Sempre carregar sessao primeiro
+    await self.session.carregar()
+    self.session.adicionar_mensagem("user", texto)
+
+    # Processar
+    resposta = await self._chamar_llm()
+
+    # Sempre salvar sessao
+    await self.session.salvar()
+    return resposta
+
+# Lazy load de tools para evitar import circular
+def _get_tools(self) -> list:
+    if self._tools is None:
+        from app.tools.helena import HELENA_TOOLS
+        self._tools = HELENA_TOOLS
+    return self._tools
+
+# SessionManager sempre usa dataclass para estado
+@dataclass
+class HelenaSession:
+    user_id: str
+    channel_id: str
+    mensagens: list = field(default_factory=list)
+    contexto: dict = field(default_factory=dict)
+
+# Constantes de configuracao no topo do arquivo
+SESSION_TTL_MINUTES = 30
+MAX_MESSAGES = 20
+MAX_TOOL_ITERATIONS = 5
+```

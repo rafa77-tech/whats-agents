@@ -197,9 +197,7 @@ async def selecionar_chip_para_grupo() -> Optional[dict]:
                 if not ultimo_alt:
                     return alt_chip
 
-                ultimo_alt_dt = datetime.fromisoformat(
-                    ultimo_alt.replace("Z", "+00:00")
-                )
+                ultimo_alt_dt = datetime.fromisoformat(ultimo_alt.replace("Z", "+00:00"))
                 delay_alt = alt_chip.get("delay_minimo", 180)
                 proximo_alt = ultimo_alt_dt + timedelta(seconds=delay_alt)
 

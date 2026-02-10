@@ -25,9 +25,11 @@ logger = get_logger(__name__)
 # S07.1 - Busca Web de Hospital
 # =============================================================================
 
+
 @dataclass
 class InfoHospitalWeb:
     """Informações do hospital encontradas na web."""
+
     nome_oficial: str
     logradouro: Optional[str] = None
     numero: Optional[str] = None
@@ -74,14 +76,9 @@ Retorne APENAS o JSON, sem explicações.
 """
 
 
-@retry(
-    stop=stop_after_attempt(2),
-    wait=wait_exponential(multiplier=1, min=1, max=5),
-    reraise=True
-)
+@retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=1, max=5), reraise=True)
 async def buscar_hospital_web(
-    nome_hospital: str,
-    regiao_hint: str = ""
+    nome_hospital: str, regiao_hint: str = ""
 ) -> Optional[InfoHospitalWeb]:
     """
     Busca informações do hospital usando LLM.
@@ -99,8 +96,7 @@ async def buscar_hospital_web(
     client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
     prompt = PROMPT_BUSCA_HOSPITAL.format(
-        nome_hospital=nome_hospital,
-        regiao=regiao_hint or "Brasil"
+        nome_hospital=nome_hospital, regiao=regiao_hint or "Brasil"
     )
 
     try:
@@ -108,14 +104,14 @@ async def buscar_hospital_web(
             model="claude-3-haiku-20240307",
             max_tokens=500,
             temperature=0,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
         )
 
         texto = response.content[0].text.strip()
 
         # Extrair JSON
         if not texto.startswith("{"):
-            match = re.search(r'\{[\s\S]+\}', texto)
+            match = re.search(r"\{[\s\S]+\}", texto)
             if match:
                 texto = match.group()
             else:
@@ -136,7 +132,7 @@ async def buscar_hospital_web(
             estado=dados.get("estado"),
             cep=dados.get("cep"),
             confianca=dados.get("confianca", 0.5),
-            fonte=dados.get("fonte")
+            fonte=dados.get("fonte"),
         )
 
     except json.JSONDecodeError as e:
@@ -154,10 +150,8 @@ async def buscar_hospital_web(
 # S07.2 - Criar Hospital no Banco
 # =============================================================================
 
-async def criar_hospital(
-    info: InfoHospitalWeb,
-    alias_original: str
-) -> UUID:
+
+async def criar_hospital(info: InfoHospitalWeb, alias_original: str) -> UUID:
     """
     Cria hospital no banco de dados com dados da web.
 
@@ -192,15 +186,17 @@ async def criar_hospital(
     alias_norm = normalizar_para_busca(alias_original)
 
     try:
-        supabase.table("hospitais_alias").insert({
-            "hospital_id": str(hospital_id),
-            "alias": alias_original,
-            "alias_normalizado": alias_norm,
-            "origem": "sistema_auto",
-            "criado_por": "busca_web",
-            "confianca": info.confianca,
-            "confirmado": False,
-        }).execute()
+        supabase.table("hospitais_alias").insert(
+            {
+                "hospital_id": str(hospital_id),
+                "alias": alias_original,
+                "alias_normalizado": alias_norm,
+                "origem": "sistema_auto",
+                "criado_por": "busca_web",
+                "confianca": info.confianca,
+                "confirmado": False,
+            }
+        ).execute()
     except Exception as e:
         logger.warning(f"Erro ao criar alias original: {e}")
 
@@ -208,15 +204,17 @@ async def criar_hospital(
     if info.nome_oficial.lower() != alias_original.lower():
         nome_norm = normalizar_para_busca(info.nome_oficial)
         try:
-            supabase.table("hospitais_alias").insert({
-                "hospital_id": str(hospital_id),
-                "alias": info.nome_oficial,
-                "alias_normalizado": nome_norm,
-                "origem": "sistema_auto",
-                "criado_por": "busca_web",
-                "confianca": 1.0,
-                "confirmado": False,
-            }).execute()
+            supabase.table("hospitais_alias").insert(
+                {
+                    "hospital_id": str(hospital_id),
+                    "alias": info.nome_oficial,
+                    "alias_normalizado": nome_norm,
+                    "origem": "sistema_auto",
+                    "criado_por": "busca_web",
+                    "confianca": 1.0,
+                    "confirmado": False,
+                }
+            ).execute()
         except Exception as e:
             logger.warning(f"Erro ao criar alias oficial: {e}")
 
@@ -279,10 +277,7 @@ def inferir_cidade_regiao(regiao_grupo: str) -> tuple:
     return (None, None)
 
 
-async def criar_hospital_minimo(
-    nome: str,
-    regiao_grupo: str = ""
-) -> UUID:
+async def criar_hospital_minimo(nome: str, regiao_grupo: str = "") -> UUID:
     """
     Cria hospital com dados mínimos.
 
@@ -311,15 +306,17 @@ async def criar_hospital_minimo(
     # Criar alias
     alias_norm = normalizar_para_busca(nome)
     try:
-        supabase.table("hospitais_alias").insert({
-            "hospital_id": str(hospital_id),
-            "alias": nome,
-            "alias_normalizado": alias_norm,
-            "origem": "sistema_auto",
-            "criado_por": "fallback",
-            "confianca": 0.3,  # Baixa confiança
-            "confirmado": False,
-        }).execute()
+        supabase.table("hospitais_alias").insert(
+            {
+                "hospital_id": str(hospital_id),
+                "alias": nome,
+                "alias_normalizado": alias_norm,
+                "origem": "sistema_auto",
+                "criado_por": "fallback",
+                "confianca": 0.3,  # Baixa confiança
+                "confirmado": False,
+            }
+        ).execute()
     except Exception as e:
         logger.warning(f"Erro ao criar alias fallback: {e}")
 
@@ -332,9 +329,11 @@ async def criar_hospital_minimo(
 # S07.4 - Função Principal com Criação Automática
 # =============================================================================
 
+
 @dataclass
 class ResultadoHospitalAuto:
     """Resultado da normalização com criação automática."""
+
     hospital_id: UUID
     nome: str
     score: float
@@ -343,8 +342,7 @@ class ResultadoHospitalAuto:
 
 
 async def normalizar_ou_criar_hospital(
-    texto: str,
-    regiao_grupo: str = ""
+    texto: str, regiao_grupo: str = ""
 ) -> Optional[ResultadoHospitalAuto]:
     """
     Normaliza hospital, criando automaticamente se necessário.
@@ -372,7 +370,7 @@ async def normalizar_ou_criar_hospital(
             nome=match.nome,
             score=match.score,
             foi_criado=False,
-            fonte="alias_exato"
+            fonte="alias_exato",
         )
 
     # 2. Buscar por similaridade (threshold alto: 70%)
@@ -383,7 +381,7 @@ async def normalizar_ou_criar_hospital(
             nome=match.nome,
             score=match.score,
             foi_criado=False,
-            fonte="similaridade"
+            fonte="similaridade",
         )
 
     # 3. Não encontrou - buscar na web
@@ -398,17 +396,13 @@ async def normalizar_ou_criar_hospital(
             nome=info.nome_oficial,
             score=info.confianca,
             foi_criado=True,
-            fonte="web"
+            fonte="web",
         )
 
     # 4. Fallback - criar com dados mínimos
     hospital_id = await criar_hospital_minimo(texto, regiao_grupo)
     return ResultadoHospitalAuto(
-        hospital_id=hospital_id,
-        nome=texto,
-        score=0.3,
-        foi_criado=True,
-        fonte="fallback"
+        hospital_id=hospital_id, nome=texto, score=0.3, foi_criado=True, fonte="fallback"
     )
 
 
@@ -416,38 +410,37 @@ async def normalizar_ou_criar_hospital(
 # Funções de Manutenção
 # =============================================================================
 
+
 async def listar_hospitais_para_revisao(limite: int = 50) -> list:
     """
     Lista hospitais que precisam revisão.
     """
-    result = supabase.table("hospitais") \
-        .select("id, nome, cidade, estado, criado_automaticamente, created_at") \
-        .eq("precisa_revisao", True) \
-        .order("created_at", desc=True) \
-        .limit(limite) \
+    result = (
+        supabase.table("hospitais")
+        .select("id, nome, cidade, estado, criado_automaticamente, created_at")
+        .eq("precisa_revisao", True)
+        .order("created_at", desc=True)
+        .limit(limite)
         .execute()
+    )
 
     return result.data
 
 
-async def marcar_hospital_revisado(
-    hospital_id: UUID,
-    revisado_por: str
-) -> bool:
+async def marcar_hospital_revisado(hospital_id: UUID, revisado_por: str) -> bool:
     """
     Marca hospital como revisado.
     """
     from datetime import datetime, UTC
 
     try:
-        supabase.table("hospitais") \
-            .update({
+        supabase.table("hospitais").update(
+            {
                 "precisa_revisao": False,
                 "revisado_em": datetime.now(UTC).isoformat(),
                 "revisado_por": revisado_por,
-            }) \
-            .eq("id", str(hospital_id)) \
-            .execute()
+            }
+        ).eq("id", str(hospital_id)).execute()
         return True
     except Exception as e:
         logger.error(f"Erro ao marcar hospital revisado: {e}")

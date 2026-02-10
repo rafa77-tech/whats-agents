@@ -5,6 +5,7 @@ Roda as 08:00 de dias uteis.
 
 Sprint 22 - Responsividade Inteligente
 """
+
 import logging
 from datetime import datetime
 
@@ -72,7 +73,7 @@ Sobre sua mensagem de ontem, ja verifiquei aqui.
             resposta = await gerar_resposta_com_contexto(
                 cliente_id=registro["cliente_id"],
                 mensagem=registro["mensagem"],
-                contexto_extra=contexto
+                contexto_extra=contexto,
             )
 
             if resposta:
@@ -103,7 +104,9 @@ Sobre sua mensagem de ontem, ja verifiquei aqui.
                     stats["processadas"] += 1
                     logger.info(f"Retomada processada: {registro['id']}")
                 else:
-                    await marcar_processada(registro["id"], f"bloqueado: {result.outcome_reason_code}")
+                    await marcar_processada(
+                        registro["id"], f"bloqueado: {result.outcome_reason_code}"
+                    )
                     stats["ignoradas"] += 1
                     logger.warning(f"Retomada bloqueada: {registro['id']} - {result.outcome}")
             else:

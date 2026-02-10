@@ -22,7 +22,7 @@ ALERTAS_GRUPOS = {
     "fila_travada": {
         "descricao": "Muitos itens com erro na fila",
         "threshold": 10,  # > 10 itens com erro
-        "severidade": "error"
+        "severidade": "error",
     },
     # REMOVIDO: taxa_conversao_baixa
     # Motivo: Métrica confusa e não acionável. Substituída por resumo no report fim do dia.
@@ -30,13 +30,13 @@ ALERTAS_GRUPOS = {
     "custo_alto": {
         "descricao": "Custo diário acima do orçamento",
         "threshold_usd": 1.0,  # > $1/dia
-        "severidade": "warning"
+        "severidade": "warning",
     },
     "itens_pendentes_antigos": {
         "descricao": "Itens pendentes sem processar há muito tempo",
         "threshold_horas": 4,  # > 4 horas pendente
         "threshold_quantidade": 5,  # > 5 itens
-        "severidade": "warning"
+        "severidade": "warning",
     },
     # REMOVIDO: duplicacao_alta
     # Motivo: Taxa de duplicação alta é comportamento normal (mesmas vagas em vários grupos).
@@ -56,36 +56,46 @@ TITULOS_ALERTAS = {
 # Verificadores de Alertas
 # =============================================================================
 
+
 async def verificar_fila_travada() -> List[Dict]:
     """Verifica se há muitos itens com erro na fila."""
     config = ALERTAS_GRUPOS["fila_travada"]
 
     try:
-        result = supabase.table("fila_processamento_grupos") \
-            .select("id", count="exact") \
-            .eq("estagio", "erro") \
+        result = (
+            supabase.table("fila_processamento_grupos")
+            .select("id", count="exact")
+            .eq("estagio", "erro")
             .execute()
+        )
 
         total_erros = result.count or 0
 
         # Log SEMPRE para debug
-        logger.warning(f"[ALERTA-DEBUG] verificar_fila_travada: count={total_erros}, threshold={config['threshold']}")
+        logger.warning(
+            f"[ALERTA-DEBUG] verificar_fila_travada: count={total_erros}, threshold={config['threshold']}"
+        )
 
         if total_erros > config["threshold"]:
-            logger.warning(f"[ALERTA-DEBUG] DISPARANDO alerta fila_travada: {total_erros} > {config['threshold']}")
-            return [{
-                "tipo": "fila_travada",
-                "mensagem": f"Pipeline grupos: {total_erros} itens com erro (threshold: {config['threshold']})",
-                "severidade": config["severidade"],
-                "valor": total_erros
-            }]
+            logger.warning(
+                f"[ALERTA-DEBUG] DISPARANDO alerta fila_travada: {total_erros} > {config['threshold']}"
+            )
+            return [
+                {
+                    "tipo": "fila_travada",
+                    "mensagem": f"Pipeline grupos: {total_erros} itens com erro (threshold: {config['threshold']})",
+                    "severidade": config["severidade"],
+                    "valor": total_erros,
+                }
+            ]
 
-        logger.info(f"[ALERTA-DEBUG] NAO disparando alerta fila_travada: {total_erros} <= {config['threshold']}")
+        logger.info(
+            f"[ALERTA-DEBUG] NAO disparando alerta fila_travada: {total_erros} <= {config['threshold']}"
+        )
         return []
     except Exception as e:
         logger.error(f"Erro ao verificar fila travada: {e}")
         return []
-
 
     # REMOVIDO: verificar_taxa_conversao()
     # Motivo: Métrica confusa ("taxa de conversão" vs extração de vagas).
@@ -99,22 +109,26 @@ async def verificar_custo_alto() -> List[Dict]:
     hoje = datetime.now(UTC).date().isoformat()
 
     try:
-        result = supabase.table("metricas_pipeline_diarias") \
-            .select("custo_total_usd") \
-            .eq("data", hoje) \
-            .single() \
+        result = (
+            supabase.table("metricas_pipeline_diarias")
+            .select("custo_total_usd")
+            .eq("data", hoje)
+            .single()
             .execute()
+        )
 
         if result.data:
             custo = float(result.data.get("custo_total_usd", 0) or 0)
 
             if custo > config["threshold_usd"]:
-                return [{
-                    "tipo": "custo_alto",
-                    "mensagem": f"Custo hoje: ${custo:.4f} (orçamento: ${config['threshold_usd']:.2f})",
-                    "severidade": config["severidade"],
-                    "valor": custo
-                }]
+                return [
+                    {
+                        "tipo": "custo_alto",
+                        "mensagem": f"Custo hoje: ${custo:.4f} (orçamento: ${config['threshold_usd']:.2f})",
+                        "severidade": config["severidade"],
+                        "valor": custo,
+                    }
+                ]
 
         return []
     except Exception as e:
@@ -129,27 +143,30 @@ async def verificar_itens_pendentes_antigos() -> List[Dict]:
     limite_tempo = (datetime.now(UTC) - timedelta(hours=config["threshold_horas"])).isoformat()
 
     try:
-        result = supabase.table("fila_processamento_grupos") \
-            .select("id", count="exact") \
-            .eq("estagio", "pendente") \
-            .lt("created_at", limite_tempo) \
+        result = (
+            supabase.table("fila_processamento_grupos")
+            .select("id", count="exact")
+            .eq("estagio", "pendente")
+            .lt("created_at", limite_tempo)
             .execute()
+        )
 
         total_antigos = result.count or 0
 
         if total_antigos > config["threshold_quantidade"]:
-            return [{
-                "tipo": "itens_pendentes_antigos",
-                "mensagem": f"{total_antigos} itens pendentes há mais de {config['threshold_horas']}h",
-                "severidade": config["severidade"],
-                "valor": total_antigos
-            }]
+            return [
+                {
+                    "tipo": "itens_pendentes_antigos",
+                    "mensagem": f"{total_antigos} itens pendentes há mais de {config['threshold_horas']}h",
+                    "severidade": config["severidade"],
+                    "valor": total_antigos,
+                }
+            ]
 
         return []
     except Exception as e:
         logger.error(f"Erro ao verificar itens pendentes antigos: {e}")
         return []
-
 
     # REMOVIDO: verificar_duplicacao_alta()
     # Motivo: Taxa de duplicação alta é comportamento normal do pipeline.
@@ -159,6 +176,7 @@ async def verificar_itens_pendentes_antigos() -> List[Dict]:
 # =============================================================================
 # Executor de Alertas
 # =============================================================================
+
 
 async def verificar_alertas_grupos() -> List[Dict]:
     """
@@ -197,18 +215,26 @@ async def enviar_alerta_grupos_slack(alerta: Dict):
 
     mensagem = {
         "text": f"{emoji.get(alerta['severidade'], '⚠️')} Pipeline Grupos: {titulo}",
-        "attachments": [{
-            "color": cor,
-            "fields": [
-                {"title": "Descrição", "value": alerta["mensagem"], "short": False},
-                {"title": "Severidade", "value": alerta["severidade"].upper(), "short": True},
-                {"title": "Horário", "value": datetime.now(UTC).strftime("%H:%M"), "short": True},
-            ]
-        }]
+        "attachments": [
+            {
+                "color": cor,
+                "fields": [
+                    {"title": "Descrição", "value": alerta["mensagem"], "short": False},
+                    {"title": "Severidade", "value": alerta["severidade"].upper(), "short": True},
+                    {
+                        "title": "Horário",
+                        "value": datetime.now(UTC).strftime("%H:%M"),
+                        "short": True,
+                    },
+                ],
+            }
+        ],
     }
 
     # Log antes de enviar
-    logger.warning(f"ENVIANDO ALERTA: tipo={alerta['tipo']}, valor={alerta.get('valor')}, msg={alerta['mensagem']}")
+    logger.warning(
+        f"ENVIANDO ALERTA: tipo={alerta['tipo']}, valor={alerta.get('valor')}, msg={alerta['mensagem']}"
+    )
 
     await enviar_slack(mensagem)
 
@@ -229,7 +255,7 @@ async def executar_verificacao_alertas_grupos():
                 await enviar_alerta_grupos_slack(alerta)
 
                 # Registrar alerta no log
-                titulo = TITULOS_ALERTAS.get(alerta['tipo'], alerta['tipo'])
+                titulo = TITULOS_ALERTAS.get(alerta["tipo"], alerta["tipo"])
                 logger.warning(f"Alerta grupos: {titulo} - {alerta['mensagem']}")
 
         return alertas

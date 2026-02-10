@@ -3,7 +3,8 @@ Relatorio diario (legado, mantido para compatibilidade).
 
 Sprint 10 - S10.E3.3
 """
-from datetime import datetime, timedelta
+
+from datetime import timedelta
 from typing import Dict
 import logging
 
@@ -85,7 +86,7 @@ async def gerar_relatorio_diario() -> Dict:
             "qualidade": {
                 "score_medio": round(score_medio, 1),
                 "avaliacoes": len(avaliacoes),
-            }
+            },
         }
     except Exception as e:
         logger.error(f"Erro ao gerar relatorio diario: {e}")
@@ -97,10 +98,7 @@ async def enviar_relatorio_slack(relatorio: Dict):
     if "erro" in relatorio:
         mensagem = {
             "text": f"Erro ao gerar relatorio diario - {relatorio['data']}",
-            "attachments": [{
-                "color": "#F44336",
-                "text": f"Erro: {relatorio['erro']}"
-            }]
+            "attachments": [{"color": "#F44336", "text": f"Erro: {relatorio['erro']}"}],
         }
     else:
         mensagem = {
@@ -110,28 +108,46 @@ async def enviar_relatorio_slack(relatorio: Dict):
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"Relatorio Diario - {relatorio['data']}"
-                    }
+                        "text": f"Relatorio Diario - {relatorio['data']}",
+                    },
                 },
                 {
                     "type": "section",
                     "fields": [
-                        {"type": "mrkdwn", "text": f"*Conversas:* {relatorio['conversas']['total']}"},
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Conversas:* {relatorio['conversas']['total']}",
+                        },
                         {"type": "mrkdwn", "text": f"*Novas:* {relatorio['conversas']['novas']}"},
-                        {"type": "mrkdwn", "text": f"*Msgs Recebidas:* {relatorio['mensagens']['recebidas']}"},
-                        {"type": "mrkdwn", "text": f"*Msgs Enviadas:* {relatorio['mensagens']['enviadas']}"},
-                    ]
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Msgs Recebidas:* {relatorio['mensagens']['recebidas']}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Msgs Enviadas:* {relatorio['mensagens']['enviadas']}",
+                        },
+                    ],
                 },
                 {
                     "type": "section",
                     "fields": [
                         {"type": "mrkdwn", "text": f"*Handoffs:* {relatorio['handoffs']['total']}"},
-                        {"type": "mrkdwn", "text": f"*Taxa Handoff:* {relatorio['handoffs']['taxa']*100:.1f}%"},
-                        {"type": "mrkdwn", "text": f"*Score Medio:* {relatorio['qualidade']['score_medio']}/10"},
-                        {"type": "mrkdwn", "text": f"*Avaliacoes:* {relatorio['qualidade']['avaliacoes']}"},
-                    ]
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Taxa Handoff:* {relatorio['handoffs']['taxa'] * 100:.1f}%",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Score Medio:* {relatorio['qualidade']['score_medio']}/10",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Avaliacoes:* {relatorio['qualidade']['avaliacoes']}",
+                        },
+                    ],
                 },
-            ]
+            ],
         }
 
     await enviar_slack(mensagem)

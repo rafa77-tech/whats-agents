@@ -34,9 +34,7 @@ CACHE_TTL = 86400  # 24 horas
 CACHE_PREFIX = "extraction:"
 
 
-async def extrair_dados_conversa(
-    context: ExtractionContext
-) -> ExtractionResult:
+async def extrair_dados_conversa(context: ExtractionContext) -> ExtractionResult:
     """
     Extrai dados estruturados de um turno de conversa.
 
@@ -125,11 +123,7 @@ async def _save_to_cache(key: str, result: ExtractionResult) -> None:
         logger.warning(f"[Extraction] Erro ao salvar cache: {e}")
 
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=1, max=10),
-    reraise=True
-)
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10), reraise=True)
 async def _chamar_llm(prompt: str) -> tuple[str, int, int]:
     """Chama o LLM para extracao com retry."""
     client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
@@ -138,9 +132,7 @@ async def _chamar_llm(prompt: str) -> tuple[str, int, int]:
         model="claude-3-haiku-20240307",
         max_tokens=500,
         temperature=0.1,  # Baixa para consistencia
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
+        messages=[{"role": "user", "content": prompt}],
     )
 
     resposta_texto = response.content[0].text.strip()
@@ -169,7 +161,8 @@ def _parsear_resposta(resposta: str, context: ExtractionContext) -> ExtractionRe
         # Se nao comecar com {, tenta encontrar
         if not json_str.startswith("{"):
             import re
-            match = re.search(r'\{[\s\S]*\}', json_str)
+
+            match = re.search(r"\{[\s\S]*\}", json_str)
             if match:
                 json_str = match.group()
             else:

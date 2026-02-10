@@ -7,7 +7,6 @@ Gera análise qualitativa usando LLM baseada nos insights extraídos.
 """
 
 import json
-import hashlib
 import logging
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
@@ -30,6 +29,7 @@ CACHE_PREFIX = "report:campaign:"
 @dataclass
 class MedicoDestaque:
     """Médico em destaque no relatório."""
+
     cliente_id: str
     nome: str
     interesse: str
@@ -42,6 +42,7 @@ class MedicoDestaque:
 @dataclass
 class ObjecaoAgregada:
     """Objeção agregada."""
+
     tipo: str
     quantidade: int
     exemplo: Optional[str] = None
@@ -50,6 +51,7 @@ class ObjecaoAgregada:
 @dataclass
 class CampaignReportMetrics:
     """Métricas agregadas da campanha."""
+
     total_respostas: int = 0
     interesse_positivo: int = 0
     interesse_negativo: int = 0
@@ -67,6 +69,7 @@ class CampaignReportMetrics:
 @dataclass
 class CampaignReport:
     """Relatório completo da campanha."""
+
     campaign_id: int
     campaign_name: str
     generated_at: str
@@ -337,9 +340,13 @@ def _dict_to_report(data: Dict) -> CampaignReport:
 async def _buscar_campanha(campaign_id: int) -> Optional[Dict]:
     """Busca dados da campanha."""
     try:
-        result = supabase.table("campanhas").select(
-            "id, nome_template, tipo_campanha, status"
-        ).eq("id", campaign_id).single().execute()
+        result = (
+            supabase.table("campanhas")
+            .select("id, nome_template, tipo_campanha, status")
+            .eq("id", campaign_id)
+            .single()
+            .execute()
+        )
         return result.data
     except Exception as e:
         logger.error(f"[Report] Erro ao buscar campanha: {e}")
@@ -349,8 +356,10 @@ async def _buscar_campanha(campaign_id: int) -> Optional[Dict]:
 async def _buscar_insights_campanha(campaign_id: int) -> List[Dict]:
     """Busca todos os insights de uma campanha."""
     try:
-        result = supabase.table("conversation_insights").select(
-            """
+        result = (
+            supabase.table("conversation_insights")
+            .select(
+                """
             id,
             cliente_id,
             interesse,
@@ -366,7 +375,11 @@ async def _buscar_insights_campanha(campaign_id: int) -> List[Dict]:
             confianca,
             created_at
             """
-        ).eq("campaign_id", campaign_id).order("created_at", desc=True).execute()
+            )
+            .eq("campaign_id", campaign_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
         return result.data or []
     except Exception as e:
         logger.error(f"[Report] Erro ao buscar insights: {e}")
@@ -435,9 +448,12 @@ async def _identificar_medicos_destaque(insights: List[Dict]) -> List[MedicoDest
 
     # Buscar nomes dos clientes
     try:
-        clientes_result = supabase.table("clientes").select(
-            "id, primeiro_nome, especialidade"
-        ).in_("id", list(destaque_ids)).execute()
+        clientes_result = (
+            supabase.table("clientes")
+            .select("id, primeiro_nome, especialidade")
+            .in_("id", list(destaque_ids))
+            .execute()
+        )
 
         clientes_map = {c["id"]: c for c in (clientes_result.data or [])}
     except Exception as e:
@@ -458,15 +474,17 @@ async def _identificar_medicos_destaque(insights: List[Dict]) -> List[MedicoDest
             prefs = i["preferencias"][:2]  # Primeiras 2
             insight_parts.append(", ".join(prefs))
 
-        medicos.append(MedicoDestaque(
-            cliente_id=cliente_id,
-            nome=cliente.get("primeiro_nome", "Médico"),
-            interesse=i.get("interesse", "incerto"),
-            interesse_score=i.get("interesse_score", 0) or 0,
-            proximo_passo=i.get("proximo_passo", "sem_acao"),
-            insight="; ".join(insight_parts) if insight_parts else None,
-            especialidade=cliente.get("especialidade"),
-        ))
+        medicos.append(
+            MedicoDestaque(
+                cliente_id=cliente_id,
+                nome=cliente.get("primeiro_nome", "Médico"),
+                interesse=i.get("interesse", "incerto"),
+                interesse_score=i.get("interesse_score", 0) or 0,
+                proximo_passo=i.get("proximo_passo", "sem_acao"),
+                insight="; ".join(insight_parts) if insight_parts else None,
+                especialidade=cliente.get("especialidade"),
+            )
+        )
 
     # Ordenar por score
     medicos.sort(key=lambda m: m.interesse_score, reverse=True)
@@ -492,11 +510,13 @@ def _agregar_objecoes(insights: List[Dict]) -> List[ObjecaoAgregada]:
 
     result = []
     for tipo, descricoes in objecoes_map.items():
-        result.append(ObjecaoAgregada(
-            tipo=tipo,
-            quantidade=len(descricoes),
-            exemplo=descricoes[0] if descricoes else None,
-        ))
+        result.append(
+            ObjecaoAgregada(
+                tipo=tipo,
+                quantidade=len(descricoes),
+                exemplo=descricoes[0] if descricoes else None,
+            )
+        )
 
     # Ordenar por quantidade
     result.sort(key=lambda o: o.quantidade, reverse=True)
@@ -524,11 +544,7 @@ def _extrair_preferencias_comuns(insights: List[Dict]) -> List[str]:
     return [p[0] for p in sorted_prefs[:5]]
 
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=1, max=10),
-    reraise=True
-)
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10), reraise=True)
 async def _gerar_relatorio_llm(
     nome: str,
     metrics: CampaignReportMetrics,
@@ -539,27 +555,34 @@ async def _gerar_relatorio_llm(
     """Gera relatório usando LLM."""
     # Formatar lista de médicos interessados
     if medicos:
-        lista_interessados = "\n".join([
-            f"- {m.nome} ({m.especialidade or 'especialidade não informada'}): "
-            f"score {m.interesse_score:.1f}, {m.proximo_passo}"
-            + (f" - {m.insight}" if m.insight else "")
-            for m in medicos if m.interesse == "positivo"
-        ])
+        lista_interessados = "\n".join(
+            [
+                f"- {m.nome} ({m.especialidade or 'especialidade não informada'}): "
+                f"score {m.interesse_score:.1f}, {m.proximo_passo}"
+                + (f" - {m.insight}" if m.insight else "")
+                for m in medicos
+                if m.interesse == "positivo"
+            ]
+        )
     else:
         lista_interessados = "Nenhum médico com interesse positivo identificado"
 
     # Formatar lista de objeções
     if objecoes:
-        lista_objecoes = "\n".join([
-            f"- {o.tipo}: {o.quantidade} ocorrência(s)"
-            + (f' (ex: "{o.exemplo}")' if o.exemplo else "")
-            for o in objecoes
-        ])
+        lista_objecoes = "\n".join(
+            [
+                f"- {o.tipo}: {o.quantidade} ocorrência(s)"
+                + (f' (ex: "{o.exemplo}")' if o.exemplo else "")
+                for o in objecoes
+            ]
+        )
     else:
         lista_objecoes = "Nenhuma objeção identificada"
 
     # Formatar preferências
-    prefs_str = ", ".join(preferencias) if preferencias else "Nenhuma preferência comum identificada"
+    prefs_str = (
+        ", ".join(preferencias) if preferencias else "Nenhuma preferência comum identificada"
+    )
 
     prompt = REPORT_PROMPT.format(
         nome=nome,
@@ -583,9 +606,7 @@ async def _gerar_relatorio_llm(
             model="claude-3-haiku-20240307",
             max_tokens=1000,
             temperature=0.7,  # Um pouco de criatividade
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=[{"role": "user", "content": prompt}],
         )
 
         relatorio = response.content[0].text.strip()
@@ -611,7 +632,7 @@ def _gerar_relatorio_fallback(metrics: CampaignReportMetrics) -> str:
 
 - {metrics.interesse_negativo} médicos com interesse negativo
 - {metrics.total_objecoes} objeções detectadas
-- Objeção mais comum: {metrics.objecao_mais_comum or 'não identificada'}
+- Objeção mais comum: {metrics.objecao_mais_comum or "não identificada"}
 
 ## 🎯 Próximos passos sugeridos
 

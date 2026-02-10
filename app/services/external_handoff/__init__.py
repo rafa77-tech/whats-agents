@@ -6,6 +6,7 @@ Sprint 20 - Marketplace Assistido.
 Este modulo gerencia a ponte entre medicos interessados em vagas
 e divulgadores externos (donos das vagas de grupo).
 """
+
 from app.services.external_handoff.tokens import (
     gerar_token_confirmacao,
     gerar_par_links,

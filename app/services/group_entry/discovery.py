@@ -49,10 +49,20 @@ class SourceDiscovery:
 
         # Indicadores de que é um site de grupos médicos
         self.indicadores_positivos = [
-            "plantão", "plantao", "vagas médicas", "vagas medicas",
-            "escala médica", "escala medica", "grupos médicos",
-            "grupos medicos", "whatsapp médico", "whatsapp medico",
-            "grupos whatsapp", "saúde", "saude", "hospital",
+            "plantão",
+            "plantao",
+            "vagas médicas",
+            "vagas medicas",
+            "escala médica",
+            "escala medica",
+            "grupos médicos",
+            "grupos medicos",
+            "whatsapp médico",
+            "whatsapp medico",
+            "grupos whatsapp",
+            "saúde",
+            "saude",
+            "hospital",
         ]
 
     async def buscar_google(self, query: str, num_results: int = 20) -> List[str]:
@@ -126,11 +136,7 @@ class SourceDiscovery:
 
                 for link in soup.find_all("a", href=True):
                     href = link["href"]
-                    if (
-                        href.startswith("http")
-                        and "bing" not in href
-                        and "microsoft" not in href
-                    ):
+                    if href.startswith("http") and "bing" not in href and "microsoft" not in href:
                         urls_encontradas.append(href)
 
             except Exception as e:
@@ -192,9 +198,7 @@ class SourceDiscovery:
             return None
 
         # Verificar se já existe
-        result = supabase.table("group_sources").select("id").eq(
-            "dominio", dominio
-        ).execute()
+        result = supabase.table("group_sources").select("id").eq("dominio", dominio).execute()
 
         if result.data:
             return None  # Já conhecemos
@@ -260,14 +264,13 @@ class SourceDiscovery:
         }
 
         # Buscar queries ativas
-        queries_result = supabase.table("discovery_queries").select("*").eq(
-            "ativo", True
-        ).execute()
+        queries_result = supabase.table("discovery_queries").select("*").eq("ativo", True).execute()
 
         # Filtrar queries que estão prontas para rodar
         agora = datetime.now(UTC)
         queries = [
-            q for q in (queries_result.data or [])
+            q
+            for q in (queries_result.data or [])
             if q.get("proximo_run") is None or q["proximo_run"] <= agora.isoformat()
         ]
 
@@ -295,15 +298,17 @@ class SourceDiscovery:
                 if fonte:
                     # Salvar nova fonte
                     try:
-                        supabase.table("group_sources").insert({
-                            "url": fonte["url"],
-                            "dominio": fonte["dominio"],
-                            "nome": fonte["nome"],
-                            "tipo": fonte["tipo"],
-                            "metodo_crawl": fonte["metodo_crawl"],
-                            "descoberto_via": engine,
-                            "proximo_crawl": datetime.now(UTC).isoformat(),
-                        }).execute()
+                        supabase.table("group_sources").insert(
+                            {
+                                "url": fonte["url"],
+                                "dominio": fonte["dominio"],
+                                "nome": fonte["nome"],
+                                "tipo": fonte["tipo"],
+                                "metodo_crawl": fonte["metodo_crawl"],
+                                "descoberto_via": engine,
+                                "proximo_crawl": datetime.now(UTC).isoformat(),
+                            }
+                        ).execute()
 
                         resultado["fontes_novas"] += 1
                         resultado["fontes"].append(fonte)
@@ -319,12 +324,14 @@ class SourceDiscovery:
 
             # Atualizar próximo run da query
             proximo = datetime.now(UTC) + timedelta(days=query_row["frequencia_dias"])
-            supabase.table("discovery_queries").update({
-                "ultimo_run": datetime.now(UTC).isoformat(),
-                "proximo_run": proximo.isoformat(),
-                "fontes_descobertas": (query_row.get("fontes_descobertas") or 0)
-                + resultado["fontes_novas"],
-            }).eq("id", query_row["id"]).execute()
+            supabase.table("discovery_queries").update(
+                {
+                    "ultimo_run": datetime.now(UTC).isoformat(),
+                    "proximo_run": proximo.isoformat(),
+                    "fontes_descobertas": (query_row.get("fontes_descobertas") or 0)
+                    + resultado["fontes_novas"],
+                }
+            ).eq("id", query_row["id"]).execute()
 
         return resultado
 
@@ -341,9 +348,7 @@ class SourceDiscovery:
     async def obter_estatisticas(self) -> Dict:
         """Retorna estatísticas de fontes e discovery."""
         # Contar fontes por status
-        fontes_result = supabase.table("group_sources").select(
-            "status", count="exact"
-        ).execute()
+        supabase.table("group_sources").select("status", count="exact").execute()
 
         stats = {
             "fontes": {"total": 0, "ativo": 0, "inativo": 0, "erro": 0},
@@ -353,28 +358,32 @@ class SourceDiscovery:
 
         # Contagem por status
         for status in ["ativo", "inativo", "erro", "bloqueado"]:
-            count_result = supabase.table("group_sources").select(
-                "id", count="exact"
-            ).eq("status", status).execute()
+            count_result = (
+                supabase.table("group_sources")
+                .select("id", count="exact")
+                .eq("status", status)
+                .execute()
+            )
             stats["fontes"][status] = count_result.count or 0
 
         stats["fontes"]["total"] = sum(stats["fontes"].values())
 
         # Queries
-        queries_result = supabase.table("discovery_queries").select(
-            "id, ativo", count="exact"
-        ).execute()
+        queries_result = (
+            supabase.table("discovery_queries").select("id, ativo", count="exact").execute()
+        )
 
         stats["queries"]["total"] = queries_result.count or 0
-        stats["queries"]["ativas"] = len(
-            [q for q in (queries_result.data or []) if q.get("ativo")]
-        )
+        stats["queries"]["ativas"] = len([q for q in (queries_result.data or []) if q.get("ativo")])
 
         # Crawls recentes
         uma_semana = (datetime.now(UTC) - timedelta(days=7)).isoformat()
-        crawls_result = supabase.table("crawl_history").select(
-            "id", count="exact"
-        ).gte("created_at", uma_semana).execute()
+        crawls_result = (
+            supabase.table("crawl_history")
+            .select("id", count="exact")
+            .gte("created_at", uma_semana)
+            .execute()
+        )
 
         stats["crawls_ultimos_7_dias"] = crawls_result.count or 0
 

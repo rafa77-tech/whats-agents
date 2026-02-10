@@ -12,27 +12,20 @@ GUARDRAIL CRÍTICO: Julia é INTERMEDIÁRIA
 - Não confirma reservas
 - Conecta médico com responsável da vaga
 """
+
 import asyncio
 import random
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional, List
 
 from app.core.tasks import safe_create_task
 from app.core.prompts import montar_prompt_julia
+
 # Sprint 31: LLM Provider abstraction
 from app.services.llm import (
     # New interface
     LLMProvider,
-    LLMRequest,
-    LLMResponse,
-    Message,
-    MessageRole,
-    ToolCall,
-    ToolDefinition,
-    ToolResult,
-    get_llm_provider,
-    # Legacy (backward compatibility)
     gerar_resposta,
     gerar_resposta_com_tools,
     continuar_apos_tool,
@@ -68,13 +61,12 @@ from app.services.policy import (
     log_policy_decision,
     log_policy_effect,
 )
+
 # Sprint 29: Conversation Mode
 from app.services.conversation_mode import (
     get_mode_router,
     CapabilitiesGate,
-    ConversationMode,
     ModeInfo,
-    get_conversation_mode,
 )
 from app.services.conversation_mode.prompts import get_micro_confirmation_prompt
 
@@ -84,13 +76,14 @@ logger = logging.getLogger(__name__)
 # Evita loops infinitos no tool calling e garante resposta em tempo finito
 # Sprint 44 T02.6: Usar configuração centralizada
 from app.core.config import settings
+
 TIMEOUT_GERACAO_RESPOSTA = settings.LLM_LOOP_TIMEOUT_SEGUNDOS
 RESPOSTA_TIMEOUT_FALLBACK = "Desculpa, tive um probleminha aqui. Pode repetir?"
 
 # Padrões que indicam resposta incompleta (mesma lógica do Slack)
 PADROES_RESPOSTA_INCOMPLETA = [
-    ":",           # "Vou verificar o que temos:"
-    "...",         # Reticências no final
+    ":",  # "Vou verificar o que temos:"
+    "...",  # Reticências no final
     "vou verificar",
     "deixa eu ver",
     "um momento",
@@ -124,8 +117,7 @@ def _resposta_parece_incompleta(texto: str, stop_reason: str = None) -> bool:
     for padrao in PADROES_RESPOSTA_INCOMPLETA:
         if texto_lower.endswith(padrao):
             logger.warning(
-                f"Resposta parece incompleta: termina com '{padrao}' "
-                f"(stop_reason={stop_reason})"
+                f"Resposta parece incompleta: termina com '{padrao}' (stop_reason={stop_reason})"
             )
             return True
 
@@ -146,10 +138,7 @@ JULIA_TOOLS = [
 
 
 async def processar_tool_call(
-    tool_name: str,
-    tool_input: dict,
-    medico: dict,
-    conversa: dict
+    tool_name: str, tool_input: dict, medico: dict, conversa: dict
 ) -> dict:
     """
     Processa chamada de tool.
@@ -231,6 +220,7 @@ async def gerar_resposta_julia(
         validar_resposta_julia as validar_resposta,
         get_fallback_response,
     )
+
     # Sprint 44 T06.4: Import do cache LLM
     from app.services.llm.cache import get_cached_response, cache_response
 
@@ -256,7 +246,7 @@ async def gerar_resposta_julia(
                 mode_info=mode_info,
                 llm_provider=llm_provider,
             ),
-            timeout=TIMEOUT_GERACAO_RESPOSTA
+            timeout=TIMEOUT_GERACAO_RESPOSTA,
         )
 
         # Sprint 44 T02.2: Validar resposta antes de retornar
@@ -314,7 +304,8 @@ async def _gerar_resposta_julia_impl(
         historico_msgs = []
         if contexto.get("historico_raw"):
             historico_msgs = [
-                m.get("conteudo", "") for m in contexto["historico_raw"]
+                m.get("conteudo", "")
+                for m in contexto["historico_raw"]
                 if m.get("tipo") == "recebida"
             ][-5:]  # Últimas 5 mensagens recebidas
 
@@ -325,7 +316,9 @@ async def _gerar_resposta_julia_impl(
             stage=medico.get("stage_jornada", "novo"),
         )
         conhecimento_dinamico = situacao.resumo
-        logger.debug(f"Situação detectada: objecao={situacao.objecao.tipo}, perfil={situacao.perfil.perfil}, objetivo={situacao.objetivo.objetivo}")
+        logger.debug(
+            f"Situação detectada: objecao={situacao.objecao.tipo}, perfil={situacao.perfil.perfil}, objetivo={situacao.objetivo.objetivo}"
+        )
     except Exception as e:
         logger.warning(f"Erro ao buscar conhecimento dinâmico: {e}")
         # Continua sem conhecimento dinâmico
@@ -349,9 +342,7 @@ async def _gerar_resposta_julia_impl(
 
     # Sprint 29: Prompt de micro-confirmação se há pending_transition
     if mode_info and mode_info.pending_transition:
-        micro_prompt = get_micro_confirmation_prompt(
-            mode_info.mode, mode_info.pending_transition
-        )
+        micro_prompt = get_micro_confirmation_prompt(mode_info.mode, mode_info.pending_transition)
         if micro_prompt:
             constraints_parts.append(micro_prompt)
             logger.debug(
@@ -381,9 +372,7 @@ async def _gerar_resposta_julia_impl(
     # Montar historico como messages (para o Claude ter contexto da conversa)
     historico_messages = []
     if incluir_historico and contexto.get("historico_raw"):
-        historico_messages = converter_historico_para_messages(
-            contexto["historico_raw"]
-        )
+        historico_messages = converter_historico_para_messages(contexto["historico_raw"])
 
     logger.info(f"Gerando resposta para: {mensagem[:50]}...")
 
@@ -420,14 +409,16 @@ async def _gerar_resposta_julia_impl(
                     tool_name=tool_call["name"],
                     tool_input=tool_call["input"],
                     medico=medico,
-                    conversa=conversa
+                    conversa=conversa,
                 )
 
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": tool_call["id"],
-                    "content": str(tool_result)
-                })
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": tool_call["id"],
+                        "content": str(tool_result),
+                    }
+                )
 
             # Continuar conversa apos tool
             # Montar historico com a mensagem do assistant que chamou tool
@@ -435,16 +426,18 @@ async def _gerar_resposta_julia_impl(
             if resultado["text"]:
                 assistant_content.append({"type": "text", "text": resultado["text"]})
             for tool_call in resultado["tool_use"]:
-                assistant_content.append({
-                    "type": "tool_use",
-                    "id": tool_call["id"],
-                    "name": tool_call["name"],
-                    "input": tool_call["input"]
-                })
+                assistant_content.append(
+                    {
+                        "type": "tool_use",
+                        "id": tool_call["id"],
+                        "name": tool_call["name"],
+                        "input": tool_call["input"],
+                    }
+                )
 
             historico_com_tool = historico_messages + [
                 {"role": "user", "content": mensagem},
-                {"role": "assistant", "content": assistant_content}
+                {"role": "assistant", "content": assistant_content},
             ]
 
             resultado_final = await continuar_apos_tool(
@@ -464,7 +457,9 @@ async def _gerar_resposta_julia_impl(
 
             while resultado_final.get("tool_use") and current_iteration < max_tool_iterations:
                 current_iteration += 1
-                logger.info(f"Tool call sequencial {current_iteration}: {resultado_final['tool_use']}")
+                logger.info(
+                    f"Tool call sequencial {current_iteration}: {resultado_final['tool_use']}"
+                )
 
                 # Processar nova tool call
                 new_tool_results = []
@@ -473,29 +468,33 @@ async def _gerar_resposta_julia_impl(
                         tool_name=tool_call["name"],
                         tool_input=tool_call["input"],
                         medico=medico,
-                        conversa=conversa
+                        conversa=conversa,
                     )
-                    new_tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": tool_call["id"],
-                        "content": str(tool_result)
-                    })
+                    new_tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_call["id"],
+                            "content": str(tool_result),
+                        }
+                    )
 
                 # Montar novo histórico
                 new_assistant_content = []
                 if resultado_final.get("text"):
                     new_assistant_content.append({"type": "text", "text": resultado_final["text"]})
                 for tool_call in resultado_final["tool_use"]:
-                    new_assistant_content.append({
-                        "type": "tool_use",
-                        "id": tool_call["id"],
-                        "name": tool_call["name"],
-                        "input": tool_call["input"]
-                    })
+                    new_assistant_content.append(
+                        {
+                            "type": "tool_use",
+                            "id": tool_call["id"],
+                            "name": tool_call["name"],
+                            "input": tool_call["input"],
+                        }
+                    )
 
                 current_historico = current_historico + [
                     {"role": "user", "content": current_tool_results},
-                    {"role": "assistant", "content": new_assistant_content}
+                    {"role": "assistant", "content": new_assistant_content},
                 ]
                 current_tool_results = new_tool_results
 
@@ -516,7 +515,10 @@ async def _gerar_resposta_julia_impl(
                 # Adicionar tool_result e pedir resposta
                 historico_forcar = current_historico + [
                     {"role": "user", "content": current_tool_results},
-                    {"role": "user", "content": "Agora responda ao médico de forma natural e curta."}
+                    {
+                        "role": "user",
+                        "content": "Agora responda ao médico de forma natural e curta.",
+                    },
                 ]
                 resultado_forcado = await gerar_resposta(
                     mensagem="",
@@ -542,14 +544,9 @@ async def _gerar_resposta_julia_impl(
     # Só aplica quando usar_tools=True e não houve tool_use
     houve_tool_use = usar_tools and "resultado" in locals() and resultado.get("tool_use")
     stop_reason = resultado.get("stop_reason") if usar_tools and "resultado" in locals() else None
-    if (
-        usar_tools
-        and not houve_tool_use
-        and _resposta_parece_incompleta(resposta, stop_reason)
-    ):
+    if usar_tools and not houve_tool_use and _resposta_parece_incompleta(resposta, stop_reason):
         logger.warning(
-            f"Resposta incompleta detectada, forçando uso de tool. "
-            f"Resposta: '{resposta[-50:]}'"
+            f"Resposta incompleta detectada, forçando uso de tool. Resposta: '{resposta[-50:]}'"
         )
 
         # Forçar continuação com prompt de uso de tool
@@ -561,7 +558,7 @@ async def _gerar_resposta_julia_impl(
                 "content": (
                     "Use a ferramenta buscar_vagas para encontrar as vagas disponíveis "
                     "e depois responda ao médico com as opções."
-                )
+                ),
             },
         ]
 
@@ -582,27 +579,29 @@ async def _gerar_resposta_julia_impl(
                     tool_name=tool_call["name"],
                     tool_input=tool_call["input"],
                     medico=medico,
-                    conversa=conversa
+                    conversa=conversa,
                 )
-                tool_results_retry.append({
-                    "type": "tool_result",
-                    "tool_use_id": tool_call["id"],
-                    "content": str(tool_result)
-                })
+                tool_results_retry.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": tool_call["id"],
+                        "content": str(tool_result),
+                    }
+                )
 
             # Montar histórico com tool call
             assistant_content_retry = []
             if resultado_retry["text"]:
-                assistant_content_retry.append({
-                    "type": "text", "text": resultado_retry["text"]
-                })
+                assistant_content_retry.append({"type": "text", "text": resultado_retry["text"]})
             for tool_call in resultado_retry["tool_use"]:
-                assistant_content_retry.append({
-                    "type": "tool_use",
-                    "id": tool_call["id"],
-                    "name": tool_call["name"],
-                    "input": tool_call["input"]
-                })
+                assistant_content_retry.append(
+                    {
+                        "type": "tool_use",
+                        "id": tool_call["id"],
+                        "name": tool_call["name"],
+                        "input": tool_call["input"],
+                    }
+                )
 
             historico_com_tool_retry = historico_retry + [
                 {"role": "assistant", "content": assistant_content_retry}
@@ -630,6 +629,7 @@ async def _gerar_resposta_julia_impl(
 @dataclass
 class ProcessamentoResult:
     """Resultado do processamento de mensagem (Sprint 16)."""
+
     resposta: Optional[str] = None
     policy_decision_id: Optional[str] = None
     rule_matched: Optional[str] = None
@@ -673,58 +673,62 @@ async def _emitir_offer_events(
             # Trava de segurança: só emite se vaga estiver aberta/anunciada
             if await vaga_pode_receber_oferta(vaga_id):
                 safe_create_task(
-                    emit_event(BusinessEvent(
-                        event_type=EventType.OFFER_MADE,
-                        source=EventSource.BACKEND,
-                        cliente_id=cliente_id,
-                        conversation_id=conversa_id,
-                        vaga_id=vaga_id,
-                        policy_decision_id=policy_decision_id,
-                        event_props={},
-                    )),
-                    name="emit_offer_made"
+                    emit_event(
+                        BusinessEvent(
+                            event_type=EventType.OFFER_MADE,
+                            source=EventSource.BACKEND,
+                            cliente_id=cliente_id,
+                            conversation_id=conversa_id,
+                            vaga_id=vaga_id,
+                            policy_decision_id=policy_decision_id,
+                            event_props={},
+                        )
+                    ),
+                    name="emit_offer_made",
                 )
                 logger.debug(f"offer_made emitido para vaga {vaga_id[:8]}")
 
     # Se não tem vaga específica mas menciona oportunidades, emitir teaser
     elif resposta and tem_mencao_oportunidade(resposta):
         safe_create_task(
-            emit_event(BusinessEvent(
-                event_type=EventType.OFFER_TEASER_SENT,
-                source=EventSource.BACKEND,
-                cliente_id=cliente_id,
-                conversation_id=conversa_id,
-                policy_decision_id=policy_decision_id,
-                event_props={
-                    "resposta_length": len(resposta),
-                },
-            )),
-            name="emit_offer_teaser_sent"
+            emit_event(
+                BusinessEvent(
+                    event_type=EventType.OFFER_TEASER_SENT,
+                    source=EventSource.BACKEND,
+                    cliente_id=cliente_id,
+                    conversation_id=conversa_id,
+                    policy_decision_id=policy_decision_id,
+                    event_props={
+                        "resposta_length": len(resposta),
+                    },
+                )
+            ),
+            name="emit_offer_teaser_sent",
         )
         logger.debug(f"offer_teaser_sent emitido para cliente {cliente_id[:8]}")
 
     # Se resposta contém links do app, emitir app_download_sent
     from app.services.business_events.context import tem_link_app_revoluna
+
     if resposta and tem_link_app_revoluna(resposta):
         safe_create_task(
-            emit_event(BusinessEvent(
-                event_type=EventType.APP_DOWNLOAD_SENT,
-                source=EventSource.BACKEND,
-                cliente_id=cliente_id,
-                conversation_id=conversa_id,
-                event_props={},
-                dedupe_key=f"app_download:{cliente_id}",  # 1 por médico
-            )),
-            name="emit_app_download_sent"
+            emit_event(
+                BusinessEvent(
+                    event_type=EventType.APP_DOWNLOAD_SENT,
+                    source=EventSource.BACKEND,
+                    cliente_id=cliente_id,
+                    conversation_id=conversa_id,
+                    event_props={},
+                    dedupe_key=f"app_download:{cliente_id}",  # 1 por médico
+                )
+            ),
+            name="emit_app_download_sent",
         )
         logger.info(f"app_download_sent emitido para cliente {cliente_id[:8]}")
 
 
 async def processar_mensagem_completo(
-    mensagem_texto: str,
-    medico: dict,
-    conversa: dict,
-    vagas: list[dict] = None
+    mensagem_texto: str, medico: dict, conversa: dict, vagas: list[dict] = None
 ) -> ProcessamentoResult:
     """
     Processa mensagem completa com Policy Engine.
@@ -767,7 +771,9 @@ async def processar_mensagem_completo(
 
         # 2b. Carregar doctor_state
         state = await load_doctor_state(medico["id"])
-        logger.debug(f"doctor_state carregado: {state.permission_state.value}, temp={state.temperature}")
+        logger.debug(
+            f"doctor_state carregado: {state.permission_state.value}, temp={state.temperature}"
+        )
 
         # 3. Detectar objeção (REUTILIZAR detector do orquestrador)
         objecao_dict = None
@@ -776,7 +782,8 @@ async def processar_mensagem_completo(
             historico_msgs = []
             if contexto.get("historico_raw"):
                 historico_msgs = [
-                    m.get("conteudo", "") for m in contexto["historico_raw"]
+                    m.get("conteudo", "")
+                    for m in contexto["historico_raw"]
                     if m.get("tipo") == "recebida"
                 ][-5:]
 
@@ -800,9 +807,7 @@ async def processar_mensagem_completo(
 
         # 4. StateUpdate: atualizar estado
         state_updater = StateUpdate()
-        inbound_updates = state_updater.on_inbound_message(
-            state, mensagem_texto, objecao_dict
-        )
+        inbound_updates = state_updater.on_inbound_message(state, mensagem_texto, objecao_dict)
         if inbound_updates:
             await save_doctor_state_updates(medico["id"], inbound_updates)
             logger.debug(f"doctor_state atualizado: {list(inbound_updates.keys())}")
@@ -926,7 +931,7 @@ async def processar_mensagem_completo(
                     vagas_oferecidas=None,  # Será implementado quando rastrearmos tool calls
                     policy_decision_id=policy_decision_id,
                 ),
-                name="emitir_offer_events"
+                name="emitir_offer_events",
             )
 
         # 9. StateUpdate pós-envio + log effect
@@ -975,16 +980,18 @@ async def _emitir_fallback_event(telefone: str, function_name: str) -> None:
         )
 
         # Criar evento de fallback
-        await emit_event(BusinessEvent(
-            event_type=EventType.OUTBOUND_FALLBACK,
-            source=EventSource.BACKEND,
-            cliente_id=None,  # Não temos o ID no fallback legado
-            event_props={
-                "function": function_name,
-                "telefone_prefix": telefone[:8] if telefone else "unknown",
-                "warning": "Fallback legado usado - migrar para OutboundContext",
-            },
-        ))
+        await emit_event(
+            BusinessEvent(
+                event_type=EventType.OUTBOUND_FALLBACK,
+                source=EventSource.BACKEND,
+                cliente_id=None,  # Não temos o ID no fallback legado
+                event_props={
+                    "function": function_name,
+                    "telefone_prefix": telefone[:8] if telefone else "unknown",
+                    "warning": "Fallback legado usado - migrar para OutboundContext",
+                },
+            )
+        )
         logger.debug(f"outbound_fallback emitido para {function_name}")
     except Exception as e:
         # Se EventType.OUTBOUND_FALLBACK não existir, apenas log
@@ -1021,12 +1028,12 @@ async def enviar_mensagens_sequencia(
                 "event": "outbound_fallback_used",
                 "telefone_prefix": telefone[:8] if telefone else "unknown",
                 "mensagens_count": len(mensagens),
-            }
+            },
         )
         # Emitir evento para auditoria
         safe_create_task(
             _emitir_fallback_event(telefone, "enviar_mensagens_sequencia"),
-            name="fallback_event_sequencia"
+            name="fallback_event_sequencia",
         )
 
     resultados = []
@@ -1057,10 +1064,8 @@ async def enviar_mensagens_sequencia(
         else:
             # Fallback legado - TODO: remover quando todos call sites migrarem
             from app.services.whatsapp import enviar_com_digitacao
-            resultado = await enviar_com_digitacao(
-                telefone=telefone,
-                texto=msg
-            )
+
+            resultado = await enviar_com_digitacao(telefone=telefone, texto=msg)
         resultados.append(resultado)
 
     return resultados
@@ -1093,12 +1098,11 @@ async def enviar_resposta(
                 "event": "outbound_fallback_used",
                 "telefone_prefix": telefone[:8] if telefone else "unknown",
                 "resposta_length": len(resposta) if resposta else 0,
-            }
+            },
         )
         # Emitir evento para auditoria
         safe_create_task(
-            _emitir_fallback_event(telefone, "enviar_resposta"),
-            name="fallback_event_resposta"
+            _emitir_fallback_event(telefone, "enviar_resposta"), name="fallback_event_resposta"
         )
 
     # Quebrar resposta se necessário
@@ -1115,6 +1119,7 @@ async def enviar_resposta(
         else:
             # Fallback legado
             from app.services.whatsapp import enviar_com_digitacao
+
             return await enviar_com_digitacao(telefone, resposta)
     else:
         resultados = await enviar_mensagens_sequencia(telefone, mensagens, ctx)

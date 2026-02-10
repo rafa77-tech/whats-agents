@@ -9,6 +9,7 @@ Nível 1 (simples):
 - Marca como sent/failed após envio
 - Emite OUTBOUND_DEDUPED para auditoria
 """
+
 import hashlib
 import logging
 from datetime import datetime, timezone
@@ -23,13 +24,13 @@ logger = logging.getLogger(__name__)
 
 # Janela de deduplicação por método
 DEDUPE_WINDOWS = {
-    "campaign": 60,       # 60 minutos (campanhas são únicas por hora)
-    "followup": 60,       # 60 minutos
+    "campaign": 60,  # 60 minutos (campanhas são únicas por hora)
+    "followup": 60,  # 60 minutos
     "reactivation": 120,  # 2 horas
-    "reply": 5,           # 5 minutos (replies podem ser rápidos)
-    "button": 5,          # 5 minutos
-    "command": 5,         # 5 minutos
-    "manual": 10,         # 10 minutos
+    "reply": 5,  # 5 minutos (replies podem ser rápidos)
+    "button": 5,  # 5 minutos
+    "command": 5,  # 5 minutos
+    "manual": 10,  # 10 minutos
 }
 
 DEFAULT_WINDOW = 30  # 30 minutos padrão
@@ -105,13 +106,19 @@ async def verificar_e_reservar(
 
     try:
         # Tentar inserir - falha se duplicata (unique constraint)
-        response = supabase.table("outbound_dedupe").insert({
-            "dedupe_key": dedupe_key,
-            "cliente_id": cliente_id,
-            "conversation_id": conversation_id,
-            "method": method,
-            "status": "queued",
-        }).execute()
+        response = (
+            supabase.table("outbound_dedupe")
+            .insert(
+                {
+                    "dedupe_key": dedupe_key,
+                    "cliente_id": cliente_id,
+                    "conversation_id": conversation_id,
+                    "method": method,
+                    "status": "queued",
+                }
+            )
+            .execute()
+        )
 
         if response.data:
             logger.debug(f"Dedupe reservado: {dedupe_key[:16]}... para {method}")
@@ -132,7 +139,7 @@ async def verificar_e_reservar(
                     "dedupe_key": dedupe_key,
                     "cliente_id": cliente_id,
                     "method": method,
-                }
+                },
             )
 
             # Registrar como deduped para métricas
@@ -143,19 +150,21 @@ async def verificar_e_reservar(
 
             # Emitir business_event para auditoria (Sprint 18.1)
             safe_create_task(
-                emit_event(BusinessEvent(
-                    event_type=EventType.OUTBOUND_DEDUPED,
-                    source=EventSource.BACKEND,
-                    cliente_id=cliente_id,
-                    conversation_id=conversation_id,
-                    dedupe_key=f"deduped:{cliente_id}:{dedupe_key[:16]}",
-                    event_props={
-                        "dedupe_key": dedupe_key,
-                        "method": method,
-                        "reason": "duplicate_within_window",
-                    },
-                )),
-                name="emit_outbound_deduped"
+                emit_event(
+                    BusinessEvent(
+                        event_type=EventType.OUTBOUND_DEDUPED,
+                        source=EventSource.BACKEND,
+                        cliente_id=cliente_id,
+                        conversation_id=conversation_id,
+                        dedupe_key=f"deduped:{cliente_id}:{dedupe_key[:16]}",
+                        event_props={
+                            "dedupe_key": dedupe_key,
+                            "method": method,
+                            "reason": "duplicate_within_window",
+                        },
+                    )
+                ),
+                name="emit_outbound_deduped",
             )
 
             return False, dedupe_key, "duplicata"
@@ -173,10 +182,12 @@ async def marcar_enviado(dedupe_key: str) -> None:
         dedupe_key: Chave de deduplicação
     """
     try:
-        supabase.table("outbound_dedupe").update({
-            "status": "sent",
-            "sent_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("dedupe_key", dedupe_key).execute()
+        supabase.table("outbound_dedupe").update(
+            {
+                "status": "sent",
+                "sent_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("dedupe_key", dedupe_key).execute()
     except Exception as e:
         logger.warning(f"Erro ao marcar dedupe como enviado: {e}")
 
@@ -190,10 +201,12 @@ async def marcar_falha(dedupe_key: str, error: str) -> None:
         error: Mensagem de erro
     """
     try:
-        supabase.table("outbound_dedupe").update({
-            "status": "failed",
-            "error": error[:500],  # Truncar erro longo
-        }).eq("dedupe_key", dedupe_key).execute()
+        supabase.table("outbound_dedupe").update(
+            {
+                "status": "failed",
+                "error": error[:500],  # Truncar erro longo
+            }
+        ).eq("dedupe_key", dedupe_key).execute()
     except Exception as e:
         logger.warning(f"Erro ao marcar dedupe como falha: {e}")
 
@@ -202,9 +215,11 @@ async def _registrar_deduped(dedupe_key: str) -> None:
     """Atualiza entrada existente para registrar tentativa de duplicata."""
     try:
         # Incrementar contador ou atualizar timestamp
-        supabase.table("outbound_dedupe").update({
-            "status": "deduped",
-        }).eq("dedupe_key", dedupe_key).eq("status", "sent").execute()
+        supabase.table("outbound_dedupe").update(
+            {
+                "status": "deduped",
+            }
+        ).eq("dedupe_key", dedupe_key).eq("status", "sent").execute()
     except Exception:
         pass
 
@@ -217,7 +232,7 @@ async def limpar_entradas_antigas() -> int:
         Número de entradas removidas
     """
     try:
-        response = supabase.rpc("cleanup_old_dedupe_entries").execute()
+        supabase.rpc("cleanup_old_dedupe_entries").execute()
         logger.info("Limpeza de dedupe executada")
         return 0  # RPC não retorna count
     except Exception as e:

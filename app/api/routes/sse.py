@@ -48,9 +48,13 @@ async def stream_conversation(conversation_id: str):
 
         # Estado inicial
         try:
-            conv = supabase.table("conversations").select(
-                "controlled_by, pausada_em, last_message_at"
-            ).eq("id", conversation_id).single().execute()
+            conv = (
+                supabase.table("conversations")
+                .select("controlled_by, pausada_em, last_message_at")
+                .eq("id", conversation_id)
+                .single()
+                .execute()
+            )
 
             if conv.data:
                 last_control = conv.data.get("controlled_by")
@@ -58,11 +62,14 @@ async def stream_conversation(conversation_id: str):
                 last_message_at = conv.data.get("last_message_at")
 
             # Ultimo channel message
-            ch = supabase.table("supervisor_channel").select(
-                "created_at"
-            ).eq(
-                "conversation_id", conversation_id
-            ).order("created_at", desc=True).limit(1).execute()
+            ch = (
+                supabase.table("supervisor_channel")
+                .select("created_at")
+                .eq("conversation_id", conversation_id)
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            )
 
             if ch.data:
                 last_channel_at = ch.data[0].get("created_at")
@@ -78,9 +85,13 @@ async def stream_conversation(conversation_id: str):
                 await asyncio.sleep(POLL_INTERVAL)
 
                 # Buscar estado atual
-                conv = supabase.table("conversations").select(
-                    "controlled_by, pausada_em, last_message_at"
-                ).eq("id", conversation_id).single().execute()
+                conv = (
+                    supabase.table("conversations")
+                    .select("controlled_by, pausada_em, last_message_at")
+                    .eq("id", conversation_id)
+                    .single()
+                    .execute()
+                )
 
                 if not conv.data:
                     yield f"event: error\ndata: {json.dumps({'error': 'conversation_not_found'})}\n\n"
@@ -107,11 +118,14 @@ async def stream_conversation(conversation_id: str):
                     yield f"event: pause_change\ndata: {json.dumps({'pausada_em': current_paused})}\n\n"
 
                 # Detectar nova mensagem no channel
-                ch = supabase.table("supervisor_channel").select(
-                    "created_at, role, content"
-                ).eq(
-                    "conversation_id", conversation_id
-                ).order("created_at", desc=True).limit(1).execute()
+                ch = (
+                    supabase.table("supervisor_channel")
+                    .select("created_at, role, content")
+                    .eq("conversation_id", conversation_id)
+                    .order("created_at", desc=True)
+                    .limit(1)
+                    .execute()
+                )
 
                 if ch.data:
                     current_channel_at = ch.data[0].get("created_at")

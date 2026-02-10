@@ -60,10 +60,7 @@ async def enviar_via_chip(
             f"chip={chip.get('telefone', 'N/A')}, destino={telefone[-4:]}"
         )
         # TODO: Adicionar alerta Slack aqui (Sprint 51 E03.3)
-        return MessageResult(
-            success=False,
-            error="Chip listener não pode enviar mensagens"
-        )
+        return MessageResult(success=False, error="Chip listener não pode enviar mensagens")
 
     try:
         provider = get_provider(chip)
@@ -154,9 +151,7 @@ async def enviar_mensagem_inteligente(
                     f"para {tipo_mensagem}"
                 )
             else:
-                logger.warning(
-                    f"[ChipSender] Nenhum chip disponível para {tipo_mensagem}"
-                )
+                logger.warning(f"[ChipSender] Nenhum chip disponível para {tipo_mensagem}")
             break
 
         ultimo_chip = chip
@@ -237,10 +232,7 @@ async def enviar_media_via_chip(
             f"[ChipSender] BLOQUEIO: Tentativa de envio de mídia via chip listener! "
             f"chip={chip.get('telefone', 'N/A')}, destino={telefone[-4:]}"
         )
-        return MessageResult(
-            success=False,
-            error="Chip listener não pode enviar mensagens"
-        )
+        return MessageResult(success=False, error="Chip listener não pode enviar mensagens")
 
     try:
         provider = get_provider(chip)
@@ -380,17 +372,13 @@ async def _registrar_envio(
         # Registrar destinatário para rastreio de conversas bidirecionais
         if telefone_destino:
             try:
-                supabase.table("chip_interactions").update({
-                    "destinatario": telefone_destino,
-                }).eq(
-                    "chip_id", chip_id
-                ).eq(
-                    "tipo", "msg_enviada"
-                ).is_(
+                supabase.table("chip_interactions").update(
+                    {
+                        "destinatario": telefone_destino,
+                    }
+                ).eq("chip_id", chip_id).eq("tipo", "msg_enviada").is_(
                     "destinatario", "null"
-                ).order(
-                    "created_at", desc=True
-                ).limit(1).execute()
+                ).order("created_at", desc=True).limit(1).execute()
             except Exception:
                 pass  # Best effort
 

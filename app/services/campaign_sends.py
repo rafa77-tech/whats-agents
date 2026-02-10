@@ -19,6 +19,7 @@ DEPRECATION:
     NAO use diretamente as tabelas `envios` ou `fila_mensagens` para
     queries de campanha. Use sempre este repository.
 """
+
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CampaignSend:
     """Representa um envio de campanha (unificado)."""
+
     send_id: str
     cliente_id: str
     campaign_id: int
@@ -55,6 +57,7 @@ class CampaignMetrics:
     Sprint 24 E07: Adicionado bypassed, delivered_total, e breakdown por origem.
     Sprint 23 Prod: Adicionado breakdown de falhas para diagnóstico.
     """
+
     campaign_id: int
     total_sends: int
     delivered: int
@@ -73,11 +76,11 @@ class CampaignMetrics:
     from_fila_mensagens: int = 0
     from_envios_legado: int = 0
     # Breakdown de falhas para diagnóstico operacional
-    failed_validation: int = 0   # Número inválido/inexistente
-    failed_banned: int = 0       # Número banido/bloqueado
-    failed_provider: int = 0     # Erro de infra (timeout, 5xx)
+    failed_validation: int = 0  # Número inválido/inexistente
+    failed_banned: int = 0  # Número banido/bloqueado
+    failed_provider: int = 0  # Erro de infra (timeout, 5xx)
     validation_fail_rate: float = 0.0  # % de validação falha
-    banned_rate: float = 0.0           # % de banidos (risco reputacional)
+    banned_rate: float = 0.0  # % de banidos (risco reputacional)
 
     @property
     def fail_rate(self) -> float:

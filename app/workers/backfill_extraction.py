@@ -59,8 +59,7 @@ async def executar_backfill(
     data_inicio = datetime.now(timezone.utc) - timedelta(days=dias)
 
     logger.info(
-        f"[Backfill] Iniciando backfill: dias={dias}, "
-        f"campanha_id={campanha_id}, dry_run={dry_run}"
+        f"[Backfill] Iniciando backfill: dias={dias}, campanha_id={campanha_id}, dry_run={dry_run}"
     )
 
     # Buscar interacoes elegiveis (mensagens de medicos)
@@ -98,7 +97,7 @@ async def executar_backfill(
 
     # Processar em batches
     for i in range(0, len(interacoes), BATCH_SIZE):
-        batch = interacoes[i:i + BATCH_SIZE]
+        batch = interacoes[i : i + BATCH_SIZE]
         batch_num = i // BATCH_SIZE + 1
         total_batches = (len(interacoes) + BATCH_SIZE - 1) // BATCH_SIZE
 

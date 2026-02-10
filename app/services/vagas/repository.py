@@ -3,6 +3,7 @@ Queries de vagas no banco de dados.
 
 Sprint 10 - S10.E3.2
 """
+
 import logging
 from datetime import date, datetime, timezone
 from typing import Optional
@@ -23,10 +24,7 @@ async def buscar_por_id(vaga_id: str) -> Optional[dict]:
     return response.data[0] if response.data else None
 
 
-async def listar_disponiveis(
-    especialidade_id: str,
-    limite: int = 10
-) -> list[dict]:
+async def listar_disponiveis(especialidade_id: str, limite: int = 10) -> list[dict]:
     """Lista vagas disponiveis para uma especialidade."""
     hoje = date.today().isoformat()
 
@@ -41,15 +39,13 @@ async def listar_disponiveis(
         .execute()
     )
 
-    logger.info(f"Encontradas {len(response.data or [])} vagas para especialidade {especialidade_id}")
+    logger.info(
+        f"Encontradas {len(response.data or [])} vagas para especialidade {especialidade_id}"
+    )
     return response.data or []
 
 
-async def verificar_conflito(
-    cliente_id: str,
-    data: str,
-    periodo_id: str
-) -> dict:
+async def verificar_conflito(cliente_id: str, data: str, periodo_id: str) -> dict:
     """
     Verifica se medico ja tem vaga reservada no mesmo dia/periodo.
 
@@ -77,9 +73,9 @@ async def verificar_conflito(
                 "id": vaga["id"],
                 "hospital": hospital_nome,
                 "data": vaga["data"],
-                "status": vaga["status"]
+                "status": vaga["status"],
             },
-            "mensagem": f"Voce ja tem plantao em {data} no {hospital_nome}"
+            "mensagem": f"Voce ja tem plantao em {data} no {hospital_nome}",
         }
 
     return {"conflito": False, "vaga_conflitante": None, "mensagem": None}
@@ -94,13 +90,15 @@ async def reservar(vaga_id: str, cliente_id: str) -> Optional[dict]:
     """
     response = (
         supabase.table("vagas")
-        .update({
-            "status": "reservada",
-            "cliente_id": cliente_id,
-            "fechada_em": datetime.now(timezone.utc).isoformat(),
-            "fechada_por": "julia",
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        })
+        .update(
+            {
+                "status": "reservada",
+                "cliente_id": cliente_id,
+                "fechada_em": datetime.now(timezone.utc).isoformat(),
+                "fechada_por": "julia",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
         .eq("id", vaga_id)
         .eq("status", "aberta")  # Optimistic locking
         .execute()
@@ -116,13 +114,15 @@ async def cancelar_reserva(vaga_id: str) -> Optional[dict]:
     """Cancela reserva de uma vaga."""
     response = (
         supabase.table("vagas")
-        .update({
-            "status": "aberta",
-            "cliente_id": None,
-            "fechada_em": None,
-            "fechada_por": None,
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        })
+        .update(
+            {
+                "status": "aberta",
+                "cliente_id": None,
+                "fechada_em": None,
+                "fechada_por": None,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
         .eq("id", vaga_id)
         .execute()
     )

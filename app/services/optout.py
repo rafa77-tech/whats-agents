@@ -2,10 +2,10 @@
 Serviço de detecção e processamento de opt-out.
 Permite que médicos solicitem parar de receber mensagens.
 """
+
 import logging
 import re
 from typing import Tuple
-from datetime import datetime
 
 from app.core.timezone import agora_utc
 from app.services.supabase import supabase
@@ -15,26 +15,26 @@ logger = logging.getLogger(__name__)
 # Padrões de opt-out (case insensitive)
 # Normalizados para funcionar sem acentos
 PADROES_OPTOUT = [
-    r'\bpara\b.*\b(mensag|msg|mand)',  # "para de mandar mensagem/msg"
-    r'\bnao\b.*\bquer.*\b(receb|mais\b(?!.*\bhorario))', # "não quero receber/mais nada" (não "mais outro horário")
-    r'\bremov.*\b(lista|contato|numero)', # "remove da lista/contato/numero"
-    r'\bsai\s*fora\b',                 # "sai fora"
-    r'\bnao\b.*\bmand.*\bmais',        # "não me mande mais"
-    r'\bpare\b',                       # "pare"
-    r'^\s*parar\s*$',                  # "parar" (apenas sozinho)
-    r'\bstop\b',                       # "STOP"
-    r'^\s*sair\s*$',                   # "SAIR" (apenas sozinho)
-    r'\bdesinscrever\b',               # "desinscrever"
-    r'^\s*cancelar?\s*$',              # "cancelar" (apenas sozinho)
-    r'^\s*bloque(ar|ia)?\s*$',         # "bloqueia" (apenas sozinho)
-    r'\bvou\b.*\bbloque',              # "vou te bloquear"
-    r'\bbloque(ar|ia)?\b.*\b(msg|mensag|contato)', # "bloquear mensagem/contato"
-    r'\bnao\b.*\binteress',            # "não tenho interesse"
-    r'\bchega\b',                      # "chega"
-    r'\bpara\b.*\bme\b.*\bcontatar',   # "para de me contatar"
-    r'\bdesist[oi]',                   # "desisto"
-    r'\b(tira|exclui)\b.*\b(lista|numero|contato)', # "me tira da lista"
-    r'\bpra\b.*\bparar\b.*\bmand',     # "já falei pra parar de mandar"
+    r"\bpara\b.*\b(mensag|msg|mand)",  # "para de mandar mensagem/msg"
+    r"\bnao\b.*\bquer.*\b(receb|mais\b(?!.*\bhorario))",  # "não quero receber/mais nada" (não "mais outro horário")
+    r"\bremov.*\b(lista|contato|numero)",  # "remove da lista/contato/numero"
+    r"\bsai\s*fora\b",  # "sai fora"
+    r"\bnao\b.*\bmand.*\bmais",  # "não me mande mais"
+    r"\bpare\b",  # "pare"
+    r"^\s*parar\s*$",  # "parar" (apenas sozinho)
+    r"\bstop\b",  # "STOP"
+    r"^\s*sair\s*$",  # "SAIR" (apenas sozinho)
+    r"\bdesinscrever\b",  # "desinscrever"
+    r"^\s*cancelar?\s*$",  # "cancelar" (apenas sozinho)
+    r"^\s*bloque(ar|ia)?\s*$",  # "bloqueia" (apenas sozinho)
+    r"\bvou\b.*\bbloque",  # "vou te bloquear"
+    r"\bbloque(ar|ia)?\b.*\b(msg|mensag|contato)",  # "bloquear mensagem/contato"
+    r"\bnao\b.*\binteress",  # "não tenho interesse"
+    r"\bchega\b",  # "chega"
+    r"\bpara\b.*\bme\b.*\bcontatar",  # "para de me contatar"
+    r"\bdesist[oi]",  # "desisto"
+    r"\b(tira|exclui)\b.*\b(lista|numero|contato)",  # "me tira da lista"
+    r"\bpra\b.*\bparar\b.*\bmand",  # "já falei pra parar de mandar"
 ]
 
 
@@ -44,12 +44,24 @@ def _normalizar_texto(texto: str) -> str:
     """
     return (
         texto.lower()
-        .replace('ã', 'a').replace('á', 'a').replace('â', 'a').replace('à', 'a')
-        .replace('é', 'e').replace('ê', 'e').replace('è', 'e')
-        .replace('í', 'i').replace('î', 'i').replace('ì', 'i')
-        .replace('ó', 'o').replace('ô', 'o').replace('õ', 'o').replace('ò', 'o')
-        .replace('ú', 'u').replace('û', 'u').replace('ù', 'u')
-        .replace('ç', 'c')
+        .replace("ã", "a")
+        .replace("á", "a")
+        .replace("â", "a")
+        .replace("à", "a")
+        .replace("é", "e")
+        .replace("ê", "e")
+        .replace("è", "e")
+        .replace("í", "i")
+        .replace("î", "i")
+        .replace("ì", "i")
+        .replace("ó", "o")
+        .replace("ô", "o")
+        .replace("õ", "o")
+        .replace("ò", "o")
+        .replace("ú", "u")
+        .replace("û", "u")
+        .replace("ù", "u")
+        .replace("ç", "c")
     )
 
 
@@ -88,7 +100,6 @@ async def processar_optout(cliente_id: str, telefone: str, motivo: str = "") -> 
     Returns:
         True se processado com sucesso
     """
-    from datetime import datetime
 
     try:
         # Atualizar status do médico
@@ -100,12 +111,7 @@ async def processar_optout(cliente_id: str, telefone: str, motivo: str = "") -> 
         if motivo:
             update_data["opted_out_reason"] = motivo[:200]  # Limitar tamanho
 
-        response = (
-            supabase.table("clientes")
-            .update(update_data)
-            .eq("id", cliente_id)
-            .execute()
-        )
+        supabase.table("clientes").update(update_data).eq("id", cliente_id).execute()
 
         logger.info(f"Opt-out processado para cliente {cliente_id}")
         return True
@@ -126,12 +132,7 @@ async def verificar_opted_out(cliente_id: str) -> bool:
         True se fez opt-out
     """
     try:
-        response = (
-            supabase.table("clientes")
-            .select("opted_out")
-            .eq("id", cliente_id)
-            .execute()
-        )
+        response = supabase.table("clientes").select("opted_out").eq("id", cliente_id).execute()
 
         if response.data:
             return response.data[0].get("opted_out", False) or False

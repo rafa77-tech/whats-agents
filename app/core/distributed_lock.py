@@ -11,9 +11,9 @@ Uso:
         # Código protegido pelo lock
         await operacao_critica()
 """
+
 import uuid
 import logging
-from typing import Optional
 
 from app.services.redis import redis_client
 
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class LockNotAcquiredError(Exception):
     """Raised when lock cannot be acquired."""
+
     pass
 
 
@@ -87,7 +88,7 @@ class DistributedLock:
                 self.key,
                 self.token,
                 nx=True,  # SET if Not eXists
-                ex=self.timeout
+                ex=self.timeout,
             )
             self._acquired = result is not None
             if self._acquired:

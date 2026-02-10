@@ -178,9 +178,7 @@ async def api_listar_links(
     """
     Lista links de grupos com filtros.
     """
-    links = await listar_links(
-        status=status, categoria=categoria, limite=limite, offset=offset
-    )
+    links = await listar_links(status=status, categoria=categoria, limite=limite, offset=offset)
     return {"links": links, "total": len(links)}
 
 
@@ -199,9 +197,7 @@ async def api_buscar_link(link_id: str):
     """
     Busca um link específico.
     """
-    result = (
-        supabase.table("group_links").select("*").eq("id", link_id).single().execute()
-    )
+    result = supabase.table("group_links").select("*").eq("id", link_id).single().execute()
 
     if not result.data:
         raise HTTPException(404, "Link não encontrado")
@@ -220,11 +216,7 @@ async def api_validar_link(link_id: str):
     Valida um link específico.
     """
     result = (
-        supabase.table("group_links")
-        .select("invite_code")
-        .eq("id", link_id)
-        .single()
-        .execute()
+        supabase.table("group_links").select("invite_code").eq("id", link_id).single().execute()
     )
 
     if not result.data:
@@ -400,7 +392,7 @@ async def api_atualizar_config(update: ConfigUpdate):
 
     update_data["updated_at"] = datetime.now(UTC).isoformat()
 
-    result = supabase.table("group_entry_config").update(update_data).execute()
+    supabase.table("group_entry_config").update(update_data).execute()
 
     return {"atualizado": True, "campos": list(update_data.keys())}
 

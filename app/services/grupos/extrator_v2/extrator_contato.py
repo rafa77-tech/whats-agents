@@ -20,61 +20,54 @@ logger = get_logger(__name__)
 # =============================================================================
 
 # Link WhatsApp: wa.me/5511999999999
-PATTERN_WAME = re.compile(
-    r'wa\.me/(\d{10,15})',
-    re.IGNORECASE
-)
+PATTERN_WAME = re.compile(r"wa\.me/(\d{10,15})", re.IGNORECASE)
 
 # Link WhatsApp alternativo: api.whatsapp.com/send?phone=5511999999999
-PATTERN_WA_API = re.compile(
-    r'api\.whatsapp\.com/send\?phone=(\d{10,15})',
-    re.IGNORECASE
-)
+PATTERN_WA_API = re.compile(r"api\.whatsapp\.com/send\?phone=(\d{10,15})", re.IGNORECASE)
 
 # Telefone brasileiro: (11) 99999-9999, 11999999999, +55 11 99999-9999
 PATTERN_TELEFONE = re.compile(
-    r'(?:\+?55\s?)?'           # DDI opcional
-    r'(?:\(?\d{2}\)?\s?)?'     # DDD opcional
-    r'(?:9\s?)?'               # 9 inicial opcional
-    r'\d{4}[-.\s]?\d{4}'       # 8-9 dígitos
+    r"(?:\+?55\s?)?"  # DDI opcional
+    r"(?:\(?\d{2}\)?\s?)?"  # DDD opcional
+    r"(?:9\s?)?"  # 9 inicial opcional
+    r"\d{4}[-.\s]?\d{4}"  # 8-9 dígitos
 )
 
 # Padrão para telefone com formato mais rígido
 PATTERN_TELEFONE_COMPLETO = re.compile(
-    r'(?:\+?55\s?)?'           # DDI opcional
-    r'\(?(\d{2})\)?\s?'        # DDD
-    r'(9?\d{4})[-.\s]?(\d{4})' # Número
+    r"(?:\+?55\s?)?"  # DDI opcional
+    r"\(?(\d{2})\)?\s?"  # DDD
+    r"(9?\d{4})[-.\s]?(\d{4})"  # Número
 )
 
 # Palavras que indicam nome antes do telefone
 INDICADORES_NOME = [
-    r'falar\s+com\s+',
-    r'chamar\s+',
-    r'ligar\s+para\s+',
-    r'contato[:\s]+',
-    r'interessados[:\s]+',
-    r'informações[:\s]+',
-    r'info[:\s]+',
+    r"falar\s+com\s+",
+    r"chamar\s+",
+    r"ligar\s+para\s+",
+    r"contato[:\s]+",
+    r"interessados[:\s]+",
+    r"informações[:\s]+",
+    r"info[:\s]+",
 ]
 
 # Padrão para nome antes de telefone: "Nome - 11999999999" ou "Nome: 11999"
 PATTERN_NOME_TELEFONE = re.compile(
-    r'([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú]?[a-zà-ú]+)?)\s*[-:]\s*(?:wa\.me/|api\.whatsapp|(?:\+?55\s?)?\d)',
-    re.UNICODE | re.IGNORECASE
+    r"([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú]?[a-zà-ú]+)?)\s*[-:]\s*(?:wa\.me/|api\.whatsapp|(?:\+?55\s?)?\d)",
+    re.UNICODE | re.IGNORECASE,
 )
 
 # Padrão para nome isolado em linha com emoji de contato
 PATTERN_NOME_ISOLADO = re.compile(
-    r'^[📲📞📱☎️🤙💬👤\s]*([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)?)\s*$',
-    re.UNICODE
+    r"^[📲📞📱☎️🤙💬👤\s]*([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)?)\s*$", re.UNICODE
 )
 
 
 def _limpar_texto(texto: str) -> str:
     """Remove emojis e caracteres especiais."""
-    texto = re.sub(r'[📲📞📱☎️🤙💬👤]', '', texto)
-    texto = texto.replace('*', '')
-    return ' '.join(texto.split()).strip()
+    texto = re.sub(r"[📲📞📱☎️🤙💬👤]", "", texto)
+    texto = texto.replace("*", "")
+    return " ".join(texto.split()).strip()
 
 
 def _normalizar_telefone(telefone: str) -> str:
@@ -87,17 +80,17 @@ def _normalizar_telefone(telefone: str) -> str:
         Telefone normalizado: "5511999999999"
     """
     # Remover tudo exceto números
-    numeros = re.sub(r'\D', '', telefone)
+    numeros = re.sub(r"\D", "", telefone)
 
     # Adicionar DDI se não tiver
     if len(numeros) == 11:  # DDD + 9 dígitos
-        numeros = '55' + numeros
+        numeros = "55" + numeros
     elif len(numeros) == 10:  # DDD + 8 dígitos (antigo)
-        numeros = '55' + numeros
+        numeros = "55" + numeros
     elif len(numeros) == 9:  # Só celular
-        numeros = '5511' + numeros  # Assume SP
+        numeros = "5511" + numeros  # Assume SP
     elif len(numeros) == 8:  # Só celular antigo
-        numeros = '5511' + numeros
+        numeros = "5511" + numeros
 
     return numeros
 
@@ -149,21 +142,21 @@ def _extrair_nome(texto: str) -> Optional[str]:
         # Nome: letra maiúscula + minúsculas, opcionalmente segundo nome
         # Não captura "wa" ou palavras que começam com número
         pattern = re.compile(
-            indicador + r'([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)?)(?:\s|$|[:\-])',
-            re.IGNORECASE | re.UNICODE
+            indicador + r"([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)?)(?:\s|$|[:\-])",
+            re.IGNORECASE | re.UNICODE,
         )
         match = pattern.search(texto_limpo)
         if match:
             nome = match.group(1).strip()
             # Validar que é nome razoável e não é parte de URL
-            if 2 <= len(nome) <= 50 and nome.lower() not in ('wa', 'api', 'http', 'https'):
+            if 2 <= len(nome) <= 50 and nome.lower() not in ("wa", "api", "http", "https"):
                 return nome
 
     # Tentar padrão "Nome - telefone" ou "Nome - wa.me"
     match = PATTERN_NOME_TELEFONE.search(texto_limpo)
     if match:
         nome = match.group(1).strip()
-        if 2 <= len(nome) <= 50 and nome.lower() not in ('wa', 'api'):
+        if 2 <= len(nome) <= 50 and nome.lower() not in ("wa", "api"):
             return nome
 
     return None
@@ -205,7 +198,7 @@ def extrair_contato(linhas_contato: List[str]) -> Optional[ContatoExtraido]:
         return None
 
     # Juntar todas as linhas para análise
-    texto_completo = ' '.join(linhas_contato)
+    texto_completo = " ".join(linhas_contato)
 
     # Extrair telefone (obrigatório)
     resultado_telefone = _extrair_telefone(texto_completo)
@@ -249,10 +242,7 @@ def extrair_contato(linhas_contato: List[str]) -> Optional[ContatoExtraido]:
         confianca = 0.9
 
     contato = ContatoExtraido(
-        nome=nome,
-        whatsapp=telefone_normalizado,
-        whatsapp_raw=telefone_raw,
-        confianca=confianca
+        nome=nome, whatsapp=telefone_normalizado, whatsapp_raw=telefone_raw, confianca=confianca
     )
 
     logger.debug(f"Contato extraído: {nome or 'sem nome'} - {telefone_normalizado}")

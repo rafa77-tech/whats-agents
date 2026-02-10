@@ -4,11 +4,11 @@ Tipos de abordagem para mensagens WhatsApp.
 Define os diferentes tipos de mensagem que a Julia pode enviar,
 com prompts especificos e logica de inferencia.
 """
+
 import re
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from enum import Enum
-from typing import Any
 
 from app.core.timezone import agora_brasilia
 
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class TipoAbordagem(str, Enum):
     """Tipos de abordagem disponíveis."""
+
     DISCOVERY = "discovery"
     OFERTA = "oferta"
     REATIVACAO = "reativacao"
@@ -148,23 +149,48 @@ PROMPTS = {
 
 # Palavras-chave para cada tipo
 KEYWORDS_DISCOVERY = [
-    "se apresenta", "apresentar", "primeiro contato", "conhecer",
-    "descobrir", "discovery", "introducao",
+    "se apresenta",
+    "apresentar",
+    "primeiro contato",
+    "conhecer",
+    "descobrir",
+    "discovery",
+    "introducao",
 ]
 
 KEYWORDS_OFERTA = [
-    "oferece", "oferecer", "vaga", "plantao", "oferta",
-    "propoe", "propor", "convida", "convidar",
+    "oferece",
+    "oferecer",
+    "vaga",
+    "plantao",
+    "oferta",
+    "propoe",
+    "propor",
+    "convida",
+    "convidar",
 ]
 
 KEYWORDS_REATIVACAO = [
-    "reativa", "reativar", "sumiu", "faz tempo", "voltou",
-    "reaquecer", "retomar contato", "nao responde",
+    "reativa",
+    "reativar",
+    "sumiu",
+    "faz tempo",
+    "voltou",
+    "reaquecer",
+    "retomar contato",
+    "nao responde",
 ]
 
 KEYWORDS_FOLLOWUP = [
-    "follow", "followup", "follow-up", "continua", "continuando",
-    "retoma", "retomar conversa", "da sequencia", "lembra",
+    "follow",
+    "followup",
+    "follow-up",
+    "continua",
+    "continuando",
+    "retoma",
+    "retomar conversa",
+    "da sequencia",
+    "lembra",
 ]
 
 
@@ -240,7 +266,7 @@ def preparar_prompt(
     instrucao: str = "",
     vaga: dict = None,
     historico: str = "",
-    ultima_interacao: str = ""
+    ultima_interacao: str = "",
 ) -> str:
     """
     Prepara o prompt completo com os dados.
@@ -309,6 +335,7 @@ def descrever_tipo(tipo: TipoAbordagem) -> str:
 # EXTRAIR DADOS DA INSTRUCAO
 # =============================================================================
 
+
 def extrair_telefone(texto: str) -> str | None:
     """
     Extrai numero de telefone de um texto.
@@ -321,16 +348,16 @@ def extrair_telefone(texto: str) -> str | None:
     """
     # Padroes de telefone
     padroes = [
-        r'(?:55)?(\d{2})[\s.-]?(\d{4,5})[\s.-]?(\d{4})',  # 11 99999-9999
-        r'(\d{10,11})',  # 11999999999
+        r"(?:55)?(\d{2})[\s.-]?(\d{4,5})[\s.-]?(\d{4})",  # 11 99999-9999
+        r"(\d{10,11})",  # 11999999999
     ]
 
     for padrao in padroes:
         match = re.search(padrao, texto)
         if match:
             # Juntar grupos
-            telefone = ''.join(match.groups())
-            telefone = re.sub(r'\D', '', telefone)
+            telefone = "".join(match.groups())
+            telefone = re.sub(r"\D", "", telefone)
             if len(telefone) >= 10:
                 return telefone
 
@@ -352,9 +379,16 @@ def extrair_hospital(texto: str, hospitais_conhecidos: list[str] = None) -> str 
 
     # Hospitais conhecidos (expandir conforme necessario)
     hospitais = hospitais_conhecidos or [
-        "sao luiz", "einstein", "sirio", "oswaldo cruz",
-        "santa catarina", "nove de julho", "samaritano",
-        "beneficencia", "hcor", "pro matre",
+        "sao luiz",
+        "einstein",
+        "sirio",
+        "oswaldo cruz",
+        "santa catarina",
+        "nove de julho",
+        "samaritano",
+        "beneficencia",
+        "hcor",
+        "pro matre",
     ]
 
     for hospital in hospitais:
@@ -384,9 +418,9 @@ def extrair_data(texto: str) -> str | None:
 
     # Dia especifico: "dia 15", "15/12", "15 de dezembro"
     padroes = [
-        r'dia\s+(\d{1,2})(?:/(\d{1,2}))?',  # dia 15 ou dia 15/12
-        r'(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?',  # 15/12 ou 15/12/24
-        r'(\d{1,2})\s+de\s+(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)',
+        r"dia\s+(\d{1,2})(?:/(\d{1,2}))?",  # dia 15 ou dia 15/12
+        r"(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?",  # 15/12 ou 15/12/24
+        r"(\d{1,2})\s+de\s+(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)",
     ]
 
     for padrao in padroes:
@@ -401,9 +435,18 @@ def extrair_data(texto: str) -> str | None:
                     mes = int(grupos[1])
                 else:
                     meses = {
-                        "janeiro": 1, "fevereiro": 2, "marco": 3, "abril": 4,
-                        "maio": 5, "junho": 6, "julho": 7, "agosto": 8,
-                        "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12
+                        "janeiro": 1,
+                        "fevereiro": 2,
+                        "marco": 3,
+                        "abril": 4,
+                        "maio": 5,
+                        "junho": 6,
+                        "julho": 7,
+                        "agosto": 8,
+                        "setembro": 9,
+                        "outubro": 10,
+                        "novembro": 11,
+                        "dezembro": 12,
                     }
                     mes = meses.get(grupos[1], agora_brasilia().month)
             else:

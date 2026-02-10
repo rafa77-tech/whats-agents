@@ -134,18 +134,12 @@ async def estatisticas_incidentes(dias: int = 30):
 
         # MTTR (Mean Time To Recover)
         resolved = [i for i in incidents if i.get("duration_seconds")]
-        mttr = (
-            sum(i["duration_seconds"] for i in resolved) / len(resolved)
-            if resolved
-            else 0
-        )
+        mttr = sum(i["duration_seconds"] for i in resolved) / len(resolved) if resolved else 0
 
         # Uptime aproximado (período total - tempo em crítico)
         total_seconds = dias * 24 * 60 * 60
         critical_time = sum(
-            i.get("duration_seconds", 0)
-            for i in incidents
-            if i["to_status"] == "critical"
+            i.get("duration_seconds", 0) for i in incidents if i["to_status"] == "critical"
         )
         uptime_pct = ((total_seconds - critical_time) / total_seconds) * 100
 

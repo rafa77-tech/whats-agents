@@ -5,6 +5,7 @@ Sprint 31 - S31.E3.2
 
 Middlewares para processamento de requisições HTTP.
 """
+
 import logging
 import time
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -104,7 +105,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 "path": request.url.path,
                 "query": str(request.query_params),
                 "client": request.client.host if request.client else "unknown",
-            }
+            },
         )
 
         response = await call_next(request)

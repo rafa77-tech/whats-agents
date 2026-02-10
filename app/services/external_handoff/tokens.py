@@ -3,6 +3,7 @@ Geracao e validacao de tokens JWT para confirmacao de handoff.
 
 Sprint 20 - E02 - Tokens seguros e single-use.
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
@@ -113,10 +114,7 @@ async def validar_token(token: str) -> Tuple[bool, Optional[dict], Optional[str]
             return False, None, "Token incompleto"
 
         # Verificar se ja foi usado
-        response = supabase.table("handoff_used_tokens") \
-            .select("jti") \
-            .eq("jti", jti) \
-            .execute()
+        response = supabase.table("handoff_used_tokens").select("jti").eq("jti", jti).execute()
 
         if response.data:
             logger.warning(f"Token ja usado: jti={jti[:8]}")
@@ -152,12 +150,14 @@ async def marcar_token_usado(
         True se marcado com sucesso
     """
     try:
-        supabase.table("handoff_used_tokens").insert({
-            "jti": jti,
-            "handoff_id": handoff_id,
-            "action": action,
-            "ip_address": ip_address,
-        }).execute()
+        supabase.table("handoff_used_tokens").insert(
+            {
+                "jti": jti,
+                "handoff_id": handoff_id,
+                "action": action,
+                "ip_address": ip_address,
+            }
+        ).execute()
 
         logger.info(f"Token marcado como usado: jti={jti[:8]}")
         return True

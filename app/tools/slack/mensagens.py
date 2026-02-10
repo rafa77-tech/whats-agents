@@ -3,6 +3,7 @@ Tools de mensagens para o agente Slack.
 
 Sprint 10 - S10.E2.3
 """
+
 import re
 
 import httpx
@@ -44,20 +45,20 @@ ACAO CRITICA: Sempre mostre preview da mensagem e peca confirmacao antes de envi
         "properties": {
             "telefone": {
                 "type": "string",
-                "description": "Numero de telefone do medico com DDD (ex: 11999887766)"
+                "description": "Numero de telefone do medico com DDD (ex: 11999887766)",
             },
             "instrucao": {
                 "type": "string",
-                "description": "Instrucao sobre o que dizer na mensagem (ex: 'oferecer vaga do Sao Luiz')"
+                "description": "Instrucao sobre o que dizer na mensagem (ex: 'oferecer vaga do Sao Luiz')",
             },
             "tipo": {
                 "type": "string",
                 "enum": ["discovery", "oferta", "reativacao", "followup", "custom"],
-                "description": "Tipo de abordagem. Use 'discovery' para primeiro contato, 'oferta' para vaga especifica."
-            }
+                "description": "Tipo de abordagem. Use 'discovery' para primeiro contato, 'oferta' para vaga especifica.",
+            },
         },
-        "required": ["telefone"]
-    }
+        "required": ["telefone"],
+    },
 }
 
 TOOL_BUSCAR_HISTORICO = {
@@ -76,23 +77,18 @@ NAO requer confirmacao - e apenas leitura de dados.""",
     "input_schema": {
         "type": "object",
         "properties": {
-            "telefone": {
-                "type": "string",
-                "description": "Telefone do medico"
-            },
-            "limite": {
-                "type": "integer",
-                "description": "Quantidade de mensagens (padrao: 10)"
-            }
+            "telefone": {"type": "string", "description": "Telefone do medico"},
+            "limite": {"type": "integer", "description": "Quantidade de mensagens (padrao: 10)"},
         },
-        "required": ["telefone"]
-    }
+        "required": ["telefone"],
+    },
 }
 
 
 # =============================================================================
 # HANDLERS
 # =============================================================================
+
 
 async def handle_enviar_mensagem(params: dict) -> dict:
     """Envia mensagem WhatsApp para medico."""
@@ -104,7 +100,7 @@ async def handle_enviar_mensagem(params: dict) -> dict:
         return {"success": False, "error": "Telefone nao informado"}
 
     # Limpar telefone
-    telefone_limpo = re.sub(r'\D', '', telefone)
+    telefone_limpo = re.sub(r"\D", "", telefone)
     if len(telefone_limpo) < 8:
         return {"success": False, "error": "Telefone invalido"}
 
@@ -115,7 +111,7 @@ async def handle_enviar_mensagem(params: dict) -> dict:
     if medico and (medico.get("opt_out") or medico.get("opted_out")):
         return {
             "success": False,
-            "error": f"Medico {medico.get('primeiro_nome')} esta bloqueado (opt-out)"
+            "error": f"Medico {medico.get('primeiro_nome')} esta bloqueado (opt-out)",
         }
 
     # Verificar se eh medico novo (nunca contatado)
@@ -139,11 +135,7 @@ async def handle_enviar_mensagem(params: dict) -> dict:
 
     try:
         async with httpx.AsyncClient() as client:
-            payload = {
-                "telefone": telefone_limpo,
-                "tipo": tipo,
-                "instrucao": instrucao
-            }
+            payload = {"telefone": telefone_limpo, "tipo": tipo, "instrucao": instrucao}
 
             # Adicionar dados de vaga se detectados
             if hospital:
@@ -152,9 +144,7 @@ async def handle_enviar_mensagem(params: dict) -> dict:
                 payload["data_vaga"] = data_vaga
 
             response = await client.post(
-                f"{settings.JULIA_API_URL}/jobs/primeira-mensagem",
-                json=payload,
-                timeout=30.0
+                f"{settings.JULIA_API_URL}/jobs/primeira-mensagem", json=payload, timeout=30.0
             )
 
             if response.status_code == 200:
@@ -165,7 +155,7 @@ async def handle_enviar_mensagem(params: dict) -> dict:
                     "telefone": telefone_limpo,
                     "nome": nome,
                     "tipo_abordagem": descrever_tipo(TipoAbordagem(tipo)),
-                    "mensagem": data.get("mensagem_enviada", "Mensagem enviada")
+                    "mensagem": data.get("mensagem_enviada", "Mensagem enviada"),
                 }
             else:
                 return {"success": False, "error": f"Erro na API: {response.status_code}"}
@@ -187,25 +177,30 @@ async def handle_buscar_historico(params: dict) -> dict:
         return {"success": False, "error": f"Medico nao encontrado: {telefone}"}
 
     try:
-        interacoes = supabase.table("interacoes").select(
-            "tipo, autor_tipo, conteudo, created_at"
-        ).eq("cliente_id", medico["id"]).order(
-            "created_at", desc=True
-        ).limit(limite).execute()
+        interacoes = (
+            supabase.table("interacoes")
+            .select("tipo, autor_tipo, conteudo, created_at")
+            .eq("cliente_id", medico["id"])
+            .order("created_at", desc=True)
+            .limit(limite)
+            .execute()
+        )
 
         mensagens = []
         for i in interacoes.data or []:
-            mensagens.append({
-                "autor": "julia" if i.get("autor_tipo") == "julia" else "medico",
-                "texto": i.get("conteudo"),
-                "data": i.get("created_at")
-            })
+            mensagens.append(
+                {
+                    "autor": "julia" if i.get("autor_tipo") == "julia" else "medico",
+                    "texto": i.get("conteudo"),
+                    "data": i.get("created_at"),
+                }
+            )
 
         return {
             "success": True,
             "medico": medico.get("primeiro_nome"),
             "mensagens": list(reversed(mensagens)),
-            "total": len(mensagens)
+            "total": len(mensagens),
         }
 
     except Exception as e:

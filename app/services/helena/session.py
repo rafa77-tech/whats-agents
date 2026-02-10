@@ -3,6 +3,7 @@ Gerenciamento de sessão para Helena.
 
 Sprint 47: Adaptado de app/services/slack/session.py com ajustes para Helena.
 """
+
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -75,12 +76,8 @@ class SessionManager:
                     channel_id=self.channel_id,
                     mensagens=data.get("mensagens", []),
                     contexto=data.get("contexto", {}),
-                    created_at=datetime.fromisoformat(
-                        data["created_at"].replace("Z", "+00:00")
-                    ),
-                    updated_at=datetime.fromisoformat(
-                        data["updated_at"].replace("Z", "+00:00")
-                    ),
+                    created_at=datetime.fromisoformat(data["created_at"].replace("Z", "+00:00")),
+                    updated_at=datetime.fromisoformat(data["updated_at"].replace("Z", "+00:00")),
                 )
                 logger.debug(f"Sessão Helena carregada: {self.user_id}")
             else:

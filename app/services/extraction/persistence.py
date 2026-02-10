@@ -147,7 +147,9 @@ async def salvar_memorias_extraidas(
             memorias_salvas += 1
 
     if memorias_salvas > 0:
-        logger.info(f"[Persistence] {memorias_salvas} memorias salvas para cliente {cliente_id[:8]}")
+        logger.info(
+            f"[Persistence] {memorias_salvas} memorias salvas para cliente {cliente_id[:8]}"
+        )
 
     return memorias_salvas
 
@@ -175,17 +177,21 @@ async def _salvar_memoria(
         embedding = await gerar_embedding(conteudo)
 
         if not embedding:
-            logger.warning(f"[Persistence] Nao foi possivel gerar embedding para: {conteudo[:30]}...")
+            logger.warning(
+                f"[Persistence] Nao foi possivel gerar embedding para: {conteudo[:30]}..."
+            )
             # Salvar mesmo sem embedding
-            supabase.table("doctor_context").insert({
-                "cliente_id": cliente_id,
-                "content": conteudo,
-                "tipo": tipo,
-                "source": "extraction",
-                "source_id": conversa_id,
-                "valido": True,
-                "confianca": "alta",
-            }).execute()
+            supabase.table("doctor_context").insert(
+                {
+                    "cliente_id": cliente_id,
+                    "content": conteudo,
+                    "tipo": tipo,
+                    "source": "extraction",
+                    "source_id": conversa_id,
+                    "valido": True,
+                    "confianca": "alta",
+                }
+            ).execute()
             return True
 
         # Verificar duplicata (similaridade > 0.95)
@@ -198,7 +204,7 @@ async def _salvar_memoria(
                     "p_embedding": embedding,
                     "p_threshold": 0.95,
                     "p_limit": 1,
-                }
+                },
             ).execute()
 
             if check.data and len(check.data) > 0:
@@ -209,16 +215,18 @@ async def _salvar_memoria(
             logger.debug(f"[Persistence] RPC buscar_memorias_similares nao disponivel: {e}")
 
         # Inserir nova memoria
-        supabase.table("doctor_context").insert({
-            "cliente_id": cliente_id,
-            "content": conteudo,
-            "tipo": tipo,
-            "source": "extraction",
-            "source_id": conversa_id,
-            "embedding": embedding,
-            "valido": True,
-            "confianca": "alta",
-        }).execute()
+        supabase.table("doctor_context").insert(
+            {
+                "cliente_id": cliente_id,
+                "content": conteudo,
+                "tipo": tipo,
+                "source": "extraction",
+                "source_id": conversa_id,
+                "embedding": embedding,
+                "valido": True,
+                "confianca": "alta",
+            }
+        ).execute()
 
         return True
 
@@ -254,10 +262,7 @@ async def atualizar_dados_cliente(
 
     try:
         # Filtrar apenas campos permitidos
-        dados_filtrados = {
-            k: v for k, v in dados.items()
-            if k in CAMPOS_PERMITIDOS and v
-        }
+        dados_filtrados = {k: v for k, v in dados.items() if k in CAMPOS_PERMITIDOS and v}
 
         if not dados_filtrados:
             return False
@@ -269,9 +274,13 @@ async def atualizar_dados_cliente(
         )
 
         # Buscar preferencias_detectadas atuais
-        result = supabase.table("clientes").select(
-            "preferencias_detectadas"
-        ).eq("id", cliente_id).single().execute()
+        result = (
+            supabase.table("clientes")
+            .select("preferencias_detectadas")
+            .eq("id", cliente_id)
+            .single()
+            .execute()
+        )
 
         prefs = result.data.get("preferencias_detectadas") or {}
         prefs["ultima_extracao"] = dados_filtrados
@@ -289,10 +298,7 @@ async def atualizar_dados_cliente(
         return False
 
 
-async def buscar_insights_conversa(
-    conversation_id: str,
-    limit: int = 10
-) -> List[dict]:
+async def buscar_insights_conversa(conversation_id: str, limit: int = 10) -> List[dict]:
     """
     Busca insights de uma conversa.
 
@@ -304,11 +310,14 @@ async def buscar_insights_conversa(
         Lista de insights
     """
     try:
-        result = supabase.table("conversation_insights").select(
-            "*"
-        ).eq("conversation_id", conversation_id).order(
-            "created_at", desc=True
-        ).limit(limit).execute()
+        result = (
+            supabase.table("conversation_insights")
+            .select("*")
+            .eq("conversation_id", conversation_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
 
         return result.data or []
 
@@ -317,10 +326,7 @@ async def buscar_insights_conversa(
         return []
 
 
-async def buscar_insights_cliente(
-    cliente_id: str,
-    limit: int = 20
-) -> List[dict]:
+async def buscar_insights_cliente(cliente_id: str, limit: int = 20) -> List[dict]:
     """
     Busca insights de um cliente.
 
@@ -332,11 +338,14 @@ async def buscar_insights_cliente(
         Lista de insights
     """
     try:
-        result = supabase.table("conversation_insights").select(
-            "*"
-        ).eq("cliente_id", cliente_id).order(
-            "created_at", desc=True
-        ).limit(limit).execute()
+        result = (
+            supabase.table("conversation_insights")
+            .select("*")
+            .eq("cliente_id", cliente_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
 
         return result.data or []
 
@@ -345,10 +354,7 @@ async def buscar_insights_cliente(
         return []
 
 
-async def buscar_insights_campanha(
-    campaign_id: int,
-    limit: int = 100
-) -> List[dict]:
+async def buscar_insights_campanha(campaign_id: int, limit: int = 100) -> List[dict]:
     """
     Busca insights de uma campanha.
 
@@ -360,11 +366,14 @@ async def buscar_insights_campanha(
         Lista de insights
     """
     try:
-        result = supabase.table("conversation_insights").select(
-            "*"
-        ).eq("campaign_id", campaign_id).order(
-            "created_at", desc=True
-        ).limit(limit).execute()
+        result = (
+            supabase.table("conversation_insights")
+            .select("*")
+            .eq("campaign_id", campaign_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
 
         return result.data or []
 

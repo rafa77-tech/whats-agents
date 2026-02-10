@@ -1,6 +1,7 @@
 """
 Carregador de prompts com cache.
 """
+
 import logging
 from typing import Optional
 
@@ -43,7 +44,6 @@ Voce e Julia Mendes, 27 anos, escalista da Revoluna (escalas medicas).
 
 ## FALLBACK
 Se nao houver diretrizes: tom profissional, nao negocie valores.""",
-
     "julia_tools": """## USO DE TOOLS
 
 ### buscar_vagas
@@ -58,7 +58,6 @@ Use quando medico pede para falar depois.
 
 ### salvar_memoria
 Use quando medico menciona preferencia, restricao ou info importante.""",
-
     "julia_primeira_msg": """Esta e a PRIMEIRA interacao com este medico.
 - Se apresente brevemente
 - Mencione que trabalha com escalas medicas
@@ -209,8 +208,7 @@ async def buscar_prompt_por_tipo_campanha(tipo_campanha: str) -> Optional[str]:
     """
     if tipo_campanha not in TIPOS_CAMPANHA_VALIDOS:
         raise ValueError(
-            f"Tipo de campanha inválido: {tipo_campanha}. "
-            f"Válidos: {TIPOS_CAMPANHA_VALIDOS}"
+            f"Tipo de campanha inválido: {tipo_campanha}. Válidos: {TIPOS_CAMPANHA_VALIDOS}"
         )
 
     nome_prompt = f"julia_{tipo_campanha}"

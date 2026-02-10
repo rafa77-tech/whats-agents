@@ -5,10 +5,11 @@ Sprint 17 - E06
 
 Queries e agregações para métricas de conversão.
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from app.services.supabase import supabase
 
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FunnelMetrics:
     """Métricas de funil."""
+
     period_hours: int
     hospital_id: Optional[str] = None
 
@@ -80,8 +82,7 @@ async def get_funnel_metrics(
     try:
         # Chamar função SQL de contagem
         response = supabase.rpc(
-            "count_business_events",
-            {"p_hours": hours, "p_hospital_id": hospital_id}
+            "count_business_events", {"p_hours": hours, "p_hospital_id": hospital_id}
         ).execute()
 
         # Preencher contagens
@@ -116,9 +117,7 @@ async def get_funnel_metrics(
             )
 
         if metrics.offer_made > 0:
-            metrics.conversion_rate = round(
-                (metrics.offer_accepted / metrics.offer_made) * 100, 2
-            )
+            metrics.conversion_rate = round((metrics.offer_accepted / metrics.offer_made) * 100, 2)
 
         if metrics.offer_accepted > 0:
             metrics.completion_rate = round(
@@ -155,9 +154,7 @@ async def get_funnel_by_hospital(hours: int = 24) -> List[dict]:
         )
 
         # Dedupe hospitais
-        hospital_ids = list(set(
-            row["hospital_id"] for row in response.data or []
-        ))
+        hospital_ids = list(set(row["hospital_id"] for row in response.data or []))
 
         # Obter métricas de cada hospital
         results = []
@@ -219,10 +216,12 @@ async def get_funnel_trend(
                 event_type = row["event_type"]
                 counts[event_type] = counts.get(event_type, 0) + 1
 
-            results.append({
-                "date": end.strftime("%Y-%m-%d"),
-                "counts": counts,
-            })
+            results.append(
+                {
+                    "date": end.strftime("%Y-%m-%d"),
+                    "counts": counts,
+                }
+            )
 
         except Exception as e:
             logger.error(f"Erro ao obter tendência dia {i}: {e}")
@@ -263,15 +262,10 @@ async def get_top_doctors(
             cliente_counts[cliente_id] = cliente_counts.get(cliente_id, 0) + 1
 
         # Ordenar e limitar
-        sorted_clientes = sorted(
-            cliente_counts.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )[:limit]
+        sorted_clientes = sorted(cliente_counts.items(), key=lambda x: x[1], reverse=True)[:limit]
 
         return [
-            {"cliente_id": cliente_id, "events": count}
-            for cliente_id, count in sorted_clientes
+            {"cliente_id": cliente_id, "events": count} for cliente_id, count in sorted_clientes
         ]
 
     except Exception as e:
@@ -325,14 +319,20 @@ async def get_conversion_time(
         for vaga_data in vagas.values():
             if "offer_made" in vaga_data and "offer_accepted" in vaga_data:
                 made = datetime.fromisoformat(vaga_data["offer_made"].replace("Z", "+00:00"))
-                accepted = datetime.fromisoformat(vaga_data["offer_accepted"].replace("Z", "+00:00"))
+                accepted = datetime.fromisoformat(
+                    vaga_data["offer_accepted"].replace("Z", "+00:00")
+                )
                 delta_hours = (accepted - made).total_seconds() / 3600
                 if delta_hours >= 0:
                     made_to_accepted.append(delta_hours)
 
             if "offer_accepted" in vaga_data and "shift_completed" in vaga_data:
-                accepted = datetime.fromisoformat(vaga_data["offer_accepted"].replace("Z", "+00:00"))
-                completed = datetime.fromisoformat(vaga_data["shift_completed"].replace("Z", "+00:00"))
+                accepted = datetime.fromisoformat(
+                    vaga_data["offer_accepted"].replace("Z", "+00:00")
+                )
+                completed = datetime.fromisoformat(
+                    vaga_data["shift_completed"].replace("Z", "+00:00")
+                )
                 delta_hours = (completed - accepted).total_seconds() / 3600
                 if delta_hours >= 0:
                     accepted_to_completed.append(delta_hours)
@@ -340,12 +340,14 @@ async def get_conversion_time(
         return {
             "period_hours": hours,
             "hospital_id": hospital_id,
-            "avg_hours_made_to_accepted": round(
-                sum(made_to_accepted) / len(made_to_accepted), 2
-            ) if made_to_accepted else None,
+            "avg_hours_made_to_accepted": round(sum(made_to_accepted) / len(made_to_accepted), 2)
+            if made_to_accepted
+            else None,
             "avg_hours_accepted_to_completed": round(
                 sum(accepted_to_completed) / len(accepted_to_completed), 2
-            ) if accepted_to_completed else None,
+            )
+            if accepted_to_completed
+            else None,
             "sample_size_made_to_accepted": len(made_to_accepted),
             "sample_size_accepted_to_completed": len(accepted_to_completed),
         }

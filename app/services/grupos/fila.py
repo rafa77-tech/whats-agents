@@ -3,6 +3,7 @@ Gerenciamento de fila de processamento de mensagens de grupos.
 
 Sprint 14 - E11 - Worker e Orquestração
 """
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta, UTC
 from enum import Enum
@@ -19,8 +20,10 @@ logger = get_logger(__name__)
 # S11.1 - Definição de Estágios e Estruturas
 # =============================================================================
 
+
 class EstagioPipeline(Enum):
     """Estágios do pipeline de processamento."""
+
     PENDENTE = "pendente"
     HEURISTICA = "heuristica"
     CLASSIFICACAO = "classificacao"
@@ -36,6 +39,7 @@ class EstagioPipeline(Enum):
 @dataclass
 class ItemFila:
     """Item na fila de processamento."""
+
     id: UUID
     mensagem_id: UUID
     estagio: EstagioPipeline
@@ -56,6 +60,7 @@ RETRY_DELAYS = [1, 5, 15]
 # S11.2 - Funções de Enfileiramento
 # =============================================================================
 
+
 async def enfileirar_mensagem(mensagem_id: UUID) -> Optional[UUID]:
     """
     Adiciona mensagem à fila de processamento.
@@ -72,11 +77,17 @@ async def enfileirar_mensagem(mensagem_id: UUID) -> Optional[UUID]:
         ID do item na fila, ou None se já existir
     """
     try:
-        result = supabase.table("fila_processamento_grupos").insert({
-            "mensagem_id": str(mensagem_id),
-            "estagio": EstagioPipeline.PENDENTE.value,
-            "tentativas": 0,
-        }).execute()
+        result = (
+            supabase.table("fila_processamento_grupos")
+            .insert(
+                {
+                    "mensagem_id": str(mensagem_id),
+                    "estagio": EstagioPipeline.PENDENTE.value,
+                    "tentativas": 0,
+                }
+            )
+            .execute()
+        )
 
         item_id = UUID(result.data[0]["id"])
         logger.debug(f"Mensagem {mensagem_id} enfileirada: {item_id}")
@@ -93,9 +104,7 @@ async def enfileirar_mensagem(mensagem_id: UUID) -> Optional[UUID]:
 
 
 async def criar_itens_para_vagas(
-    mensagem_id: UUID,
-    vagas_ids: List[str],
-    estagio: EstagioPipeline = EstagioPipeline.NORMALIZACAO
+    mensagem_id: UUID, vagas_ids: List[str], estagio: EstagioPipeline = EstagioPipeline.NORMALIZACAO
 ) -> int:
     """
     Cria itens na fila para cada vaga extraída de uma mensagem.
@@ -124,9 +133,7 @@ async def criar_itens_para_vagas(
         for vaga_id in vagas_ids
     ]
 
-    result = supabase.table("fila_processamento_grupos") \
-        .insert(dados) \
-        .execute()
+    result = supabase.table("fila_processamento_grupos").insert(dados).execute()
 
     count = len(result.data) if result.data else 0
     logger.info(f"Criados {count} itens para vagas da mensagem {mensagem_id}")
@@ -156,9 +163,11 @@ async def enfileirar_batch(mensagens_ids: List[UUID]) -> int:
         for mid in mensagens_ids
     ]
 
-    result = supabase.table("fila_processamento_grupos") \
-        .upsert(dados, on_conflict="mensagem_id") \
+    result = (
+        supabase.table("fila_processamento_grupos")
+        .upsert(dados, on_conflict="mensagem_id")
         .execute()
+    )
 
     count = len(result.data)
     logger.info(f"Enfileiradas {count} mensagens")
@@ -170,10 +179,8 @@ async def enfileirar_batch(mensagens_ids: List[UUID]) -> int:
 # S11.3 - Funções de Busca
 # =============================================================================
 
-async def buscar_proximos_pendentes(
-    estagio: EstagioPipeline,
-    limite: int = 50
-) -> List[dict]:
+
+async def buscar_proximos_pendentes(estagio: EstagioPipeline, limite: int = 50) -> List[dict]:
     """
     Busca próximos itens para processar em um estágio.
 
@@ -188,14 +195,16 @@ async def buscar_proximos_pendentes(
     """
     agora = datetime.now(UTC).isoformat()
 
-    result = supabase.table("fila_processamento_grupos") \
-        .select("id, mensagem_id, vaga_grupo_id, tentativas") \
-        .eq("estagio", estagio.value) \
-        .lt("tentativas", 3) \
-        .or_(f"proximo_retry.is.null,proximo_retry.lte.{agora}") \
-        .order("created_at") \
-        .limit(limite) \
+    result = (
+        supabase.table("fila_processamento_grupos")
+        .select("id, mensagem_id, vaga_grupo_id, tentativas")
+        .eq("estagio", estagio.value)
+        .lt("tentativas", 3)
+        .or_(f"proximo_retry.is.null,proximo_retry.lte.{agora}")
+        .order("created_at")
+        .limit(limite)
         .execute()
+    )
 
     return result.data
 
@@ -210,11 +219,13 @@ async def buscar_item_por_mensagem(mensagem_id: UUID) -> Optional[dict]:
     Returns:
         Item da fila ou None
     """
-    result = supabase.table("fila_processamento_grupos") \
-        .select("*") \
-        .eq("mensagem_id", str(mensagem_id)) \
-        .limit(1) \
+    result = (
+        supabase.table("fila_processamento_grupos")
+        .select("*")
+        .eq("mensagem_id", str(mensagem_id))
+        .limit(1)
         .execute()
+    )
 
     return result.data[0] if result.data else None
 
@@ -223,11 +234,12 @@ async def buscar_item_por_mensagem(mensagem_id: UUID) -> Optional[dict]:
 # S11.4 - Funções de Atualização
 # =============================================================================
 
+
 async def atualizar_estagio(
     item_id: UUID,
     novo_estagio: EstagioPipeline,
     erro: Optional[str] = None,
-    vaga_grupo_id: Optional[UUID] = None
+    vaga_grupo_id: Optional[UUID] = None,
 ) -> None:
     """
     Atualiza estágio de um item na fila.
@@ -253,11 +265,13 @@ async def atualizar_estagio(
         updates["ultimo_erro"] = erro[:500]  # Limitar tamanho
 
         # Buscar tentativas atuais
-        result = supabase.table("fila_processamento_grupos") \
-            .select("tentativas, mensagem_id") \
-            .eq("id", str(item_id)) \
-            .single() \
+        result = (
+            supabase.table("fila_processamento_grupos")
+            .select("tentativas, mensagem_id")
+            .eq("id", str(item_id))
+            .single()
             .execute()
+        )
 
         tentativas = (result.data.get("tentativas", 0) if result.data else 0) + 1
         updates["tentativas"] = tentativas
@@ -278,19 +292,13 @@ async def atualizar_estagio(
         updates["ultimo_erro"] = None
         updates["proximo_retry"] = None
 
-    supabase.table("fila_processamento_grupos") \
-        .update(updates) \
-        .eq("id", str(item_id)) \
-        .execute()
+    supabase.table("fila_processamento_grupos").update(updates).eq("id", str(item_id)).execute()
 
     # Sincronizar status em mensagens_grupo para estágios terminais
     await _sincronizar_status_mensagem(item_id, novo_estagio)
 
 
-async def _sincronizar_status_mensagem(
-    item_id: UUID,
-    estagio: EstagioPipeline
-) -> None:
+async def _sincronizar_status_mensagem(item_id: UUID, estagio: EstagioPipeline) -> None:
     """
     Sincroniza o status da mensagem com base no estágio da fila.
 
@@ -318,11 +326,13 @@ async def _sincronizar_status_mensagem(
 
     try:
         # Buscar mensagem_id do item
-        result = supabase.table("fila_processamento_grupos") \
-            .select("mensagem_id") \
-            .eq("id", str(item_id)) \
-            .single() \
+        result = (
+            supabase.table("fila_processamento_grupos")
+            .select("mensagem_id")
+            .eq("id", str(item_id))
+            .single()
             .execute()
+        )
 
         if not result.data or not result.data.get("mensagem_id"):
             return
@@ -330,10 +340,9 @@ async def _sincronizar_status_mensagem(
         mensagem_id = result.data["mensagem_id"]
 
         # Atualizar status da mensagem
-        supabase.table("mensagens_grupo") \
-            .update({"status": novo_status}) \
-            .eq("id", mensagem_id) \
-            .execute()
+        supabase.table("mensagens_grupo").update({"status": novo_status}).eq(
+            "id", mensagem_id
+        ).execute()
 
         logger.debug(f"Mensagem {mensagem_id} status atualizado para '{novo_status}'")
 
@@ -349,19 +358,19 @@ async def marcar_como_finalizado(item_id: UUID) -> None:
 
 async def marcar_como_descartado(item_id: UUID, motivo: str) -> None:
     """Marca item como descartado."""
-    supabase.table("fila_processamento_grupos") \
-        .update({
+    supabase.table("fila_processamento_grupos").update(
+        {
             "estagio": EstagioPipeline.DESCARTADO.value,
             "ultimo_erro": f"descartado: {motivo}",
             "updated_at": datetime.now(UTC).isoformat(),
-        }) \
-        .eq("id", str(item_id)) \
-        .execute()
+        }
+    ).eq("id", str(item_id)).execute()
 
 
 # =============================================================================
 # S11.5 - Funções de Estatísticas
 # =============================================================================
+
 
 async def obter_estatisticas_fila() -> dict:
     """
@@ -373,18 +382,22 @@ async def obter_estatisticas_fila() -> dict:
     stats = {}
 
     for estagio in EstagioPipeline:
-        result = supabase.table("fila_processamento_grupos") \
-            .select("id", count="exact") \
-            .eq("estagio", estagio.value) \
+        result = (
+            supabase.table("fila_processamento_grupos")
+            .select("id", count="exact")
+            .eq("estagio", estagio.value)
             .execute()
+        )
 
         stats[estagio.value] = result.count or 0
 
     # Itens com erro (tentativas >= max)
-    erros_max = supabase.table("fila_processamento_grupos") \
-        .select("id", count="exact") \
-        .gte("tentativas", 3) \
+    erros_max = (
+        supabase.table("fila_processamento_grupos")
+        .select("id", count="exact")
+        .gte("tentativas", 3)
         .execute()
+    )
 
     stats["erros_max_tentativas"] = erros_max.count or 0
 
@@ -403,17 +416,22 @@ async def obter_itens_travados(horas: int = 1) -> List[dict]:
     """
     limite = (datetime.now(UTC) - timedelta(hours=horas)).isoformat()
 
-    result = supabase.table("fila_processamento_grupos") \
-        .select("id, mensagem_id, estagio, tentativas, ultimo_erro, updated_at") \
-        .not_.in_("estagio", [
-            EstagioPipeline.FINALIZADO.value,
-            EstagioPipeline.DESCARTADO.value,
-            EstagioPipeline.ERRO.value
-        ]) \
-        .lt("updated_at", limite) \
-        .order("updated_at") \
-        .limit(100) \
+    result = (
+        supabase.table("fila_processamento_grupos")
+        .select("id, mensagem_id, estagio, tentativas, ultimo_erro, updated_at")
+        .not_.in_(
+            "estagio",
+            [
+                EstagioPipeline.FINALIZADO.value,
+                EstagioPipeline.DESCARTADO.value,
+                EstagioPipeline.ERRO.value,
+            ],
+        )
+        .lt("updated_at", limite)
+        .order("updated_at")
+        .limit(100)
         .execute()
+    )
 
     return result.data
 
@@ -421,6 +439,7 @@ async def obter_itens_travados(horas: int = 1) -> List[dict]:
 # =============================================================================
 # S11.6 - Reprocessamento
 # =============================================================================
+
 
 async def reprocessar_erros(limite: int = 100) -> int:
     """
@@ -433,23 +452,24 @@ async def reprocessar_erros(limite: int = 100) -> int:
         Quantidade de itens reprocessados
     """
     # Buscar itens com erro que ainda não atingiram max tentativas
-    result = supabase.table("fila_processamento_grupos") \
-        .select("id") \
-        .eq("estagio", EstagioPipeline.ERRO.value) \
-        .lt("tentativas", 3) \
-        .limit(limite) \
+    result = (
+        supabase.table("fila_processamento_grupos")
+        .select("id")
+        .eq("estagio", EstagioPipeline.ERRO.value)
+        .lt("tentativas", 3)
+        .limit(limite)
         .execute()
+    )
 
     count = 0
     for item in result.data:
-        supabase.table("fila_processamento_grupos") \
-            .update({
+        supabase.table("fila_processamento_grupos").update(
+            {
                 "estagio": EstagioPipeline.PENDENTE.value,
                 "proximo_retry": None,
                 "updated_at": datetime.now(UTC).isoformat(),
-            }) \
-            .eq("id", item["id"]) \
-            .execute()
+            }
+        ).eq("id", item["id"]).execute()
         count += 1
 
     logger.info(f"Reprocessados {count} itens com erro")
@@ -468,14 +488,13 @@ async def limpar_finalizados(dias: int = 7) -> int:
     """
     limite = (datetime.now(UTC) - timedelta(days=dias)).isoformat()
 
-    result = supabase.table("fila_processamento_grupos") \
-        .delete() \
-        .in_("estagio", [
-            EstagioPipeline.FINALIZADO.value,
-            EstagioPipeline.DESCARTADO.value
-        ]) \
-        .lt("updated_at", limite) \
+    result = (
+        supabase.table("fila_processamento_grupos")
+        .delete()
+        .in_("estagio", [EstagioPipeline.FINALIZADO.value, EstagioPipeline.DESCARTADO.value])
+        .lt("updated_at", limite)
         .execute()
+    )
 
     count = len(result.data) if result.data else 0
     logger.info(f"Removidos {count} itens finalizados antigos")

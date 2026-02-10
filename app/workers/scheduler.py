@@ -4,12 +4,13 @@ Scheduler para executar jobs agendados.
 IMPORTANTE: Os schedules (cron expressions) são interpretados no horário de Brasília.
 Exemplo: "0 10 * * *" = 10h no horário de São Paulo.
 """
+
 import asyncio
 import httpx
 import logging
 import sys
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 from app.core.config import settings
 from app.core.timezone import agora_brasilia, agora_utc
@@ -17,10 +18,10 @@ from app.core.timezone import agora_brasilia, agora_utc
 # Configurar logging para stdout (Railway captura stdout)
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
     stream=sys.stdout,
-    force=True
+    force=True,
 )
 logger = logging.getLogger(__name__)
 
@@ -347,23 +348,23 @@ def should_run(schedule: str, now: datetime) -> bool:
     except ValueError as e:
         logger.error(f"Erro ao parsear cron {schedule}: {e}")
         return False
-    
+
     # Verificar minuto
     if not matches_cron_field(cron["minute"], now.minute):
         return False
-    
+
     # Verificar hora
     if not matches_cron_field(cron["hour"], now.hour):
         return False
-    
+
     # Verificar dia do mês
     if not matches_cron_field(cron["day"], now.day):
         return False
-    
+
     # Verificar mês
     if not matches_cron_field(cron["month"], now.month):
         return False
-    
+
     # Verificar dia da semana (0=domingo, 6=sábado)
     # Cron: 0=domingo, 7=domingo também
     if cron["weekday"] != "*":
@@ -375,13 +376,14 @@ def should_run(schedule: str, now: datetime) -> bool:
         cron_weekday = (weekday_now + 1) % 7
         if not matches_cron_field(weekday_cron, cron_weekday):
             return False
-    
+
     return True
 
 
 async def execute_job(job: dict):
     """Executa um job com persistência de histórico."""
     import time
+
     start_time = time.time()
     execution_id = await _registrar_inicio_job(job["name"])
 
@@ -416,7 +418,9 @@ async def execute_job(job: dict):
                 )
             else:
                 print(f"   ❌ {job['name']} FAIL: {response.status_code}", flush=True)
-                logger.error(f"❌ Job {job['name']} falhou: {response.status_code} - {response.text}")
+                logger.error(
+                    f"❌ Job {job['name']} falhou: {response.status_code} - {response.text}"
+                )
 
                 # Persistir erro
                 await _registrar_fim_job(
@@ -459,7 +463,7 @@ async def scheduler_loop():
     print("=" * 60, flush=True)
     print("🕐 SCHEDULER INICIADO", flush=True)
     print(f"📡 API URL: {JULIA_API_URL}", flush=True)
-    print(f"🌎 Timezone: America/Sao_Paulo (BRT)", flush=True)
+    print("🌎 Timezone: America/Sao_Paulo (BRT)", flush=True)
     print(f"⏰ Hora atual: {agora_brasilia().strftime('%Y-%m-%d %H:%M:%S')} BRT", flush=True)
     print(f"📋 {len(JOBS)} jobs configurados:", flush=True)
     for job in JOBS:
@@ -469,9 +473,9 @@ async def scheduler_loop():
     logger.info("🕐 Scheduler iniciado")
     logger.info(f"📡 API URL: {JULIA_API_URL}")
     logger.info(f"📋 {len(JOBS)} jobs configurados")
-    
+
     last_minute = -1
-    
+
     while True:
         try:
             # Usar horário de Brasília para interpretar schedules
@@ -483,13 +487,16 @@ async def scheduler_loop():
 
                 for job in JOBS:
                     if should_run(job["schedule"], now):
-                        print(f"⏰ [{now.strftime('%H:%M:%S')} BRT] Trigger: {job['name']}", flush=True)
+                        print(
+                            f"⏰ [{now.strftime('%H:%M:%S')} BRT] Trigger: {job['name']}",
+                            flush=True,
+                        )
                         logger.info(f"⏰ Trigger: {job['name']} (schedule: {job['schedule']})")
                         await execute_job(job)
-            
+
             # Aguardar até próximo segundo
             await asyncio.sleep(1)
-            
+
         except KeyboardInterrupt:
             logger.info("🛑 Scheduler interrompido")
             break
@@ -500,4 +507,3 @@ async def scheduler_loop():
 
 if __name__ == "__main__":
     asyncio.run(scheduler_loop())
-

@@ -1,7 +1,8 @@
 """
 Configurações por especialidade médica.
 """
-from typing import Dict, Optional
+
+from typing import Dict
 
 CONFIGURACOES_ESPECIALIDADE: Dict[str, Dict] = {
     "anestesiologia": {
@@ -60,16 +61,16 @@ CONFIGURACOES_ESPECIALIDADE: Dict[str, Dict] = {
 def obter_config_especialidade(especialidade_nome: str) -> Dict:
     """
     Retorna configuração da especialidade.
-    
+
     Args:
         especialidade_nome: Nome da especialidade (ex: "Anestesiologia", "anestesiologia")
-    
+
     Returns:
         Dict com configuração ou dict vazio se não encontrada
     """
     if not especialidade_nome:
         return {}
-    
+
     nome_normalizado = especialidade_nome.lower().replace(" ", "_").strip()
     return CONFIGURACOES_ESPECIALIDADE.get(nome_normalizado, {})
 
@@ -77,4 +78,3 @@ def obter_config_especialidade(especialidade_nome: str) -> Dict:
 def listar_especialidades_configuradas() -> list[str]:
     """Retorna lista de especialidades com configuração."""
     return list(CONFIGURACOES_ESPECIALIDADE.keys())
-

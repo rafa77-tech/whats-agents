@@ -3,6 +3,7 @@ Services para jobs e tarefas agendadas.
 
 Sprint 10 - S10.E3.1
 """
+
 from .primeira_mensagem import (
     ResultadoPrimeiraMensagem,
     enviar_primeira_mensagem,

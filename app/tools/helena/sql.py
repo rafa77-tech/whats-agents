@@ -4,6 +4,7 @@ Tool de SQL dinâmico para Helena.
 Sprint 47: Permite queries flexíveis com guardrails de segurança.
 Apenas SELECT é permitido.
 """
+
 import logging
 import re
 
@@ -13,15 +14,28 @@ logger = logging.getLogger(__name__)
 
 # Palavras bloqueadas (case insensitive)
 PALAVRAS_BLOQUEADAS = [
-    "INSERT", "UPDATE", "DELETE", "DROP", "TRUNCATE",
-    "ALTER", "CREATE", "GRANT", "REVOKE", "COPY",
-    "EXECUTE", "INTO OUTFILE", "LOAD_FILE",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "DROP",
+    "TRUNCATE",
+    "ALTER",
+    "CREATE",
+    "GRANT",
+    "REVOKE",
+    "COPY",
+    "EXECUTE",
+    "INTO OUTFILE",
+    "LOAD_FILE",
 ]
 
 # Tabelas bloqueadas
 TABELAS_BLOQUEADAS = [
-    "pg_shadow", "pg_authid", "pg_roles",
-    "information_schema.columns", "pg_stat_statements",
+    "pg_shadow",
+    "pg_authid",
+    "pg_roles",
+    "information_schema.columns",
+    "pg_stat_statements",
 ]
 
 TOOL_CONSULTA_SQL = {
@@ -117,9 +131,7 @@ def validar_query(query: str) -> tuple[bool, str]:
     return True, ""
 
 
-async def handle_consulta_sql(
-    params: dict, user_id: str, channel_id: str
-) -> dict:
+async def handle_consulta_sql(params: dict, user_id: str, channel_id: str) -> dict:
     """
     Handler para consulta_sql.
 
@@ -145,17 +157,11 @@ async def handle_consulta_sql(
 
     try:
         # Executar via função segura
-        result = supabase.rpc(
-            "execute_readonly_query",
-            {"sql_query": query}
-        ).execute()
+        result = supabase.rpc("execute_readonly_query", {"sql_query": query}).execute()
 
         data = result.data or []
 
-        logger.info(
-            f"Query Helena executada: {explicacao} | "
-            f"User: {user_id} | Rows: {len(data)}"
-        )
+        logger.info(f"Query Helena executada: {explicacao} | User: {user_id} | Rows: {len(data)}")
 
         return {
             "success": True,

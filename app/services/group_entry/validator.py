@@ -37,9 +37,7 @@ async def validar_link(
     """
     # Buscar chip para validação
     if chip_id:
-        result = (
-            supabase.table("chips").select("*").eq("id", chip_id).single().execute()
-        )
+        result = supabase.table("chips").select("*").eq("id", chip_id).single().execute()
         chip = result.data
     else:
         # Usar qualquer chip listener ativo
@@ -55,13 +53,7 @@ async def validar_link(
 
         # Se não tiver listener, tenta julia
         if not chip:
-            result = (
-                supabase.table("chips")
-                .select("*")
-                .eq("status", "active")
-                .limit(1)
-                .execute()
-            )
+            result = supabase.table("chips").select("*").eq("status", "active").limit(1).execute()
             chip = result.data[0] if result.data else None
 
     if not chip:
@@ -104,11 +96,7 @@ async def validar_links_pendentes(limite: int = 50) -> dict:
     """
     # Buscar links pendentes
     result = (
-        supabase.table("group_links")
-        .select("*")
-        .eq("status", "pendente")
-        .limit(limite)
-        .execute()
+        supabase.table("group_links").select("*").eq("status", "pendente").limit(limite).execute()
     )
 
     if not result.data:
@@ -174,9 +162,7 @@ async def revalidar_link(link_id: str) -> dict:
     Returns:
         Resultado da validação
     """
-    result = (
-        supabase.table("group_links").select("*").eq("id", link_id).single().execute()
-    )
+    result = supabase.table("group_links").select("*").eq("id", link_id).single().execute()
 
     if not result.data:
         return {"erro": "Link não encontrado"}
@@ -222,11 +208,7 @@ async def buscar_links_para_validar(limite: int = 100) -> List[dict]:
     """
     # Primeiro: pendentes
     result = (
-        supabase.table("group_links")
-        .select("*")
-        .eq("status", "pendente")
-        .limit(limite)
-        .execute()
+        supabase.table("group_links").select("*").eq("status", "pendente").limit(limite).execute()
     )
 
     links = result.data or []

@@ -3,6 +3,7 @@ Processador de ingestão de mensagens de grupo.
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 
 from ..base import PreProcessor, ProcessorContext, ProcessorResult
@@ -20,6 +21,7 @@ class IngestaoGrupoProcessor(PreProcessor):
 
     Prioridade: 5 (antes do ParseMessageProcessor)
     """
+
     name = "ingestao_grupo"
     priority = 5
 
@@ -46,14 +48,12 @@ class IngestaoGrupoProcessor(PreProcessor):
                     should_continue=False,  # NÃO continua (não responde)
                     metadata={
                         "motivo": "mensagem_grupo_ingerida",
-                        "mensagem_id": str(mensagem_id) if mensagem_id else None
-                    }
+                        "mensagem_id": str(mensagem_id) if mensagem_id else None,
+                    },
                 )
         except Exception as e:
             logger.error(f"Erro na ingestão de grupo: {e}", exc_info=True)
 
         return ProcessorResult(
-            success=True,
-            should_continue=False,
-            metadata={"motivo": "mensagem_grupo_erro_ingestao"}
+            success=True, should_continue=False, metadata={"motivo": "mensagem_grupo_erro_ingestao"}
         )

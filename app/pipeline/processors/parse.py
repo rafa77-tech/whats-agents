@@ -3,6 +3,7 @@ Processador de parsing de mensagens.
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 from typing import Optional
 
@@ -18,6 +19,7 @@ class ParseMessageProcessor(PreProcessor):
 
     Prioridade: 10 (roda primeiro)
     """
+
     name = "parse_message"
     priority = 10
 
@@ -26,9 +28,7 @@ class ParseMessageProcessor(PreProcessor):
 
         if not mensagem:
             return ProcessorResult(
-                success=False,
-                should_continue=False,
-                error="Mensagem nao pode ser parseada"
+                success=False, should_continue=False, error="Mensagem nao pode ser parseada"
             )
 
         # Verificar se deve processar
@@ -37,11 +37,13 @@ class ParseMessageProcessor(PreProcessor):
             # Se é LID sem telefone resolvido, informar motivo específico
             if mensagem.is_lid and not mensagem.telefone:
                 motivo = "LID sem remoteJidAlt - sem numero real"
-                logger.warning(f"LID detectado sem telefone: jid={mensagem.remote_jid}, pushName={mensagem.nome_contato}")
+                logger.warning(
+                    f"LID detectado sem telefone: jid={mensagem.remote_jid}, pushName={mensagem.nome_contato}"
+                )
             return ProcessorResult(
                 success=True,
                 should_continue=False,  # Para silenciosamente
-                metadata={"motivo": motivo}
+                metadata={"motivo": motivo},
             )
 
         # Resolver telefone via Chatwoot se necessário (LID sem telefone)
@@ -51,11 +53,11 @@ class ParseMessageProcessor(PreProcessor):
             if telefone:
                 logger.info(f"Telefone resolvido via Chatwoot para LID: {telefone[:6]}...")
             else:
-                logger.warning(f"Nao foi possivel resolver telefone para LID via Chatwoot")
+                logger.warning("Nao foi possivel resolver telefone para LID via Chatwoot")
                 return ProcessorResult(
                     success=True,
                     should_continue=False,
-                    metadata={"motivo": "LID sem telefone - Chatwoot nao retornou phone"}
+                    metadata={"motivo": "LID sem telefone - Chatwoot nao retornou phone"},
                 )
 
         # Popular contexto
@@ -78,6 +80,7 @@ class ParseMessageProcessor(PreProcessor):
         """Resolve telefone usando API do Chatwoot."""
         try:
             from app.services.chatwoot import chatwoot_service
+
             return await chatwoot_service.buscar_telefone_por_conversation_id(conversation_id)
         except Exception as e:
             logger.error(f"Erro ao resolver telefone via Chatwoot: {e}")

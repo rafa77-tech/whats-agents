@@ -5,6 +5,7 @@ Sprint 21 - E04 - Proteções para divulgadores:
 - Opt-out (divulgador pode recusar receber mensagens)
 - Horário comercial (08:00-20:00 seg-sex)
 """
+
 import logging
 from datetime import datetime, time, timedelta, timezone
 from typing import Optional, Tuple
@@ -18,9 +19,9 @@ logger = logging.getLogger(__name__)
 SAO_PAULO_TZ = ZoneInfo("America/Sao_Paulo")
 
 # Horário comercial
-BUSINESS_HOUR_START = time(8, 0)   # 08:00
-BUSINESS_HOUR_END = time(20, 0)    # 20:00
-BUSINESS_DAYS = (0, 1, 2, 3, 4)    # Segunda a sexta (0=segunda)
+BUSINESS_HOUR_START = time(8, 0)  # 08:00
+BUSINESS_HOUR_END = time(20, 0)  # 20:00
+BUSINESS_DAYS = (0, 1, 2, 3, 4)  # Segunda a sexta (0=segunda)
 
 
 async def buscar_contato_externo(telefone: str) -> Optional[dict]:
@@ -34,11 +35,13 @@ async def buscar_contato_externo(telefone: str) -> Optional[dict]:
         Dict com dados do contato ou None
     """
     try:
-        response = supabase.table("external_contacts") \
-            .select("*") \
-            .eq("telefone", telefone) \
-            .limit(1) \
+        response = (
+            supabase.table("external_contacts")
+            .select("*")
+            .eq("telefone", telefone)
+            .limit(1)
             .execute()
+        )
 
         if response.data:
             return response.data[0]
@@ -77,9 +80,9 @@ async def registrar_contato_externo(
         if empresa:
             data["empresa"] = empresa
 
-        response = supabase.table("external_contacts") \
-            .upsert(data, on_conflict="telefone") \
-            .execute()
+        response = (
+            supabase.table("external_contacts").upsert(data, on_conflict="telefone").execute()
+        )
 
         return response.data[0] if response.data else data
 
@@ -105,15 +108,20 @@ async def registrar_optout(
     try:
         now = datetime.now(timezone.utc).isoformat()
 
-        response = supabase.table("external_contacts") \
-            .upsert({
-                "telefone": telefone,
-                "permission_state": "opted_out",
-                "opted_out_at": now,
-                "opted_out_reason": reason,
-                "updated_at": now,
-            }, on_conflict="telefone") \
+        (
+            supabase.table("external_contacts")
+            .upsert(
+                {
+                    "telefone": telefone,
+                    "permission_state": "opted_out",
+                    "opted_out_at": now,
+                    "opted_out_reason": reason,
+                    "updated_at": now,
+                },
+                on_conflict="telefone",
+            )
             .execute()
+        )
 
         logger.info(f"Opt-out registrado para {telefone[-4:]}: {reason}")
         return True
@@ -242,9 +250,7 @@ async def pode_contatar_divulgador(
     # 2. Verificar horário comercial
     if not esta_em_horario_comercial():
         proximo_horario = calcular_proximo_horario_comercial()
-        logger.info(
-            f"Fora do horário comercial, agendar para {proximo_horario}"
-        )
+        logger.info(f"Fora do horário comercial, agendar para {proximo_horario}")
         return False, "outside_business_hours", proximo_horario
 
     return True, "", None

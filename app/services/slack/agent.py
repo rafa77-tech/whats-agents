@@ -4,10 +4,10 @@ Agente Julia para Slack.
 Orquestrador principal que usa SessionManager e ToolExecutor.
 Sprint 10 - S10.E2.2
 """
+
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any
 
 import anthropic
 
@@ -157,7 +157,7 @@ class AgenteSlack:
                 max_tokens=1024,
                 system=system,
                 tools=SLACK_TOOLS,
-                messages=self.session.mensagens
+                messages=self.session.mensagens,
             )
 
             # Processar resposta (pode ter tool_use)
@@ -220,7 +220,7 @@ class AgenteSlack:
                 tool_calls.append(block)
 
         # Verificar stop_reason
-        stop_reason = getattr(response, 'stop_reason', 'unknown')
+        stop_reason = getattr(response, "stop_reason", "unknown")
 
         # Se nao tem tool calls, verificar se resposta está incompleta
         if not tool_calls:
@@ -236,7 +236,7 @@ class AgenteSlack:
                     self.session.adicionar_mensagem("assistant", texto_resposta)
                     self.session.adicionar_mensagem(
                         "user",
-                        "Use a tool apropriada para buscar os dados e me responda com os números."
+                        "Use a tool apropriada para buscar os dados e me responda com os números.",
                     )
 
                     # Retry
@@ -245,8 +245,7 @@ class AgenteSlack:
                     # Retry já foi feito mas ainda está incompleto
                     # Retornar mensagem de fallback
                     logger.warning(
-                        f"Resposta ainda incompleta após {retry_count} retry(s), "
-                        f"usando fallback"
+                        f"Resposta ainda incompleta após {retry_count} retry(s), usando fallback"
                     )
                     fallback = (
                         "Desculpa, tive um probleminha pra buscar esses dados. "
@@ -270,22 +269,30 @@ class AgenteSlack:
             # Verificar se eh acao critica que precisa confirmacao
             if self.executor.is_tool_critica(tool_name, tool_input):
                 # Guardar acao pendente e pedir confirmacao
-                self.session.set_acao_pendente({
-                    "tool_name": tool_name,
-                    "tool_input": tool_input,
-                    "tool_id": tool_id,
-                    "preview": texto_resposta
-                })
+                self.session.set_acao_pendente(
+                    {
+                        "tool_name": tool_name,
+                        "tool_input": tool_input,
+                        "tool_id": tool_id,
+                        "preview": texto_resposta,
+                    }
+                )
                 # Retornar preview pedindo confirmacao
-                return texto_resposta if texto_resposta else self.executor.gerar_preview(tool_name, tool_input)
+                return (
+                    texto_resposta
+                    if texto_resposta
+                    else self.executor.gerar_preview(tool_name, tool_input)
+                )
 
             # Executar tool
             result = await self.executor.executar(tool_name, tool_input)
-            tool_results.append({
-                "type": "tool_result",
-                "tool_use_id": tool_id,
-                "content": json.dumps(result, ensure_ascii=False)
-            })
+            tool_results.append(
+                {
+                    "type": "tool_result",
+                    "tool_use_id": tool_id,
+                    "content": json.dumps(result, ensure_ascii=False),
+                }
+            )
 
             # Salvar no contexto
             self.session.atualizar_contexto(f"ultimo_{tool_name}", result)
@@ -303,7 +310,7 @@ class AgenteSlack:
                 max_tokens=1024,
                 system=SYSTEM_PROMPT_AGENTE.format(contexto=self._preparar_contexto()),
                 tools=SLACK_TOOLS,
-                messages=self.session.mensagens
+                messages=self.session.mensagens,
             )
 
             # Extrair texto da resposta final
@@ -338,8 +345,18 @@ class AgenteSlack:
 
         # Palavras de confirmacao
         confirmacoes = [
-            "sim", "s", "yes", "y", "ok", "pode",
-            "manda", "envia", "blz", "beleza", "confirma", "confirmo"
+            "sim",
+            "s",
+            "yes",
+            "y",
+            "ok",
+            "pode",
+            "manda",
+            "envia",
+            "blz",
+            "beleza",
+            "confirma",
+            "confirmo",
         ]
         cancelamentos = ["nao", "n", "no", "cancela", "para", "nope", "deixa"]
 
@@ -348,10 +365,7 @@ class AgenteSlack:
 
         if eh_confirmacao:
             # Executar acao pendente
-            result = await self.executor.executar(
-                acao["tool_name"],
-                acao["tool_input"]
-            )
+            result = await self.executor.executar(acao["tool_name"], acao["tool_input"])
 
             # Limpar acao pendente
             self.session.set_acao_pendente(None)
@@ -383,10 +397,7 @@ class AgenteSlack:
             Resposta se processou briefing, None se nao tinha pendente
         """
         try:
-            from app.services.briefing_aprovacao import (
-                get_aprovacao_service,
-                StatusAprovacao
-            )
+            from app.services.briefing_aprovacao import get_aprovacao_service, StatusAprovacao
 
             service = get_aprovacao_service()
             briefing = await service.buscar_pendente(self.channel_id)
@@ -401,11 +412,10 @@ class AgenteSlack:
 
             # Se foi aprovado, guardar no contexto
             if status == StatusAprovacao.APROVADO:
-                self.session.atualizar_contexto("briefing_aprovado", {
-                    "id": briefing.id,
-                    "doc_nome": briefing.doc_nome,
-                    "doc_id": briefing.doc_id
-                })
+                self.session.atualizar_contexto(
+                    "briefing_aprovado",
+                    {"id": briefing.id, "doc_nome": briefing.doc_nome, "doc_id": briefing.doc_id},
+                )
 
             return mensagem
 
@@ -452,6 +462,7 @@ class AgenteSlack:
 # =============================================================================
 # FUNCAO PRINCIPAL
 # =============================================================================
+
 
 async def processar_mensagem_slack(texto: str, channel: str, user: str) -> str:
     """

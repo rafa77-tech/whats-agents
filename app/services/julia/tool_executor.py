@@ -9,6 +9,7 @@ Responsabilidades:
 - Mapear tool_name para handler
 - Formatar resultados para o LLM
 """
+
 import logging
 from typing import Dict, Any, List, Callable, Awaitable, Optional
 
@@ -216,12 +217,14 @@ class ToolExecutor:
             content.append({"type": "text", "text": text})
 
         for tool_call in tool_calls:
-            content.append({
-                "type": "tool_use",
-                "id": tool_call.get("id", ""),
-                "name": tool_call.get("name", ""),
-                "input": tool_call.get("input", {}),
-            })
+            content.append(
+                {
+                    "type": "tool_use",
+                    "id": tool_call.get("id", ""),
+                    "name": tool_call.get("name", ""),
+                    "input": tool_call.get("input", {}),
+                }
+            )
 
         return content
 

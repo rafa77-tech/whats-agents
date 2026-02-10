@@ -4,10 +4,10 @@ Templates de respostas para Slack.
 Funcoes para formatacao de metricas, listas de medicos, vagas, etc.
 Sprint 10 - S10.E2.1
 """
+
 from .primitives import bold, quote
 from .converters import (
     formatar_telefone,
-    formatar_valor,
     formatar_valor_completo,
     formatar_porcentagem,
     formatar_data,
@@ -18,6 +18,7 @@ from .converters import (
 # =============================================================================
 # TEMPLATES DE RESPOSTA
 # =============================================================================
+
 
 def template_metricas(metricas: dict, periodo: str) -> str:
     """
@@ -142,7 +143,7 @@ def template_lista_medicos(medicos: list[dict], filtro: str = "") -> str:
         telefone = m.get("telefone", "")
         esp = m.get("especialidade", "")
 
-        linha = f"{i+1}. {nome}"
+        linha = f"{i + 1}. {nome}"
         if telefone:
             linha += f" {formatar_telefone(telefone)}"
         if esp:
@@ -181,10 +182,10 @@ def template_lista_vagas(vagas: list[dict]) -> str:
             valor=v.get("valor"),
             valor_minimo=v.get("valor_minimo"),
             valor_maximo=v.get("valor_maximo"),
-            valor_tipo=v.get("valor_tipo", "fixo")
+            valor_tipo=v.get("valor_tipo", "fixo"),
         )
 
-        linha = f"{i+1}. {bold(hospital)} - {data}"
+        linha = f"{i + 1}. {bold(hospital)} - {data}"
         if periodo:
             linha += f" ({periodo})"
         linha += f" - {valor_display}"
@@ -249,13 +250,7 @@ def template_confirmacao_envio(telefone: str, mensagem: str, nome: str = None) -
     """
     destinatario = nome or formatar_telefone(telefone)
 
-    linhas = [
-        f"Vou mandar pro {destinatario}:",
-        "",
-        quote(mensagem),
-        "",
-        "Posso enviar?"
-    ]
+    linhas = [f"Vou mandar pro {destinatario}:", "", quote(mensagem), "", "Posso enviar?"]
 
     return "\n".join(linhas)
 
@@ -313,7 +308,7 @@ def template_sucesso_reserva(vaga: dict, medico: dict) -> str:
         valor=vaga.get("valor"),
         valor_minimo=vaga.get("valor_minimo"),
         valor_maximo=vaga.get("valor_maximo"),
-        valor_tipo=valor_tipo
+        valor_tipo=valor_tipo,
     )
     linhas.append(f"Valor: {valor_display}")
 
@@ -451,6 +446,7 @@ def formatar_erro(erro: str) -> str:
 # =============================================================================
 # HELPERS
 # =============================================================================
+
 
 def _traduzir_periodo(periodo: str) -> str:
     """Traduz nome do periodo para exibicao."""

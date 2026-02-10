@@ -11,6 +11,7 @@ Fluxo:
 5. Se timeout: responde "vou confirmar" + envia lembrete
 6. Quando gestor responde: retoma conversa com info correta
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -18,7 +19,6 @@ from uuid import uuid4
 
 from app.services.supabase import supabase
 from app.services.slack import enviar_slack
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ STATUS_CANCELADO = "cancelado"
 # =============================================================================
 # FUNÇÕES DE CRIAÇÃO E GESTÃO
 # =============================================================================
+
 
 async def criar_pedido_ajuda(
     conversa_id: str,
@@ -98,11 +99,7 @@ async def criar_pedido_ajuda(
             "lembretes_count": 0,
         }
 
-        response = (
-            supabase.table("pedidos_ajuda")
-            .insert(pedido_data)
-            .execute()
-        )
+        response = supabase.table("pedidos_ajuda").insert(pedido_data).execute()
 
         pedido = response.data[0] if response.data else pedido_data
 
@@ -162,14 +159,16 @@ async def processar_resposta_gestor(
             return {"success": False, "error": f"Pedido já está em status: {pedido['status']}"}
 
         # Atualizar pedido
-        update_response = (
+        (
             supabase.table("pedidos_ajuda")
-            .update({
-                "resposta": resposta,
-                "respondido_por": respondido_por,
-                "respondido_em": datetime.now(timezone.utc).isoformat(),
-                "status": STATUS_RESPONDIDO,
-            })
+            .update(
+                {
+                    "resposta": resposta,
+                    "respondido_por": respondido_por,
+                    "respondido_em": datetime.now(timezone.utc).isoformat(),
+                    "status": STATUS_RESPONDIDO,
+                }
+            )
             .eq("id", pedido_id)
             .execute()
         )
@@ -178,7 +177,9 @@ async def processar_resposta_gestor(
         await _retomar_conversa(pedido["conversa_id"], pedido_id)
 
         # Verificar se deve salvar como conhecimento
-        if pedido.get("categoria") == CATEGORIA_HOSPITAL and pedido.get("contexto", {}).get("hospital_id"):
+        if pedido.get("categoria") == CATEGORIA_HOSPITAL and pedido.get("contexto", {}).get(
+            "hospital_id"
+        ):
             await _salvar_conhecimento_hospital(
                 hospital_id=pedido["contexto"]["hospital_id"],
                 atributo=pedido["contexto"].get("atributo", "informacao_geral"),
@@ -252,7 +253,7 @@ async def enviar_lembretes() -> dict:
         Dict com estatísticas de envio
     """
     agora = datetime.now(timezone.utc)
-    limite_lembrete = agora - timedelta(minutes=INTERVALO_LEMBRETE_MINUTOS)
+    agora - timedelta(minutes=INTERVALO_LEMBRETE_MINUTOS)
 
     try:
         # Buscar pedidos em timeout que precisam de lembrete
@@ -337,10 +338,12 @@ async def cancelar_pedido(pedido_id: str, motivo: str = "cancelado") -> dict:
     try:
         response = (
             supabase.table("pedidos_ajuda")
-            .update({
-                "status": STATUS_CANCELADO,
-                "motivo_cancelamento": motivo,
-            })
+            .update(
+                {
+                    "status": STATUS_CANCELADO,
+                    "motivo_cancelamento": motivo,
+                }
+            )
             .eq("id", pedido_id)
             .execute()
         )
@@ -366,11 +369,9 @@ async def obter_estatisticas() -> dict:
     """
     try:
         # Contar por status
-        response = (
-            supabase.rpc(
-                "count_pedidos_ajuda_by_status",
-            ).execute()
-        )
+        supabase.rpc(
+            "count_pedidos_ajuda_by_status",
+        ).execute()
 
         # Fallback se RPC não existir
         pendentes = (
@@ -409,6 +410,7 @@ async def obter_estatisticas() -> dict:
 # FUNÇÕES INTERNAS
 # =============================================================================
 
+
 async def _enviar_notificacao_ajuda(
     pedido_id: str,
     nome_medico: str,
@@ -439,7 +441,7 @@ async def _enviar_notificacao_ajuda(
             contexto_str += f"\n• Sobre: {contexto['atributo']}"
 
     mensagem = {
-        "text": f"🔔 Julia precisa de ajuda!",
+        "text": "🔔 Julia precisa de ajuda!",
         "blocks": [
             {
                 "type": "header",
@@ -447,7 +449,7 @@ async def _enviar_notificacao_ajuda(
                     "type": "plain_text",
                     "text": f"{emoji} Julia precisa de ajuda!",
                     "emoji": True,
-                }
+                },
             },
             {
                 "type": "section",
@@ -455,38 +457,30 @@ async def _enviar_notificacao_ajuda(
                     {"type": "mrkdwn", "text": f"*Médico:*\n{nome_medico}"},
                     {"type": "mrkdwn", "text": f"*Telefone:*\n{telefone}"},
                     {"type": "mrkdwn", "text": f"*Categoria:*\n{categoria.capitalize()}"},
-                ]
+                ],
             },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Pergunta:*\n_{pergunta}_"
-                }
-            },
+            {"type": "section", "text": {"type": "mrkdwn", "text": f"*Pergunta:*\n_{pergunta}_"}},
             {
                 "type": "context",
                 "elements": [
-                    {"type": "mrkdwn", "text": f"Conversa pausada aguardando resposta.{contexto_str}"}
-                ]
+                    {
+                        "type": "mrkdwn",
+                        "text": f"Conversa pausada aguardando resposta.{contexto_str}",
+                    }
+                ],
             },
-            {
-                "type": "divider"
-            },
+            {"type": "divider"},
             {
                 "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Responda com: `/julia responder [resposta]`"
-                }
+                "text": {"type": "mrkdwn", "text": "Responda com: `/julia responder [resposta]`"},
             },
             {
                 "type": "context",
                 "elements": [
                     {"type": "mrkdwn", "text": f"Pedido ID: `{pedido_id[:8]}...` | Timeout: 5 min"}
-                ]
-            }
-        ]
+                ],
+            },
+        ],
     }
 
     return await enviar_slack(mensagem, force=True)
@@ -495,11 +489,13 @@ async def _enviar_notificacao_ajuda(
 async def _pausar_conversa(conversa_id: str, pedido_id: str):
     """Pausa conversa aguardando resposta do gestor."""
     try:
-        supabase.table("conversations").update({
-            "status": "aguardando_gestor",
-            "pedido_ajuda_id": pedido_id,
-            "pausada_em": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", conversa_id).execute()
+        supabase.table("conversations").update(
+            {
+                "status": "aguardando_gestor",
+                "pedido_ajuda_id": pedido_id,
+                "pausada_em": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", conversa_id).execute()
 
         logger.info(f"Conversa {conversa_id} pausada aguardando gestor")
 
@@ -510,11 +506,13 @@ async def _pausar_conversa(conversa_id: str, pedido_id: str):
 async def _retomar_conversa(conversa_id: str, pedido_id: str):
     """Retoma conversa após resposta do gestor."""
     try:
-        supabase.table("conversations").update({
-            "status": "active",
-            "pedido_ajuda_id": None,
-            "retomada_em": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", conversa_id).execute()
+        supabase.table("conversations").update(
+            {
+                "status": "active",
+                "pedido_ajuda_id": None,
+                "retomada_em": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", conversa_id).execute()
 
         logger.info(f"Conversa {conversa_id} retomada")
 
@@ -526,9 +524,11 @@ async def _processar_timeout(pedido: dict):
     """Processa timeout de um pedido."""
     try:
         # Atualizar status para timeout
-        supabase.table("pedidos_ajuda").update({
-            "status": STATUS_TIMEOUT,
-        }).eq("id", pedido["id"]).execute()
+        supabase.table("pedidos_ajuda").update(
+            {
+                "status": STATUS_TIMEOUT,
+            }
+        ).eq("id", pedido["id"]).execute()
 
         # Enviar primeiro lembrete
         await _enviar_lembrete(pedido)
@@ -555,31 +555,36 @@ async def _enviar_lembrete(pedido: dict):
     nome_medico = cliente_response.data[0]["primeiro_nome"] if cliente_response.data else "Médico"
 
     mensagem = {
-        "text": f"🔔 Lembrete: Julia ainda aguarda resposta",
+        "text": "🔔 Lembrete: Julia ainda aguarda resposta",
         "blocks": [
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"🔔 *Lembrete #{lembretes_count}*\n\nAinda preciso da resposta sobre:\n_{pedido['pergunta']}_"
-                }
+                    "text": f"🔔 *Lembrete #{lembretes_count}*\n\nAinda preciso da resposta sobre:\n_{pedido['pergunta']}_",
+                },
             },
             {
                 "type": "context",
                 "elements": [
-                    {"type": "mrkdwn", "text": f"Médico: {nome_medico} | Pedido: `{pedido['id'][:8]}...`"}
-                ]
-            }
-        ]
+                    {
+                        "type": "mrkdwn",
+                        "text": f"Médico: {nome_medico} | Pedido: `{pedido['id'][:8]}...`",
+                    }
+                ],
+            },
+        ],
     }
 
     await enviar_slack(mensagem, force=True)
 
     # Atualizar contador de lembretes
-    supabase.table("pedidos_ajuda").update({
-        "lembretes_count": lembretes_count,
-        "lembrete_enviado": True,
-    }).eq("id", pedido["id"]).execute()
+    supabase.table("pedidos_ajuda").update(
+        {
+            "lembretes_count": lembretes_count,
+            "lembrete_enviado": True,
+        }
+    ).eq("id", pedido["id"]).execute()
 
 
 async def _salvar_conhecimento_hospital(
@@ -603,22 +608,26 @@ async def _salvar_conhecimento_hospital(
 
         if existing.data:
             # Atualizar
-            supabase.table("conhecimento_hospitais").update({
-                "valor": valor,
-                "criado_por": criado_por,
-                "pedido_ajuda_id": pedido_ajuda_id,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }).eq("id", existing.data[0]["id"]).execute()
+            supabase.table("conhecimento_hospitais").update(
+                {
+                    "valor": valor,
+                    "criado_por": criado_por,
+                    "pedido_ajuda_id": pedido_ajuda_id,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            ).eq("id", existing.data[0]["id"]).execute()
         else:
             # Criar novo
-            supabase.table("conhecimento_hospitais").insert({
-                "hospital_id": hospital_id,
-                "atributo": atributo,
-                "valor": valor,
-                "fonte": "gestor",
-                "criado_por": criado_por,
-                "pedido_ajuda_id": pedido_ajuda_id,
-            }).execute()
+            supabase.table("conhecimento_hospitais").insert(
+                {
+                    "hospital_id": hospital_id,
+                    "atributo": atributo,
+                    "valor": valor,
+                    "fonte": "gestor",
+                    "criado_por": criado_por,
+                    "pedido_ajuda_id": pedido_ajuda_id,
+                }
+            ).execute()
 
         logger.info(f"Conhecimento salvo: {atributo} para hospital {hospital_id}")
 
@@ -629,6 +638,7 @@ async def _salvar_conhecimento_hospital(
 # =============================================================================
 # FUNÇÕES PARA INTEGRAÇÃO COM JULIA
 # =============================================================================
+
 
 async def julia_precisa_ajuda(
     conversa_id: str,

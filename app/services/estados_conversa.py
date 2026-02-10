@@ -11,6 +11,7 @@ Estados possíveis:
 - handoff: Transferida para humano
 - completed: Conversa encerrada
 """
+
 import logging
 from datetime import datetime, timezone
 from typing import Optional
@@ -47,6 +48,7 @@ MOTIVO_HANDOFF = "handoff"
 # =============================================================================
 # FUNÇÕES DE VERIFICAÇÃO
 # =============================================================================
+
 
 async def pode_julia_responder(conversa_id: str) -> bool:
     """
@@ -102,7 +104,9 @@ async def obter_estado_conversa(conversa_id: str) -> Optional[dict]:
     try:
         response = (
             supabase.table("conversations")
-            .select("id, status, controlled_by, pausada_em, retomada_em, motivo_pausa, pedido_ajuda_id")
+            .select(
+                "id, status, controlled_by, pausada_em, retomada_em, motivo_pausa, pedido_ajuda_id"
+            )
             .eq("id", conversa_id)
             .limit(1)
             .execute()
@@ -133,6 +137,7 @@ async def obter_estado_conversa(conversa_id: str) -> Optional[dict]:
 # FUNÇÕES DE TRANSIÇÃO
 # =============================================================================
 
+
 async def pausar_para_gestor(
     conversa_id: str,
     pedido_ajuda_id: str,
@@ -152,13 +157,15 @@ async def pausar_para_gestor(
     try:
         response = (
             supabase.table("conversations")
-            .update({
-                "status": ESTADO_AGUARDANDO_GESTOR,
-                "pausada_em": datetime.now(timezone.utc).isoformat(),
-                "motivo_pausa": motivo,
-                "pedido_ajuda_id": pedido_ajuda_id,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            })
+            .update(
+                {
+                    "status": ESTADO_AGUARDANDO_GESTOR,
+                    "pausada_em": datetime.now(timezone.utc).isoformat(),
+                    "motivo_pausa": motivo,
+                    "pedido_ajuda_id": pedido_ajuda_id,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
             .eq("id", conversa_id)
             .execute()
         )
@@ -191,13 +198,15 @@ async def retomar_conversa(
     try:
         response = (
             supabase.table("conversations")
-            .update({
-                "status": ESTADO_ATIVO,
-                "retomada_em": datetime.now(timezone.utc).isoformat(),
-                "motivo_pausa": None,
-                "pedido_ajuda_id": None,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            })
+            .update(
+                {
+                    "status": ESTADO_ATIVO,
+                    "retomada_em": datetime.now(timezone.utc).isoformat(),
+                    "motivo_pausa": None,
+                    "pedido_ajuda_id": None,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
             .eq("id", conversa_id)
             .execute()
         )
@@ -232,14 +241,16 @@ async def marcar_handoff(
     try:
         response = (
             supabase.table("conversations")
-            .update({
-                "status": ESTADO_HANDOFF,
-                "controlled_by": controlado_por,
-                "pausada_em": datetime.now(timezone.utc).isoformat(),
-                "motivo_pausa": MOTIVO_HANDOFF,
-                "escalation_reason": motivo,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            })
+            .update(
+                {
+                    "status": ESTADO_HANDOFF,
+                    "controlled_by": controlado_por,
+                    "pausada_em": datetime.now(timezone.utc).isoformat(),
+                    "motivo_pausa": MOTIVO_HANDOFF,
+                    "escalation_reason": motivo,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
             .eq("id", conversa_id)
             .execute()
         )
@@ -283,10 +294,7 @@ async def resolver_handoff(
             update_data["status"] = ESTADO_CONCLUIDO
 
         response = (
-            supabase.table("conversations")
-            .update(update_data)
-            .eq("id", conversa_id)
-            .execute()
+            supabase.table("conversations").update(update_data).eq("id", conversa_id).execute()
         )
 
         if response.data:
@@ -318,13 +326,15 @@ async def pausar_manual(
     try:
         response = (
             supabase.table("conversations")
-            .update({
-                "status": ESTADO_PAUSADO,
-                "pausada_em": datetime.now(timezone.utc).isoformat(),
-                "motivo_pausa": MOTIVO_PAUSADO_MANUAL,
-                "escalation_reason": motivo,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            })
+            .update(
+                {
+                    "status": ESTADO_PAUSADO,
+                    "pausada_em": datetime.now(timezone.utc).isoformat(),
+                    "motivo_pausa": MOTIVO_PAUSADO_MANUAL,
+                    "escalation_reason": motivo,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
             .eq("id", conversa_id)
             .execute()
         )
@@ -357,12 +367,14 @@ async def concluir_conversa(
     try:
         response = (
             supabase.table("conversations")
-            .update({
-                "status": ESTADO_CONCLUIDO,
-                "completed_at": datetime.now(timezone.utc).isoformat(),
-                "escalation_reason": motivo,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            })
+            .update(
+                {
+                    "status": ESTADO_CONCLUIDO,
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                    "escalation_reason": motivo,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
             .eq("id", conversa_id)
             .execute()
         )
@@ -382,6 +394,7 @@ async def concluir_conversa(
 # FUNÇÕES DE LISTAGEM
 # =============================================================================
 
+
 async def listar_conversas_pausadas() -> list[dict]:
     """
     Lista todas as conversas pausadas aguardando ação.
@@ -392,7 +405,9 @@ async def listar_conversas_pausadas() -> list[dict]:
     try:
         response = (
             supabase.table("conversations")
-            .select("id, cliente_id, status, pausada_em, motivo_pausa, pedido_ajuda_id, clientes:cliente_id(primeiro_nome, telefone)")
+            .select(
+                "id, cliente_id, status, pausada_em, motivo_pausa, pedido_ajuda_id, clientes:cliente_id(primeiro_nome, telefone)"
+            )
             .in_("status", [ESTADO_AGUARDANDO_GESTOR, ESTADO_PAUSADO])
             .order("pausada_em", desc=True)
             .execute()
@@ -415,7 +430,9 @@ async def listar_conversas_handoff() -> list[dict]:
     try:
         response = (
             supabase.table("conversations")
-            .select("id, cliente_id, status, pausada_em, escalation_reason, clientes:cliente_id(primeiro_nome, telefone)")
+            .select(
+                "id, cliente_id, status, pausada_em, escalation_reason, clientes:cliente_id(primeiro_nome, telefone)"
+            )
             .eq("status", ESTADO_HANDOFF)
             .order("pausada_em", desc=True)
             .execute()

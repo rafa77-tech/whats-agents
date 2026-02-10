@@ -8,11 +8,11 @@ Usa feature_flags para controlar:
 - percentage: % de clientes no rollout (hash consistente)
 - force_on: lista de cliente_ids para debug
 """
+
 import hashlib
 import json
 import logging
 import time
-from typing import Optional
 
 from app.services.supabase import supabase
 
@@ -141,11 +141,9 @@ async def add_to_allowlist(cliente_id: str) -> bool:
             config["force_on"] = force_on
 
             # Atualizar no banco
-            supabase.table("feature_flags").update({
-                "value": config,
-                "updated_at": "now()",
-                "updated_by": "allowlist_api"
-            }).eq("key", "business_events_canary").execute()
+            supabase.table("feature_flags").update(
+                {"value": config, "updated_at": "now()", "updated_by": "allowlist_api"}
+            ).eq("key", "business_events_canary").execute()
 
             # Limpar cache
             _canary_cache.clear()
@@ -179,11 +177,9 @@ async def remove_from_allowlist(cliente_id: str) -> bool:
             config["force_on"] = force_on
 
             # Atualizar no banco
-            supabase.table("feature_flags").update({
-                "value": config,
-                "updated_at": "now()",
-                "updated_by": "allowlist_api"
-            }).eq("key", "business_events_canary").execute()
+            supabase.table("feature_flags").update(
+                {"value": config, "updated_at": "now()", "updated_by": "allowlist_api"}
+            ).eq("key", "business_events_canary").execute()
 
             # Limpar cache
             _canary_cache.clear()

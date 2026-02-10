@@ -4,6 +4,7 @@ Métricas do Policy Engine.
 Sprint 16 - Observability
 5 queries principais para monitoramento.
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -80,8 +81,7 @@ async def get_decisions_by_rule(
 
         # Ordenar por count desc
         result = [
-            {"rule_matched": k, "count": v}
-            for k, v in sorted(counts.items(), key=lambda x: -x[1])
+            {"rule_matched": k, "count": v} for k, v in sorted(counts.items(), key=lambda x: -x[1])
         ]
         return result
 
@@ -165,8 +165,7 @@ async def get_effects_by_type(
 
         # Ordenar por count desc
         result = [
-            {"effect_type": k, "count": v}
-            for k, v in sorted(counts.items(), key=lambda x: -x[1])
+            {"effect_type": k, "count": v} for k, v in sorted(counts.items(), key=lambda x: -x[1])
         ]
         return result
 
@@ -238,10 +237,7 @@ async def get_decisions_per_hour(
                 counts[hour] = counts.get(hour, 0) + 1
 
         # Ordenar cronologicamente
-        result = [
-            {"hour": k, "count": v}
-            for k, v in sorted(counts.items())
-        ]
+        result = [{"hour": k, "count": v} for k, v in sorted(counts.items())]
         return result
 
     except Exception as e:
@@ -299,10 +295,7 @@ async def get_orphan_decisions(
         effect_ids = {e["policy_decision_id"] for e in effects_response.data or []}
 
         # Filtrar órfãos
-        orphans = [
-            d for d in decisions_response.data
-            if d["policy_decision_id"] not in effect_ids
-        ]
+        orphans = [d for d in decisions_response.data if d["policy_decision_id"] not in effect_ids]
 
         return orphans[:limit]
 
@@ -344,7 +337,9 @@ async def get_policy_summary(hours: int = 24) -> dict:
             "period_hours": hours,
             "total_decisions": decisions_count,
             "total_handoffs": handoff_count,
-            "handoff_rate": round(handoff_count / decisions_count * 100, 2) if decisions_count > 0 else 0,
+            "handoff_rate": round(handoff_count / decisions_count * 100, 2)
+            if decisions_count > 0
+            else 0,
             "decisions_by_rule": by_rule,
             "decisions_by_action": by_action,
             "effects_by_type": by_effect,

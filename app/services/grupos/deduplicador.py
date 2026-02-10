@@ -27,11 +27,12 @@ JANELA_DEDUP_HORAS = 48
 # S08.1 - Cálculo de Hash de Deduplicação
 # =============================================================================
 
+
 def calcular_hash_dedup(
     hospital_id: UUID,
     data: Optional[str],  # YYYY-MM-DD
     periodo_id: Optional[UUID],
-    especialidade_id: UUID
+    especialidade_id: UUID,
 ) -> str:
     """
     Calcula hash para deduplicação.
@@ -62,9 +63,9 @@ def calcular_hash_dedup(
 # S08.2 - Verificar Duplicatas Existentes
 # =============================================================================
 
+
 async def buscar_vaga_duplicada(
-    hash_dedup: str,
-    excluir_id: Optional[UUID] = None
+    hash_dedup: str, excluir_id: Optional[UUID] = None
 ) -> Optional[dict]:
     """
     Busca vaga existente com mesmo hash na janela temporal.
@@ -78,11 +79,13 @@ async def buscar_vaga_duplicada(
     """
     limite_tempo = datetime.now(UTC) - timedelta(hours=JANELA_DEDUP_HORAS)
 
-    query = supabase.table("vagas_grupo") \
-        .select("id, qtd_fontes, hospital_raw, especialidade_raw") \
-        .eq("hash_dedup", hash_dedup) \
-        .eq("eh_duplicada", False) \
+    query = (
+        supabase.table("vagas_grupo")
+        .select("id, qtd_fontes, hospital_raw, especialidade_raw")
+        .eq("hash_dedup", hash_dedup)
+        .eq("eh_duplicada", False)
         .gte("created_at", limite_tempo.isoformat())
+    )
 
     if excluir_id:
         query = query.neq("id", str(excluir_id))
@@ -96,13 +99,14 @@ async def buscar_vaga_duplicada(
 # S08.3 - Registrar Fonte de Vaga
 # =============================================================================
 
+
 async def registrar_fonte_vaga(
     vaga_principal_id: UUID,
     mensagem_id: UUID,
     grupo_id: UUID,
     contato_id: Optional[UUID] = None,
     texto_original: str = "",
-    valor_informado: Optional[int] = None
+    valor_informado: Optional[int] = None,
 ) -> UUID:
     """
     Registra uma fonte adicional para a vaga.
@@ -122,21 +126,25 @@ async def registrar_fonte_vaga(
         UUID da fonte criada
     """
     # Verificar se já existe esta fonte (evitar duplicatas)
-    existente = supabase.table("vagas_grupo_fontes") \
-        .select("id") \
-        .eq("vaga_grupo_id", str(vaga_principal_id)) \
-        .eq("mensagem_id", str(mensagem_id)) \
-        .limit(1) \
+    existente = (
+        supabase.table("vagas_grupo_fontes")
+        .select("id")
+        .eq("vaga_grupo_id", str(vaga_principal_id))
+        .eq("mensagem_id", str(mensagem_id))
+        .limit(1)
         .execute()
+    )
 
     if existente.data:
         return UUID(existente.data[0]["id"])
 
     # Contar fontes existentes para determinar ordem
-    count_result = supabase.table("vagas_grupo_fontes") \
-        .select("id", count="exact") \
-        .eq("vaga_grupo_id", str(vaga_principal_id)) \
+    count_result = (
+        supabase.table("vagas_grupo_fontes")
+        .select("id", count="exact")
+        .eq("vaga_grupo_id", str(vaga_principal_id))
         .execute()
+    )
 
     ordem = (count_result.count or 0) + 1
 
@@ -153,10 +161,9 @@ async def registrar_fonte_vaga(
     result = supabase.table("vagas_grupo_fontes").insert(dados).execute()
 
     # Atualizar contador na vaga principal
-    supabase.table("vagas_grupo") \
-        .update({"qtd_fontes": ordem}) \
-        .eq("id", str(vaga_principal_id)) \
-        .execute()
+    supabase.table("vagas_grupo").update({"qtd_fontes": ordem}).eq(
+        "id", str(vaga_principal_id)
+    ).execute()
 
     logger.debug(f"Fonte {ordem} registrada para vaga {vaga_principal_id}")
 
@@ -167,10 +174,8 @@ async def registrar_fonte_vaga(
 # S08.4 - Marcar Vaga como Duplicada
 # =============================================================================
 
-async def marcar_como_duplicada(
-    vaga_id: UUID,
-    duplicada_de: UUID
-) -> None:
+
+async def marcar_como_duplicada(vaga_id: UUID, duplicada_de: UUID) -> None:
     """
     Marca vaga como duplicada de outra.
 
@@ -178,15 +183,14 @@ async def marcar_como_duplicada(
         vaga_id: ID da vaga duplicada
         duplicada_de: ID da vaga principal
     """
-    supabase.table("vagas_grupo") \
-        .update({
+    supabase.table("vagas_grupo").update(
+        {
             "status": "duplicada",
             "eh_duplicada": True,
             "duplicada_de": str(duplicada_de),
             "motivo_status": "duplicata_detectada",
-        }) \
-        .eq("id", str(vaga_id)) \
-        .execute()
+        }
+    ).eq("id", str(vaga_id)).execute()
 
     logger.debug(f"Vaga {vaga_id} marcada como duplicada de {duplicada_de}")
 
@@ -195,9 +199,11 @@ async def marcar_como_duplicada(
 # S08.5 - Processador de Deduplicação
 # =============================================================================
 
+
 @dataclass
 class ResultadoDedup:
     """Resultado do processamento de deduplicação."""
+
     duplicada: bool
     principal_id: Optional[UUID] = None
     hash_dedup: Optional[str] = None
@@ -215,11 +221,7 @@ async def processar_deduplicacao(vaga_id: UUID) -> ResultadoDedup:
         ResultadoDedup com status da deduplicação
     """
     # Buscar vaga
-    vaga = supabase.table("vagas_grupo") \
-        .select("*") \
-        .eq("id", str(vaga_id)) \
-        .single() \
-        .execute()
+    vaga = supabase.table("vagas_grupo").select("*").eq("id", str(vaga_id)).single().execute()
 
     if not vaga.data:
         return ResultadoDedup(duplicada=False, erro="vaga_nao_encontrada")
@@ -235,14 +237,13 @@ async def processar_deduplicacao(vaga_id: UUID) -> ResultadoDedup:
         hospital_id=UUID(dados["hospital_id"]),
         data=dados.get("data"),
         periodo_id=UUID(dados["periodo_id"]) if dados.get("periodo_id") else None,
-        especialidade_id=UUID(dados["especialidade_id"])
+        especialidade_id=UUID(dados["especialidade_id"]),
     )
 
     # Salvar hash na vaga
-    supabase.table("vagas_grupo") \
-        .update({"hash_dedup": hash_dedup}) \
-        .eq("id", str(vaga_id)) \
-        .execute()
+    supabase.table("vagas_grupo").update({"hash_dedup": hash_dedup}).eq(
+        "id", str(vaga_id)
+    ).execute()
 
     # Verificar duplicata existente
     existente = await buscar_vaga_duplicada(hash_dedup, excluir_id=vaga_id)
@@ -255,42 +256,37 @@ async def processar_deduplicacao(vaga_id: UUID) -> ResultadoDedup:
             vaga_principal_id=principal_id,
             mensagem_id=UUID(dados["mensagem_id"]),
             grupo_id=UUID(dados["grupo_origem_id"]),
-            contato_id=UUID(dados["contato_responsavel_id"]) if dados.get("contato_responsavel_id") else None,
-            valor_informado=dados.get("valor")
+            contato_id=UUID(dados["contato_responsavel_id"])
+            if dados.get("contato_responsavel_id")
+            else None,
+            valor_informado=dados.get("valor"),
         )
 
         await marcar_como_duplicada(vaga_id, principal_id)
 
         logger.info(f"Vaga {vaga_id} é duplicata de {principal_id}")
 
-        return ResultadoDedup(
-            duplicada=True,
-            principal_id=principal_id,
-            hash_dedup=hash_dedup
-        )
+        return ResultadoDedup(duplicada=True, principal_id=principal_id, hash_dedup=hash_dedup)
 
     # Não é duplicata - registrar como fonte principal (primeira)
     await registrar_fonte_vaga(
         vaga_principal_id=vaga_id,
         mensagem_id=UUID(dados["mensagem_id"]),
         grupo_id=UUID(dados["grupo_origem_id"]),
-        contato_id=UUID(dados["contato_responsavel_id"]) if dados.get("contato_responsavel_id") else None,
-        valor_informado=dados.get("valor")
+        contato_id=UUID(dados["contato_responsavel_id"])
+        if dados.get("contato_responsavel_id")
+        else None,
+        valor_informado=dados.get("valor"),
     )
 
     # Atualizar status para pronta para importação
-    supabase.table("vagas_grupo") \
-        .update({"status": "pronta_importacao"}) \
-        .eq("id", str(vaga_id)) \
-        .execute()
+    supabase.table("vagas_grupo").update({"status": "pronta_importacao"}).eq(
+        "id", str(vaga_id)
+    ).execute()
 
     logger.debug(f"Vaga {vaga_id} processada - nova (não duplicata)")
 
-    return ResultadoDedup(
-        duplicada=False,
-        principal_id=vaga_id,
-        hash_dedup=hash_dedup
-    )
+    return ResultadoDedup(duplicada=False, principal_id=vaga_id, hash_dedup=hash_dedup)
 
 
 async def processar_batch_deduplicacao(limite: int = 100) -> dict:
@@ -304,13 +300,15 @@ async def processar_batch_deduplicacao(limite: int = 100) -> dict:
         Estatísticas do processamento
     """
     # Buscar vagas normalizadas sem hash
-    vagas = supabase.table("vagas_grupo") \
-        .select("id") \
-        .eq("status", "normalizada") \
-        .is_("hash_dedup", "null") \
-        .order("created_at") \
-        .limit(limite) \
+    vagas = (
+        supabase.table("vagas_grupo")
+        .select("id")
+        .eq("status", "normalizada")
+        .is_("hash_dedup", "null")
+        .order("created_at")
+        .limit(limite)
         .execute()
+    )
 
     stats = {
         "total": len(vagas.data),
@@ -346,6 +344,7 @@ async def processar_batch_deduplicacao(limite: int = 100) -> dict:
 # Funções de Consulta
 # =============================================================================
 
+
 async def listar_fontes_vaga(vaga_id: UUID) -> list:
     """
     Lista todas as fontes de uma vaga.
@@ -356,11 +355,13 @@ async def listar_fontes_vaga(vaga_id: UUID) -> list:
     Returns:
         Lista de fontes ordenadas
     """
-    result = supabase.table("vagas_grupo_fontes") \
-        .select("*, grupos_whatsapp(nome), contatos_grupo(nome)") \
-        .eq("vaga_grupo_id", str(vaga_id)) \
-        .order("ordem") \
+    result = (
+        supabase.table("vagas_grupo_fontes")
+        .select("*, grupos_whatsapp(nome), contatos_grupo(nome)")
+        .eq("vaga_grupo_id", str(vaga_id))
+        .order("ordem")
         .execute()
+    )
 
     return result.data
 
@@ -373,34 +374,30 @@ async def obter_estatisticas_dedup() -> dict:
         Estatísticas gerais
     """
     # Total de vagas
-    total = supabase.table("vagas_grupo") \
-        .select("id", count="exact") \
-        .execute()
+    total = supabase.table("vagas_grupo").select("id", count="exact").execute()
 
     # Vagas únicas (não duplicadas)
-    unicas = supabase.table("vagas_grupo") \
-        .select("id", count="exact") \
-        .eq("eh_duplicada", False) \
+    unicas = (
+        supabase.table("vagas_grupo")
+        .select("id", count="exact")
+        .eq("eh_duplicada", False)
         .execute()
+    )
 
     # Vagas duplicadas
-    duplicadas = supabase.table("vagas_grupo") \
-        .select("id", count="exact") \
-        .eq("eh_duplicada", True) \
-        .execute()
+    duplicadas = (
+        supabase.table("vagas_grupo").select("id", count="exact").eq("eh_duplicada", True).execute()
+    )
 
     # Vagas com múltiplas fontes
-    multi_fonte = supabase.table("vagas_grupo") \
-        .select("id", count="exact") \
-        .gt("qtd_fontes", 1) \
-        .execute()
+    multi_fonte = (
+        supabase.table("vagas_grupo").select("id", count="exact").gt("qtd_fontes", 1).execute()
+    )
 
     return {
         "total_vagas": total.count or 0,
         "vagas_unicas": unicas.count or 0,
         "vagas_duplicadas": duplicadas.count or 0,
         "vagas_multi_fonte": multi_fonte.count or 0,
-        "taxa_duplicacao": (
-            (duplicadas.count or 0) / (total.count or 1) * 100
-        ),
+        "taxa_duplicacao": ((duplicadas.count or 0) / (total.count or 1) * 100),
     }

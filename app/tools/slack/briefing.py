@@ -7,8 +7,9 @@ Sprint 23 E06 - Sync imediato via Slack
 Permite que o gestor peça para Julia ler e analisar
 um briefing do Google Docs, ou sincronizar imediatamente.
 """
+
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from app.services.google_docs import (
@@ -47,16 +48,16 @@ Se o nome nao for especificado ou for muito vago, liste os documentos disponivei
         "properties": {
             "nome_documento": {
                 "type": "string",
-                "description": "Nome (ou parte do nome) do documento a processar. Se vazio, lista documentos disponiveis."
+                "description": "Nome (ou parte do nome) do documento a processar. Se vazio, lista documentos disponiveis.",
             },
             "acao": {
                 "type": "string",
                 "enum": ["listar", "ler", "analisar"],
-                "description": "Acao a executar: 'listar' mostra docs disponiveis, 'ler' mostra conteudo, 'analisar' faz analise completa com plano."
-            }
+                "description": "Acao a executar: 'listar' mostra docs disponiveis, 'ler' mostra conteudo, 'analisar' faz analise completa com plano.",
+            },
         },
-        "required": []
-    }
+        "required": [],
+    },
 }
 
 
@@ -64,7 +65,10 @@ Se o nome nao for especificado ou for muito vago, liste os documentos disponivei
 # HANDLER
 # =============================================================================
 
-async def handle_processar_briefing(params: dict, channel_id: str = "", user_id: str = "") -> dict[str, Any]:
+
+async def handle_processar_briefing(
+    params: dict, channel_id: str = "", user_id: str = ""
+) -> dict[str, Any]:
     """
     Handler para processar briefing.
 
@@ -97,7 +101,7 @@ async def handle_processar_briefing(params: dict, channel_id: str = "", user_id:
             "success": False,
             "error": f"Nao encontrei documento com '{nome}'",
             "documentos_disponiveis": nomes,
-            "mensagem": f"Nao achei nenhum briefing com '{nome}'. Temos esses aqui: {', '.join(nomes) if nomes else 'nenhum'}"
+            "mensagem": f"Nao achei nenhum briefing com '{nome}'. Temos esses aqui: {', '.join(nomes) if nomes else 'nenhum'}",
         }
 
     if len(matches) > 1:
@@ -107,7 +111,7 @@ async def handle_processar_briefing(params: dict, channel_id: str = "", user_id:
             "success": False,
             "multiplos_matches": True,
             "matches": nomes,
-            "mensagem": f"Achei {len(matches)} documentos que batem: {', '.join(nomes)}. Qual deles?"
+            "mensagem": f"Achei {len(matches)} documentos que batem: {', '.join(nomes)}. Qual deles?",
         }
 
     # Match unico - processar
@@ -127,23 +131,25 @@ async def _listar_briefings() -> dict[str, Any]:
         return {
             "success": True,
             "documentos": [],
-            "mensagem": "Nao tem nenhum briefing na pasta ainda."
+            "mensagem": "Nao tem nenhum briefing na pasta ainda.",
         }
 
     docs_info = []
     for doc in docs:
-        docs_info.append({
-            "nome": doc.nome,
-            "id": doc.id,
-            "ultima_modificacao": doc.ultima_modificacao.strftime("%d/%m %H:%M"),
-            "url": doc.url
-        })
+        docs_info.append(
+            {
+                "nome": doc.nome,
+                "id": doc.id,
+                "ultima_modificacao": doc.ultima_modificacao.strftime("%d/%m %H:%M"),
+                "url": doc.url,
+            }
+        )
 
     return {
         "success": True,
         "documentos": docs_info,
         "total": len(docs_info),
-        "mensagem": f"Temos {len(docs_info)} briefings na pasta."
+        "mensagem": f"Temos {len(docs_info)} briefings na pasta.",
     }
 
 
@@ -152,10 +158,7 @@ async def _ler_briefing(doc_info: DocInfo) -> dict[str, Any]:
     doc = await ler_documento(doc_info.id)
 
     if not doc:
-        return {
-            "success": False,
-            "error": f"Erro ao ler documento {doc_info.nome}"
-        }
+        return {"success": False, "error": f"Erro ao ler documento {doc_info.nome}"}
 
     return {
         "success": True,
@@ -169,11 +172,13 @@ async def _ler_briefing(doc_info: DocInfo) -> dict[str, Any]:
         },
         "conteudo": doc.conteudo,
         "caracteres": len(doc.conteudo),
-        "mensagem": f"Li o briefing '{doc.info.nome}'. {'Ja tem um plano meu la.' if doc.ja_processado else 'Ainda nao processei esse.'}"
+        "mensagem": f"Li o briefing '{doc.info.nome}'. {'Ja tem um plano meu la.' if doc.ja_processado else 'Ainda nao processei esse.'}",
     }
 
 
-async def _iniciar_analise_briefing(doc_info: DocInfo, channel_id: str = "", user_id: str = "") -> dict[str, Any]:
+async def _iniciar_analise_briefing(
+    doc_info: DocInfo, channel_id: str = "", user_id: str = ""
+) -> dict[str, Any]:
     """
     Inicia analise de um briefing.
 
@@ -182,10 +187,7 @@ async def _iniciar_analise_briefing(doc_info: DocInfo, channel_id: str = "", use
     doc = await ler_documento(doc_info.id)
 
     if not doc:
-        return {
-            "success": False,
-            "error": f"Erro ao ler documento {doc_info.nome}"
-        }
+        return {"success": False, "error": f"Erro ao ler documento {doc_info.nome}"}
 
     # Verificar se conteudo eh muito grande
     if len(doc.conteudo) > 15000:
@@ -193,7 +195,7 @@ async def _iniciar_analise_briefing(doc_info: DocInfo, channel_id: str = "", use
             "success": False,
             "error": "Documento muito grande",
             "caracteres": len(doc.conteudo),
-            "mensagem": f"Esse briefing tem {len(doc.conteudo)} caracteres, muito grande pra eu processar de uma vez. Pede pro gestor dividir em partes menores."
+            "mensagem": f"Esse briefing tem {len(doc.conteudo)} caracteres, muito grande pra eu processar de uma vez. Pede pro gestor dividir em partes menores.",
         }
 
     # Verificar se tem conteudo util
@@ -201,7 +203,7 @@ async def _iniciar_analise_briefing(doc_info: DocInfo, channel_id: str = "", use
         return {
             "success": False,
             "error": "Documento vazio ou muito curto",
-            "mensagem": f"O briefing '{doc.info.nome}' ta praticamente vazio. Pede pro gestor escrever o que ele precisa."
+            "mensagem": f"O briefing '{doc.info.nome}' ta praticamente vazio. Pede pro gestor escrever o que ele precisa.",
         }
 
     # Verificar se ja tem plano pendente
@@ -214,7 +216,7 @@ async def _iniciar_analise_briefing(doc_info: DocInfo, channel_id: str = "", use
                 "id": doc.info.id,
                 "url": doc.info.url,
             },
-            "mensagem": f"Esse briefing '{doc.info.nome}' ja tem um plano meu. Quer que eu faca uma nova analise?"
+            "mensagem": f"Esse briefing '{doc.info.nome}' ja tem um plano meu. Quer que eu faca uma nova analise?",
         }
 
     # Processar briefing completo (analise + escrita + pendente)
@@ -227,7 +229,7 @@ async def _iniciar_analise_briefing(doc_info: DocInfo, channel_id: str = "", use
             conteudo=doc.conteudo,
             doc_url=doc.info.url,
             channel_id=channel_id,
-            user_id=user_id
+            user_id=user_id,
         )
 
         return {
@@ -241,7 +243,7 @@ async def _iniciar_analise_briefing(doc_info: DocInfo, channel_id: str = "", use
                 "ultima_modificacao": doc.info.ultima_modificacao.strftime("%d/%m %H:%M"),
             },
             "mensagem": mensagem_slack,
-            "aguardando_aprovacao": True
+            "aguardando_aprovacao": True,
         }
 
     except Exception as e:
@@ -249,7 +251,7 @@ async def _iniciar_analise_briefing(doc_info: DocInfo, channel_id: str = "", use
         return {
             "success": False,
             "error": str(e),
-            "mensagem": f"Ops, tive um problema ao analisar o briefing: {e}"
+            "mensagem": f"Ops, tive um problema ao analisar o briefing: {e}",
         }
 
 
@@ -270,11 +272,7 @@ Use quando o gestor pedir para:
 
 Rate limit: 1 sync a cada 5 minutos para evitar spam.
 """.strip(),
-    "input_schema": {
-        "type": "object",
-        "properties": {},
-        "required": []
-    }
+    "input_schema": {"type": "object", "properties": {}, "required": []},
 }
 
 
@@ -312,7 +310,7 @@ async def handle_sincronizar_briefing(params: dict, user_id: str = "") -> dict[s
                 "mensagem": (
                     f"Calma! Ultimo sync foi ha {round(tempo_desde, 1)} minutos. "
                     f"Aguarde mais {round(minutos_restantes, 1)} minutos."
-                )
+                ),
             }
 
     # 2. Buscar hash atual antes do sync
@@ -328,7 +326,7 @@ async def handle_sincronizar_briefing(params: dict, user_id: str = "") -> dict[s
             return {
                 "success": False,
                 "error": resultado.get("error"),
-                "mensagem": f"Erro ao sincronizar: {resultado.get('error')}"
+                "mensagem": f"Erro ao sincronizar: {resultado.get('error')}",
             }
 
         # 4. Atualizar rate limit
@@ -343,7 +341,7 @@ async def handle_sincronizar_briefing(params: dict, user_id: str = "") -> dict[s
             hash_antes=hash_antes,
             hash_depois=hash_depois,
             atualizado=atualizado,
-            secoes=resultado.get("secoes_atualizadas", [])
+            secoes=resultado.get("secoes_atualizadas", []),
         )
 
         # 6. Formatar resposta
@@ -363,26 +361,26 @@ async def handle_sincronizar_briefing(params: dict, user_id: str = "") -> dict[s
                     f"*Secoes atualizadas:* {', '.join(secoes) if secoes else 'todas'}\n"
                     f"*Hash:* `{hash_antes[:8] if hash_antes else 'N/A'}` → `{hash_depois[:8] if hash_depois else 'N/A'}`\n"
                     f"*Timestamp:* {now.strftime('%H:%M:%S')}"
-                )
+                ),
             }
         else:
             return {
                 "success": True,
                 "atualizado": False,
-                "hash_atual": hash_depois[:8] if hash_depois else hash_antes[:8] if hash_antes else "N/A",
+                "hash_atual": hash_depois[:8]
+                if hash_depois
+                else hash_antes[:8]
+                if hash_antes
+                else "N/A",
                 "mensagem": (
                     f"Briefing ja estava atualizado (sem mudancas detectadas)\n"
                     f"*Hash atual:* `{hash_depois[:8] if hash_depois else hash_antes[:8] if hash_antes else 'N/A'}`"
-                )
+                ),
             }
 
     except Exception as e:
         logger.error(f"Erro ao sincronizar briefing: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "mensagem": f"Erro ao sincronizar briefing: {e}"
-        }
+        return {"success": False, "error": str(e), "mensagem": f"Erro ao sincronizar briefing: {e}"}
 
 
 async def _buscar_hash_atual() -> Optional[str]:
@@ -406,11 +404,7 @@ async def _buscar_hash_atual() -> Optional[str]:
 
 
 async def _emitir_evento_sync(
-    user_id: str,
-    hash_antes: Optional[str],
-    hash_depois: str,
-    atualizado: bool,
-    secoes: list
+    user_id: str, hash_antes: Optional[str], hash_depois: str, atualizado: bool, secoes: list
 ):
     """Emite evento BRIEFING_SYNC_TRIGGERED."""
     try:
@@ -421,21 +415,22 @@ async def _emitir_evento_sync(
             EventSource,
         )
 
-        await emit_event(BusinessEvent(
-            event_type=EventType.BRIEFING_SYNC_TRIGGERED,
-            source=EventSource.SLACK,
-            event_props={
-                "actor_id": user_id,
-                "hash_antes": hash_antes,
-                "hash_depois": hash_depois,
-                "atualizado": atualizado,
-                "secoes_atualizadas": secoes,
-            }
-        ))
+        await emit_event(
+            BusinessEvent(
+                event_type=EventType.BRIEFING_SYNC_TRIGGERED,
+                source=EventSource.SLACK,
+                event_props={
+                    "actor_id": user_id,
+                    "hash_antes": hash_antes,
+                    "hash_depois": hash_depois,
+                    "atualizado": atualizado,
+                    "secoes_atualizadas": secoes,
+                },
+            )
+        )
 
         logger.info(
-            f"Evento BRIEFING_SYNC_TRIGGERED emitido: "
-            f"user={user_id}, atualizado={atualizado}"
+            f"Evento BRIEFING_SYNC_TRIGGERED emitido: user={user_id}, atualizado={atualizado}"
         )
 
     except Exception as e:

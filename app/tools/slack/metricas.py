@@ -3,6 +3,7 @@ Tools de metricas para o agente Slack.
 
 Sprint 10 - S10.E2.3
 """
+
 from datetime import datetime, timezone, timedelta
 
 from app.services.supabase import supabase
@@ -36,16 +37,16 @@ NAO requer confirmacao - e apenas leitura de dados.""",
             "periodo": {
                 "type": "string",
                 "enum": ["hoje", "ontem", "semana", "mes"],
-                "description": "Periodo para buscar metricas"
+                "description": "Periodo para buscar metricas",
             },
             "tipo": {
                 "type": "string",
                 "enum": ["geral", "respostas", "envios", "conversoes"],
-                "description": "Tipo de metrica. Use 'geral' para visao completa."
-            }
+                "description": "Tipo de metrica. Use 'geral' para visao completa.",
+            },
         },
-        "required": ["periodo"]
-    }
+        "required": ["periodo"],
+    },
 }
 
 TOOL_COMPARAR_PERIODOS = {
@@ -69,22 +70,23 @@ NAO requer confirmacao - e apenas leitura de dados.""",
             "periodo1": {
                 "type": "string",
                 "enum": ["hoje", "ontem", "semana", "semana_passada", "mes", "mes_passado"],
-                "description": "Primeiro periodo (mais recente)"
+                "description": "Primeiro periodo (mais recente)",
             },
             "periodo2": {
                 "type": "string",
                 "enum": ["hoje", "ontem", "semana", "semana_passada", "mes", "mes_passado"],
-                "description": "Segundo periodo (para comparacao)"
-            }
+                "description": "Segundo periodo (para comparacao)",
+            },
         },
-        "required": ["periodo1", "periodo2"]
-    }
+        "required": ["periodo1", "periodo2"],
+    },
 }
 
 
 # =============================================================================
 # FUNCOES AUXILIARES
 # =============================================================================
+
 
 def _calcular_datas_periodo(periodo: str) -> tuple[datetime, datetime]:
     """Calcula data inicio e fim para um periodo."""
@@ -121,34 +123,64 @@ async def _buscar_metricas_periodo(data_inicio: datetime, data_fim: datetime) ->
     data_fim_str = data_fim.isoformat()
 
     # Mensagens enviadas
-    msgs_enviadas = supabase.table("fila_mensagens").select(
-        "id", count="exact"
-    ).eq("status", "enviada").gte("enviada_em", data_inicio_str).lte("enviada_em", data_fim_str).execute()
+    msgs_enviadas = (
+        supabase.table("fila_mensagens")
+        .select("id", count="exact")
+        .eq("status", "enviada")
+        .gte("enviada_em", data_inicio_str)
+        .lte("enviada_em", data_fim_str)
+        .execute()
+    )
 
     # Respostas recebidas (interacoes de entrada)
-    respostas = supabase.table("interacoes").select(
-        "id", count="exact"
-    ).eq("tipo", "entrada").gte("created_at", data_inicio_str).lte("created_at", data_fim_str).execute()
+    respostas = (
+        supabase.table("interacoes")
+        .select("id", count="exact")
+        .eq("tipo", "entrada")
+        .gte("created_at", data_inicio_str)
+        .lte("created_at", data_fim_str)
+        .execute()
+    )
 
     # Conversas com sentimento positivo
-    positivas = supabase.table("conversations").select(
-        "id", count="exact"
-    ).eq("sentimento", "positivo").gte("updated_at", data_inicio_str).lte("updated_at", data_fim_str).execute()
+    positivas = (
+        supabase.table("conversations")
+        .select("id", count="exact")
+        .eq("sentimento", "positivo")
+        .gte("updated_at", data_inicio_str)
+        .lte("updated_at", data_fim_str)
+        .execute()
+    )
 
     # Conversas com sentimento negativo
-    negativas = supabase.table("conversations").select(
-        "id", count="exact"
-    ).eq("sentimento", "negativo").gte("updated_at", data_inicio_str).lte("updated_at", data_fim_str).execute()
+    negativas = (
+        supabase.table("conversations")
+        .select("id", count="exact")
+        .eq("sentimento", "negativo")
+        .gte("updated_at", data_inicio_str)
+        .lte("updated_at", data_fim_str)
+        .execute()
+    )
 
     # Opt-outs
-    optouts = supabase.table("clientes").select(
-        "id", count="exact"
-    ).eq("opted_out", True).gte("opted_out_at", data_inicio_str).lte("opted_out_at", data_fim_str).execute()
+    optouts = (
+        supabase.table("clientes")
+        .select("id", count="exact")
+        .eq("opted_out", True)
+        .gte("opted_out_at", data_inicio_str)
+        .lte("opted_out_at", data_fim_str)
+        .execute()
+    )
 
     # Vagas reservadas
-    vagas_reservadas = supabase.table("vagas").select(
-        "id", count="exact"
-    ).eq("status", "reservada").gte("updated_at", data_inicio_str).lte("updated_at", data_fim_str).execute()
+    vagas_reservadas = (
+        supabase.table("vagas")
+        .select("id", count="exact")
+        .eq("status", "reservada")
+        .gte("updated_at", data_inicio_str)
+        .lte("updated_at", data_fim_str)
+        .execute()
+    )
 
     total_enviadas = msgs_enviadas.count or 0
     total_respostas = respostas.count or 0
@@ -166,13 +198,14 @@ async def _buscar_metricas_periodo(data_inicio: datetime, data_fim: datetime) ->
         "positivas": total_positivas,
         "negativas": total_negativas,
         "optouts": total_optouts,
-        "vagas_reservadas": total_reservas
+        "vagas_reservadas": total_reservas,
     }
 
 
 # =============================================================================
 # HANDLERS
 # =============================================================================
+
 
 async def handle_buscar_metricas(params: dict) -> dict:
     """Busca metricas de performance."""
@@ -182,11 +215,7 @@ async def handle_buscar_metricas(params: dict) -> dict:
         data_inicio, data_fim = _calcular_datas_periodo(periodo)
         metricas = await _buscar_metricas_periodo(data_inicio, data_fim)
 
-        return {
-            "success": True,
-            "periodo": periodo,
-            "metricas": metricas
-        }
+        return {"success": True, "periodo": periodo, "metricas": metricas}
 
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -218,20 +247,14 @@ async def handle_comparar_periodos(params: dict) -> dict:
 
         return {
             "success": True,
-            "periodo1": {
-                "nome": periodo1,
-                "metricas": metricas1
-            },
-            "periodo2": {
-                "nome": periodo2,
-                "metricas": metricas2
-            },
+            "periodo1": {"nome": periodo1, "metricas": metricas1},
+            "periodo2": {"nome": periodo2, "metricas": metricas2},
             "variacao": {
                 "taxa_resposta": f"{'+' if variacao_taxa > 0 else ''}{round(variacao_taxa, 1)} pontos",
                 "enviadas": calcular_variacao(metricas1["enviadas"], metricas2["enviadas"]),
                 "respostas": calcular_variacao(metricas1["respostas"], metricas2["respostas"]),
-                "tendencia": tendencia
-            }
+                "tendencia": tendencia,
+            },
         }
 
     except Exception as e:

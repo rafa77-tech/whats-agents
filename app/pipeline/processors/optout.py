@@ -3,6 +3,7 @@ Processador de opt-out.
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 
 from ..base import PreProcessor, ProcessorContext, ProcessorResult
@@ -17,6 +18,7 @@ class OptOutProcessor(PreProcessor):
 
     Prioridade: 30
     """
+
     name = "optout"
     priority = 30
 
@@ -32,10 +34,7 @@ class OptOutProcessor(PreProcessor):
         logger.info(f"Opt-out detectado para {context.telefone[:8]}...")
 
         # Processar opt-out
-        sucesso = await processar_optout(
-            cliente_id=context.medico["id"],
-            telefone=context.telefone
-        )
+        sucesso = await processar_optout(cliente_id=context.medico["id"], telefone=context.telefone)
 
         if sucesso:
             # Usar template dinamico do banco
@@ -44,7 +43,7 @@ class OptOutProcessor(PreProcessor):
                 success=True,
                 should_continue=False,  # Para o pipeline
                 response=mensagem_optout,
-                metadata={"optout": True}
+                metadata={"optout": True},
             )
 
         return ProcessorResult(success=True)

@@ -6,6 +6,7 @@ Medicos que recebem mensagens identicas percebem padrao.
 
 NOTA: Renomeado de templates para fragmentos (Sprint 32).
 """
+
 import random
 from dataclasses import dataclass
 from typing import Optional
@@ -14,13 +15,14 @@ from typing import Optional
 @dataclass
 class FragmentoAbertura:
     """Fragmento de abertura com metadata."""
+
     id: str
-    saudacao: str                   # Primeira linha
-    apresentacao: str               # Segunda linha (quem sou)
+    saudacao: str  # Primeira linha
+    apresentacao: str  # Segunda linha (quem sou)
     contexto: Optional[str] = None  # Terceira linha opcional
-    periodo: Optional[str] = None   # manha, tarde, noite, qualquer
+    periodo: Optional[str] = None  # manha, tarde, noite, qualquer
     dia_semana: Optional[str] = None  # seg, sex, fds, qualquer
-    tom: str = "padrao"             # padrao, casual, profissional
+    tom: str = "padrao"  # padrao, casual, profissional
 
 
 # Saudacoes (primeira linha)
@@ -150,7 +152,7 @@ def montar_abertura_completa(
     contexto_id: str = None,
     gancho_id: str = None,
     incluir_contexto: bool = None,
-    soft: bool = False
+    soft: bool = False,
 ) -> list[str]:
     """
     Monta abertura completa com IDs especificos ou aleatorios.
@@ -174,7 +176,7 @@ def montar_abertura_completa(
     lista_ganchos = GANCHOS_SOFT if soft else GANCHOS
 
     # Verificar se temos nome valido
-    tem_nome = nome and nome.strip() and nome.strip().lower() not in ('none', 'null', '')
+    tem_nome = nome and nome.strip() and nome.strip().lower() not in ("none", "null", "")
 
     # Saudacao - usar versao sem nome se nao temos nome
     if tem_nome:
@@ -233,7 +235,7 @@ def gerar_abertura_texto_unico(
     apresentacao_id: str = None,
     contexto_id: str = None,
     gancho_id: str = None,
-    soft: bool = False
+    soft: bool = False,
 ) -> str:
     """
     Gera abertura como texto unico (para envio em uma so mensagem).
@@ -255,7 +257,7 @@ def gerar_abertura_texto_unico(
         apresentacao_id=apresentacao_id,
         contexto_id=contexto_id,
         gancho_id=gancho_id,
-        soft=soft
+        soft=soft,
     )
     return "\n\n".join(mensagens)
 
@@ -289,9 +291,9 @@ def contar_variacoes() -> dict:
         "contextos": len(CONTEXTOS),
         "ganchos": len(GANCHOS),
         "combinacoes_possiveis": (
-            len(SAUDACOES) *
-            len(APRESENTACOES) *
-            (len(CONTEXTOS) + 1) *  # +1 para "sem contexto"
-            len(GANCHOS)
-        )
+            len(SAUDACOES)
+            * len(APRESENTACOES)
+            * (len(CONTEXTOS) + 1)  # +1 para "sem contexto"
+            * len(GANCHOS)
+        ),
     }

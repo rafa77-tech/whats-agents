@@ -4,10 +4,10 @@ Repositório para policy_events.
 Sprint 16 - Observability
 Persiste decisões e efeitos para auditoria, métricas e replay.
 """
+
 import logging
 from datetime import datetime, timezone
 from typing import Optional
-from uuid import UUID
 
 from app.services.supabase import supabase
 from .types import DoctorState, PolicyDecision
@@ -242,21 +242,12 @@ async def get_events_for_cliente(
         Lista de eventos ordenados por ts desc
     """
     try:
-        query = (
-            supabase.table("policy_events")
-            .select("*")
-            .eq("cliente_id", cliente_id)
-        )
+        query = supabase.table("policy_events").select("*").eq("cliente_id", cliente_id)
 
         if event_type:
             query = query.eq("event_type", event_type)
 
-        response = (
-            query
-            .order("ts", desc=True)
-            .limit(limit)
-            .execute()
-        )
+        response = query.order("ts", desc=True).limit(limit).execute()
 
         return response.data or []
 
@@ -341,10 +332,7 @@ async def count_decisions_by_rule(
     """
     try:
         # RPC para query agregada
-        response = supabase.rpc(
-            "count_policy_decisions_by_rule",
-            {"hours_window": hours}
-        ).execute()
+        response = supabase.rpc("count_policy_decisions_by_rule", {"hours_window": hours}).execute()
 
         return response.data or []
 
@@ -353,6 +341,7 @@ async def count_decisions_by_rule(
         # Fallback: query manual (menos eficiente)
         try:
             from datetime import timedelta
+
             cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
             response = (

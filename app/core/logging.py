@@ -9,6 +9,7 @@ Sprint 44 T07.1-T07.3: Melhorias de observabilidade
 - Função mask_phone para padronizar mascaramento
 - Context manager para injetar contexto
 """
+
 import logging
 import sys
 import os
@@ -65,10 +66,10 @@ class ColoredFormatter(logging.Formatter):
     """Formatter colorido para desenvolvimento."""
 
     COLORS = {
-        "DEBUG": "\033[36m",     # Cyan
-        "INFO": "\033[32m",      # Green
-        "WARNING": "\033[33m",   # Yellow
-        "ERROR": "\033[31m",     # Red
+        "DEBUG": "\033[36m",  # Cyan
+        "INFO": "\033[32m",  # Green
+        "WARNING": "\033[33m",  # Yellow
+        "ERROR": "\033[31m",  # Red
         "CRITICAL": "\033[35m",  # Magenta
     }
     RESET = "\033[0m"
@@ -119,10 +120,12 @@ def setup_logging():
         handler.setFormatter(JSONFormatter())
     else:
         # Desenvolvimento: formato legível colorido
-        handler.setFormatter(ColoredFormatter(
-            fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        ))
+        handler.setFormatter(
+            ColoredFormatter(
+                fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
 
     root_logger.addHandler(handler)
     root_logger.setLevel(getattr(logging, log_level, logging.INFO))
@@ -142,6 +145,7 @@ setup_logging()
 # =============================================================================
 # Sprint 44 T07.2-T07.3: Funções de utilidade para logging
 # =============================================================================
+
 
 def mask_phone(telefone: str) -> str:
     """

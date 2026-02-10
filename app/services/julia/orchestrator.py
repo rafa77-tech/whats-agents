@@ -7,6 +7,7 @@ Sprint 44 - T02.3: Integração com Summarizer
 Esta é a função principal refatorada, com < 100 linhas.
 Delega para componentes especializados.
 """
+
 import logging
 from typing import Optional, Dict, Any, List
 
@@ -22,7 +23,6 @@ from app.services.conversation_mode import CapabilitiesGate, ModeInfo
 from .context_builder import get_context_builder
 from .tool_executor import get_tool_executor, get_julia_tools
 from .response_handler import get_response_handler
-from .models import JuliaResponse
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +74,7 @@ async def gerar_resposta_julia_v2(
     )
 
     # 2. Montar constraints
-    constraints = context_builder.montar_constraints(
-        policy_decision, capabilities_gate, mode_info
-    )
+    constraints = context_builder.montar_constraints(policy_decision, capabilities_gate, mode_info)
 
     # 4. Montar histórico com summarization (Sprint 44 T02.3)
     historico_raw = contexto.get("historico_raw", [])
@@ -90,7 +88,11 @@ async def gerar_resposta_julia_v2(
     # Se houve summarization, adicionar resumo ao conhecimento
     conhecimento_com_resumo = conhecimento
     if resumo_conversa:
-        conhecimento_com_resumo = f"{conhecimento}\n\n### Contexto da conversa anterior:\n{resumo_conversa}" if conhecimento else f"### Contexto da conversa anterior:\n{resumo_conversa}"
+        conhecimento_com_resumo = (
+            f"{conhecimento}\n\n### Contexto da conversa anterior:\n{resumo_conversa}"
+            if conhecimento
+            else f"### Contexto da conversa anterior:\n{resumo_conversa}"
+        )
 
     system_prompt = await context_builder.montar_system_prompt(
         contexto=contexto,

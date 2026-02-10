@@ -9,6 +9,7 @@ Este arquivo foi reorganizado em:
 Use: from app.services.handoff import iniciar_handoff, finalizar_handoff
 Sprint 10 - S10.E3.4
 """
+
 import warnings
 
 warnings.warn(

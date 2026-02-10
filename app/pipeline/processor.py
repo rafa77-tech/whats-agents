@@ -1,15 +1,10 @@
 """
 Processador principal de mensagens.
 """
-import logging
-from typing import Optional
 
-from .base import (
-    ProcessorContext,
-    ProcessorResult,
-    PreProcessor,
-    PostProcessor
-)
+import logging
+
+from .base import ProcessorContext, ProcessorResult, PreProcessor, PostProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +46,7 @@ class MessageProcessor:
         return self
 
     async def _run_post_processors_on_early_exit(
-        self,
-        context: ProcessorContext,
-        response: str
+        self, context: ProcessorContext, response: str
     ) -> ProcessorResult:
         """
         Roda pos-processadores necessarios quando pipeline para cedo.
@@ -81,11 +74,7 @@ class MessageProcessor:
             if result.response:
                 response = result.response
 
-        return ProcessorResult(
-            success=True,
-            response=response,
-            should_continue=False
-        )
+        return ProcessorResult(success=True, response=response, should_continue=False)
 
     async def process(self, mensagem_raw: dict) -> ProcessorResult:
         """
@@ -102,6 +91,7 @@ class MessageProcessor:
 
         # Capturar tempo de inicio para metricas
         import time
+
         context.metadata["tempo_inicio"] = mensagem_raw.get("_tempo_inicio", time.time())
 
         try:
@@ -132,10 +122,7 @@ class MessageProcessor:
             # FASE 2: Processador core (LLM)
             if self._core_processor is None:
                 logger.error("Core processor nao configurado")
-                return ProcessorResult(
-                    success=False,
-                    error="Core processor nao configurado"
-                )
+                return ProcessorResult(success=False, error="Core processor nao configurado")
 
             logger.debug("Rodando core processor")
             core_result = await self._core_processor.process(context)
@@ -167,14 +154,8 @@ class MessageProcessor:
                     response = result.response
 
             # Sucesso
-            return ProcessorResult(
-                success=True,
-                response=response
-            )
+            return ProcessorResult(success=True, response=response)
 
         except Exception as e:
             logger.error(f"Erro no pipeline: {e}", exc_info=True)
-            return ProcessorResult(
-                success=False,
-                error=str(e)
-            )
+            return ProcessorResult(success=False, error=str(e))

@@ -3,6 +3,7 @@ Cache de respostas LLM.
 
 Sprint 44 T06.4: Cache para reduzir chamadas redundantes ao LLM.
 """
+
 import hashlib
 import json
 import logging
@@ -66,8 +67,12 @@ def _gerar_contexto_hash(contexto: dict) -> str:
         Hash de 16 caracteres
     """
     partes_relevantes = {
-        "medico_id": contexto.get("medico", {}).get("id") if isinstance(contexto.get("medico"), dict) else None,
-        "stage": contexto.get("medico", {}).get("stage_jornada") if isinstance(contexto.get("medico"), dict) else None,
+        "medico_id": contexto.get("medico", {}).get("id")
+        if isinstance(contexto.get("medico"), dict)
+        else None,
+        "stage": contexto.get("medico", {}).get("stage_jornada")
+        if isinstance(contexto.get("medico"), dict)
+        else None,
         "controlled_by": contexto.get("controlled_by"),
         "primeira_msg": contexto.get("primeira_msg"),
     }
@@ -120,9 +125,16 @@ def _deve_cachear(mensagem: str, contexto: dict) -> bool:
     # Verificar se tem indicadores de tipos não cacheáveis
     msg_lower = mensagem.lower()
     indicadores_nao_cacheaveis = [
-        "preco", "valor", "pagar", "desconto",  # Negociação
-        "reclamacao", "insatisfeito", "problema",  # Reclamação
-        "urgente", "emergencia", "agora",  # Urgência
+        "preco",
+        "valor",
+        "pagar",
+        "desconto",  # Negociação
+        "reclamacao",
+        "insatisfeito",
+        "problema",  # Reclamação
+        "urgente",
+        "emergencia",
+        "agora",  # Urgência
     ]
 
     for indicador in indicadores_nao_cacheaveis:
@@ -161,7 +173,7 @@ async def get_cached_response(
                 extra={
                     "cache_key": cache_key,
                     "mensagem_preview": mensagem[:50],
-                }
+                },
             )
             return cached.decode() if isinstance(cached, bytes) else cached
 
@@ -201,11 +213,7 @@ async def cache_response(
         contexto_hash = _gerar_contexto_hash(contexto)
         cache_key = _gerar_cache_key(mensagem, contexto_hash)
 
-        await redis_client.set(
-            cache_key,
-            resposta,
-            ex=ttl or CACHE_TTL_SEGUNDOS
-        )
+        await redis_client.set(cache_key, resposta, ex=ttl or CACHE_TTL_SEGUNDOS)
 
         logger.debug(
             "[LLM Cache] Resposta cacheada",
@@ -213,7 +221,7 @@ async def cache_response(
                 "cache_key": cache_key,
                 "mensagem_preview": mensagem[:50],
                 "resposta_len": len(resposta),
-            }
+            },
         )
         return True
 
@@ -237,7 +245,6 @@ async def invalidar_cache_medico(medico_id: str) -> int:
     try:
         # Nota: Esta é uma operação simplificada
         # Em produção, considerar usar SCAN para evitar KEYS
-        pattern = f"{CACHE_PREFIX}:*"
         logger.info(f"[LLM Cache] Invalidação solicitada para médico {medico_id}")
 
         # Por segurança, não fazemos invalidação em massa

@@ -3,6 +3,7 @@ Tools de grupos WhatsApp para o agente Slack.
 
 Sprint 14 - E10 - Interface Slack para gestão de vagas capturadas de grupos.
 """
+
 from datetime import datetime, timedelta, UTC
 from typing import Optional
 from uuid import UUID
@@ -35,17 +36,11 @@ NAO requer confirmacao - e apenas leitura de dados.""",
     "input_schema": {
         "type": "object",
         "properties": {
-            "limite": {
-                "type": "integer",
-                "description": "Máximo de vagas a listar (default 10)"
-            },
-            "grupo": {
-                "type": "string",
-                "description": "Filtrar por nome do grupo (opcional)"
-            }
+            "limite": {"type": "integer", "description": "Máximo de vagas a listar (default 10)"},
+            "grupo": {"type": "string", "description": "Filtrar por nome do grupo (opcional)"},
         },
-        "required": []
-    }
+        "required": [],
+    },
 }
 
 TOOL_APROVAR_VAGA_GRUPO = {
@@ -68,7 +63,7 @@ ACAO CRITICA: Peca confirmacao antes de aprovar.""",
         "properties": {
             "vaga_id": {
                 "type": "string",
-                "description": "ID da vaga (pode ser ID curto de 8 chars ou completo)"
+                "description": "ID da vaga (pode ser ID curto de 8 chars ou completo)",
             },
             "correcoes": {
                 "type": "object",
@@ -77,12 +72,12 @@ ACAO CRITICA: Peca confirmacao antes de aprovar.""",
                     "hospital_id": {"type": "string"},
                     "especialidade_id": {"type": "string"},
                     "data": {"type": "string"},
-                    "valor": {"type": "integer"}
-                }
-            }
+                    "valor": {"type": "integer"},
+                },
+            },
         },
-        "required": ["vaga_id"]
-    }
+        "required": ["vaga_id"],
+    },
 }
 
 TOOL_REJEITAR_VAGA_GRUPO = {
@@ -102,17 +97,11 @@ ACAO CRITICA: Peca confirmacao antes de rejeitar.""",
     "input_schema": {
         "type": "object",
         "properties": {
-            "vaga_id": {
-                "type": "string",
-                "description": "ID da vaga"
-            },
-            "motivo": {
-                "type": "string",
-                "description": "Motivo da rejeição"
-            }
+            "vaga_id": {"type": "string", "description": "ID da vaga"},
+            "motivo": {"type": "string", "description": "Motivo da rejeição"},
         },
-        "required": ["vaga_id"]
-    }
+        "required": ["vaga_id"],
+    },
 }
 
 TOOL_DETALHES_VAGA_GRUPO = {
@@ -131,14 +120,9 @@ EXEMPLOS:
 NAO requer confirmacao - e apenas leitura de dados.""",
     "input_schema": {
         "type": "object",
-        "properties": {
-            "vaga_id": {
-                "type": "string",
-                "description": "ID da vaga"
-            }
-        },
-        "required": ["vaga_id"]
-    }
+        "properties": {"vaga_id": {"type": "string", "description": "ID da vaga"}},
+        "required": ["vaga_id"],
+    },
 }
 
 TOOL_ESTATISTICAS_GRUPOS = {
@@ -168,11 +152,11 @@ NAO requer confirmacao - e apenas leitura de dados.""",
             "periodo": {
                 "type": "string",
                 "enum": ["hoje", "semana", "mes"],
-                "description": "Período para estatísticas (default: hoje)"
+                "description": "Período para estatísticas (default: hoje)",
             }
         },
-        "required": []
-    }
+        "required": [],
+    },
 }
 
 TOOL_ADICIONAR_ALIAS_HOSPITAL = {
@@ -193,17 +177,11 @@ ACAO CRITICA: Peca confirmacao antes de adicionar.""",
     "input_schema": {
         "type": "object",
         "properties": {
-            "hospital_id": {
-                "type": "string",
-                "description": "ID do hospital"
-            },
-            "alias": {
-                "type": "string",
-                "description": "Novo alias a adicionar"
-            }
+            "hospital_id": {"type": "string", "description": "ID do hospital"},
+            "alias": {"type": "string", "description": "Novo alias a adicionar"},
         },
-        "required": ["hospital_id", "alias"]
-    }
+        "required": ["hospital_id", "alias"],
+    },
 }
 
 TOOL_BUSCAR_HOSPITAL = {
@@ -224,13 +202,10 @@ NAO requer confirmacao - e apenas leitura de dados.""",
     "input_schema": {
         "type": "object",
         "properties": {
-            "termo": {
-                "type": "string",
-                "description": "Termo de busca (nome ou parte do nome)"
-            }
+            "termo": {"type": "string", "description": "Termo de busca (nome ou parte do nome)"}
         },
-        "required": ["termo"]
-    }
+        "required": ["termo"],
+    },
 }
 
 TOOL_METRICAS_PIPELINE = {
@@ -253,13 +228,10 @@ NAO requer confirmacao - e apenas leitura de dados.""",
     "input_schema": {
         "type": "object",
         "properties": {
-            "dias": {
-                "type": "integer",
-                "description": "Período em dias (default 7, máximo 90)"
-            }
+            "dias": {"type": "integer", "description": "Período em dias (default 7, máximo 90)"}
         },
-        "required": []
-    }
+        "required": [],
+    },
 }
 
 TOOL_STATUS_FILA_GRUPOS = {
@@ -279,11 +251,7 @@ EXEMPLOS:
 - "status do worker de grupos"
 
 NAO requer confirmacao - e apenas leitura de dados.""",
-    "input_schema": {
-        "type": "object",
-        "properties": {},
-        "required": []
-    }
+    "input_schema": {"type": "object", "properties": {}, "required": []},
 }
 
 
@@ -291,17 +259,16 @@ NAO requer confirmacao - e apenas leitura de dados.""",
 # HELPERS
 # =============================================================================
 
+
 async def resolver_id_vaga(vaga_id: str) -> Optional[str]:
     """Resolve ID curto para completo."""
     if len(vaga_id) >= 32:  # UUID completo ou quase
         return vaga_id
 
     # Buscar por prefixo
-    result = supabase.table("vagas_grupo") \
-        .select("id") \
-        .ilike("id", f"{vaga_id}%") \
-        .limit(1) \
-        .execute()
+    result = (
+        supabase.table("vagas_grupo").select("id").ilike("id", f"{vaga_id}%").limit(1).execute()
+    )
 
     return result.data[0]["id"] if result.data else None
 
@@ -310,13 +277,15 @@ async def resolver_id_vaga(vaga_id: str) -> Optional[str]:
 # HANDLERS
 # =============================================================================
 
+
 async def handle_listar_vagas_revisao(params: dict) -> dict:
     """Lista vagas de grupos aguardando revisão."""
     limite = min(params.get("limite", 10), 20)
     grupo = params.get("grupo")
 
     try:
-        query = supabase.table("vagas_grupo") \
+        query = (
+            supabase.table("vagas_grupo")
             .select("""
                 id,
                 hospital_raw,
@@ -329,18 +298,21 @@ async def handle_listar_vagas_revisao(params: dict) -> dict:
                 grupos_whatsapp(nome),
                 hospitais(nome),
                 especialidades(nome)
-            """) \
-            .eq("status", "aguardando_revisao") \
-            .order("confianca_geral", desc=True) \
+            """)
+            .eq("status", "aguardando_revisao")
+            .order("confianca_geral", desc=True)
             .limit(limite)
+        )
 
         if grupo:
             # Buscar grupo primeiro
-            grupo_result = supabase.table("grupos_whatsapp") \
-                .select("id") \
-                .ilike("nome", f"%{grupo}%") \
-                .limit(1) \
+            grupo_result = (
+                supabase.table("grupos_whatsapp")
+                .select("id")
+                .ilike("nome", f"%{grupo}%")
+                .limit(1)
                 .execute()
+            )
 
             if grupo_result.data:
                 query = query.eq("grupo_origem_id", grupo_result.data[0]["id"])
@@ -349,25 +321,31 @@ async def handle_listar_vagas_revisao(params: dict) -> dict:
 
         vagas = []
         for v in result.data or []:
-            vagas.append({
-                "id": v["id"][:8],
-                "id_completo": v["id"],
-                "hospital": (v.get("hospitais") or {}).get("nome") or v.get("hospital_raw", "N/A"),
-                "hospital_raw": v.get("hospital_raw"),
-                "especialidade": (v.get("especialidades") or {}).get("nome") or v.get("especialidade_raw", "N/A"),
-                "data": v.get("data"),
-                "periodo": v.get("periodo_raw"),
-                "valor": v.get("valor"),
-                "confianca": f"{v.get('confianca_geral', 0)*100:.0f}%" if v.get("confianca_geral") else "N/A",
-                "grupo": (v.get("grupos_whatsapp") or {}).get("nome", "N/A"),
-                "criada": v.get("created_at", "")[:10] if v.get("created_at") else "N/A",
-            })
+            vagas.append(
+                {
+                    "id": v["id"][:8],
+                    "id_completo": v["id"],
+                    "hospital": (v.get("hospitais") or {}).get("nome")
+                    or v.get("hospital_raw", "N/A"),
+                    "hospital_raw": v.get("hospital_raw"),
+                    "especialidade": (v.get("especialidades") or {}).get("nome")
+                    or v.get("especialidade_raw", "N/A"),
+                    "data": v.get("data"),
+                    "periodo": v.get("periodo_raw"),
+                    "valor": v.get("valor"),
+                    "confianca": f"{v.get('confianca_geral', 0) * 100:.0f}%"
+                    if v.get("confianca_geral")
+                    else "N/A",
+                    "grupo": (v.get("grupos_whatsapp") or {}).get("nome", "N/A"),
+                    "criada": v.get("created_at", "")[:10] if v.get("created_at") else "N/A",
+                }
+            )
 
         return {
             "success": True,
             "vagas": vagas,
             "total": len(vagas),
-            "mensagem": f"Encontradas {len(vagas)} vagas aguardando revisão"
+            "mensagem": f"Encontradas {len(vagas)} vagas aguardando revisão",
         }
 
     except Exception as e:
@@ -390,11 +368,9 @@ async def handle_aprovar_vaga_grupo(params: dict) -> dict:
         return {"success": False, "error": f"Vaga não encontrada: {vaga_id}"}
 
     try:
-        vaga = supabase.table("vagas_grupo") \
-            .select("*") \
-            .eq("id", vaga_id_completo) \
-            .single() \
-            .execute()
+        vaga = (
+            supabase.table("vagas_grupo").select("*").eq("id", vaga_id_completo).single().execute()
+        )
 
         if not vaga.data:
             return {"success": False, "error": "Vaga não encontrada"}
@@ -403,7 +379,10 @@ async def handle_aprovar_vaga_grupo(params: dict) -> dict:
 
         # Verificar status
         if dados.get("status") != "aguardando_revisao":
-            return {"success": False, "error": f"Vaga não está em revisão. Status: {dados.get('status')}"}
+            return {
+                "success": False,
+                "error": f"Vaga não está em revisão. Status: {dados.get('status')}",
+            }
 
         # Aplicar correções
         if correcoes:
@@ -411,10 +390,9 @@ async def handle_aprovar_vaga_grupo(params: dict) -> dict:
             correcoes_filtradas = {k: v for k, v in correcoes.items() if k in campos_validos and v}
 
             if correcoes_filtradas:
-                supabase.table("vagas_grupo") \
-                    .update(correcoes_filtradas) \
-                    .eq("id", vaga_id_completo) \
-                    .execute()
+                supabase.table("vagas_grupo").update(correcoes_filtradas).eq(
+                    "id", vaga_id_completo
+                ).execute()
 
                 # Atualizar dados locais
                 dados.update(correcoes_filtradas)
@@ -430,7 +408,7 @@ async def handle_aprovar_vaga_grupo(params: dict) -> dict:
             return {
                 "success": False,
                 "error": "Dados insuficientes para importar",
-                "faltando": faltando
+                "faltando": faltando,
             }
 
         # Importar
@@ -441,7 +419,7 @@ async def handle_aprovar_vaga_grupo(params: dict) -> dict:
             "success": True,
             "vaga_id": str(vaga_principal_id),
             "vaga_id_curto": str(vaga_principal_id)[:8],
-            "mensagem": f"Vaga importada com sucesso! ID: {str(vaga_principal_id)[:8]}"
+            "mensagem": f"Vaga importada com sucesso! ID: {str(vaga_principal_id)[:8]}",
         }
 
     except Exception as e:
@@ -462,19 +440,15 @@ async def handle_rejeitar_vaga_grupo(params: dict) -> dict:
         return {"success": False, "error": f"Vaga não encontrada: {vaga_id}"}
 
     try:
-        supabase.table("vagas_grupo") \
-            .update({
+        supabase.table("vagas_grupo").update(
+            {
                 "status": "descartada",
                 "motivo_status": motivo,
                 "revisado_em": datetime.now(UTC).isoformat(),
-            }) \
-            .eq("id", vaga_id_completo) \
-            .execute()
+            }
+        ).eq("id", vaga_id_completo).execute()
 
-        return {
-            "success": True,
-            "mensagem": f"Vaga {vaga_id} rejeitada. Motivo: {motivo}"
-        }
+        return {"success": True, "mensagem": f"Vaga {vaga_id} rejeitada. Motivo: {motivo}"}
 
     except Exception as e:
         logger.error(f"Erro ao rejeitar vaga {vaga_id}: {e}")
@@ -493,7 +467,8 @@ async def handle_detalhes_vaga_grupo(params: dict) -> dict:
         return {"success": False, "error": f"Vaga não encontrada: {vaga_id}"}
 
     try:
-        vaga = supabase.table("vagas_grupo") \
+        vaga = (
+            supabase.table("vagas_grupo")
             .select("""
                 *,
                 grupos_whatsapp(nome, regiao),
@@ -501,10 +476,11 @@ async def handle_detalhes_vaga_grupo(params: dict) -> dict:
                 hospitais(nome, cidade),
                 especialidades(nome),
                 periodos(nome)
-            """) \
-            .eq("id", vaga_id_completo) \
-            .single() \
+            """)
+            .eq("id", vaga_id_completo)
+            .single()
             .execute()
+        )
 
         if not vaga.data:
             return {"success": False, "error": "Vaga não encontrada"}
@@ -512,19 +488,22 @@ async def handle_detalhes_vaga_grupo(params: dict) -> dict:
         dados = vaga.data
 
         # Buscar fontes separadamente
-        fontes = supabase.table("vagas_grupo_fontes") \
-            .select("ordem, valor_informado, grupos_whatsapp(nome)") \
-            .eq("vaga_grupo_id", vaga_id_completo) \
-            .order("ordem") \
+        fontes = (
+            supabase.table("vagas_grupo_fontes")
+            .select("ordem, valor_informado, grupos_whatsapp(nome)")
+            .eq("vaga_grupo_id", vaga_id_completo)
+            .order("ordem")
             .execute()
+        )
 
         return {
             "success": True,
             "id": dados["id"][:8],
             "id_completo": dados["id"],
             "status": dados.get("status"),
-            "confianca": f"{dados.get('confianca_geral', 0)*100:.0f}%" if dados.get("confianca_geral") else "N/A",
-
+            "confianca": f"{dados.get('confianca_geral', 0) * 100:.0f}%"
+            if dados.get("confianca_geral")
+            else "N/A",
             "dados_extraidos": {
                 "hospital_raw": dados.get("hospital_raw"),
                 "especialidade_raw": dados.get("especialidade_raw"),
@@ -533,23 +512,24 @@ async def handle_detalhes_vaga_grupo(params: dict) -> dict:
                 "valor": dados.get("valor"),
                 "observacoes": dados.get("observacoes"),
             },
-
             "dados_normalizados": {
                 "hospital": (dados.get("hospitais") or {}).get("nome"),
                 "hospital_cidade": (dados.get("hospitais") or {}).get("cidade"),
-                "hospital_score": f"{dados.get('hospital_match_score', 0)*100:.0f}%" if dados.get("hospital_match_score") else "N/A",
+                "hospital_score": f"{dados.get('hospital_match_score', 0) * 100:.0f}%"
+                if dados.get("hospital_match_score")
+                else "N/A",
                 "especialidade": (dados.get("especialidades") or {}).get("nome"),
-                "especialidade_score": f"{dados.get('especialidade_match_score', 0)*100:.0f}%" if dados.get("especialidade_match_score") else "N/A",
+                "especialidade_score": f"{dados.get('especialidade_match_score', 0) * 100:.0f}%"
+                if dados.get("especialidade_match_score")
+                else "N/A",
                 "periodo": (dados.get("periodos") or {}).get("nome"),
             },
-
             "origem": {
                 "grupo": (dados.get("grupos_whatsapp") or {}).get("nome"),
                 "regiao": (dados.get("grupos_whatsapp") or {}).get("regiao"),
                 "contato": (dados.get("contatos_grupo") or {}).get("nome"),
                 "telefone": (dados.get("contatos_grupo") or {}).get("telefone"),
             },
-
             "fontes": [
                 {
                     "ordem": f["ordem"],
@@ -558,10 +538,9 @@ async def handle_detalhes_vaga_grupo(params: dict) -> dict:
                 }
                 for f in (fontes.data or [])
             ],
-
             "timestamps": {
                 "criada": dados.get("created_at"),
-            }
+            },
         }
 
     except Exception as e:
@@ -588,51 +567,65 @@ async def handle_estatisticas_grupos(params: dict) -> dict:
 
     try:
         # Mensagens processadas
-        msgs = supabase.table("mensagens_grupo") \
-            .select("id", count="exact") \
-            .gte("created_at", data_inicio_str) \
+        msgs = (
+            supabase.table("mensagens_grupo")
+            .select("id", count="exact")
+            .gte("created_at", data_inicio_str)
             .execute()
+        )
 
         # Vagas por status
-        vagas_total = supabase.table("vagas_grupo") \
-            .select("id", count="exact") \
-            .gte("created_at", data_inicio_str) \
+        vagas_total = (
+            supabase.table("vagas_grupo")
+            .select("id", count="exact")
+            .gte("created_at", data_inicio_str)
             .execute()
+        )
 
-        vagas_importadas = supabase.table("vagas_grupo") \
-            .select("id", count="exact") \
-            .eq("status", "importada") \
-            .gte("created_at", data_inicio_str) \
+        vagas_importadas = (
+            supabase.table("vagas_grupo")
+            .select("id", count="exact")
+            .eq("status", "importada")
+            .gte("created_at", data_inicio_str)
             .execute()
+        )
 
-        vagas_revisao = supabase.table("vagas_grupo") \
-            .select("id", count="exact") \
-            .eq("status", "aguardando_revisao") \
-            .gte("created_at", data_inicio_str) \
+        vagas_revisao = (
+            supabase.table("vagas_grupo")
+            .select("id", count="exact")
+            .eq("status", "aguardando_revisao")
+            .gte("created_at", data_inicio_str)
             .execute()
+        )
 
-        vagas_descartadas = supabase.table("vagas_grupo") \
-            .select("id", count="exact") \
-            .eq("status", "descartada") \
-            .gte("created_at", data_inicio_str) \
+        vagas_descartadas = (
+            supabase.table("vagas_grupo")
+            .select("id", count="exact")
+            .eq("status", "descartada")
+            .gte("created_at", data_inicio_str)
             .execute()
+        )
 
-        vagas_duplicadas = supabase.table("vagas_grupo") \
-            .select("id", count="exact") \
-            .eq("eh_duplicada", True) \
-            .gte("created_at", data_inicio_str) \
+        vagas_duplicadas = (
+            supabase.table("vagas_grupo")
+            .select("id", count="exact")
+            .eq("eh_duplicada", True)
+            .gte("created_at", data_inicio_str)
             .execute()
+        )
 
         # Top grupos (usando query simples)
-        top_grupos = supabase.table("vagas_grupo") \
-            .select("grupo_origem_id, grupos_whatsapp(nome)") \
-            .eq("status", "importada") \
-            .gte("created_at", data_inicio_str) \
+        top_grupos = (
+            supabase.table("vagas_grupo")
+            .select("grupo_origem_id, grupos_whatsapp(nome)")
+            .eq("status", "importada")
+            .gte("created_at", data_inicio_str)
             .execute()
+        )
 
         # Contar manualmente por grupo
         grupos_count = {}
-        for v in (top_grupos.data or []):
+        for v in top_grupos.data or []:
             gid = v.get("grupo_origem_id")
             nome = (v.get("grupos_whatsapp") or {}).get("nome", "N/A")
             if gid:
@@ -652,11 +645,9 @@ async def handle_estatisticas_grupos(params: dict) -> dict:
             "success": True,
             "periodo": periodo,
             "data_inicio": data_inicio_str,
-
             "mensagens": {
                 "total": msgs.count or 0,
             },
-
             "vagas": {
                 "total": total,
                 "importadas": importadas,
@@ -664,15 +655,12 @@ async def handle_estatisticas_grupos(params: dict) -> dict:
                 "descartadas": vagas_descartadas.count or 0,
                 "duplicadas": vagas_duplicadas.count or 0,
             },
-
             "taxas": {
                 "conversao": f"{taxa_conversao:.1f}%",
                 "duplicacao": f"{taxa_dup:.1f}%",
             },
-
             "top_grupos": top_5,
-
-            "mensagem": f"Estatísticas de {periodo}: {importadas} vagas importadas de {total} capturadas"
+            "mensagem": f"Estatísticas de {periodo}: {importadas} vagas importadas de {total} capturadas",
         }
 
     except Exception as e:
@@ -692,11 +680,9 @@ async def handle_adicionar_alias_hospital(params: dict) -> dict:
 
     try:
         # Verificar hospital existe
-        hospital = supabase.table("hospitais") \
-            .select("id, nome") \
-            .eq("id", hospital_id) \
-            .single() \
-            .execute()
+        hospital = (
+            supabase.table("hospitais").select("id, nome").eq("id", hospital_id).single().execute()
+        )
 
         if not hospital.data:
             return {"success": False, "error": f"Hospital não encontrado: {hospital_id}"}
@@ -705,27 +691,31 @@ async def handle_adicionar_alias_hospital(params: dict) -> dict:
         alias_norm = normalizar_para_busca(alias)
 
         # Verificar se já existe
-        existente = supabase.table("hospitais_alias") \
-            .select("id") \
-            .eq("alias_normalizado", alias_norm) \
-            .limit(1) \
+        existente = (
+            supabase.table("hospitais_alias")
+            .select("id")
+            .eq("alias_normalizado", alias_norm)
+            .limit(1)
             .execute()
+        )
 
         if existente.data:
             return {"success": False, "error": f"Alias já existe: {alias}"}
 
         # Criar alias
-        supabase.table("hospitais_alias").insert({
-            "hospital_id": hospital_id,
-            "alias": alias,
-            "alias_normalizado": alias_norm,
-            "origem": "gestor_manual",
-            "confianca": 1.0,
-        }).execute()
+        supabase.table("hospitais_alias").insert(
+            {
+                "hospital_id": hospital_id,
+                "alias": alias,
+                "alias_normalizado": alias_norm,
+                "origem": "gestor_manual",
+                "confianca": 1.0,
+            }
+        ).execute()
 
         return {
             "success": True,
-            "mensagem": f"Alias '{alias}' adicionado ao hospital '{hospital.data['nome']}'"
+            "mensagem": f"Alias '{alias}' adicionado ao hospital '{hospital.data['nome']}'",
         }
 
     except Exception as e:
@@ -746,50 +736,58 @@ async def handle_buscar_hospital_grupos(params: dict) -> dict:
         termo_norm = normalizar_para_busca(termo)
 
         # Buscar por alias primeiro
-        alias_result = supabase.table("hospitais_alias") \
-            .select("hospital_id, alias, hospitais(id, nome, cidade)") \
-            .ilike("alias_normalizado", f"%{termo_norm}%") \
-            .limit(5) \
+        alias_result = (
+            supabase.table("hospitais_alias")
+            .select("hospital_id, alias, hospitais(id, nome, cidade)")
+            .ilike("alias_normalizado", f"%{termo_norm}%")
+            .limit(5)
             .execute()
+        )
 
         # Buscar direto pelo nome também
-        nome_result = supabase.table("hospitais") \
-            .select("id, nome, cidade") \
-            .ilike("nome", f"%{termo}%") \
-            .limit(5) \
+        nome_result = (
+            supabase.table("hospitais")
+            .select("id, nome, cidade")
+            .ilike("nome", f"%{termo}%")
+            .limit(5)
             .execute()
+        )
 
         resultados = []
         ids_vistos = set()
 
         # Adicionar resultados de alias
-        for a in (alias_result.data or []):
+        for a in alias_result.data or []:
             hosp = a.get("hospitais") or {}
             if hosp.get("id") and hosp["id"] not in ids_vistos:
                 ids_vistos.add(hosp["id"])
-                resultados.append({
-                    "id": hosp["id"],
-                    "nome": hosp.get("nome"),
-                    "cidade": hosp.get("cidade"),
-                    "match_via": f"alias: {a.get('alias')}"
-                })
+                resultados.append(
+                    {
+                        "id": hosp["id"],
+                        "nome": hosp.get("nome"),
+                        "cidade": hosp.get("cidade"),
+                        "match_via": f"alias: {a.get('alias')}",
+                    }
+                )
 
         # Adicionar resultados diretos
-        for h in (nome_result.data or []):
+        for h in nome_result.data or []:
             if h["id"] not in ids_vistos:
                 ids_vistos.add(h["id"])
-                resultados.append({
-                    "id": h["id"],
-                    "nome": h.get("nome"),
-                    "cidade": h.get("cidade"),
-                    "match_via": "nome"
-                })
+                resultados.append(
+                    {
+                        "id": h["id"],
+                        "nome": h.get("nome"),
+                        "cidade": h.get("cidade"),
+                        "match_via": "nome",
+                    }
+                )
 
         return {
             "success": True,
             "termo": termo,
             "resultados": resultados[:10],
-            "total": len(resultados)
+            "total": len(resultados),
         }
 
     except Exception as e:
@@ -820,7 +818,6 @@ async def handle_metricas_pipeline_grupos(params: dict) -> dict:
         return {
             "success": True,
             "periodo_dias": dias,
-
             "resumo": {
                 "mensagens_processadas": total_mensagens,
                 "vagas_importadas": vagas_importadas,
@@ -828,24 +825,24 @@ async def handle_metricas_pipeline_grupos(params: dict) -> dict:
                 "vagas_duplicadas": totais.get("vagas_duplicadas", 0),
                 "grupos_ativos": totais.get("grupos_ativos", 0),
             },
-
             "taxas": {
-                "conversao": f"{totais.get('taxa_conversao', 0)*100:.1f}%" if totais.get('taxa_conversao') else "N/A",
-                "duplicacao": f"{totais.get('taxa_duplicacao', 0)*100:.1f}%" if totais.get('taxa_duplicacao') else "N/A",
+                "conversao": f"{totais.get('taxa_conversao', 0) * 100:.1f}%"
+                if totais.get("taxa_conversao")
+                else "N/A",
+                "duplicacao": f"{totais.get('taxa_duplicacao', 0) * 100:.1f}%"
+                if totais.get("taxa_duplicacao")
+                else "N/A",
             },
-
             "custos": {
                 "total_usd": f"${custo_total:.4f}",
                 "por_vaga_usd": f"${custo_por_vaga:.4f}",
                 "por_mensagem_usd": f"${custo_por_mensagem:.6f}",
             },
-
             "top_grupos": [
                 {"nome": g.get("nome_grupo", "N/A"), "vagas": g.get("total_vagas", 0)}
                 for g in top_grupos
             ],
-
-            "mensagem": f"Pipeline últimos {dias}d: {vagas_importadas} vagas importadas, custo ${custo_total:.4f}"
+            "mensagem": f"Pipeline últimos {dias}d: {vagas_importadas} vagas importadas, custo ${custo_total:.4f}",
         }
 
     except Exception as e:
@@ -864,7 +861,6 @@ async def handle_status_fila_grupos(params: dict) -> dict:
 
         return {
             "success": True,
-
             "fila": {
                 "pendente": status.get("pendente", 0),
                 "heuristica": status.get("heuristica", 0),
@@ -875,13 +871,11 @@ async def handle_status_fila_grupos(params: dict) -> dict:
                 "importacao": status.get("importacao", 0),
                 "erro": status.get("erro", 0),
             },
-
             "totais": {
                 "em_processamento": status.get("em_processamento", 0),
                 "finalizados_hoje": status.get("finalizados_hoje", 0),
                 "descartados_hoje": status.get("descartados_hoje", 0),
             },
-
             "travados": {
                 "total": len(travados),
                 "itens": [
@@ -889,13 +883,16 @@ async def handle_status_fila_grupos(params: dict) -> dict:
                         "id": t.get("id", "")[:8],
                         "estagio": t.get("estagio"),
                         "tentativas": t.get("tentativas"),
-                        "ultimo_erro": t.get("ultimo_erro", "")[:50] if t.get("ultimo_erro") else None,
+                        "ultimo_erro": t.get("ultimo_erro", "")[:50]
+                        if t.get("ultimo_erro")
+                        else None,
                     }
                     for t in travados[:5]  # Mostrar só 5
-                ] if travados else []
+                ]
+                if travados
+                else [],
             },
-
-            "mensagem": f"Fila: {status.get('em_processamento', 0)} em processamento, {len(travados)} travados"
+            "mensagem": f"Fila: {status.get('em_processamento', 0)} em processamento, {len(travados)} travados",
         }
 
     except Exception as e:

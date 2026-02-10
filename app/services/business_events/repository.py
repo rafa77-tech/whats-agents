@@ -3,6 +3,7 @@ Repository para eventos de negocio.
 
 Sprint 17 - E02
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -50,11 +51,7 @@ async def emit_event(event: BusinessEvent) -> str:
                 return event_id
 
         # Inserir novo evento
-        response = (
-            supabase.table("business_events")
-            .insert(data)
-            .execute()
-        )
+        response = supabase.table("business_events").insert(data).execute()
 
         if response.data:
             event_id = response.data[0]["id"]
@@ -205,10 +202,7 @@ async def get_funnel_counts(
         # Sprint 44 T04.5/T04.7: Usar RPC para contagens se disponível
         # Fallback para query com limite
         try:
-            response = supabase.rpc(
-                "get_event_counts",
-                {"p_hours": hours}
-            ).execute()
+            response = supabase.rpc("get_event_counts", {"p_hours": hours}).execute()
 
             if response.data:
                 return {row["event_type"]: row["count"] for row in response.data}

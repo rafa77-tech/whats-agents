@@ -9,6 +9,7 @@ Critérios de priorização (em ordem):
 3. Nunca foi contatado (novo na base)
 4. Tempo desde última interação (nem muito recente, nem muito antigo)
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -38,11 +39,8 @@ DIAS_CONTATO_IDEAL_MAX = 30  # Priorizar quem foi contatado há menos de 30 dias
 # FUNÇÕES DE PRIORIZAÇÃO
 # =============================================================================
 
-async def priorizar_medicos(
-    medicos: list[dict],
-    vaga: dict,
-    limite: int = 5
-) -> list[dict]:
+
+async def priorizar_medicos(medicos: list[dict], vaga: dict, limite: int = 5) -> list[dict]:
     """
     Prioriza lista de médicos para uma vaga específica.
 
@@ -62,16 +60,16 @@ async def priorizar_medicos(
 
     for medico in medicos:
         score = await calcular_score_priorizacao(medico, vaga)
-        medicos_com_score.append({
-            **medico,
-            "_prioridade_score": score,
-        })
+        medicos_com_score.append(
+            {
+                **medico,
+                "_prioridade_score": score,
+            }
+        )
 
     # Ordenar por score (maior primeiro)
     medicos_ordenados = sorted(
-        medicos_com_score,
-        key=lambda m: m["_prioridade_score"],
-        reverse=True
+        medicos_com_score, key=lambda m: m["_prioridade_score"], reverse=True
     )
 
     # Remover score interno antes de retornar
@@ -83,10 +81,7 @@ async def priorizar_medicos(
     return resultado
 
 
-async def calcular_score_priorizacao(
-    medico: dict,
-    vaga: dict
-) -> float:
+async def calcular_score_priorizacao(medico: dict, vaga: dict) -> float:
     """
     Calcula score de priorização para um médico.
 
@@ -148,10 +143,7 @@ async def calcular_score_priorizacao(
     return score
 
 
-async def verificar_historico_positivo(
-    cliente_id: str,
-    hospital_id: Optional[str] = None
-) -> dict:
+async def verificar_historico_positivo(cliente_id: str, hospital_id: Optional[str] = None) -> dict:
     """
     Verifica se médico tem histórico positivo de plantões.
 
@@ -200,9 +192,9 @@ async def verificar_historico_positivo(
 # FUNÇÕES DE FILTRO
 # =============================================================================
 
+
 async def filtrar_medicos_contatados_recentemente(
-    medicos: list[dict],
-    dias_minimo: int = DIAS_CONTATO_MINIMO
+    medicos: list[dict], dias_minimo: int = DIAS_CONTATO_MINIMO
 ) -> list[dict]:
     """
     Remove médicos que foram contatados recentemente.
@@ -234,9 +226,7 @@ async def filtrar_medicos_contatados_recentemente(
     return filtrados
 
 
-async def filtrar_medicos_em_conversa_ativa(
-    medicos: list[dict]
-) -> list[dict]:
+async def filtrar_medicos_em_conversa_ativa(medicos: list[dict]) -> list[dict]:
     """
     Remove médicos que estão em conversa ativa.
 
@@ -271,8 +261,7 @@ async def filtrar_medicos_em_conversa_ativa(
 
 
 async def filtrar_medicos_na_fila(
-    medicos: list[dict],
-    tipo_mensagem: Optional[str] = None
+    medicos: list[dict], tipo_mensagem: Optional[str] = None
 ) -> list[dict]:
     """
     Remove médicos que já estão na fila de mensagens.
@@ -315,10 +304,9 @@ async def filtrar_medicos_na_fila(
 # FUNÇÃO COMPLETA DE SELEÇÃO
 # =============================================================================
 
+
 async def selecionar_medicos_para_oferta(
-    vaga: dict,
-    limite: int = 5,
-    aplicar_filtros: bool = True
+    vaga: dict, limite: int = 5, aplicar_filtros: bool = True
 ) -> list[dict]:
     """
     Seleciona e prioriza médicos para uma oferta de vaga.
@@ -363,8 +351,6 @@ async def selecionar_medicos_para_oferta(
     # Priorizar
     medicos_priorizados = await priorizar_medicos(medicos, vaga, limite)
 
-    logger.info(
-        f"Selecionados {len(medicos_priorizados)} médicos para vaga {vaga.get('id')}"
-    )
+    logger.info(f"Selecionados {len(medicos_priorizados)} médicos para vaga {vaga.get('id')}")
 
     return medicos_priorizados

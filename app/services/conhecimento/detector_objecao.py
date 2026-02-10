@@ -3,6 +3,7 @@ Detector de objeções em mensagens de médicos.
 
 Identifica tipo de objeção para buscar conhecimento relevante.
 """
+
 import re
 import logging
 from dataclasses import dataclass
@@ -236,9 +237,7 @@ class DetectorObjecao:
         # Se confiança baixa ou sem objeção, usa LLM
         contexto = ""
         if historico:
-            contexto = f"\nContexto das últimas mensagens:\n" + "\n".join(
-                historico[-3:]
-            )
+            contexto = "\nContexto das últimas mensagens:\n" + "\n".join(historico[-3:])
 
         prompt = f"""Analise a mensagem do médico e identifique se há uma OBJEÇÃO.
 

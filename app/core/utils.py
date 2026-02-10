@@ -4,6 +4,7 @@ Sprint 44 T01.4: Utility functions for safe data access.
 Provides helper functions to avoid common IndexError and KeyError issues
 when working with database results and API responses.
 """
+
 from typing import Any, Optional, TypeVar
 
 T = TypeVar("T")

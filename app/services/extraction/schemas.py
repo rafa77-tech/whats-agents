@@ -11,6 +11,7 @@ from enum import Enum
 
 class Interesse(str, Enum):
     """Classificação de interesse do médico."""
+
     POSITIVO = "positivo"
     NEGATIVO = "negativo"
     NEUTRO = "neutro"
@@ -19,6 +20,7 @@ class Interesse(str, Enum):
 
 class ProximoPasso(str, Enum):
     """Ação sugerida após análise da conversa."""
+
     ENVIAR_VAGAS = "enviar_vagas"
     AGENDAR_FOLLOWUP = "agendar_followup"
     AGUARDAR_RESPOSTA = "aguardar_resposta"
@@ -29,6 +31,7 @@ class ProximoPasso(str, Enum):
 
 class TipoObjecao(str, Enum):
     """Tipos de objeção que o médico pode apresentar."""
+
     PRECO = "preco"
     TEMPO = "tempo"
     CONFIANCA = "confianca"
@@ -41,6 +44,7 @@ class TipoObjecao(str, Enum):
 
 class SeveridadeObjecao(str, Enum):
     """Severidade da objeção detectada."""
+
     BAIXA = "baixa"
     MEDIA = "media"
     ALTA = "alta"
@@ -49,6 +53,7 @@ class SeveridadeObjecao(str, Enum):
 @dataclass
 class Objecao:
     """Representa uma objeção detectada na conversa."""
+
     tipo: TipoObjecao
     descricao: str
     severidade: SeveridadeObjecao
@@ -57,6 +62,7 @@ class Objecao:
 @dataclass
 class ExtractionContext:
     """Contexto de entrada para extração de dados."""
+
     mensagem_medico: str
     resposta_julia: str
     nome_medico: str
@@ -71,6 +77,7 @@ class ExtractionContext:
 @dataclass
 class ExtractionResult:
     """Resultado da extração de dados da conversa."""
+
     # Classificação
     interesse: Interesse
     interesse_score: float  # 0.0 a 1.0

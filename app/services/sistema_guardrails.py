@@ -6,6 +6,7 @@ Sprint 36 - Resiliência e Observabilidade:
 - T06.2: Audit trail de ações críticas
 - T06.3: Endpoint para desbloquear clientes/chips
 """
+
 import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
@@ -22,8 +23,10 @@ logger = logging.getLogger(__name__)
 # Sprint 36 - T06.1: Feature Flags
 # ============================================================
 
+
 class FeatureFlag(Enum):
     """Feature flags disponíveis no sistema."""
+
     # Envio de mensagens
     ENVIO_PROSPECCAO = "envio_prospeccao"
     ENVIO_FOLLOWUP = "envio_followup"
@@ -87,9 +90,9 @@ async def obter_feature_flag(flag: FeatureFlag) -> bool:
 
     # 3. Verificar banco de dados
     try:
-        result = supabase.table("app_settings").select("value").eq(
-            "key", flag_key
-        ).single().execute()
+        result = (
+            supabase.table("app_settings").select("value").eq("key", flag_key).single().execute()
+        )
 
         if result.data:
             value = result.data.get("value", "true").lower() == "true"
@@ -104,10 +107,7 @@ async def obter_feature_flag(flag: FeatureFlag) -> bool:
 
 
 async def definir_feature_flag(
-    flag: FeatureFlag,
-    habilitada: bool,
-    motivo: str,
-    usuario: str = "sistema"
+    flag: FeatureFlag, habilitada: bool, motivo: str, usuario: str = "sistema"
 ) -> bool:
     """
     Sprint 36 - T06.1: Define valor de uma feature flag.
@@ -132,11 +132,14 @@ async def definir_feature_flag(
             logger.warning(f"[guardrails] Erro ao atualizar Redis: {e}")
 
         # 2. Atualizar banco de dados (persistência)
-        supabase.table("app_settings").upsert({
-            "key": flag_key,
-            "value": valor,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }, on_conflict="key").execute()
+        supabase.table("app_settings").upsert(
+            {
+                "key": flag_key,
+                "value": valor,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            on_conflict="key",
+        ).execute()
 
         # 3. Registrar no audit trail
         await registrar_audit_trail(
@@ -147,7 +150,7 @@ async def definir_feature_flag(
                 "motivo": motivo,
                 "valor_anterior": _feature_flag_cache.get(flag_key, (None, 0))[0],
             },
-            usuario=usuario
+            usuario=usuario,
         )
 
         # 4. Limpar cache
@@ -179,8 +182,10 @@ async def listar_feature_flags() -> Dict[str, bool]:
 # Sprint 36 - T06.2: Audit Trail
 # ============================================================
 
+
 class AcaoAuditoria(Enum):
     """Tipos de ações auditáveis."""
+
     # Feature flags
     FEATURE_FLAG_CHANGE = "feature_flag_change"
 
@@ -242,7 +247,7 @@ async def registrar_audit_trail(
         if result.data:
             logger.info(
                 f"[audit] {acao} em {entidade} por {usuario}",
-                extra={"audit_id": result.data[0].get("id")}
+                extra={"audit_id": result.data[0].get("id")},
             )
             return result.data[0].get("id")
 
@@ -279,13 +284,15 @@ async def buscar_audit_trail(
     try:
         from datetime import timedelta
 
-        inicio = (
-            datetime.now(timezone.utc) - timedelta(hours=horas)
-        ).isoformat()
+        inicio = (datetime.now(timezone.utc) - timedelta(hours=horas)).isoformat()
 
-        query = supabase.table("audit_trail").select("*").gte(
-            "created_at", inicio
-        ).order("created_at", desc=True).limit(limite)
+        query = (
+            supabase.table("audit_trail")
+            .select("*")
+            .gte("created_at", inicio)
+            .order("created_at", desc=True)
+            .limit(limite)
+        )
 
         if acao:
             query = query.eq("acao", acao)
@@ -308,11 +315,8 @@ async def buscar_audit_trail(
 # Sprint 36 - T06.3: Desbloqueio de Entidades
 # ============================================================
 
-async def desbloquear_chip(
-    chip_id: str,
-    motivo: str,
-    usuario: str = "sistema"
-) -> bool:
+
+async def desbloquear_chip(chip_id: str, motivo: str, usuario: str = "sistema") -> bool:
     """
     Sprint 36 - T06.3: Desbloqueia um chip manualmente.
 
@@ -331,9 +335,13 @@ async def desbloquear_chip(
     """
     try:
         # 1. Buscar chip
-        chip_result = supabase.table("chips").select(
-            "id, telefone, status, trust_score"
-        ).eq("id", chip_id).single().execute()
+        chip_result = (
+            supabase.table("chips")
+            .select("id, telefone, status, trust_score")
+            .eq("id", chip_id)
+            .single()
+            .execute()
+        )
 
         if not chip_result.data:
             logger.warning(f"[guardrails] Chip não encontrado: {chip_id}")
@@ -348,6 +356,7 @@ async def desbloquear_chip(
         # 2. Resetar circuit breaker do chip
         try:
             from app.services.chips.circuit_breaker import chip_circuit_breaker
+
             chip_circuit_breaker.reset_circuit(chip_id)
         except Exception as e:
             logger.warning(f"[guardrails] Erro ao resetar circuit: {e}")
@@ -355,17 +364,20 @@ async def desbloquear_chip(
         # 3. Limpar cooldown do chip
         try:
             from app.services.chips.cooldown import limpar_cooldown
+
             await limpar_cooldown(chip_id)
         except Exception as e:
             logger.warning(f"[guardrails] Erro ao limpar cooldown: {e}")
 
         # 4. Atualizar chip no banco
-        supabase.table("chips").update({
-            "status": "active",
-            "erros_ultimas_24h": 0,
-            "ultimo_erro": None,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", chip_id).execute()
+        supabase.table("chips").update(
+            {
+                "status": "active",
+                "erros_ultimas_24h": 0,
+                "ultimo_erro": None,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", chip_id).execute()
 
         # 5. Registrar no audit trail
         await registrar_audit_trail(
@@ -377,7 +389,7 @@ async def desbloquear_chip(
                 "telefone": chip.get("telefone", "")[-4:],
                 "estado_anterior": estado_anterior,
             },
-            usuario=usuario
+            usuario=usuario,
         )
 
         logger.info(f"[guardrails] Chip {chip_id} desbloqueado por {usuario}: {motivo}")
@@ -388,11 +400,7 @@ async def desbloquear_chip(
         return False
 
 
-async def desbloquear_cliente(
-    cliente_id: str,
-    motivo: str,
-    usuario: str = "sistema"
-) -> bool:
+async def desbloquear_cliente(cliente_id: str, motivo: str, usuario: str = "sistema") -> bool:
     """
     Sprint 36 - T06.3: Desbloqueia um cliente manualmente.
 
@@ -411,9 +419,13 @@ async def desbloquear_cliente(
     """
     try:
         # 1. Buscar cliente
-        cliente_result = supabase.table("clientes").select(
-            "id, telefone, status, bloqueado"
-        ).eq("id", cliente_id).single().execute()
+        cliente_result = (
+            supabase.table("clientes")
+            .select("id, telefone, status, bloqueado")
+            .eq("id", cliente_id)
+            .single()
+            .execute()
+        )
 
         if not cliente_result.data:
             logger.warning(f"[guardrails] Cliente não encontrado: {cliente_id}")
@@ -427,19 +439,21 @@ async def desbloquear_cliente(
 
         # 2. Limpar rate limit do cliente no Redis
         try:
-            hora = agora_brasilia().strftime('%Y%m%d%H')
+            hora = agora_brasilia().strftime("%Y%m%d%H")
             chave = f"rate:cliente:{cliente_id}:{hora}"
             await redis_client.delete(chave)
         except Exception as e:
             logger.warning(f"[guardrails] Erro ao limpar rate limit: {e}")
 
         # 3. Atualizar cliente no banco
-        supabase.table("clientes").update({
-            "bloqueado": False,
-            "motivo_bloqueio": None,
-            "status": "ativo",
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", cliente_id).execute()
+        supabase.table("clientes").update(
+            {
+                "bloqueado": False,
+                "motivo_bloqueio": None,
+                "status": "ativo",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", cliente_id).execute()
 
         # 4. Registrar no audit trail
         await registrar_audit_trail(
@@ -451,7 +465,7 @@ async def desbloquear_cliente(
                 "telefone": cliente.get("telefone", "")[-4:],
                 "estado_anterior": estado_anterior,
             },
-            usuario=usuario
+            usuario=usuario,
         )
 
         logger.info(f"[guardrails] Cliente {cliente_id} desbloqueado por {usuario}: {motivo}")
@@ -463,9 +477,7 @@ async def desbloquear_cliente(
 
 
 async def resetar_circuit_breaker_global(
-    circuit_name: str,
-    motivo: str,
-    usuario: str = "sistema"
+    circuit_name: str, motivo: str, usuario: str = "sistema"
 ) -> bool:
     """
     Sprint 36 - T06.3: Reseta um circuit breaker global.
@@ -507,7 +519,7 @@ async def resetar_circuit_breaker_global(
                 "motivo": motivo,
                 "estado_anterior": estado_anterior,
             },
-            usuario=usuario
+            usuario=usuario,
         )
 
         logger.info(f"[guardrails] Circuit {circuit_name} resetado por {usuario}: {motivo}")
@@ -522,10 +534,9 @@ async def resetar_circuit_breaker_global(
 # Modo Emergência
 # ============================================================
 
+
 async def ativar_modo_emergencia(
-    motivo: str,
-    usuario: str = "sistema",
-    desabilitar_flags: Optional[List[FeatureFlag]] = None
+    motivo: str, usuario: str = "sistema", desabilitar_flags: Optional[List[FeatureFlag]] = None
 ) -> bool:
     """
     Sprint 36 - T06.1: Ativa modo de emergência.
@@ -550,10 +561,7 @@ async def ativar_modo_emergencia(
     try:
         for flag in desabilitar_flags:
             await definir_feature_flag(
-                flag=flag,
-                habilitada=False,
-                motivo=f"EMERGÊNCIA: {motivo}",
-                usuario=usuario
+                flag=flag, habilitada=False, motivo=f"EMERGÊNCIA: {motivo}", usuario=usuario
             )
 
         await registrar_audit_trail(
@@ -563,7 +571,7 @@ async def ativar_modo_emergencia(
                 "motivo": motivo,
                 "flags_desabilitadas": [f.value for f in desabilitar_flags],
             },
-            usuario=usuario
+            usuario=usuario,
         )
 
         logger.critical(f"[guardrails] MODO EMERGÊNCIA ATIVADO por {usuario}: {motivo}")
@@ -574,10 +582,7 @@ async def ativar_modo_emergencia(
         return False
 
 
-async def desativar_modo_emergencia(
-    motivo: str,
-    usuario: str = "sistema"
-) -> bool:
+async def desativar_modo_emergencia(motivo: str, usuario: str = "sistema") -> bool:
     """
     Sprint 36 - T06.1: Desativa modo de emergência.
 
@@ -603,7 +608,7 @@ async def desativar_modo_emergencia(
                 flag=flag,
                 habilitada=True,
                 motivo=f"Emergência desativada: {motivo}",
-                usuario=usuario
+                usuario=usuario,
             )
 
         logger.info(f"[guardrails] Modo emergência DESATIVADO por {usuario}: {motivo}")

@@ -5,6 +5,7 @@ Sprint 31 - S31.E1.4
 
 Este provider permite testar código que usa LLM sem custos ou latência.
 """
+
 from typing import List, Optional, Callable
 from dataclasses import dataclass, field
 
@@ -174,26 +175,30 @@ class MockLLMProvider:
 
     def assert_called_once(self):
         """Asserta que generate() foi chamado exatamente 1 vez."""
-        assert self.call_count == 1, f"MockLLMProvider.generate() chamado {self.call_count}x, esperado 1x"
+        assert self.call_count == 1, (
+            f"MockLLMProvider.generate() chamado {self.call_count}x, esperado 1x"
+        )
 
     def assert_called_with_tool(self, tool_name: str):
         """Asserta que foi chamado com determinada tool disponível."""
         assert self.last_call is not None, "Nenhuma chamada registrada"
         assert self.last_call.tools is not None, "Chamada não incluiu tools"
         tool_names = [t.name for t in self.last_call.tools]
-        assert tool_name in tool_names, f"Tool {tool_name} não estava disponível. Tools: {tool_names}"
+        assert tool_name in tool_names, (
+            f"Tool {tool_name} não estava disponível. Tools: {tool_names}"
+        )
 
     def assert_system_prompt_contains(self, text: str):
         """Asserta que system prompt contém determinado texto."""
         assert self.last_call is not None, "Nenhuma chamada registrada"
         assert self.last_call.system_prompt is not None, "Chamada não incluiu system_prompt"
         assert text in self.last_call.system_prompt, (
-            f"System prompt não contém '{text}'. "
-            f"Início: {self.last_call.system_prompt[:100]}..."
+            f"System prompt não contém '{text}'. Início: {self.last_call.system_prompt[:100]}..."
         )
 
 
 # Factories para casos comuns
+
 
 def create_mock_that_returns(content: str) -> MockLLMProvider:
     """Cria mock que sempre retorna o conteúdo especificado."""
@@ -207,11 +212,13 @@ def create_mock_that_calls_tool(
 ) -> MockLLMProvider:
     """Cria mock que retorna uma chamada de tool."""
     return MockLLMProvider(
-        tool_calls=[ToolCall(
-            id=tool_id,
-            name=tool_name,
-            input=tool_input or {},
-        )],
+        tool_calls=[
+            ToolCall(
+                id=tool_id,
+                name=tool_name,
+                input=tool_input or {},
+            )
+        ],
         stop_reason=StopReason.TOOL_USE,
         default_response="",  # Quando há tool_use, geralmente não há texto
     )

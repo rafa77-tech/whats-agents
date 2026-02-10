@@ -10,6 +10,7 @@ Exemplo perigoso:
 "Oi, sou o Dr João, vi uma vaga de anestesia com vocês"
 # Se cair como DISCOVERY por default, Julia parece desatenta.
 """
+
 import logging
 import re
 from typing import Optional
@@ -63,10 +64,7 @@ def bootstrap_mode(
         mensagem_lower = primeira_mensagem.lower()
         for pattern in INBOUND_INTEREST_PATTERNS:
             if re.search(pattern, mensagem_lower):
-                logger.info(
-                    f"Bootstrap: inbound com interesse → oferta "
-                    f"(pattern: {pattern})"
-                )
+                logger.info(f"Bootstrap: inbound com interesse → oferta (pattern: {pattern})")
                 return ConversationMode.OFERTA
 
     # 3. Default conservador → DISCOVERY

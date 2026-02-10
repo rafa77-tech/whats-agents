@@ -6,6 +6,7 @@ Sprint 41 - Rastreamento de Chips e Status de Entrega.
 Atualiza o delivery_status das interações quando recebemos
 webhooks de DELIVERY_ACK ou READ do WhatsApp.
 """
+
 import logging
 from typing import Optional
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DeliveryStatusResult:
     """Resultado da atualização de status de entrega."""
+
     atualizado: bool
     interacao_id: Optional[str] = None
     status_anterior: Optional[str] = None
@@ -26,9 +28,7 @@ class DeliveryStatusResult:
 
 
 async def atualizar_delivery_status(
-    provider_message_id: str,
-    status: str,
-    chip_id: Optional[str] = None
+    provider_message_id: str, status: str, chip_id: Optional[str] = None
 ) -> DeliveryStatusResult:
     """
     Atualiza o status de entrega de uma interação.
@@ -45,19 +45,13 @@ async def atualizar_delivery_status(
         DeliveryStatusResult com resultado da operação
     """
     if not provider_message_id:
-        return DeliveryStatusResult(
-            atualizado=False,
-            erro="provider_message_id é obrigatório"
-        )
+        return DeliveryStatusResult(atualizado=False, erro="provider_message_id é obrigatório")
 
     # Normalizar status
     status_normalizado = _normalizar_status(status)
     if not status_normalizado:
         logger.debug(f"Status ignorado: {status}")
-        return DeliveryStatusResult(
-            atualizado=False,
-            erro=f"Status não reconhecido: {status}"
-        )
+        return DeliveryStatusResult(atualizado=False, erro=f"Status não reconhecido: {status}")
 
     try:
         result = supabase.rpc(
@@ -66,14 +60,11 @@ async def atualizar_delivery_status(
                 "p_provider_message_id": provider_message_id,
                 "p_status": status_normalizado,
                 "p_chip_id": chip_id,
-            }
+            },
         ).execute()
 
         if not result.data:
-            return DeliveryStatusResult(
-                atualizado=False,
-                erro="RPC retornou vazio"
-            )
+            return DeliveryStatusResult(atualizado=False, erro="RPC retornou vazio")
 
         row = result.data[0] if isinstance(result.data, list) else result.data
         atualizado = row.get("atualizado", False)
@@ -103,10 +94,7 @@ async def atualizar_delivery_status(
 
     except Exception as e:
         logger.error(f"[DeliveryStatus] Erro ao atualizar status: {e}")
-        return DeliveryStatusResult(
-            atualizado=False,
-            erro=str(e)
-        )
+        return DeliveryStatusResult(atualizado=False, erro=str(e))
 
 
 def _normalizar_status(status: str) -> Optional[str]:
@@ -146,9 +134,7 @@ def _normalizar_status(status: str) -> Optional[str]:
     return None
 
 
-async def atualizar_status_lote(
-    updates: list[tuple[str, str, Optional[str]]]
-) -> dict:
+async def atualizar_status_lote(updates: list[tuple[str, str, Optional[str]]]) -> dict:
     """
     Atualiza status de várias mensagens em lote.
 

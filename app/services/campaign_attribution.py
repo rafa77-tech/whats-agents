@@ -14,6 +14,7 @@ Invariantes:
 - C3: Todo inbound reply dentro da janela (7d) DEVE herdar campaign_id
 - C4: Se ha inbound recente (< LOCK_MINUTES), NAO sobrescreve last_touch
 """
+
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -41,7 +42,10 @@ _CONTINUITY_PATTERNS = [
     re.compile(r"\bme\s+liga.*?(depois|amanh[aã]|mais\s+tarde)\b", re.IGNORECASE),
     re.compile(r"\bmais\s+tarde\b", re.IGNORECASE),
     re.compile(r"\bagora\s+n[aã]o\b", re.IGNORECASE),
-    re.compile(r"\bestou\s+(em|no|na)\s+\w*\s*(procedimento|cirurgia|cc|centro\s+cir[úu]rgico|plant[aã]o)\b", re.IGNORECASE),
+    re.compile(
+        r"\bestou\s+(em|no|na)\s+\w*\s*(procedimento|cirurgia|cc|centro\s+cir[úu]rgico|plant[aã]o)\b",
+        re.IGNORECASE,
+    ),
     re.compile(r"\bj[aá]\s+te\s+respondo\b", re.IGNORECASE),
     re.compile(r"\baguarde\b", re.IGNORECASE),
     re.compile(r"\bdaqui\s+a\s+pouco\b", re.IGNORECASE),
@@ -75,6 +79,7 @@ def _has_continuity_signal(texto: str) -> tuple[bool, Optional[str]]:
 @dataclass
 class TouchInfo:
     """Informacoes de um touch de campanha."""
+
     campaign_id: int
     touch_type: str  # campaign, followup, reactivation, manual
     touched_at: datetime
@@ -83,9 +88,10 @@ class TouchInfo:
 @dataclass
 class LockInfo:
     """Informações sobre o attribution lock aplicado."""
+
     is_locked: bool
     lock_minutes: int  # 0, 30 ou 60
-    lock_reason: str   # "none", "default", "continuity_signal"
+    lock_reason: str  # "none", "default", "continuity_signal"
     pattern_matched: Optional[str] = None  # Pattern que deu match (se continuity)
     delta_minutes: float = 0  # Minutos desde último inbound
 
@@ -93,6 +99,7 @@ class LockInfo:
 @dataclass
 class AttributionResult:
     """Resultado de uma operacao de atribuicao."""
+
     success: bool
     first_touch_set: bool = False
     last_touch_updated: bool = False
@@ -168,9 +175,7 @@ async def _check_attribution_lock(cliente_id: str) -> LockInfo:
             return no_lock  # Sem inbound = sem lock
 
         # 2. Calcular delta
-        last_inbound_at = datetime.fromisoformat(
-            last_inbound_at_str.replace("Z", "+00:00")
-        )
+        last_inbound_at = datetime.fromisoformat(last_inbound_at_str.replace("Z", "+00:00"))
         now = datetime.now(timezone.utc)
         delta_minutes = (now - last_inbound_at).total_seconds() / 60
 
@@ -266,8 +271,7 @@ async def registrar_campaign_touch(
         if not response.data:
             logger.warning(f"Conversa {conversation_id} nao encontrada para touch")
             return AttributionResult(
-                success=False,
-                error=f"Conversa {conversation_id} nao encontrada"
+                success=False, error=f"Conversa {conversation_id} nao encontrada"
             )
 
         conversa = response.data
@@ -299,9 +303,7 @@ async def registrar_campaign_touch(
 
         # Aplicar update (se houver algo para atualizar)
         if update_data:
-            supabase.table("conversations").update(update_data).eq(
-                "id", conversation_id
-            ).execute()
+            supabase.table("conversations").update(update_data).eq("id", conversation_id).execute()
 
         # Emitir evento de auditoria com observabilidade do lock
         event_props = {
@@ -319,13 +321,15 @@ async def registrar_campaign_touch(
         if lock_info.pattern_matched:
             event_props["lock_pattern_matched"] = lock_info.pattern_matched
 
-        await emit_event(BusinessEvent(
-            event_type=EventType.CAMPAIGN_TOUCH_LINKED,
-            source=EventSource.SYSTEM,
-            cliente_id=cliente_id,
-            conversation_id=conversation_id,
-            event_props=event_props,
-        ))
+        await emit_event(
+            BusinessEvent(
+                event_type=EventType.CAMPAIGN_TOUCH_LINKED,
+                source=EventSource.SYSTEM,
+                cliente_id=cliente_id,
+                conversation_id=conversation_id,
+                event_props=event_props,
+            )
+        )
 
         logger.info(
             f"Touch registrado: conversa={conversation_id}, "
@@ -394,43 +398,40 @@ async def atribuir_reply_a_campanha(
 
         if not last_touch_campaign_id or not last_touch_at_str:
             # Sem touch anterior - resposta organica
-            logger.debug(
-                f"Interacao {interaction_id} sem touch anterior (organica)"
-            )
+            logger.debug(f"Interacao {interaction_id} sem touch anterior (organica)")
             return AttributionResult(success=True, attributed_campaign_id=None)
 
         # Verificar se esta dentro da janela de atribuicao
-        last_touch_at = datetime.fromisoformat(
-            last_touch_at_str.replace("Z", "+00:00")
-        )
+        last_touch_at = datetime.fromisoformat(last_touch_at_str.replace("Z", "+00:00"))
         now = datetime.now(timezone.utc)
         dias_desde_touch = (now - last_touch_at).days
 
         if dias_desde_touch > ATTRIBUTION_WINDOW_DAYS:
             # Fora da janela - resposta organica
             logger.debug(
-                f"Interacao {interaction_id} fora da janela "
-                f"({dias_desde_touch} dias desde touch)"
+                f"Interacao {interaction_id} fora da janela ({dias_desde_touch} dias desde touch)"
             )
             return AttributionResult(success=True, attributed_campaign_id=None)
 
         # Dentro da janela - atribuir
-        supabase.table("interacoes").update({
-            "attributed_campaign_id": last_touch_campaign_id
-        }).eq("id", interaction_id).execute()
+        supabase.table("interacoes").update({"attributed_campaign_id": last_touch_campaign_id}).eq(
+            "id", interaction_id
+        ).execute()
 
         # Emitir evento de auditoria
-        await emit_event(BusinessEvent(
-            event_type=EventType.CAMPAIGN_REPLY_ATTRIBUTED,
-            source=EventSource.SYSTEM,
-            cliente_id=cliente_id,
-            conversation_id=conversation_id,
-            event_props={
-                "campaign_id": last_touch_campaign_id,
-                "interaction_id": interaction_id,
-                "days_since_touch": dias_desde_touch,
-            }
-        ))
+        await emit_event(
+            BusinessEvent(
+                event_type=EventType.CAMPAIGN_REPLY_ATTRIBUTED,
+                source=EventSource.SYSTEM,
+                cliente_id=cliente_id,
+                conversation_id=conversation_id,
+                event_props={
+                    "campaign_id": last_touch_campaign_id,
+                    "interaction_id": interaction_id,
+                    "days_since_touch": dias_desde_touch,
+                },
+            )
+        )
 
         logger.info(
             f"Reply atribuido: interacao={interaction_id}, "

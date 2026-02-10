@@ -6,7 +6,7 @@ Sprint 14 - E12 - Métricas e Monitoramento
 
 import time
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, UTC
+from datetime import date, timedelta
 from typing import Optional, List
 from uuid import UUID
 
@@ -20,9 +20,11 @@ logger = get_logger(__name__)
 # S12.2 - Estruturas de Métricas
 # =============================================================================
 
+
 @dataclass
 class MetricasProcessamento:
     """Métricas coletadas durante processamento de uma mensagem."""
+
     inicio: float = field(default_factory=time.time)
     fim: Optional[float] = None
 
@@ -71,6 +73,7 @@ class MetricasProcessamento:
 # S12.2 - Coletor de Métricas
 # =============================================================================
 
+
 class ColetorMetricas:
     """Coleta e persiste métricas de processamento."""
 
@@ -84,11 +87,7 @@ class ColetorMetricas:
         self.metricas_pendentes: List[dict] = []
         self.flush_threshold = flush_threshold
 
-    async def registrar(
-        self,
-        grupo_id: UUID,
-        metricas: MetricasProcessamento
-    ) -> None:
+    async def registrar(self, grupo_id: UUID, metricas: MetricasProcessamento) -> None:
         """
         Registra métricas de um processamento.
 
@@ -96,11 +95,13 @@ class ColetorMetricas:
             grupo_id: ID do grupo
             metricas: Métricas coletadas
         """
-        self.metricas_pendentes.append({
-            "grupo_id": str(grupo_id),
-            "data": date.today().isoformat(),
-            "metricas": metricas,
-        })
+        self.metricas_pendentes.append(
+            {
+                "grupo_id": str(grupo_id),
+                "data": date.today().isoformat(),
+                "metricas": metricas,
+            }
+        )
 
         # Flush automático
         if len(self.metricas_pendentes) >= self.flush_threshold:
@@ -150,17 +151,14 @@ class ColetorMetricas:
             except Exception as e:
                 logger.error(f"Erro ao persistir métricas {grupo_id}: {e}")
 
-        logger.info(f"Métricas persistidas: {count} grupos, {len(self.metricas_pendentes)} registros")
+        logger.info(
+            f"Métricas persistidas: {count} grupos, {len(self.metricas_pendentes)} registros"
+        )
         self.metricas_pendentes = []
 
         return count
 
-    async def _upsert_metricas_grupo(
-        self,
-        data: str,
-        grupo_id: str,
-        valores: dict
-    ) -> None:
+    async def _upsert_metricas_grupo(self, data: str, grupo_id: str, valores: dict) -> None:
         """
         Atualiza ou insere métricas do grupo.
 
@@ -171,27 +169,30 @@ class ColetorMetricas:
         """
         # Calcular médias
         tempo_medio = (
-            sum(valores["tempos"]) // len(valores["tempos"])
-            if valores["tempos"] else None
+            sum(valores["tempos"]) // len(valores["tempos"]) if valores["tempos"] else None
         )
         confianca_media = (
             sum(valores["confiancas"]) / len(valores["confiancas"])
-            if valores["confiancas"] else None
+            if valores["confiancas"]
+            else None
         )
         custo_total = sum(valores["custos"])
 
         # Usar RPC para upsert atômico
-        supabase.rpc("incrementar_metricas_grupo", {
-            "p_data": data,
-            "p_grupo_id": grupo_id,
-            "p_mensagens": valores["mensagens_processadas"],
-            "p_vagas": valores["vagas_extraidas"],
-            "p_tokens_in": valores["tokens_input"],
-            "p_tokens_out": valores["tokens_output"],
-            "p_tempo_medio": tempo_medio,
-            "p_confianca": confianca_media,
-            "p_custo": custo_total,
-        }).execute()
+        supabase.rpc(
+            "incrementar_metricas_grupo",
+            {
+                "p_data": data,
+                "p_grupo_id": grupo_id,
+                "p_mensagens": valores["mensagens_processadas"],
+                "p_vagas": valores["vagas_extraidas"],
+                "p_tokens_in": valores["tokens_input"],
+                "p_tokens_out": valores["tokens_output"],
+                "p_tempo_medio": tempo_medio,
+                "p_confianca": confianca_media,
+                "p_custo": custo_total,
+            },
+        ).execute()
 
 
 # Instância global
@@ -202,9 +203,8 @@ coletor_metricas = ColetorMetricas()
 # Funções Auxiliares de Consulta
 # =============================================================================
 
-async def obter_metricas_dia(
-    data_consulta: Optional[date] = None
-) -> dict:
+
+async def obter_metricas_dia(data_consulta: Optional[date] = None) -> dict:
     """
     Obtém métricas consolidadas de um dia.
 
@@ -217,18 +217,18 @@ async def obter_metricas_dia(
     if not data_consulta:
         data_consulta = date.today()
 
-    result = supabase.table("metricas_pipeline_diarias") \
-        .select("*") \
-        .eq("data", data_consulta.isoformat()) \
-        .single() \
+    result = (
+        supabase.table("metricas_pipeline_diarias")
+        .select("*")
+        .eq("data", data_consulta.isoformat())
+        .single()
         .execute()
+    )
 
     return result.data or {}
 
 
-async def obter_metricas_periodo(
-    dias: int = 7
-) -> dict:
+async def obter_metricas_periodo(dias: int = 7) -> dict:
     """
     Obtém métricas de um período.
 
@@ -240,11 +240,13 @@ async def obter_metricas_periodo(
     """
     data_inicio = (date.today() - timedelta(days=dias)).isoformat()
 
-    result = supabase.table("metricas_pipeline_diarias") \
-        .select("*") \
-        .gte("data", data_inicio) \
-        .order("data", desc=True) \
+    result = (
+        supabase.table("metricas_pipeline_diarias")
+        .select("*")
+        .gte("data", data_inicio)
+        .order("data", desc=True)
         .execute()
+    )
 
     if not result.data:
         return {"periodo": f"{dias}d", "dados": []}
@@ -275,10 +277,7 @@ async def obter_metricas_periodo(
     }
 
 
-async def obter_top_grupos(
-    dias: int = 7,
-    limite: int = 10
-) -> List[dict]:
+async def obter_top_grupos(dias: int = 7, limite: int = 10) -> List[dict]:
     """
     Obtém grupos com mais vagas importadas.
 
@@ -292,10 +291,9 @@ async def obter_top_grupos(
     data_inicio = (date.today() - timedelta(days=dias)).isoformat()
 
     # Query agregada
-    result = supabase.rpc("top_grupos_vagas", {
-        "p_data_inicio": data_inicio,
-        "p_limite": limite
-    }).execute()
+    result = supabase.rpc(
+        "top_grupos_vagas", {"p_data_inicio": data_inicio, "p_limite": limite}
+    ).execute()
 
     return result.data or []
 
@@ -325,9 +323,9 @@ async def consolidar_metricas_dia(data_consolidar: Optional[date] = None) -> boo
         data_consolidar = date.today() - timedelta(days=1)
 
     try:
-        supabase.rpc("consolidar_metricas_pipeline", {
-            "p_data": data_consolidar.isoformat()
-        }).execute()
+        supabase.rpc(
+            "consolidar_metricas_pipeline", {"p_data": data_consolidar.isoformat()}
+        ).execute()
 
         logger.info(f"Métricas consolidadas para {data_consolidar}")
         return True

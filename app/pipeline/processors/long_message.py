@@ -3,6 +3,7 @@ Processador de mensagens longas.
 
 Sprint 44 T03.3: Módulo separado.
 """
+
 import logging
 
 from ..base import PreProcessor, ProcessorContext, ProcessorResult
@@ -16,6 +17,7 @@ class LongMessageProcessor(PreProcessor):
 
     Prioridade: 45 (apos media)
     """
+
     name = "long_message"
     priority = 45
 
@@ -35,7 +37,7 @@ class LongMessageProcessor(PreProcessor):
                 success=True,
                 should_continue=False,
                 response=RESPOSTA_MENSAGEM_LONGA,
-                metadata={"long_message": True, "original_length": len(context.mensagem_texto)}
+                metadata={"long_message": True, "original_length": len(context.mensagem_texto)},
             )
 
         if acao == "truncada":

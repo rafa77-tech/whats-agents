@@ -1,6 +1,7 @@
 """
 Servico para gerenciamento de interacoes (mensagens).
 """
+
 from typing import Optional, Literal
 import logging
 
@@ -16,7 +17,7 @@ async def salvar_interacao(
     conteudo: str,
     autor_tipo: Literal["medico", "julia", "gestor"],
     message_id: Optional[str] = None,
-    chip_id: Optional[str] = None
+    chip_id: Optional[str] = None,
 ) -> Optional[dict]:
     """
     Salva uma interacao (mensagem) na conversa.
@@ -66,10 +67,7 @@ async def salvar_interacao(
         return None
 
 
-async def carregar_historico(
-    conversa_id: str,
-    limite: int = 10
-) -> list[dict]:
+async def carregar_historico(conversa_id: str, limite: int = 10) -> list[dict]:
     """
     Carrega ultimas interacoes da conversa.
 
@@ -128,8 +126,5 @@ def converter_historico_para_messages(interacoes: list[dict]) -> list[dict]:
     for i in interacoes:
         autor = i.get("autor_tipo", "medico")
         role = "user" if autor == "medico" else "assistant"
-        messages.append({
-            "role": role,
-            "content": i["conteudo"]
-        })
+        messages.append({"role": role, "content": i["conteudo"]})
     return messages

@@ -6,6 +6,7 @@ Sprint 31 - S31.E5.2
 Filtros de período e dias da semana extraídos do handler
 para reutilização e testabilidade.
 """
+
 import logging
 from datetime import datetime
 from typing import Optional
@@ -24,20 +25,24 @@ MAPEAMENTO_PERIODOS = {
 
 # Mapeamento de dias da semana
 DIAS_SEMANA_MAP = {
-    "segunda": 0, "seg": 0,
-    "terca": 1, "ter": 1,
-    "quarta": 2, "qua": 2,
-    "quinta": 3, "qui": 3,
-    "sexta": 4, "sex": 4,
-    "sabado": 5, "sab": 5,
-    "domingo": 6, "dom": 6,
+    "segunda": 0,
+    "seg": 0,
+    "terca": 1,
+    "ter": 1,
+    "quarta": 2,
+    "qua": 2,
+    "quinta": 3,
+    "qui": 3,
+    "sexta": 4,
+    "sex": 4,
+    "sabado": 5,
+    "sab": 5,
+    "domingo": 6,
+    "dom": 6,
 }
 
 
-def filtrar_por_periodo(
-    vagas: list[dict],
-    periodo_desejado: str
-) -> tuple[list[dict], int]:
+def filtrar_por_periodo(vagas: list[dict], periodo_desejado: str) -> tuple[list[dict], int]:
     """
     Filtra vagas por tipo de período.
 
@@ -48,10 +53,7 @@ def filtrar_por_periodo(
     Returns:
         Tupla (vagas_filtradas, total_antes_filtro)
     """
-    termos = MAPEAMENTO_PERIODOS.get(
-        periodo_desejado.lower(),
-        [periodo_desejado.lower()]
-    )
+    termos = MAPEAMENTO_PERIODOS.get(periodo_desejado.lower(), [periodo_desejado.lower()])
     total_antes = len(vagas)
 
     resultado = []
@@ -69,10 +71,7 @@ def filtrar_por_periodo(
     return resultado, total_antes
 
 
-def filtrar_por_dias_semana(
-    vagas: list[dict],
-    dias_desejados: list[str]
-) -> tuple[list[dict], int]:
+def filtrar_por_dias_semana(vagas: list[dict], dias_desejados: list[str]) -> tuple[list[dict], int]:
     """
     Filtra vagas por dias da semana.
 
@@ -117,9 +116,7 @@ def filtrar_por_dias_semana(
 
 
 async def filtrar_por_conflitos(
-    vagas: list[dict],
-    medico_id: str,
-    verificar_conflito_fn
+    vagas: list[dict], medico_id: str, verificar_conflito_fn
 ) -> list[dict]:
     """
     Filtra vagas que conflitam com reservas existentes.
@@ -140,9 +137,7 @@ async def filtrar_por_conflitos(
 
         if data and periodo_id:
             tem_conflito = await verificar_conflito_fn(
-                cliente_id=medico_id,
-                data=data,
-                periodo_id=periodo_id
+                cliente_id=medico_id, data=data, periodo_id=periodo_id
             )
             if not tem_conflito:
                 vagas_sem_conflito.append(vaga)
@@ -155,9 +150,7 @@ async def filtrar_por_conflitos(
 
 
 def aplicar_filtros(
-    vagas: list[dict],
-    periodo: Optional[str] = None,
-    dias_semana: Optional[list[str]] = None
+    vagas: list[dict], periodo: Optional[str] = None, dias_semana: Optional[list[str]] = None
 ) -> tuple[list[dict], list[str]]:
     """
     Aplica múltiplos filtros às vagas.

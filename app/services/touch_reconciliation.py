@@ -12,6 +12,7 @@ Características:
 - Monotônico (só avança, nunca retrocede)
 - Usa enviada_em como touch_at real (não created_at)
 """
+
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ReconciliationResult:
     """Resultado de uma execução de reconciliação."""
+
     total_candidates: int = 0
     reconciled: int = 0
     skipped_already_processed: int = 0
@@ -70,10 +72,13 @@ async def buscar_candidatos_reconciliacao(
     """
     desde = (datetime.now(timezone.utc) - timedelta(hours=horas)).isoformat()
 
-    response = supabase.rpc("buscar_candidatos_touch_reconciliation", {
-        "p_desde": desde,
-        "p_limite": limite,
-    }).execute()
+    response = supabase.rpc(
+        "buscar_candidatos_touch_reconciliation",
+        {
+            "p_desde": desde,
+            "p_limite": limite,
+        },
+    ).execute()
 
     return response.data or []
 
@@ -105,14 +110,16 @@ async def _tentar_claim_log(
     Se conflitar (PK), retorna False (outro worker já processou).
     """
     try:
-        supabase.table("touch_reconciliation_log").insert({
-            "provider_message_id": provider_message_id,
-            "mensagem_id": mensagem_id,
-            "cliente_id": cliente_id,
-            "campaign_id": campaign_id,
-            "touch_at": touch_at.isoformat() if isinstance(touch_at, datetime) else touch_at,
-            "status": "processing",  # Claim inicial
-        }).execute()
+        supabase.table("touch_reconciliation_log").insert(
+            {
+                "provider_message_id": provider_message_id,
+                "mensagem_id": mensagem_id,
+                "cliente_id": cliente_id,
+                "campaign_id": campaign_id,
+                "touch_at": touch_at.isoformat() if isinstance(touch_at, datetime) else touch_at,
+                "status": "processing",  # Claim inicial
+            }
+        ).execute()
         return True
     except Exception as e:
         # PK conflict = outro worker já fez claim
@@ -202,10 +209,7 @@ async def reconciliar_touch(
         previous_campaign_id = state.get("last_touch_campaign_id")
 
     # 3. Verificar se precisa atualizar (valores iguais = no change)
-    if (
-        previous_touch_at == enviada_em and
-        previous_campaign_id == campaign_id
-    ):
+    if previous_touch_at == enviada_em and previous_campaign_id == campaign_id:
         await _atualizar_log(
             provider_message_id=provider_message_id,
             status="skipped_no_change",
@@ -337,10 +341,7 @@ async def limpar_logs_antigos(dias: int = 30) -> int:
 
     try:
         response = (
-            supabase.table("touch_reconciliation_log")
-            .delete()
-            .lt("processed_at", desde)
-            .execute()
+            supabase.table("touch_reconciliation_log").delete().lt("processed_at", desde).execute()
         )
         count = len(response.data) if response.data else 0
         logger.info(f"Logs de reconciliação removidos: {count}")
@@ -354,6 +355,7 @@ async def limpar_logs_antigos(dias: int = 30) -> int:
 @dataclass
 class ReclaimResult:
     """Resultado de reclaim de processing travado."""
+
     found: int = 0
     reclaimed: int = 0
     errors: List[str] = None
@@ -407,17 +409,15 @@ async def reclamar_processing_travado(
         # Marcar como abandoned
         for entry in stuck:
             try:
-                supabase.table("touch_reconciliation_log").update({
-                    "status": "abandoned",
-                    "error": f"Timeout após {minutos_timeout}min sem finalização",
-                }).eq(
-                    "provider_message_id", entry["provider_message_id"]
-                ).execute()
+                supabase.table("touch_reconciliation_log").update(
+                    {
+                        "status": "abandoned",
+                        "error": f"Timeout após {minutos_timeout}min sem finalização",
+                    }
+                ).eq("provider_message_id", entry["provider_message_id"]).execute()
                 result.reclaimed += 1
             except Exception as e:
-                result.errors.append(
-                    f"{entry['provider_message_id']}: {str(e)[:100]}"
-                )
+                result.errors.append(f"{entry['provider_message_id']}: {str(e)[:100]}")
                 logger.error(f"Erro ao reclamar {entry['provider_message_id']}: {e}")
 
         logger.info(

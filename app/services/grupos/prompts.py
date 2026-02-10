@@ -37,23 +37,39 @@ Responda APENAS com JSON:
 EXEMPLOS_CLASSIFICACAO = [
     {
         "texto": "Bom dia pessoal!",
-        "resposta": {"eh_oferta": False, "confianca": 0.99, "motivo": "Cumprimento"}
+        "resposta": {"eh_oferta": False, "confianca": 0.99, "motivo": "Cumprimento"},
     },
     {
         "texto": "🚨 URGENTE - Plantão disponível Hospital São Luiz, CM, 28/12 noturno, R$ 1800 PJ",
-        "resposta": {"eh_oferta": True, "confianca": 0.98, "motivo": "Oferta completa com hospital, especialidade, data e valor"}
+        "resposta": {
+            "eh_oferta": True,
+            "confianca": 0.98,
+            "motivo": "Oferta completa com hospital, especialidade, data e valor",
+        },
     },
     {
         "texto": "Alguém sabe se tem vaga de cardio essa semana?",
-        "resposta": {"eh_oferta": False, "confianca": 0.95, "motivo": "Pergunta sobre vaga, não oferta"}
+        "resposta": {
+            "eh_oferta": False,
+            "confianca": 0.95,
+            "motivo": "Pergunta sobre vaga, não oferta",
+        },
     },
     {
         "texto": "Preciso de CM pro PS Central amanhã, pago 2k",
-        "resposta": {"eh_oferta": True, "confianca": 0.92, "motivo": "Oferta informal mas com dados de vaga"}
+        "resposta": {
+            "eh_oferta": True,
+            "confianca": 0.92,
+            "motivo": "Oferta informal mas com dados de vaga",
+        },
     },
     {
         "texto": "Sou pediatra com disponibilidade, alguém contrata?",
-        "resposta": {"eh_oferta": False, "confianca": 0.90, "motivo": "Médico se oferecendo, não oferta de vaga"}
+        "resposta": {
+            "eh_oferta": False,
+            "confianca": 0.90,
+            "motivo": "Médico se oferecendo, não oferta de vaga",
+        },
     },
 ]
 

@@ -5,6 +5,7 @@ Sprint 31 - S31.E1.3
 
 Este módulo implementa a interface LLMProvider usando a API da Anthropic.
 """
+
 import logging
 import asyncio
 from typing import List, Optional, Any
@@ -21,7 +22,6 @@ from .models import (
     ToolResult,
     StopReason,
     Message,
-    MessageRole,
 )
 
 logger = logging.getLogger(__name__)
@@ -191,10 +191,12 @@ class AnthropicProvider:
 
             # Adicionar tool results como mensagem do user
             tool_result_content = [tr.to_dict() for tr in tool_results]
-            messages.append({
-                "role": "user",
-                "content": tool_result_content,
-            })
+            messages.append(
+                {
+                    "role": "user",
+                    "content": tool_result_content,
+                }
+            )
 
             # Converter tools
             tools = None
@@ -236,6 +238,7 @@ class AnthropicProvider:
         Usa run_in_executor porque o client Anthropic é síncrono.
         Opcionalmente usa circuit breaker para resiliência.
         """
+
         def _sync_call():
             return self._client.messages.create(**kwargs)
 
@@ -254,15 +257,19 @@ class AnthropicProvider:
         for msg in messages:
             # Se content já é uma lista (tool_use blocks), manter como está
             if isinstance(msg.content, list):
-                result.append({
-                    "role": msg.role.value,
-                    "content": msg.content,
-                })
+                result.append(
+                    {
+                        "role": msg.role.value,
+                        "content": msg.content,
+                    }
+                )
             else:
-                result.append({
-                    "role": msg.role.value,
-                    "content": msg.content,
-                })
+                result.append(
+                    {
+                        "role": msg.role.value,
+                        "content": msg.content,
+                    }
+                )
         return result
 
     def _convert_response(self, response: Any) -> LLMResponse:
@@ -275,17 +282,16 @@ class AnthropicProvider:
             if block.type == "text":
                 content += block.text
             elif block.type == "tool_use":
-                tool_calls.append(ToolCall(
-                    id=block.id,
-                    name=block.name,
-                    input=block.input,
-                ))
+                tool_calls.append(
+                    ToolCall(
+                        id=block.id,
+                        name=block.name,
+                        input=block.input,
+                    )
+                )
 
         # Mapear stop reason
-        stop_reason = self.STOP_REASON_MAP.get(
-            response.stop_reason,
-            StopReason.END_TURN
-        )
+        stop_reason = self.STOP_REASON_MAP.get(response.stop_reason, StopReason.END_TURN)
 
         # Extrair usage
         usage = {

@@ -13,6 +13,7 @@ Delays por Tipo:
 - followup: 30-120s (follow-up)
 - campanha_fria: 60-180s (prospeccao fria)
 """
+
 import random
 import logging
 from dataclasses import dataclass
@@ -36,6 +37,7 @@ TZ_BRASIL = ZoneInfo("America/Sao_Paulo")
 @dataclass
 class DelayConfig:
     """Configuracao de delay para um tipo de contexto."""
+
     min_ms: int
     max_ms: int
     prioridade: int
@@ -51,37 +53,37 @@ DELAY_CONFIG = {
         min_ms=0,
         max_ms=1000,  # Reduzido de 3000 para 1000 (máx 1s)
         prioridade=1,
-        descricao="Resposta a pergunta direta"
+        descricao="Resposta a pergunta direta",
     ),
     ContextType.ACEITE_VAGA: DelayConfig(
         min_ms=0,
         max_ms=500,  # Reduzido de 2000 para 500 (máx 0.5s)
         prioridade=1,
-        descricao="Aceite/confirmacao de vaga"
+        descricao="Aceite/confirmacao de vaga",
     ),
     ContextType.CONFIRMACAO: DelayConfig(
         min_ms=500,  # Reduzido de 2000
         max_ms=2000,  # Reduzido de 5000
         prioridade=2,
-        descricao="Confirmacao de dados/detalhes"
+        descricao="Confirmacao de dados/detalhes",
     ),
     ContextType.OFERTA_ATIVA: DelayConfig(
         min_ms=3000,  # Reduzido de 15000
         max_ms=8000,  # Reduzido de 45000
         prioridade=3,
-        descricao="Oferta proativa de vaga"
+        descricao="Oferta proativa de vaga",
     ),
     ContextType.FOLLOWUP: DelayConfig(
         min_ms=5000,  # Reduzido de 30000
         max_ms=15000,  # Reduzido de 120000
         prioridade=4,
-        descricao="Follow-up de conversa"
+        descricao="Follow-up de conversa",
     ),
     ContextType.CAMPANHA_FRIA: DelayConfig(
         min_ms=10000,  # Reduzido de 60000
         max_ms=30000,  # Reduzido de 180000
         prioridade=5,
-        descricao="Prospeccao fria/campanha"
+        descricao="Prospeccao fria/campanha",
     ),
 }
 
@@ -89,6 +91,7 @@ DELAY_CONFIG = {
 @dataclass
 class DelayResult:
     """Resultado do calculo de delay."""
+
     delay_ms: int
     delay_s: float
     tipo: ContextType
@@ -232,7 +235,7 @@ def has_valid_inbound_proof(ctx: OutboundContext, max_age_minutes: int = 30) -> 
 
     # Timestamp precisa ser recente
     try:
-        last_inbound = datetime.fromisoformat(ctx.last_inbound_at.replace('Z', '+00:00'))
+        last_inbound = datetime.fromisoformat(ctx.last_inbound_at.replace("Z", "+00:00"))
 
         # Normalizar timezone - usar o mesmo timezone do last_inbound
         if last_inbound.tzinfo is None:
@@ -284,6 +287,7 @@ def deve_aplicar_delay(
 # =============================================================================
 # Funcoes de conveniencia para TimingProcessor
 # =============================================================================
+
 
 async def get_delay_seconds(
     mensagem: str,

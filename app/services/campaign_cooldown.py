@@ -12,6 +12,7 @@ Regras:
 IMPORTANTE: Este modulo so afeta method=CAMPAIGN.
 Reply e followup NAO passam por estas regras.
 """
+
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -29,6 +30,7 @@ RESPONSE_COOLDOWN_DAYS = 7  # Apos medico responder
 @dataclass
 class CooldownResult:
     """Resultado da verificacao de cooldown."""
+
     is_blocked: bool
     reason: Optional[str] = None
     details: Optional[dict] = None
@@ -37,6 +39,7 @@ class CooldownResult:
 @dataclass
 class LastCampaignInfo:
     """Info da ultima campanha enviada."""
+
     campaign_id: int
     campaign_type: str
     sent_at: datetime
@@ -68,7 +71,7 @@ async def registrar_envio_campanha(
                 "campaign_type": campaign_type,
                 "sent_at": datetime.now(timezone.utc).isoformat(),
             },
-            on_conflict="cliente_id,campaign_id"
+            on_conflict="cliente_id,campaign_id",
         ).execute()
 
         logger.debug(
@@ -210,7 +213,7 @@ async def check_campaign_cooldown(
                     "last_campaign_type": ultima.campaign_type,
                     "days_since": dias_desde,
                     "cooldown_days": CAMPAIGN_COOLDOWN_DAYS,
-                }
+                },
             )
 
     # R5b: Verificar se respondeu recentemente
@@ -226,7 +229,7 @@ async def check_campaign_cooldown(
                 reason="responded_recently",
                 details={
                     "cooldown_days": RESPONSE_COOLDOWN_DAYS,
-                }
+                },
             )
 
     return CooldownResult(is_blocked=False)

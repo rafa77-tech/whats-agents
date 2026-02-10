@@ -21,6 +21,7 @@ Este módulo é o wrapper que:
 IMPORTANTE: Nenhum outro código deve chamar evolution.enviar_mensagem() diretamente.
 Use sempre send_outbound_message() deste módulo.
 """
+
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -33,7 +34,6 @@ from app.services.guardrails import (
     OutboundChannel,
     OutboundMethod,
     ActorType,
-    GuardrailResult,
     SendOutcome,
     map_guardrail_to_outcome,
     check_outbound_guardrails,
@@ -57,6 +57,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # MULTI-CHIP CONFIG (Sprint 26 E02)
 # =============================================================================
+
 
 def _is_multi_chip_enabled() -> bool:
     """Verifica se multi-chip esta habilitado."""
@@ -125,8 +126,7 @@ async def _enviar_via_multi_chip(
 
     if not chip:
         logger.warning(
-            f"[MultiChip] Nenhum chip disponivel para {tipo_mensagem}, "
-            f"fallback para Evolution"
+            f"[MultiChip] Nenhum chip disponivel para {tipo_mensagem}, fallback para Evolution"
         )
         return {"fallback": True}
 
@@ -143,6 +143,7 @@ async def _enviar_via_multi_chip(
             # Evolution API: /chat/presence/{instance}
             if chip.get("provider") == "evolution":
                 import httpx
+
                 async with httpx.AsyncClient(timeout=5) as client:
                     await client.post(
                         f"{provider.base_url}/chat/presence/{provider.instance_name}",
@@ -151,7 +152,7 @@ async def _enviar_via_multi_chip(
                             "number": telefone,
                             "delay": int(tempo * 1000),
                             "presence": "composing",
-                        }
+                        },
                     )
         except Exception as e:
             logger.debug(f"[MultiChip] Erro ao enviar presence: {e}")
@@ -238,9 +239,7 @@ def _verificar_dev_allowlist(telefone: str) -> Tuple[bool, Optional[str]]:
         )
         return (False, "dev_allowlist")
 
-    logger.debug(
-        f"[DEV GUARDRAIL] ALLOWED: {telefone_normalizado[:8]}... está na allowlist."
-    )
+    logger.debug(f"[DEV GUARDRAIL] ALLOWED: {telefone_normalizado[:8]}... está na allowlist.")
     return (True, None)
 
 
@@ -288,8 +287,7 @@ async def _atualizar_last_touch(
         ).execute()
 
         logger.debug(
-            f"Last touch atualizado: {cliente_id[:8]}... "
-            f"method={method}, campaign_id={campaign_id}"
+            f"Last touch atualizado: {cliente_id[:8]}... method={method}, campaign_id={campaign_id}"
         )
 
     except Exception as e:
@@ -334,6 +332,7 @@ async def _finalizar_envio(
             # Registrar campaign attribution
             if ctx.campaign_id and ctx.conversation_id:
                 from app.services.campaign_attribution import registrar_campaign_touch
+
                 await registrar_campaign_touch(
                     conversation_id=ctx.conversation_id,
                     campaign_id=int(ctx.campaign_id),
@@ -344,6 +343,7 @@ async def _finalizar_envio(
             # Registrar envio no histórico de campanhas (legado)
             if ctx.campaign_id:
                 from app.services.campaign_cooldown import registrar_envio_campanha
+
                 await registrar_envio_campanha(
                     cliente_id=ctx.cliente_id,
                     campaign_id=int(ctx.campaign_id),
@@ -380,6 +380,7 @@ class OutboundResult:
         error: Mensagem de erro quando FAILED_*
         evolution_response: Resposta completa do Evolution API
     """
+
     success: bool
     outcome: SendOutcome
     outcome_reason_code: Optional[str] = None
@@ -461,7 +462,7 @@ async def send_outbound_message(
                 "reason_code": reason_dev,
                 "cliente_id": ctx.cliente_id,
                 "app_env": settings.APP_ENV,
-            }
+            },
         )
         return OutboundResult(
             success=False,
@@ -490,7 +491,7 @@ async def send_outbound_message(
                 "dedupe_key": dedupe_key,
                 "cliente_id": ctx.cliente_id,
                 "method": ctx.method.value if ctx.method else "manual",
-            }
+            },
         )
         return OutboundResult(
             success=False,
@@ -498,7 +499,7 @@ async def send_outbound_message(
             outcome_reason_code=f"content_hash_window:{motivo}",
             outcome_at=now,
             blocked=False,  # NAO e bloqueio
-            deduped=True,   # E deduplicacao
+            deduped=True,  # E deduplicacao
             dedupe_key=dedupe_key,
         )
 
@@ -506,10 +507,7 @@ async def send_outbound_message(
     guardrail_result = await check_outbound_guardrails(ctx)
 
     if guardrail_result.is_blocked:
-        logger.info(
-            f"Outbound bloqueado para {telefone[:8]}...: "
-            f"{guardrail_result.reason_code}"
-        )
+        logger.info(f"Outbound bloqueado para {telefone[:8]}...: {guardrail_result.reason_code}")
         try:
             outcome = map_guardrail_to_outcome(guardrail_result.reason_code)
         except ValueError:
@@ -565,7 +563,7 @@ async def send_outbound_message(
             except Exception as e:
                 logger.warning(
                     f"[MultiChip] Erro, fallback para Evolution: {e}",
-                    extra={"error": str(e), "telefone_prefix": telefone[:8]}
+                    extra={"error": str(e), "telefone_prefix": telefone[:8]},
                 )
                 used_multi_chip = False
 
@@ -600,7 +598,9 @@ async def send_outbound_message(
         result = OutboundResult(
             success=True,
             outcome=SendOutcome.BYPASS if guardrail_result.human_bypass else SendOutcome.SENT,
-            outcome_reason_code="ok" if not guardrail_result.human_bypass else guardrail_result.reason_code,
+            outcome_reason_code="ok"
+            if not guardrail_result.human_bypass
+            else guardrail_result.reason_code,
             outcome_at=now,
             blocked=False,
             deduped=False,
@@ -647,7 +647,7 @@ async def send_outbound_message(
             extra={
                 "outcome": classified.outcome.value,
                 "provider_error_code": classified.provider_error_code,
-            }
+            },
         )
         await marcar_falha(dedupe_key, f"{classified.provider_error_code}:{str(e)[:150]}")
         result = OutboundResult(
@@ -676,6 +676,7 @@ async def send_outbound_message(
 
 
 # Helpers para criar contexto facilmente
+
 
 def criar_contexto_campanha(
     cliente_id: str,

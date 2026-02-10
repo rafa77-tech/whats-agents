@@ -64,15 +64,15 @@ uv run pytest
 ```
 /whatsapp-api
 ├── app/                  # Código principal
-│   ├── api/routes/       # Endpoints FastAPI
-│   ├── services/         # Serviços de negócio (~220 módulos)
+│   ├── api/routes/       # Endpoints FastAPI (28 routers)
+│   ├── services/         # Serviços de negócio (267 módulos)
 │   ├── tools/            # Tools do agente LLM
 │   ├── pipeline/         # Pipeline de processamento
 │   ├── prompts/          # Sistema de prompts dinâmicos
-│   └── workers/          # Jobs agendados
+│   └── workers/          # Jobs agendados (10 workers)
 ├── docs/                 # Documentação técnica
 ├── planning/             # Planejamento de sprints
-├── tests/                # Testes automatizados (~2100 testes)
+├── tests/                # Testes automatizados (2662 testes)
 ├── dashboard/            # Frontend Next.js
 ├── CLAUDE.md             # Instruções para Claude Code
 └── docker-compose.yml    # Serviços Docker

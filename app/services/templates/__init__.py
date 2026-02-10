@@ -17,6 +17,7 @@ Uso avancado:
     template = await repo.buscar_por_slug("optout_confirmacao")
     templates = await repo.listar_por_categoria("confirmacao")
 """
+
 from .repository import (
     MessageTemplate,
     TemplateRepository,
