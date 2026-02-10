@@ -321,11 +321,8 @@ CREATE TABLE briefing_sync_log (
 
 ## Arquivos Relacionados
 
-| Arquivo | Descricao |
-|---------|-----------|
-| `app/services/google_docs.py` | Integracao Google Docs/Drive |
-| `app/services/briefing.py` | Sync e gerenciamento de diretrizes |
-| `app/services/briefing_parser.py` | Parser de Markdown |
-| `app/services/campaign_templates.py` | Sync de templates |
-| `app/services/briefing_analyzer.py` | Analise com Claude Sonnet |
-| `app/tools/slack/briefing.py` | Tool Slack para briefings |
+Verificar estrutura atual em `app/services/` para paths corretos dos módulos de briefing.
+
+---
+
+**Validado em 10/02/2026**

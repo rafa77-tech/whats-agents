@@ -15,7 +15,7 @@ Exemplos de micro-confirmação:
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, Union
 from dateutil.parser import parse as parse_datetime
@@ -121,7 +121,10 @@ class TransitionValidator:
         # 3. Verificar cooldown
         last_trans_dt = _ensure_datetime(last_transition_at)
         if last_trans_dt:
-            minutes_since = (agora_utc() - last_trans_dt.replace(tzinfo=None)).total_seconds() / 60
+            # Normalizar para UTC aware datetime
+            if last_trans_dt.tzinfo is None:
+                last_trans_dt = last_trans_dt.replace(tzinfo=timezone.utc)
+            minutes_since = (agora_utc() - last_trans_dt).total_seconds() / 60
             if minutes_since < TRANSITION_COOLDOWN_MINUTES:
                 return ValidationResult(
                     decision=TransitionDecision.REJECT,
@@ -165,7 +168,10 @@ class TransitionValidator:
         # Verificar timeout
         pending_at_dt = _ensure_datetime(pending_transition_at)
         if pending_at_dt:
-            minutes_since = (agora_utc() - pending_at_dt.replace(tzinfo=None)).total_seconds() / 60
+            # Normalizar para UTC aware datetime
+            if pending_at_dt.tzinfo is None:
+                pending_at_dt = pending_at_dt.replace(tzinfo=timezone.utc)
+            minutes_since = (agora_utc() - pending_at_dt).total_seconds() / 60
             if minutes_since > PENDING_TRANSITION_TIMEOUT_MINUTES:
                 logger.info(f"Pending expirada após {minutes_since:.1f}min")
                 return ValidationResult(

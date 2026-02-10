@@ -30,10 +30,6 @@ O dashboard utiliza uma arquitetura de navegacao em multiplas camadas:
 |------|-----------|
 | /chips | Visao geral do pool |
 | /chips/[id] | Detalhe de um chip |
-| /chips/alertas | Alertas de chips |
-| /chips/grupos | Grupos WhatsApp |
-| /chips/warmup | Status de aquecimento |
-| /chips/configuracoes | Configuracoes |
 
 ### Monitoramento
 
@@ -59,11 +55,13 @@ O dashboard utiliza uma arquitetura de navegacao em multiplas camadas:
 | /ajuda | Ajuda e suporte |
 | /hospitais/bloqueados | Hospitais bloqueados |
 
-## Redirects
+## Rotas Adicionais
 
-| De | Para | Motivo |
-|----|------|--------|
-| /grupos | /chips/grupos | Reorganizacao Sprint 45 |
+### Cadastros
+| Rota | Descricao |
+|------|-----------|
+| /grupos | Grupos WhatsApp |
+| /oportunidades | Oportunidades de negocio |
 
 ## Layouts
 
@@ -109,24 +107,24 @@ Usado em: `/conversas`
 - Flex column
 - Split pane (lista + chat)
 
-### Layout Modulo Chips
+### Layout Simples
+
+Usado em paginas de detalhe como `/chips/[id]`
 
 ```
-+------------------+------------------+------------------------+
-|     Sidebar      |  Chips Sidebar   |        Content         |
-|    (w-64)        |    (w-64)        |                        |
-|                  |                  |                        |
-|  [Dashboard]     |  - Visao Geral   |     Chip Details       |
-|  [Operacoes]     |  - Alertas       |     or List            |
-|  [WhatsApp]      |  - Grupos        |                        |
-|    > Chips       |  - Warmup        |                        |
-|                  |  - Config        |                        |
-+------------------+------------------+------------------------+
++------------------+------------------------+
+|     Sidebar      |        Content         |
+|    (w-64)        |                        |
+|                  |                        |
+|  [Dashboard]     |     Chip Details       |
+|  [Operacoes]     |                        |
+|  [WhatsApp]      |                        |
+|    > Chips       |                        |
++------------------+------------------------+
 ```
 
-- Sidebar propria do modulo
-- Navegacao interna
-- Botao voltar para Dashboard
+- Layout padrao com sidebar principal
+- Sem sidebar secundaria
 
 ## Navegacao Mobile
 
@@ -182,9 +180,9 @@ Acesso rapido a todas as paginas e acoes.
 | Grupo | Itens | Icone |
 |-------|-------|-------|
 | (sem label) | Dashboard | LayoutDashboard |
-| Operacoes | Conversas, Campanhas, Vagas, Instrucoes | MessageSquare, Megaphone, Briefcase, FileText |
-| Cadastros | Medicos, Hospitais | Stethoscope, Building2 |
-| WhatsApp | Chips, Grupos | Smartphone, Users |
+| Operacoes | Conversas, Campanhas, Oportunidades, Vagas, Instrucoes | MessageSquare, Megaphone, Target, Briefcase, FileText |
+| Cadastros | Medicos, Hospitais, Grupos | Stethoscope, Building2, Users |
+| WhatsApp | Chips | Smartphone |
 | Monitoramento | Monitor, Health, Integridade, Metricas | Activity, HeartPulse, ShieldCheck, BarChart3 |
 | Qualidade | Avaliacoes, Auditoria | Star, ClipboardList |
 | (footer) | Sistema, Ajuda | Settings, HelpCircle |
@@ -213,7 +211,6 @@ Acesso rapido a todas as paginas e acoes.
 | BottomNav | `components/dashboard/bottom-nav.tsx` | Nav mobile |
 | MobileDrawer | `components/dashboard/mobile-drawer.tsx` | Menu completo mobile |
 | CommandPalette | `components/command-palette/command-palette.tsx` | Busca global |
-| ChipsModuleSidebar | `components/chips/chips-module-sidebar.tsx` | Nav modulo chips |
 
 ## Consideracoes de Acessibilidade
 
@@ -230,4 +227,9 @@ Acesso rapido a todas as paginas e acoes.
 | Sprint 45 | Sidebar com grupos semanticos |
 | Sprint 45 | Mobile drawer com navegacao completa |
 | Sprint 45 | Command Palette (Cmd+K) |
-| Sprint 45 | /grupos movido para /chips/grupos |
+| Sprint 45 | Grupos adicionado em Cadastros |
+| Sprint 45 | Oportunidades adicionado em Operacoes |
+
+---
+
+**Validado em 10/02/2026**

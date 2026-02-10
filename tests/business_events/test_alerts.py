@@ -318,11 +318,8 @@ class TestSlackNotification:
         assert "abordagem" in text.lower()
 
     @pytest.mark.asyncio
-    @patch("app.services.business_events.alerts.enviar_slack")
-    async def test_send_alert_to_slack_sucesso(self, mock_enviar):
-        """Envia alerta ao Slack com sucesso."""
-        mock_enviar.return_value = True
-
+    async def test_send_alert_to_slack_sucesso(self):
+        """Sprint 47: Alerta é logado (Slack removido), sempre retorna True."""
         alert = Alert(
             alert_type=AlertType.HANDOFF_SPIKE,
             severity=AlertSeverity.WARNING,
@@ -332,25 +329,24 @@ class TestSlackNotification:
 
         result = await send_alert_to_slack(alert)
 
+        # Sprint 47: send_alert_to_slack agora apenas loga, sempre sucesso
         assert result is True
-        mock_enviar.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("app.services.business_events.alerts.enviar_slack")
-    async def test_send_alert_to_slack_falha(self, mock_enviar):
-        """Trata falha no envio."""
-        mock_enviar.return_value = False
-
+    async def test_send_alert_to_slack_falha(self):
+        """Sprint 47: Alerta é logado (Slack removido), sempre retorna True."""
+        # Sprint 47: Não há mais falha pois não envia para Slack
         alert = Alert(
             alert_type=AlertType.HANDOFF_SPIKE,
-            severity=AlertSeverity.WARNING,
+            severity=AlertSeverity.CRITICAL,  # Mesmo critical apenas loga
             title="Teste",
             description="Desc",
         )
 
         result = await send_alert_to_slack(alert)
 
-        assert result is False
+        # Sprint 47: send_alert_to_slack agora apenas loga, sempre sucesso
+        assert result is True
 
 
 class TestCooldown:

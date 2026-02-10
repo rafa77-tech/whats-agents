@@ -270,6 +270,7 @@ class TestSendOutboundMessageTryFinally:
         assert result.outcome == SendOutcome.SENT
 
     @pytest.mark.asyncio
+    @patch("app.services.outbound._is_multi_chip_enabled")
     @patch("app.services.outbound._verificar_dev_allowlist")
     @patch("app.services.outbound._finalizar_envio")
     @patch("app.services.outbound.verificar_e_reservar")
@@ -284,9 +285,11 @@ class TestSendOutboundMessageTryFinally:
         mock_dedupe,
         mock_finalizar,
         mock_dev_allowlist,
+        mock_multi_chip,
         ctx,
     ):
         """Falha no provider deve chamar _finalizar_envio."""
+        mock_multi_chip.return_value = False  # Forçar caminho Evolution
         mock_dev_allowlist.return_value = (True, None)  # Bypass DEV guardrail
         mock_dedupe.return_value = (True, "key-123", None)
         mock_guardrails.return_value = MagicMock(is_blocked=False, human_bypass=False)

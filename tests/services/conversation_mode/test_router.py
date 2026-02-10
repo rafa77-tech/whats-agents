@@ -4,7 +4,7 @@ Testes para Mode Router (3 camadas).
 Sprint 29 - Conversation Mode
 """
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.services.conversation_mode.types import ConversationMode
 from app.services.conversation_mode.intents import (
@@ -163,7 +163,7 @@ class TestTransitionProposer:
             confidence=0.5,
             evidence="",
         )
-        last_msg = datetime.utcnow() - timedelta(days=10)
+        last_msg = datetime.now(timezone.utc) - timedelta(days=10)
 
         proposal = proposer.propose(
             intent,
@@ -240,7 +240,7 @@ class TestTransitionValidator:
         result = validator.validate(
             proposal=proposal,
             pending_transition=ConversationMode.OFERTA,
-            pending_transition_at=datetime.utcnow(),
+            pending_transition_at=datetime.now(timezone.utc),
             mensagem_confirma=True,
         )
 
@@ -263,7 +263,7 @@ class TestTransitionValidator:
         result = validator.validate(
             proposal=proposal,
             pending_transition=ConversationMode.OFERTA,
-            pending_transition_at=datetime.utcnow(),
+            pending_transition_at=datetime.now(timezone.utc),
             mensagem_confirma=False,
         )
 
@@ -287,7 +287,7 @@ class TestTransitionValidator:
         result = validator.validate(
             proposal=proposal,
             pending_transition=ConversationMode.OFERTA,
-            pending_transition_at=datetime.utcnow() - timedelta(minutes=60),
+            pending_transition_at=datetime.now(timezone.utc) - timedelta(minutes=60),
             mensagem_confirma=False,
         )
 
@@ -347,7 +347,7 @@ class TestTransitionValidator:
         # Última transição foi 2 minutos atrás (cooldown é 5 min)
         result = validator.validate(
             proposal=proposal,
-            last_transition_at=datetime.utcnow() - timedelta(minutes=2),
+            last_transition_at=datetime.now(timezone.utc) - timedelta(minutes=2),
         )
 
         assert result.decision == TransitionDecision.REJECT

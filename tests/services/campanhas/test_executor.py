@@ -217,7 +217,7 @@ class TestGerarMensagem:
             mensagem = await executor._gerar_mensagem(campanha_discovery, destinatario)
 
             assert mensagem == "Oi Dr Carlos! Sou a Julia da Revoluna"
-            mock_abertura.assert_called_once_with("uuid-1", "Carlos")
+            mock_abertura.assert_called_once_with("uuid-1", "Carlos", soft=True)
 
     @pytest.mark.asyncio
     async def test_gerar_mensagem_oferta(self, executor, campanha_oferta):

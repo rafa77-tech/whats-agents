@@ -4,7 +4,7 @@ Testes para regras de produção do Policy Engine.
 Sprint 15 - Policy Engine
 """
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.services.policy.types import (
     DoctorState,
@@ -75,7 +75,7 @@ class TestRuleCoolingOff:
         state = DoctorState(
             cliente_id="123",
             permission_state=PermissionState.COOLING_OFF,
-            cooling_off_until=datetime.utcnow() + timedelta(days=3),
+            cooling_off_until=datetime.now(timezone.utc) + timedelta(days=3),
         )
         decision = rule_cooling_off(state)
 
@@ -89,7 +89,7 @@ class TestRuleCoolingOff:
         state = DoctorState(
             cliente_id="123",
             permission_state=PermissionState.COOLING_OFF,
-            cooling_off_until=datetime.utcnow() - timedelta(days=1),
+            cooling_off_until=datetime.now(timezone.utc) - timedelta(days=1),
         )
         decision = rule_cooling_off(state)
 
@@ -131,7 +131,7 @@ class TestRuleGraveObjection:
             permission_state=PermissionState.ACTIVE,
             active_objection="ameaca",
             objection_severity=ObjectionSeverity.GRAVE,
-            objection_resolved_at=datetime.utcnow(),
+            objection_resolved_at=datetime.now(timezone.utc),
         )
         decision = rule_grave_objection(state)
 
@@ -250,8 +250,8 @@ class TestRuleSilenceReactivation:
             cliente_id="123",
             permission_state=PermissionState.ACTIVE,
             temperature=0.5,
-            last_outbound_at=datetime.utcnow() - timedelta(days=10),
-            last_inbound_at=datetime.utcnow() - timedelta(days=15),
+            last_outbound_at=datetime.now(timezone.utc) - timedelta(days=10),
+            last_inbound_at=datetime.now(timezone.utc) - timedelta(days=15),
         )
         decision = rule_silence_reactivation(
             state,
@@ -268,7 +268,7 @@ class TestRuleSilenceReactivation:
             cliente_id="123",
             permission_state=PermissionState.ACTIVE,
             temperature=0.2,  # < 0.3
-            last_outbound_at=datetime.utcnow() - timedelta(days=10),
+            last_outbound_at=datetime.now(timezone.utc) - timedelta(days=10),
         )
         decision = rule_silence_reactivation(
             state,
@@ -283,7 +283,7 @@ class TestRuleSilenceReactivation:
             cliente_id="123",
             permission_state=PermissionState.ACTIVE,
             temperature=0.5,
-            last_outbound_at=datetime.utcnow() - timedelta(days=2),
+            last_outbound_at=datetime.now(timezone.utc) - timedelta(days=2),
         )
         decision = rule_silence_reactivation(
             state,

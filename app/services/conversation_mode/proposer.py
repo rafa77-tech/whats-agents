@@ -9,7 +9,7 @@ A decisão final é do TransitionValidator.
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Union
 from dateutil.parser import parse as parse_datetime
 
@@ -150,7 +150,10 @@ class TransitionProposer:
         # Regra: Silêncio >= 7 dias → REATIVACAO
         last_msg_dt = _ensure_datetime(last_message_at)
         if last_msg_dt:
-            days_since = (agora_utc() - last_msg_dt.replace(tzinfo=None)).days
+            # Normalizar para UTC aware datetime
+            if last_msg_dt.tzinfo is None:
+                last_msg_dt = last_msg_dt.replace(tzinfo=timezone.utc)
+            days_since = (agora_utc() - last_msg_dt).days
             if days_since >= SILENCE_DAYS_FOR_REACTIVATION:
                 if current_mode != ConversationMode.REATIVACAO:
                     return TransitionProposal(

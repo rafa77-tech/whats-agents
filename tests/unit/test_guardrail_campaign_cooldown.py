@@ -214,6 +214,7 @@ class TestCheckOutboundGuardrailsCampaignCooldown:
     """Testes de integração do cooldown no pipeline de guardrails."""
 
     @pytest.mark.asyncio
+    @patch("app.services.timing.esta_em_horario_comercial")
     @patch("app.services.guardrails.check.load_doctor_state")
     @patch("app.services.guardrails.check.get_campaigns_flags")
     @patch("app.services.guardrails.check.is_safe_mode_active")
@@ -224,9 +225,11 @@ class TestCheckOutboundGuardrailsCampaignCooldown:
         mock_safe_mode,
         mock_flags,
         mock_load_state,
+        mock_horario,
         ctx_campanha_b,
     ):
         """Campanha deve ser bloqueada se cooldown ativo."""
+        mock_horario.return_value = True  # Simula horário comercial
         mock_state = MockDoctorState(
             last_touch_at=datetime.now(timezone.utc) - timedelta(days=2),
             last_touch_method="campaign",
@@ -244,6 +247,7 @@ class TestCheckOutboundGuardrailsCampaignCooldown:
         mock_emit.assert_called()
 
     @pytest.mark.asyncio
+    @patch("app.services.timing.esta_em_horario_comercial")
     @patch("app.services.guardrails.check.load_doctor_state")
     @patch("app.services.guardrails.check.get_campaigns_flags")
     @patch("app.services.guardrails.check.is_safe_mode_active")
@@ -252,6 +256,7 @@ class TestCheckOutboundGuardrailsCampaignCooldown:
         mock_safe_mode,
         mock_flags,
         mock_load_state,
+        mock_horario,
     ):
         """
         Envio MANUAL via Slack não é afetado por cooldown.
@@ -259,6 +264,7 @@ class TestCheckOutboundGuardrailsCampaignCooldown:
         Cooldown só aplica a method=CAMPAIGN.
         Humano pode usar method=MANUAL para contornar cooldown.
         """
+        mock_horario.return_value = True  # Simula horário comercial
         ctx = OutboundContext(
             cliente_id="uuid-123",
             actor_type=ActorType.HUMAN,
@@ -284,6 +290,7 @@ class TestCheckOutboundGuardrailsCampaignCooldown:
         assert result.reason_code == "ok"
 
     @pytest.mark.asyncio
+    @patch("app.services.timing.esta_em_horario_comercial")
     @patch("app.services.guardrails.check.load_doctor_state")
     @patch("app.services.guardrails.check.get_campaigns_flags")
     @patch("app.services.guardrails.check.is_safe_mode_active")
@@ -292,9 +299,11 @@ class TestCheckOutboundGuardrailsCampaignCooldown:
         mock_safe_mode,
         mock_flags,
         mock_load_state,
+        mock_horario,
         ctx_reply,
     ):
         """Reply válido não deve passar pelo check de cooldown."""
+        mock_horario.return_value = True  # Simula horário comercial
         mock_state = MockDoctorState(
             last_touch_at=datetime.now(timezone.utc) - timedelta(days=1),
             last_touch_method="campaign",
@@ -310,6 +319,7 @@ class TestCheckOutboundGuardrailsCampaignCooldown:
         assert not result.is_blocked or result.reason_code != "campaign_cooldown"
 
     @pytest.mark.asyncio
+    @patch("app.services.timing.esta_em_horario_comercial")
     @patch("app.services.guardrails.check.load_doctor_state")
     @patch("app.services.guardrails.check.get_campaigns_flags")
     @patch("app.services.guardrails.check.is_safe_mode_active")
@@ -318,9 +328,11 @@ class TestCheckOutboundGuardrailsCampaignCooldown:
         mock_safe_mode,
         mock_flags,
         mock_load_state,
+        mock_horario,
         ctx_campanha_a,
     ):
         """Campanha sem cooldown anterior deve ser permitida."""
+        mock_horario.return_value = True  # Simula horário comercial
         mock_state = MockDoctorState()  # Sem last_touch
         mock_load_state.return_value = mock_state
         mock_flags.return_value = MagicMock(enabled=True)
