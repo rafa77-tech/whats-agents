@@ -1,15 +1,21 @@
 # Banco de Dados
 
-> Schema completo das 54 tabelas e relacionamentos
+> Schema completo das ~108 tabelas e relacionamentos
 
 ---
 
 ## Visao Geral
 
 - **Banco:** PostgreSQL via Supabase
-- **Extensoes:** pgvector (embeddings), uuid-ossp
+- **Extensoes:** pgvector (embeddings), uuid-ossp, pg_trgm, unaccent
 - **RLS:** Ativo em todas as tabelas
-- **Migracoes:** 93 aplicadas
+- **Última auditoria:** 2026-02-09 (Sprint 57)
+- **Próxima auditoria:** 2026-05-09
+
+### Documentação Relacionada
+
+- [RLS Policies](./rls-policies.md) - Políticas de acesso por role
+- [Functions Security](./functions-security.md) - Functions SECURITY DEFINER
 
 ---
 
@@ -501,3 +507,104 @@ SELECT
 FROM interacoes
 WHERE created_at BETWEEN $1 AND $2;
 ```
+
+---
+
+## Checklist para Novas Tabelas
+
+Ao criar uma nova tabela, verificar:
+
+### 1. Estrutura
+
+- [ ] PK é UUID com `DEFAULT gen_random_uuid()`
+- [ ] `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- [ ] `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- [ ] Trigger de `updated_at` configurado
+- [ ] Constraints CHECK para validação de domínio
+- [ ] NOT NULL em colunas obrigatórias
+
+### 2. Foreign Keys
+
+- [ ] Todas as FKs declaradas explicitamente
+- [ ] **Índice criado para cada FK** (PostgreSQL não cria automaticamente)
+- [ ] ON DELETE apropriado (RESTRICT, CASCADE, SET NULL)
+
+### 3. Segurança (RLS)
+
+- [ ] `ALTER TABLE tabela ENABLE ROW LEVEL SECURITY;`
+- [ ] Policy para `service_role` (backend)
+- [ ] Policy para `authenticated` (se dashboard precisar)
+- [ ] Policy bloqueando `anon` (se dados sensíveis)
+- [ ] COMMENT documentando propósito das policies
+
+### 4. Performance
+
+- [ ] Índices em colunas frequentes em WHERE/JOIN
+- [ ] Índice GIN em colunas JSONB se queried
+- [ ] Considerar índices parciais para queries filtradas
+
+### 5. Documentação
+
+- [ ] `COMMENT ON TABLE` explicando propósito
+- [ ] `COMMENT ON COLUMN` em colunas não óbvias
+- [ ] Migration versionada
+
+### Exemplo Completo
+
+```sql
+-- Migration: 20260210_create_nova_tabela.sql
+
+CREATE TABLE nova_tabela (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cliente_id UUID NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+    status TEXT NOT NULL CHECK (status IN ('ativo', 'inativo')),
+    dados JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE nova_tabela IS 'Descrição da tabela';
+
+-- Índices (incluindo FK!)
+CREATE INDEX idx_nova_tabela_cliente ON nova_tabela(cliente_id);
+CREATE INDEX idx_nova_tabela_status ON nova_tabela(status);
+
+-- Trigger updated_at
+CREATE TRIGGER trigger_nova_tabela_updated_at
+    BEFORE UPDATE ON nova_tabela
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- RLS
+ALTER TABLE nova_tabela ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "nova_tabela_service_role_all"
+ON nova_tabela FOR ALL TO service_role
+USING (true) WITH CHECK (true);
+
+CREATE POLICY "nova_tabela_authenticated_read"
+ON nova_tabela FOR SELECT TO authenticated
+USING (true);
+```
+
+---
+
+## Auditoria e Histórico
+
+### Sprint 57 (2026-02-09) - Database Security & Performance
+
+**Correções aplicadas:**
+- RLS habilitado em 6 tabelas (helena_sessoes, circuit_transitions, warmup_schedule, chip_daily_snapshots, fila_mensagens_dlq, market_intelligence_daily)
+- search_path adicionado em 14 functions SECURITY DEFINER
+- 31 índices criados em colunas FK
+- 5 índices não utilizados removidos (~4.4 MB)
+- Tabela obsoleta `campanhas_deprecated` removida
+
+**Métricas finais:**
+| Métrica | Antes | Depois |
+|---------|-------|--------|
+| Tabelas sem RLS | 7 | 0 |
+| FKs sem índice | 31 | 0 |
+| Functions sem search_path | 14 | 0 |
+
+**Próxima auditoria:** 2026-05-09
