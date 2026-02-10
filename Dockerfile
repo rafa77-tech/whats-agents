@@ -1,5 +1,5 @@
 # Dockerfile multi-stage para Agente Júlia
-FROM python:3.13-slim AS builder
+FROM python:3.14-slim AS builder
 
 # Instalar dependências do sistema
 RUN apt-get update && apt-get install -y \
@@ -20,7 +20,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 # Stage final
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # Build args for versioning (injected by CI/CD)
 ARG GIT_SHA="unknown"
