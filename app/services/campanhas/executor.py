@@ -198,6 +198,11 @@ class CampanhaExecutor:
             "tipo_campanha": campanha.tipo_campanha.value,
         }
 
+        # Adicionar objetivo e pode_ofertar para contexto no pipeline inbound
+        if campanha.objetivo:
+            metadata["objetivo"] = campanha.objetivo
+        metadata["pode_ofertar"] = campanha.pode_ofertar
+
         # Adicionar chips excluídos se configurado
         if campanha.audience_filters and campanha.audience_filters.chips_excluidos:
             metadata["chips_excluidos"] = campanha.audience_filters.chips_excluidos
@@ -212,6 +217,52 @@ class CampanhaExecutor:
         )
 
         return True
+
+    async def _gerar_abertura_contextualizada(
+        self,
+        nome: str,
+        objetivo: str,
+    ) -> Optional[str]:
+        """
+        Gera abertura contextualizada via LLM (Haiku) baseada no objetivo.
+
+        Args:
+            nome: Nome do médico
+            objetivo: Objetivo da campanha em linguagem natural
+
+        Returns:
+            Mensagem de abertura ou None se LLM falhar
+        """
+        try:
+            from app.services.llm import gerar_resposta
+
+            prompt = (
+                "Você é Julia Mendes, 27 anos, escalista da Revoluna.\n"
+                "Gere UMA mensagem de abertura para WhatsApp para este médico.\n\n"
+                "REGRAS:\n"
+                "- Máximo 3 linhas curtas\n"
+                "- Tom informal mas profissional (vc, pra, tá)\n"
+                "- NÃO use bullet points\n"
+                "- NÃO mencione plantão ou vagas a menos que o objetivo peça\n"
+                "- Se apresente brevemente como Julia da Revoluna\n"
+                "- Conecte naturalmente com o objetivo\n\n"
+                f"Nome do médico: Dr {nome}\n"
+                f"Objetivo da conversa: {objetivo}\n\n"
+                "Responda APENAS com a mensagem, sem explicações."
+            )
+
+            resposta = await gerar_resposta(
+                mensagem=prompt,
+                max_tokens=150,
+            )
+
+            if resposta and len(resposta.strip()) > 10:
+                return resposta.strip()
+            return None
+
+        except Exception as e:
+            logger.warning(f"Erro ao gerar abertura contextualizada: {e}")
+            return None
 
     async def _gerar_mensagem(
         self,
@@ -234,7 +285,12 @@ class CampanhaExecutor:
         especialidade = destinatario.get("especialidade_nome", "medico")
 
         if campanha.tipo_campanha == TipoCampanha.DISCOVERY:
-            # Discovery: usar aberturas soft (sem mencionar plantao)
+            # Discovery com objetivo: gerar abertura contextualizada via LLM
+            if campanha.objetivo:
+                abertura = await self._gerar_abertura_contextualizada(nome, campanha.objetivo)
+                if abertura:
+                    return abertura
+            # Fallback: usar aberturas soft (sem mencionar plantao)
             return await obter_abertura_texto(cliente_id, nome, soft=True)
 
         elif campanha.tipo_campanha in (TipoCampanha.OFERTA, TipoCampanha.OFERTA_PLANTAO):
