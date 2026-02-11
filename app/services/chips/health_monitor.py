@@ -81,13 +81,18 @@ class HealthMonitor:
         alertas = []
 
         # 1. Verificar conexao
-        if not chip.get("evolution_connected"):
+        # Para Z-API, não usa evolution_connected (não é Evolution API)
+        # Para Evolution, verifica evolution_connected
+        provider = chip.get("provider") or "evolution"
+        is_connected = chip.get("evolution_connected") if provider != "z-api" else True
+
+        if not is_connected:
             alertas.append(
                 await self._criar_alerta(
                     chip_id=chip["id"],
                     tipo="desconectado",
                     severity="critical",
-                    message=f"Chip {chip['telefone']} desconectado",
+                    message=f"Chip {chip['telefone']} desconectado ({provider})",
                 )
             )
 

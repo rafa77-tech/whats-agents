@@ -65,6 +65,7 @@ class ZApiProvider(WhatsAppProvider):
         Envia mensagem de texto via Z-API.
 
         Docs: https://developer.z-api.io/en/message/send-message-text
+        Sprint 56: Melhor captura de mensagens de erro.
         """
         phone_clean = self.format_phone(phone)
 
@@ -87,18 +88,40 @@ class ZApiProvider(WhatsAppProvider):
                         provider=self.provider_type.value,
                     )
 
-                logger.warning(f"[Z-API] Erro ao enviar: {response.status_code} - {response.text}")
+                # Sprint 56: Garantir mensagem de erro descritiva
+                error_text = response.text.strip() if response.text else "Resposta vazia"
+                error_msg = f"HTTP {response.status_code}: {error_text}"
+                logger.warning(f"[Z-API] Erro ao enviar: {error_msg}")
                 return MessageResult(
                     success=False,
-                    error=f"HTTP {response.status_code}: {response.text}",
+                    error=error_msg,
                     provider=self.provider_type.value,
                 )
 
-        except Exception as e:
-            logger.error(f"[Z-API] Exceção ao enviar texto: {e}")
+        except httpx.TimeoutException:
+            error_msg = f"Timeout ao enviar para {phone_clean} (>{self.timeout}s)"
+            logger.error(f"[Z-API] {error_msg}")
             return MessageResult(
                 success=False,
-                error=str(e),
+                error=error_msg,
+                provider=self.provider_type.value,
+            )
+
+        except httpx.ConnectError as e:
+            error_msg = f"Erro de conexao com Z-API: {e}"
+            logger.error(f"[Z-API] {error_msg}")
+            return MessageResult(
+                success=False,
+                error=error_msg,
+                provider=self.provider_type.value,
+            )
+
+        except Exception as e:
+            error_msg = str(e) if str(e) else f"Erro desconhecido: {type(e).__name__}"
+            logger.error(f"[Z-API] Exceção ao enviar texto: {error_msg}")
+            return MessageResult(
+                success=False,
+                error=error_msg,
                 provider=self.provider_type.value,
             )
 
@@ -157,17 +180,31 @@ class ZApiProvider(WhatsAppProvider):
                         provider=self.provider_type.value,
                     )
 
+                # Sprint 56: Garantir mensagem de erro descritiva
+                error_text = response.text.strip() if response.text else "Resposta vazia"
+                error_msg = f"HTTP {response.status_code}: {error_text}"
+                logger.warning(f"[Z-API] Erro ao enviar midia: {error_msg}")
                 return MessageResult(
                     success=False,
-                    error=f"HTTP {response.status_code}: {response.text}",
+                    error=error_msg,
                     provider=self.provider_type.value,
                 )
 
-        except Exception as e:
-            logger.error(f"[Z-API] Exceção ao enviar mídia: {e}")
+        except httpx.TimeoutException:
+            error_msg = f"Timeout ao enviar midia para {phone_clean} (>{self.timeout}s)"
+            logger.error(f"[Z-API] {error_msg}")
             return MessageResult(
                 success=False,
-                error=str(e),
+                error=error_msg,
+                provider=self.provider_type.value,
+            )
+
+        except Exception as e:
+            error_msg = str(e) if str(e) else f"Erro desconhecido: {type(e).__name__}"
+            logger.error(f"[Z-API] Exceção ao enviar mídia: {error_msg}")
+            return MessageResult(
+                success=False,
+                error=error_msg,
                 provider=self.provider_type.value,
             )
 

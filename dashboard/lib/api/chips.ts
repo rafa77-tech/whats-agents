@@ -137,6 +137,45 @@ export async function getChipInteractions(
 }
 
 // ============================================================================
+// Chip Errors
+// ============================================================================
+
+export interface ChipError {
+  id: string
+  tipo: string
+  errorCode: number | null
+  errorMessage: string
+  createdAt: string
+  destinatario: string | null
+}
+
+export interface ChipErrorsResponse {
+  errors: ChipError[]
+  total: number
+  summary: { message: string; count: number }[]
+}
+
+export async function getChipErrors(
+  id: string,
+  params: { limit?: number } = {}
+): Promise<ChipErrorsResponse> {
+  const searchParams = new URLSearchParams()
+  if (params.limit) searchParams.set('limit', String(params.limit))
+
+  const query = searchParams.toString()
+  return fetchApi<ChipErrorsResponse>(
+    `/api/dashboard/chips/${id}/errors${query ? `?${query}` : ''}`
+  )
+}
+
+export async function clearChipErrors(id: string): Promise<{ success: boolean; message: string }> {
+  return fetchApi<{ success: boolean; message: string }>(
+    `/api/dashboard/chips/${id}/errors/clear`,
+    { method: 'POST' }
+  )
+}
+
+// ============================================================================
 // Chip Actions
 // ============================================================================
 
@@ -308,6 +347,9 @@ export const chipsApi = {
   getChipMetrics,
   getChipTrustHistory,
   getChipInteractions,
+  // Errors
+  getChipErrors,
+  clearChipErrors,
   // Actions
   pauseChip,
   resumeChip,
