@@ -485,7 +485,11 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={qrCodeData}
+                  src={
+                    qrCodeData.startsWith('data:')
+                      ? qrCodeData
+                      : `data:image/png;base64,${qrCodeData}`
+                  }
                   alt="QR Code WhatsApp"
                   className="h-64 w-64 rounded-lg border"
                 />
