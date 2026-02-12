@@ -300,11 +300,7 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
                 <div className="rounded-lg border-2 border-border bg-card p-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={
-                      qrCode.startsWith('data:')
-                        ? qrCode
-                        : `data:image/png;base64,${qrCode}`
-                    }
+                    src={qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`}
                     alt="QR Code"
                     className="h-64 w-64"
                   />
