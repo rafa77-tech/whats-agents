@@ -107,8 +107,8 @@ JOBS = [
         "schedule": "* * * * *",  # A cada minuto
     },
     {
-        "name": "processar_mensagens_agendadas",
-        "endpoint": "/jobs/processar-mensagens-agendadas",
+        "name": "processar_fila_mensagens",
+        "endpoint": "/jobs/processar-fila-mensagens",
         "schedule": "* * * * *",  # A cada minuto
     },
     {

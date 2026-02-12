@@ -35,7 +35,7 @@ export const JOBS: JobDefinition[] = [
     isCritical: true,
   },
   {
-    name: 'processar_mensagens_agendadas',
+    name: 'processar_fila_mensagens',
     displayName: 'Processar Mensagens',
     category: 'critical',
     schedule: '* * * * *',

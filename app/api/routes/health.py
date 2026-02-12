@@ -815,7 +815,7 @@ async def schema_info():
 # Se job não roda há mais tempo que o SLA, é considerado "stale" (crítico)
 JOB_SLA_SECONDS = {
     # Jobs de 1 minuto: SLA = 3 minutos (3x a frequência)
-    "processar_mensagens_agendadas": 180,
+    "processar_fila_mensagens": 180,
     "processar_campanhas_agendadas": 180,
     # Jobs de 5 minutos: SLA = 15 minutos
     "verificar_whatsapp": 900,
@@ -848,7 +848,7 @@ JOB_SLA_SECONDS = {
 
 # Jobs críticos que DEVEM estar rodando para o sistema funcionar
 CRITICAL_JOBS = [
-    "processar_mensagens_agendadas",
+    "processar_fila_mensagens",
     "processar_campanhas_agendadas",
     "verificar_whatsapp",
     "processar_grupos",
