@@ -26,7 +26,7 @@ async def buscar_telefones_pendentes(limit: int = 100) -> list[dict]:
     """
     response = (
         supabase.table("clientes")
-        .select("id, telefone, nome")
+        .select("id, telefone")
         .eq("status_telefone", "pendente")
         .not_.is_("telefone", "null")
         .limit(limit)
