@@ -140,11 +140,12 @@ async def sincronizar_chips_com_evolution() -> dict:
                 "connected": state == "open",
             }
 
-    # 3. Buscar chips existentes no banco
+    # 3. Buscar chips existentes no banco (apenas provider evolution)
     try:
         response = (
             supabase.table("chips")
-            .select("id, instance_name, status, evolution_connected")
+            .select("id, instance_name, status, evolution_connected, provider")
+            .neq("provider", "z-api")
             .execute()
         )
         chips_existentes = {chip["instance_name"]: chip for chip in response.data}
