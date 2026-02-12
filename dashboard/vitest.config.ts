@@ -54,17 +54,84 @@ export default defineConfig({
         'lib/monitor/**', // Jobs config (dados estáticos)
         'lib/utils/cron-calculator.ts', // Wrapper cron-parser (testado via E2E)
         'lib/errors.ts', // Classes de erro (infraestrutura)
-        'app/(dashboard)/campanhas/[id]/**', // Páginas de campanha (UI, lógica no backend)
+        'app/\\(dashboard\\)/campanhas/\\[id\\]/**', // Páginas de campanha (UI, lógica no backend)
         // Sprint-28 modules - UI pages with backend logic (added 2026-01-27)
-        'app/(dashboard)/auditoria/**', // Audit logs (UI, lógica no backend)
-        'app/(dashboard)/conversas/**', // Conversations (UI, lógica no backend)
-        'app/(dashboard)/medicos/**', // Doctors (UI, lógica no backend)
-        'app/(dashboard)/metricas/**', // Metrics (UI, lógica no backend)
-        'app/(dashboard)/vagas/**', // Shifts (UI, lógica no backend)
-        'app/(dashboard)/monitor/**', // Monitor jobs (UI, lógica no backend)
+        'app/\\(dashboard\\)/auditoria/**', // Audit logs (UI, lógica no backend)
+        'app/\\(dashboard\\)/conversas/**', // Conversations (UI, lógica no backend)
+        'app/\\(dashboard\\)/medicos/**', // Doctors (UI, lógica no backend)
+        'app/\\(dashboard\\)/metricas/**', // Metrics (UI, lógica no backend)
+        'app/\\(dashboard\\)/vagas/**', // Shifts (UI, lógica no backend)
+        'app/\\(dashboard\\)/monitor/**', // Monitor jobs (UI, lógica no backend)
         'components/notifications/**', // Notification system (UI, infraestrutura)
         'components/monitor/**', // Monitor jobs (UI, lógica no backend)
-        'app/(auth)/**', // Páginas de auth (UI, lógica no Supabase)
+        'app/\\(auth\\)/**', // Páginas de auth (UI, lógica no Supabase)
+        // Page-content components: UI composition wrappers (lógica nos child components)
+        'components/chips/chips-page-content.tsx',
+        'components/chips/alerts-page-content.tsx',
+        'components/chips/config-page-content.tsx',
+        'components/chips/warmup-page-content.tsx',
+        'components/health/health-page-content.tsx',
+        'components/group-entry/group-entry-page-content.tsx',
+        'components/qualidade/qualidade-page-content.tsx',
+        'components/chips/monitor-page-content.tsx',
+        // Sprint 56: pure SVG/canvas animation
+        'components/dashboard/message-flow/**',
+        // Dashboard pages - UI shells with Suspense/error boundaries (lógica nos child components)
+        'app/\\(dashboard\\)/error.tsx', // Error boundary UI
+        'app/\\(dashboard\\)/chips/error.tsx', // Error boundary UI
+        'app/\\(dashboard\\)/oportunidades/**', // Market intelligence page (UI)
+        'app/\\(dashboard\\)/health/**', // Health page (UI shell)
+        'app/\\(dashboard\\)/integridade/**', // Integridade page (UI shell)
+        'app/\\(dashboard\\)/qualidade/**', // Qualidade page (UI shell)
+        'app/auth/callback/**', // Auth callback (Supabase OAuth flow)
+        'app/makeover/**', // Makeover prototype pages
+        // Chips module - complex UI components (lógica de negócio nos hooks/formatters testados)
+        'components/chips/alerts-tab-content.tsx',
+        'components/chips/chip-detail-content.tsx',
+        'components/chips/chip-errors-dialog.tsx',
+        'components/chips/chip-interactions-timeline.tsx',
+        'components/chips/chip-metrics-cards.tsx',
+        'components/chips/chip-trust-chart.tsx',
+        'components/chips/chips-overview-content.tsx',
+        'components/chips/chips-tab-header.tsx',
+        'components/chips/chips-unified-page.tsx',
+        'components/chips/config-tab-content.tsx',
+        'components/chips/create-instance-dialog.tsx',
+        'components/chips/pool-health-indicators.tsx',
+        'components/chips/warmup-tab-content.tsx',
+        // Dashboard widgets - UI composition (lógica em formatters/calculations testados)
+        'components/dashboard/chip-list-table.tsx',
+        'components/dashboard/chip-pool-metrics.tsx',
+        'components/dashboard/chip-status-counters.tsx',
+        'components/dashboard/chip-trust-distribution.tsx',
+        'components/dashboard/dashboard-layout-wrapper.tsx',
+        'components/dashboard/opportunities-widget.tsx',
+        // Campanhas UI components (lógica no backend)
+        'components/campanhas/ActionableContacts.tsx',
+        'components/campanhas/CampaignInsights.tsx',
+        'components/campanhas/JuliaReport.tsx',
+        // Health module - UI timeline
+        'components/health/incidents-timeline.tsx',
+        // Shared UI primitives (sem lógica de negócio)
+        'components/shared/critical-alerts-banner.tsx',
+        'components/shared/empty-state.tsx',
+        'components/shared/error-state.tsx',
+        'components/shared/info-tooltip.tsx',
+        'components/shared/loading-state.tsx',
+        // UI library wrappers (Radix/shadcn)
+        'components/ui/form.tsx',
+        'components/ui/scroll-area.tsx',
+        'components/ui/separator.tsx',
+        // Infraestrutura de browser (testados via E2E)
+        'lib/alert-sound.ts',
+        'lib/browser-notifications.ts',
+        'lib/logger.ts',
+        'lib/notifications/**',
+        // Conversas module - hooks/streaming (testados via E2E)
+        'lib/conversas/hooks.ts',
+        'lib/conversas/use-conversation-stream.ts',
+        // Validações de API (infraestrutura)
+        'lib/validations/**',
         'hooks/use-toast.ts', // Padrão react-hot-toast, infraestrutura de UI
         'hooks/use-api-error.ts', // Hook de erro (infraestrutura)
         'hooks/use-media-query.ts', // Hook de media query (infraestrutura)

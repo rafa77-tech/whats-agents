@@ -62,6 +62,10 @@ describe('Conversas Formatters', () => {
     it('deve retornar telefone original se formato desconhecido', () => {
       expect(formatPhone('12345')).toBe('12345')
     })
+
+    it('deve retornar original para 13 digitos sem prefixo 55', () => {
+      expect(formatPhone('4411999999999')).toBe('4411999999999')
+    })
   })
 
   describe('formatMessageTime', () => {
@@ -76,6 +80,14 @@ describe('Conversas Formatters', () => {
       yesterday.setDate(yesterday.getDate() - 1)
       const result = formatMessageTime(yesterday.toISOString())
       expect(result).toContain('Ontem')
+    })
+
+    it('deve formatar data completa para mensagem mais antiga que ontem', () => {
+      const oldDate = new Date()
+      oldDate.setDate(oldDate.getDate() - 5)
+      const result = formatMessageTime(oldDate.toISOString())
+      // Deve conter formato dd/mm com hora
+      expect(result).toMatch(/\d{2}\/\d{2}/)
     })
   })
 
@@ -103,6 +115,18 @@ describe('Conversas Formatters', () => {
       const date = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
       expect(formatRelativeTime(date)).toBe('ontem')
     })
+
+    it('deve formatar dias entre 2 e 6', () => {
+      const date = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+      expect(formatRelativeTime(date)).toBe('3d')
+    })
+
+    it('deve formatar data para 7 dias ou mais', () => {
+      const date = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+      const result = formatRelativeTime(date)
+      // Deve retornar formato dd/mm
+      expect(result).toMatch(/\d{2}\/\d{2}/)
+    })
   })
 
   describe('formatMessagePreview', () => {
@@ -125,6 +149,10 @@ describe('Conversas Formatters', () => {
 
     it('deve retornar nome unico como esta', () => {
       expect(formatClientName('Maria')).toBe('Maria')
+    })
+
+    it('deve retornar string vazia para nome vazio', () => {
+      expect(formatClientName('')).toBe('')
     })
   })
 
