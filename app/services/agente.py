@@ -349,6 +349,15 @@ async def _gerar_resposta_julia_impl(
                 f"Micro-confirmação injetada: {mode_info.mode.value} → {mode_info.pending_transition.value}"
             )
 
+    # Issue 4.2: Enforcement de pode_ofertar como policy constraint
+    campanha = contexto.get("campanha")
+    if campanha and campanha.get("pode_ofertar") is False:
+        constraints_parts.append(
+            "RESTRIÇÃO DE CAMPANHA (PRIORIDADE MÁXIMA): Esta conversa NÃO permite ofertar vagas. "
+            "Se o médico perguntar sobre vagas, diga que vai verificar o que tem disponível e retorna. "
+            "NÃO mencione vagas específicas, valores, datas ou hospitais."
+        )
+
     # Combinar todos os constraints
     policy_constraints = "\n\n---\n\n".join(constraints_parts) if constraints_parts else ""
 
@@ -367,6 +376,12 @@ async def _gerar_resposta_julia_impl(
         diretrizes=contexto.get("diretrizes", ""),
         conhecimento=conhecimento_dinamico,
         policy_constraints=policy_constraints,
+        # Campaign context injection
+        campaign_type=campanha.get("campaign_type") if campanha else None,
+        campaign_objective=campanha.get("campaign_objective") if campanha else None,
+        campaign_rules=campanha.get("campaign_rules") if campanha else None,
+        offer_scope=campanha.get("offer_scope") if campanha else None,
+        negotiation_margin=campanha.get("negotiation_margin") if campanha else None,
     )
 
     # Montar historico como messages (para o Claude ter contexto da conversa)

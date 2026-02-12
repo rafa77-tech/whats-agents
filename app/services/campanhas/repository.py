@@ -217,6 +217,15 @@ class CampanhaRepository:
         try:
             supabase.table(self.TABLE).update(data).eq("id", campanha_id).execute()
             logger.info(f"Campanha {campanha_id} atualizada para status {novo_status.value}")
+
+            # Invalidar cache de contexto de campanha
+            try:
+                from app.services.redis import cache_delete
+
+                await cache_delete(f"campanha:contexto:{campanha_id}")
+            except Exception as cache_err:
+                logger.debug(f"Erro ao invalidar cache campanha {campanha_id}: {cache_err}")
+
             return True
 
         except Exception as e:

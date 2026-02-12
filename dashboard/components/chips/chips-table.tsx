@@ -6,6 +6,7 @@
 
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import type { Route } from 'next'
 import {
@@ -21,12 +22,14 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { AlertTriangle, ChevronRight, Phone } from 'lucide-react'
+import { ChipErrorsDialog } from './chip-errors-dialog'
 
 interface ChipsTableProps {
   chips: ChipListItem[]
   selectedIds: string[]
   onSelectionChange: (ids: string[]) => void
   onRowClick?: (chip: ChipListItem) => void
+  onRefresh?: () => void
 }
 
 const statusBadgeVariants: Record<string, string> = {
@@ -69,7 +72,15 @@ const statusLabels: Record<string, string> = {
 
 const defaultStatusLabel = 'Desconhecido'
 
-export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }: ChipsTableProps) {
+export function ChipsTable({
+  chips,
+  selectedIds,
+  onSelectionChange,
+  onRowClick,
+  onRefresh,
+}: ChipsTableProps) {
+  const [errorDialogChip, setErrorDialogChip] = useState<ChipListItem | null>(null)
+
   const allSelected = chips.length > 0 && selectedIds.length === chips.length
   const someSelected = selectedIds.length > 0 && selectedIds.length < chips.length
 
@@ -189,17 +200,23 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
                     {chip.responseRate.toFixed(1)}%
                   </span>
                 </TableCell>
-                <TableCell className="text-right">
-                  <span
-                    className={cn(
-                      'text-sm',
-                      chip.errorsLast24h > 5
-                        ? 'text-status-error-foreground'
-                        : 'text-muted-foreground'
-                    )}
-                  >
-                    {chip.errorsLast24h}
-                  </span>
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  {chip.errorsLast24h > 0 ? (
+                    <button
+                      onClick={() => setErrorDialogChip(chip)}
+                      className={cn(
+                        'cursor-pointer rounded px-2 py-0.5 text-sm underline-offset-2 hover:underline',
+                        chip.errorsLast24h > 5
+                          ? 'text-status-error-foreground hover:bg-status-error/10'
+                          : 'text-status-warning-foreground hover:bg-status-warning/10'
+                      )}
+                      title="Clique para ver detalhes dos erros"
+                    >
+                      {chip.errorsLast24h}
+                    </button>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">0</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Link href={`/chips/${chip.id}` as Route} onClick={(e) => e.stopPropagation()}>
@@ -211,6 +228,18 @@ export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick }
           )}
         </TableBody>
       </Table>
+
+      {/* Errors Dialog */}
+      {errorDialogChip && (
+        <ChipErrorsDialog
+          chipId={errorDialogChip.id}
+          chipName={errorDialogChip.telefone}
+          errorCount={errorDialogChip.errorsLast24h}
+          open={!!errorDialogChip}
+          onOpenChange={(open) => !open && setErrorDialogChip(null)}
+          {...(onRefresh && { onErrorsCleared: onRefresh })}
+        />
+      )}
     </div>
   )
 }

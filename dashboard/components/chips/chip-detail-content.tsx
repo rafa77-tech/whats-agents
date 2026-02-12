@@ -29,6 +29,7 @@ import { ChipTrustChart } from './chip-trust-chart'
 import { ChipMetricsCards } from './chip-metrics-cards'
 import { ChipInteractionsTimeline } from './chip-interactions-timeline'
 import { ChipActionsPanel } from './chip-actions-panel'
+import { ChipErrorsDialog } from './chip-errors-dialog'
 import {
   ChipFullDetail,
   ChipMetrics,
@@ -88,6 +89,7 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showErrorsDialog, setShowErrorsDialog] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
@@ -223,11 +225,17 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
             <div className="text-2xl font-bold">{chip.deliveryRate.toFixed(1)}%</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          className={cn(
+            chip.errorsLast24h > 0 && 'cursor-pointer transition-colors hover:bg-muted/50'
+          )}
+          onClick={() => chip.errorsLast24h > 0 && setShowErrorsDialog(true)}
+        >
           <CardContent className="p-4">
             <div className="mb-1 flex items-center gap-2 text-muted-foreground">
               <AlertTriangle className="h-4 w-4" />
               <span className="text-sm">Erros (24h)</span>
+              {chip.errorsLast24h > 0 && <span className="text-xs">(clique para detalhes)</span>}
             </div>
             <div
               className={cn(
@@ -290,6 +298,16 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
 
       {/* Interactions timeline */}
       {interactions && <ChipInteractionsTimeline chipId={chipId} initialData={interactions} />}
+
+      {/* Errors Dialog */}
+      <ChipErrorsDialog
+        chipId={chipId}
+        chipName={chip.telefone}
+        errorCount={chip.errorsLast24h}
+        open={showErrorsDialog}
+        onOpenChange={setShowErrorsDialog}
+        onErrorsCleared={fetchData}
+      />
     </div>
   )
 }

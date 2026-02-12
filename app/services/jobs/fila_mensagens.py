@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from app.services.supabase import supabase
 from app.services.fila import fila_service
 from app.services.interacao import salvar_interacao
-from app.services.outbound import send_outbound_message, criar_contexto_followup
+from app.services.outbound import send_outbound_message, criar_contexto_followup, criar_contexto_campanha
 from app.services.conversa import buscar_ou_criar_conversa
 
 logger = logging.getLogger(__name__)
@@ -95,10 +95,18 @@ async def _processar_mensagem(mensagem: dict) -> str:
 
     # Enviar mensagem com GUARDRAIL
     try:
-        ctx = criar_contexto_followup(
-            cliente_id=cliente_id,
-            conversation_id=conversa_id,  # Agora sempre tem conversa_id
-        )
+        campaign_id = metadata.get("campanha_id")
+        if campaign_id:
+            ctx = criar_contexto_campanha(
+                cliente_id=cliente_id,
+                campaign_id=campaign_id,
+                conversation_id=conversa_id,
+            )
+        else:
+            ctx = criar_contexto_followup(
+                cliente_id=cliente_id,
+                conversation_id=conversa_id,
+            )
         result = await send_outbound_message(
             telefone=telefone,
             texto=mensagem["conteudo"],

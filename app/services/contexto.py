@@ -2,6 +2,7 @@
 Servico para montagem de contexto do agente.
 
 Sprint 44 T06.3: Paralelização de context building com asyncio.gather
+Campaign context injection: Carrega contexto de campanha para o pipeline inbound.
 """
 
 import asyncio
@@ -18,6 +19,9 @@ from app.services.memoria import enriquecer_contexto_com_memorias
 from app.core.config import DatabaseConfig
 
 logger = logging.getLogger(__name__)
+
+# TTL do cache de contexto de campanha (Redis)
+CACHE_TTL_CAMPANHA_CONTEXTO = 300  # 5 minutos
 
 # Dias da semana em portugues
 DIAS_SEMANA = ["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"]
@@ -271,6 +275,163 @@ def formatar_contexto_diretrizes(diretrizes: dict) -> str:
     return "\n".join(partes)
 
 
+async def carregar_contexto_campanha(
+    campaign_id: Optional[int] = None,
+    last_touch_at: Optional[str] = None,
+    campanha_id_fallback: Optional[int] = None,
+) -> Optional[dict]:
+    """
+    Carrega contexto de campanha para injeção no prompt.
+
+    Busca dados da campanha, aplica filtros de TTL e status, e retorna
+    dict com campos prontos para o PromptBuilder.
+
+    Args:
+        campaign_id: last_touch_campaign_id da conversa
+        last_touch_at: Timestamp do último touch (ISO string)
+        campanha_id_fallback: campanha_id da conversa (fallback se campaign_id é None)
+
+    Returns:
+        Dict com campaign_type, campaign_objective, campaign_rules,
+        offer_scope, negotiation_margin, pode_ofertar. Ou None se inelegível.
+    """
+    from app.services.campanhas.repository import campanha_repository
+
+    # Issue 3.2: Fallback para campanha_id se last_touch_campaign_id é None
+    effective_id = campaign_id or campanha_id_fallback
+    if not effective_id:
+        return None
+
+    # Tentar cache Redis (Issue 4.3)
+    cache_key = f"campanha:contexto:{effective_id}"
+    cached = await cache_get_json(cache_key)
+    if cached:
+        # Mesmo do cache, verificar TTL do last_touch_at
+        if not _campanha_dentro_janela(
+            cached.get("_status"), cached.get("_concluida_em"), last_touch_at
+        ):
+            return None
+        logger.debug(f"Contexto campanha {effective_id} carregado do cache")
+        return cached
+
+    try:
+        campanha = await campanha_repository.buscar_por_id(int(effective_id))
+        if not campanha:
+            logger.debug(f"Campanha {effective_id} nao encontrada")
+            return None
+
+        status = campanha.status.value
+
+        # Issue 4.1: Filtros de TTL por status
+        if not _campanha_dentro_janela(
+            status, str(campanha.concluida_em) if campanha.concluida_em else None, last_touch_at
+        ):
+            return None
+
+        # Montar contexto
+        regras_lista = None
+        if campanha.regras:
+            if isinstance(campanha.regras, dict) and "regras" in campanha.regras:
+                regras_lista = campanha.regras["regras"]
+            elif isinstance(campanha.regras, list):
+                regras_lista = campanha.regras
+
+        contexto = {
+            "campaign_type": campanha.tipo_campanha.value,
+            "campaign_objective": campanha.objetivo,
+            "campaign_rules": regras_lista,
+            "offer_scope": campanha.escopo_vagas,
+            "negotiation_margin": None,  # Será implementado quando campo existir na campanha
+            "pode_ofertar": campanha.pode_ofertar,
+            # Campos internos para cache validation
+            "_status": status,
+            "_concluida_em": str(campanha.concluida_em) if campanha.concluida_em else None,
+        }
+
+        # Salvar no cache Redis (Issue 4.3)
+        await cache_set_json(cache_key, contexto, CACHE_TTL_CAMPANHA_CONTEXTO)
+
+        logger.info(
+            f"Contexto campanha {effective_id} carregado: tipo={campanha.tipo_campanha.value}, "
+            f"objetivo={'sim' if campanha.objetivo else 'nao'}, pode_ofertar={campanha.pode_ofertar}"
+        )
+        return contexto
+
+    except Exception as e:
+        logger.warning(f"Erro ao carregar contexto campanha {effective_id}: {e}")
+        return None
+
+
+def _campanha_dentro_janela(
+    status: Optional[str],
+    concluida_em: Optional[str],
+    last_touch_at: Optional[str],
+) -> bool:
+    """
+    Verifica se campanha está dentro da janela de atribuição (Issue 4.1).
+
+    Regras:
+    - cancelada → nunca injetar
+    - concluida → injetar por ATTRIBUTION_WINDOW_DAYS após concluida_em
+    - ativa/agendada → sempre injetar
+    - last_touch_at > ATTRIBUTION_WINDOW_DAYS → não injetar
+    """
+    from app.services.campaign_attribution import ATTRIBUTION_WINDOW_DAYS
+
+    if not status:
+        return False
+
+    # Cancelada → nunca
+    if status == "cancelada":
+        return False
+
+    # Concluída → somente dentro da janela
+    if status == "concluida" and concluida_em:
+        try:
+            from datetime import datetime, timezone
+
+            if isinstance(concluida_em, str):
+                concluida_dt = datetime.fromisoformat(concluida_em.replace("Z", "+00:00"))
+            else:
+                concluida_dt = concluida_em
+
+            agora = agora_utc()
+            if hasattr(concluida_dt, "tzinfo") and concluida_dt.tzinfo is None:
+                concluida_dt = concluida_dt.replace(tzinfo=timezone.utc)
+            if hasattr(agora, "tzinfo") and agora.tzinfo is None:
+                agora = agora.replace(tzinfo=timezone.utc)
+
+            dias_desde_conclusao = (agora - concluida_dt).days
+            if dias_desde_conclusao > ATTRIBUTION_WINDOW_DAYS:
+                return False
+        except (ValueError, TypeError):
+            return False
+
+    # Verificar last_touch_at (independente do status)
+    if last_touch_at:
+        try:
+            from datetime import datetime, timezone
+
+            if isinstance(last_touch_at, str):
+                touch_dt = datetime.fromisoformat(last_touch_at.replace("Z", "+00:00"))
+            else:
+                touch_dt = last_touch_at
+
+            agora = agora_utc()
+            if hasattr(touch_dt, "tzinfo") and touch_dt.tzinfo is None:
+                touch_dt = touch_dt.replace(tzinfo=timezone.utc)
+            if hasattr(agora, "tzinfo") and agora.tzinfo is None:
+                agora = agora.replace(tzinfo=timezone.utc)
+
+            dias_desde_touch = (agora - touch_dt).days
+            if dias_desde_touch > ATTRIBUTION_WINDOW_DAYS:
+                return False
+        except (ValueError, TypeError):
+            pass  # Se não conseguir parsear, continua
+
+    return True
+
+
 async def montar_contexto_completo(
     medico: dict, conversa: dict, vagas: list[dict] = None, mensagem_atual: str = None
 ) -> dict:
@@ -325,11 +486,23 @@ async def montar_contexto_completo(
             return ""
 
     # Executar todas as operações async em paralelo
-    historico_raw, handoff_recente, diretrizes, contexto_memorias = await asyncio.gather(
+    # Campaign context: buscar em paralelo com os demais
+    (
+        historico_raw,
+        handoff_recente,
+        diretrizes,
+        contexto_memorias,
+        campanha_contexto,
+    ) = await asyncio.gather(
         carregar_historico(conversa["id"], limite=10),
         verificar_handoff_recente(conversa["id"]),
         carregar_diretrizes_ativas(),
         _carregar_memorias(),
+        carregar_contexto_campanha(
+            campaign_id=conversa.get("last_touch_campaign_id"),
+            last_touch_at=conversa.get("last_touch_at"),
+            campanha_id_fallback=conversa.get("campanha_id"),
+        ),
         return_exceptions=True,  # Não propaga exceções
     )
 
@@ -349,6 +522,10 @@ async def montar_contexto_completo(
     if isinstance(contexto_memorias, Exception):
         logger.warning(f"Erro ao carregar memórias: {contexto_memorias}")
         contexto_memorias = ""
+
+    if isinstance(campanha_contexto, Exception):
+        logger.warning(f"Erro ao carregar contexto campanha: {campanha_contexto}")
+        campanha_contexto = None
 
     # Formatar resultados
     historico = formatar_historico_para_llm(historico_raw)
@@ -381,4 +558,5 @@ async def montar_contexto_completo(
         "handoff_recente": contexto_handoff,
         "diretrizes": contexto_diretrizes,
         "memorias": contexto_memorias,  # Sprint 8 - RAG
+        "campanha": campanha_contexto,  # Campaign context injection
     }

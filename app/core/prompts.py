@@ -71,6 +71,12 @@ async def montar_prompt_julia(
     abertura_ja_enviada: bool = False,
     conhecimento: str = "",  # E03: Conhecimento dinâmico RAG
     policy_constraints: str = "",  # E06: Constraints da Policy Engine
+    # Campaign context injection
+    campaign_type: str = None,
+    campaign_objective: str = None,
+    campaign_rules: list = None,
+    offer_scope: dict = None,
+    negotiation_margin: dict = None,
 ) -> str:
     """
     Monta o system prompt completo para a Julia.
@@ -92,6 +98,11 @@ async def montar_prompt_julia(
         abertura_ja_enviada: Se a abertura automatica ja foi enviada
         conhecimento: Conhecimento dinamico do orquestrador (E03)
         policy_constraints: Constraints da Policy Engine (E06)
+        campaign_type: Tipo da campanha (discovery, oferta, etc)
+        campaign_objective: Objetivo da campanha em linguagem natural
+        campaign_rules: Lista de regras especificas
+        offer_scope: Escopo de vagas permitidas
+        negotiation_margin: Margem de negociacao
 
     Returns:
         System prompt formatado
@@ -133,4 +144,9 @@ async def montar_prompt_julia(
         conhecimento=conhecimento,
         primeira_msg=primeira_msg,
         policy_constraints=policy_constraints,
+        campaign_type=campaign_type,
+        campaign_objective=campaign_objective,
+        campaign_rules=campaign_rules,
+        offer_scope=offer_scope,
+        negotiation_margin=negotiation_margin,
     )

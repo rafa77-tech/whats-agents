@@ -2,6 +2,7 @@
 Warmup Executor - Executa atividades de warmup agendadas.
 
 Sprint 39 - Scheduler de Warmup.
+Sprint 56 - Usa ChipSender para capturar erros corretamente.
 
 Responsável por executar cada tipo de atividade:
 - conversa_par: Conversa entre dois chips
@@ -21,7 +22,7 @@ from app.services.supabase import supabase
 from app.services.warmer.scheduler import AtividadeAgendada, TipoAtividade
 from app.services.warmer.conversation_generator import gerar_mensagem_warmup
 from app.services.warmer.pairing_engine import selecionar_par
-from app.services.whatsapp_providers import get_provider
+from app.services.chips.sender import enviar_via_chip
 
 logger = logging.getLogger(__name__)
 
@@ -95,10 +96,13 @@ async def _executar_conversa_par(chip: dict, atividade: AtividadeAgendada) -> bo
     Executa conversa entre dois chips.
 
     Seleciona um par, gera mensagem contextual e envia.
+    Sprint 56: Usa enviar_via_chip para capturar erros corretamente.
     """
     try:
-        # Verificar conexão
-        if not chip.get("evolution_connected"):
+        # Verificar conexão (para Evolution)
+        # Para Z-API, não verifica evolution_connected
+        provider_tipo = chip.get("provider") or "evolution"
+        if provider_tipo == "evolution" and not chip.get("evolution_connected"):
             logger.warning(f"[WarmupExecutor] Chip {chip['telefone']} desconectado")
             return False
 
@@ -119,20 +123,17 @@ async def _executar_conversa_par(chip: dict, atividade: AtividadeAgendada) -> bo
         if not mensagem:
             mensagem = _gerar_mensagem_simples()
 
-        # Obter provider e enviar mensagem
-        provider = get_provider(chip)
-        resultado = await provider.send_text(par["telefone"], mensagem)
+        # Sprint 56: Usar enviar_via_chip para capturar erros corretamente
+        # Isso garante que erros são registrados via chip_registrar_envio_erro
+        resultado = await enviar_via_chip(chip, par["telefone"], mensagem)
 
         if resultado.success:
-            # Registrar interação
-            await _registrar_interacao(
-                chip["id"], "conversa_par", destinatario=par["telefone"], sucesso=True
-            )
             logger.info(
                 f"[WarmupExecutor] Conversa par: {chip['telefone'][-4:]} -> {par['telefone'][-4:]}"
             )
             return True
 
+        # Erro já foi registrado pelo enviar_via_chip
         logger.warning(f"[WarmupExecutor] Falha ao enviar conversa_par: {resultado.error}")
         return False
 
