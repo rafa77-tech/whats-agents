@@ -235,9 +235,7 @@ export function ChipDetailContent({ chipId }: ChipDetailContentProps) {
             <div className="mb-1 flex items-center gap-2 text-muted-foreground">
               <AlertTriangle className="h-4 w-4" />
               <span className="text-sm">Erros (24h)</span>
-              {chip.errorsLast24h > 0 && (
-                <span className="text-xs">(clique para detalhes)</span>
-              )}
+              {chip.errorsLast24h > 0 && <span className="text-xs">(clique para detalhes)</span>}
             </div>
             <div
               className={cn(

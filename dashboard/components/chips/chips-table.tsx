@@ -72,7 +72,13 @@ const statusLabels: Record<string, string> = {
 
 const defaultStatusLabel = 'Desconhecido'
 
-export function ChipsTable({ chips, selectedIds, onSelectionChange, onRowClick, onRefresh }: ChipsTableProps) {
+export function ChipsTable({
+  chips,
+  selectedIds,
+  onSelectionChange,
+  onRowClick,
+  onRefresh,
+}: ChipsTableProps) {
   const [errorDialogChip, setErrorDialogChip] = useState<ChipListItem | null>(null)
 
   const allSelected = chips.length > 0 && selectedIds.length === chips.length

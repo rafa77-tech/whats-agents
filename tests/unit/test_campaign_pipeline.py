@@ -68,14 +68,37 @@ class TestMontarContextoCompletoComCampanha:
             "_concluida_em": None,
         }
 
-        with patch("app.services.contexto.carregar_historico", new_callable=AsyncMock, return_value=[]), \
-             patch("app.services.contexto.verificar_handoff_recente", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.carregar_diretrizes_ativas", new_callable=AsyncMock, return_value={}), \
-             patch("app.services.contexto.enriquecer_contexto_com_memorias", new_callable=AsyncMock, return_value=""), \
-             patch("app.services.contexto.carregar_contexto_campanha", new_callable=AsyncMock, return_value=campanha_ctx), \
-             patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True):
-
+        with (
+            patch(
+                "app.services.contexto.carregar_historico", new_callable=AsyncMock, return_value=[]
+            ),
+            patch(
+                "app.services.contexto.verificar_handoff_recente",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.contexto.carregar_diretrizes_ativas",
+                new_callable=AsyncMock,
+                return_value={},
+            ),
+            patch(
+                "app.services.contexto.enriquecer_contexto_com_memorias",
+                new_callable=AsyncMock,
+                return_value="",
+            ),
+            patch(
+                "app.services.contexto.carregar_contexto_campanha",
+                new_callable=AsyncMock,
+                return_value=campanha_ctx,
+            ),
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ),
+        ):
             from app.services.contexto import montar_contexto_completo
 
             resultado = await montar_contexto_completo(medico, conversa_com_campanha)
@@ -87,14 +110,37 @@ class TestMontarContextoCompletoComCampanha:
     @pytest.mark.asyncio
     async def test_contexto_campanha_none_quando_sem_campanha(self, medico, conversa_sem_campanha):
         """Sem campanha, chave 'campanha' deve ser None."""
-        with patch("app.services.contexto.carregar_historico", new_callable=AsyncMock, return_value=[]), \
-             patch("app.services.contexto.verificar_handoff_recente", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.carregar_diretrizes_ativas", new_callable=AsyncMock, return_value={}), \
-             patch("app.services.contexto.enriquecer_contexto_com_memorias", new_callable=AsyncMock, return_value=""), \
-             patch("app.services.contexto.carregar_contexto_campanha", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True):
-
+        with (
+            patch(
+                "app.services.contexto.carregar_historico", new_callable=AsyncMock, return_value=[]
+            ),
+            patch(
+                "app.services.contexto.verificar_handoff_recente",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.contexto.carregar_diretrizes_ativas",
+                new_callable=AsyncMock,
+                return_value={},
+            ),
+            patch(
+                "app.services.contexto.enriquecer_contexto_com_memorias",
+                new_callable=AsyncMock,
+                return_value="",
+            ),
+            patch(
+                "app.services.contexto.carregar_contexto_campanha",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ),
+        ):
             from app.services.contexto import montar_contexto_completo
 
             resultado = await montar_contexto_completo(medico, conversa_sem_campanha)
@@ -105,14 +151,37 @@ class TestMontarContextoCompletoComCampanha:
     @pytest.mark.asyncio
     async def test_contexto_campanha_erro_graceful(self, medico, conversa_com_campanha):
         """Erro ao carregar campanha deve resultar em None (graceful)."""
-        with patch("app.services.contexto.carregar_historico", new_callable=AsyncMock, return_value=[]), \
-             patch("app.services.contexto.verificar_handoff_recente", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.carregar_diretrizes_ativas", new_callable=AsyncMock, return_value={}), \
-             patch("app.services.contexto.enriquecer_contexto_com_memorias", new_callable=AsyncMock, return_value=""), \
-             patch("app.services.contexto.carregar_contexto_campanha", new_callable=AsyncMock, side_effect=Exception("DB error")), \
-             patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True):
-
+        with (
+            patch(
+                "app.services.contexto.carregar_historico", new_callable=AsyncMock, return_value=[]
+            ),
+            patch(
+                "app.services.contexto.verificar_handoff_recente",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.contexto.carregar_diretrizes_ativas",
+                new_callable=AsyncMock,
+                return_value={},
+            ),
+            patch(
+                "app.services.contexto.enriquecer_contexto_com_memorias",
+                new_callable=AsyncMock,
+                return_value="",
+            ),
+            patch(
+                "app.services.contexto.carregar_contexto_campanha",
+                new_callable=AsyncMock,
+                side_effect=Exception("DB error"),
+            ),
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ),
+        ):
             from app.services.contexto import montar_contexto_completo
 
             resultado = await montar_contexto_completo(medico, conversa_com_campanha)
@@ -124,14 +193,37 @@ class TestMontarContextoCompletoComCampanha:
     @pytest.mark.asyncio
     async def test_contexto_passa_ids_corretos(self, medico, conversa_com_campanha):
         """Deve passar last_touch_campaign_id, last_touch_at e campanha_id corretos."""
-        with patch("app.services.contexto.carregar_historico", new_callable=AsyncMock, return_value=[]), \
-             patch("app.services.contexto.verificar_handoff_recente", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.carregar_diretrizes_ativas", new_callable=AsyncMock, return_value={}), \
-             patch("app.services.contexto.enriquecer_contexto_com_memorias", new_callable=AsyncMock, return_value=""), \
-             patch("app.services.contexto.carregar_contexto_campanha", new_callable=AsyncMock, return_value=None) as mock_carregar, \
-             patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True):
-
+        with (
+            patch(
+                "app.services.contexto.carregar_historico", new_callable=AsyncMock, return_value=[]
+            ),
+            patch(
+                "app.services.contexto.verificar_handoff_recente",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.contexto.carregar_diretrizes_ativas",
+                new_callable=AsyncMock,
+                return_value={},
+            ),
+            patch(
+                "app.services.contexto.enriquecer_contexto_com_memorias",
+                new_callable=AsyncMock,
+                return_value="",
+            ),
+            patch(
+                "app.services.contexto.carregar_contexto_campanha",
+                new_callable=AsyncMock,
+                return_value=None,
+            ) as mock_carregar,
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ),
+        ):
             from app.services.contexto import montar_contexto_completo
 
             await montar_contexto_completo(medico, conversa_com_campanha)
@@ -156,7 +248,9 @@ class TestMontarPromptJuliaComCampanha:
         """Params de campanha devem ser encaminhados ao builder."""
         from app.core.prompts import montar_prompt_julia
 
-        with patch("app.core.prompts._construir_prompt", new_callable=AsyncMock, return_value="prompt") as mock_build:
+        with patch(
+            "app.core.prompts._construir_prompt", new_callable=AsyncMock, return_value="prompt"
+        ) as mock_build:
             await montar_prompt_julia(
                 campaign_type="discovery",
                 campaign_objective="Testar app",
@@ -177,7 +271,9 @@ class TestMontarPromptJuliaComCampanha:
         """Sem params de campanha, todos devem ser None."""
         from app.core.prompts import montar_prompt_julia
 
-        with patch("app.core.prompts._construir_prompt", new_callable=AsyncMock, return_value="prompt") as mock_build:
+        with patch(
+            "app.core.prompts._construir_prompt", new_callable=AsyncMock, return_value="prompt"
+        ) as mock_build:
             await montar_prompt_julia()
 
             call_kwargs = mock_build.call_args.kwargs
@@ -335,13 +431,14 @@ class TestFilaMensagensCampanhaContext:
         """Deve usar criar_contexto_campanha quando metadata tem campanha_id."""
         from app.services.jobs.fila_mensagens import _processar_mensagem
 
-        with patch("app.services.jobs.fila_mensagens.fila_service") as mock_fila, \
-             patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send, \
-             patch("app.services.jobs.fila_mensagens.criar_contexto_campanha") as mock_ctx_camp, \
-             patch("app.services.jobs.fila_mensagens.criar_contexto_followup") as mock_ctx_follow, \
-             patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa") as mock_conversa, \
-             patch("app.services.jobs.fila_mensagens.salvar_interacao") as mock_interacao:
-
+        with (
+            patch("app.services.jobs.fila_mensagens.fila_service") as mock_fila,
+            patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send,
+            patch("app.services.jobs.fila_mensagens.criar_contexto_campanha") as mock_ctx_camp,
+            patch("app.services.jobs.fila_mensagens.criar_contexto_followup") as mock_ctx_follow,
+            patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa"),
+            patch("app.services.jobs.fila_mensagens.salvar_interacao") as mock_interacao,
+        ):
             mock_result = MagicMock()
             mock_result.blocked = False
             mock_result.success = True
@@ -367,13 +464,14 @@ class TestFilaMensagensCampanhaContext:
         """Deve usar criar_contexto_followup quando metadata não tem campanha_id."""
         from app.services.jobs.fila_mensagens import _processar_mensagem
 
-        with patch("app.services.jobs.fila_mensagens.fila_service") as mock_fila, \
-             patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send, \
-             patch("app.services.jobs.fila_mensagens.criar_contexto_campanha") as mock_ctx_camp, \
-             patch("app.services.jobs.fila_mensagens.criar_contexto_followup") as mock_ctx_follow, \
-             patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa") as mock_conversa, \
-             patch("app.services.jobs.fila_mensagens.salvar_interacao") as mock_interacao:
-
+        with (
+            patch("app.services.jobs.fila_mensagens.fila_service") as mock_fila,
+            patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send,
+            patch("app.services.jobs.fila_mensagens.criar_contexto_campanha") as mock_ctx_camp,
+            patch("app.services.jobs.fila_mensagens.criar_contexto_followup") as mock_ctx_follow,
+            patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa"),
+            patch("app.services.jobs.fila_mensagens.salvar_interacao") as mock_interacao,
+        ):
             mock_result = MagicMock()
             mock_result.blocked = False
             mock_result.success = True
@@ -420,12 +518,13 @@ class TestExecutorMetadataEnriquecida:
         destinatarios = [{"id": "uuid-1", "primeiro_nome": "Carlos"}]
         executor = CampanhaExecutor()
 
-        with patch("app.services.campanhas.executor.campanha_repository") as mock_repo, \
-             patch("app.services.campanhas.executor.segmentacao_service") as mock_seg, \
-             patch("app.services.campanhas.executor.fila_service") as mock_fila, \
-             patch("app.services.campanhas.executor.supabase") as mock_supabase, \
-             patch("app.services.campanhas.executor.obter_abertura_texto") as mock_abertura:
-
+        with (
+            patch("app.services.campanhas.executor.campanha_repository") as mock_repo,
+            patch("app.services.campanhas.executor.segmentacao_service") as mock_seg,
+            patch("app.services.campanhas.executor.fila_service") as mock_fila,
+            patch("app.services.campanhas.executor.supabase") as mock_supabase,
+            patch("app.services.campanhas.executor.obter_abertura_texto") as mock_abertura,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
             mock_repo.atualizar_status = AsyncMock(return_value=True)
             mock_repo.atualizar_total_destinatarios = AsyncMock(return_value=True)
@@ -459,14 +558,17 @@ class TestExecutorMetadataEnriquecida:
             audience_filters=AudienceFilters(quantidade_alvo=1),
         )
 
-        destinatarios = [{"id": "uuid-1", "primeiro_nome": "Carlos", "especialidade_nome": "Cardio"}]
+        destinatarios = [
+            {"id": "uuid-1", "primeiro_nome": "Carlos", "especialidade_nome": "Cardio"}
+        ]
         executor = CampanhaExecutor()
 
-        with patch("app.services.campanhas.executor.campanha_repository") as mock_repo, \
-             patch("app.services.campanhas.executor.segmentacao_service") as mock_seg, \
-             patch("app.services.campanhas.executor.fila_service") as mock_fila, \
-             patch("app.services.campanhas.executor.supabase") as mock_supabase:
-
+        with (
+            patch("app.services.campanhas.executor.campanha_repository") as mock_repo,
+            patch("app.services.campanhas.executor.segmentacao_service") as mock_seg,
+            patch("app.services.campanhas.executor.fila_service") as mock_fila,
+            patch("app.services.campanhas.executor.supabase") as mock_supabase,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
             mock_repo.atualizar_status = AsyncMock(return_value=True)
             mock_repo.atualizar_total_destinatarios = AsyncMock(return_value=True)
@@ -507,7 +609,9 @@ class TestAberturaContextualizada:
         executor = CampanhaExecutor()
 
         with patch("app.services.llm.gerar_resposta", new_callable=AsyncMock) as mock_llm:
-            mock_llm.return_value = "Oi Dr Carlos! Tudo bem? Sou a Julia da Revoluna, vi que vc é médico na região"
+            mock_llm.return_value = (
+                "Oi Dr Carlos! Tudo bem? Sou a Julia da Revoluna, vi que vc é médico na região"
+            )
 
             mensagem = await executor._gerar_mensagem(campanha, destinatario)
 
@@ -530,9 +634,10 @@ class TestAberturaContextualizada:
         destinatario = {"id": "uuid-1", "nome": "Carlos"}
         executor = CampanhaExecutor()
 
-        with patch("app.services.llm.gerar_resposta", new_callable=AsyncMock) as mock_llm, \
-             patch("app.services.campanhas.executor.obter_abertura_texto") as mock_abertura:
-
+        with (
+            patch("app.services.llm.gerar_resposta", new_callable=AsyncMock) as mock_llm,
+            patch("app.services.campanhas.executor.obter_abertura_texto") as mock_abertura,
+        ):
             mock_llm.side_effect = Exception("LLM timeout")
             mock_abertura.return_value = "Oi Dr Carlos! Sou a Julia da Revoluna"
 
@@ -556,9 +661,10 @@ class TestAberturaContextualizada:
         destinatario = {"id": "uuid-1", "nome": "Carlos"}
         executor = CampanhaExecutor()
 
-        with patch("app.services.llm.gerar_resposta", new_callable=AsyncMock) as mock_llm, \
-             patch("app.services.campanhas.executor.obter_abertura_texto") as mock_abertura:
-
+        with (
+            patch("app.services.llm.gerar_resposta", new_callable=AsyncMock) as mock_llm,
+            patch("app.services.campanhas.executor.obter_abertura_texto") as mock_abertura,
+        ):
             mock_llm.return_value = "Oi"  # Muito curta (<= 10 chars)
             mock_abertura.return_value = "Oi Dr Carlos! Sou a Julia"
 
@@ -605,9 +711,10 @@ class TestCacheInvalidationRepository:
 
         repo = CampanhaRepository()
 
-        with patch("app.services.campanhas.repository.supabase") as mock_supabase, \
-             patch("app.services.redis.cache_delete", new_callable=AsyncMock) as mock_cache_del:
-
+        with (
+            patch("app.services.campanhas.repository.supabase") as mock_supabase,
+            patch("app.services.redis.cache_delete", new_callable=AsyncMock) as mock_cache_del,
+        ):
             mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
 
             await repo.atualizar_status(42, StatusCampanha.CONCLUIDA)

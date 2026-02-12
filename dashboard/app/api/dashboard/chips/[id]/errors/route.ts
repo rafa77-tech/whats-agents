@@ -25,10 +25,7 @@ interface ChipRow {
   ultimo_erro_em: string | null
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: chipId } = await params
     const supabase = await createClient()
@@ -63,51 +60,52 @@ export async function GET(
     const ultimoErroChip = chip?.ultimo_erro_msg?.trim() || null
 
     // Mapear para formato mais legivel
-    const mappedErrors = (errors as ErrorRow[] | null)?.map((e, index) => {
-      // Tentar extrair mensagem de erro mais legivel
-      let errorDetail = e.error_message?.trim() || ''
+    const mappedErrors =
+      (errors as ErrorRow[] | null)?.map((e, index) => {
+        // Tentar extrair mensagem de erro mais legivel
+        let errorDetail = e.error_message?.trim() || ''
 
-      // Se a mensagem esta vazia, usar ultimo erro do chip para o primeiro item
-      if (!errorDetail && index === 0 && ultimoErroChip) {
-        errorDetail = ultimoErroChip
-      }
-
-      // Se ainda vazio, mostrar mensagem generica com mais contexto
-      if (!errorDetail) {
-        errorDetail = 'Falha no envio (sem detalhes disponiveis)'
-      }
-
-      // Se for JSON HTTP, tentar parsear para extrair mensagem
-      if (errorDetail.startsWith('HTTP')) {
-        try {
-          const jsonMatch = errorDetail.match(/\{.*\}/)
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0])
-            if (parsed.response?.message) {
-              const msg = parsed.response.message
-              if (Array.isArray(msg) && msg[0]?.exists === false) {
-                errorDetail = `Numero nao existe no WhatsApp: ${msg[0].number}`
-              } else if (typeof msg === 'string') {
-                errorDetail = msg
-              }
-            } else if (parsed.error) {
-              errorDetail = parsed.error
-            }
-          }
-        } catch {
-          // Manter mensagem original
+        // Se a mensagem esta vazia, usar ultimo erro do chip para o primeiro item
+        if (!errorDetail && index === 0 && ultimoErroChip) {
+          errorDetail = ultimoErroChip
         }
-      }
 
-      return {
-        id: e.id,
-        tipo: e.tipo,
-        errorCode: e.error_code,
-        errorMessage: errorDetail,
-        createdAt: e.created_at,
-        destinatario: e.destinatario,
-      }
-    }) || []
+        // Se ainda vazio, mostrar mensagem generica com mais contexto
+        if (!errorDetail) {
+          errorDetail = 'Falha no envio (sem detalhes disponiveis)'
+        }
+
+        // Se for JSON HTTP, tentar parsear para extrair mensagem
+        if (errorDetail.startsWith('HTTP')) {
+          try {
+            const jsonMatch = errorDetail.match(/\{.*\}/)
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0])
+              if (parsed.response?.message) {
+                const msg = parsed.response.message
+                if (Array.isArray(msg) && msg[0]?.exists === false) {
+                  errorDetail = `Numero nao existe no WhatsApp: ${msg[0].number}`
+                } else if (typeof msg === 'string') {
+                  errorDetail = msg
+                }
+              } else if (parsed.error) {
+                errorDetail = parsed.error
+              }
+            }
+          } catch {
+            // Manter mensagem original
+          }
+        }
+
+        return {
+          id: e.id,
+          tipo: e.tipo,
+          errorCode: e.error_code,
+          errorMessage: errorDetail,
+          createdAt: e.created_at,
+          destinatario: e.destinatario,
+        }
+      }) || []
 
     // Agrupar por tipo de erro para resumo
     const errorSummary: Record<string, number> = {}
@@ -124,11 +122,13 @@ export async function GET(
         count,
       })),
       // Info adicional do chip
-      chipLastError: ultimoErroChip ? {
-        message: ultimoErroChip,
-        code: chip?.ultimo_erro_codigo,
-        timestamp: chip?.ultimo_erro_em,
-      } : null,
+      chipLastError: ultimoErroChip
+        ? {
+            message: ultimoErroChip,
+            code: chip?.ultimo_erro_codigo,
+            timestamp: chip?.ultimo_erro_em,
+          }
+        : null,
     })
   } catch (error) {
     console.error('Error fetching chip errors:', error)

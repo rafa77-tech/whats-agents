@@ -259,10 +259,10 @@ describe('ChipsTable', () => {
       expect(errorsElement).toHaveClass('text-status-error-foreground')
     })
 
-    it('should apply gray color for errors <= 5', () => {
+    it('should apply warning color for errors > 0 and <= 5', () => {
       render(<ChipsTable {...defaultProps} />)
       const errorsElement = screen.getByText('2')
-      expect(errorsElement).toHaveClass('text-muted-foreground')
+      expect(errorsElement).toHaveClass('text-status-warning-foreground')
     })
   })
 })

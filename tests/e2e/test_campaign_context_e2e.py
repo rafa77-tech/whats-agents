@@ -11,9 +11,10 @@ Valida o fluxo end-to-end:
 Diferente dos unit tests (que testam funções isoladas), estes testes
 verificam a integração entre os componentes do pipeline.
 """
+
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from app.services.campanhas.types import (
     CampanhaData,
@@ -146,11 +147,11 @@ class TestContextoPipelineE2E:
     ):
         """Fluxo completo: conversa com campaign_id → contexto['campanha'] preenchido."""
         with (
-            patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None),
-            patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
             patch(
-                "app.services.campanhas.repository.campanha_repository"
-            ) as mock_repo,
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
             patch(
                 "app.services.contexto.carregar_historico",
                 new_callable=AsyncMock,
@@ -188,7 +189,9 @@ class TestContextoPipelineE2E:
     ):
         """Fluxo completo: conversa orgânica → contexto['campanha'] é None."""
         with (
-            patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
             patch(
                 "app.services.contexto.carregar_historico",
@@ -229,11 +232,11 @@ class TestContextoPipelineE2E:
             "especialidade_id": "esp-cardio",
         }
         with (
-            patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None),
-            patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
             patch(
-                "app.services.campanhas.repository.campanha_repository"
-            ) as mock_repo,
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
             patch(
                 "app.services.contexto.carregar_historico",
                 new_callable=AsyncMock,
@@ -263,7 +266,10 @@ class TestContextoPipelineE2E:
             assert ctx["campanha"] is not None
             assert ctx["campanha"]["campaign_type"] == "oferta"
             assert ctx["campanha"]["pode_ofertar"] is True
-            assert ctx["campanha"]["offer_scope"] == {"especialidade": "cardiologia", "regiao": "abc"}
+            assert ctx["campanha"]["offer_scope"] == {
+                "especialidade": "cardiologia",
+                "regiao": "abc",
+            }
 
 
 # ---------------------------------------------------------------------------
@@ -456,7 +462,9 @@ class TestFluxoContextoParaPromptE2E:
     """
 
     @pytest.mark.asyncio
-    async def test_fluxo_discovery_completo(self, conversa_com_campanha, medico, campanha_discovery):
+    async def test_fluxo_discovery_completo(
+        self, conversa_com_campanha, medico, campanha_discovery
+    ):
         """
         Fluxo E2E completo de discovery:
         1. montar_contexto_completo carrega campanha
@@ -466,11 +474,11 @@ class TestFluxoContextoParaPromptE2E:
         """
         with (
             # Mocks para contexto
-            patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None),
-            patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
             patch(
-                "app.services.campanhas.repository.campanha_repository"
-            ) as mock_repo,
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
             patch(
                 "app.services.contexto.carregar_historico",
                 new_callable=AsyncMock,
@@ -550,9 +558,7 @@ class TestFluxoContextoParaPromptE2E:
             assert "RESTRIÇÃO DE CAMPANHA" in prompt
 
     @pytest.mark.asyncio
-    async def test_fluxo_oferta_completo(
-        self, conversa_com_campanha_oferta, campanha_oferta
-    ):
+    async def test_fluxo_oferta_completo(self, conversa_com_campanha_oferta, campanha_oferta):
         """
         Fluxo E2E completo de oferta:
         1. montar_contexto_completo carrega campanha oferta
@@ -568,11 +574,11 @@ class TestFluxoContextoParaPromptE2E:
         }
 
         with (
-            patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None),
-            patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
             patch(
-                "app.services.campanhas.repository.campanha_repository"
-            ) as mock_repo,
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
             patch(
                 "app.services.contexto.carregar_historico",
                 new_callable=AsyncMock,
@@ -642,7 +648,9 @@ class TestFluxoContextoParaPromptE2E:
         Fluxo E2E sem campanha: prompt NÃO deve ter nenhuma seção de campanha.
         """
         with (
-            patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
             patch(
                 "app.services.contexto.carregar_historico",
@@ -783,9 +791,7 @@ class TestMetadataEnriquecidaE2E:
     """
 
     @pytest.mark.asyncio
-    async def test_executor_envia_metadata_com_objetivo_e_pode_ofertar(
-        self, campanha_discovery
-    ):
+    async def test_executor_envia_metadata_com_objetivo_e_pode_ofertar(self, campanha_discovery):
         """Metadata de envio deve conter objetivo e pode_ofertar."""
         from app.services.campanhas.executor import CampanhaExecutor
 

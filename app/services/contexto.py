@@ -295,7 +295,6 @@ async def carregar_contexto_campanha(
         Dict com campaign_type, campaign_objective, campaign_rules,
         offer_scope, negotiation_margin, pode_ofertar. Ou None se inelegível.
     """
-    from app.services.campaign_attribution import ATTRIBUTION_WINDOW_DAYS
     from app.services.campanhas.repository import campanha_repository
 
     # Issue 3.2: Fallback para campanha_id se last_touch_campaign_id é None
@@ -308,7 +307,9 @@ async def carregar_contexto_campanha(
     cached = await cache_get_json(cache_key)
     if cached:
         # Mesmo do cache, verificar TTL do last_touch_at
-        if not _campanha_dentro_janela(cached.get("_status"), cached.get("_concluida_em"), last_touch_at):
+        if not _campanha_dentro_janela(
+            cached.get("_status"), cached.get("_concluida_em"), last_touch_at
+        ):
             return None
         logger.debug(f"Contexto campanha {effective_id} carregado do cache")
         return cached
@@ -322,7 +323,9 @@ async def carregar_contexto_campanha(
         status = campanha.status.value
 
         # Issue 4.1: Filtros de TTL por status
-        if not _campanha_dentro_janela(status, str(campanha.concluida_em) if campanha.concluida_em else None, last_touch_at):
+        if not _campanha_dentro_janela(
+            status, str(campanha.concluida_em) if campanha.concluida_em else None, last_touch_at
+        ):
             return None
 
         # Montar contexto
@@ -484,19 +487,23 @@ async def montar_contexto_completo(
 
     # Executar todas as operações async em paralelo
     # Campaign context: buscar em paralelo com os demais
-    historico_raw, handoff_recente, diretrizes, contexto_memorias, campanha_contexto = (
-        await asyncio.gather(
-            carregar_historico(conversa["id"], limite=10),
-            verificar_handoff_recente(conversa["id"]),
-            carregar_diretrizes_ativas(),
-            _carregar_memorias(),
-            carregar_contexto_campanha(
-                campaign_id=conversa.get("last_touch_campaign_id"),
-                last_touch_at=conversa.get("last_touch_at"),
-                campanha_id_fallback=conversa.get("campanha_id"),
-            ),
-            return_exceptions=True,  # Não propaga exceções
-        )
+    (
+        historico_raw,
+        handoff_recente,
+        diretrizes,
+        contexto_memorias,
+        campanha_contexto,
+    ) = await asyncio.gather(
+        carregar_historico(conversa["id"], limite=10),
+        verificar_handoff_recente(conversa["id"]),
+        carregar_diretrizes_ativas(),
+        _carregar_memorias(),
+        carregar_contexto_campanha(
+            campaign_id=conversa.get("last_touch_campaign_id"),
+            last_touch_at=conversa.get("last_touch_at"),
+            campanha_id_fallback=conversa.get("campanha_id"),
+        ),
+        return_exceptions=True,  # Não propaga exceções
     )
 
     # Tratar possíveis exceções de cada operação

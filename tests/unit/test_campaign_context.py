@@ -10,7 +10,7 @@ Cobre:
 
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from app.services.contexto import (
     carregar_contexto_campanha,
@@ -146,10 +146,15 @@ class TestCarregarContextoCampanha:
             escopo_vagas=None,
         )
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
 
             resultado = await carregar_contexto_campanha(campaign_id=20)
@@ -170,10 +175,13 @@ class TestCarregarContextoCampanha:
             status=StatusCampanha.CANCELADA,
         )
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
 
             resultado = await carregar_contexto_campanha(campaign_id=21)
@@ -183,9 +191,12 @@ class TestCarregarContextoCampanha:
     @pytest.mark.asyncio
     async def test_campanha_nao_encontrada_retorna_none(self):
         """Campanha inexistente deve retornar None."""
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=None)
 
             resultado = await carregar_contexto_campanha(campaign_id=999)
@@ -203,10 +214,15 @@ class TestCarregarContextoCampanha:
             pode_ofertar=True,
         )
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
 
             resultado = await carregar_contexto_campanha(
@@ -233,9 +249,12 @@ class TestCarregarContextoCampanha:
             "_concluida_em": None,
         }
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=cached), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=cached
+            ),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             resultado = await carregar_contexto_campanha(campaign_id=20)
 
             assert resultado is not None
@@ -254,7 +273,9 @@ class TestCarregarContextoCampanha:
             "_concluida_em": None,
         }
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=cached):
+        with patch(
+            "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=cached
+        ):
             resultado = await carregar_contexto_campanha(campaign_id=20)
             assert resultado is None
 
@@ -268,10 +289,15 @@ class TestCarregarContextoCampanha:
             status=StatusCampanha.ATIVA,
         )
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None) as mock_get, \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True) as mock_set, \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ) as mock_set,
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
 
             await carregar_contexto_campanha(campaign_id=23)
@@ -292,10 +318,15 @@ class TestCarregarContextoCampanha:
             regras={"regras": ["regra1", "regra2"]},
         )
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
 
             resultado = await carregar_contexto_campanha(campaign_id=24)
@@ -313,10 +344,15 @@ class TestCarregarContextoCampanha:
             regras=["regra1", "regra2"],
         )
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
 
             resultado = await carregar_contexto_campanha(campaign_id=25)
@@ -334,10 +370,15 @@ class TestCarregarContextoCampanha:
             regras=None,
         )
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
 
             resultado = await carregar_contexto_campanha(campaign_id=26)
@@ -347,9 +388,12 @@ class TestCarregarContextoCampanha:
     @pytest.mark.asyncio
     async def test_exception_retorna_none(self):
         """Exceção no banco deve retornar None (graceful degradation)."""
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(side_effect=Exception("DB error"))
 
             resultado = await carregar_contexto_campanha(campaign_id=99)
@@ -368,10 +412,15 @@ class TestCarregarContextoCampanha:
             concluida_em=agora - timedelta(days=3),
         )
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
 
             resultado = await carregar_contexto_campanha(campaign_id=27)
@@ -390,10 +439,13 @@ class TestCarregarContextoCampanha:
             concluida_em=agora - timedelta(days=10),
         )
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
 
             resultado = await carregar_contexto_campanha(campaign_id=28)
@@ -410,10 +462,15 @@ class TestCarregarContextoCampanha:
             status=StatusCampanha.ATIVA,
         )
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.contexto.cache_set_json", new_callable=AsyncMock, return_value=True
+            ),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
 
             await carregar_contexto_campanha(
@@ -436,10 +493,13 @@ class TestCarregarContextoCampanha:
         )
         old_touch = (agora - timedelta(days=10)).isoformat()
 
-        with patch("app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None), \
-             patch("app.services.contexto.cache_set_json", new_callable=AsyncMock), \
-             patch("app.services.campanhas.repository.campanha_repository") as mock_repo:
-
+        with (
+            patch(
+                "app.services.contexto.cache_get_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch("app.services.contexto.cache_set_json", new_callable=AsyncMock),
+            patch("app.services.campanhas.repository.campanha_repository") as mock_repo,
+        ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
 
             resultado = await carregar_contexto_campanha(
