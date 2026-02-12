@@ -131,9 +131,13 @@ async def _processar_mensagem(mensagem: dict) -> str:
             )
             return "optout" if result.block_reason == "opted_out" else "erro"
 
-        # Sem capacidade: reagendar sem penalidade
-        if result.outcome == SendOutcome.FAILED_NO_CAPACITY:
-            logger.info(f"Mensagem {mensagem_id} sem capacidade, reagendando +5min")
+        # Issue #87: Falhas temporárias → reagendar sem penalidade
+        if result.outcome in (
+            SendOutcome.FAILED_NO_CAPACITY,
+            SendOutcome.FAILED_CIRCUIT_OPEN,
+            SendOutcome.FAILED_RATE_LIMIT,
+        ):
+            logger.info(f"Mensagem {mensagem_id} temporária: {result.outcome.value}, reagendando +5min")
             await fila_service.reagendar_sem_penalidade(mensagem_id)
             await fila_service.registrar_outcome(
                 mensagem_id=mensagem_id,

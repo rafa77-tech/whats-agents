@@ -221,6 +221,8 @@ class ChipSelector:
         # Sprint 51 - E03: NUNCA selecionar chips do tipo 'listener'
         # Chips listener são exclusivos para escuta de grupos (read-only)
         query = query.neq("tipo", "listener")
+        # Issue #88: Chips scraper são exclusivos para coleta (não enviam)
+        query = query.neq("tipo", "scraper")
 
         # Sprint 27: NÃO filtrar por evolution_connected na query
         # A verificação de conexão é feita no loop, pois depende do provider

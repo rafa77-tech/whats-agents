@@ -563,3 +563,61 @@ class TestOutcomeTracking:
             mock_sb.table("fila_mensagens").update.assert_called_with(
                 {"conversa_id": "conv-new-456"}
             )
+
+
+class TestTemporaryFailures:
+    """Issue #87: CIRCUIT_OPEN and RATE_LIMIT use reagendar_sem_penalidade."""
+
+    @pytest.mark.asyncio
+    async def test_circuit_open_reagenda_sem_penalidade(self, mensagem_campanha):
+        """FAILED_CIRCUIT_OPEN → reagendar_sem_penalidade, not marcar_erro."""
+        with patch("app.services.jobs.fila_mensagens.fila_service") as mock_fila, \
+             patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send, \
+             patch("app.services.jobs.fila_mensagens.criar_contexto_followup") as mock_ctx, \
+             patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa") as mock_conversa:
+
+            mock_result = MagicMock()
+            mock_result.blocked = False
+            mock_result.success = False
+            mock_result.outcome = SendOutcome.FAILED_CIRCUIT_OPEN
+            mock_result.outcome_reason_code = "circuit_open"
+            mock_result.error = "Circuit breaker open"
+            mock_send.return_value = mock_result
+
+            mock_ctx.return_value = {}
+            mock_fila.reagendar_sem_penalidade = AsyncMock(return_value=True)
+            mock_fila.registrar_outcome = AsyncMock()
+            mock_fila.marcar_erro = AsyncMock()
+
+            resultado = await _processar_mensagem(mensagem_campanha)
+
+            assert resultado == "erro"
+            mock_fila.reagendar_sem_penalidade.assert_called_once_with("msg-123")
+            mock_fila.marcar_erro.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_reagenda_sem_penalidade(self, mensagem_campanha):
+        """FAILED_RATE_LIMIT → reagendar_sem_penalidade, not marcar_erro."""
+        with patch("app.services.jobs.fila_mensagens.fila_service") as mock_fila, \
+             patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send, \
+             patch("app.services.jobs.fila_mensagens.criar_contexto_followup") as mock_ctx, \
+             patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa") as mock_conversa:
+
+            mock_result = MagicMock()
+            mock_result.blocked = False
+            mock_result.success = False
+            mock_result.outcome = SendOutcome.FAILED_RATE_LIMIT
+            mock_result.outcome_reason_code = "rate_limit"
+            mock_result.error = "Rate limit atingido"
+            mock_send.return_value = mock_result
+
+            mock_ctx.return_value = {}
+            mock_fila.reagendar_sem_penalidade = AsyncMock(return_value=True)
+            mock_fila.registrar_outcome = AsyncMock()
+            mock_fila.marcar_erro = AsyncMock()
+
+            resultado = await _processar_mensagem(mensagem_campanha)
+
+            assert resultado == "erro"
+            mock_fila.reagendar_sem_penalidade.assert_called_once_with("msg-123")
+            mock_fila.marcar_erro.assert_not_called()
