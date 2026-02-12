@@ -199,6 +199,7 @@ class TestProcessarMensagem:
 
             mock_ctx.return_value = {}
             mock_fila.marcar_enviada = AsyncMock(return_value=True)
+            mock_fila.registrar_outcome = AsyncMock()
             mock_interacao.return_value = None
 
             resultado = await _processar_mensagem(mensagem_campanha)
@@ -245,6 +246,7 @@ class TestProcessarMensagem:
 
             mock_ctx.return_value = {}
             mock_fila.marcar_erro = AsyncMock()
+            mock_fila.registrar_outcome = AsyncMock()
 
             resultado = await _processar_mensagem(mensagem_campanha)
 
@@ -265,6 +267,7 @@ class TestProcessarMensagem:
 
             mock_ctx.return_value = {}
             mock_fila.marcar_erro = AsyncMock()
+            mock_fila.registrar_outcome = AsyncMock()
 
             resultado = await _processar_mensagem(mensagem_campanha)
 
@@ -286,6 +289,7 @@ class TestProcessarMensagem:
 
             mock_ctx.return_value = {}
             mock_fila.marcar_erro = AsyncMock()
+            mock_fila.registrar_outcome = AsyncMock()
 
             resultado = await _processar_mensagem(mensagem_campanha)
 
@@ -309,6 +313,7 @@ class TestProcessarMensagem:
 
             mock_ctx.return_value = {}
             mock_fila.marcar_enviada = AsyncMock(return_value=True)
+            mock_fila.registrar_outcome = AsyncMock()
             mock_interacao.return_value = None
 
             resultado = await _processar_mensagem(mensagem_com_chips_excluidos)
@@ -327,7 +332,8 @@ class TestProcessarMensagem:
              patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send, \
              patch("app.services.jobs.fila_mensagens.criar_contexto_followup") as mock_ctx, \
              patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa") as mock_conversa, \
-             patch("app.services.jobs.fila_mensagens.salvar_interacao") as mock_interacao:
+             patch("app.services.jobs.fila_mensagens.salvar_interacao") as mock_interacao, \
+             patch("app.services.jobs.fila_mensagens.supabase"):
 
             mock_result = MagicMock()
             mock_result.blocked = False
@@ -338,6 +344,7 @@ class TestProcessarMensagem:
             mock_conversa.return_value = {"id": "conv-nova"}
             mock_ctx.return_value = {}
             mock_fila.marcar_enviada = AsyncMock(return_value=True)
+            mock_fila.registrar_outcome = AsyncMock()
             mock_interacao.return_value = None
 
             resultado = await _processar_mensagem(mensagem_campanha)
@@ -385,6 +392,7 @@ class TestIntegracaoComCampanhas:
 
             mock_ctx.return_value = {}
             mock_fila.marcar_enviada = AsyncMock(return_value=True)
+            mock_fila.registrar_outcome = AsyncMock()
             mock_interacao.return_value = None
 
             resultado = await _processar_mensagem(mensagem_campanha)
@@ -412,11 +420,13 @@ class TestNoCapacity:
             mock_result.blocked = False
             mock_result.success = False
             mock_result.outcome = SendOutcome.FAILED_NO_CAPACITY
+            mock_result.outcome_reason_code = "no_capacity"
             mock_result.error = "Sem chip disponível (todos no limite)"
             mock_send.return_value = mock_result
 
             mock_ctx.return_value = {}
             mock_fila.reagendar_sem_penalidade = AsyncMock(return_value=True)
+            mock_fila.registrar_outcome = AsyncMock()
             mock_fila.marcar_erro = AsyncMock()
 
             resultado = await _processar_mensagem(mensagem_campanha)
@@ -424,3 +434,132 @@ class TestNoCapacity:
             assert resultado == "erro"
             mock_fila.reagendar_sem_penalidade.assert_called_once_with("msg-123")
             mock_fila.marcar_erro.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_processar_mensagem_no_capacity_registra_outcome(self, mensagem_campanha):
+        """FAILED_NO_CAPACITY also calls registrar_outcome."""
+        with patch("app.services.jobs.fila_mensagens.fila_service") as mock_fila, \
+             patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send, \
+             patch("app.services.jobs.fila_mensagens.criar_contexto_campanha") as mock_ctx, \
+             patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa") as mock_conversa:
+
+            mock_result = MagicMock()
+            mock_result.blocked = False
+            mock_result.success = False
+            mock_result.outcome = SendOutcome.FAILED_NO_CAPACITY
+            mock_result.outcome_reason_code = "no_capacity"
+            mock_result.error = "Sem chip disponível"
+            mock_send.return_value = mock_result
+
+            mock_ctx.return_value = {}
+            mock_fila.reagendar_sem_penalidade = AsyncMock()
+            mock_fila.registrar_outcome = AsyncMock()
+
+            await _processar_mensagem(mensagem_campanha)
+
+            mock_fila.registrar_outcome.assert_called_once_with(
+                mensagem_id="msg-123",
+                outcome=SendOutcome.FAILED_NO_CAPACITY,
+                outcome_reason_code="no_capacity",
+            )
+
+
+class TestOutcomeTracking:
+    """Bug 2: Old worker must call registrar_outcome for all paths."""
+
+    @pytest.mark.asyncio
+    async def test_processar_mensagem_registra_outcome_sucesso(self, mensagem_campanha):
+        """Successful send calls registrar_outcome with SENT."""
+        with patch("app.services.jobs.fila_mensagens.fila_service") as mock_fila, \
+             patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send, \
+             patch("app.services.jobs.fila_mensagens.criar_contexto_followup") as mock_ctx, \
+             patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa") as mock_conversa, \
+             patch("app.services.jobs.fila_mensagens.salvar_interacao") as mock_interacao:
+
+            mock_result = MagicMock()
+            mock_result.blocked = False
+            mock_result.success = True
+            mock_result.outcome = SendOutcome.SENT
+            mock_result.outcome_reason_code = None
+            mock_result.provider_message_id = "evo-abc"
+            mock_result.chip_id = "chip-1"
+            mock_send.return_value = mock_result
+
+            mock_ctx.return_value = {}
+            mock_fila.marcar_enviada = AsyncMock()
+            mock_fila.registrar_outcome = AsyncMock()
+            mock_interacao.return_value = None
+
+            resultado = await _processar_mensagem(mensagem_campanha)
+
+            assert resultado == "enviada"
+            mock_fila.registrar_outcome.assert_called_once_with(
+                mensagem_id="msg-123",
+                outcome=SendOutcome.SENT,
+                outcome_reason_code=None,
+                provider_message_id="evo-abc",
+            )
+
+    @pytest.mark.asyncio
+    async def test_processar_mensagem_registra_outcome_blocked(self, mensagem_campanha):
+        """Blocked send calls registrar_outcome with blocked outcome."""
+        with patch("app.services.jobs.fila_mensagens.fila_service") as mock_fila, \
+             patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send, \
+             patch("app.services.jobs.fila_mensagens.criar_contexto_followup") as mock_ctx, \
+             patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa") as mock_conversa:
+
+            mock_result = MagicMock()
+            mock_result.blocked = True
+            mock_result.block_reason = "opted_out"
+            mock_result.outcome = SendOutcome.BLOCKED_OPTED_OUT
+            mock_result.outcome_reason_code = "opted_out"
+            mock_send.return_value = mock_result
+
+            mock_ctx.return_value = {}
+            mock_fila.marcar_erro = AsyncMock()
+            mock_fila.registrar_outcome = AsyncMock()
+
+            resultado = await _processar_mensagem(mensagem_campanha)
+
+            assert resultado == "optout"
+            mock_fila.registrar_outcome.assert_called_once_with(
+                mensagem_id="msg-123",
+                outcome=SendOutcome.BLOCKED_OPTED_OUT,
+                outcome_reason_code="opted_out",
+            )
+
+    @pytest.mark.asyncio
+    async def test_processar_mensagem_atualiza_conversa_id(self, mensagem_campanha):
+        """When conversa_id is None, creates conversation and updates fila_mensagens."""
+        mensagem_campanha["conversa_id"] = None
+
+        with patch("app.services.jobs.fila_mensagens.fila_service") as mock_fila, \
+             patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send, \
+             patch("app.services.jobs.fila_mensagens.criar_contexto_followup") as mock_ctx, \
+             patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa") as mock_conversa, \
+             patch("app.services.jobs.fila_mensagens.salvar_interacao") as mock_interacao, \
+             patch("app.services.jobs.fila_mensagens.supabase") as mock_sb:
+
+            mock_result = MagicMock()
+            mock_result.blocked = False
+            mock_result.success = True
+            mock_result.outcome = SendOutcome.SENT
+            mock_result.outcome_reason_code = None
+            mock_result.provider_message_id = "evo-abc"
+            mock_result.chip_id = "chip-1"
+            mock_send.return_value = mock_result
+
+            mock_conversa.return_value = {"id": "conv-new-456"}
+            mock_ctx.return_value = {}
+            mock_fila.marcar_enviada = AsyncMock()
+            mock_fila.registrar_outcome = AsyncMock()
+            mock_interacao.return_value = None
+
+            resultado = await _processar_mensagem(mensagem_campanha)
+
+            assert resultado == "enviada"
+            # Verify supabase update was called to link conversa_id
+            mock_sb.table.assert_any_call("fila_mensagens")
+            mock_sb.table("fila_mensagens").update.assert_called_with(
+                {"conversa_id": "conv-new-456"}
+            )

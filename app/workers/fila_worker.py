@@ -174,22 +174,33 @@ async def processar_fila():
                 await _liberar_lock_idempotencia(mensagem["id"])
                 continue
 
-            # Criar contexto apropriado baseado no tipo e metadata
+            # Resolver conversa ANTES do contexto para garantir attribution
             metadata = mensagem.get("metadata", {})
             campaign_id = metadata.get("campanha_id")
+            conversa_id = mensagem.get("conversa_id")
 
+            if not conversa_id:
+                conversa = await buscar_ou_criar_conversa(cliente_id)
+                if conversa:
+                    conversa_id = conversa["id"]
+                    # Atualizar fila_mensagens com conversa_id resolvido
+                    supabase.table("fila_mensagens").update(
+                        {"conversa_id": conversa_id}
+                    ).eq("id", mensagem["id"]).execute()
+
+            # Criar contexto com conversa_id já resolvido
             if campaign_id:
                 # Envio de campanha
                 ctx = criar_contexto_campanha(
                     cliente_id=cliente_id,
                     campaign_id=campaign_id,
-                    conversation_id=mensagem.get("conversa_id"),
+                    conversation_id=conversa_id,
                 )
             else:
                 # Followup ou outro tipo
                 ctx = criar_contexto_followup(
                     cliente_id=cliente_id,
-                    conversation_id=mensagem.get("conversa_id"),
+                    conversation_id=conversa_id,
                 )
 
             # Enviar mensagem (inclui guardrails e deduplicacao)
@@ -213,19 +224,8 @@ async def processar_fila():
                     f"Mensagem enviada: {mensagem['id']} (provider_id={result.provider_message_id})"
                 )
 
-                # Criar/obter conversa e salvar interação
-                conversa_id = mensagem.get("conversa_id")
-                if not conversa_id:
-                    conversa = await buscar_ou_criar_conversa(cliente_id)
-                    if conversa:
-                        conversa_id = conversa["id"]
-                        # Atualizar fila_mensagens com conversa_id
-                        supabase.table("fila_mensagens").update({"conversa_id": conversa_id}).eq(
-                            "id", mensagem["id"]
-                        ).execute()
-
+                # Salvar interação (conversa_id já resolvido antes do envio)
                 if conversa_id:
-                    # Extrair chip_id do resultado se disponível
                     chip_id = getattr(result, "chip_id", None)
                     await salvar_interacao(
                         conversa_id=conversa_id,

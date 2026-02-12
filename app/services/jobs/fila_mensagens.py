@@ -93,6 +93,11 @@ async def _processar_mensagem(mensagem: dict) -> str:
     if not conversa_id:
         conversa = await buscar_ou_criar_conversa(cliente_id)
         conversa_id = conversa["id"] if conversa else None
+        # Atualizar fila_mensagens com conversa_id resolvido
+        if conversa_id:
+            supabase.table("fila_mensagens").update(
+                {"conversa_id": conversa_id}
+            ).eq("id", mensagem_id).execute()
 
     # Enviar mensagem com GUARDRAIL
     try:
@@ -119,20 +124,41 @@ async def _processar_mensagem(mensagem: dict) -> str:
         if result.blocked:
             logger.info(f"Mensagem {mensagem_id} bloqueada: {result.block_reason}")
             await fila_service.marcar_erro(mensagem_id, f"Guardrail: {result.block_reason}")
+            await fila_service.registrar_outcome(
+                mensagem_id=mensagem_id,
+                outcome=result.outcome,
+                outcome_reason_code=result.outcome_reason_code,
+            )
             return "optout" if result.block_reason == "opted_out" else "erro"
 
         # Sem capacidade: reagendar sem penalidade
         if result.outcome == SendOutcome.FAILED_NO_CAPACITY:
             logger.info(f"Mensagem {mensagem_id} sem capacidade, reagendando +5min")
             await fila_service.reagendar_sem_penalidade(mensagem_id)
+            await fila_service.registrar_outcome(
+                mensagem_id=mensagem_id,
+                outcome=result.outcome,
+                outcome_reason_code=result.outcome_reason_code,
+            )
             return "erro"
 
         if not result.success:
             logger.error(f"Erro ao enviar mensagem {mensagem_id}: {result.error}")
             await fila_service.marcar_erro(mensagem_id, result.error)
+            await fila_service.registrar_outcome(
+                mensagem_id=mensagem_id,
+                outcome=result.outcome,
+                outcome_reason_code=result.outcome_reason_code,
+            )
             return "erro"
 
         await fila_service.marcar_enviada(mensagem_id)
+        await fila_service.registrar_outcome(
+            mensagem_id=mensagem_id,
+            outcome=result.outcome,
+            outcome_reason_code=result.outcome_reason_code,
+            provider_message_id=result.provider_message_id,
+        )
 
         # Salvar interação
         if conversa_id:
