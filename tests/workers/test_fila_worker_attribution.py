@@ -228,3 +228,186 @@ class TestCampanhaCriaConversaAntesDoEnvio:
             campaign_id="20",
             conversation_id="conv-resolved",
         )
+
+
+class TestTemporaryFailureHandling:
+    """Issue #87: Temporary failures → reagendar_sem_penalidade in fila_worker."""
+
+    @pytest.mark.asyncio
+    async def test_circuit_open_reagenda_sem_penalidade(self):
+        """FAILED_CIRCUIT_OPEN → reagendar_sem_penalidade, not marcar_erro."""
+        mensagem = _make_mensagem(conversa_id="conv-1")
+        result = _make_result(outcome=SendOutcome.FAILED_CIRCUIT_OPEN)
+        result.success = False
+        result.provider_message_id = None
+
+        with patch(f"{_MOD}.fila_service") as mock_fila, \
+             patch(f"{_MOD}.send_outbound_message", new_callable=AsyncMock, return_value=result), \
+             patch(f"{_MOD}.criar_contexto_campanha", return_value=MagicMock()), \
+             patch(f"{_MOD}.buscar_ou_criar_conversa", new_callable=AsyncMock), \
+             patch(f"{_MOD}.salvar_interacao", new_callable=AsyncMock), \
+             patch(f"{_MOD}.supabase"), \
+             patch(f"{_MOD}.pode_enviar", new_callable=AsyncMock, return_value=True), \
+             patch(f"{_MOD}.circuit_evolution") as mock_circuit, \
+             patch(f"{_MOD}.redis_client") as mock_redis, \
+             patch(f"{_MOD}._alertar_circuit_aberto", new_callable=AsyncMock) as mock_alert, \
+             patch(f"{_MOD}.asyncio") as mock_asyncio:
+
+            mock_circuit.estado = CircuitState.CLOSED
+            mock_redis.set = AsyncMock(return_value=True)
+            mock_redis.delete = AsyncMock()
+            mock_fila.obter_proxima = AsyncMock(return_value=mensagem)
+            mock_fila.registrar_outcome = AsyncMock()
+            mock_fila.reagendar_sem_penalidade = AsyncMock()
+            mock_fila.marcar_erro = AsyncMock()
+            mock_asyncio.sleep = AsyncMock(side_effect=_BreakLoop)
+
+            from app.workers.fila_worker import processar_fila
+
+            with pytest.raises(_BreakLoop):
+                await processar_fila()
+
+        mock_fila.reagendar_sem_penalidade.assert_called_once_with("msg-attr-001")
+        mock_fila.marcar_erro.assert_not_called()
+        mock_alert.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_reagenda_sem_penalidade(self):
+        """FAILED_RATE_LIMIT → reagendar_sem_penalidade."""
+        mensagem = _make_mensagem(conversa_id="conv-1")
+        result = _make_result(outcome=SendOutcome.FAILED_RATE_LIMIT)
+        result.success = False
+        result.provider_message_id = None
+
+        with patch(f"{_MOD}.fila_service") as mock_fila, \
+             patch(f"{_MOD}.send_outbound_message", new_callable=AsyncMock, return_value=result), \
+             patch(f"{_MOD}.criar_contexto_campanha", return_value=MagicMock()), \
+             patch(f"{_MOD}.buscar_ou_criar_conversa", new_callable=AsyncMock), \
+             patch(f"{_MOD}.salvar_interacao", new_callable=AsyncMock), \
+             patch(f"{_MOD}.supabase"), \
+             patch(f"{_MOD}.pode_enviar", new_callable=AsyncMock, return_value=True), \
+             patch(f"{_MOD}.circuit_evolution") as mock_circuit, \
+             patch(f"{_MOD}.redis_client") as mock_redis, \
+             patch(f"{_MOD}.asyncio") as mock_asyncio:
+
+            mock_circuit.estado = CircuitState.CLOSED
+            mock_redis.set = AsyncMock(return_value=True)
+            mock_redis.delete = AsyncMock()
+            mock_fila.obter_proxima = AsyncMock(return_value=mensagem)
+            mock_fila.registrar_outcome = AsyncMock()
+            mock_fila.reagendar_sem_penalidade = AsyncMock()
+            mock_fila.marcar_erro = AsyncMock()
+            mock_asyncio.sleep = AsyncMock(side_effect=_BreakLoop)
+
+            from app.workers.fila_worker import processar_fila
+
+            with pytest.raises(_BreakLoop):
+                await processar_fila()
+
+        mock_fila.reagendar_sem_penalidade.assert_called_once_with("msg-attr-001")
+        mock_fila.marcar_erro.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_no_capacity_reagenda_sem_penalidade(self):
+        """FAILED_NO_CAPACITY → reagendar_sem_penalidade."""
+        mensagem = _make_mensagem(conversa_id="conv-1")
+        result = _make_result(outcome=SendOutcome.FAILED_NO_CAPACITY)
+        result.success = False
+        result.provider_message_id = None
+
+        with patch(f"{_MOD}.fila_service") as mock_fila, \
+             patch(f"{_MOD}.send_outbound_message", new_callable=AsyncMock, return_value=result), \
+             patch(f"{_MOD}.criar_contexto_campanha", return_value=MagicMock()), \
+             patch(f"{_MOD}.buscar_ou_criar_conversa", new_callable=AsyncMock), \
+             patch(f"{_MOD}.salvar_interacao", new_callable=AsyncMock), \
+             patch(f"{_MOD}.supabase"), \
+             patch(f"{_MOD}.pode_enviar", new_callable=AsyncMock, return_value=True), \
+             patch(f"{_MOD}.circuit_evolution") as mock_circuit, \
+             patch(f"{_MOD}.redis_client") as mock_redis, \
+             patch(f"{_MOD}.asyncio") as mock_asyncio:
+
+            mock_circuit.estado = CircuitState.CLOSED
+            mock_redis.set = AsyncMock(return_value=True)
+            mock_redis.delete = AsyncMock()
+            mock_fila.obter_proxima = AsyncMock(return_value=mensagem)
+            mock_fila.registrar_outcome = AsyncMock()
+            mock_fila.reagendar_sem_penalidade = AsyncMock()
+            mock_fila.marcar_erro = AsyncMock()
+            mock_asyncio.sleep = AsyncMock(side_effect=_BreakLoop)
+
+            from app.workers.fila_worker import processar_fila
+
+            with pytest.raises(_BreakLoop):
+                await processar_fila()
+
+        mock_fila.reagendar_sem_penalidade.assert_called_once_with("msg-attr-001")
+        mock_fila.marcar_erro.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_real_failure_calls_marcar_erro(self):
+        """FAILED_PROVIDER → marcar_erro (not reagendar)."""
+        mensagem = _make_mensagem(conversa_id="conv-1")
+        result = _make_result(outcome=SendOutcome.FAILED_PROVIDER)
+        result.success = False
+        result.error = "Provider timeout"
+        result.provider_message_id = None
+
+        with patch(f"{_MOD}.fila_service") as mock_fila, \
+             patch(f"{_MOD}.send_outbound_message", new_callable=AsyncMock, return_value=result), \
+             patch(f"{_MOD}.criar_contexto_campanha", return_value=MagicMock()), \
+             patch(f"{_MOD}.buscar_ou_criar_conversa", new_callable=AsyncMock), \
+             patch(f"{_MOD}.salvar_interacao", new_callable=AsyncMock), \
+             patch(f"{_MOD}.supabase"), \
+             patch(f"{_MOD}.pode_enviar", new_callable=AsyncMock, return_value=True), \
+             patch(f"{_MOD}.circuit_evolution") as mock_circuit, \
+             patch(f"{_MOD}.redis_client") as mock_redis, \
+             patch(f"{_MOD}.asyncio") as mock_asyncio:
+
+            mock_circuit.estado = CircuitState.CLOSED
+            mock_redis.set = AsyncMock(return_value=True)
+            mock_redis.delete = AsyncMock()
+            mock_fila.obter_proxima = AsyncMock(return_value=mensagem)
+            mock_fila.registrar_outcome = AsyncMock()
+            mock_fila.reagendar_sem_penalidade = AsyncMock()
+            mock_fila.marcar_erro = AsyncMock()
+            mock_asyncio.sleep = AsyncMock(side_effect=_BreakLoop)
+
+            from app.workers.fila_worker import processar_fila
+
+            with pytest.raises(_BreakLoop):
+                await processar_fila()
+
+        mock_fila.marcar_erro.assert_called_once()
+        mock_fila.reagendar_sem_penalidade.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_pre_send_rate_limit_usa_reagendar(self):
+        """Pre-send rate limit check → reagendar_sem_penalidade (not marcar_erro)."""
+        mensagem = _make_mensagem(conversa_id="conv-1")
+
+        with patch(f"{_MOD}.fila_service") as mock_fila, \
+             patch(f"{_MOD}.pode_enviar", new_callable=AsyncMock, return_value=False), \
+             patch(f"{_MOD}.circuit_evolution") as mock_circuit, \
+             patch(f"{_MOD}.redis_client") as mock_redis, \
+             patch(f"{_MOD}.asyncio") as mock_asyncio:
+
+            mock_circuit.estado = CircuitState.CLOSED
+            mock_redis.set = AsyncMock(return_value=True)
+            mock_redis.delete = AsyncMock()
+            # Return message once, then None so loop exits on 2nd iteration
+            mock_fila.obter_proxima = AsyncMock(side_effect=[mensagem, None])
+            mock_fila.reagendar_sem_penalidade = AsyncMock()
+            mock_fila.marcar_erro = AsyncMock()
+            # break_after=3: 1st sleep (rate-limit delay at line 158),
+            # 2nd sleep (empty queue wait at line 142), 3rd breaks
+            mock_asyncio.sleep = AsyncMock(
+                side_effect=_sleep_side_effect_factory(break_after=3)
+            )
+
+            from app.workers.fila_worker import processar_fila
+
+            with pytest.raises(_BreakLoop):
+                await processar_fila()
+
+        mock_fila.reagendar_sem_penalidade.assert_called_once_with("msg-attr-001")
+        mock_fila.marcar_erro.assert_not_called()

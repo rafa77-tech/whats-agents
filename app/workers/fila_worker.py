@@ -151,8 +151,8 @@ async def processar_fila():
             # Verificar rate limiting
             cliente_id = mensagem.get("cliente_id")
             if cliente_id and not await pode_enviar(cliente_id):
-                # Reagendar para depois
-                await fila_service.marcar_erro(mensagem["id"], "Rate limit atingido")
+                # Issue #87: Rate limit é temporário, reagendar sem penalidade
+                await fila_service.reagendar_sem_penalidade(mensagem["id"])
                 # Sprint 44 T03.4: Liberar lock antes de continue
                 await _liberar_lock_idempotencia(mensagem["id"])
                 await asyncio.sleep(10)
@@ -243,13 +243,25 @@ async def processar_fila():
                 )
             elif result.outcome.is_deduped:
                 logger.info(f"Mensagem {mensagem['id']} deduplicada: {result.outcome_reason_code}")
-            elif result.outcome == SendOutcome.FAILED_CIRCUIT_OPEN:
-                # Sprint 36 - T01.3: Alertar quando circuit abre
-                logger.warning(f"Mensagem {mensagem['id']} falhou por circuit open")
-                await _alertar_circuit_aberto()
+            elif result.outcome in (
+                SendOutcome.FAILED_CIRCUIT_OPEN,
+                SendOutcome.FAILED_RATE_LIMIT,
+                SendOutcome.FAILED_NO_CAPACITY,
+            ):
+                # Issue #87: Falhas temporárias → reagendar sem penalidade
+                logger.warning(
+                    f"Mensagem {mensagem['id']} temporária: {result.outcome.value}, reagendando"
+                )
+                if result.outcome == SendOutcome.FAILED_CIRCUIT_OPEN:
+                    await _alertar_circuit_aberto()
+                await fila_service.reagendar_sem_penalidade(mensagem["id"])
             else:
                 logger.warning(
                     f"Mensagem {mensagem['id']} falhou: {result.outcome.value} - {result.error}"
+                )
+                await fila_service.marcar_erro(
+                    mensagem["id"],
+                    f"{result.outcome.value}: {result.error or 'unknown'}",
                 )
 
             # Sprint 44 T03.4: Liberar lock após processamento
