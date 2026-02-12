@@ -52,7 +52,7 @@ class MockIntersectionObserver implements IntersectionObserver {
   readonly thresholds: ReadonlyArray<number> = []
   constructor(
     public callback: IntersectionObserverCallback,
-    public options?: IntersectionObserverInit,
+    public options?: IntersectionObserverInit
   ) {}
   observe = vi.fn()
   unobserve = vi.fn()
