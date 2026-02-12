@@ -240,6 +240,7 @@ class TestSendOutboundMessageTryFinally:
         )
 
     @pytest.mark.asyncio
+    @patch("app.services.outbound._is_multi_chip_enabled")
     @patch("app.services.outbound._verificar_dev_allowlist")
     @patch("app.services.outbound._finalizar_envio")
     @patch("app.services.outbound.verificar_e_reservar")
@@ -254,9 +255,11 @@ class TestSendOutboundMessageTryFinally:
         mock_dedupe,
         mock_finalizar,
         mock_dev_allowlist,
+        mock_multi_chip,
         ctx,
     ):
         """Envio bem-sucedido deve chamar _finalizar_envio."""
+        mock_multi_chip.return_value = False
         mock_dev_allowlist.return_value = (True, None)  # Bypass DEV guardrail
         mock_dedupe.return_value = (True, "key-123", None)
         mock_guardrails.return_value = MagicMock(is_blocked=False, human_bypass=False)
@@ -350,6 +353,7 @@ class TestSendOutboundMessageTryFinally:
         assert result.outcome.is_blocked
 
     @pytest.mark.asyncio
+    @patch("app.services.outbound._is_multi_chip_enabled")
     @patch("app.services.outbound._verificar_dev_allowlist")
     @patch("app.services.outbound._finalizar_envio")
     @patch("app.services.outbound.verificar_e_reservar")
@@ -364,9 +368,11 @@ class TestSendOutboundMessageTryFinally:
         mock_dedupe,
         mock_finalizar,
         mock_dev_allowlist,
+        mock_multi_chip,
         ctx,
     ):
         """_finalizar_envio deve receber outcome correto."""
+        mock_multi_chip.return_value = False
         mock_dev_allowlist.return_value = (True, None)  # Bypass DEV guardrail
         mock_dedupe.return_value = (True, "key-123", None)
         mock_guardrails.return_value = MagicMock(is_blocked=False, human_bypass=False)
@@ -425,6 +431,7 @@ class TestDevAllowlistGuardrail:
         assert result.blocked is True
 
     @pytest.mark.asyncio
+    @patch("app.services.outbound._is_multi_chip_enabled")
     @patch("app.services.outbound._verificar_dev_allowlist")
     @patch("app.services.outbound.verificar_e_reservar")
     @patch("app.services.outbound.check_outbound_guardrails")
@@ -437,9 +444,11 @@ class TestDevAllowlistGuardrail:
         mock_guardrails,
         mock_dedupe,
         mock_dev_allowlist,
+        mock_multi_chip,
         ctx,
     ):
         """Número na allowlist deve passar em DEV."""
+        mock_multi_chip.return_value = False
         mock_dev_allowlist.return_value = (True, None)  # Simula número na allowlist
         mock_dedupe.return_value = (True, "key-123", None)
         mock_guardrails.return_value = MagicMock(is_blocked=False, human_bypass=False)
@@ -452,6 +461,7 @@ class TestDevAllowlistGuardrail:
         assert result.blocked is False
 
     @pytest.mark.asyncio
+    @patch("app.services.outbound._is_multi_chip_enabled")
     @patch("app.services.outbound.settings")
     @patch("app.services.outbound.verificar_e_reservar")
     @patch("app.services.outbound.check_outbound_guardrails")
@@ -464,9 +474,11 @@ class TestDevAllowlistGuardrail:
         mock_guardrails,
         mock_dedupe,
         mock_settings,
+        mock_multi_chip,
         ctx,
     ):
         """Em produção, DEV allowlist não é verificada."""
+        mock_multi_chip.return_value = False
         mock_settings.is_production = True
         mock_settings.APP_ENV = "production"
         mock_settings.outbound_allowlist_numbers = set()  # Vazio, mas não importa em PROD

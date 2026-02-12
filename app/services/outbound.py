@@ -559,6 +559,20 @@ async def send_outbound_message(
                     else:
                         # Erro no multi-chip, propagar
                         raise Exception(multi_result.get("error", "Erro no multi-chip"))
+                else:
+                    # Sem chip disponível → retornar NO_CAPACITY sem fallback
+                    await marcar_falha(dedupe_key, "no_capacity")
+                    result = OutboundResult(
+                        success=False,
+                        outcome=SendOutcome.FAILED_NO_CAPACITY,
+                        outcome_reason_code="no_capacity:chips_no_limite",
+                        outcome_at=now,
+                        blocked=False,
+                        deduped=False,
+                        dedupe_key=dedupe_key,
+                        error="Sem chip disponível (todos no limite)",
+                    )
+                    used_multi_chip = True  # Impede fallback para Evolution
 
             except Exception as e:
                 logger.warning(
@@ -583,33 +597,35 @@ async def send_outbound_message(
                     verificar_rate_limit=ctx.is_proactive,
                 )
 
-        # Marcar dedupe como enviado com sucesso
-        await marcar_enviado(dedupe_key)
+        # Se result já foi setado (ex: no_capacity), pular caminho de sucesso
+        if result is None:
+            # Marcar dedupe como enviado com sucesso
+            await marcar_enviado(dedupe_key)
 
-        # Extrair provider_message_id da resposta
-        chip_id = None
-        if response and isinstance(response, dict):
-            # Evolution API retorna key.id como message id
-            key = response.get("key", {})
-            provider_message_id = key.get("id") if isinstance(key, dict) else None
-            # Sprint 41: Extrair chip_id se disponível (multi-chip)
-            chip_id = response.get("chip_id")
+            # Extrair provider_message_id da resposta
+            chip_id = None
+            if response and isinstance(response, dict):
+                # Evolution API retorna key.id como message id
+                key = response.get("key", {})
+                provider_message_id = key.get("id") if isinstance(key, dict) else None
+                # Sprint 41: Extrair chip_id se disponível (multi-chip)
+                chip_id = response.get("chip_id")
 
-        result = OutboundResult(
-            success=True,
-            outcome=SendOutcome.BYPASS if guardrail_result.human_bypass else SendOutcome.SENT,
-            outcome_reason_code="ok"
-            if not guardrail_result.human_bypass
-            else guardrail_result.reason_code,
-            outcome_at=now,
-            blocked=False,
-            deduped=False,
-            human_bypass=guardrail_result.human_bypass,
-            provider_message_id=provider_message_id,
-            dedupe_key=dedupe_key,
-            evolution_response=response,
-            chip_id=chip_id,  # Sprint 41
-        )
+            result = OutboundResult(
+                success=True,
+                outcome=SendOutcome.BYPASS if guardrail_result.human_bypass else SendOutcome.SENT,
+                outcome_reason_code="ok"
+                if not guardrail_result.human_bypass
+                else guardrail_result.reason_code,
+                outcome_at=now,
+                blocked=False,
+                deduped=False,
+                human_bypass=guardrail_result.human_bypass,
+                provider_message_id=provider_message_id,
+                dedupe_key=dedupe_key,
+                evolution_response=response,
+                chip_id=chip_id,  # Sprint 41
+            )
 
     except RateLimitError as e:
         logger.warning(f"Rate limit ao enviar para {telefone[:8]}...: {e}")

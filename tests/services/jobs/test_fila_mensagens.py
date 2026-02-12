@@ -14,6 +14,7 @@ from app.services.jobs.fila_mensagens import (
     _processar_mensagem,
     StatsFilaMensagens,
 )
+from app.services.guardrails.types import SendOutcome
 
 
 @pytest.fixture
@@ -394,3 +395,32 @@ class TestIntegracaoComCampanhas:
             assert call_kwargs.get("chip_id") == "chip-julia-1"
             assert call_kwargs.get("tipo") == "saida"
             assert call_kwargs.get("autor_tipo") == "julia"
+
+
+class TestNoCapacity:
+    """Testes de reagendamento sem penalidade para FAILED_NO_CAPACITY."""
+
+    @pytest.mark.asyncio
+    async def test_processar_mensagem_no_capacity_reagenda_sem_penalidade(self, mensagem_campanha):
+        """Quando outbound retorna FAILED_NO_CAPACITY, reagenda sem incrementar tentativas."""
+        with patch("app.services.jobs.fila_mensagens.fila_service") as mock_fila, \
+             patch("app.services.jobs.fila_mensagens.send_outbound_message") as mock_send, \
+             patch("app.services.jobs.fila_mensagens.criar_contexto_campanha") as mock_ctx, \
+             patch("app.services.jobs.fila_mensagens.buscar_ou_criar_conversa") as mock_conversa:
+
+            mock_result = MagicMock()
+            mock_result.blocked = False
+            mock_result.success = False
+            mock_result.outcome = SendOutcome.FAILED_NO_CAPACITY
+            mock_result.error = "Sem chip disponível (todos no limite)"
+            mock_send.return_value = mock_result
+
+            mock_ctx.return_value = {}
+            mock_fila.reagendar_sem_penalidade = AsyncMock(return_value=True)
+            mock_fila.marcar_erro = AsyncMock()
+
+            resultado = await _processar_mensagem(mensagem_campanha)
+
+            assert resultado == "erro"
+            mock_fila.reagendar_sem_penalidade.assert_called_once_with("msg-123")
+            mock_fila.marcar_erro.assert_not_called()

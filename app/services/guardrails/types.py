@@ -51,6 +51,7 @@ class SendOutcome(str, Enum):
     FAILED_BANNED = "FAILED_BANNED"  # Número banido/bloqueado pelo WhatsApp
     FAILED_RATE_LIMIT = "FAILED_RATE_LIMIT"
     FAILED_CIRCUIT_OPEN = "FAILED_CIRCUIT_OPEN"
+    FAILED_NO_CAPACITY = "FAILED_NO_CAPACITY"  # Sem chip disponível (temporário)
 
     # Override manual
     BYPASS = "BYPASS"
@@ -74,6 +75,11 @@ class SendOutcome(str, Enum):
     def is_failed(self) -> bool:
         """Retorna True se houve erro tecnico."""
         return self.value.startswith("FAILED_")
+
+    @property
+    def is_no_capacity(self) -> bool:
+        """Retorna True se falhou por falta de capacidade temporária."""
+        return self == SendOutcome.FAILED_NO_CAPACITY
 
 
 # Mapeamento de reason_code do guardrail para SendOutcome

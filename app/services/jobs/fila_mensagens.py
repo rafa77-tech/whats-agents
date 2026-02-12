@@ -11,6 +11,7 @@ from app.services.supabase import supabase
 from app.services.fila import fila_service
 from app.services.interacao import salvar_interacao
 from app.services.outbound import send_outbound_message, criar_contexto_followup, criar_contexto_campanha
+from app.services.guardrails.types import SendOutcome
 from app.services.conversa import buscar_ou_criar_conversa
 
 logger = logging.getLogger(__name__)
@@ -119,6 +120,12 @@ async def _processar_mensagem(mensagem: dict) -> str:
             logger.info(f"Mensagem {mensagem_id} bloqueada: {result.block_reason}")
             await fila_service.marcar_erro(mensagem_id, f"Guardrail: {result.block_reason}")
             return "optout" if result.block_reason == "opted_out" else "erro"
+
+        # Sem capacidade: reagendar sem penalidade
+        if result.outcome == SendOutcome.FAILED_NO_CAPACITY:
+            logger.info(f"Mensagem {mensagem_id} sem capacidade, reagendando +5min")
+            await fila_service.reagendar_sem_penalidade(mensagem_id)
+            return "erro"
 
         if not result.success:
             logger.error(f"Erro ao enviar mensagem {mensagem_id}: {result.error}")

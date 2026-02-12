@@ -90,6 +90,7 @@ class TestSendOutcomeEnum:
             "FAILED_VALIDATION",
             "FAILED_RATE_LIMIT",
             "FAILED_CIRCUIT_OPEN",
+            "FAILED_NO_CAPACITY",
             "FAILED_BANNED",
             "BYPASS",
         }
