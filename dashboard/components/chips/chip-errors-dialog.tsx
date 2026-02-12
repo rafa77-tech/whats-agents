@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -45,7 +45,7 @@ export function ChipErrorsDialog({
   const [isClearing, setIsClearing] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
-  const fetchErrors = () => {
+  const fetchErrors = useCallback(() => {
     setIsLoading(true)
     setFetchError(null)
 
@@ -62,13 +62,13 @@ export function ChipErrorsDialog({
       .finally(() => {
         setIsLoading(false)
       })
-  }
+  }, [chipId])
 
   useEffect(() => {
     if (open && chipId) {
       fetchErrors()
     }
-  }, [open, chipId])
+  }, [open, chipId, fetchErrors])
 
   const handleClearErrors = async () => {
     setIsClearing(true)
