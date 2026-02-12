@@ -43,7 +43,7 @@ describe('POST /api/sistema/features/[feature]', () => {
   beforeEach(() => {
     vi.resetModules()
     mockFetch = vi.fn()
-    global.fetch = mockFetch
+    global.fetch = mockFetch as unknown as typeof fetch
 
     // Reset mocks
     mockGetUser.mockReset()

@@ -49,7 +49,7 @@ describe('POST /api/ajuda/[id]/responder', () => {
   beforeEach(() => {
     vi.resetModules()
     mockFetch = vi.fn()
-    global.fetch = mockFetch
+    global.fetch = mockFetch as unknown as typeof fetch
 
     // Reset mocks
     mockGetUser.mockReset()
