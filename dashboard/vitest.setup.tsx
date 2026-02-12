@@ -45,23 +45,30 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// Mock IntersectionObserver
-const mockIntersectionObserver = vi.fn()
-mockIntersectionObserver.mockReturnValue({
-  observe: () => null,
-  unobserve: () => null,
-  disconnect: () => null,
-})
-window.IntersectionObserver = mockIntersectionObserver
+// Mock IntersectionObserver (must be a proper class for `new IntersectionObserver()`)
+class MockIntersectionObserver implements IntersectionObserver {
+  readonly root: Element | null = null
+  readonly rootMargin: string = ''
+  readonly thresholds: ReadonlyArray<number> = []
+  constructor(
+    public callback: IntersectionObserverCallback,
+    public options?: IntersectionObserverInit,
+  ) {}
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+  takeRecords = vi.fn().mockReturnValue([])
+}
+window.IntersectionObserver = MockIntersectionObserver
 
-// Mock ResizeObserver
-const mockResizeObserver = vi.fn()
-mockResizeObserver.mockReturnValue({
-  observe: () => null,
-  unobserve: () => null,
-  disconnect: () => null,
-})
-window.ResizeObserver = mockResizeObserver
+// Mock ResizeObserver (must be a proper class for `new ResizeObserver()`)
+class MockResizeObserver {
+  constructor(_callback: ResizeObserverCallback) {}
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+}
+window.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
 
 // Suppress console errors during tests (optional)
 // vi.spyOn(console, 'error').mockImplementation(() => {})
