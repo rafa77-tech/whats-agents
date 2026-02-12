@@ -205,6 +205,11 @@ class InstanceManager:
                 pairing_code = data.get("pairingCode")
                 state = data.get("state", "close")
 
+                # Normalizar base64: remover prefixo data URI se presente
+                if qr_code and qr_code.startswith("data:"):
+                    # Ex: "data:image/png;base64,iVBOR..." → "iVBOR..."
+                    qr_code = qr_code.split(",", 1)[-1]
+
                 return QRCodeResult(
                     success=True,
                     qr_code=qr_code,
