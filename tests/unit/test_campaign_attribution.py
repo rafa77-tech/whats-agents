@@ -241,11 +241,11 @@ class TestInvarianteC2:
         # Este teste valida a integracao em outbound.py
         # O mock verifica que registrar_campaign_touch e chamado
 
-        with patch("app.services.outbound.evolution") as mock_evolution, \
-             patch("app.services.outbound.verificar_e_reservar", new_callable=AsyncMock) as mock_dedupe, \
-             patch("app.services.outbound.check_outbound_guardrails", new_callable=AsyncMock) as mock_guardrails, \
-             patch("app.services.outbound.marcar_enviado", new_callable=AsyncMock) as mock_marcar, \
-             patch("app.services.outbound._verificar_dev_allowlist", return_value=(True, None)) as mock_dev, \
+        with patch("app.services.outbound.sender.evolution") as mock_evolution, \
+             patch("app.services.outbound.sender.verificar_e_reservar", new_callable=AsyncMock) as mock_dedupe, \
+             patch("app.services.outbound.sender.check_outbound_guardrails", new_callable=AsyncMock) as mock_guardrails, \
+             patch("app.services.outbound.sender.marcar_enviado", new_callable=AsyncMock) as mock_marcar, \
+             patch("app.services.outbound.sender._verificar_dev_allowlist", return_value=(True, None)) as mock_dev, \
              patch("app.services.campaign_attribution.supabase") as mock_supabase, \
              patch("app.services.campaign_attribution.emit_event", new_callable=AsyncMock) as mock_emit:
 

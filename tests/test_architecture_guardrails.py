@@ -4,7 +4,7 @@ Testes de arquitetura para garantir soberania dos guardrails.
 Sprint 18.1 P0: Bloqueia imports diretos da Evolution API fora de outbound.py
 
 Estes testes garantem que TODAS as mensagens outbound passam pelo wrapper
-send_outbound_message em app/services/outbound.py.
+send_outbound_message em app/services/outbound/.
 """
 import os
 import re
@@ -17,13 +17,14 @@ import pytest
 
 # Arquivos permitidos a importar diretamente da Evolution
 ALLOWED_EVOLUTION_IMPORTERS = {
-    "app/services/outbound.py",  # Wrapper oficial
+    "app/services/outbound/",  # Wrapper oficial (Sprint 58: file→package)
     "app/services/whatsapp/__init__.py",  # Re-export
     "app/services/whatsapp/evolution.py",  # Implementação
     "app/services/whatsapp.py",  # Implementação legada
     # Monitoramento e health (não enviam mensagens)
     "app/services/monitor_whatsapp.py",  # Monitoramento de conexão
     "app/api/routes/health.py",  # Health check
+    "app/services/health/",  # Sprint 58: Health service checks (read-only, não envio)
     "app/api/routes/debug_whatsapp.py",  # Endpoint de debug/teste
     # Pipeline pre-processors (apenas mostrar_online, não envio)
     "app/pipeline/pre_processors.py",
@@ -31,7 +32,7 @@ ALLOWED_EVOLUTION_IMPORTERS = {
     # Grupos (ingestão, não envio outbound)
     "app/services/grupos/ingestor.py",
     # Agente (fallback legado com warning - TODO: remover)
-    "app/services/agente.py",
+    "app/services/agente/",  # Sprint 58: file→package
     # Validação de telefone (apenas check_number_status, não envio)
     "app/services/validacao_telefone.py",
     # Testes podem importar para mocking
@@ -153,33 +154,31 @@ class TestGuardrailArchitecture:
             pytest.fail("\n".join(messages))
 
     def test_outbound_wrapper_exists(self):
-        """Verifica que o wrapper outbound.py existe e tem as funções corretas."""
-        outbound_path = Path(__file__).parent.parent / "app/services/outbound.py"
-        assert outbound_path.exists(), "app/services/outbound.py não encontrado!"
+        """Verifica que o wrapper outbound existe e tem as funções corretas."""
+        outbound_dir = Path(__file__).parent.parent / "app/services/outbound"
+        assert outbound_dir.is_dir(), "app/services/outbound/ não encontrado!"
 
-        content = outbound_path.read_text()
+        sender = (outbound_dir / "sender.py").read_text()
+        assert "async def send_outbound_message" in sender, \
+            "send_outbound_message não encontrado em outbound/sender.py"
 
-        # Verificar função principal
-        assert "async def send_outbound_message" in content, \
-            "send_outbound_message não encontrado em outbound.py"
-
-        # Verificar helpers de contexto
-        assert "def criar_contexto_reply" in content, \
-            "criar_contexto_reply não encontrado em outbound.py"
-        assert "def criar_contexto_campanha" in content, \
-            "criar_contexto_campanha não encontrado em outbound.py"
-        assert "def criar_contexto_followup" in content, \
-            "criar_contexto_followup não encontrado em outbound.py"
+        factories = (outbound_dir / "context_factories.py").read_text()
+        assert "def criar_contexto_reply" in factories, \
+            "criar_contexto_reply não encontrado em outbound/context_factories.py"
+        assert "def criar_contexto_campanha" in factories, \
+            "criar_contexto_campanha não encontrado em outbound/context_factories.py"
+        assert "def criar_contexto_followup" in factories, \
+            "criar_contexto_followup não encontrado em outbound/context_factories.py"
 
     def test_outbound_uses_guardrails(self):
-        """Verifica que outbound.py usa o módulo de guardrails."""
-        outbound_path = Path(__file__).parent.parent / "app/services/outbound.py"
-        content = outbound_path.read_text()
+        """Verifica que outbound usa o módulo de guardrails."""
+        outbound_dir = Path(__file__).parent.parent / "app/services/outbound"
+        sender = (outbound_dir / "sender.py").read_text()
 
-        assert "from app.services.guardrails import" in content, \
-            "outbound.py deve importar de guardrails"
-        assert "check_outbound_guardrails" in content, \
-            "outbound.py deve chamar check_outbound_guardrails"
+        assert "from app.services.guardrails import" in sender, \
+            "outbound/sender.py deve importar de guardrails"
+        assert "check_outbound_guardrails" in sender, \
+            "outbound/sender.py deve chamar check_outbound_guardrails"
 
     def test_guardrails_module_exists(self):
         """Verifica que o módulo de guardrails existe."""

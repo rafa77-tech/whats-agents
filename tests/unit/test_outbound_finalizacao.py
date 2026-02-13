@@ -100,7 +100,7 @@ class TestFinalizarEnvio:
         )
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._atualizar_last_touch")
+    @patch("app.services.outbound.finalization._atualizar_last_touch")
     @patch("app.services.campaign_attribution.registrar_campaign_touch")
     @patch("app.services.campaign_cooldown.registrar_envio_campanha")
     async def test_sent_atualiza_last_touch(
@@ -127,7 +127,7 @@ class TestFinalizarEnvio:
         assert call_args["campaign_id"] == "456"
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._atualizar_last_touch")
+    @patch("app.services.outbound.finalization._atualizar_last_touch")
     @patch("app.services.campaign_attribution.registrar_campaign_touch")
     @patch("app.services.campaign_cooldown.registrar_envio_campanha")
     async def test_bypass_atualiza_last_touch(
@@ -150,7 +150,7 @@ class TestFinalizarEnvio:
         mock_last_touch.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._atualizar_last_touch")
+    @patch("app.services.outbound.finalization._atualizar_last_touch")
     async def test_blocked_nao_atualiza(self, mock_last_touch, ctx_campanha):
         """BLOCKED não deve atualizar last_touch_*."""
         await _finalizar_envio(
@@ -161,7 +161,7 @@ class TestFinalizarEnvio:
         mock_last_touch.assert_not_called()
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._atualizar_last_touch")
+    @patch("app.services.outbound.finalization._atualizar_last_touch")
     async def test_deduped_nao_atualiza(self, mock_last_touch, ctx_campanha):
         """DEDUPED não deve atualizar last_touch_*."""
         await _finalizar_envio(
@@ -172,7 +172,7 @@ class TestFinalizarEnvio:
         mock_last_touch.assert_not_called()
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._atualizar_last_touch")
+    @patch("app.services.outbound.finalization._atualizar_last_touch")
     async def test_failed_nao_atualiza(self, mock_last_touch, ctx_campanha):
         """FAILED não deve atualizar last_touch_*."""
         await _finalizar_envio(
@@ -183,7 +183,7 @@ class TestFinalizarEnvio:
         mock_last_touch.assert_not_called()
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._atualizar_last_touch")
+    @patch("app.services.outbound.finalization._atualizar_last_touch")
     @patch("app.services.campaign_attribution.registrar_campaign_touch")
     @patch("app.services.campaign_cooldown.registrar_envio_campanha")
     async def test_sent_com_campanha_registra_attribution(
@@ -209,7 +209,7 @@ class TestFinalizarEnvio:
         assert call_args["cliente_id"] == "uuid-123"
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._atualizar_last_touch")
+    @patch("app.services.outbound.finalization._atualizar_last_touch")
     async def test_followup_nao_registra_cooldown(self, mock_last_touch, ctx_followup):
         """Followup não tem campaign_id, não registra cooldown."""
         mock_last_touch.return_value = None
@@ -240,13 +240,13 @@ class TestSendOutboundMessageTryFinally:
         )
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._is_multi_chip_enabled")
-    @patch("app.services.outbound._verificar_dev_allowlist")
-    @patch("app.services.outbound._finalizar_envio")
-    @patch("app.services.outbound.verificar_e_reservar")
-    @patch("app.services.outbound.check_outbound_guardrails")
-    @patch("app.services.outbound.evolution")
-    @patch("app.services.outbound.marcar_enviado")
+    @patch("app.services.outbound.sender._is_multi_chip_enabled")
+    @patch("app.services.outbound.sender._verificar_dev_allowlist")
+    @patch("app.services.outbound.sender._finalizar_envio")
+    @patch("app.services.outbound.sender.verificar_e_reservar")
+    @patch("app.services.outbound.sender.check_outbound_guardrails")
+    @patch("app.services.outbound.sender.evolution")
+    @patch("app.services.outbound.sender.marcar_enviado")
     async def test_sucesso_chama_finalizacao(
         self,
         mock_marcar,
@@ -273,13 +273,13 @@ class TestSendOutboundMessageTryFinally:
         assert result.outcome == SendOutcome.SENT
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._is_multi_chip_enabled")
-    @patch("app.services.outbound._verificar_dev_allowlist")
-    @patch("app.services.outbound._finalizar_envio")
-    @patch("app.services.outbound.verificar_e_reservar")
-    @patch("app.services.outbound.check_outbound_guardrails")
-    @patch("app.services.outbound.evolution")
-    @patch("app.services.outbound.marcar_falha")
+    @patch("app.services.outbound.sender._is_multi_chip_enabled")
+    @patch("app.services.outbound.sender._verificar_dev_allowlist")
+    @patch("app.services.outbound.sender._finalizar_envio")
+    @patch("app.services.outbound.sender.verificar_e_reservar")
+    @patch("app.services.outbound.sender.check_outbound_guardrails")
+    @patch("app.services.outbound.sender.evolution")
+    @patch("app.services.outbound.sender.marcar_falha")
     async def test_falha_provider_chama_finalizacao(
         self,
         mock_marcar_falha,
@@ -306,9 +306,9 @@ class TestSendOutboundMessageTryFinally:
         assert result.outcome == SendOutcome.FAILED_PROVIDER
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._verificar_dev_allowlist")
-    @patch("app.services.outbound._finalizar_envio")
-    @patch("app.services.outbound.verificar_e_reservar")
+    @patch("app.services.outbound.sender._verificar_dev_allowlist")
+    @patch("app.services.outbound.sender._finalizar_envio")
+    @patch("app.services.outbound.sender.verificar_e_reservar")
     async def test_dedupe_nao_chama_finalizacao(
         self,
         mock_dedupe,
@@ -326,10 +326,10 @@ class TestSendOutboundMessageTryFinally:
         assert result.outcome == SendOutcome.DEDUPED
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._verificar_dev_allowlist")
-    @patch("app.services.outbound._finalizar_envio")
-    @patch("app.services.outbound.verificar_e_reservar")
-    @patch("app.services.outbound.check_outbound_guardrails")
+    @patch("app.services.outbound.sender._verificar_dev_allowlist")
+    @patch("app.services.outbound.sender._finalizar_envio")
+    @patch("app.services.outbound.sender.verificar_e_reservar")
+    @patch("app.services.outbound.sender.check_outbound_guardrails")
     async def test_guardrail_block_nao_chama_finalizacao(
         self,
         mock_guardrails,
@@ -353,13 +353,13 @@ class TestSendOutboundMessageTryFinally:
         assert result.outcome.is_blocked
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._is_multi_chip_enabled")
-    @patch("app.services.outbound._verificar_dev_allowlist")
-    @patch("app.services.outbound._finalizar_envio")
-    @patch("app.services.outbound.verificar_e_reservar")
-    @patch("app.services.outbound.check_outbound_guardrails")
-    @patch("app.services.outbound.evolution")
-    @patch("app.services.outbound.marcar_enviado")
+    @patch("app.services.outbound.sender._is_multi_chip_enabled")
+    @patch("app.services.outbound.sender._verificar_dev_allowlist")
+    @patch("app.services.outbound.sender._finalizar_envio")
+    @patch("app.services.outbound.sender.verificar_e_reservar")
+    @patch("app.services.outbound.sender.check_outbound_guardrails")
+    @patch("app.services.outbound.sender.evolution")
+    @patch("app.services.outbound.sender.marcar_enviado")
     async def test_finalizacao_recebe_outcome_correto(
         self,
         mock_marcar,
@@ -414,16 +414,19 @@ class TestDevAllowlistGuardrail:
         assert "dev_allowlist" in result.outcome_reason_code
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound.settings")
+    @patch("app.services.outbound.dev_guardrails.settings")
+    @patch("app.services.outbound.sender.settings")
     async def test_dev_allowlist_blocks_number_not_in_list(
         self,
+        mock_sender_settings,
         mock_settings,
         ctx,
     ):
-        """Número fora da allowlist deve ser bloqueado em DEV."""
+        """Numero fora da allowlist deve ser bloqueado em DEV."""
         mock_settings.is_production = False
         mock_settings.APP_ENV = "dev"
         mock_settings.outbound_allowlist_numbers = {"5511888888888"}
+        mock_sender_settings.APP_ENV = "dev"
 
         result = await send_outbound_message("5511999999999", "Oi", ctx)
 
@@ -431,12 +434,12 @@ class TestDevAllowlistGuardrail:
         assert result.blocked is True
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._is_multi_chip_enabled")
-    @patch("app.services.outbound._verificar_dev_allowlist")
-    @patch("app.services.outbound.verificar_e_reservar")
-    @patch("app.services.outbound.check_outbound_guardrails")
-    @patch("app.services.outbound.evolution")
-    @patch("app.services.outbound.marcar_enviado")
+    @patch("app.services.outbound.sender._is_multi_chip_enabled")
+    @patch("app.services.outbound.sender._verificar_dev_allowlist")
+    @patch("app.services.outbound.sender.verificar_e_reservar")
+    @patch("app.services.outbound.sender.check_outbound_guardrails")
+    @patch("app.services.outbound.sender.evolution")
+    @patch("app.services.outbound.sender.marcar_enviado")
     async def test_dev_allowlist_allows_number_in_list(
         self,
         mock_marcar,
@@ -461,27 +464,30 @@ class TestDevAllowlistGuardrail:
         assert result.blocked is False
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._is_multi_chip_enabled")
-    @patch("app.services.outbound.settings")
-    @patch("app.services.outbound.verificar_e_reservar")
-    @patch("app.services.outbound.check_outbound_guardrails")
-    @patch("app.services.outbound.evolution")
-    @patch("app.services.outbound.marcar_enviado")
+    @patch("app.services.outbound.sender._is_multi_chip_enabled")
+    @patch("app.services.outbound.dev_guardrails.settings")
+    @patch("app.services.outbound.sender.settings")
+    @patch("app.services.outbound.sender.verificar_e_reservar")
+    @patch("app.services.outbound.sender.check_outbound_guardrails")
+    @patch("app.services.outbound.sender.evolution")
+    @patch("app.services.outbound.sender.marcar_enviado")
     async def test_production_bypasses_dev_allowlist(
         self,
         mock_marcar,
         mock_evolution,
         mock_guardrails,
         mock_dedupe,
+        mock_sender_settings,
         mock_settings,
         mock_multi_chip,
         ctx,
     ):
-        """Em produção, DEV allowlist não é verificada."""
+        """Em producao, DEV allowlist nao e verificada."""
         mock_multi_chip.return_value = False
         mock_settings.is_production = True
         mock_settings.APP_ENV = "production"
-        mock_settings.outbound_allowlist_numbers = set()  # Vazio, mas não importa em PROD
+        mock_settings.outbound_allowlist_numbers = set()
+        mock_sender_settings.APP_ENV = "production"
         mock_dedupe.return_value = (True, "key-123", None)
         mock_guardrails.return_value = MagicMock(is_blocked=False, human_bypass=False)
         mock_evolution.enviar_mensagem = AsyncMock(return_value={"key": {"id": "msg-1"}})

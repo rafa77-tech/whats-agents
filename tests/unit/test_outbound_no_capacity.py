@@ -35,14 +35,14 @@ class TestMultiChipNoCapacity:
     """Testes de no-capacity quando multi-chip está habilitado."""
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._finalizar_envio", new_callable=AsyncMock)
-    @patch("app.services.outbound.marcar_falha", new_callable=AsyncMock)
-    @patch("app.services.outbound.marcar_enviado", new_callable=AsyncMock)
-    @patch("app.services.outbound.verificar_e_reservar", new_callable=AsyncMock)
-    @patch("app.services.outbound.check_outbound_guardrails")
-    @patch("app.services.outbound._verificar_dev_allowlist")
-    @patch("app.services.outbound._enviar_via_multi_chip", new_callable=AsyncMock)
-    @patch("app.services.outbound._is_multi_chip_enabled")
+    @patch("app.services.outbound.sender._finalizar_envio", new_callable=AsyncMock)
+    @patch("app.services.outbound.sender.marcar_falha", new_callable=AsyncMock)
+    @patch("app.services.outbound.sender.marcar_enviado", new_callable=AsyncMock)
+    @patch("app.services.outbound.sender.verificar_e_reservar", new_callable=AsyncMock)
+    @patch("app.services.outbound.sender.check_outbound_guardrails")
+    @patch("app.services.outbound.sender._verificar_dev_allowlist")
+    @patch("app.services.outbound.sender._enviar_via_multi_chip", new_callable=AsyncMock)
+    @patch("app.services.outbound.sender._is_multi_chip_enabled")
     async def test_multi_chip_no_capacity_nao_faz_fallback_evolution(
         self,
         mock_multi_enabled,
@@ -80,14 +80,14 @@ class TestMultiChipNoCapacity:
         mock_marcar_falha.assert_called_once_with("dedupe-key-123", "no_capacity")
 
     @pytest.mark.asyncio
-    @patch("app.services.outbound._finalizar_envio", new_callable=AsyncMock)
-    @patch("app.services.outbound.marcar_falha", new_callable=AsyncMock)
-    @patch("app.services.outbound.marcar_enviado", new_callable=AsyncMock)
-    @patch("app.services.outbound.verificar_e_reservar", new_callable=AsyncMock)
-    @patch("app.services.outbound.check_outbound_guardrails")
-    @patch("app.services.outbound._verificar_dev_allowlist")
-    @patch("app.services.outbound.evolution")
-    @patch("app.services.outbound._is_multi_chip_enabled")
+    @patch("app.services.outbound.sender._finalizar_envio", new_callable=AsyncMock)
+    @patch("app.services.outbound.sender.marcar_falha", new_callable=AsyncMock)
+    @patch("app.services.outbound.sender.marcar_enviado", new_callable=AsyncMock)
+    @patch("app.services.outbound.sender.verificar_e_reservar", new_callable=AsyncMock)
+    @patch("app.services.outbound.sender.check_outbound_guardrails")
+    @patch("app.services.outbound.sender._verificar_dev_allowlist")
+    @patch("app.services.outbound.sender.evolution")
+    @patch("app.services.outbound.sender._is_multi_chip_enabled")
     async def test_multi_chip_desabilitado_faz_fallback_normal(
         self,
         mock_multi_enabled,
