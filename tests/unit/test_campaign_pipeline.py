@@ -447,6 +447,7 @@ class TestFilaMensagensCampanhaContext:
 
             mock_ctx_camp.return_value = MagicMock()
             mock_fila.marcar_enviada = AsyncMock(return_value=True)
+            mock_fila.registrar_outcome = AsyncMock()
             mock_interacao.return_value = None
 
             resultado = await _processar_mensagem(mensagem_com_campanha)
@@ -480,6 +481,7 @@ class TestFilaMensagensCampanhaContext:
 
             mock_ctx_follow.return_value = MagicMock()
             mock_fila.marcar_enviada = AsyncMock(return_value=True)
+            mock_fila.registrar_outcome = AsyncMock()
             mock_interacao.return_value = None
 
             resultado = await _processar_mensagem(mensagem_sem_campanha)
