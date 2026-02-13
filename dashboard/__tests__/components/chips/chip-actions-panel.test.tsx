@@ -314,7 +314,9 @@ describe('ChipActionsPanel', () => {
       await userEvent.click(screen.getByText('Gerar QR Code'))
 
       await waitFor(() => {
-        expect(screen.getByAltText('QR Code WhatsApp')).toBeInTheDocument()
+        // QRCodeSVG renders an <svg>, not <img>, so check for the SVG element
+        const svg = document.querySelector('svg')
+        expect(svg).toBeInTheDocument()
         expect(screen.getByText('1234-5678')).toBeInTheDocument()
       })
     })
