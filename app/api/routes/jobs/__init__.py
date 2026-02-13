@@ -16,6 +16,7 @@ from .reconciliation import router as reconciliation_router
 from .monitoring import router as monitoring_router
 from .gatilhos import router as gatilhos_router
 from .chips_ops import router as chips_ops_router
+from .warming import router as warming_router
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 router.include_router(core_router)
@@ -27,3 +28,4 @@ router.include_router(reconciliation_router)
 router.include_router(monitoring_router)
 router.include_router(gatilhos_router)
 router.include_router(chips_ops_router)
+router.include_router(warming_router)

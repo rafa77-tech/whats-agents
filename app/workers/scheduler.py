@@ -270,6 +270,12 @@ JOBS = [
         "endpoint": "/jobs/sincronizar-chips",
         "schedule": "*/5 * * * *",  # A cada 5 minutos
     },
+    # Ciclo de Warming de Chips (Sprint 60 - Issue #98)
+    {
+        "name": "ciclo_warming",
+        "endpoint": "/jobs/ciclo-warming",
+        "schedule": "*/5 8-20 * * 1-5",  # A cada 5 min, 8h-20h, seg-sex
+    },
     # Atualização de Trust Score (Sprint 36)
     # CRÍTICO: Descoberto que job nunca existiu - scores eram fixos!
     {

@@ -181,7 +181,7 @@ class WarmingOrchestrator:
         supabase.table("chips").update(
             {
                 "fase_warmup": FaseWarmup.SETUP.value,
-                "warmup_iniciado_em": agora_brasilia().isoformat(),
+                "warming_started_at": agora_brasilia().isoformat(),
             }
         ).eq("id", chip_id).execute()
 
