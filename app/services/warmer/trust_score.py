@@ -262,20 +262,21 @@ async def calcular_trust_score(chip_id: str) -> dict:
     created_at = datetime.fromisoformat(chip["created_at"].replace("Z", "+00:00"))
     idade_dias = (datetime.now(created_at.tzinfo) - created_at).days
 
-    # Montar fatores
+    # Montar fatores (chip.get retorna None se a key existe com valor NULL,
+    # por isso usamos "v if v is not None else default" em vez de .get default)
     factors = TrustFactors(
         idade_dias=idade_dias,
-        taxa_resposta=float(chip.get("taxa_resposta", 0)),
-        taxa_delivery=float(chip.get("taxa_delivery", 1)),
-        taxa_block=float(chip.get("taxa_block", 0)),
-        diversidade_midia=len(chip.get("tipos_midia_usados", [])),
-        erros_24h=chip.get("erros_ultimas_24h", 0),
-        conversas_bidirecionais=chip.get("conversas_bidirecionais", 0),
-        dias_sem_erro=chip.get("dias_sem_erro", 0),
-        fase_warmup=chip.get("fase_warmup", "repouso"),
-        msgs_enviadas_total=chip.get("msgs_enviadas_total", 0),
-        msgs_recebidas_total=chip.get("msgs_recebidas_total", 0),
-        grupos_count=chip.get("grupos_count", 0),
+        taxa_resposta=float(chip["taxa_resposta"]) if chip.get("taxa_resposta") is not None else 0.0,
+        taxa_delivery=float(chip["taxa_delivery"]) if chip.get("taxa_delivery") is not None else 1.0,
+        taxa_block=float(chip["taxa_block"]) if chip.get("taxa_block") is not None else 0.0,
+        diversidade_midia=len(chip.get("tipos_midia_usados") or []),
+        erros_24h=chip.get("erros_ultimas_24h") or 0,
+        conversas_bidirecionais=chip.get("conversas_bidirecionais") or 0,
+        dias_sem_erro=chip.get("dias_sem_erro") or 0,
+        fase_warmup=chip.get("fase_warmup") or "repouso",
+        msgs_enviadas_total=chip.get("msgs_enviadas_total") or 0,
+        msgs_recebidas_total=chip.get("msgs_recebidas_total") or 0,
+        grupos_count=chip.get("grupos_count") or 0,
     )
 
     # Calcular score e nivel
