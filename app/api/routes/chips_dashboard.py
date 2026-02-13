@@ -815,10 +815,11 @@ async def check_chip_connection(chip_id: str):
     state = estado.get("state") or estado.get("instance", {}).get("state", "unknown")
 
     # Atualizar status do chip se necessario
-    if is_connected and chip["status"] == "pending":
+    if is_connected and chip["status"] in ("pending", "provisioned", "paused"):
         supabase.table("chips").update(
             {
                 "status": "warming",
+                "fase_warmup": "primeiros_contatos",
                 "evolution_connected": True,
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
@@ -1008,6 +1009,9 @@ async def create_instance(request: CreateInstanceRequest):
         "success": True,
         "instance_name": result.instance_name,
         "chip_id": result.chip_id,
+        "qr_code": result.qr_code,
+        "qr_raw_code": result.qr_raw_code,
+        "pairing_code": result.pairing_code,
     }
 
 
@@ -1025,6 +1029,7 @@ async def get_instance_qr_code(instance_name: str):
 
     return {
         "qr_code": result.qr_code,
+        "code": result.code,
         "state": result.state,
         "pairing_code": result.pairing_code,
     }
@@ -1045,6 +1050,24 @@ async def get_instance_connection_state(instance_name: str):
     return {
         "state": result.state,
         "connected": result.connected,
+    }
+
+
+@router.post("/instances/{instance_name}/disconnect")
+async def disconnect_instance(instance_name: str):
+    """
+    Desconecta (logout) uma instancia WhatsApp sem deletar.
+
+    Faz logout na Evolution API e atualiza status do chip para offline.
+    """
+    result = await instance_manager.desconectar_instancia(instance_name)
+
+    if not result.success:
+        raise HTTPException(500, result.error or "Falha ao desconectar instancia")
+
+    return {
+        "success": True,
+        "message": f"Instancia {instance_name} desconectada com sucesso",
     }
 
 

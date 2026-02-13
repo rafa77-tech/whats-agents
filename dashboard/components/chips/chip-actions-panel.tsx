@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { QRCodeSVG } from 'qrcode.react'
 import { chipsApi } from '@/lib/api/chips'
 import { ChipFullDetail } from '@/types/chips'
 import {
@@ -41,6 +42,8 @@ import {
   CheckCircle2,
   RefreshCw,
   Wifi,
+  Unplug,
+  Trash2,
 } from 'lucide-react'
 
 interface ChipActionsPanelProps {
@@ -110,6 +113,7 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
   // QR Code state
   const [showQRCode, setShowQRCode] = useState(false)
   const [qrCodeData, setQRCodeData] = useState<string | null>(null)
+  const [qrRawCode, setQrRawCode] = useState<string | null>(null)
   const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [connectionState, setConnectionState] = useState<string>('close')
   const [isLoadingQR, setIsLoadingQR] = useState(false)
@@ -118,6 +122,12 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
   // Connection check state
   const [isCheckingConnection, setIsCheckingConnection] = useState(false)
   const [connectionResult, setConnectionResult] = useState<string | null>(null)
+
+  // Disconnect / Delete state
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDisconnecting, setIsDisconnecting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Fetch QR code
   const fetchQRCode = useCallback(async () => {
@@ -132,6 +142,7 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
     try {
       const result = await chipsApi.getInstanceQRCode(chip.instanceName)
       setQRCodeData(result.qrCode)
+      setQrRawCode(result.code)
       setPairingCode(result.pairingCode || null)
       setConnectionState(result.state)
 
@@ -147,21 +158,37 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
     }
   }, [chip.instanceName, onActionComplete])
 
-  // Auto-refresh QR code when dialog is open
+  // Poll connection state (lightweight, doesn't regenerate QR)
+  const pollConnectionState = useCallback(async () => {
+    if (!chip.instanceName) return
+
+    try {
+      const result = await chipsApi.getInstanceConnectionState(chip.instanceName)
+
+      if (result.connected) {
+        setConnectionState('open')
+        onActionComplete()
+      }
+    } catch (err) {
+      console.error('Error polling connection state:', err)
+    }
+  }, [chip.instanceName, onActionComplete])
+
+  // Fetch QR code once, then poll connection state only
   useEffect(() => {
     if (!showQRCode) return
 
     fetchQRCode()
 
-    // Refresh every 10 seconds while dialog is open
+    // Poll connection state every 5s (doesn't regenerate QR)
     const interval = setInterval(() => {
       if (connectionState !== 'open') {
-        fetchQRCode()
+        pollConnectionState()
       }
-    }, 10000)
+    }, 5000)
 
     return () => clearInterval(interval)
-  }, [showQRCode, connectionState, fetchQRCode])
+  }, [showQRCode, connectionState, fetchQRCode, pollConnectionState])
 
   const handleAction = async (action: Exclude<ActionType, 'qrcode'>) => {
     setIsProcessing(true)
@@ -205,6 +232,7 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
   const handleOpenQRCode = () => {
     setShowQRCode(true)
     setQRCodeData(null)
+    setQrRawCode(null)
     setConnectionState('close')
     setQrError(null)
   }
@@ -235,13 +263,56 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
     }
   }
 
+  const handleDisconnect = async () => {
+    if (!chip.instanceName) return
+    setIsDisconnecting(true)
+    setError(null)
+
+    try {
+      await chipsApi.disconnectInstance(chip.instanceName)
+      onActionComplete()
+    } catch (err) {
+      console.error('Disconnect failed:', err)
+      setError('Erro ao desconectar instância')
+    } finally {
+      setIsDisconnecting(false)
+      setShowDisconnectConfirm(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!chip.instanceName) return
+    setIsDeleting(true)
+    setError(null)
+
+    try {
+      await chipsApi.deleteInstance(chip.instanceName)
+      onActionComplete()
+    } catch (err) {
+      console.error('Delete failed:', err)
+      setError('Erro ao deletar instância')
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
+  // Show disconnect for connected chips (not paused/banned/cancelled)
+  const canDisconnect =
+    chip.instanceName &&
+    ['active', 'warming', 'ready', 'pending', 'provisioned', 'degraded'].includes(chip.status)
+
+  // Show delete for any chip with instance
+  const canDelete = chip.instanceName && !['cancelled'].includes(chip.status)
+
   const availableActions = (Object.keys(actionsConfig) as Exclude<ActionType, 'qrcode'>[]).filter(
     (action) => actionsConfig[action].condition(chip)
   )
 
-  // Show QR Code button for pending/offline chips
+  // Show QR Code button for any chip with instance that might need reconnection
+  // Excludes banned/cancelled (terminal) and active (already working)
   const canShowQRCode =
-    chip.instanceName && ['pending', 'offline', 'provisioned'].includes(chip.status)
+    chip.instanceName && !['banned', 'cancelled', 'active'].includes(chip.status)
 
   const config = confirmAction && confirmAction !== 'qrcode' ? actionsConfig[confirmAction] : null
 
@@ -261,8 +332,9 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
             </div>
           )}
 
-          {/* Check Connection button - for pending chips */}
-          {chip.instanceName && chip.status === 'pending' && (
+          {/* Check Connection button - for chips awaiting connection */}
+          {chip.instanceName &&
+            ['pending', 'provisioned', 'paused'].includes(chip.status) && (
             <Button
               variant="default"
               className="w-full justify-start"
@@ -329,6 +401,32 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
                 </Button>
               )
             })
+          )}
+
+          {/* Disconnect button */}
+          {canDisconnect && (
+            <Button
+              variant="outline"
+              className="w-full justify-start text-status-warning-foreground hover:bg-status-warning/10"
+              onClick={() => setShowDisconnectConfirm(true)}
+              disabled={isProcessing || isDisconnecting}
+            >
+              <Unplug className="mr-2 h-4 w-4" />
+              Desconectar Instância
+            </Button>
+          )}
+
+          {/* Delete button */}
+          {canDelete && (
+            <Button
+              variant="outline"
+              className="w-full justify-start text-status-error-foreground hover:bg-status-error/10"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isProcessing || isDeleting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Deletar Instância
+            </Button>
           )}
 
           {/* Status info for banned chips */}
@@ -443,6 +541,68 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Disconnect Confirmation Dialog */}
+      <AlertDialog open={showDisconnectConfirm} onOpenChange={setShowDisconnectConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desconectar Instância</AlertDialogTitle>
+            <AlertDialogDescription>
+              A instância <span className="font-medium">{chip.instanceName}</span> será
+              desconectada do WhatsApp. O chip ficará offline e precisará escanear o QR Code
+              novamente para reconectar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDisconnecting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDisconnect} disabled={isDisconnecting}>
+              {isDisconnecting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Desconectando...
+                </>
+              ) : (
+                'Desconectar'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-status-error-foreground">
+              Deletar Instância
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-semibold text-status-error-foreground">
+                Esta ação é irreversível.
+              </span>{' '}
+              A instância <span className="font-medium">{chip.instanceName}</span> será removida
+              permanentemente da Evolution API e o chip será marcado como cancelado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-status-error-solid hover:bg-status-error-solid/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deletando...
+                </>
+              ) : (
+                'Deletar Permanentemente'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* QR Code Dialog */}
       <Dialog open={showQRCode} onOpenChange={setShowQRCode}>
         <DialogContent className="sm:max-w-md">
@@ -481,18 +641,22 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
               </div>
             )}
 
-            {qrCodeData && connectionState !== 'open' && (
+            {(qrRawCode || qrCodeData) && connectionState !== 'open' && (
               <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={
-                    qrCodeData.startsWith('data:')
-                      ? qrCodeData
-                      : `data:image/png;base64,${qrCodeData}`
-                  }
-                  alt="QR Code WhatsApp"
-                  className="h-64 w-64 rounded-lg border"
-                />
+                {qrRawCode ? (
+                  <QRCodeSVG value={qrRawCode} size={256} level="M" />
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={
+                      qrCodeData!.startsWith('data:')
+                        ? qrCodeData!
+                        : `data:image/png;base64,${qrCodeData}`
+                    }
+                    alt="QR Code WhatsApp"
+                    className="h-64 w-64 rounded-lg border"
+                  />
+                )}
                 {pairingCode && (
                   <div className="rounded-md bg-muted px-4 py-2 text-center">
                     <p className="text-xs text-muted-foreground">Código de pareamento</p>
@@ -500,7 +664,7 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
                   </div>
                 )}
                 <p className="text-center text-xs text-muted-foreground">
-                  O QR Code será atualizado automaticamente a cada 10 segundos.
+                  Escaneie o QR Code. Se expirar, clique em &quot;Novo QR Code&quot;.
                 </p>
               </>
             )}
@@ -531,7 +695,7 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
                 ) : (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Atualizar
+                    Novo QR Code
                   </>
                 )}
               </Button>

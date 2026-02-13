@@ -315,6 +315,24 @@ export async function getInstanceConnectionState(
   )
 }
 
+export async function disconnectInstance(
+  instanceName: string
+): Promise<{ success: boolean; message: string }> {
+  return fetchApi<{ success: boolean; message: string }>(
+    `/api/dashboard/chips/instances/${encodeURIComponent(instanceName)}/disconnect`,
+    { method: 'POST' }
+  )
+}
+
+export async function deleteInstance(
+  instanceName: string
+): Promise<{ success: boolean; message: string }> {
+  return fetchApi<{ success: boolean; message: string }>(
+    `/api/dashboard/chips/instances/${encodeURIComponent(instanceName)}/delete`,
+    { method: 'DELETE' }
+  )
+}
+
 export interface CheckConnectionResponse {
   success: boolean
   chip_id: string
@@ -370,6 +388,8 @@ export const chipsApi = {
   createInstance,
   getInstanceQRCode,
   getInstanceConnectionState,
+  disconnectInstance,
+  deleteInstance,
   // Connection Check (Sprint 41)
   checkChipConnection,
 }

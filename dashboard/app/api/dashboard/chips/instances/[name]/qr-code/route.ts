@@ -14,6 +14,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 interface QRCodeResponse {
   qr_code: string | null
+  code: string | null
   state: string
   pairing_code: string | null
 }
@@ -49,6 +50,7 @@ export async function GET(
 
     return NextResponse.json({
       qrCode: data.qr_code,
+      code: data.code,
       state: data.state,
       pairingCode: data.pairing_code,
     })

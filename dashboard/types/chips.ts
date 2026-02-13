@@ -352,10 +352,14 @@ export interface CreateInstanceResponse {
   success: boolean
   instanceName: string
   chipId: string
+  qrCode: string | null
+  code: string | null
+  pairingCode: string | null
 }
 
 export interface QRCodeResponse {
   qrCode: string | null
+  code: string | null
   state: 'open' | 'close' | 'connecting'
   pairingCode?: string | null
 }

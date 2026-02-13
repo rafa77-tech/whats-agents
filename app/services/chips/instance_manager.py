@@ -25,6 +25,9 @@ class CreateInstanceResult:
     success: bool
     instance_name: Optional[str] = None
     chip_id: Optional[str] = None
+    qr_code: Optional[str] = None
+    qr_raw_code: Optional[str] = None
+    pairing_code: Optional[str] = None
     error: Optional[str] = None
 
 
@@ -34,6 +37,7 @@ class QRCodeResult:
 
     success: bool
     qr_code: Optional[str] = None
+    code: Optional[str] = None
     state: str = "close"
     pairing_code: Optional[str] = None
     error: Optional[str] = None
@@ -46,6 +50,14 @@ class ConnectionStateResult:
     success: bool
     state: str = "close"
     connected: bool = False
+    error: Optional[str] = None
+
+
+@dataclass
+class DisconnectInstanceResult:
+    """Resultado da desconexao de instancia."""
+
+    success: bool
     error: Optional[str] = None
 
 
@@ -134,34 +146,77 @@ class InstanceManager:
                 data = response.json()
                 logger.info(f"[InstanceManager] Instancia criada: {data}")
 
-                # Registrar chip no banco de dados
-                chip_data = {
-                    "telefone": telefone,
-                    "instance_name": instance_name,
-                    "status": "provisioned",
-                    "tipo": "julia",
-                    "trust_score": 50,  # Score inicial
-                    "trust_level": "amarelo",
-                    "fase_warmup": "setup",
-                }
+                # Extrair QR code da resposta do create
+                # A Evolution API retorna qrcode.code e qrcode.base64 quando qrcode=True
+                qr_data = data.get("qrcode", {}) or {}
+                qr_code = qr_data.get("base64")
+                qr_raw_code = qr_data.get("code")
+                pairing_code = qr_data.get("pairingCode") or data.get("pairingCode")
 
-                result = supabase.table("chips").insert(chip_data).execute()
+                # Normalizar base64
+                if qr_code and qr_code.startswith("data:"):
+                    qr_code = qr_code.split(",", 1)[-1]
 
-                if not result.data:
-                    logger.error("[InstanceManager] Falha ao inserir chip no banco")
-                    return CreateInstanceResult(
-                        success=False,
-                        instance_name=instance_name,
-                        error="Falha ao registrar chip no banco",
-                    )
+                logger.info(
+                    f"[InstanceManager] QR code extraido do create: "
+                    f"has_code={bool(qr_raw_code)}, has_base64={bool(qr_code)}"
+                )
 
-                chip_id = result.data[0]["id"]
-                logger.info(f"[InstanceManager] Chip registrado: {chip_id}")
+                # Verificar se ja existe chip cancelado com mesmo telefone
+                existing = (
+                    supabase.table("chips")
+                    .select("id")
+                    .eq("telefone", telefone)
+                    .eq("status", "cancelled")
+                    .limit(1)
+                    .execute()
+                )
+
+                if existing.data:
+                    # Reusar chip existente
+                    chip_id = existing.data[0]["id"]
+                    supabase.table("chips").update(
+                        {
+                            "instance_name": instance_name,
+                            "status": "provisioned",
+                            "trust_score": 50,
+                            "trust_level": "amarelo",
+                            "fase_warmup": "setup",
+                        }
+                    ).eq("id", chip_id).execute()
+                    logger.info(f"[InstanceManager] Chip reativado: {chip_id}")
+                else:
+                    # Registrar novo chip no banco de dados
+                    chip_data = {
+                        "telefone": telefone,
+                        "instance_name": instance_name,
+                        "status": "provisioned",
+                        "tipo": "julia",
+                        "trust_score": 50,
+                        "trust_level": "amarelo",
+                        "fase_warmup": "setup",
+                    }
+
+                    result = supabase.table("chips").insert(chip_data).execute()
+
+                    if not result.data:
+                        logger.error("[InstanceManager] Falha ao inserir chip no banco")
+                        return CreateInstanceResult(
+                            success=False,
+                            instance_name=instance_name,
+                            error="Falha ao registrar chip no banco",
+                        )
+
+                    chip_id = result.data[0]["id"]
+                    logger.info(f"[InstanceManager] Chip registrado: {chip_id}")
 
                 return CreateInstanceResult(
                     success=True,
                     instance_name=instance_name,
                     chip_id=chip_id,
+                    qr_code=qr_code,
+                    qr_raw_code=qr_raw_code,
+                    pairing_code=pairing_code,
                 )
 
         except httpx.TimeoutException:
@@ -200,19 +255,24 @@ class InstanceManager:
 
                 data = response.json()
 
-                # Extrair QR code da resposta
+                # Extrair dados da resposta
                 qr_code = data.get("base64") or data.get("qrcode", {}).get("base64")
+                code = data.get("code") or data.get("qrcode", {}).get("code")
                 pairing_code = data.get("pairingCode")
                 state = data.get("state", "close")
 
                 # Normalizar base64: remover prefixo data URI se presente
                 if qr_code and qr_code.startswith("data:"):
-                    # Ex: "data:image/png;base64,iVBOR..." → "iVBOR..."
                     qr_code = qr_code.split(",", 1)[-1]
+
+                # Se conectou, atualizar chip automaticamente
+                if state == "open":
+                    await self._atualizar_chip_conectado(instance_name)
 
                 return QRCodeResult(
                     success=True,
                     qr_code=qr_code,
+                    code=code,
                     state=state,
                     pairing_code=pairing_code,
                 )
@@ -276,19 +336,69 @@ class InstanceManager:
             return ConnectionStateResult(success=False, error=error_msg)
 
     async def _atualizar_chip_conectado(self, instance_name: str) -> None:
-        """Atualiza status do chip quando conectado."""
+        """Atualiza status do chip quando conectado (apenas se ainda nao ativo)."""
         try:
             supabase.table("chips").update(
                 {
                     "status": "warming",
                     "fase_warmup": "primeiros_contatos",
                 }
-            ).eq("instance_name", instance_name).execute()
+            ).eq("instance_name", instance_name).in_(
+                "status", ["provisioned", "pending", "paused"]
+            ).execute()
 
             logger.info(f"[InstanceManager] Chip {instance_name} atualizado para warming")
 
         except Exception as e:
             logger.error(f"[InstanceManager] Erro ao atualizar chip: {e}")
+
+    async def desconectar_instancia(self, instance_name: str) -> DisconnectInstanceResult:
+        """
+        Desconecta (logout) uma instancia WhatsApp sem deletar.
+
+        Args:
+            instance_name: Nome da instancia
+
+        Returns:
+            DisconnectInstanceResult com resultado da operacao
+        """
+        logger.info(f"[InstanceManager] Desconectando instancia: {instance_name}")
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.delete(
+                    f"{self.base_url}/instance/logout/{instance_name}",
+                    headers=self.headers,
+                )
+
+                # 400 = ja desconectado, tratar como sucesso
+                if response.status_code == 400:
+                    logger.info(f"[InstanceManager] Instancia {instance_name} ja desconectada")
+                elif response.status_code not in (200, 201, 204):
+                    error_msg = f"Evolution API error: {response.status_code}"
+                    logger.warning(f"[InstanceManager] {error_msg}")
+                    return DisconnectInstanceResult(success=False, error=error_msg)
+
+                # Atualizar status do chip no banco (paused = desconectado, reconectavel)
+                supabase.table("chips").update(
+                    {
+                        "status": "paused",
+                    }
+                ).eq("instance_name", instance_name).execute()
+
+                logger.info(f"[InstanceManager] Instancia {instance_name} desconectada")
+
+                return DisconnectInstanceResult(success=True)
+
+        except httpx.TimeoutException:
+            error_msg = "Timeout ao conectar com Evolution API"
+            logger.error(f"[InstanceManager] {error_msg}")
+            return DisconnectInstanceResult(success=False, error=error_msg)
+
+        except Exception as e:
+            error_msg = f"Erro ao desconectar instancia: {str(e)}"
+            logger.exception(f"[InstanceManager] {error_msg}")
+            return DisconnectInstanceResult(success=False, error=error_msg)
 
     async def deletar_instancia(self, instance_name: str) -> DeleteInstanceResult:
         """

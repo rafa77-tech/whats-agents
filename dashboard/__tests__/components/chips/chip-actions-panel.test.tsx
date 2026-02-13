@@ -304,6 +304,7 @@ describe('ChipActionsPanel', () => {
       const chip = createMockChip({ status: 'pending' })
       vi.mocked(chipsApi.getInstanceQRCode).mockResolvedValue({
         qrCode: 'data:image/png;base64,abc123',
+        code: '2@testcode',
         state: 'close',
         pairingCode: '1234-5678',
       })
@@ -322,6 +323,7 @@ describe('ChipActionsPanel', () => {
       const chip = createMockChip({ status: 'pending' })
       vi.mocked(chipsApi.getInstanceQRCode).mockResolvedValue({
         qrCode: null,
+        code: null,
         state: 'open',
         pairingCode: null,
       })

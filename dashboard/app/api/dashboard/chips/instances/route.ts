@@ -21,6 +21,9 @@ interface CreateInstanceResponse {
   success: boolean
   instance_name: string
   chip_id: string
+  qr_code: string | null
+  qr_raw_code: string | null
+  pairing_code: string | null
 }
 
 export async function POST(request: NextRequest) {
@@ -68,6 +71,9 @@ export async function POST(request: NextRequest) {
       success: true,
       instanceName: data.instance_name,
       chipId: data.chip_id,
+      qrCode: data.qr_code,
+      code: data.qr_raw_code,
+      pairingCode: data.pairing_code,
     })
   } catch (error) {
     console.error('Error creating instance:', error)

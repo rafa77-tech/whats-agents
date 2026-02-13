@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
   const [createdInstanceName, setCreatedInstanceName] = useState<string | null>(null)
   const [_createdChipId, setCreatedChipId] = useState<string | null>(null)
   const [qrCode, setQrCode] = useState<string | null>(null)
+  const [qrRawCode, setQrRawCode] = useState<string | null>(null)
   const [qrState, setQrState] = useState<string>('close')
   const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -75,6 +77,7 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
         setCreatedInstanceName(null)
         setCreatedChipId(null)
         setQrCode(null)
+        setQrRawCode(null)
         setQrState('close')
         setPairingCode(null)
         setError(null)
@@ -113,6 +116,7 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
     try {
       const result: QRCodeResponse = await chipsApi.getInstanceQRCode(name)
       setQrCode(result.qrCode)
+      setQrRawCode(result.code)
       setQrState(result.state)
       if (result.pairingCode) {
         setPairingCode(result.pairingCode)
@@ -180,16 +184,23 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
       setCreatedInstanceName(result.instanceName)
       setCreatedChipId(result.chipId)
 
+      // Use QR code from create response directly
+      // IMPORTANT: Do NOT call /instance/connect - it triggers a new connection
+      // attempt and puts the instance into "connecting" state prematurely
+      if (result.code) {
+        setQrRawCode(result.code)
+      }
+      if (result.qrCode) {
+        setQrCode(result.qrCode)
+      }
+      if (result.pairingCode) {
+        setPairingCode(result.pairingCode)
+      }
+
       // Move to QR code step
       setStep('qrcode')
 
-      // Start QR code polling (refresh every 20s as QR expires)
-      await fetchQRCode(result.instanceName)
-      qrRefreshIntervalRef.current = setInterval(() => {
-        fetchQRCode(result.instanceName)
-      }, 20000)
-
-      // Start connection state polling (check every 3s)
+      // Poll connection state only (doesn't regenerate QR or trigger connect)
       pollIntervalRef.current = setInterval(() => {
         checkConnectionState(result.instanceName)
       }, 3000)
@@ -296,14 +307,22 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
             </DialogHeader>
 
             <div className="flex flex-col items-center space-y-4 py-4">
-              {qrCode ? (
+              {qrRawCode || qrCode ? (
                 <div className="rounded-lg border-2 border-border bg-card p-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`}
-                    alt="QR Code"
-                    className="h-64 w-64"
-                  />
+                  {qrRawCode ? (
+                    <QRCodeSVG value={qrRawCode} size={256} level="M" />
+                  ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={
+                        qrCode!.startsWith('data:')
+                          ? qrCode!
+                          : `data:image/png;base64,${qrCode}`
+                      }
+                      alt="QR Code"
+                      className="h-64 w-64"
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="flex h-64 w-64 items-center justify-center rounded-lg border-2 border-dashed border-muted">
@@ -341,7 +360,7 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
               )}
 
               <p className="text-center text-xs text-muted-foreground">
-                O QR code e atualizado automaticamente a cada 20 segundos
+                Escaneie o QR code com o WhatsApp do celular
               </p>
             </div>
 
