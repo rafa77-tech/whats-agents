@@ -43,7 +43,7 @@ class AtividadeAgendada:
     horario: datetime = None
     dados: Dict[str, Any] = None
     prioridade: int = 5  # 1-10, maior = mais prioritário
-    status: str = "agendada"
+    status: str = "planejada"
 
     def __post_init__(self):
         if self.dados is None:
@@ -335,7 +335,7 @@ class WarmingScheduler:
                     "scheduled_for": atv.horario.isoformat(),
                     "dados": atv.dados,
                     "prioridade": atv.prioridade,
-                    "status": "agendada",
+                    "status": "planejada",
                 }
             )
 
@@ -366,7 +366,7 @@ class WarmingScheduler:
         query = (
             supabase.table("warmup_schedule")
             .select("*")
-            .eq("status", "agendada")
+            .eq("status", "planejada")
             .gte("scheduled_for", (agora - timedelta(minutes=5)).isoformat())
             .lte("scheduled_for", (agora + timedelta(hours=1)).isoformat())
             .order("scheduled_for")
@@ -444,7 +444,7 @@ class WarmingScheduler:
                 }
             )
             .eq("chip_id", chip_id)
-            .eq("status", "agendada")
+            .eq("status", "planejada")
             .execute()
         )
 
@@ -500,7 +500,7 @@ class WarmingScheduler:
             status = row["status"]
             tipo = row["tipo"]
 
-            if status == "agendada":
+            if status == "planejada":
                 stats["agendadas"] += 1
             elif status == "executada":
                 stats["executadas"] += 1

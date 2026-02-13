@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     // Processar dados
     ;(data || []).forEach((row) => {
-      const tipo = row.tipo as ScheduledActivityType
+      const tipo = (row.tipo as string).toUpperCase() as ScheduledActivityType
       const status = row.status as string
 
       // Incrementar por tipo (se conhecido)

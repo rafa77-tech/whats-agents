@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
         id: row.id,
         chipId: row.chip_id,
         chipTelefone: chips?.telefone || '',
-        type: row.tipo as ScheduledActivity['type'],
+        type: (row.tipo as string).toUpperCase() as ScheduledActivity['type'],
         scheduledAt: row.scheduled_for,
         executedAt: row.executed_at || undefined,
         status: row.status as ScheduledActivity['status'],
