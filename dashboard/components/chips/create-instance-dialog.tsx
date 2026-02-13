@@ -26,7 +26,7 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { Loader2, CheckCircle2, QrCode, Phone, AlertCircle } from 'lucide-react'
 import { chipsApi } from '@/lib/api/chips'
-import type { QRCodeResponse, ConnectionStateResponse } from '@/types/chips'
+import type { ConnectionStateResponse } from '@/types/chips'
 
 type DialogStep = 'form' | 'qrcode' | 'success'
 
@@ -110,34 +110,6 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
       setTelefone(value)
     }
   }
-
-  // Fetch QR code
-  const fetchQRCode = useCallback(async (name: string) => {
-    try {
-      const result: QRCodeResponse = await chipsApi.getInstanceQRCode(name)
-      setQrCode(result.qrCode)
-      setQrRawCode(result.code)
-      setQrState(result.state)
-      if (result.pairingCode) {
-        setPairingCode(result.pairingCode)
-      }
-
-      // If connected, move to success
-      if (result.state === 'open') {
-        setStep('success')
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current)
-          pollIntervalRef.current = null
-        }
-        if (qrRefreshIntervalRef.current) {
-          clearInterval(qrRefreshIntervalRef.current)
-          qrRefreshIntervalRef.current = null
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching QR code:', err)
-    }
-  }, [])
 
   // Check connection state
   const checkConnectionState = useCallback(async (name: string) => {
@@ -315,9 +287,7 @@ export function CreateInstanceDialog({ open, onOpenChange, onSuccess }: CreateIn
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={
-                        qrCode!.startsWith('data:')
-                          ? qrCode!
-                          : `data:image/png;base64,${qrCode}`
+                        qrCode!.startsWith('data:') ? qrCode! : `data:image/png;base64,${qrCode}`
                       }
                       alt="QR Code"
                       className="h-64 w-64"

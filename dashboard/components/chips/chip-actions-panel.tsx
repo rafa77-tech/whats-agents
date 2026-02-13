@@ -333,8 +333,7 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
           )}
 
           {/* Check Connection button - for chips awaiting connection */}
-          {chip.instanceName &&
-            ['pending', 'provisioned', 'paused'].includes(chip.status) && (
+          {chip.instanceName && ['pending', 'provisioned', 'paused'].includes(chip.status) && (
             <Button
               variant="default"
               className="w-full justify-start"
@@ -547,9 +546,9 @@ export function ChipActionsPanel({ chip, onActionComplete }: ChipActionsPanelPro
           <AlertDialogHeader>
             <AlertDialogTitle>Desconectar Instância</AlertDialogTitle>
             <AlertDialogDescription>
-              A instância <span className="font-medium">{chip.instanceName}</span> será
-              desconectada do WhatsApp. O chip ficará offline e precisará escanear o QR Code
-              novamente para reconectar.
+              A instância <span className="font-medium">{chip.instanceName}</span> será desconectada
+              do WhatsApp. O chip ficará offline e precisará escanear o QR Code novamente para
+              reconectar.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
