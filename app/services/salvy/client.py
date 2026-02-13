@@ -4,7 +4,6 @@ Salvy API Client - Provisioning de numeros virtuais.
 Docs: https://docs.salvy.com.br/api-reference/virtual-phone-accounts/introduction
 """
 
-import httpx
 import logging
 from typing import Optional, List
 from pydantic import BaseModel
@@ -12,6 +11,7 @@ from datetime import datetime
 
 from app.core.config import settings
 from app.core.timezone import agora_brasilia
+from app.services.http_client import get_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -66,33 +66,33 @@ class SalvyClient:
         """
         self._check_token()
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{BASE_URL}/virtual-phone-accounts",
-                headers=self.headers,
-                json={
-                    "areaCode": ddd,
-                    "name": nome or f"julia-{agora_brasilia().strftime('%Y%m%d%H%M%S')}",
-                },
-                timeout=30,
-            )
+        client = await get_http_client()
+        response = await client.post(
+            f"{BASE_URL}/virtual-phone-accounts",
+            headers=self.headers,
+            json={
+                "areaCode": ddd,
+                "name": nome or f"julia-{agora_brasilia().strftime('%Y%m%d%H%M%S')}",
+            },
+            timeout=30,
+        )
 
-            if response.status_code >= 400:
-                logger.error(f"[Salvy] Erro ao criar numero: {response.text}")
-                raise SalvyError(response.text, response.status_code)
+        if response.status_code >= 400:
+            logger.error(f"[Salvy] Erro ao criar numero: {response.text}")
+            raise SalvyError(response.text, response.status_code)
 
-            data = response.json()
+        data = response.json()
 
-            logger.info(f"[Salvy] Numero criado: {data['phoneNumber']}")
+        logger.info(f"[Salvy] Numero criado: {data['phoneNumber']}")
 
-            return SalvyNumber(
-                id=data["id"],
-                name=data.get("name"),
-                phone_number=data["phoneNumber"],
-                status=data["status"],
-                created_at=datetime.fromisoformat(data["createdAt"].replace("Z", "+00:00")),
-                canceled_at=None,
-            )
+        return SalvyNumber(
+            id=data["id"],
+            name=data.get("name"),
+            phone_number=data["phoneNumber"],
+            status=data["status"],
+            created_at=datetime.fromisoformat(data["createdAt"].replace("Z", "+00:00")),
+            canceled_at=None,
+        )
 
     async def cancelar_numero(self, salvy_id: str) -> bool:
         """
@@ -106,93 +106,93 @@ class SalvyClient:
         """
         self._check_token()
 
-        async with httpx.AsyncClient() as client:
-            response = await client.delete(
-                f"{BASE_URL}/virtual-phone-accounts/{salvy_id}",
-                headers=self.headers,
-                timeout=30,
-            )
+        client = await get_http_client()
+        response = await client.delete(
+            f"{BASE_URL}/virtual-phone-accounts/{salvy_id}",
+            headers=self.headers,
+            timeout=30,
+        )
 
-            if response.status_code == 204:
-                logger.info(f"[Salvy] Numero cancelado: {salvy_id}")
-                return True
+        if response.status_code == 204:
+            logger.info(f"[Salvy] Numero cancelado: {salvy_id}")
+            return True
 
-            logger.error(f"[Salvy] Erro ao cancelar: {response.text}")
-            return False
+        logger.error(f"[Salvy] Erro ao cancelar: {response.text}")
+        return False
 
     async def buscar_numero(self, salvy_id: str) -> Optional[SalvyNumber]:
         """Busca numero por ID."""
         self._check_token()
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{BASE_URL}/virtual-phone-accounts/{salvy_id}",
-                headers=self.headers,
-                timeout=30,
-            )
+        client = await get_http_client()
+        response = await client.get(
+            f"{BASE_URL}/virtual-phone-accounts/{salvy_id}",
+            headers=self.headers,
+            timeout=30,
+        )
 
-            if response.status_code == 404:
-                return None
+        if response.status_code == 404:
+            return None
 
-            if response.status_code >= 400:
-                raise SalvyError(response.text, response.status_code)
+        if response.status_code >= 400:
+            raise SalvyError(response.text, response.status_code)
 
-            data = response.json()
+        data = response.json()
 
-            return SalvyNumber(
-                id=data["id"],
-                name=data.get("name"),
-                phone_number=data["phoneNumber"],
-                status=data["status"],
-                created_at=datetime.fromisoformat(data["createdAt"].replace("Z", "+00:00")),
-                canceled_at=datetime.fromisoformat(data["canceledAt"].replace("Z", "+00:00"))
-                if data.get("canceledAt")
-                else None,
-            )
+        return SalvyNumber(
+            id=data["id"],
+            name=data.get("name"),
+            phone_number=data["phoneNumber"],
+            status=data["status"],
+            created_at=datetime.fromisoformat(data["createdAt"].replace("Z", "+00:00")),
+            canceled_at=datetime.fromisoformat(data["canceledAt"].replace("Z", "+00:00"))
+            if data.get("canceledAt")
+            else None,
+        )
 
     async def listar_numeros(self) -> List[SalvyNumber]:
         """Lista todos os numeros."""
         self._check_token()
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{BASE_URL}/virtual-phone-accounts",
-                headers=self.headers,
-                timeout=30,
+        client = await get_http_client()
+        response = await client.get(
+            f"{BASE_URL}/virtual-phone-accounts",
+            headers=self.headers,
+            timeout=30,
+        )
+
+        if response.status_code >= 400:
+            raise SalvyError(response.text, response.status_code)
+
+        return [
+            SalvyNumber(
+                id=d["id"],
+                name=d.get("name"),
+                phone_number=d["phoneNumber"],
+                status=d["status"],
+                created_at=datetime.fromisoformat(d["createdAt"].replace("Z", "+00:00")),
+                canceled_at=datetime.fromisoformat(d["canceledAt"].replace("Z", "+00:00"))
+                if d.get("canceledAt")
+                else None,
             )
-
-            if response.status_code >= 400:
-                raise SalvyError(response.text, response.status_code)
-
-            return [
-                SalvyNumber(
-                    id=d["id"],
-                    name=d.get("name"),
-                    phone_number=d["phoneNumber"],
-                    status=d["status"],
-                    created_at=datetime.fromisoformat(d["createdAt"].replace("Z", "+00:00")),
-                    canceled_at=datetime.fromisoformat(d["canceledAt"].replace("Z", "+00:00"))
-                    if d.get("canceledAt")
-                    else None,
-                )
-                for d in response.json()
-            ]
+            for d in response.json()
+        ]
 
     async def listar_ddds_disponiveis(self) -> List[int]:
         """Lista DDDs com numeros disponiveis."""
         self._check_token()
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{BASE_URL}/virtual-phone-accounts/area-codes",
-                headers=self.headers,
-                timeout=30,
-            )
+        client = await get_http_client()
+        response = await client.get(
+            f"{BASE_URL}/virtual-phone-accounts/area-codes",
+            headers=self.headers,
+            timeout=30,
+        )
 
-            if response.status_code >= 400:
-                raise SalvyError(response.text, response.status_code)
+        if response.status_code >= 400:
+            raise SalvyError(response.text, response.status_code)
 
-            return response.json()
+        return response.json()
 
 
 # Singleton

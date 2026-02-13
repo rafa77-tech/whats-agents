@@ -13,6 +13,7 @@ from typing import Optional
 import httpx
 
 from app.core.config import settings
+from app.services.http_client import get_http_client
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -126,98 +127,99 @@ class InstanceManager:
         logger.info(f"[InstanceManager] Criando instancia: {instance_name}")
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                # Criar instancia na Evolution API
-                response = await client.post(
-                    f"{self.base_url}/instance/create",
-                    headers=self.headers,
-                    json={
-                        "instanceName": instance_name,
-                        "qrcode": True,
-                        "integration": "WHATSAPP-BAILEYS",
-                    },
-                )
+            client = await get_http_client()
+            # Criar instancia na Evolution API
+            response = await client.post(
+                f"{self.base_url}/instance/create",
+                headers=self.headers,
+                json={
+                    "instanceName": instance_name,
+                    "qrcode": True,
+                    "integration": "WHATSAPP-BAILEYS",
+                },
+                timeout=self.timeout,
+            )
 
-                if response.status_code not in (200, 201):
-                    error_msg = f"Evolution API error: {response.status_code} - {response.text}"
-                    logger.error(f"[InstanceManager] {error_msg}")
-                    return CreateInstanceResult(success=False, error=error_msg)
+            if response.status_code not in (200, 201):
+                error_msg = f"Evolution API error: {response.status_code} - {response.text}"
+                logger.error(f"[InstanceManager] {error_msg}")
+                return CreateInstanceResult(success=False, error=error_msg)
 
-                data = response.json()
-                logger.info(f"[InstanceManager] Instancia criada: {data}")
+            data = response.json()
+            logger.info(f"[InstanceManager] Instancia criada: {data}")
 
-                # Extrair QR code da resposta do create
-                # A Evolution API retorna qrcode.code e qrcode.base64 quando qrcode=True
-                qr_data = data.get("qrcode", {}) or {}
-                qr_code = qr_data.get("base64")
-                qr_raw_code = qr_data.get("code")
-                pairing_code = qr_data.get("pairingCode") or data.get("pairingCode")
+            # Extrair QR code da resposta do create
+            # A Evolution API retorna qrcode.code e qrcode.base64 quando qrcode=True
+            qr_data = data.get("qrcode", {}) or {}
+            qr_code = qr_data.get("base64")
+            qr_raw_code = qr_data.get("code")
+            pairing_code = qr_data.get("pairingCode") or data.get("pairingCode")
 
-                # Normalizar base64
-                if qr_code and qr_code.startswith("data:"):
-                    qr_code = qr_code.split(",", 1)[-1]
+            # Normalizar base64
+            if qr_code and qr_code.startswith("data:"):
+                qr_code = qr_code.split(",", 1)[-1]
 
-                logger.info(
-                    f"[InstanceManager] QR code extraido do create: "
-                    f"has_code={bool(qr_raw_code)}, has_base64={bool(qr_code)}"
-                )
+            logger.info(
+                f"[InstanceManager] QR code extraido do create: "
+                f"has_code={bool(qr_raw_code)}, has_base64={bool(qr_code)}"
+            )
 
-                # Verificar se ja existe chip cancelado com mesmo telefone
-                existing = (
-                    supabase.table("chips")
-                    .select("id")
-                    .eq("telefone", telefone)
-                    .eq("status", "cancelled")
-                    .limit(1)
-                    .execute()
-                )
+            # Verificar se ja existe chip cancelado com mesmo telefone
+            existing = (
+                supabase.table("chips")
+                .select("id")
+                .eq("telefone", telefone)
+                .eq("status", "cancelled")
+                .limit(1)
+                .execute()
+            )
 
-                if existing.data:
-                    # Reusar chip existente
-                    chip_id = existing.data[0]["id"]
-                    supabase.table("chips").update(
-                        {
-                            "instance_name": instance_name,
-                            "status": "provisioned",
-                            "trust_score": 50,
-                            "trust_level": "amarelo",
-                            "fase_warmup": "setup",
-                        }
-                    ).eq("id", chip_id).execute()
-                    logger.info(f"[InstanceManager] Chip reativado: {chip_id}")
-                else:
-                    # Registrar novo chip no banco de dados
-                    chip_data = {
-                        "telefone": telefone,
+            if existing.data:
+                # Reusar chip existente
+                chip_id = existing.data[0]["id"]
+                supabase.table("chips").update(
+                    {
                         "instance_name": instance_name,
                         "status": "provisioned",
-                        "tipo": "julia",
                         "trust_score": 50,
                         "trust_level": "amarelo",
                         "fase_warmup": "setup",
                     }
+                ).eq("id", chip_id).execute()
+                logger.info(f"[InstanceManager] Chip reativado: {chip_id}")
+            else:
+                # Registrar novo chip no banco de dados
+                chip_data = {
+                    "telefone": telefone,
+                    "instance_name": instance_name,
+                    "status": "provisioned",
+                    "tipo": "julia",
+                    "trust_score": 50,
+                    "trust_level": "amarelo",
+                    "fase_warmup": "setup",
+                }
 
-                    result = supabase.table("chips").insert(chip_data).execute()
+                result = supabase.table("chips").insert(chip_data).execute()
 
-                    if not result.data:
-                        logger.error("[InstanceManager] Falha ao inserir chip no banco")
-                        return CreateInstanceResult(
-                            success=False,
-                            instance_name=instance_name,
-                            error="Falha ao registrar chip no banco",
-                        )
+                if not result.data:
+                    logger.error("[InstanceManager] Falha ao inserir chip no banco")
+                    return CreateInstanceResult(
+                        success=False,
+                        instance_name=instance_name,
+                        error="Falha ao registrar chip no banco",
+                    )
 
-                    chip_id = result.data[0]["id"]
-                    logger.info(f"[InstanceManager] Chip registrado: {chip_id}")
+                chip_id = result.data[0]["id"]
+                logger.info(f"[InstanceManager] Chip registrado: {chip_id}")
 
-                return CreateInstanceResult(
-                    success=True,
-                    instance_name=instance_name,
-                    chip_id=chip_id,
-                    qr_code=qr_code,
-                    qr_raw_code=qr_raw_code,
-                    pairing_code=pairing_code,
-                )
+            return CreateInstanceResult(
+                success=True,
+                instance_name=instance_name,
+                chip_id=chip_id,
+                qr_code=qr_code,
+                qr_raw_code=qr_raw_code,
+                pairing_code=pairing_code,
+            )
 
         except httpx.TimeoutException:
             error_msg = "Timeout ao conectar com Evolution API"
@@ -242,40 +244,41 @@ class InstanceManager:
         logger.info(f"[InstanceManager] Obtendo QR code: {instance_name}")
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    f"{self.base_url}/instance/connect/{instance_name}",
-                    headers=self.headers,
-                )
+            client = await get_http_client()
+            response = await client.get(
+                f"{self.base_url}/instance/connect/{instance_name}",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
 
-                if response.status_code != 200:
-                    error_msg = f"Evolution API error: {response.status_code}"
-                    logger.warning(f"[InstanceManager] {error_msg}")
-                    return QRCodeResult(success=False, error=error_msg)
+            if response.status_code != 200:
+                error_msg = f"Evolution API error: {response.status_code}"
+                logger.warning(f"[InstanceManager] {error_msg}")
+                return QRCodeResult(success=False, error=error_msg)
 
-                data = response.json()
+            data = response.json()
 
-                # Extrair dados da resposta
-                qr_code = data.get("base64") or data.get("qrcode", {}).get("base64")
-                code = data.get("code") or data.get("qrcode", {}).get("code")
-                pairing_code = data.get("pairingCode")
-                state = data.get("state", "close")
+            # Extrair dados da resposta
+            qr_code = data.get("base64") or data.get("qrcode", {}).get("base64")
+            code = data.get("code") or data.get("qrcode", {}).get("code")
+            pairing_code = data.get("pairingCode")
+            state = data.get("state", "close")
 
-                # Normalizar base64: remover prefixo data URI se presente
-                if qr_code and qr_code.startswith("data:"):
-                    qr_code = qr_code.split(",", 1)[-1]
+            # Normalizar base64: remover prefixo data URI se presente
+            if qr_code and qr_code.startswith("data:"):
+                qr_code = qr_code.split(",", 1)[-1]
 
-                # Se conectou, atualizar chip automaticamente
-                if state == "open":
-                    await self._atualizar_chip_conectado(instance_name)
+            # Se conectou, atualizar chip automaticamente
+            if state == "open":
+                await self._atualizar_chip_conectado(instance_name)
 
-                return QRCodeResult(
-                    success=True,
-                    qr_code=qr_code,
-                    code=code,
-                    state=state,
-                    pairing_code=pairing_code,
-                )
+            return QRCodeResult(
+                success=True,
+                qr_code=qr_code,
+                code=code,
+                state=state,
+                pairing_code=pairing_code,
+            )
 
         except httpx.TimeoutException:
             error_msg = "Timeout ao conectar com Evolution API"
@@ -300,30 +303,31 @@ class InstanceManager:
         logger.debug(f"[InstanceManager] Verificando conexao: {instance_name}")
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    f"{self.base_url}/instance/connectionState/{instance_name}",
-                    headers=self.headers,
-                )
+            client = await get_http_client()
+            response = await client.get(
+                f"{self.base_url}/instance/connectionState/{instance_name}",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
 
-                if response.status_code != 200:
-                    error_msg = f"Evolution API error: {response.status_code}"
-                    logger.warning(f"[InstanceManager] {error_msg}")
-                    return ConnectionStateResult(success=False, error=error_msg)
+            if response.status_code != 200:
+                error_msg = f"Evolution API error: {response.status_code}"
+                logger.warning(f"[InstanceManager] {error_msg}")
+                return ConnectionStateResult(success=False, error=error_msg)
 
-                data = response.json()
-                state = data.get("state", "close")
-                connected = state == "open"
+            data = response.json()
+            state = data.get("state", "close")
+            connected = state == "open"
 
-                # Se conectou, atualizar status do chip
-                if connected:
-                    await self._atualizar_chip_conectado(instance_name)
+            # Se conectou, atualizar status do chip
+            if connected:
+                await self._atualizar_chip_conectado(instance_name)
 
-                return ConnectionStateResult(
-                    success=True,
-                    state=state,
-                    connected=connected,
-                )
+            return ConnectionStateResult(
+                success=True,
+                state=state,
+                connected=connected,
+            )
 
         except httpx.TimeoutException:
             error_msg = "Timeout ao conectar com Evolution API"
@@ -365,30 +369,31 @@ class InstanceManager:
         logger.info(f"[InstanceManager] Desconectando instancia: {instance_name}")
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.delete(
-                    f"{self.base_url}/instance/logout/{instance_name}",
-                    headers=self.headers,
-                )
+            client = await get_http_client()
+            response = await client.delete(
+                f"{self.base_url}/instance/logout/{instance_name}",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
 
-                # 400 = ja desconectado, tratar como sucesso
-                if response.status_code == 400:
-                    logger.info(f"[InstanceManager] Instancia {instance_name} ja desconectada")
-                elif response.status_code not in (200, 201, 204):
-                    error_msg = f"Evolution API error: {response.status_code}"
-                    logger.warning(f"[InstanceManager] {error_msg}")
-                    return DisconnectInstanceResult(success=False, error=error_msg)
+            # 400 = ja desconectado, tratar como sucesso
+            if response.status_code == 400:
+                logger.info(f"[InstanceManager] Instancia {instance_name} ja desconectada")
+            elif response.status_code not in (200, 201, 204):
+                error_msg = f"Evolution API error: {response.status_code}"
+                logger.warning(f"[InstanceManager] {error_msg}")
+                return DisconnectInstanceResult(success=False, error=error_msg)
 
-                # Atualizar status do chip no banco (paused = desconectado, reconectavel)
-                supabase.table("chips").update(
-                    {
-                        "status": "paused",
-                    }
-                ).eq("instance_name", instance_name).execute()
+            # Atualizar status do chip no banco (paused = desconectado, reconectavel)
+            supabase.table("chips").update(
+                {
+                    "status": "paused",
+                }
+            ).eq("instance_name", instance_name).execute()
 
-                logger.info(f"[InstanceManager] Instancia {instance_name} desconectada")
+            logger.info(f"[InstanceManager] Instancia {instance_name} desconectada")
 
-                return DisconnectInstanceResult(success=True)
+            return DisconnectInstanceResult(success=True)
 
         except httpx.TimeoutException:
             error_msg = "Timeout ao conectar com Evolution API"
@@ -413,27 +418,28 @@ class InstanceManager:
         logger.info(f"[InstanceManager] Deletando instancia: {instance_name}")
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.delete(
-                    f"{self.base_url}/instance/delete/{instance_name}",
-                    headers=self.headers,
-                )
+            client = await get_http_client()
+            response = await client.delete(
+                f"{self.base_url}/instance/delete/{instance_name}",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
 
-                if response.status_code not in (200, 201, 204):
-                    error_msg = f"Evolution API error: {response.status_code}"
-                    logger.warning(f"[InstanceManager] {error_msg}")
-                    return DeleteInstanceResult(success=False, error=error_msg)
+            if response.status_code not in (200, 201, 204):
+                error_msg = f"Evolution API error: {response.status_code}"
+                logger.warning(f"[InstanceManager] {error_msg}")
+                return DeleteInstanceResult(success=False, error=error_msg)
 
-                # Atualizar status do chip no banco
-                supabase.table("chips").update(
-                    {
-                        "status": "cancelled",
-                    }
-                ).eq("instance_name", instance_name).execute()
+            # Atualizar status do chip no banco
+            supabase.table("chips").update(
+                {
+                    "status": "cancelled",
+                }
+            ).eq("instance_name", instance_name).execute()
 
-                logger.info(f"[InstanceManager] Instancia {instance_name} deletada")
+            logger.info(f"[InstanceManager] Instancia {instance_name} deletada")
 
-                return DeleteInstanceResult(success=True)
+            return DeleteInstanceResult(success=True)
 
         except httpx.TimeoutException:
             error_msg = "Timeout ao conectar com Evolution API"

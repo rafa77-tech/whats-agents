@@ -12,6 +12,7 @@ from typing import Optional
 import httpx
 
 from app.core.config import settings
+from app.services.http_client import get_http_client
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -28,19 +29,19 @@ async def listar_instancias_evolution() -> list[dict]:
         url = f"{settings.EVOLUTION_API_URL}/instance/fetchInstances"
         headers = {"apikey": settings.EVOLUTION_API_KEY}
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(url, headers=headers)
+        client = await get_http_client()
+        response = await client.get(url, headers=headers, timeout=30.0)
 
-            if response.status_code == 200:
-                data = response.json()
-                # Evolution retorna lista de instâncias
-                if isinstance(data, list):
-                    return data
-                # Ou pode retornar em formato diferente
-                return data.get("instances", data.get("data", []))
-            else:
-                logger.error(f"Erro ao listar instâncias Evolution: {response.status_code}")
-                return []
+        if response.status_code == 200:
+            data = response.json()
+            # Evolution retorna lista de instâncias
+            if isinstance(data, list):
+                return data
+            # Ou pode retornar em formato diferente
+            return data.get("instances", data.get("data", []))
+        else:
+            logger.error(f"Erro ao listar instâncias Evolution: {response.status_code}")
+            return []
 
     except httpx.TimeoutException:
         logger.error("Timeout ao listar instâncias Evolution")
@@ -64,14 +65,14 @@ async def buscar_estado_instancia(instance_name: str) -> Optional[dict]:
         url = f"{settings.EVOLUTION_API_URL}/instance/connectionState/{instance_name}"
         headers = {"apikey": settings.EVOLUTION_API_KEY}
 
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(url, headers=headers)
+        client = await get_http_client()
+        response = await client.get(url, headers=headers, timeout=15.0)
 
-            if response.status_code == 200:
-                return response.json()
-            else:
-                logger.warning(f"Erro ao buscar estado de {instance_name}: {response.status_code}")
-                return None
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.warning(f"Erro ao buscar estado de {instance_name}: {response.status_code}")
+            return None
 
     except httpx.TimeoutException:
         logger.warning(f"Timeout ao buscar estado de {instance_name}")

@@ -139,12 +139,13 @@ async def avaliar_conversas_pendentes(limite: int = 50):
         limite: Número máximo de conversas a avaliar por execução
     """
     try:
+        # Sprint 59 Epic 4.4: Adicionado LIMIT para evitar unbounded queries
         # Buscar conversas encerradas sem avaliação
-        # Primeiro, buscar conversas encerradas
         conversas_response = (
             supabase.table("conversations")
             .select("id")
             .in_("status", ["encerrada", "finalizada", "closed"])
+            .limit(500)
             .execute()
         )
 
@@ -159,6 +160,7 @@ async def avaliar_conversas_pendentes(limite: int = 50):
             supabase.table("avaliacoes_qualidade")
             .select("conversa_id")
             .in_("conversa_id", conversas_ids)
+            .limit(500)
             .execute()
         )
 

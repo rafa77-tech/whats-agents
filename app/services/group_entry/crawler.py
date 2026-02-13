@@ -15,9 +15,9 @@ import re
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta, UTC
 
-import httpx
 from bs4 import BeautifulSoup
 
+from app.services.http_client import get_http_client
 from app.services.supabase import supabase
 from app.services.group_entry.importer import extrair_invite_code
 
@@ -137,39 +137,38 @@ class CrawlerManager:
         """Crawl usando requests (sites HTML simples)."""
         links = []
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                fonte["url"],
-                headers={"User-Agent": self.user_agent},
-                timeout=30,
-                follow_redirects=True,
-            )
-            resp.raise_for_status()
+        client = await get_http_client()
+        resp = await client.get(
+            fonte["url"],
+            headers={"User-Agent": self.user_agent},
+            timeout=30,
+        )
+        resp.raise_for_status()
 
-            soup = BeautifulSoup(resp.text, "html.parser")
+        soup = BeautifulSoup(resp.text, "html.parser")
 
-            # Buscar links de WhatsApp
-            for a in soup.find_all("a", href=re.compile(r"chat\.whatsapp\.com")):
-                href = a.get("href", "")
-                invite_code = extrair_invite_code(href)
+        # Buscar links de WhatsApp
+        for a in soup.find_all("a", href=re.compile(r"chat\.whatsapp\.com")):
+            href = a.get("href", "")
+            invite_code = extrair_invite_code(href)
 
-                if invite_code:
-                    # Tentar extrair nome do contexto
-                    nome = a.get_text(strip=True)
-                    if not nome or len(nome) < 3:
-                        parent = a.find_parent(["div", "li", "article"])
-                        if parent:
-                            title = parent.find(["h2", "h3", "h4", "strong"])
-                            if title:
-                                nome = title.get_text(strip=True)
+            if invite_code:
+                # Tentar extrair nome do contexto
+                nome = a.get_text(strip=True)
+                if not nome or len(nome) < 3:
+                    parent = a.find_parent(["div", "li", "article"])
+                    if parent:
+                        title = parent.find(["h2", "h3", "h4", "strong"])
+                        if title:
+                            nome = title.get_text(strip=True)
 
-                    links.append(
-                        {
-                            "invite_code": invite_code,
-                            "invite_url": href,
-                            "nome": nome[:100] if nome else None,
-                        }
-                    )
+                links.append(
+                    {
+                        "invite_code": invite_code,
+                        "invite_url": href,
+                        "nome": nome[:100] if nome else None,
+                    }
+                )
 
         return links
 

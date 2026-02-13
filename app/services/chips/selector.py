@@ -247,6 +247,10 @@ class ChipSelector:
 
         result = query.order("trust_score", desc=True).execute()
 
+        # Sprint 59 Epic 4: Batch query de msgs/hora para todos os chips candidatos
+        all_chip_ids = [c["id"] for c in result.data or []]
+        uso_hora_batch = await self._contar_msgs_ultima_hora_batch(all_chip_ids)
+
         # Filtrar por limite de uso
         chips_disponiveis = []
         chips_desconectados = 0
@@ -289,8 +293,8 @@ class ChipSelector:
                 logger.debug(f"[ChipSelector] Chip {chip['telefone']} no limite diario")
                 continue
 
-            # Verificar limite por hora
-            uso_hora = await self._contar_msgs_ultima_hora(chip["id"])
+            # Sprint 59 Epic 4: Usar batch result ao invés de query individual
+            uso_hora = uso_hora_batch.get(chip["id"], 0)
             limite_hora = chip.get("limite_hora", 20)
 
             if uso_hora >= limite_hora:
@@ -373,6 +377,37 @@ class ChipSelector:
         )
 
         return result.count or 0
+
+    async def _contar_msgs_ultima_hora_batch(self, chip_ids: list) -> dict:
+        """
+        Sprint 59 Epic 4: Conta msgs/hora de todos os chips em 1 query.
+
+        Substitui N chamadas individuais a _contar_msgs_ultima_hora por 1 query
+        com IN filter + contagem em Python.
+
+        Returns:
+            dict[chip_id -> count]
+        """
+        if not chip_ids:
+            return {}
+
+        uma_hora_atras = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+
+        result = (
+            supabase.table("chip_interactions")
+            .select("chip_id")
+            .in_("chip_id", chip_ids)
+            .eq("tipo", "msg_enviada")
+            .gte("created_at", uma_hora_atras)
+            .execute()
+        )
+
+        contagem: dict = {}
+        for row in result.data or []:
+            cid = row["chip_id"]
+            contagem[cid] = contagem.get(cid, 0) + 1
+
+        return contagem
 
     async def _selecionar_menor_uso(self, chips: List[Dict]) -> Dict:
         """Seleciona chip com menor uso na hora atual."""
@@ -905,38 +940,24 @@ class ChipSelector:
             chips_finalizados = 0
             detalhes = []
 
+            # Sprint 59 Epic 4.5: Agrupar chips por nova fase para batch UPDATE
+            finalizados_ids = []
+            por_fase: Dict[int, list] = {}  # fase -> [chip_ids]
+
             for chip in result.data or []:
                 chip_id = chip["id"]
                 limite_info = self.calcular_limite_rampup(chip)
                 nova_fase = limite_info["fase"]
                 fase_atual = chip.get("rampup_fase") or 1
 
-                # Verificar se mudou de fase
                 if nova_fase != fase_atual:
                     if nova_fase == 4:
-                        # Ramp-up completo - limpar campos
-                        supabase.table("chips").update(
-                            {
-                                "rampup_inicio": None,
-                                "rampup_fase": None,
-                                "rampup_motivo": None,
-                                "updated_at": agora.isoformat(),
-                            }
-                        ).eq("id", chip_id).execute()
-                        chips_finalizados += 1
-
+                        finalizados_ids.append(chip_id)
                         logger.info(
                             f"[ChipSelector] Ramp-up finalizado para chip {chip.get('telefone')[-4:]}"
                         )
                     else:
-                        # Atualizar fase
-                        supabase.table("chips").update(
-                            {
-                                "rampup_fase": nova_fase,
-                                "updated_at": agora.isoformat(),
-                            }
-                        ).eq("id", chip_id).execute()
-
+                        por_fase.setdefault(nova_fase, []).append(chip_id)
                         logger.info(
                             f"[ChipSelector] Ramp-up fase {nova_fase} ({limite_info['percentual']}%) "
                             f"para chip {chip.get('telefone')[-4:]}"
@@ -952,6 +973,27 @@ class ChipSelector:
                             "percentual": limite_info["percentual"],
                         }
                     )
+
+            # Batch UPDATE: finalizados (1 query)
+            if finalizados_ids:
+                supabase.table("chips").update(
+                    {
+                        "rampup_inicio": None,
+                        "rampup_fase": None,
+                        "rampup_motivo": None,
+                        "updated_at": agora.isoformat(),
+                    }
+                ).in_("id", finalizados_ids).execute()
+                chips_finalizados = len(finalizados_ids)
+
+            # Batch UPDATE: cada fase (1 query por fase)
+            for fase, ids in por_fase.items():
+                supabase.table("chips").update(
+                    {
+                        "rampup_fase": fase,
+                        "updated_at": agora.isoformat(),
+                    }
+                ).in_("id", ids).execute()
 
             return {
                 "chips_atualizados": chips_atualizados,

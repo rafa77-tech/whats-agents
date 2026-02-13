@@ -12,6 +12,7 @@ from typing import Optional
 
 import httpx
 
+from app.services.http_client import get_http_client
 from app.services.whatsapp_providers.base import (
     WhatsAppProvider,
     ProviderType,
@@ -70,33 +71,34 @@ class ZApiProvider(WhatsAppProvider):
         phone_clean = self.format_phone(phone)
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    f"{self.base_endpoint}/send-text",
-                    headers=self.headers,
-                    json={
-                        "phone": phone_clean,
-                        "message": message,
-                    },
-                )
+            client = await get_http_client()
+            response = await client.post(
+                f"{self.base_endpoint}/send-text",
+                headers=self.headers,
+                json={
+                    "phone": phone_clean,
+                    "message": message,
+                },
+                timeout=self.timeout,
+            )
 
-                if response.status_code == 200:
-                    data = response.json()
-                    return MessageResult(
-                        success=True,
-                        message_id=data.get("messageId"),
-                        provider=self.provider_type.value,
-                    )
-
-                # Sprint 56: Garantir mensagem de erro descritiva
-                error_text = response.text.strip() if response.text else "Resposta vazia"
-                error_msg = f"HTTP {response.status_code}: {error_text}"
-                logger.warning(f"[Z-API] Erro ao enviar: {error_msg}")
+            if response.status_code == 200:
+                data = response.json()
                 return MessageResult(
-                    success=False,
-                    error=error_msg,
+                    success=True,
+                    message_id=data.get("messageId"),
                     provider=self.provider_type.value,
                 )
+
+            # Sprint 56: Garantir mensagem de erro descritiva
+            error_text = response.text.strip() if response.text else "Resposta vazia"
+            error_msg = f"HTTP {response.status_code}: {error_text}"
+            logger.warning(f"[Z-API] Erro ao enviar: {error_msg}")
+            return MessageResult(
+                success=False,
+                error=error_msg,
+                provider=self.provider_type.value,
+            )
 
         except httpx.TimeoutException:
             error_msg = f"Timeout ao enviar para {phone_clean} (>{self.timeout}s)"
@@ -158,37 +160,38 @@ class ZApiProvider(WhatsAppProvider):
         media_field = media_field_map.get(media_type, "image")
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                payload = {
-                    "phone": phone_clean,
-                    media_field: media_url,
-                }
-                if caption:
-                    payload["caption"] = caption
+            client = await get_http_client()
+            payload = {
+                "phone": phone_clean,
+                media_field: media_url,
+            }
+            if caption:
+                payload["caption"] = caption
 
-                response = await client.post(
-                    f"{self.base_endpoint}/{endpoint}",
-                    headers=self.headers,
-                    json=payload,
-                )
+            response = await client.post(
+                f"{self.base_endpoint}/{endpoint}",
+                headers=self.headers,
+                json=payload,
+                timeout=self.timeout,
+            )
 
-                if response.status_code == 200:
-                    data = response.json()
-                    return MessageResult(
-                        success=True,
-                        message_id=data.get("messageId"),
-                        provider=self.provider_type.value,
-                    )
-
-                # Sprint 56: Garantir mensagem de erro descritiva
-                error_text = response.text.strip() if response.text else "Resposta vazia"
-                error_msg = f"HTTP {response.status_code}: {error_text}"
-                logger.warning(f"[Z-API] Erro ao enviar midia: {error_msg}")
+            if response.status_code == 200:
+                data = response.json()
                 return MessageResult(
-                    success=False,
-                    error=error_msg,
+                    success=True,
+                    message_id=data.get("messageId"),
                     provider=self.provider_type.value,
                 )
+
+            # Sprint 56: Garantir mensagem de erro descritiva
+            error_text = response.text.strip() if response.text else "Resposta vazia"
+            error_msg = f"HTTP {response.status_code}: {error_text}"
+            logger.warning(f"[Z-API] Erro ao enviar midia: {error_msg}")
+            return MessageResult(
+                success=False,
+                error=error_msg,
+                provider=self.provider_type.value,
+            )
 
         except httpx.TimeoutException:
             error_msg = f"Timeout ao enviar midia para {phone_clean} (>{self.timeout}s)"
@@ -215,22 +218,23 @@ class ZApiProvider(WhatsAppProvider):
         Docs: https://developer.z-api.io/en/instance/status
         """
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    f"{self.base_endpoint}/status",
-                    headers=self.headers,
+            client = await get_http_client()
+            response = await client.get(
+                f"{self.base_endpoint}/status",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                connected = data.get("connected", False)
+                return ConnectionStatus(
+                    connected=connected,
+                    state="open" if connected else "close",
+                    phone_number=data.get("smartphoneConnected"),
                 )
 
-                if response.status_code == 200:
-                    data = response.json()
-                    connected = data.get("connected", False)
-                    return ConnectionStatus(
-                        connected=connected,
-                        state="open" if connected else "close",
-                        phone_number=data.get("smartphoneConnected"),
-                    )
-
-                return ConnectionStatus(connected=False, state="error")
+            return ConnectionStatus(connected=False, state="error")
 
         except Exception as e:
             logger.error(f"[Z-API] Exceção ao verificar status: {e}")
@@ -248,12 +252,13 @@ class ZApiProvider(WhatsAppProvider):
         Docs: https://developer.z-api.io/en/instance/disconnect
         """
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    f"{self.base_endpoint}/disconnect",
-                    headers=self.headers,
-                )
-                return response.status_code == 200
+            client = await get_http_client()
+            response = await client.get(
+                f"{self.base_endpoint}/disconnect",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
+            return response.status_code == 200
 
         except Exception as e:
             logger.error(f"[Z-API] Exceção ao desconectar: {e}")
@@ -266,12 +271,13 @@ class ZApiProvider(WhatsAppProvider):
         Docs: https://developer.z-api.io/en/instance/restart
         """
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    f"{self.base_endpoint}/restart",
-                    headers=self.headers,
-                )
-                return response.status_code == 200
+            client = await get_http_client()
+            response = await client.get(
+                f"{self.base_endpoint}/restart",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
+            return response.status_code == 200
 
         except Exception as e:
             logger.error(f"[Z-API] Exceção ao reiniciar: {e}")

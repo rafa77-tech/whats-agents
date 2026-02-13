@@ -267,6 +267,9 @@ class FollowupService:
         """
         Identifica conversas que precisam de follow-up.
         LEGADO: Mantido para compatibilidade com job existente.
+
+        Sprint 59 Epic 4.1: Adicionado LIMIT na query de conversas e batch
+        query de interacoes para eliminar N+1.
         """
         pendentes = []
 
@@ -274,13 +277,14 @@ class FollowupService:
             dias = config["dias_ate_followup"]
             data_limite = datetime.now(timezone.utc) - timedelta(days=dias)
 
-            # Buscar conversas ativas controladas pela IA
+            # Buscar conversas ativas controladas pela IA (com LIMIT)
             try:
                 conversas_resp = (
                     supabase.table("conversations")
                     .select("id, cliente_id, status, controlled_by")
                     .eq("status", "active")
                     .eq("controlled_by", "ai")
+                    .limit(200)
                     .execute()
                 )
             except Exception as e:
@@ -288,25 +292,33 @@ class FollowupService:
                 continue
 
             conversas = conversas_resp.data or []
+            if not conversas:
+                continue
+
+            # Sprint 59 Epic 4.1: Batch query — buscar ultima interacao de todas as conversas
+            conv_ids = [c["id"] for c in conversas]
+            ultimas_por_conv = {}
+            try:
+                interacoes_resp = (
+                    supabase.table("interacoes")
+                    .select("conversation_id, origem, autor_tipo, created_at")
+                    .in_("conversation_id", conv_ids)
+                    .order("created_at", desc=True)
+                    .execute()
+                )
+                # Manter apenas a mais recente por conversa
+                for inter in interacoes_resp.data or []:
+                    cid = inter["conversation_id"]
+                    if cid not in ultimas_por_conv:
+                        ultimas_por_conv[cid] = inter
+            except Exception as e:
+                logger.error(f"Erro ao buscar interacoes em batch: {e}")
+                continue
 
             for conv in conversas:
-                # Buscar ultima interacao
-                try:
-                    interacoes_resp = (
-                        supabase.table("interacoes")
-                        .select("origem, created_at")
-                        .eq("conversation_id", conv["id"])
-                        .order("created_at", desc=True)
-                        .limit(1)
-                        .execute()
-                    )
-                except Exception:
+                ultima = ultimas_por_conv.get(conv["id"])
+                if not ultima:
                     continue
-
-                if not interacoes_resp.data:
-                    continue
-
-                ultima = interacoes_resp.data[0]
 
                 # Se ultima foi da Julia (origem = "julia" ou autor_tipo = "ai")
                 origem = ultima.get("origem", "")

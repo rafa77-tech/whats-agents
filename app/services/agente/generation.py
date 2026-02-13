@@ -118,6 +118,7 @@ async def gerar_resposta_julia(
     capabilities_gate: CapabilitiesGate = None,
     mode_info: ModeInfo = None,
     llm_provider: LLMProvider = None,
+    situacao=None,
 ) -> str:
     """
     Gera resposta da Julia para uma mensagem.
@@ -147,7 +148,7 @@ async def gerar_resposta_julia(
                 conversa=conversa, incluir_historico=incluir_historico,
                 usar_tools=usar_tools, policy_decision=policy_decision,
                 capabilities_gate=capabilities_gate, mode_info=mode_info,
-                llm_provider=llm_provider,
+                llm_provider=llm_provider, situacao=situacao,
             ),
             timeout=pkg.TIMEOUT_GERACAO_RESPOSTA,
         )
@@ -189,32 +190,41 @@ async def _gerar_resposta_julia_impl(
     capabilities_gate: CapabilitiesGate = None,
     mode_info: ModeInfo = None,
     llm_provider: LLMProvider = None,
+    situacao=None,
 ) -> str:
     """Implementação interna da geração de resposta (sem timeout wrapper)."""
     pkg = _pkg()
 
     # E03: Detectar situação e buscar conhecimento relevante
+    # Sprint 59 Epic 2.1: Reutilizar situacao do orchestrator se já disponível
     conhecimento_dinamico = ""
-    try:
-        orquestrador = pkg.OrquestradorConhecimento()
-        historico_msgs = []
-        if contexto.get("historico_raw"):
-            historico_msgs = [
-                m.get("conteudo", "") for m in contexto["historico_raw"]
-                if m.get("tipo") == "recebida"
-            ][-5:]
-
-        situacao = await orquestrador.analisar_situacao(
-            mensagem=mensagem, historico=historico_msgs,
-            dados_cliente=medico, stage=medico.get("stage_jornada", "novo"),
-        )
+    if situacao is not None:
         conhecimento_dinamico = situacao.resumo
         logger.debug(
-            f"Situação detectada: objecao={situacao.objecao.tipo}, "
+            f"Situação reutilizada do orchestrator: objecao={situacao.objecao.tipo}, "
             f"perfil={situacao.perfil.perfil}, objetivo={situacao.objetivo.objetivo}"
         )
-    except Exception as e:
-        logger.warning(f"Erro ao buscar conhecimento dinâmico: {e}")
+    else:
+        try:
+            orquestrador = pkg.OrquestradorConhecimento()
+            historico_msgs = []
+            if contexto.get("historico_raw"):
+                historico_msgs = [
+                    m.get("conteudo", "") for m in contexto["historico_raw"]
+                    if m.get("tipo") == "recebida"
+                ][-5:]
+
+            situacao = await orquestrador.analisar_situacao(
+                mensagem=mensagem, historico=historico_msgs,
+                dados_cliente=medico, stage=medico.get("stage_jornada", "novo"),
+            )
+            conhecimento_dinamico = situacao.resumo
+            logger.debug(
+                f"Situação detectada: objecao={situacao.objecao.tipo}, "
+                f"perfil={situacao.perfil.perfil}, objetivo={situacao.objetivo.objetivo}"
+            )
+        except Exception as e:
+            logger.warning(f"Erro ao buscar conhecimento dinâmico: {e}")
 
     # Montar constraints combinados (Policy Engine + Conversation Mode)
     constraints_parts = []

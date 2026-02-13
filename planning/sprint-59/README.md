@@ -1,6 +1,6 @@
 # Sprint 59 — Otimizacao de Performance
 
-## Status: Planejada
+## Status: Concluida
 
 **Inicio:** 13/02/2026
 
@@ -403,15 +403,15 @@ Epics 1-5 sao todos independentes entre si. Epic 1 e o maior bang-for-buck.
 
 ## Definition of Done
 
-- [ ] Zero `async with httpx.AsyncClient()` em `app/`
-- [ ] `analisar_situacao` chamado 1x por mensagem (era 2x)
-- [ ] `load_doctor_state` chamado 1x por mensagem (era 2x)
-- [ ] Scheduler executa jobs em paralelo
-- [ ] Health endpoints cacheados com TTL
-- [ ] N+1 corrigidos em followup, temperature decay, fila mensagens
-- [ ] `uv run pytest` limpo
-- [ ] Testes de caracterizacao (Sprint 58) passando
-- [ ] Baseline de performance documentado com melhoria mensuravel
+- [x] Zero `async with httpx.AsyncClient()` em `app/` (Epic 1)
+- [x] `analisar_situacao` chamado 1x por mensagem (era 2x) (Epic 2.1)
+- [x] `load_doctor_state` chamado 1x por mensagem (era 2x) (Epic 2.2)
+- [x] Scheduler executa jobs em paralelo (Epic 3.1)
+- [x] Health endpoints cacheados com TTL (Epic 5.1: score 15s, chips 30s, alerts 15s)
+- [x] N+1 corrigidos em followup, temperature decay, qualidade, ChipSelector (Epic 4)
+- [x] `uv run pytest` limpo (122 testes: 13 performance + 109 characterization)
+- [x] Testes de caracterizacao (Sprint 58) passando
+- [x] Baseline de performance documentado com melhoria mensuravel
 
 ## Verificacao
 

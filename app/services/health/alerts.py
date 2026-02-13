@@ -2,19 +2,26 @@
 Coleta de alertas consolidados do sistema.
 
 Sprint 58 - Epic 3: Extraido de app/api/routes/health.py
+Sprint 59 - Epic 5.1: Cache Redis de 15s
 """
 
 import logging
 
 from app.services.supabase import supabase
+from app.services.redis import cache_get_json, cache_set_json
 from app.services.circuit_breaker import obter_status_circuits
 
 logger = logging.getLogger(__name__)
+
+CACHE_KEY_ALERTS = "health:alerts"
+CACHE_TTL_ALERTS = 15  # 15 segundos
 
 
 async def coletar_alertas_sistema() -> dict:
     """
     Coleta alertas de todos os subsistemas.
+
+    Sprint 59 Epic 5.1: Cache Redis de 15s.
 
     Subsistemas verificados:
     - Fila de mensagens
@@ -24,6 +31,14 @@ async def coletar_alertas_sistema() -> dict:
     Returns:
         dict com status, total_alerts e lista de alerts.
     """
+    # Sprint 59 Epic 5.1: Tentar cache primeiro
+    try:
+        cached = await cache_get_json(CACHE_KEY_ALERTS)
+        if cached:
+            return cached
+    except Exception:
+        pass
+
     alerts = []
 
     try:
@@ -51,11 +66,19 @@ async def coletar_alertas_sistema() -> dict:
         else:
             status = "ok"
 
-        return {
+        result = {
             "status": status,
             "total_alerts": len(alerts),
             "alerts": alerts,
         }
+
+        # Sprint 59 Epic 5.1: Salvar no cache
+        try:
+            await cache_set_json(CACHE_KEY_ALERTS, result, CACHE_TTL_ALERTS)
+        except Exception:
+            pass
+
+        return result
 
     except Exception as e:
         logger.error(f"[health/alerts] Error: {e}")

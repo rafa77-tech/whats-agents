@@ -180,7 +180,9 @@ async def processar_mensagem_completo(
         )
 
         # 3. Detectar objeção (REUTILIZAR detector do orquestrador)
+        # Sprint 59 Epic 2.1: situacao será passado para gerar_resposta_julia
         objecao_dict = None
+        situacao = None
         try:
             orquestrador = pkg.OrquestradorConhecimento()
             historico_msgs = []
@@ -210,14 +212,16 @@ async def processar_mensagem_completo(
             logger.warning(f"Erro ao detectar objeção: {e}")
 
         # 4. StateUpdate: atualizar estado
+        # Sprint 59 Epic 2.2: Aplicar updates em memória ao invés de recarregar do DB
         state_updater = pkg.StateUpdate()
         inbound_updates = state_updater.on_inbound_message(state, mensagem_texto, objecao_dict)
         if inbound_updates:
             await pkg.save_doctor_state_updates(medico["id"], inbound_updates)
-            logger.debug(f"doctor_state atualizado: {list(inbound_updates.keys())}")
-
-        # Recarregar state atualizado
-        state = await pkg.load_doctor_state(medico["id"])
+            # Aplicar updates no state em memória (evita 2o load_doctor_state)
+            for key, value in inbound_updates.items():
+                if hasattr(state, key):
+                    setattr(state, key, value)
+            logger.debug(f"doctor_state atualizado in-memory: {list(inbound_updates.keys())}")
 
         # 5. PolicyDecide: decidir ação (Sprint 16: agora é async)
         policy = pkg.PolicyDecide()
@@ -313,6 +317,7 @@ async def processar_mensagem_completo(
         capabilities_gate = pkg.CapabilitiesGate(mode_info.mode)
 
         # 8. Gerar resposta com constraints
+        # Sprint 59 Epic 2.1: Passa situacao do orchestrator para evitar 2a chamada
         resposta = await pkg.gerar_resposta_julia(
             mensagem_texto,
             contexto,
@@ -321,6 +326,7 @@ async def processar_mensagem_completo(
             policy_decision=decision,
             capabilities_gate=capabilities_gate,  # Sprint 29
             mode_info=mode_info,  # Sprint 29
+            situacao=situacao,  # Sprint 59: reutilizar analisar_situacao
         )
 
         # 8b. Emitir eventos de oferta se aplicável (Sprint 17 - E04)

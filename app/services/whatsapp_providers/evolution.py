@@ -9,9 +9,8 @@ Adapta a Evolution API existente para a interface WhatsAppProvider.
 import logging
 from typing import Optional
 
-import httpx
-
 from app.core.config import settings
+from app.services.http_client import get_http_client
 from app.services.whatsapp_providers.base import (
     WhatsAppProvider,
     ProviderType,
@@ -52,33 +51,34 @@ class EvolutionProvider(WhatsAppProvider):
         phone_clean = self.format_phone(phone)
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    f"{self.base_url}/message/sendText/{self.instance_name}",
-                    headers=self.headers,
-                    json={
-                        "number": phone_clean,
-                        "text": message,
-                    },
-                )
+            client = await get_http_client()
+            response = await client.post(
+                f"{self.base_url}/message/sendText/{self.instance_name}",
+                headers=self.headers,
+                json={
+                    "number": phone_clean,
+                    "text": message,
+                },
+                timeout=self.timeout,
+            )
 
-                if response.status_code in (200, 201):
-                    data = response.json()
-                    message_id = data.get("key", {}).get("id")
-                    return MessageResult(
-                        success=True,
-                        message_id=message_id,
-                        provider=self.provider_type.value,
-                    )
-
-                logger.warning(
-                    f"[Evolution] Erro ao enviar: {response.status_code} - {response.text}"
-                )
+            if response.status_code in (200, 201):
+                data = response.json()
+                message_id = data.get("key", {}).get("id")
                 return MessageResult(
-                    success=False,
-                    error=f"HTTP {response.status_code}: {response.text}",
+                    success=True,
+                    message_id=message_id,
                     provider=self.provider_type.value,
                 )
+
+            logger.warning(
+                f"[Evolution] Erro ao enviar: {response.status_code} - {response.text}"
+            )
+            return MessageResult(
+                success=False,
+                error=f"HTTP {response.status_code}: {response.text}",
+                provider=self.provider_type.value,
+            )
 
         except Exception as e:
             logger.error(f"[Evolution] Exceção ao enviar texto: {e}")
@@ -108,35 +108,36 @@ class EvolutionProvider(WhatsAppProvider):
         endpoint = endpoint_map.get(media_type, "sendMedia")
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                payload = {
-                    "number": phone_clean,
-                    "mediatype": media_type,
-                    "media": media_url,
-                }
-                if caption:
-                    payload["caption"] = caption
+            client = await get_http_client()
+            payload = {
+                "number": phone_clean,
+                "mediatype": media_type,
+                "media": media_url,
+            }
+            if caption:
+                payload["caption"] = caption
 
-                response = await client.post(
-                    f"{self.base_url}/message/{endpoint}/{self.instance_name}",
-                    headers=self.headers,
-                    json=payload,
-                )
+            response = await client.post(
+                f"{self.base_url}/message/{endpoint}/{self.instance_name}",
+                headers=self.headers,
+                json=payload,
+                timeout=self.timeout,
+            )
 
-                if response.status_code in (200, 201):
-                    data = response.json()
-                    message_id = data.get("key", {}).get("id")
-                    return MessageResult(
-                        success=True,
-                        message_id=message_id,
-                        provider=self.provider_type.value,
-                    )
-
+            if response.status_code in (200, 201):
+                data = response.json()
+                message_id = data.get("key", {}).get("id")
                 return MessageResult(
-                    success=False,
-                    error=f"HTTP {response.status_code}: {response.text}",
+                    success=True,
+                    message_id=message_id,
                     provider=self.provider_type.value,
                 )
+
+            return MessageResult(
+                success=False,
+                error=f"HTTP {response.status_code}: {response.text}",
+                provider=self.provider_type.value,
+            )
 
         except Exception as e:
             logger.error(f"[Evolution] Exceção ao enviar mídia: {e}")
@@ -149,22 +150,23 @@ class EvolutionProvider(WhatsAppProvider):
     async def get_status(self) -> ConnectionStatus:
         """Retorna status da conexão Evolution."""
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    f"{self.base_url}/instance/connectionState/{self.instance_name}",
-                    headers=self.headers,
+            client = await get_http_client()
+            response = await client.get(
+                f"{self.base_url}/instance/connectionState/{self.instance_name}",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                state = data.get("state", "close")
+                return ConnectionStatus(
+                    connected=(state == "open"),
+                    state=state,
+                    qr_code=data.get("qrcode"),
                 )
 
-                if response.status_code == 200:
-                    data = response.json()
-                    state = data.get("state", "close")
-                    return ConnectionStatus(
-                        connected=(state == "open"),
-                        state=state,
-                        qr_code=data.get("qrcode"),
-                    )
-
-                return ConnectionStatus(connected=False, state="error")
+            return ConnectionStatus(connected=False, state="error")
 
         except Exception as e:
             logger.error(f"[Evolution] Exceção ao verificar status: {e}")
@@ -178,12 +180,13 @@ class EvolutionProvider(WhatsAppProvider):
     async def disconnect(self) -> bool:
         """Desconecta a instância."""
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.delete(
-                    f"{self.base_url}/instance/logout/{self.instance_name}",
-                    headers=self.headers,
-                )
-                return response.status_code in (200, 201)
+            client = await get_http_client()
+            response = await client.delete(
+                f"{self.base_url}/instance/logout/{self.instance_name}",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
+            return response.status_code in (200, 201)
 
         except Exception as e:
             logger.error(f"[Evolution] Exceção ao desconectar: {e}")

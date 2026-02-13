@@ -19,9 +19,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-import httpx
-
 from app.core.config import settings
+from app.services.http_client import get_http_client
 from app.services.supabase import supabase
 from app.services.redis import cache_get_json, cache_set_json
 
@@ -89,20 +88,20 @@ async def _responder_slack(channel: str, mensagem: str):
         return
 
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://slack.com/api/chat.postMessage",
-                headers={
-                    "Authorization": f"Bearer {settings.SLACK_BOT_TOKEN}",
-                    "Content-Type": "application/json",
-                },
-                json={"channel": channel, "text": mensagem, "unfurl_links": False},
-                timeout=10.0,
-            )
+        client = await get_http_client()
+        response = await client.post(
+            "https://slack.com/api/chat.postMessage",
+            headers={
+                "Authorization": f"Bearer {settings.SLACK_BOT_TOKEN}",
+                "Content-Type": "application/json",
+            },
+            json={"channel": channel, "text": mensagem, "unfurl_links": False},
+            timeout=10.0,
+        )
 
-            data = response.json()
-            if not data.get("ok"):
-                logger.error(f"Erro ao responder Slack: {data.get('error')}")
+        data = response.json()
+        if not data.get("ok"):
+            logger.error(f"Erro ao responder Slack: {data.get('error')}")
 
     except Exception as e:
         logger.error(f"Erro ao enviar resposta Slack: {e}")

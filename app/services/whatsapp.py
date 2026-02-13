@@ -12,6 +12,7 @@ import logging
 
 from app.core.config import settings
 from app.services.circuit_breaker import circuit_evolution
+from app.services.http_client import get_http_client
 from app.services.rate_limiter import pode_enviar, registrar_envio
 
 logger = logging.getLogger(__name__)
@@ -72,15 +73,15 @@ class EvolutionClient:
 
             for attempt in range(RETRY_CONFIG["max_attempts"]):
                 try:
-                    async with httpx.AsyncClient() as client:
-                        if method == "POST":
-                            response = await client.post(
-                                url, json=payload, headers=self.headers, timeout=timeout
-                            )
-                        else:
-                            response = await client.get(url, headers=self.headers, timeout=timeout)
-                        response.raise_for_status()
-                        return response.json()
+                    client = await get_http_client()
+                    if method == "POST":
+                        response = await client.post(
+                            url, json=payload, headers=self.headers, timeout=timeout
+                        )
+                    else:
+                        response = await client.get(url, headers=self.headers, timeout=timeout)
+                    response.raise_for_status()
+                    return response.json()
 
                 except httpx.HTTPStatusError as e:
                     last_error = e
@@ -320,12 +321,12 @@ class EvolutionClient:
         url = f"{self.base_url}/group/participants/{self.instance}"
 
         async def _request():
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    url, params={"groupJid": grupo_jid}, headers=self.headers, timeout=15.0
-                )
-                response.raise_for_status()
-                return response.json()
+            client = await get_http_client()
+            response = await client.get(
+                url, params={"groupJid": grupo_jid}, headers=self.headers, timeout=15.0
+            )
+            response.raise_for_status()
+            return response.json()
 
         try:
             result = await circuit_evolution.executar(_request)
@@ -381,12 +382,12 @@ class EvolutionClient:
         url = f"{self.base_url}/group/fetchAllGroups/{self.instance}"
 
         async def _request():
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    url, params={"getParticipants": "false"}, headers=self.headers, timeout=15.0
-                )
-                response.raise_for_status()
-                return response.json()
+            client = await get_http_client()
+            response = await client.get(
+                url, params={"getParticipants": "false"}, headers=self.headers, timeout=15.0
+            )
+            response.raise_for_status()
+            return response.json()
 
         try:
             result = await circuit_evolution.executar(_request)
@@ -408,12 +409,12 @@ class EvolutionClient:
         url = f"{self.base_url}/group/inviteInfo/{self.instance}"
 
         async def _request():
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    url, params={"inviteCode": invite_code}, headers=self.headers, timeout=15.0
-                )
-                response.raise_for_status()
-                return response.json()
+            client = await get_http_client()
+            response = await client.get(
+                url, params={"inviteCode": invite_code}, headers=self.headers, timeout=15.0
+            )
+            response.raise_for_status()
+            return response.json()
 
         try:
             result = await circuit_evolution.executar(_request)
@@ -440,12 +441,12 @@ class EvolutionClient:
         url = f"{self.base_url}/group/acceptInviteCode/{self.instance}"
 
         async def _request():
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    url, json={"inviteCode": invite_code}, headers=self.headers, timeout=30.0
-                )
-                response.raise_for_status()
-                return response.json()
+            client = await get_http_client()
+            response = await client.post(
+                url, json={"inviteCode": invite_code}, headers=self.headers, timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json()
 
         try:
             result = await circuit_evolution.executar(_request)
@@ -533,28 +534,28 @@ class EvolutionClient:
 
             url = f"{self.base_url}/chat/whatsappNumbers/{self.instance}"
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    url, headers=self.headers, json={"numbers": [numero_limpo]}
-                )
+            client = await get_http_client()
+            response = await client.post(
+                url, headers=self.headers, json={"numbers": [numero_limpo]}, timeout=30.0
+            )
 
-                if response.status_code != 200:
-                    logger.warning(f"checkNumberStatus erro HTTP: {response.status_code}")
-                    return {"exists": False, "error": f"HTTP {response.status_code}"}
+            if response.status_code != 200:
+                logger.warning(f"checkNumberStatus erro HTTP: {response.status_code}")
+                return {"exists": False, "error": f"HTTP {response.status_code}"}
 
-                data = response.json()
+            data = response.json()
 
-                # Resposta da Evolution API:
-                # [{"exists": true, "jid": "5511999999999@s.whatsapp.net", "number": "5511999999999"}]
-                if data and len(data) > 0:
-                    resultado = data[0]
-                    return {
-                        "exists": resultado.get("exists", False),
-                        "jid": resultado.get("jid"),
-                        "number": resultado.get("number"),
-                    }
+            # Resposta da Evolution API:
+            # [{"exists": true, "jid": "5511999999999@s.whatsapp.net", "number": "5511999999999"}]
+            if data and len(data) > 0:
+                resultado = data[0]
+                return {
+                    "exists": resultado.get("exists", False),
+                    "jid": resultado.get("jid"),
+                    "number": resultado.get("number"),
+                }
 
-                return {"exists": False, "error": "Resposta vazia"}
+            return {"exists": False, "error": "Resposta vazia"}
 
         except httpx.TimeoutException:
             logger.warning(f"checkNumberStatus timeout para {phone}")

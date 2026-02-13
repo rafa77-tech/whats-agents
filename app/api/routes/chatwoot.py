@@ -121,8 +121,8 @@ async def chatwoot_test_api():
 
     Util para verificar se a API key esta funcionando.
     """
-    import httpx
     from app.services.chatwoot import chatwoot_service
+    from app.services.http_client import get_http_client
 
     if not chatwoot_service.configurado:
         return {"status": "error", "message": "Chatwoot nao configurado"}
@@ -131,36 +131,31 @@ async def chatwoot_test_api():
     url = f"{chatwoot_service.base_url}/api/v1/profile"
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(url, headers=chatwoot_service.headers)
+        client = await get_http_client()
+        response = await client.get(url, headers=chatwoot_service.headers, timeout=10.0)
 
-            if response.status_code == 200:
-                data = response.json()
-                return {
-                    "status": "ok",
-                    "api_key_valid": True,
-                    "user": data.get("name", "Unknown"),
-                    "email": data.get("email", "Unknown"),
-                    "account_id": chatwoot_service.account_id,
-                }
-            elif response.status_code == 401:
-                return {
-                    "status": "error",
-                    "api_key_valid": False,
-                    "message": "API key invalida. Regenere em Profile Settings > Access Token no Chatwoot.",
-                    "chatwoot_url": chatwoot_service.base_url,
-                }
-            else:
-                return {
-                    "status": "error",
-                    "http_status": response.status_code,
-                    "message": response.text,
-                }
-    except httpx.ConnectError:
-        return {
-            "status": "error",
-            "message": f"Nao foi possivel conectar ao Chatwoot em {chatwoot_service.base_url}",
-        }
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "status": "ok",
+                "api_key_valid": True,
+                "user": data.get("name", "Unknown"),
+                "email": data.get("email", "Unknown"),
+                "account_id": chatwoot_service.account_id,
+            }
+        elif response.status_code == 401:
+            return {
+                "status": "error",
+                "api_key_valid": False,
+                "message": "API key invalida. Regenere em Profile Settings > Access Token no Chatwoot.",
+                "chatwoot_url": chatwoot_service.base_url,
+            }
+        else:
+            return {
+                "status": "error",
+                "http_status": response.status_code,
+                "message": response.text,
+            }
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

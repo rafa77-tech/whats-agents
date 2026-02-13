@@ -282,7 +282,7 @@ async def pilot_mode_status():
 @router.get("/health/chips")
 async def chips_health_status():
     """Dashboard de saude dos chips. Delegates to service layer."""
-    result = obter_saude_chips()
+    result = await obter_saude_chips()
     result["timestamp"] = agora_utc().isoformat()
     return result
 

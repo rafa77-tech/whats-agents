@@ -17,6 +17,30 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Cliente HTTP separado para VPS activator (requer verify=False)
+_activator_client: Optional[httpx.AsyncClient] = None
+
+
+async def get_activator_http_client() -> httpx.AsyncClient:
+    """Cliente HTTP singleton para Chip Activator (SSL disabled)."""
+    global _activator_client
+    if _activator_client is None:
+        _activator_client = httpx.AsyncClient(
+            verify=False,
+            timeout=httpx.Timeout(connect=10.0, read=30.0, write=30.0, pool=5.0),
+            limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
+        )
+        logger.info("Chip Activator HTTP client criado (verify=False)")
+    return _activator_client
+
+
+async def close_activator_http_client() -> None:
+    """Fecha o cliente HTTP do Chip Activator."""
+    global _activator_client
+    if _activator_client is not None:
+        await _activator_client.aclose()
+        _activator_client = None
+
 
 class ChipActivatorError(Exception):
     """Erro ao interagir com API de ativacao."""
@@ -58,13 +82,13 @@ class ChipActivatorClient:
             return {"status": "not_configured", "error": "CHIP_ACTIVATOR_URL nao configurado"}
 
         try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.get(
-                    f"{self.base_url}/health",
-                    timeout=10,
-                )
-                response.raise_for_status()
-                return response.json()
+            client = await get_activator_http_client()
+            response = await client.get(
+                f"{self.base_url}/health",
+                timeout=10,
+            )
+            response.raise_for_status()
+            return response.json()
         except httpx.HTTPStatusError as e:
             logger.error(f"[ChipActivator] Health check HTTP error: {e.response.status_code}")
             return {"status": "error", "error": f"HTTP {e.response.status_code}"}
@@ -113,22 +137,22 @@ class ChipActivatorClient:
             payload["callback_url"] = callback_url
 
         try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.post(
-                    f"{self.base_url}/activate",
-                    json=payload,
-                    headers=self.headers,
-                    timeout=self.timeout,
-                )
+            client = await get_activator_http_client()
+            response = await client.post(
+                f"{self.base_url}/activate",
+                json=payload,
+                headers=self.headers,
+                timeout=self.timeout,
+            )
 
-                if response.status_code == 503:
-                    raise ChipActivatorError("Fila de ativacao cheia. Tentar novamente depois.")
+            if response.status_code == 503:
+                raise ChipActivatorError("Fila de ativacao cheia. Tentar novamente depois.")
 
-                response.raise_for_status()
-                data = response.json()
+            response.raise_for_status()
+            data = response.json()
 
-                logger.info(f"[ChipActivator] Chip adicionado a fila: {data.get('id')}")
-                return data
+            logger.info(f"[ChipActivator] Chip adicionado a fila: {data.get('id')}")
+            return data
 
         except httpx.HTTPStatusError as e:
             logger.error(
@@ -159,15 +183,15 @@ class ChipActivatorClient:
         logger.info(f"[ChipActivator] Enviando codigo SMS para: {activation_id}")
 
         try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.post(
-                    f"{self.base_url}/activate/{activation_id}/sms",
-                    json={"code": code},
-                    headers=self.headers,
-                    timeout=self.timeout,
-                )
-                response.raise_for_status()
-                return response.json()
+            client = await get_activator_http_client()
+            response = await client.post(
+                f"{self.base_url}/activate/{activation_id}/sms",
+                json={"code": code},
+                headers=self.headers,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            return response.json()
 
         except httpx.HTTPStatusError as e:
             logger.error(f"[ChipActivator] Erro ao enviar SMS: {e.response.status_code}")
@@ -199,14 +223,14 @@ class ChipActivatorClient:
             raise ChipActivatorError("CHIP_ACTIVATOR_URL ou CHIP_ACTIVATOR_API_KEY nao configurado")
 
         try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.get(
-                    f"{self.base_url}/activate/{activation_id}",
-                    headers=self.headers,
-                    timeout=self.timeout,
-                )
-                response.raise_for_status()
-                return response.json()
+            client = await get_activator_http_client()
+            response = await client.get(
+                f"{self.base_url}/activate/{activation_id}",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            return response.json()
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
@@ -293,14 +317,14 @@ class ChipActivatorClient:
             return {"error": "CHIP_ACTIVATOR_URL nao configurado"}
 
         try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.get(
-                    f"{self.base_url}/queue",
-                    headers=self.headers,
-                    timeout=self.timeout,
-                )
-                response.raise_for_status()
-                return response.json()
+            client = await get_activator_http_client()
+            response = await client.get(
+                f"{self.base_url}/queue",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            return response.json()
         except Exception as e:
             logger.error(f"[ChipActivator] Erro ao verificar fila: {e}")
             return {"error": str(e)}
@@ -323,14 +347,14 @@ class ChipActivatorClient:
             return {"error": "CHIP_ACTIVATOR_URL nao configurado"}
 
         try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.get(
-                    f"{self.base_url}/metrics",
-                    headers=self.headers,
-                    timeout=self.timeout,
-                )
-                response.raise_for_status()
-                return response.json()
+            client = await get_activator_http_client()
+            response = await client.get(
+                f"{self.base_url}/metrics",
+                headers=self.headers,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            return response.json()
         except Exception as e:
             logger.error(f"[ChipActivator] Erro ao obter metricas: {e}")
             return {"error": str(e)}

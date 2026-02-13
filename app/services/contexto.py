@@ -218,9 +218,20 @@ async def carregar_diretrizes_ativas() -> dict:
     """
     Carrega diretrizes ativas do briefing.
 
+    Sprint 59 Epic 5.2: Cache Redis de 5 minutos.
+
     Returns:
         Dict com diretrizes por tipo
     """
+    # Sprint 59 Epic 5.2: Tentar cache primeiro
+    cache_key = "diretrizes:ativas"
+    try:
+        cached = await cache_get_json(cache_key)
+        if cached:
+            return cached
+    except Exception:
+        pass
+
     try:
         response = (
             supabase.table("diretrizes")
@@ -233,6 +244,12 @@ async def carregar_diretrizes_ativas() -> dict:
         diretrizes = {}
         for d in response.data or []:
             diretrizes[d["tipo"]] = d["conteudo"]
+
+        # Sprint 59 Epic 5.2: Salvar no cache (5 min TTL)
+        try:
+            await cache_set_json(cache_key, diretrizes, 300)
+        except Exception:
+            pass
 
         return diretrizes
 

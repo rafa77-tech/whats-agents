@@ -19,6 +19,7 @@ from app.services.policy.repository import (
     load_doctor_state,
     save_doctor_state_updates,
     buscar_states_para_decay,
+    _row_to_state,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,7 +52,8 @@ async def decay_all_temperatures(batch_size: int = 100) -> int:
 
         for row in states_to_decay[:batch_size]:  # Limitar batch
             try:
-                state = await load_doctor_state(row["cliente_id"])
+                # Sprint 59 Epic 4.2: Converter row direto ao invés de load_doctor_state
+                state = _row_to_state(row)
                 updates = state_updater.decay_temperature(state, now)
 
                 if updates:

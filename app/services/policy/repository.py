@@ -212,23 +212,27 @@ async def resolve_objection(cliente_id: str) -> bool:
     )
 
 
-async def buscar_states_para_decay(dias_minimo: int = 1) -> list[dict]:
+async def buscar_states_para_decay(dias_minimo: int = 1, limit: int = 200) -> list[dict]:
     """
     Busca estados que precisam de decay de temperatura.
 
+    Sprint 59 Epic 4.2: SELECT * com LIMIT para permitir conversao direta
+    via _row_to_state, evitando N chamadas a load_doctor_state.
+
     Args:
         dias_minimo: Mínimo de dias desde último decay
+        limit: Máximo de registros retornados
 
     Returns:
-        Lista de rows do banco
+        Lista de rows do banco (com todos os campos)
     """
     try:
-        # Buscar estados com temperatura > 0 que não tiveram decay recente
         response = (
             supabase.table("doctor_state")
-            .select("cliente_id, temperature, last_inbound_at, last_decay_at")
+            .select("*")
             .neq("permission_state", "opted_out")
             .gt("temperature", 0)
+            .limit(limit)
             .execute()
         )
 

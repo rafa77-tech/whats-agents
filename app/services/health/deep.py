@@ -88,23 +88,24 @@ async def executar_deep_health_check() -> dict:
     # 0d. DEV GUARDRAILS
     all_ok = _verificar_dev_guardrails(checks, all_ok)
 
-    # 1. Check Redis
-    all_ok = await _verificar_redis_deep(checks, all_ok)
+    # Sprint 59 Epic 3.3: Paralelizar checks independentes
+    import asyncio
 
-    # 2. Check Supabase connection
+    # Run async checks in parallel
+    redis_result, prompts_result = await asyncio.gather(
+        _verificar_redis_deep(checks, True),
+        _verificar_prompts(checks, True),
+    )
+    if not redis_result:
+        all_ok = False
+    if not prompts_result:
+        all_ok = False
+
+    # Sync checks (all use supabase client, run sequentially)
     all_ok = _verificar_supabase_deep(checks, all_ok)
-
-    # 3. Check critical tables
     all_ok = _verificar_tabelas_criticas(checks, all_ok)
-
-    # 4. Check critical views
     all_ok = _verificar_views_criticas(checks, all_ok)
-
-    # 5. Check schema version
     all_ok = _verificar_schema_version(checks, all_ok)
-
-    # 6. Check prompt contract
-    all_ok = await _verificar_prompts(checks, all_ok)
 
     # Resultado final
     overall_status = "healthy" if all_ok else "unhealthy"

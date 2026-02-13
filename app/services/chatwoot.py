@@ -6,11 +6,11 @@ a sincronizacao de mensagens/contatos/conversas. Este servico
 e apenas para CONSULTA de IDs e processamento de webhooks.
 """
 
-import httpx
 import logging
 from typing import Optional
 
 from app.core.config import settings
+from app.services.http_client import get_http_client
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -57,19 +57,17 @@ class ChatwootService:
         # Chatwoot pode ter o telefone com ou sem +
         queries = [telefone, f"+{telefone}"]
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            for query in queries:
-                try:
-                    response = await client.get(url, params={"q": query}, headers=self.headers)
-                    response.raise_for_status()
-                    data = response.json()
+        client = await get_http_client()
+        for query in queries:
+            try:
+                response = await client.get(url, params={"q": query}, headers=self.headers, timeout=10.0)
+                response.raise_for_status()
+                data = response.json()
 
-                    if data.get("payload"):
-                        return data["payload"][0]
-                except httpx.HTTPError as e:
-                    logger.warning(f"Erro HTTP ao buscar contato {query}: {e}")
-                except Exception as e:
-                    logger.warning(f"Erro ao buscar contato {query}: {e}")
+                if data.get("payload"):
+                    return data["payload"][0]
+            except Exception as e:
+                logger.warning(f"Erro ao buscar contato {query}: {e}")
 
         return None
 
@@ -90,15 +88,15 @@ class ChatwootService:
             f"{self.base_url}/api/v1/accounts/{self.account_id}/contacts/{contact_id}/conversations"
         )
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            try:
-                response = await client.get(url, headers=self.headers)
-                response.raise_for_status()
-                data = response.json()
-                return data.get("payload", [])
-            except Exception as e:
-                logger.error(f"Erro ao buscar conversas do contato {contact_id}: {e}")
-                return []
+        try:
+            client = await get_http_client()
+            response = await client.get(url, headers=self.headers, timeout=10.0)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("payload", [])
+        except Exception as e:
+            logger.error(f"Erro ao buscar conversas do contato {contact_id}: {e}")
+            return []
 
     async def buscar_conversa_por_id(self, conversation_id: int) -> Optional[dict]:
         """
@@ -115,14 +113,14 @@ class ChatwootService:
 
         url = f"{self.base_url}/api/v1/accounts/{self.account_id}/conversations/{conversation_id}"
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            try:
-                response = await client.get(url, headers=self.headers)
-                response.raise_for_status()
-                return response.json()
-            except Exception as e:
-                logger.error(f"Erro ao buscar conversa {conversation_id}: {e}")
-                return None
+        try:
+            client = await get_http_client()
+            response = await client.get(url, headers=self.headers, timeout=10.0)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Erro ao buscar conversa {conversation_id}: {e}")
+            return None
 
     async def buscar_telefone_por_conversation_id(self, conversation_id: int) -> Optional[str]:
         """
@@ -187,15 +185,15 @@ class ChatwootService:
 
         payload = {"content": content, "message_type": message_type}
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            try:
-                response = await client.post(url, json=payload, headers=self.headers)
-                response.raise_for_status()
-                logger.info(f"Mensagem enviada para Chatwoot conversa {conversation_id}")
-                return True
-            except Exception as e:
-                logger.error(f"Erro ao enviar mensagem para Chatwoot: {e}")
-                return False
+        try:
+            client = await get_http_client()
+            response = await client.post(url, json=payload, headers=self.headers, timeout=10.0)
+            response.raise_for_status()
+            logger.info(f"Mensagem enviada para Chatwoot conversa {conversation_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Erro ao enviar mensagem para Chatwoot: {e}")
+            return False
 
     async def adicionar_label(self, conversation_id: int, label: str) -> bool:
         """
@@ -235,15 +233,15 @@ class ChatwootService:
 
         payload = {"labels": novas_labels}
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            try:
-                response = await client.post(url, json=payload, headers=self.headers)
-                response.raise_for_status()
-                logger.info(f"Label '{label}' adicionada a conversa {conversation_id}")
-                return True
-            except Exception as e:
-                logger.error(f"Erro ao adicionar label no Chatwoot: {e}")
-                return False
+        try:
+            client = await get_http_client()
+            response = await client.post(url, json=payload, headers=self.headers, timeout=10.0)
+            response.raise_for_status()
+            logger.info(f"Label '{label}' adicionada a conversa {conversation_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Erro ao adicionar label no Chatwoot: {e}")
+            return False
 
     async def remover_label(self, conversation_id: int, label: str) -> bool:
         """
@@ -283,15 +281,15 @@ class ChatwootService:
 
         payload = {"labels": novas_labels}
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            try:
-                response = await client.post(url, json=payload, headers=self.headers)
-                response.raise_for_status()
-                logger.info(f"Label '{label}' removida da conversa {conversation_id}")
-                return True
-            except Exception as e:
-                logger.error(f"Erro ao remover label no Chatwoot: {e}")
-                return False
+        try:
+            client = await get_http_client()
+            response = await client.post(url, json=payload, headers=self.headers, timeout=10.0)
+            response.raise_for_status()
+            logger.info(f"Label '{label}' removida da conversa {conversation_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Erro ao remover label no Chatwoot: {e}")
+            return False
 
 
 # Instancia global

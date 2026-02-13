@@ -100,18 +100,19 @@ async def _enviar_via_multi_chip(
         try:
             # Evolution API: /chat/presence/{instance}
             if chip.get("provider") == "evolution":
-                import httpx
+                from app.services.http_client import get_http_client
 
-                async with httpx.AsyncClient(timeout=5) as client:
-                    await client.post(
-                        f"{provider.base_url}/chat/presence/{provider.instance_name}",
-                        headers=provider.headers,
-                        json={
-                            "number": telefone,
-                            "delay": int(tempo * 1000),
-                            "presence": "composing",
-                        },
-                    )
+                client = await get_http_client()
+                await client.post(
+                    f"{provider.base_url}/chat/presence/{provider.instance_name}",
+                    headers=provider.headers,
+                    json={
+                        "number": telefone,
+                        "delay": int(tempo * 1000),
+                        "presence": "composing",
+                    },
+                    timeout=5,
+                )
         except Exception as e:
             logger.debug(f"[MultiChip] Erro ao enviar presence: {e}")
 

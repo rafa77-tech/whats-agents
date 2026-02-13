@@ -15,9 +15,9 @@ from typing import List, Optional, Dict
 from datetime import datetime, timedelta, UTC
 from urllib.parse import urlparse
 
-import httpx
 from bs4 import BeautifulSoup
 
+from app.services.http_client import get_http_client
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -83,31 +83,30 @@ class SourceDiscovery:
             "gl": "BR",
         }
 
-        async with httpx.AsyncClient() as client:
-            try:
-                resp = await client.get(
-                    search_url,
-                    params=params,
-                    headers={"User-Agent": self.user_agent},
-                    timeout=30,
-                    follow_redirects=True,
-                )
+        try:
+            client = await get_http_client()
+            resp = await client.get(
+                search_url,
+                params=params,
+                headers={"User-Agent": self.user_agent},
+                timeout=30,
+            )
 
-                soup = BeautifulSoup(resp.text, "html.parser")
+            soup = BeautifulSoup(resp.text, "html.parser")
 
-                # Extrai links dos resultados
-                for link in soup.find_all("a", href=True):
-                    href = link["href"]
+            # Extrai links dos resultados
+            for link in soup.find_all("a", href=True):
+                href = link["href"]
 
-                    # Google encapsula URLs em /url?q=...
-                    if href.startswith("/url?q="):
-                        url = href.split("/url?q=")[1].split("&")[0]
-                        urls_encontradas.append(url)
-                    elif href.startswith("http") and "google" not in href:
-                        urls_encontradas.append(href)
+                # Google encapsula URLs em /url?q=...
+                if href.startswith("/url?q="):
+                    url = href.split("/url?q=")[1].split("&")[0]
+                    urls_encontradas.append(url)
+                elif href.startswith("http") and "google" not in href:
+                    urls_encontradas.append(href)
 
-            except Exception as e:
-                logger.error(f"[Discovery] Erro no Google: {e}")
+        except Exception as e:
+            logger.error(f"[Discovery] Erro no Google: {e}")
 
         return urls_encontradas
 
@@ -123,24 +122,24 @@ class SourceDiscovery:
             "cc": "BR",
         }
 
-        async with httpx.AsyncClient() as client:
-            try:
-                resp = await client.get(
-                    search_url,
-                    params=params,
-                    headers={"User-Agent": self.user_agent},
-                    timeout=30,
-                )
+        try:
+            client = await get_http_client()
+            resp = await client.get(
+                search_url,
+                params=params,
+                headers={"User-Agent": self.user_agent},
+                timeout=30,
+            )
 
-                soup = BeautifulSoup(resp.text, "html.parser")
+            soup = BeautifulSoup(resp.text, "html.parser")
 
-                for link in soup.find_all("a", href=True):
-                    href = link["href"]
-                    if href.startswith("http") and "bing" not in href and "microsoft" not in href:
-                        urls_encontradas.append(href)
+            for link in soup.find_all("a", href=True):
+                href = link["href"]
+                if href.startswith("http") and "bing" not in href and "microsoft" not in href:
+                    urls_encontradas.append(href)
 
-            except Exception as e:
-                logger.error(f"[Discovery] Erro no Bing: {e}")
+        except Exception as e:
+            logger.error(f"[Discovery] Erro no Bing: {e}")
 
         return urls_encontradas
 
@@ -204,18 +203,17 @@ class SourceDiscovery:
             return None  # Já conhecemos
 
         # Buscar conteúdo
-        async with httpx.AsyncClient() as client:
-            try:
-                resp = await client.get(
-                    url,
-                    headers={"User-Agent": self.user_agent},
-                    timeout=30,
-                    follow_redirects=True,
-                )
-                html = resp.text
-            except Exception as e:
-                logger.debug(f"[Discovery] Erro ao acessar {url}: {e}")
-                return None
+        try:
+            client = await get_http_client()
+            resp = await client.get(
+                url,
+                headers={"User-Agent": self.user_agent},
+                timeout=30,
+            )
+            html = resp.text
+        except Exception as e:
+            logger.debug(f"[Discovery] Erro ao acessar {url}: {e}")
+            return None
 
         # Pontuar
         score = self.pontuar_url(url, html)

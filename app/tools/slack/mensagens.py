@@ -6,9 +6,8 @@ Sprint 10 - S10.E2.3
 
 import re
 
-import httpx
-
 from app.core.config import settings
+from app.services.http_client import get_http_client
 from app.services.supabase import supabase
 from app.services.tipos_abordagem import (
     TipoAbordagem,
@@ -134,31 +133,31 @@ async def handle_enviar_mensagem(params: dict) -> dict:
         tipo = tipo_inferido.value
 
     try:
-        async with httpx.AsyncClient() as client:
-            payload = {"telefone": telefone_limpo, "tipo": tipo, "instrucao": instrucao}
+        client = await get_http_client()
+        payload = {"telefone": telefone_limpo, "tipo": tipo, "instrucao": instrucao}
 
-            # Adicionar dados de vaga se detectados
-            if hospital:
-                payload["hospital"] = hospital
-            if data_vaga:
-                payload["data_vaga"] = data_vaga
+        # Adicionar dados de vaga se detectados
+        if hospital:
+            payload["hospital"] = hospital
+        if data_vaga:
+            payload["data_vaga"] = data_vaga
 
-            response = await client.post(
-                f"{settings.JULIA_API_URL}/jobs/primeira-mensagem", json=payload, timeout=30.0
-            )
+        response = await client.post(
+            f"{settings.JULIA_API_URL}/jobs/primeira-mensagem", json=payload, timeout=30.0
+        )
 
-            if response.status_code == 200:
-                data = response.json()
-                nome = medico.get("primeiro_nome") if medico else "novo contato"
-                return {
-                    "success": True,
-                    "telefone": telefone_limpo,
-                    "nome": nome,
-                    "tipo_abordagem": descrever_tipo(TipoAbordagem(tipo)),
-                    "mensagem": data.get("mensagem_enviada", "Mensagem enviada"),
-                }
-            else:
-                return {"success": False, "error": f"Erro na API: {response.status_code}"}
+        if response.status_code == 200:
+            data = response.json()
+            nome = medico.get("primeiro_nome") if medico else "novo contato"
+            return {
+                "success": True,
+                "telefone": telefone_limpo,
+                "nome": nome,
+                "tipo_abordagem": descrever_tipo(TipoAbordagem(tipo)),
+                "mensagem": data.get("mensagem_enviada", "Mensagem enviada"),
+            }
+        else:
+            return {"success": False, "error": f"Erro na API: {response.status_code}"}
 
     except Exception as e:
         return {"success": False, "error": str(e)}

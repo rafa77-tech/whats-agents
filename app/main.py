@@ -60,6 +60,13 @@ async def lifespan(app: FastAPI):
         await close_http_client()
     except Exception as e:
         print(f"Erro ao fechar HTTP client: {e}")
+    # Sprint 59: Fechar HTTP client do Chip Activator (verify=False)
+    try:
+        from app.services.chip_activator.client import close_activator_http_client
+
+        await close_activator_http_client()
+    except Exception as e:
+        print(f"Erro ao fechar Chip Activator HTTP client: {e}")
 
 
 app = FastAPI(

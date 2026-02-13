@@ -12,42 +12,56 @@ Score de 0-100 baseado em:
 
 import logging
 
-from app.services.redis import verificar_conexao_redis
+from app.services.redis import verificar_conexao_redis, cache_get_json, cache_set_json
 from app.services.whatsapp import evolution
 from app.services.supabase import supabase
 from app.services.circuit_breaker import obter_status_circuits
 
 logger = logging.getLogger(__name__)
 
+CACHE_KEY_SCORE = "health:score"
+CACHE_TTL_SCORE = 15  # 15 segundos
+
 
 async def calcular_health_score() -> dict:
     """
     Calcula health score consolidado do sistema.
 
+    Sprint 59 Epic 5.1: Cache Redis de 15s para evitar recalcular a cada poll.
+
     Returns:
         dict com score, level, color, breakdown e thresholds.
     """
+    # Sprint 59 Epic 5.1: Tentar cache primeiro
+    try:
+        cached = await cache_get_json(CACHE_KEY_SCORE)
+        if cached:
+            return cached
+    except Exception:
+        pass  # Cache miss ou erro — calcular normalmente
+
     score = 0
     breakdown = {}
 
     try:
-        # 1. Conectividade (30 pontos)
-        connectivity_score = await _calcular_score_conectividade()
+        # Sprint 59 Epic 3.4: Paralelizar componentes async do health score
+        import asyncio
+
+        connectivity_score, fila_score = await asyncio.gather(
+            _calcular_score_conectividade(),
+            _calcular_score_fila(),
+        )
+
+        # Sync components
+        chips_score = _calcular_score_chips()
+        circuit_score = _calcular_score_circuits()
+
         breakdown["connectivity"] = {"score": connectivity_score, "max": 30}
         score += connectivity_score
-
-        # 2. Fila de mensagens (25 pontos)
-        fila_score = await _calcular_score_fila()
         breakdown["fila"] = {"score": fila_score, "max": 25}
         score += fila_score
-
-        # 3. Pool de chips (25 pontos)
-        chips_score = _calcular_score_chips()
         breakdown["chips"] = {"score": chips_score, "max": 25}
         score += chips_score
-
-        # 4. Circuit breakers (20 pontos)
-        circuit_score = _calcular_score_circuits()
         breakdown["circuits"] = {"score": circuit_score, "max": 20}
         score += circuit_score
 
@@ -65,7 +79,7 @@ async def calcular_health_score() -> dict:
             level = "critical"
             color = "red"
 
-        return {
+        result = {
             "score": score,
             "max_score": 100,
             "level": level,
@@ -79,6 +93,14 @@ async def calcular_health_score() -> dict:
             },
         }
 
+        # Sprint 59 Epic 5.1: Salvar no cache
+        try:
+            await cache_set_json(CACHE_KEY_SCORE, result, CACHE_TTL_SCORE)
+        except Exception:
+            pass
+
+        return result
+
     except Exception as e:
         logger.error(f"[health/score] Error: {e}")
         return {
@@ -91,36 +113,42 @@ async def calcular_health_score() -> dict:
 
 async def _calcular_score_conectividade() -> int:
     """Calcula score de conectividade (max 30 pontos)."""
+    import asyncio
+
     connectivity_score = 0
 
-    # Redis (10 pontos)
-    try:
-        redis_ok = await verificar_conexao_redis()
-        if redis_ok:
-            connectivity_score += 10
-    except Exception:
-        pass
+    # Sprint 59 Epic 3.4: Paralelizar Redis e Evolution (ambos async)
+    async def _check_redis() -> int:
+        try:
+            redis_ok = await verificar_conexao_redis()
+            return 10 if redis_ok else 0
+        except Exception:
+            return 0
 
-    # Supabase (10 pontos)
+    async def _check_evolution() -> int:
+        try:
+            status = await evolution.verificar_conexao()
+            state = None
+            if status:
+                if "instance" in status:
+                    state = status.get("instance", {}).get("state")
+                else:
+                    state = status.get("state")
+            if state == "open":
+                return 10
+            elif state:
+                return 5
+        except Exception:
+            pass
+        return 0
+
+    redis_score, evo_score = await asyncio.gather(_check_redis(), _check_evolution())
+    connectivity_score += redis_score + evo_score
+
+    # Supabase (10 pontos) - sync
     try:
         supabase.table("clientes").select("id").limit(1).execute()
         connectivity_score += 10
-    except Exception:
-        pass
-
-    # Evolution (10 pontos)
-    try:
-        status = await evolution.verificar_conexao()
-        state = None
-        if status:
-            if "instance" in status:
-                state = status.get("instance", {}).get("state")
-            else:
-                state = status.get("state")
-        if state == "open":
-            connectivity_score += 10
-        elif state:
-            connectivity_score += 5
     except Exception:
         pass
 

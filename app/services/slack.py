@@ -2,11 +2,11 @@
 Servico de notificacoes via Slack.
 """
 
-import httpx
 import logging
 from datetime import datetime, timezone
 
 from app.core.config import settings
+from app.services.http_client import get_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -117,15 +117,15 @@ async def enviar_slack(mensagem: dict, force: bool = False) -> bool:
             return False
 
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(settings.SLACK_WEBHOOK_URL, json=mensagem, timeout=10.0)
+        client = await get_http_client()
+        response = await client.post(settings.SLACK_WEBHOOK_URL, json=mensagem, timeout=10.0)
 
-            if response.status_code == 200:
-                logger.info("Notificacao Slack enviada com sucesso")
-                return True
-            else:
-                logger.error(f"Erro ao enviar Slack: {response.status_code}")
-                return False
+        if response.status_code == 200:
+            logger.info("Notificacao Slack enviada com sucesso")
+            return True
+        else:
+            logger.error(f"Erro ao enviar Slack: {response.status_code}")
+            return False
 
     except Exception as e:
         logger.error(f"Erro ao conectar com Slack: {e}")

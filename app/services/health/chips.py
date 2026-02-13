@@ -2,18 +2,25 @@
 Health check do pool de chips.
 
 Sprint 58 - Epic 3: Extraido de app/api/routes/health.py
+Sprint 59 - Epic 5.1: Cache Redis de 30s
 """
 
 import logging
 
 from app.services.supabase import supabase
+from app.services.redis import cache_get_json, cache_set_json
 
 logger = logging.getLogger(__name__)
 
+CACHE_KEY_CHIPS = "health:chips"
+CACHE_TTL_CHIPS = 30  # 30 segundos
 
-def obter_saude_chips() -> dict:
+
+async def obter_saude_chips() -> dict:
     """
     Retorna status completo de todos os chips.
+
+    Sprint 59 Epic 5.1: Cache Redis de 30s.
 
     Verifica:
     - Trust Score e nivel
@@ -24,6 +31,14 @@ def obter_saude_chips() -> dict:
     Returns:
         dict com status, message, summary, capacidade e chips.
     """
+    # Sprint 59 Epic 5.1: Tentar cache primeiro
+    try:
+        cached = await cache_get_json(CACHE_KEY_CHIPS)
+        if cached:
+            return cached
+    except Exception:
+        pass
+
     from app.services.chips.circuit_breaker import ChipCircuitBreaker, CircuitState
 
     try:
@@ -114,7 +129,7 @@ def obter_saude_chips() -> dict:
             [c for c in chips if c.get("pode_responder") and c.get("trust_score", 0) >= 20]
         )
 
-        return {
+        result = {
             "status": status,
             "message": message,
             "summary": {
@@ -138,6 +153,14 @@ def obter_saude_chips() -> dict:
             },
             "chips": chips_status,
         }
+
+        # Sprint 59 Epic 5.1: Salvar no cache
+        try:
+            await cache_set_json(CACHE_KEY_CHIPS, result, CACHE_TTL_CHIPS)
+        except Exception:
+            pass
+
+        return result
 
     except Exception as e:
         logger.error(f"[health/chips] Error: {e}")
