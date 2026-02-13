@@ -528,6 +528,32 @@ class WarmingOrchestrator:
             "tipo": "atualizar_perfil",
         }
 
+    async def _garantir_planejamento_diario(self):
+        """Garante que chips em warming tenham atividades planejadas para hoje."""
+        chips_ativos = (
+            supabase.table("chips")
+            .select("id, fase_warmup")
+            .neq("fase_warmup", "repouso")
+            .execute()
+        )
+
+        planejados = 0
+        for chip in chips_ativos.data or []:
+            chip_id = chip["id"]
+            stats = await scheduler.obter_estatisticas(chip_id)
+
+            if stats["total"] == 0:
+                atividades = await scheduler.planejar_dia(chip_id)
+                if atividades:
+                    await scheduler.salvar_agenda(atividades)
+                    planejados += len(atividades)
+                    logger.info(
+                        f"[Orchestrator] Auto-planejadas {len(atividades)} atividades "
+                        f"para chip {chip_id[:8]}... fase={chip['fase_warmup']}"
+                    )
+
+        return planejados
+
     async def ciclo_warmup(self):
         """
         Executa ciclo principal de warmup.
@@ -543,12 +569,17 @@ class WarmingOrchestrator:
         try:
             logger.info("[Orchestrator] Iniciando ciclo de warmup")
 
-            # 1. Buscar atividades pendentes
+            # 1. Garantir que chips ativos tenham atividades planejadas para hoje
+            planejados = await self._garantir_planejamento_diario()
+            if planejados:
+                logger.info(f"[Orchestrator] {planejados} atividades auto-planejadas")
+
+            # 2. Buscar atividades pendentes
             atividades = await scheduler.obter_proximas_atividades(limite=20)
 
             logger.info(f"[Orchestrator] {len(atividades)} atividades para executar")
 
-            # 2. Executar atividades
+            # 3. Executar atividades
             for atividade in atividades:
                 try:
                     resultado = await self.executar_atividade(atividade)
@@ -562,7 +593,7 @@ class WarmingOrchestrator:
                 # Delay entre atividades
                 await asyncio.sleep(2)
 
-            # 3. Verificar transições de fase
+            # 4. Verificar transições de fase
             chips_result = (
                 supabase.table("chips")
                 .select("id")
@@ -576,7 +607,7 @@ class WarmingOrchestrator:
                 if nova_fase:
                     await self.executar_transicao(chip["id"], nova_fase)
 
-            # 4. Recalcular trust scores
+            # 5. Recalcular trust scores
             for chip in chips_result.data or []:
                 try:
                     await calcular_trust_score(chip["id"])
