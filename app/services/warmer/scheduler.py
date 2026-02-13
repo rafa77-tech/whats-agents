@@ -331,7 +331,7 @@ class WarmingScheduler:
             registros.append(
                 {
                     "chip_id": atv.chip_id,
-                    "tipo": atv.tipo.value,
+                    "tipo": atv.tipo.value.upper(),
                     "scheduled_for": atv.horario.isoformat(),
                     "dados": atv.dados,
                     "prioridade": atv.prioridade,
@@ -384,7 +384,7 @@ class WarmingScheduler:
                 AtividadeAgendada(
                     id=row["id"],
                     chip_id=row["chip_id"],
-                    tipo=TipoAtividade(row["tipo"]),
+                    tipo=TipoAtividade(row["tipo"].lower()),
                     horario=datetime.fromisoformat(row["scheduled_for"].replace("Z", "+00:00")),
                     dados=row.get("dados", {}),
                     prioridade=row.get("prioridade", 5),
