@@ -1,13 +1,17 @@
 /**
  * Step 4 - Revisao - Sprint 34 E03
+ * Sprint 58: Display linked vagas when escopo_vagas is present
  */
 
 'use client'
 
-import { Sparkles } from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { Sparkles, Briefcase } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { formatCurrency } from '@/lib/vagas/formatters'
 import { type CampanhaFormData, TIPOS_CAMPANHA, CATEGORIAS, TONS } from './types'
 import { requiresCustomMessage } from './schema'
 
@@ -94,6 +98,41 @@ export function StepRevisao({ formData, updateField }: StepRevisaoProps) {
           )}
         </div>
       </div>
+
+      {/* Vagas vinculadas (Sprint 58) */}
+      {formData.escopo_vagas && formData.escopo_vagas.vagas.length > 0 && (
+        <div className="space-y-3 rounded-lg border border-status-info-border bg-status-info p-4">
+          <h3 className="flex items-center gap-2 font-medium text-status-info-foreground">
+            <Briefcase className="h-4 w-4" />
+            {formData.escopo_vagas.vagas.length === 1
+              ? '1 vaga vinculada'
+              : `${formData.escopo_vagas.vagas.length} vagas vinculadas`}
+          </h3>
+          <div className="space-y-2">
+            {formData.escopo_vagas.vagas.map((vaga) => (
+              <div
+                key={vaga.id}
+                className="flex items-center justify-between rounded bg-background/60 px-3 py-2 text-sm"
+              >
+                <div>
+                  <span className="font-medium">{vaga.hospital}</span>
+                  <span className="mx-1 text-muted-foreground">-</span>
+                  <span className="text-muted-foreground">{vaga.especialidade}</span>
+                </div>
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <span>
+                    {format(new Date(vaga.data + 'T00:00:00'), 'dd/MM', { locale: ptBR })}
+                  </span>
+                  <span>
+                    {vaga.hora_inicio}-{vaga.hora_fim}
+                  </span>
+                  <span className="font-medium text-foreground">{formatCurrency(vaga.valor)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="border-t pt-4">
         <div className="flex items-center space-x-2">

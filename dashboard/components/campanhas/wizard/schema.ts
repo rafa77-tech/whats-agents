@@ -5,6 +5,21 @@
 import { z } from 'zod'
 import { type CampanhaFormData } from './types'
 
+const vagaResumoSchema = z.object({
+  id: z.string(),
+  hospital: z.string(),
+  especialidade: z.string(),
+  data: z.string(),
+  hora_inicio: z.string(),
+  hora_fim: z.string(),
+  valor: z.number(),
+})
+
+const escopoVagasSchema = z.object({
+  vaga_ids: z.array(z.string()),
+  vagas: z.array(vagaResumoSchema),
+})
+
 export const campanhaSchema = z.object({
   // Step 1 - Configuracao
   nome_template: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -25,6 +40,9 @@ export const campanhaSchema = z.object({
   // Step 4 - Agendamento
   agendar: z.boolean(),
   agendar_para: z.string().optional(),
+
+  // Escopo de vagas (opcional, preenchido quando campanha criada a partir de vagas)
+  escopo_vagas: escopoVagasSchema.nullable().optional(),
 })
 
 export type CampanhaSchemaType = z.infer<typeof campanhaSchema>

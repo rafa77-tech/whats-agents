@@ -10,9 +10,21 @@ interface Props {
   page: number
   pages: number
   onPageChange: (page: number) => void
+  selectable?: boolean
+  selectedIds?: Set<string>
+  onSelectChange?: (shiftId: string, selected: boolean) => void
 }
 
-export function ShiftList({ shifts, total, page, pages, onPageChange }: Props) {
+export function ShiftList({
+  shifts,
+  total,
+  page,
+  pages,
+  onPageChange,
+  selectable,
+  selectedIds,
+  onSelectChange,
+}: Props) {
   if (shifts.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
@@ -24,9 +36,19 @@ export function ShiftList({ shifts, total, page, pages, onPageChange }: Props) {
   return (
     <div className="flex flex-col">
       <div className="space-y-2 p-4">
-        {shifts.map((shift) => (
-          <ShiftCard key={shift.id} shift={shift} />
-        ))}
+        {shifts.map((shift) =>
+          selectable && onSelectChange ? (
+            <ShiftCard
+              key={shift.id}
+              shift={shift}
+              selectable
+              selected={selectedIds?.has(shift.id) ?? false}
+              onSelectChange={onSelectChange}
+            />
+          ) : (
+            <ShiftCard key={shift.id} shift={shift} />
+          )
+        )}
       </div>
 
       {/* Pagination */}

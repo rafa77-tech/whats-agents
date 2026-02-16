@@ -22,13 +22,21 @@ import { StepRevisao } from './step-revisao'
 import { useCampanhaForm } from './use-campanha-form'
 import { DraftRecoveryDialog } from './draft-recovery-dialog'
 
+import type { WizardInitialData } from '@/lib/vagas/campaign-helpers'
+
 interface WizardContainerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+  initialData?: WizardInitialData | null
 }
 
-export function WizardContainer({ open, onOpenChange, onSuccess }: WizardContainerProps) {
+export function WizardContainer({
+  open,
+  onOpenChange,
+  onSuccess,
+  initialData,
+}: WizardContainerProps) {
   const isDesktop = useMediaQuery('(min-width: 768px)')
   const { handleError } = useApiError()
 
@@ -49,7 +57,7 @@ export function WizardContainer({ open, onOpenChange, onSuccess }: WizardContain
     draftStep,
     restoreFromDraft,
     dismissDraft,
-  } = useCampanhaForm()
+  } = useCampanhaForm({ initialData: initialData ?? null })
 
   // Show draft recovery dialog when modal opens and draft exists
   const showDraftDialog = open && hasDraft

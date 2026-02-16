@@ -3,6 +3,7 @@
  */
 
 import { Settings, Users, MessageSquare, CheckCircle2 } from 'lucide-react'
+import type { EscopoVagas } from '@/lib/vagas/campaign-helpers'
 
 export type TipoCampanha = 'oferta_plantao' | 'reativacao' | 'followup' | 'descoberta'
 export type Categoria = 'marketing' | 'operacional' | 'relacionamento'
@@ -34,6 +35,9 @@ export interface CampanhaFormData {
   // Step 4 - Agendamento
   agendar: boolean
   agendar_para: string
+
+  // Escopo de vagas (preenchido quando campanha criada a partir de vagas)
+  escopo_vagas: EscopoVagas | null
 }
 
 export const INITIAL_FORM_DATA: CampanhaFormData = {
@@ -52,6 +56,7 @@ export const INITIAL_FORM_DATA: CampanhaFormData = {
   tom: 'amigavel',
   agendar: false,
   agendar_para: '',
+  escopo_vagas: null,
 }
 
 export interface WizardStep {

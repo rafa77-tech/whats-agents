@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Clock, DollarSign, User } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { formatCurrency, parseShiftDate, getStatusBadgeColor, getStatusLabel } from '@/lib/vagas'
 import type { Shift } from '@/lib/vagas'
@@ -15,22 +16,50 @@ export type { Shift } from '@/lib/vagas'
 
 interface Props {
   shift: Shift
+  selectable?: boolean
+  selected?: boolean
+  onSelectChange?: (shiftId: string, selected: boolean) => void
 }
 
-export function ShiftCard({ shift }: Props) {
+export function ShiftCard({ shift, selectable, selected, onSelectChange }: Props) {
   const router = useRouter()
 
   const shiftDate = parseShiftDate(shift.data)
   const statusColor = getStatusBadgeColor(shift.status)
   const statusLabel = getStatusLabel(shift.status)
 
+  const handleClick = (): void => {
+    if (selectable) {
+      onSelectChange?.(shift.id, !selected)
+    } else {
+      router.push(`/vagas/${shift.id}`)
+    }
+  }
+
+  const handleCheckboxClick = (e: React.MouseEvent): void => {
+    e.stopPropagation()
+  }
+
   return (
     <Card
-      className="cursor-pointer transition-colors hover:bg-muted/50"
-      onClick={() => router.push(`/vagas/${shift.id}`)}
+      className={cn(
+        'cursor-pointer transition-colors hover:bg-muted/50',
+        selectable && selected && 'border-primary bg-primary/5'
+      )}
+      onClick={handleClick}
     >
       <CardContent className="p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
+          {/* Checkbox */}
+          {selectable && (
+            <div className="flex-shrink-0" onClick={handleCheckboxClick}>
+              <Checkbox
+                checked={selected ?? false}
+                onCheckedChange={(checked) => onSelectChange?.(shift.id, checked === true)}
+              />
+            </div>
+          )}
+
           {/* Data */}
           <div className="w-16 flex-shrink-0 rounded-lg bg-primary/10 p-3 text-center">
             <p className="text-2xl font-bold text-primary">{format(shiftDate, 'dd')}</p>

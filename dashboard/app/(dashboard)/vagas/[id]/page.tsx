@@ -1,18 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import dynamic from 'next/dynamic'
+import { useCallback, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react'
+import { ArrowLeft, Edit, ExternalLink, Megaphone, Trash2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { useShiftDetail, useDoctorSearch, getStatusBadgeColor, getStatusLabel } from '@/lib/vagas'
+import {
+  useShiftDetail,
+  useDoctorSearch,
+  getStatusBadgeColor,
+  getStatusLabel,
+  buildCampaignInitialData,
+} from '@/lib/vagas'
+import type { Shift, WizardInitialData } from '@/lib/vagas'
 import { ShiftInfoCard } from '../components/shift-info-card'
 import { AssignedDoctorCard } from '../components/assigned-doctor-card'
 import { ShiftMetadataCard } from '../components/shift-metadata-card'
 import { AssignDoctorDialog } from '../components/assign-doctor-dialog'
+import { EditarVagaDialog } from '../components/editar-vaga-dialog'
+
+const NovaCampanhaWizard = dynamic(
+  () =>
+    import('@/components/campanhas/nova-campanha-wizard').then((mod) => ({
+      default: mod.NovaCampanhaWizard,
+    })),
+  { ssr: false }
+)
 
 export default function ShiftDetailPage() {
   const params = useParams()
@@ -20,8 +38,11 @@ export default function ShiftDetailPage() {
   const router = useRouter()
 
   const [showAssignDialog, setShowAssignDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [wizardInitialData, setWizardInitialData] = useState<WizardInitialData | null>(null)
 
-  const { shift, loading, error, deleting, assigning, actions } = useShiftDetail(id)
+  const { shift, loading, error, deleting, assigning, updating, actions } = useShiftDetail(id)
   const doctorSearch = useDoctorSearch()
 
   const handleDelete = async () => {
@@ -52,6 +73,44 @@ export default function ShiftDetailPage() {
       toast.error(message)
     }
   }
+
+  const handleCreateCampaign = useCallback(() => {
+    if (!shift) return
+    // Convert ShiftDetail to Shift shape for the helper
+    const shiftForCampaign: Shift = {
+      id: shift.id,
+      hospital: shift.hospital,
+      hospital_id: shift.hospital_id,
+      especialidade: shift.especialidade,
+      especialidade_id: shift.especialidade_id,
+      data: shift.data,
+      hora_inicio: shift.hora_inicio,
+      hora_fim: shift.hora_fim,
+      valor: shift.valor,
+      status: shift.status,
+      reservas_count: 0,
+      created_at: shift.created_at,
+      contato_nome: shift.contato_nome,
+      contato_whatsapp: shift.contato_whatsapp,
+    }
+    const initialData = buildCampaignInitialData([shiftForCampaign])
+    setWizardInitialData(initialData)
+    setWizardOpen(true)
+  }, [shift])
+
+  const handleWizardSuccess = useCallback(() => {
+    setWizardOpen(false)
+    setWizardInitialData(null)
+    actions.refresh()
+    toast.success('Campanha criada com sucesso')
+  }, [actions])
+
+  const handleWizardClose = useCallback((open: boolean) => {
+    if (!open) {
+      setWizardOpen(false)
+      setWizardInitialData(null)
+    }
+  }, [])
 
   if (loading) {
     return (
@@ -99,7 +158,11 @@ export default function ShiftDetailPage() {
             <p className="text-muted-foreground">{shift.especialidade}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="sm" onClick={handleCreateCampaign}>
+              <Megaphone className="mr-2 h-4 w-4" />
+              <span className="hidden md:inline">Criar Campanha</span>
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => setShowEditDialog(true)}>
               <Edit className="h-4 w-4" />
             </Button>
             <Button
@@ -118,6 +181,7 @@ export default function ShiftDetailPage() {
       {/* Content */}
       <div className="flex-1 overflow-auto p-4 md:p-6">
         <div className="grid gap-6 md:grid-cols-2">
+          {/* [1,1] Informacoes do Plantao */}
           <ShiftInfoCard
             data={shift.data}
             horaInicio={shift.hora_inicio}
@@ -128,6 +192,7 @@ export default function ShiftDetailPage() {
             setor={shift.setor}
           />
 
+          {/* [1,2] Medico Atribuido */}
           <AssignedDoctorCard
             clienteId={shift.cliente_id}
             clienteNome={shift.cliente_nome}
@@ -135,6 +200,48 @@ export default function ShiftDetailPage() {
             onAssignClick={() => setShowAssignDialog(true)}
           />
 
+          {/* [2,1] Contato Responsavel */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <User className="h-5 w-5" />
+                Contato Responsavel
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {shift.contato_nome ? (
+                <>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Nome</p>
+                    <p className="text-sm font-medium">{shift.contato_nome}</p>
+                  </div>
+                  {shift.contato_whatsapp && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">WhatsApp</p>
+                      <a
+                        href={`https://wa.me/${shift.contato_whatsapp}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                      >
+                        {shift.contato_whatsapp}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="rounded-md border border-dashed p-3">
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum contato informado. Sem essa informacao, a Julia nao consegue intermediar
+                    esta vaga.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* [2,2] Metadados */}
           <ShiftMetadataCard
             id={shift.id}
             createdAt={shift.created_at}
@@ -154,6 +261,27 @@ export default function ShiftDetailPage() {
         assigning={assigning}
         onAssign={handleAssignDoctor}
       />
+
+      {/* Edit Shift Dialog */}
+      {shift && (
+        <EditarVagaDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          shift={shift}
+          onSave={actions.updateShift}
+          saving={updating}
+        />
+      )}
+
+      {/* Campaign wizard (dynamic import for bundle optimization) */}
+      {wizardOpen && (
+        <NovaCampanhaWizard
+          open={wizardOpen}
+          onOpenChange={handleWizardClose}
+          onSuccess={handleWizardSuccess}
+          initialData={wizardInitialData}
+        />
+      )}
     </div>
   )
 }

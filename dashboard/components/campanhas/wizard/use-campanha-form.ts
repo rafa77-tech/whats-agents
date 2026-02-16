@@ -2,23 +2,49 @@
  * Campanha Form Hook - Sprint 34 E03/E05
  *
  * Manages form state with draft persistence.
+ * Sprint 58: Added initialData support for vagas→campanhas flow.
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { type CampanhaFormData, INITIAL_FORM_DATA } from './types'
 import { validateStep } from './schema'
 import { useWizardDraft } from './use-wizard-draft'
+import type { WizardInitialData } from '@/lib/vagas/campaign-helpers'
 
-export function useCampanhaForm() {
+interface UseCampanhaFormOptions {
+  initialData?: WizardInitialData | null
+}
+
+export function useCampanhaForm(options?: UseCampanhaFormOptions) {
+  const { initialData } = options ?? {}
+
+  // When initialData is provided, merge it with defaults
+  const startingData: CampanhaFormData = initialData
+    ? {
+        ...INITIAL_FORM_DATA,
+        nome_template: initialData.nome_template,
+        tipo_campanha: initialData.tipo_campanha,
+        categoria: initialData.categoria,
+        corpo: initialData.corpo,
+        escopo_vagas: initialData.escopo_vagas,
+      }
+    : INITIAL_FORM_DATA
+
   const [step, setStep] = useState(1)
-  const [formData, setFormData] = useState<CampanhaFormData>(INITIAL_FORM_DATA)
+  const [formData, setFormData] = useState<CampanhaFormData>(startingData)
   const [loading, setLoading] = useState(false)
   const isInitialized = useRef(false)
 
   const { hasDraft, draftStep, loadDraft, saveDraft, clearDraft, dismissDraft } = useWizardDraft()
 
+  // Ignore draft when initialData is present
+  const effectiveHasDraft = initialData ? false : hasDraft
+
   // Auto-save draft when formData or step changes (debounced)
+  // Skip draft saving when using initialData (to avoid overwriting the draft with vaga-specific data)
   useEffect(() => {
+    if (initialData) return
+
     // Skip initial render to avoid saving empty state
     if (!isInitialized.current) {
       isInitialized.current = true
@@ -30,7 +56,7 @@ export function useCampanhaForm() {
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [formData, step, saveDraft])
+  }, [formData, step, saveDraft, initialData])
 
   const updateField = useCallback(
     <K extends keyof CampanhaFormData>(field: K, value: CampanhaFormData[K]) => {
@@ -113,6 +139,7 @@ export function useCampanhaForm() {
               modo_selecao: formData.modo_selecao,
             },
       chips_excluidos: chipsExcluidos, // Também no nível raiz para compatibilidade
+      escopo_vagas: formData.escopo_vagas,
       agendar_para:
         formData.agendar && formData.agendar_para
           ? new Date(formData.agendar_para).toISOString()
@@ -135,7 +162,7 @@ export function useCampanhaForm() {
     setLoading,
     buildPayload,
     // Draft state
-    hasDraft,
+    hasDraft: effectiveHasDraft,
     draftStep,
     restoreFromDraft,
     dismissDraft,

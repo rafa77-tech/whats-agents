@@ -1,6 +1,7 @@
 'use client'
 
-import { Calendar, List, Filter, Plus, Search } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { Calendar, List, Filter, Plus, Search, CheckSquare, X, Megaphone } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -8,11 +9,28 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { ShiftList } from './components/shift-list'
 import { ShiftFilters } from './components/shift-filters'
 import { ShiftCalendar } from './components/shift-calendar'
-import { useShifts } from '@/lib/vagas'
-import { useState } from 'react'
+import { NovaVagaDialog } from './components/nova-vaga-dialog'
+import { useShifts, buildCampaignInitialData } from '@/lib/vagas'
+import type { Shift, WizardInitialData } from '@/lib/vagas'
+import { useCallback, useMemo, useState } from 'react'
+
+const NovaCampanhaWizard = dynamic(
+  () =>
+    import('@/components/campanhas/nova-campanha-wizard').then((mod) => ({
+      default: mod.NovaCampanhaWizard,
+    })),
+  { ssr: false }
+)
 
 export default function VagasPage() {
   const [showFilters, setShowFilters] = useState(false)
+  const [novaVagaOpen, setNovaVagaOpen] = useState(false)
+
+  // Selection mode (Sprint 58)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [wizardInitialData, setWizardInitialData] = useState<WizardInitialData | null>(null)
 
   const { data, loading, filters, search, page, viewMode, calendarMonth, selectedDate, actions } =
     useShifts()
@@ -27,6 +45,55 @@ export default function VagasPage() {
     setShowFilters(false)
   }
 
+  const handleSelectChange = useCallback((shiftId: string, selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (selected) {
+        next.add(shiftId)
+      } else {
+        next.delete(shiftId)
+      }
+      return next
+    })
+  }, [])
+
+  const toggleSelectionMode = useCallback(() => {
+    setSelectionMode((prev) => {
+      if (prev) {
+        // Exiting selection mode: clear selection
+        setSelectedIds(new Set())
+      }
+      return !prev
+    })
+  }, [])
+
+  const selectedShifts = useMemo((): Shift[] => {
+    if (!data?.data || selectedIds.size === 0) return []
+    return data.data.filter((s) => selectedIds.has(s.id))
+  }, [data?.data, selectedIds])
+
+  const handleCreateCampaign = useCallback(() => {
+    if (selectedShifts.length === 0) return
+    const initialData = buildCampaignInitialData(selectedShifts)
+    setWizardInitialData(initialData)
+    setWizardOpen(true)
+  }, [selectedShifts])
+
+  const handleWizardSuccess = useCallback(() => {
+    setWizardOpen(false)
+    setWizardInitialData(null)
+    setSelectionMode(false)
+    setSelectedIds(new Set())
+    actions.refresh()
+  }, [actions])
+
+  const handleWizardClose = useCallback((open: boolean) => {
+    if (!open) {
+      setWizardOpen(false)
+      setWizardInitialData(null)
+    }
+  }, [])
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -36,10 +103,29 @@ export default function VagasPage() {
             <h1 className="text-2xl font-bold">Vagas</h1>
             <p className="text-muted-foreground">{data?.total || 0} vagas cadastradas</p>
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            <span className="hidden md:inline">Nova Vaga</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant={selectionMode ? 'secondary' : 'outline'}
+              onClick={toggleSelectionMode}
+              size="sm"
+            >
+              {selectionMode ? (
+                <>
+                  <X className="mr-2 h-4 w-4" />
+                  Cancelar
+                </>
+              ) : (
+                <>
+                  <CheckSquare className="mr-2 h-4 w-4" />
+                  <span className="hidden md:inline">Selecionar</span>
+                </>
+              )}
+            </Button>
+            <Button onClick={() => setNovaVagaOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              <span className="hidden md:inline">Nova Vaga</span>
+            </Button>
+          </div>
         </div>
 
         <div className="flex gap-2">
@@ -119,9 +205,49 @@ export default function VagasPage() {
             page={page}
             pages={data?.pages || 1}
             onPageChange={actions.setPage}
+            selectable={selectionMode}
+            selectedIds={selectedIds}
+            onSelectChange={handleSelectChange}
           />
         )}
       </div>
+
+      {/* Floating action bar when vagas are selected (Sprint 58) */}
+      {selectionMode && selectedIds.size > 0 && (
+        <div className="sticky bottom-0 border-t bg-background p-4 shadow-lg">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">
+              {selectedIds.size} vaga{selectedIds.size > 1 ? 's' : ''} selecionada
+              {selectedIds.size > 1 ? 's' : ''}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
+                Limpar
+              </Button>
+              <Button size="sm" onClick={handleCreateCampaign}>
+                <Megaphone className="mr-2 h-4 w-4" />
+                Criar Campanha
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <NovaVagaDialog
+        open={novaVagaOpen}
+        onOpenChange={setNovaVagaOpen}
+        onSuccess={actions.refresh}
+      />
+
+      {/* Campaign wizard (dynamic import for bundle optimization) */}
+      {wizardOpen && (
+        <NovaCampanhaWizard
+          open={wizardOpen}
+          onOpenChange={handleWizardClose}
+          onSuccess={handleWizardSuccess}
+          initialData={wizardInitialData}
+        />
+      )}
     </div>
   )
 }
