@@ -174,10 +174,12 @@ interface UseShiftDetailReturn {
   error: string | null
   deleting: boolean
   assigning: boolean
+  updating: boolean
   actions: {
     refresh: () => Promise<void>
     deleteShift: () => Promise<boolean>
     assignDoctor: (doctorId: string) => Promise<boolean>
+    updateShift: (data: Record<string, unknown>) => Promise<boolean>
   }
 }
 
@@ -190,6 +192,7 @@ export function useShiftDetail(id: string): UseShiftDetailReturn {
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [assigning, setAssigning] = useState(false)
+  const [updating, setUpdating] = useState(false)
 
   const fetchShift = useCallback(async () => {
     setLoading(true)
@@ -239,6 +242,33 @@ export function useShiftDetail(id: string): UseShiftDetailReturn {
     }
   }, [id])
 
+  const updateShift = useCallback(
+    async (data: Record<string, unknown>): Promise<boolean> => {
+      setUpdating(true)
+      try {
+        const response = await fetch(API_ENDPOINTS.shiftDetail(id), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+
+        if (response.ok) {
+          await fetchShift()
+          return true
+        } else {
+          const result = await response.json()
+          throw new Error(result.error || 'Erro ao atualizar vaga')
+        }
+      } catch (err) {
+        console.error('Failed to update shift:', err)
+        throw err
+      } finally {
+        setUpdating(false)
+      }
+    },
+    [id, fetchShift]
+  )
+
   const assignDoctor = useCallback(
     async (doctorId: string): Promise<boolean> => {
       setAssigning(true)
@@ -272,10 +302,12 @@ export function useShiftDetail(id: string): UseShiftDetailReturn {
     error,
     deleting,
     assigning,
+    updating,
     actions: {
       refresh: fetchShift,
       deleteShift,
       assignDoctor,
+      updateShift,
     },
   }
 }

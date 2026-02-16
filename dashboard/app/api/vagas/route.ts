@@ -1,13 +1,14 @@
 /**
- * API: GET /api/vagas
+ * API: GET /api/vagas | POST /api/vagas
  *
  * Lista vagas do banco de dados com validacao Zod.
+ * Cria vagas manuais via POST.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { parseShiftListParams } from '@/lib/vagas'
+import { parseShiftListParams, parseShiftCreateBody } from '@/lib/vagas'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,6 +56,8 @@ export async function GET(request: NextRequest) {
         created_at,
         hospital_id,
         especialidade_id,
+        contato_nome,
+        contato_whatsapp,
         hospitais!inner(id, nome),
         especialidades!inner(id, nome)
       `,
@@ -78,7 +81,24 @@ export async function GET(request: NextRequest) {
       query = query.lte('data', date_to)
     }
     if (search) {
-      query = query.or(`hospitais.nome.ilike.%${search}%,especialidades.nome.ilike.%${search}%`)
+      // PostgREST does not support foreign table filters inside .or(),
+      // so we resolve matching IDs first then filter by them.
+      const [{ data: hMatch }, { data: eMatch }] = await Promise.all([
+        supabase.from('hospitais').select('id').ilike('nome', `%${search}%`),
+        supabase.from('especialidades').select('id').ilike('nome', `%${search}%`),
+      ])
+
+      const hIds = (hMatch || []).map((h) => h.id)
+      const eIds = (eMatch || []).map((e) => e.id)
+
+      if (hIds.length === 0 && eIds.length === 0) {
+        return NextResponse.json({ data: [], total: 0, pages: 0 })
+      }
+
+      const conditions: string[] = []
+      if (hIds.length > 0) conditions.push(`hospital_id.in.(${hIds.join(',')})`)
+      if (eIds.length > 0) conditions.push(`especialidade_id.in.(${eIds.join(',')})`)
+      query = query.or(conditions.join(','))
     }
 
     // Pagination
@@ -112,6 +132,8 @@ export async function GET(request: NextRequest) {
         status: v.status || 'aberta',
         reservas_count: v.total_candidaturas || 0,
         created_at: v.created_at,
+        contato_nome: v.contato_nome || null,
+        contato_whatsapp: v.contato_whatsapp || null,
       }
     })
 
@@ -126,5 +148,60 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Erro ao buscar vagas:', error)
     return NextResponse.json({ data: [], total: 0, pages: 0 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+
+    let parsed
+    try {
+      parsed = parseShiftCreateBody(body)
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return NextResponse.json(
+          { detail: 'Dados invalidos', errors: error.errors },
+          { status: 400 }
+        )
+      }
+      throw error
+    }
+
+    const supabase = createAdminClient()
+
+    const insertData: Record<string, unknown> = {
+      hospital_id: parsed.hospital_id,
+      especialidade_id: parsed.especialidade_id,
+      data: parsed.data,
+      status: 'aberta',
+      origem: 'manual',
+      created_at: new Date().toISOString(),
+      contato_nome: parsed.contato_nome,
+      contato_whatsapp: parsed.contato_whatsapp,
+    }
+
+    if (parsed.hora_inicio) insertData.hora_inicio = parsed.hora_inicio
+    if (parsed.hora_fim) insertData.hora_fim = parsed.hora_fim
+    if (parsed.observacoes) insertData.observacoes = parsed.observacoes
+
+    if (parsed.valor != null) {
+      insertData.valor = parsed.valor
+      insertData.valor_tipo = 'fixo'
+    } else {
+      insertData.valor_tipo = 'a_combinar'
+    }
+
+    const { data, error } = await supabase.from('vagas').insert(insertData).select('id').single()
+
+    if (error) {
+      console.error('Erro ao criar vaga:', error)
+      return NextResponse.json({ detail: 'Erro ao criar vaga no banco' }, { status: 500 })
+    }
+
+    return NextResponse.json({ id: data.id, success: true }, { status: 201 })
+  } catch (error) {
+    console.error('Erro ao criar vaga:', error)
+    return NextResponse.json({ detail: 'Erro interno do servidor' }, { status: 500 })
   }
 }

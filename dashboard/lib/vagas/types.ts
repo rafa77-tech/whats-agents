@@ -29,6 +29,8 @@ export interface Shift {
   status: ShiftStatus | string
   reservas_count: number
   created_at: string
+  contato_nome: string | null
+  contato_whatsapp: string | null
 }
 
 /**
@@ -40,6 +42,8 @@ export interface ShiftDetail extends Omit<Shift, 'reservas_count'> {
   cliente_id: string | null
   cliente_nome: string | null
   updated_at: string | null
+  contato_nome: string | null
+  contato_whatsapp: string | null
 }
 
 /**

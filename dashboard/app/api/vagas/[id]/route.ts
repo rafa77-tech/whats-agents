@@ -32,6 +32,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         especialidade_id,
         setor_id,
         cliente_id,
+        contato_nome,
+        contato_whatsapp,
         hospitais!inner(id, nome),
         especialidades!inner(id, nome),
         setores(id, nome),
@@ -77,6 +79,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         : null,
       created_at: vaga.created_at,
       updated_at: vaga.updated_at,
+      contato_nome: vaga.contato_nome || null,
+      contato_whatsapp: vaga.contato_whatsapp || null,
     }
 
     return NextResponse.json(shift)
@@ -89,7 +93,12 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    const body = await request.json()
+    const rawBody = await request.json()
+
+    // Sanitize: convert empty strings to null before validation
+    const body = Object.fromEntries(
+      Object.entries(rawBody).map(([k, v]) => [k, v === '' ? null : v])
+    )
 
     // Validate body with Zod
     let validatedBody
@@ -105,7 +114,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       throw error
     }
 
-    const { cliente_id, status } = validatedBody
+    const {
+      cliente_id,
+      status,
+      hospital_id,
+      especialidade_id,
+      data,
+      hora_inicio,
+      hora_fim,
+      valor,
+      contato_nome,
+      contato_whatsapp,
+    } = validatedBody
     const supabase = createAdminClient()
 
     const updateData: Record<string, unknown> = {
@@ -120,9 +140,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
-    if (status !== undefined) {
-      updateData.status = status
-    }
+    if (status !== undefined) updateData.status = status
+    if (hospital_id !== undefined) updateData.hospital_id = hospital_id
+    if (especialidade_id !== undefined) updateData.especialidade_id = especialidade_id
+    if (data !== undefined) updateData.data = data
+    if (hora_inicio !== undefined) updateData.hora_inicio = hora_inicio
+    if (hora_fim !== undefined) updateData.hora_fim = hora_fim
+    if (valor !== undefined) updateData.valor = valor
+    if (contato_nome !== undefined) updateData.contato_nome = contato_nome
+    if (contato_whatsapp !== undefined) updateData.contato_whatsapp = contato_whatsapp
 
     const { error } = await supabase.from('vagas').update(updateData).eq('id', id)
 

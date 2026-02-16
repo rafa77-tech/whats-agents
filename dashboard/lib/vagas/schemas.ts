@@ -49,6 +49,44 @@ export const shiftUpdateSchema = z.object({
   status: z
     .enum(['aberta', 'reservada', 'confirmada', 'cancelada', 'realizada', 'fechada'])
     .optional(),
+  hospital_id: z.string().uuid().optional(),
+  especialidade_id: z.string().uuid().optional(),
+  data: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data invalido (YYYY-MM-DD)')
+    .optional(),
+  hora_inicio: z.preprocess(
+    (v) => (v === '' ? null : v),
+    z
+      .string()
+      .regex(/^\d{2}:\d{2}$/, 'Formato de hora invalido (HH:MM)')
+      .nullable()
+      .optional()
+  ),
+  hora_fim: z.preprocess(
+    (v) => (v === '' ? null : v),
+    z
+      .string()
+      .regex(/^\d{2}:\d{2}$/, 'Formato de hora invalido (HH:MM)')
+      .nullable()
+      .optional()
+  ),
+  valor: z.preprocess(
+    (v) => (v === '' || v === 0 ? null : v),
+    z.number().int().positive().nullable().optional()
+  ),
+  contato_nome: z.preprocess(
+    (v) => (v === '' ? null : v),
+    z.string().min(2, 'Nome do contato deve ter pelo menos 2 caracteres').nullable().optional()
+  ),
+  contato_whatsapp: z.preprocess(
+    (v) => (v === '' ? null : v),
+    z
+      .string()
+      .regex(/^\d{10,13}$/, 'WhatsApp invalido (apenas numeros, 10-13 digitos)')
+      .nullable()
+      .optional()
+  ),
 })
 
 export type ShiftUpdateBody = z.infer<typeof shiftUpdateSchema>
@@ -90,4 +128,38 @@ export function parseShiftListParams(searchParams: URLSearchParams): ShiftListPa
  */
 export function parseShiftUpdateBody(body: unknown): ShiftUpdateBody {
   return shiftUpdateSchema.parse(body)
+}
+
+/**
+ * Schema for POST /api/vagas body (manual shift creation)
+ */
+export const shiftCreateSchema = z.object({
+  hospital_id: z.string().uuid(),
+  especialidade_id: z.string().uuid(),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data invalido (YYYY-MM-DD)'),
+  hora_inicio: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, 'Formato de hora invalido (HH:MM)')
+    .optional(),
+  hora_fim: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, 'Formato de hora invalido (HH:MM)')
+    .optional(),
+  valor: z.number().int().positive().optional(),
+  observacoes: z.string().max(500).optional(),
+  contato_nome: z.string().min(2, 'Nome do contato deve ter pelo menos 2 caracteres'),
+  contato_whatsapp: z
+    .string()
+    .regex(/^\d{10,13}$/, 'WhatsApp invalido (apenas numeros, 10-13 digitos)'),
+})
+
+export type ShiftCreateBody = z.infer<typeof shiftCreateSchema>
+
+/**
+ * Parse and validate shift create body
+ * @param body - Request body
+ * @returns Parsed and validated body
+ */
+export function parseShiftCreateBody(body: unknown): ShiftCreateBody {
+  return shiftCreateSchema.parse(body)
 }

@@ -75,7 +75,6 @@ export async function listarHospitais(
   const { data: hospitais, error } = await supabase
     .from('hospitais')
     .select('id, nome, cidade')
-    .eq('ativo', true)
     .order('nome')
 
   if (error) {

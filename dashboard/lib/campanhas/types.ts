@@ -100,6 +100,7 @@ export interface Campanha {
   created_at: string
   created_by?: string
   audience_filters?: Record<string, unknown>
+  escopo_vagas?: Record<string, unknown> | null
   envios: Envio[]
   metricas: MetricasCampanha
 }
@@ -186,6 +187,7 @@ export interface CriarCampanhaRequest {
   tom?: string
   agendar_para?: string
   audience_filters?: Record<string, unknown>
+  escopo_vagas?: Record<string, unknown> | null
 }
 
 export interface AtualizarCampanhaRequest {

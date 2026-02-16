@@ -156,6 +156,7 @@ interface CampanhaBody {
   corpo: string
   tom: string
   audience_filters?: Record<string, unknown>
+  escopo_vagas?: Record<string, unknown> | null
   agendar_para?: string
   status?: string
 }
@@ -210,6 +211,7 @@ export async function POST(request: NextRequest) {
         corpo: body.corpo?.trim() || null,
         tom: body.tom || 'amigavel',
         audience_filters: body.audience_filters || {},
+        escopo_vagas: body.escopo_vagas || null,
         agendar_para: body.agendar_para || null,
         status: body.status || 'rascunho',
         created_by: user.email,
