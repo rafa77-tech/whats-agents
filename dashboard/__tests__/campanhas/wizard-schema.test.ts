@@ -172,4 +172,55 @@ describe('validateStep', () => {
       expect(validateStep(-1, data)).toBe(false)
     })
   })
+
+  describe('escopo_vagas (Sprint 58)', () => {
+    it('INITIAL_FORM_DATA tem escopo_vagas null', () => {
+      expect(INITIAL_FORM_DATA.escopo_vagas).toBeNull()
+    })
+
+    it('validação do step 3 passa com escopo_vagas + corpo preenchido', () => {
+      const data: CampanhaFormData = {
+        ...INITIAL_FORM_DATA,
+        tipo_campanha: 'oferta_plantao',
+        corpo: 'Oi Dr! Surgiu uma vaga de cardio no Hospital ABC',
+        escopo_vagas: {
+          vaga_ids: ['v1'],
+          vagas: [
+            {
+              id: 'v1',
+              hospital: 'Hospital ABC',
+              especialidade: 'Cardiologia',
+              data: '2026-03-15',
+              hora_inicio: '08:00',
+              hora_fim: '18:00',
+              valor: 2500,
+            },
+          ],
+        },
+      }
+      expect(validateStep(3, data)).toBe(true)
+    })
+
+    it('step 1 valida normalmente com escopo_vagas presente', () => {
+      const data: CampanhaFormData = {
+        ...INITIAL_FORM_DATA,
+        nome_template: 'Oferta Hospital ABC',
+        escopo_vagas: {
+          vaga_ids: ['v1'],
+          vagas: [
+            {
+              id: 'v1',
+              hospital: 'Hospital ABC',
+              especialidade: 'Cardiologia',
+              data: '2026-03-15',
+              hora_inicio: '08:00',
+              hora_fim: '18:00',
+              valor: 2500,
+            },
+          ],
+        },
+      }
+      expect(validateStep(1, data)).toBe(true)
+    })
+  })
 })

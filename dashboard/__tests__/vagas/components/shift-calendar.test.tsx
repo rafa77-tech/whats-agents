@@ -22,6 +22,8 @@ describe('ShiftCalendar', () => {
       status: 'aberta',
       reservas_count: 0,
       created_at: '2026-01-01T00:00:00Z',
+      contato_nome: null,
+      contato_whatsapp: null,
     },
     {
       id: 'shift-2',
@@ -36,6 +38,8 @@ describe('ShiftCalendar', () => {
       status: 'reservada',
       reservas_count: 1,
       created_at: '2026-01-01T00:00:00Z',
+      contato_nome: null,
+      contato_whatsapp: null,
     },
     {
       id: 'shift-3',
@@ -50,6 +54,8 @@ describe('ShiftCalendar', () => {
       status: 'confirmada',
       reservas_count: 0,
       created_at: '2026-01-01T00:00:00Z',
+      contato_nome: null,
+      contato_whatsapp: null,
     },
   ]
 

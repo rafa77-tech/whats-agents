@@ -173,4 +173,127 @@ describe('VagasPage', () => {
     const newButton = screen.getByRole('button', { name: /nova vaga/i })
     expect(newButton).toBeInTheDocument()
   })
+
+  describe('selection mode (Sprint 58)', () => {
+    it('deve ter botao Selecionar', () => {
+      mockUseShifts.mockReturnValue({
+        ...defaultHookReturn,
+        loading: false,
+        data: { data: [], total: 0, pages: 0 },
+      })
+
+      render(<VagasPage />)
+
+      expect(screen.getByRole('button', { name: /selecionar/i })).toBeInTheDocument()
+    })
+
+    it('deve alternar para modo seleção ao clicar Selecionar', () => {
+      mockUseShifts.mockReturnValue({
+        ...defaultHookReturn,
+        loading: false,
+        data: {
+          data: [
+            {
+              id: 'v1',
+              hospital: 'Hospital ABC',
+              especialidade: 'Cardiologia',
+              data: '2024-01-15',
+              hora_inicio: '08:00',
+              hora_fim: '18:00',
+              valor: 1500,
+              status: 'aberta',
+              reservas_count: 0,
+              contato_nome: null,
+              contato_whatsapp: null,
+            },
+          ],
+          total: 1,
+          pages: 1,
+        },
+      })
+
+      render(<VagasPage />)
+
+      const selectButton = screen.getByRole('button', { name: /selecionar/i })
+      fireEvent.click(selectButton)
+
+      // Deve mostrar botão Cancelar
+      expect(screen.getByRole('button', { name: /cancelar/i })).toBeInTheDocument()
+      // Deve mostrar checkboxes
+      expect(screen.getByRole('checkbox')).toBeInTheDocument()
+    })
+
+    it('deve mostrar floating bar ao selecionar vagas', () => {
+      mockUseShifts.mockReturnValue({
+        ...defaultHookReturn,
+        loading: false,
+        data: {
+          data: [
+            {
+              id: 'v1',
+              hospital: 'Hospital ABC',
+              especialidade: 'Cardiologia',
+              data: '2024-01-15',
+              hora_inicio: '08:00',
+              hora_fim: '18:00',
+              valor: 1500,
+              status: 'aberta',
+              reservas_count: 0,
+              contato_nome: null,
+              contato_whatsapp: null,
+            },
+          ],
+          total: 1,
+          pages: 1,
+        },
+      })
+
+      render(<VagasPage />)
+
+      // Entrar no modo seleção
+      fireEvent.click(screen.getByRole('button', { name: /selecionar/i }))
+      // Clicar no checkbox
+      fireEvent.click(screen.getByRole('checkbox'))
+
+      // Floating bar deve aparecer
+      expect(screen.getByText(/1 vaga selecionada/)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /criar campanha/i })).toBeInTheDocument()
+    })
+
+    it('deve sair do modo seleção ao clicar Cancelar', () => {
+      mockUseShifts.mockReturnValue({
+        ...defaultHookReturn,
+        loading: false,
+        data: {
+          data: [
+            {
+              id: 'v1',
+              hospital: 'Hospital ABC',
+              especialidade: 'Cardiologia',
+              data: '2024-01-15',
+              hora_inicio: '08:00',
+              hora_fim: '18:00',
+              valor: 1500,
+              status: 'aberta',
+              reservas_count: 0,
+              contato_nome: null,
+              contato_whatsapp: null,
+            },
+          ],
+          total: 1,
+          pages: 1,
+        },
+      })
+
+      render(<VagasPage />)
+
+      // Entrar no modo seleção
+      fireEvent.click(screen.getByRole('button', { name: /selecionar/i }))
+      expect(screen.getByRole('checkbox')).toBeInTheDocument()
+
+      // Sair
+      fireEvent.click(screen.getByRole('button', { name: /cancelar/i }))
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    })
+  })
 })

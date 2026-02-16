@@ -29,6 +29,8 @@ describe('ShiftList', () => {
       status: 'aberta',
       reservas_count: 0,
       created_at: '2026-01-01T00:00:00Z',
+      contato_nome: null,
+      contato_whatsapp: null,
     },
     {
       id: 'shift-2',
@@ -43,6 +45,8 @@ describe('ShiftList', () => {
       status: 'reservada',
       reservas_count: 1,
       created_at: '2026-01-01T00:00:00Z',
+      contato_nome: null,
+      contato_whatsapp: null,
     },
   ]
 
@@ -202,6 +206,76 @@ describe('ShiftList', () => {
         />
       )
       expect(screen.getByText('Pagina 3 de 5 (100 vagas)')).toBeInTheDocument()
+    })
+  })
+
+  describe('Selection mode (Sprint 58)', () => {
+    it('renders checkboxes when selectable', () => {
+      render(
+        <ShiftList
+          shifts={mockShifts}
+          total={2}
+          page={1}
+          pages={1}
+          onPageChange={mockOnPageChange}
+          selectable
+          selectedIds={new Set()}
+          onSelectChange={vi.fn()}
+        />
+      )
+      const checkboxes = screen.getAllByRole('checkbox')
+      expect(checkboxes).toHaveLength(2)
+    })
+
+    it('does not render checkboxes when not selectable', () => {
+      render(
+        <ShiftList
+          shifts={mockShifts}
+          total={2}
+          page={1}
+          pages={1}
+          onPageChange={mockOnPageChange}
+        />
+      )
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    })
+
+    it('marks selected shifts as checked', () => {
+      render(
+        <ShiftList
+          shifts={mockShifts}
+          total={2}
+          page={1}
+          pages={1}
+          onPageChange={mockOnPageChange}
+          selectable
+          selectedIds={new Set(['shift-1'])}
+          onSelectChange={vi.fn()}
+        />
+      )
+      const checkboxes = screen.getAllByRole('checkbox')
+      expect(checkboxes[0]).toHaveAttribute('data-state', 'checked')
+      expect(checkboxes[1]).toHaveAttribute('data-state', 'unchecked')
+    })
+
+    it('calls onSelectChange when checkbox clicked', async () => {
+      const onSelectChange = vi.fn()
+      const user = userEvent.setup()
+      render(
+        <ShiftList
+          shifts={mockShifts}
+          total={2}
+          page={1}
+          pages={1}
+          onPageChange={mockOnPageChange}
+          selectable
+          selectedIds={new Set()}
+          onSelectChange={onSelectChange}
+        />
+      )
+      const checkboxes = screen.getAllByRole('checkbox')
+      await user.click(checkboxes[0]!)
+      expect(onSelectChange).toHaveBeenCalledWith('shift-1', true)
     })
   })
 })

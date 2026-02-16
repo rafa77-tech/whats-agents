@@ -1,9 +1,9 @@
 /**
- * Testes para GET /api/hospitais
+ * Testes para GET /api/hospitais e POST /api/hospitais
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { GET } from '@/app/api/hospitais/route'
+import { GET, POST } from '@/app/api/hospitais/route'
 import { NextRequest } from 'next/server'
 
 // Mock lib/hospitais
@@ -13,9 +13,14 @@ vi.mock('@/lib/hospitais', () => ({
   listarHospitais: (...args: unknown[]) => mockListarHospitais(...args),
 }))
 
-// Mock createClient
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: () => Promise.resolve({}),
+// Mock createAdminClient
+const mockSingle = vi.fn()
+const mockSelectChain = vi.fn(() => ({ single: mockSingle }))
+const mockInsert = vi.fn(() => ({ select: mockSelectChain }))
+const mockAdminFrom = vi.fn(() => ({ insert: mockInsert }))
+
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: () => ({ from: mockAdminFrom }),
 }))
 
 function createRequest(params: Record<string, string> = {}) {
@@ -106,5 +111,110 @@ describe('GET /api/hospitais', () => {
     expect(mockListarHospitais).toHaveBeenCalledWith(expect.anything(), {
       excluirBloqueados: false,
     })
+  })
+})
+
+// =============================================================================
+// POST /api/hospitais
+// =============================================================================
+
+function createPostRequest(body: Record<string, unknown>) {
+  return new NextRequest('http://localhost:3000/api/hospitais', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+describe('POST /api/hospitais', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('deve criar hospital com nome valido', async () => {
+    mockSingle.mockResolvedValue({
+      data: { id: 'new-hospital-id', nome: 'Hospital Novo' },
+      error: null,
+    })
+
+    const request = createPostRequest({ nome: 'Hospital Novo' })
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(data.id).toBe('new-hospital-id')
+    expect(data.nome).toBe('Hospital Novo')
+    expect(mockAdminFrom).toHaveBeenCalledWith('hospitais')
+    expect(mockInsert).toHaveBeenCalledWith({ nome: 'Hospital Novo' })
+  })
+
+  it('deve retornar 400 quando nome esta vazio', async () => {
+    const request = createPostRequest({ nome: '' })
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.detail).toBe('Nome e obrigatorio')
+  })
+
+  it('deve retornar 400 quando nome nao e string', async () => {
+    const request = createPostRequest({ nome: 123 })
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.detail).toBe('Nome e obrigatorio')
+  })
+
+  it('deve retornar 400 quando nome e apenas espacos', async () => {
+    const request = createPostRequest({ nome: '   ' })
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.detail).toBe('Nome e obrigatorio')
+  })
+
+  it('deve retornar 400 quando body nao tem nome', async () => {
+    const request = createPostRequest({})
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.detail).toBe('Nome e obrigatorio')
+  })
+
+  it('deve retornar 500 quando banco retorna erro', async () => {
+    mockSingle.mockResolvedValue({
+      data: null,
+      error: { message: 'Duplicate key' },
+    })
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const request = createPostRequest({ nome: 'Hospital Duplicado' })
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(data.detail).toBe('Erro ao criar hospital')
+
+    consoleSpy.mockRestore()
+  })
+
+  it('deve fazer trim no nome', async () => {
+    mockSingle.mockResolvedValue({
+      data: { id: 'id', nome: 'Hospital Trim' },
+      error: null,
+    })
+
+    const request = createPostRequest({ nome: '  Hospital Trim  ' })
+    await POST(request)
+
+    expect(mockInsert).toHaveBeenCalledWith({ nome: 'Hospital Trim' })
   })
 })

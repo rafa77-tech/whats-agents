@@ -337,4 +337,58 @@ describe('ShiftDetailPage', () => {
     // Valor deve estar formatado em BRL
     expect(screen.getByText(/R\$\s*1\.500,00/)).toBeInTheDocument()
   })
+
+  describe('botão Criar Campanha (Sprint 58)', () => {
+    const shiftWithAllFields = {
+      id: 'v1',
+      hospital: 'Hospital ABC',
+      hospital_id: 'hosp-1',
+      especialidade: 'Cardiologia',
+      especialidade_id: 'esp-1',
+      data: '2024-01-15',
+      hora_inicio: '08:00',
+      hora_fim: '18:00',
+      valor: 1500,
+      status: 'aberta',
+      setor: null,
+      setor_id: null,
+      cliente_id: null,
+      cliente_nome: null,
+      created_at: '2024-01-10T10:00:00Z',
+      updated_at: null,
+      contato_nome: null,
+      contato_whatsapp: null,
+    }
+
+    it('deve mostrar botão Criar Campanha', () => {
+      mockUseShiftDetail.mockReturnValue({
+        ...defaultShiftReturn,
+        loading: false,
+        shift: shiftWithAllFields,
+      })
+
+      render(<ShiftDetailPage />)
+
+      expect(screen.getByRole('button', { name: /criar campanha/i })).toBeInTheDocument()
+    })
+
+    it('deve abrir wizard ao clicar no botão', async () => {
+      mockUseShiftDetail.mockReturnValue({
+        ...defaultShiftReturn,
+        loading: false,
+        shift: shiftWithAllFields,
+      })
+
+      render(<ShiftDetailPage />)
+
+      const button = screen.getByRole('button', { name: /criar campanha/i })
+      fireEvent.click(button)
+
+      // O wizard é carregado dinamicamente, então verificamos que foi acionado
+      // O dialog do wizard deve aparecer
+      await waitFor(() => {
+        expect(screen.getByText('Nova Campanha')).toBeInTheDocument()
+      })
+    })
+  })
 })

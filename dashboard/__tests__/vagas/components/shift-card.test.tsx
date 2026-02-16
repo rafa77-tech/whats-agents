@@ -29,6 +29,8 @@ describe('ShiftCard', () => {
     status: 'aberta',
     reservas_count: 0,
     created_at: '2026-01-01T00:00:00Z',
+    contato_nome: null,
+    contato_whatsapp: null,
   }
 
   beforeEach(() => {
@@ -122,5 +124,67 @@ describe('ShiftCard', () => {
     const expensiveShift = { ...mockShift, valor: 15000 }
     render(<ShiftCard shift={expensiveShift} />)
     expect(screen.getByText('R$ 15.000,00')).toBeInTheDocument()
+  })
+
+  describe('selection mode (Sprint 58)', () => {
+    it('renders checkbox when selectable', () => {
+      render(<ShiftCard shift={mockShift} selectable selected={false} onSelectChange={vi.fn()} />)
+      expect(screen.getByRole('checkbox')).toBeInTheDocument()
+    })
+
+    it('does not render checkbox when not selectable', () => {
+      render(<ShiftCard shift={mockShift} />)
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    })
+
+    it('checkbox reflects selected state', () => {
+      render(<ShiftCard shift={mockShift} selectable selected={true} onSelectChange={vi.fn()} />)
+      const checkbox = screen.getByRole('checkbox')
+      expect(checkbox).toHaveAttribute('data-state', 'checked')
+    })
+
+    it('calls onSelectChange when checkbox clicked', async () => {
+      const onSelectChange = vi.fn()
+      const user = userEvent.setup()
+      render(
+        <ShiftCard shift={mockShift} selectable selected={false} onSelectChange={onSelectChange} />
+      )
+      const checkbox = screen.getByRole('checkbox')
+      await user.click(checkbox)
+      expect(onSelectChange).toHaveBeenCalledWith('shift-123', true)
+    })
+
+    it('toggles selection on card click in selectable mode', async () => {
+      const onSelectChange = vi.fn()
+      const user = userEvent.setup()
+      render(
+        <ShiftCard shift={mockShift} selectable selected={false} onSelectChange={onSelectChange} />
+      )
+      const hospitalName = screen.getByText('Hospital São Luiz')
+      const card = hospitalName.closest('[class*="cursor-pointer"]')
+      if (card) {
+        await user.click(card)
+        expect(onSelectChange).toHaveBeenCalledWith('shift-123', true)
+      }
+    })
+
+    it('does not navigate when in selectable mode', async () => {
+      const user = userEvent.setup()
+      render(<ShiftCard shift={mockShift} selectable selected={false} onSelectChange={vi.fn()} />)
+      const hospitalName = screen.getByText('Hospital São Luiz')
+      const card = hospitalName.closest('[class*="cursor-pointer"]')
+      if (card) {
+        await user.click(card)
+        expect(mockPush).not.toHaveBeenCalled()
+      }
+    })
+
+    it('applies selected styling when selected', () => {
+      const { container } = render(
+        <ShiftCard shift={mockShift} selectable selected={true} onSelectChange={vi.fn()} />
+      )
+      const card = container.querySelector('[class*="border-primary"]')
+      expect(card).not.toBeNull()
+    })
   })
 })

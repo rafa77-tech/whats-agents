@@ -277,4 +277,126 @@ describe('StepRevisao', () => {
       expect(mockUpdateField).toHaveBeenCalledWith('agendar', true)
     })
   })
+
+  describe('vagas vinculadas (Sprint 58)', () => {
+    it('exibe seção de vagas vinculadas quando escopo_vagas presente', () => {
+      const formData: CampanhaFormData = {
+        ...INITIAL_FORM_DATA,
+        escopo_vagas: {
+          vaga_ids: ['v1'],
+          vagas: [
+            {
+              id: 'v1',
+              hospital: 'Hospital ABC',
+              especialidade: 'Cardiologia',
+              data: '2026-03-15',
+              hora_inicio: '08:00',
+              hora_fim: '18:00',
+              valor: 2500,
+            },
+          ],
+        },
+      }
+
+      render(<StepRevisao formData={formData} updateField={mockUpdateField} />)
+
+      expect(screen.getByText('1 vaga vinculada')).toBeInTheDocument()
+      expect(screen.getByText('Hospital ABC')).toBeInTheDocument()
+      expect(screen.getByText('Cardiologia')).toBeInTheDocument()
+    })
+
+    it('exibe plural para múltiplas vagas', () => {
+      const formData: CampanhaFormData = {
+        ...INITIAL_FORM_DATA,
+        escopo_vagas: {
+          vaga_ids: ['v1', 'v2'],
+          vagas: [
+            {
+              id: 'v1',
+              hospital: 'Hospital A',
+              especialidade: 'Cardiologia',
+              data: '2026-03-15',
+              hora_inicio: '08:00',
+              hora_fim: '18:00',
+              valor: 2500,
+            },
+            {
+              id: 'v2',
+              hospital: 'Hospital B',
+              especialidade: 'Ortopedia',
+              data: '2026-03-16',
+              hora_inicio: '19:00',
+              hora_fim: '07:00',
+              valor: 3000,
+            },
+          ],
+        },
+      }
+
+      render(<StepRevisao formData={formData} updateField={mockUpdateField} />)
+
+      expect(screen.getByText('2 vagas vinculadas')).toBeInTheDocument()
+      expect(screen.getByText('Hospital A')).toBeInTheDocument()
+      expect(screen.getByText('Hospital B')).toBeInTheDocument()
+    })
+
+    it('exibe valor formatado de cada vaga', () => {
+      const formData: CampanhaFormData = {
+        ...INITIAL_FORM_DATA,
+        escopo_vagas: {
+          vaga_ids: ['v1'],
+          vagas: [
+            {
+              id: 'v1',
+              hospital: 'Hospital ABC',
+              especialidade: 'Cardiologia',
+              data: '2026-03-15',
+              hora_inicio: '08:00',
+              hora_fim: '18:00',
+              valor: 2500,
+            },
+          ],
+        },
+      }
+
+      render(<StepRevisao formData={formData} updateField={mockUpdateField} />)
+
+      expect(screen.getByText(/R\$\s*2\.500,00/)).toBeInTheDocument()
+    })
+
+    it('exibe horário de cada vaga', () => {
+      const formData: CampanhaFormData = {
+        ...INITIAL_FORM_DATA,
+        escopo_vagas: {
+          vaga_ids: ['v1'],
+          vagas: [
+            {
+              id: 'v1',
+              hospital: 'Hospital ABC',
+              especialidade: 'Cardiologia',
+              data: '2026-03-15',
+              hora_inicio: '08:00',
+              hora_fim: '18:00',
+              valor: 2500,
+            },
+          ],
+        },
+      }
+
+      render(<StepRevisao formData={formData} updateField={mockUpdateField} />)
+
+      expect(screen.getByText('08:00-18:00')).toBeInTheDocument()
+    })
+
+    it('não exibe seção quando escopo_vagas é null', () => {
+      const formData: CampanhaFormData = {
+        ...INITIAL_FORM_DATA,
+        escopo_vagas: null,
+      }
+
+      render(<StepRevisao formData={formData} updateField={mockUpdateField} />)
+
+      expect(screen.queryByText(/vaga vinculada/i)).not.toBeInTheDocument()
+    })
+  })
 })

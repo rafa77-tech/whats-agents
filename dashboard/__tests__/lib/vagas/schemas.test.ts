@@ -7,8 +7,10 @@ import { ZodError } from 'zod'
 import {
   shiftListParamsSchema,
   shiftUpdateSchema,
+  shiftCreateSchema,
   parseShiftListParams,
   parseShiftUpdateBody,
+  parseShiftCreateBody,
 } from '@/lib/vagas/schemas'
 
 // =============================================================================
@@ -217,5 +219,202 @@ describe('parseShiftUpdateBody', () => {
 
     expect(result.status).toBe('cancelada')
     expect(result.cliente_id).toBeUndefined()
+  })
+})
+
+// =============================================================================
+// shiftCreateSchema
+// =============================================================================
+
+describe('shiftCreateSchema', () => {
+  const validBody = {
+    hospital_id: '550e8400-e29b-41d4-a716-446655440000',
+    especialidade_id: '550e8400-e29b-41d4-a716-446655440001',
+    data: '2024-03-15',
+    contato_nome: 'Maria Silva',
+    contato_whatsapp: '5511999999999',
+  }
+
+  it('deve aceitar body com campos obrigatorios', () => {
+    const result = shiftCreateSchema.parse(validBody)
+
+    expect(result.hospital_id).toBe('550e8400-e29b-41d4-a716-446655440000')
+    expect(result.especialidade_id).toBe('550e8400-e29b-41d4-a716-446655440001')
+    expect(result.data).toBe('2024-03-15')
+    expect(result.contato_nome).toBe('Maria Silva')
+    expect(result.contato_whatsapp).toBe('5511999999999')
+  })
+
+  it('deve aceitar body completo com todos os campos opcionais', () => {
+    const result = shiftCreateSchema.parse({
+      ...validBody,
+      hora_inicio: '08:00',
+      hora_fim: '18:00',
+      valor: 2500,
+      observacoes: 'Plantao noturno',
+    })
+
+    expect(result.hora_inicio).toBe('08:00')
+    expect(result.hora_fim).toBe('18:00')
+    expect(result.valor).toBe(2500)
+    expect(result.observacoes).toBe('Plantao noturno')
+  })
+
+  it('deve aceitar body sem campos opcionais', () => {
+    const result = shiftCreateSchema.parse(validBody)
+
+    expect(result.hora_inicio).toBeUndefined()
+    expect(result.hora_fim).toBeUndefined()
+    expect(result.valor).toBeUndefined()
+    expect(result.observacoes).toBeUndefined()
+  })
+
+  it('deve rejeitar sem hospital_id', () => {
+    const { hospital_id: _, ...body } = validBody
+    expect(() => shiftCreateSchema.parse(body)).toThrow(ZodError)
+  })
+
+  it('deve rejeitar sem especialidade_id', () => {
+    const { especialidade_id: _, ...body } = validBody
+    expect(() => shiftCreateSchema.parse(body)).toThrow(ZodError)
+  })
+
+  it('deve rejeitar sem data', () => {
+    const { data: _, ...body } = validBody
+    expect(() => shiftCreateSchema.parse(body)).toThrow(ZodError)
+  })
+
+  it('deve rejeitar hospital_id invalido (nao UUID)', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, hospital_id: 'not-a-uuid' })).toThrow(
+      ZodError
+    )
+  })
+
+  it('deve rejeitar especialidade_id invalido (nao UUID)', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, especialidade_id: '123' })).toThrow(
+      ZodError
+    )
+  })
+
+  it('deve rejeitar data em formato invalido', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, data: '15-03-2024' })).toThrow(ZodError)
+
+    expect(() => shiftCreateSchema.parse({ ...validBody, data: '2024/03/15' })).toThrow(ZodError)
+  })
+
+  it('deve rejeitar hora_inicio em formato invalido', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, hora_inicio: '8:00' })).toThrow(ZodError)
+
+    expect(() => shiftCreateSchema.parse({ ...validBody, hora_inicio: '08:00:00' })).toThrow(
+      ZodError
+    )
+  })
+
+  it('deve rejeitar hora_fim em formato invalido', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, hora_fim: '18h00' })).toThrow(ZodError)
+  })
+
+  it('deve rejeitar valor negativo', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, valor: -100 })).toThrow(ZodError)
+  })
+
+  it('deve rejeitar valor zero', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, valor: 0 })).toThrow(ZodError)
+  })
+
+  it('deve rejeitar valor decimal', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, valor: 1500.5 })).toThrow(ZodError)
+  })
+
+  it('deve rejeitar observacoes acima de 500 caracteres', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, observacoes: 'a'.repeat(501) })).toThrow(
+      ZodError
+    )
+  })
+
+  it('deve aceitar observacoes com exatamente 500 caracteres', () => {
+    const result = shiftCreateSchema.parse({
+      ...validBody,
+      observacoes: 'a'.repeat(500),
+    })
+    expect(result.observacoes).toHaveLength(500)
+  })
+
+  it('deve rejeitar sem contato_nome', () => {
+    const { contato_nome: _, ...body } = validBody
+    expect(() => shiftCreateSchema.parse(body)).toThrow(ZodError)
+  })
+
+  it('deve rejeitar sem contato_whatsapp', () => {
+    const { contato_whatsapp: _, ...body } = validBody
+    expect(() => shiftCreateSchema.parse(body)).toThrow(ZodError)
+  })
+
+  it('deve rejeitar contato_nome com menos de 2 caracteres', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, contato_nome: 'A' })).toThrow(ZodError)
+  })
+
+  it('deve aceitar contato_nome com 2 caracteres', () => {
+    const result = shiftCreateSchema.parse({ ...validBody, contato_nome: 'AB' })
+    expect(result.contato_nome).toBe('AB')
+  })
+
+  it('deve rejeitar contato_whatsapp com formato invalido', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, contato_whatsapp: 'abc' })).toThrow(
+      ZodError
+    )
+    expect(() => shiftCreateSchema.parse({ ...validBody, contato_whatsapp: '123' })).toThrow(
+      ZodError
+    )
+    expect(() =>
+      shiftCreateSchema.parse({ ...validBody, contato_whatsapp: '55119999999990' })
+    ).toThrow(ZodError)
+  })
+
+  it('deve aceitar contato_whatsapp com 10-13 digitos', () => {
+    const result10 = shiftCreateSchema.parse({ ...validBody, contato_whatsapp: '1199999999' })
+    expect(result10.contato_whatsapp).toBe('1199999999')
+
+    const result13 = shiftCreateSchema.parse({ ...validBody, contato_whatsapp: '5511999999999' })
+    expect(result13.contato_whatsapp).toBe('5511999999999')
+  })
+})
+
+// =============================================================================
+// parseShiftCreateBody
+// =============================================================================
+
+describe('parseShiftCreateBody', () => {
+  it('deve parsear body valido corretamente', () => {
+    const body = {
+      hospital_id: '550e8400-e29b-41d4-a716-446655440000',
+      especialidade_id: '550e8400-e29b-41d4-a716-446655440001',
+      data: '2024-03-15',
+      hora_inicio: '08:00',
+      valor: 2500,
+      contato_nome: 'Maria Silva',
+      contato_whatsapp: '5511999999999',
+    }
+
+    const result = parseShiftCreateBody(body)
+
+    expect(result.hospital_id).toBe('550e8400-e29b-41d4-a716-446655440000')
+    expect(result.data).toBe('2024-03-15')
+    expect(result.hora_inicio).toBe('08:00')
+    expect(result.valor).toBe(2500)
+  })
+
+  it('deve lancar erro para body invalido', () => {
+    expect(() => parseShiftCreateBody({})).toThrow(ZodError)
+  })
+
+  it('deve lancar erro para body com campos extras invalidos nos obrigatorios', () => {
+    expect(() =>
+      parseShiftCreateBody({
+        hospital_id: 'not-uuid',
+        especialidade_id: '550e8400-e29b-41d4-a716-446655440001',
+        data: '2024-03-15',
+      })
+    ).toThrow(ZodError)
   })
 })
