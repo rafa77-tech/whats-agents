@@ -19,6 +19,7 @@ from app.services.whatsapp import mostrar_digitando
 from app.services.validacao_output import validar_e_corrigir
 from app.services.policy.events_repository import update_effect_interaction_id
 from app.services.outbound import criar_contexto_reply
+from app.services.supabase import supabase
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -145,6 +146,8 @@ class SendMessageProcessor(PostProcessor):
                 )
                 context.metadata["entrada_salva"] = True
                 inbound_interaction_id = interacao_entrada.get("id") if interacao_entrada else None
+                if inbound_interaction_id:
+                    context.metadata["inbound_interaction_id"] = inbound_interaction_id
             except Exception as e:
                 logger.warning(f"Erro ao salvar interação de entrada: {e}")
 
@@ -289,14 +292,19 @@ class SaveInteractionProcessor(PostProcessor):
                     chip_id=chip_id_entrada,  # Sprint 41
                 )
                 context.metadata["entrada_salva"] = True
+                if interacao_entrada:
+                    context.metadata["inbound_interaction_id"] = interacao_entrada.get("id")
 
-                # Sprint 23 E02: Atribuir reply a campanha
-                if interacao_entrada and context.conversa:
-                    await self._atribuir_reply_campanha(
-                        interaction_id=interacao_entrada.get("id"),
-                        conversation_id=context.conversa["id"],
-                        cliente_id=context.medico["id"],
-                    )
+            # Sprint 57: Atribuir reply a campanha FORA do bloco entrada_salva
+            # para rodar mesmo quando SendMessageProcessor ja salvou a interacao
+            inbound_id = context.metadata.get("inbound_interaction_id")
+            if inbound_id and context.conversa:
+                await self._atribuir_reply_campanha(
+                    interaction_id=inbound_id,
+                    conversation_id=context.conversa["id"],
+                    cliente_id=context.medico["id"],
+                    context=context,
+                )
 
             # Salvar interacao de saida (se enviou)
             if response and context.metadata.get("message_sent"):
@@ -337,9 +345,11 @@ class SaveInteractionProcessor(PostProcessor):
         interaction_id: int,
         conversation_id: str,
         cliente_id: str,
+        context: "ProcessorContext",
     ) -> None:
         """
         Sprint 23 E02: Atribui reply a campanha que o originou.
+        Sprint 57: Propaga campanha_id para context.metadata (ExtractionProcessor).
 
         Chamado após salvar interação de entrada (inbound).
         """
@@ -353,12 +363,61 @@ class SaveInteractionProcessor(PostProcessor):
             )
 
             if result.attributed_campaign_id:
+                # Propagar para ExtractionProcessor via context.metadata
+                context.metadata["campanha_id"] = result.attributed_campaign_id
                 logger.debug(
-                    f"Reply {interaction_id} atribuido a campanha {result.attributed_campaign_id}"
+                    f"Reply {interaction_id} atribuido a campanha "
+                    f"{result.attributed_campaign_id}"
+                )
+
+                # Sprint 57: Atualizar contador respondidos
+                await self._incrementar_respondidos_campanha(
+                    campaign_id=result.attributed_campaign_id,
+                    cliente_id=cliente_id,
                 )
         except Exception as e:
             # Erro na atribuicao nao deve parar o pipeline
             logger.warning(f"Erro ao atribuir reply a campanha (nao critico): {e}")
+
+    async def _incrementar_respondidos_campanha(
+        self,
+        campaign_id: int,
+        cliente_id: str,
+    ) -> None:
+        """
+        Sprint 57: Atualiza respondidos com contagem real de clientes unicos.
+
+        Conta distinct clientes com interacoes atribuidas a esta campanha
+        e atualiza o campo respondidos.
+        """
+        try:
+            from app.services.campanhas.repository import campanha_repository
+
+            # Contar clientes unicos que responderam a esta campanha
+            response = (
+                supabase.table("interacoes")
+                .select("cliente_id", count="exact")
+                .eq("attributed_campaign_id", campaign_id)
+                .eq("tipo", "entrada")
+                .execute()
+            )
+
+            # Distinct count via python (Supabase REST nao suporta COUNT DISTINCT)
+            if response.data:
+                clientes_unicos = len({r["cliente_id"] for r in response.data})
+            else:
+                clientes_unicos = 0
+
+            await campanha_repository.atualizar_contadores(
+                campanha_id=campaign_id,
+                respondidos=clientes_unicos,
+            )
+
+            logger.debug(
+                f"Campanha {campaign_id}: respondidos atualizado para {clientes_unicos}"
+            )
+        except Exception as e:
+            logger.warning(f"Erro ao atualizar respondidos (nao critico): {e}")
 
 
 class ChatwootResponseProcessor(PostProcessor):

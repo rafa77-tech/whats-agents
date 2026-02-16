@@ -526,6 +526,7 @@ class TestExecutorMetadataEnriquecida:
             patch("app.services.campanhas.executor.fila_service") as mock_fila,
             patch("app.services.campanhas.executor.supabase") as mock_supabase,
             patch("app.services.campanhas.executor.obter_abertura_texto") as mock_abertura,
+            patch("app.services.campanhas.executor.check_campaign_cooldown", new_callable=AsyncMock) as mock_cooldown,
         ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
             mock_repo.atualizar_status = AsyncMock(return_value=True)
@@ -535,6 +536,7 @@ class TestExecutorMetadataEnriquecida:
             mock_fila.enfileirar = AsyncMock()
             mock_abertura.return_value = "Oi Dr Carlos!"
             mock_supabase.table.return_value.select.return_value.contains.return_value.execute.return_value.data = []
+            mock_cooldown.return_value = MagicMock(is_blocked=False)
 
             await executor.executar(20)
 
@@ -570,6 +572,7 @@ class TestExecutorMetadataEnriquecida:
             patch("app.services.campanhas.executor.segmentacao_service") as mock_seg,
             patch("app.services.campanhas.executor.fila_service") as mock_fila,
             patch("app.services.campanhas.executor.supabase") as mock_supabase,
+            patch("app.services.campanhas.executor.check_campaign_cooldown", new_callable=AsyncMock) as mock_cooldown,
         ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
             mock_repo.atualizar_status = AsyncMock(return_value=True)
@@ -578,6 +581,7 @@ class TestExecutorMetadataEnriquecida:
             mock_seg.buscar_alvos_campanha = AsyncMock(return_value=destinatarios)
             mock_fila.enfileirar = AsyncMock()
             mock_supabase.table.return_value.select.return_value.contains.return_value.execute.return_value.data = []
+            mock_cooldown.return_value = MagicMock(is_blocked=False)
 
             await executor.executar(21)
 

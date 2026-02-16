@@ -196,15 +196,14 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     const visualizados = envios.filter((e) => e.visualizado_em).length
     const falhas = envios.filter((e) => e.status === 'falhou').length
 
-    // Valores armazenados na campanha (mais confiáveis)
+    // Sprint 57: fila_mensagens/envios é a fonte de verdade para enviados/entregues
+    // campanhas.enviados registra total ENFILEIRADO, não efetivamente enviado
     const storedTotal = campanha.total_destinatarios ?? 0
-    const storedEnviados = campanha.enviados ?? 0
-    const storedEntregues = campanha.entregues ?? 0
 
-    // Usar valores armazenados quando disponíveis, senão calcular
     const total = storedTotal > 0 ? storedTotal : calculatedTotal
-    const enviados = storedEnviados > 0 ? storedEnviados : calculatedEnviados
-    const entregues = storedEntregues > 0 ? storedEntregues : calculatedEntregues
+    // Fonte de verdade: calculado da fila/envios, fallback: stored
+    const enviados = calculatedEnviados > 0 ? calculatedEnviados : (campanha.enviados ?? 0)
+    const entregues = calculatedEntregues > 0 ? calculatedEntregues : (campanha.entregues ?? 0)
 
     return NextResponse.json({
       ...campanha,

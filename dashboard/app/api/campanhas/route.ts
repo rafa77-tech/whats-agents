@@ -119,24 +119,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Mesclar métricas calculadas com valores armazenados na campanha
-    // Prioridade: armazenado > calculado > 0
-    // (valores armazenados são mais confiáveis pois são atualizados pelo executor)
+    // Sprint 57: fila_mensagens é a fonte de verdade para enviados/entregues
+    // campanhas.enviados registra o total ENFILEIRADO (pode incluir bloqueadas/erros)
+    // fila_mensagens.status='enviada' registra o efetivamente ENVIADO
     const campanhasComMetricas = campanhas.map((campanha) => {
       const metricas = metricasPorCampanha.get(campanha.id)
       const calculatedTotal = metricas?.total ?? 0
       const calculatedEnviados = metricas?.enviados ?? 0
       const calculatedEntregues = metricas?.entregues ?? 0
 
-      // Usar valores armazenados se disponíveis, senão calcular da fila
+      // total_destinatarios vem do executor (total de alvos selecionados)
       const storedTotal = campanha.total_destinatarios ?? 0
-      const storedEnviados = campanha.enviados ?? 0
-      const storedEntregues = campanha.entregues ?? 0
 
       return {
         ...campanha,
         total_destinatarios: storedTotal > 0 ? storedTotal : calculatedTotal,
-        enviados: storedEnviados > 0 ? storedEnviados : calculatedEnviados,
-        entregues: storedEntregues > 0 ? storedEntregues : calculatedEntregues,
+        // Fonte de verdade: fila_mensagens (calculado), fallback: stored
+        enviados: calculatedEnviados > 0 ? calculatedEnviados : (campanha.enviados ?? 0),
+        entregues: calculatedEntregues > 0 ? calculatedEntregues : (campanha.entregues ?? 0),
         respondidos: campanha.respondidos ?? metricas?.respondidos ?? 0,
       }
     })
