@@ -8,12 +8,14 @@ Responsavel por:
 - Atualizar contadores
 
 Sprint 35 - Epic 04
+Sprint 57 - Anti-spam: cooldown, limite sem resposta, conclusao automatica
 """
 
 import logging
 from typing import List, Optional
 
 from app.services.abertura import obter_abertura_texto
+from app.services.campaign_cooldown import check_campaign_cooldown
 from app.services.campanhas.repository import campanha_repository
 from app.services.campanhas.types import (
     CampanhaData,
@@ -25,6 +27,9 @@ from app.services.segmentacao import segmentacao_service
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
+
+# Anti-spam: maximo de outbound sem resposta antes de parar de contactar
+MAX_UNANSWERED_OUTBOUND = 2
 
 
 class CampanhaExecutor:
@@ -48,10 +53,11 @@ class CampanhaExecutor:
             logger.error(f"Campanha {campanha_id} nao encontrada")
             return False
 
-        # 2. Validar status
-        if campanha.status not in (StatusCampanha.AGENDADA, StatusCampanha.ATIVA):
+        # 2. Validar status - apenas AGENDADA pode ser executada (#111)
+        if campanha.status != StatusCampanha.AGENDADA:
             logger.warning(
-                f"Campanha {campanha_id} tem status {campanha.status.value}, nao pode ser executada"
+                f"Campanha {campanha_id} tem status {campanha.status.value}, "
+                f"apenas 'agendada' pode ser executada"
             )
             return False
 
@@ -85,21 +91,92 @@ class CampanhaExecutor:
         # 6. Atualizar total de destinatarios
         await campanha_repository.atualizar_total_destinatarios(campanha_id, len(destinatarios))
 
-        # 7. Criar envios
+        # 7. Criar envios com verificacoes anti-spam (#109, #110)
         enviados = 0
+        skipped_cooldown = 0
+        skipped_unanswered = 0
         for dest in destinatarios:
+            cliente_id = dest.get("id")
             try:
+                # Anti-spam #109: verificar cooldown entre campanhas
+                cooldown = await check_campaign_cooldown(cliente_id, campanha_id)
+                if cooldown.is_blocked:
+                    skipped_cooldown += 1
+                    logger.debug(
+                        f"Campanha {campanha_id}: {cliente_id[:8]} em cooldown "
+                        f"({cooldown.reason})"
+                    )
+                    continue
+
+                # Anti-spam #110: verificar limite de outbound sem resposta
+                if await self._excedeu_limite_sem_resposta(cliente_id):
+                    skipped_unanswered += 1
+                    logger.debug(
+                        f"Campanha {campanha_id}: {cliente_id[:8]} excedeu limite "
+                        f"de {MAX_UNANSWERED_OUTBOUND} outbound sem resposta"
+                    )
+                    continue
+
                 sucesso = await self._criar_envio(campanha, dest)
                 if sucesso:
                     enviados += 1
             except Exception as e:
-                logger.error(f"Erro ao criar envio para {dest.get('id')}: {e}")
+                logger.error(f"Erro ao criar envio para {cliente_id}: {e}")
 
         # 8. Atualizar contador de enviados
         await campanha_repository.incrementar_enviados(campanha_id, enviados)
 
-        logger.info(f"Campanha {campanha_id}: {enviados}/{len(destinatarios)} envios criados")
+        # 9. Anti-spam #111: concluir campanha apos execucao
+        await campanha_repository.atualizar_status(campanha_id, StatusCampanha.CONCLUIDA)
+
+        logger.info(
+            f"Campanha {campanha_id}: {enviados}/{len(destinatarios)} envios criados "
+            f"(cooldown={skipped_cooldown}, sem_resposta={skipped_unanswered})"
+        )
         return True
+
+    async def _excedeu_limite_sem_resposta(self, cliente_id: str) -> bool:
+        """
+        Verifica se medico excedeu limite de outbound sem resposta (#110).
+
+        Conta campanhas enviadas sem nenhuma resposta inbound do medico.
+        Se >= MAX_UNANSWERED_OUTBOUND, retorna True.
+
+        Args:
+            cliente_id: ID do cliente
+
+        Returns:
+            True se excedeu limite
+        """
+        try:
+            # Contar campanhas enviadas para este medico
+            enviadas = (
+                supabase.table("campaign_contact_history")
+                .select("id", count="exact")
+                .eq("cliente_id", cliente_id)
+                .execute()
+            )
+            total_campanhas = enviadas.count or 0
+
+            if total_campanhas < MAX_UNANSWERED_OUTBOUND:
+                return False
+
+            # Verificar se tem alguma resposta inbound
+            respostas = (
+                supabase.table("interacoes")
+                .select("id", count="exact")
+                .eq("cliente_id", cliente_id)
+                .eq("tipo", "entrada")
+                .limit(1)
+                .execute()
+            )
+
+            tem_resposta = (respostas.count or 0) > 0
+            return not tem_resposta
+
+        except Exception as e:
+            logger.warning(f"Erro ao verificar limite sem resposta: {e}")
+            return False  # Na duvida, permite envio
 
     async def _buscar_clientes_ja_enviados(self, campanha_id: int) -> set:
         """
