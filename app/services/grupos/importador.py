@@ -233,6 +233,9 @@ async def criar_vaga_principal(vaga_grupo: dict) -> UUID:
         "valor_tipo": vaga_grupo.get("valor_tipo", "a_combinar"),
         "hora_inicio": vaga_grupo.get("hora_inicio"),
         "hora_fim": vaga_grupo.get("hora_fim"),
+        # Contato responsável (Sprint 57)
+        "contato_nome": vaga_grupo.get("contato_nome"),
+        "contato_whatsapp": vaga_grupo.get("contato_whatsapp"),
         "status": "aberta",
         "origem": "grupo_whatsapp",
         "vaga_grupo_id": vaga_grupo["id"],

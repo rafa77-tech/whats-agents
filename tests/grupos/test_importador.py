@@ -382,6 +382,47 @@ class TestCriarVagaPrincipal:
         assert resultado is not None
         mock.table.return_value.insert.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_criar_vaga_com_contato(self, mock_supabase):
+        """Deve copiar contato_nome e contato_whatsapp do vaga_grupo (Sprint 57)."""
+        mock, vaga_id = mock_supabase
+
+        vaga_grupo = {
+            "id": str(uuid4()),
+            "hospital_id": str(uuid4()),
+            "especialidade_id": str(uuid4()),
+            "data": "2024-12-28",
+            "contato_nome": "Maria Silva",
+            "contato_whatsapp": "5511999999999",
+        }
+
+        resultado = await criar_vaga_principal(vaga_grupo)
+
+        assert resultado is not None
+        call_args = mock.table.return_value.insert.call_args[0][0]
+        assert call_args["contato_nome"] == "Maria Silva"
+        assert call_args["contato_whatsapp"] == "5511999999999"
+
+    @pytest.mark.asyncio
+    async def test_criar_vaga_sem_contato(self, mock_supabase):
+        """Vagas sem contato no vaga_grupo nao devem ter contato_nome no insert."""
+        mock, vaga_id = mock_supabase
+
+        vaga_grupo = {
+            "id": str(uuid4()),
+            "hospital_id": str(uuid4()),
+            "especialidade_id": str(uuid4()),
+            "data": "2024-12-28",
+        }
+
+        resultado = await criar_vaga_principal(vaga_grupo)
+
+        assert resultado is not None
+        call_args = mock.table.return_value.insert.call_args[0][0]
+        # None values are filtered out
+        assert "contato_nome" not in call_args
+        assert "contato_whatsapp" not in call_args
+
 
 class TestAtualizarVagaGrupoImportada:
     """Testes de atualização de status."""

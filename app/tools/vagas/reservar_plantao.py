@@ -161,6 +161,26 @@ async def handle_reservar_plantao(tool_input: dict, medico: dict, conversa: dict
         # Extrair dados completos do hospital
         hospital_data = vaga.get("hospitais", {})
 
+        # Sprint 57: Se vaga tem contato direto, usar como fast path
+        if vaga.get("contato_nome") and vaga.get("contato_whatsapp"):
+            resultado["ponte_externa"] = {
+                "divulgador_nome": vaga["contato_nome"],
+                "divulgador_telefone": vaga["contato_whatsapp"],
+            }
+            resultado["instrucao"] = _construir_instrucao_ponte_externa(
+                vaga,
+                hospital_data,
+                {
+                    "success": True,
+                    "divulgador": {
+                        "nome": vaga["contato_nome"],
+                        "telefone": vaga["contato_whatsapp"],
+                    },
+                },
+                medico,
+            )
+            return resultado
+
         # Sprint 20: Verificar se vaga tem origem externa (grupo)
         ponte_externa = None
         if vaga.get("source") == "grupo" and vaga.get("source_id"):
@@ -198,6 +218,9 @@ async def handle_reservar_plantao(tool_input: dict, medico: dict, conversa: dict
                 "valor_tipo": vaga.get("valor_tipo", "fixo"),
                 "valor_display": _formatar_valor_display(vaga),
                 "status": vaga_atualizada.get("status"),
+                # Contato responsavel (Sprint 57)
+                "contato_nome": vaga.get("contato_nome"),
+                "contato_whatsapp": vaga.get("contato_whatsapp"),
             },
         }
 

@@ -125,6 +125,8 @@ class VagasResponseFormatter:
                         (especialidades.get("nome") if isinstance(especialidades, dict) else None)
                         or especialidade_nome
                     ),
+                    # Contato responsavel (Sprint 57)
+                    "contato": v.get("contato_nome"),
                 }
             )
 

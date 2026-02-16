@@ -124,6 +124,28 @@ class TestVagasResponseFormatter:
         assert result[0]["setor"] == "UTI"
         assert result[0]["especialidade"] == "Cardiologia"
         assert result[0]["valor_display"] == "R$ 2.500"
+        assert result[0]["contato"] is None
+
+    def test_formatar_vagas_resumo_com_contato(self, formatter):
+        """Deve incluir contato no resumo (Sprint 57)."""
+        vagas = [
+            {
+                "id": "123",
+                "hospitais": {"nome": "Hospital São Luiz", "cidade": "São Paulo"},
+                "periodos": {"nome": "Diurno"},
+                "setores": None,
+                "especialidades": {"nome": "Cardiologia"},
+                "data": "2025-01-15",
+                "valor": 2500,
+                "valor_tipo": "fixo",
+                "contato_nome": "Maria Silva",
+            }
+        ]
+
+        result = formatter.formatar_vagas_resumo(vagas)
+
+        assert len(result) == 1
+        assert result[0]["contato"] == "Maria Silva"
 
     def test_formatar_vagas_resumo_com_none(self, formatter):
         """Deve lidar com objetos relacionados None."""
