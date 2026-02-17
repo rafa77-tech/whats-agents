@@ -104,7 +104,8 @@ addopts = [
     "--cov=app",
     "--cov-report=term-missing",
     "--cov-report=html",
-    "--cov-fail-under=45",
+    "--cov-report=json",
+    "--cov-fail-under=50",
 ]
 markers = [
     "unit: testes unitarios sem dependencia externa",
@@ -125,7 +126,7 @@ omit = [
 branch = true
 
 [tool.coverage.report]
-fail_under = 45
+fail_under = 50
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
