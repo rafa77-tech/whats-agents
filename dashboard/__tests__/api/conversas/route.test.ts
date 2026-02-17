@@ -47,7 +47,7 @@ function makeThenableChain(resultGetter: () => MockQueryResult) {
       }
       // Any chained method returns the proxy itself
       if (typeof prop === 'string') {
-        return vi.fn((...args: unknown[]) => proxy)
+        return vi.fn((..._args: unknown[]) => proxy)
       }
       return undefined
     },
@@ -316,7 +316,7 @@ describe('GET /api/conversas', () => {
 
     const request = createRequest({ chip_id: 'chip-abc' })
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(mockFrom).toHaveBeenCalledWith('conversation_chips')
@@ -331,12 +331,12 @@ describe('GET /api/conversas', () => {
 
     const request = createRequest({ chip_id: 'chip-nonexistent' })
     const response = await GET(request)
-    const data = await response.json()
+    const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(data.data).toEqual([])
-    expect(data.total).toBe(0)
-    expect(data.pages).toBe(0)
+    expect(body.data).toEqual([])
+    expect(body.total).toBe(0)
+    expect(body.pages).toBe(0)
   })
 
   it('applies search filter via or() call', async () => {

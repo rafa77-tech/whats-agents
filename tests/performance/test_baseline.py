@@ -736,12 +736,15 @@ class TestEphemeralClientCount:
         DEPOIS (Epic 1): 0 instâncias — todas migradas para singleton.
         """
         import subprocess
+        from pathlib import Path
+
+        project_root = Path(__file__).resolve().parents[2]
 
         result = subprocess.run(
             ["grep", "-rn", "async with httpx.AsyncClient", "app/"],
             capture_output=True,
             text=True,
-            cwd="/Users/rafaelpivovar/Documents/Projetos/whatsapp-api",
+            cwd=str(project_root),
         )
 
         lines = [l for l in result.stdout.strip().split("\n") if l]

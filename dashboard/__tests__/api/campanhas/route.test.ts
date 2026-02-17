@@ -99,15 +99,43 @@ describe('GET /api/campanhas', () => {
 
   it('deve retornar lista de campanhas com metricas calculadas', async () => {
     const campanhas = [
-      { id: 1, nome_template: 'Campanha A', status: 'ativa', total_destinatarios: 10, enviados: 0, entregues: 0, respondidos: 0 },
-      { id: 2, nome_template: 'Campanha B', status: 'rascunho', total_destinatarios: 5, enviados: 0, entregues: 0, respondidos: 0 },
+      {
+        id: 1,
+        nome_template: 'Campanha A',
+        status: 'ativa',
+        total_destinatarios: 10,
+        enviados: 0,
+        entregues: 0,
+        respondidos: 0,
+      },
+      {
+        id: 2,
+        nome_template: 'Campanha B',
+        status: 'rascunho',
+        total_destinatarios: 5,
+        enviados: 0,
+        entregues: 0,
+        respondidos: 0,
+      },
     ]
 
     const campanhasChain = mockCampanhasQuery({ data: campanhas, error: null })
     const enviosChain = mockEnviosQuery({
       data: [
-        { campanha_id: 1, enviado_em: '2026-01-01', entregue_em: '2026-01-01', visualizado_em: null, status: 'enviado' },
-        { campanha_id: 1, enviado_em: '2026-01-01', entregue_em: null, visualizado_em: null, status: 'enviado' },
+        {
+          campanha_id: 1,
+          enviado_em: '2026-01-01',
+          entregue_em: '2026-01-01',
+          visualizado_em: null,
+          status: 'enviado',
+        },
+        {
+          campanha_id: 1,
+          enviado_em: '2026-01-01',
+          entregue_em: null,
+          visualizado_em: null,
+          status: 'enviado',
+        },
       ],
     })
     const filaChain = mockFilaMensagensQuery({ data: [] })
@@ -133,7 +161,15 @@ describe('GET /api/campanhas', () => {
 
   it('deve filtrar por status quando parametro fornecido', async () => {
     const campanhas = [
-      { id: 1, nome_template: 'Ativa', status: 'ativa', total_destinatarios: 0, enviados: 0, entregues: 0, respondidos: 0 },
+      {
+        id: 1,
+        nome_template: 'Ativa',
+        status: 'ativa',
+        total_destinatarios: 0,
+        enviados: 0,
+        entregues: 0,
+        respondidos: 0,
+      },
     ]
 
     const campanhasChain = mockCampanhasQuery({ data: campanhas, error: null })
@@ -227,17 +263,46 @@ describe('GET /api/campanhas', () => {
 
   it('deve calcular metricas de fila_mensagens com deduplicacao por cliente', async () => {
     const campanhas = [
-      { id: 10, nome_template: 'C', status: 'ativa', total_destinatarios: 0, enviados: 0, entregues: 0, respondidos: 0 },
+      {
+        id: 10,
+        nome_template: 'C',
+        status: 'ativa',
+        total_destinatarios: 0,
+        enviados: 0,
+        entregues: 0,
+        respondidos: 0,
+      },
     ]
 
     const campanhasChain = mockCampanhasQuery({ data: campanhas, error: null })
     const enviosChain = mockEnviosQuery({ data: [] })
     const filaChain = mockFilaMensagensQuery({
       data: [
-        { id: 'f1', cliente_id: 'c1', status: 'enviada', enviada_em: '2026-01-01', outcome: null, metadata: { campanha_id: '10' } },
+        {
+          id: 'f1',
+          cliente_id: 'c1',
+          status: 'enviada',
+          enviada_em: '2026-01-01',
+          outcome: null,
+          metadata: { campanha_id: '10' },
+        },
         // Duplicate cliente_id for same campanha - should be ignored
-        { id: 'f2', cliente_id: 'c1', status: 'enviada', enviada_em: '2026-01-01', outcome: null, metadata: { campanha_id: '10' } },
-        { id: 'f3', cliente_id: 'c2', status: 'pendente', enviada_em: null, outcome: null, metadata: { campanha_id: '10' } },
+        {
+          id: 'f2',
+          cliente_id: 'c1',
+          status: 'enviada',
+          enviada_em: '2026-01-01',
+          outcome: null,
+          metadata: { campanha_id: '10' },
+        },
+        {
+          id: 'f3',
+          cliente_id: 'c2',
+          status: 'pendente',
+          enviada_em: null,
+          outcome: null,
+          metadata: { campanha_id: '10' },
+        },
       ],
     })
 

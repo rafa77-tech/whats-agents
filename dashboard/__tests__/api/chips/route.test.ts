@@ -7,10 +7,6 @@ import { GET } from '@/app/api/chips/route'
 import { NextRequest } from 'next/server'
 
 // Mock createAdminClient (sync, returns supabase directly)
-const mockOrder = vi.fn()
-const mockIn = vi.fn()
-const mockEq = vi.fn()
-const mockSelect = vi.fn()
 const mockFrom = vi.fn()
 
 const mockSupabase = { from: mockFrom }
@@ -28,8 +24,6 @@ function setupMocks(
   chipsResult: { data: unknown[] | null; error: unknown },
   conversationResult: { data: unknown[] | null; error?: unknown }
 ) {
-  let callCount = 0
-
   mockFrom.mockImplementation((table: string) => {
     if (table === 'chips') {
       return {
@@ -86,11 +80,7 @@ describe('GET /api/chips', () => {
       },
     ]
 
-    const conversations = [
-      { chip_id: 'chip-1' },
-      { chip_id: 'chip-1' },
-      { chip_id: 'chip-2' },
-    ]
+    const conversations = [{ chip_id: 'chip-1' }, { chip_id: 'chip-1' }, { chip_id: 'chip-2' }]
 
     setupMocks({ data: chips, error: null }, { data: conversations })
 

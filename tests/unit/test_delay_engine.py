@@ -7,6 +7,9 @@ Sprint 29 - Delays reduzidos para agilidade máxima
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
+
+TZ_BRASIL = ZoneInfo("America/Sao_Paulo")
 
 from app.services.delay_engine import (
     calcular_delay,
@@ -146,7 +149,7 @@ class TestHasValidInboundProof:
         """Sem interaction_id, inbound proof eh invalido."""
         ctx = self._criar_ctx(
             inbound_id=None,
-            last_inbound=datetime.now().isoformat(),
+            last_inbound=datetime.now(TZ_BRASIL).isoformat(),
         )
         assert has_valid_inbound_proof(ctx) is False
 
@@ -160,7 +163,7 @@ class TestHasValidInboundProof:
 
     def test_timestamp_recente_valido(self):
         """Com interaction_id e timestamp recente, eh valido."""
-        now = datetime.now()
+        now = datetime.now(TZ_BRASIL)
         ctx = self._criar_ctx(
             inbound_id=123,
             last_inbound=now.isoformat(),
@@ -169,7 +172,7 @@ class TestHasValidInboundProof:
 
     def test_timestamp_antigo_invalido(self):
         """Timestamp muito antigo (>30min) eh invalido."""
-        old = datetime.now() - timedelta(minutes=35)
+        old = datetime.now(TZ_BRASIL) - timedelta(minutes=35)
         ctx = self._criar_ctx(
             inbound_id=123,
             last_inbound=old.isoformat(),
@@ -178,7 +181,7 @@ class TestHasValidInboundProof:
 
     def test_max_age_customizado(self):
         """Deve respeitar max_age_minutes customizado."""
-        old = datetime.now() - timedelta(minutes=10)
+        old = datetime.now(TZ_BRASIL) - timedelta(minutes=10)
         ctx = self._criar_ctx(
             inbound_id=123,
             last_inbound=old.isoformat(),
