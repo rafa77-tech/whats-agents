@@ -14,9 +14,9 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 
 ## Estado Atual
 
-**Sprint Atual:** Nenhuma sprint em andamento (backlog disponível)
+**Sprint Atual:** Sprint 62 (Testing & CI Hardening) — em progresso
 **Início do Projeto:** 05/12/2025
-**Última Atualização:** 09/02/2026
+**Última Atualização:** 17/02/2026
 
 ### Métricas do Projeto
 
@@ -25,12 +25,12 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | Arquivos Python | ~386 | `find app -name "*.py" \| wc -l` |
 | Módulos de serviço | ~267 | `find app/services -name "*.py" \| wc -l` |
 | Tabelas no banco | 64+ (schema) | `grep -c "^CREATE TABLE" bootstrap/01-schema.sql` |
-| Testes | ~2662 | `grep -r "def test_" tests/ \| wc -l` |
+| Testes | ~3339 | `grep -r "def test_" tests/ \| wc -l` |
 | Routers API | 28 | `find app/api/routes -name "*.py" \| wc -l` |
 | Docs Markdown | ~97 (docs/) | `find docs -name "*.md" \| wc -l` |
 | Planning Docs | ~349 | `find planning -name "*.md" \| wc -l` |
 
-> **Nota:** Métricas verificadas em 09/02/2026. Rodar comandos para valores exatos.
+> **Nota:** Métricas verificadas em 17/02/2026. Rodar comandos para valores exatos.
 
 ### Sprints Concluídas
 
@@ -76,6 +76,7 @@ Júlia é um agente de IA que prospecta médicos, oferece plantões, gerencia re
 | 54 | Consolidação & Estabilização | ✅ Completa |
 | 55 | Índices FK & Alertas Proativos | ✅ Completa |
 | 56 | Message Flow Visualization | ✅ Completa |
+| 62 | Testing & CI Hardening | ✅ Completa |
 
 ### Funcionalidades Implementadas
 
