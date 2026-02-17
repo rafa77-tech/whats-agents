@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAuth } from '@/hooks/use-auth'
-import { STATUS_OPTIONS } from '@/lib/vagas'
+import { STATUS_OPTIONS, CRITICIDADE_OPTIONS } from '@/lib/vagas'
 import type { ShiftFilters as Filters, SelectOption } from '@/lib/vagas'
 
 interface Props {
@@ -82,6 +82,31 @@ export function ShiftFilters({ filters, onApply, onClear }: Props) {
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             {STATUS_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Criticidade</Label>
+        <Select
+          value={localFilters.criticidade || 'all'}
+          onValueChange={(value) =>
+            setLocalFilters((prev) => ({
+              ...prev,
+              criticidade: value === 'all' ? undefined : value,
+            }))
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Todas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            {CRITICIDADE_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>

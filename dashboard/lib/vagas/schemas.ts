@@ -26,6 +26,7 @@ export const shiftListParamsSchema = z.object({
   status: z
     .enum(['aberta', 'reservada', 'confirmada', 'cancelada', 'realizada', 'fechada'])
     .optional(),
+  criticidade: z.enum(['normal', 'urgente', 'critica']).optional(),
   hospital_id: z.string().uuid().optional(),
   especialidade_id: z.string().uuid().optional(),
   date_from: z
@@ -49,6 +50,7 @@ export const shiftUpdateSchema = z.object({
   status: z
     .enum(['aberta', 'reservada', 'confirmada', 'cancelada', 'realizada', 'fechada'])
     .optional(),
+  criticidade: z.enum(['normal', 'urgente', 'critica']).optional(),
   hospital_id: z.string().uuid().optional(),
   especialidade_id: z.string().uuid().optional(),
   data: z
@@ -108,10 +110,12 @@ export function parseShiftListParams(searchParams: URLSearchParams): ShiftListPa
   const dateFrom = searchParams.get('date_from')
   const dateTo = searchParams.get('date_to')
   const search = searchParams.get('search')
+  const criticidade = searchParams.get('criticidade')
 
   if (page) raw.page = page
   if (perPage) raw.per_page = perPage
   if (status) raw.status = status
+  if (criticidade) raw.criticidade = criticidade
   if (hospitalId) raw.hospital_id = hospitalId
   if (especialidadeId) raw.especialidade_id = especialidadeId
   if (dateFrom) raw.date_from = dateFrom
@@ -147,6 +151,8 @@ export const shiftCreateSchema = z.object({
     .optional(),
   valor: z.number().int().positive().optional(),
   observacoes: z.string().max(500).optional(),
+  criticidade: z.enum(['normal', 'urgente', 'critica']).optional(),
+  quantidade: z.coerce.number().int().min(1).max(50).optional(),
   contato_nome: z.string().min(2, 'Nome do contato deve ter pelo menos 2 caracteres'),
   contato_whatsapp: z
     .string()

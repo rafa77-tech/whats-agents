@@ -14,6 +14,9 @@ from . import repository, cache, preferencias
 
 logger = logging.getLogger(__name__)
 
+# Prioridade de criticidade (menor = mais urgente)
+_CRITICIDADE_PRIORIDADE = {"critica": 0, "urgente": 1, "normal": 2}
+
 
 # Status validos para transicao para 'realizada'
 # Inclui 'fechada' por compatibilidade com registros legados
@@ -58,6 +61,14 @@ async def buscar_vagas_compativeis(
     if medico:
         prefs = medico.get("preferencias_detectadas") or {}
         vagas = preferencias.filtrar_por_preferencias(vagas, prefs)
+
+    # Ordenar por criticidade (critica > urgente > normal) e depois por data
+    vagas.sort(
+        key=lambda v: (
+            _CRITICIDADE_PRIORIDADE.get(v.get("criticidade", "normal"), 2),
+            v.get("data", ""),
+        )
+    )
 
     vagas_finais = vagas[:limite]
 

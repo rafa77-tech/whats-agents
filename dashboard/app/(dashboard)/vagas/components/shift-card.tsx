@@ -8,7 +8,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
-import { formatCurrency, parseShiftDate, getStatusBadgeColor, getStatusLabel } from '@/lib/vagas'
+import {
+  formatCurrency,
+  parseShiftDate,
+  getStatusBadgeColor,
+  getStatusLabel,
+  getCriticidadeBadgeColor,
+  getCriticidadeLabel,
+} from '@/lib/vagas'
 import type { Shift } from '@/lib/vagas'
 
 // Re-export for backward compatibility
@@ -75,7 +82,14 @@ export function ShiftCard({ shift, selectable, selected, onSelectChange }: Props
                 <h3 className="font-semibold">{shift.hospital}</h3>
                 <p className="text-sm text-muted-foreground">{shift.especialidade}</p>
               </div>
-              <Badge className={cn('text-xs', statusColor)}>{statusLabel}</Badge>
+              <div className="flex gap-1">
+                <Badge className={cn('text-xs', statusColor)}>{statusLabel}</Badge>
+                {shift.criticidade && shift.criticidade !== 'normal' && (
+                  <Badge className={cn('text-xs', getCriticidadeBadgeColor(shift.criticidade))}>
+                    {getCriticidadeLabel(shift.criticidade)}
+                  </Badge>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">

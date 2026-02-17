@@ -27,6 +27,7 @@ describe('ShiftCard', () => {
     hora_fim: '18:00',
     valor: 2500,
     status: 'aberta',
+    criticidade: 'normal',
     reservas_count: 0,
     created_at: '2026-01-01T00:00:00Z',
     contato_nome: null,

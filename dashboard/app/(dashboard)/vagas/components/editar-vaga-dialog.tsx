@@ -20,9 +20,17 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Check, ChevronsUpDown, Loader2, Plus, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CRITICIDADE_OPTIONS } from '@/lib/vagas'
 import type { ShiftDetail } from '@/lib/vagas/types'
 
 interface EditarVagaDialogProps {
@@ -67,6 +75,7 @@ export function EditarVagaDialog({
   const [contatoNome, setContatoNome] = useState('')
   const [contatoWhatsapp, setContatoWhatsapp] = useState('')
   const [contatoManual, setContatoManual] = useState(false)
+  const [criticidade, setCriticidade] = useState('normal')
 
   // Combobox lists
   const [hospitais, setHospitais] = useState<Hospital[]>([])
@@ -119,6 +128,7 @@ export function EditarVagaDialog({
       setContatoNome(shift.contato_nome || '')
       setContatoWhatsapp(shift.contato_whatsapp || '')
       setContatoManual(false)
+      setCriticidade(shift.criticidade || 'normal')
       setHospitalSearch('')
       setEspecialidadeSearch('')
       setContatoSearch('')
@@ -301,6 +311,7 @@ export function EditarVagaDialog({
       valor: valor ? Number(valor) : null,
       contato_nome: contatoNome.trim() || null,
       contato_whatsapp: contatoWhatsapp.trim() || null,
+      criticidade,
     }
 
     try {
@@ -616,6 +627,23 @@ export function EditarVagaDialog({
             <p className="text-xs text-muted-foreground">
               Deixe vazio para marcar como &quot;a combinar&quot;
             </p>
+          </div>
+
+          {/* Criticidade */}
+          <div className="space-y-2">
+            <Label>Criticidade</Label>
+            <Select value={criticidade} onValueChange={setCriticidade}>
+              <SelectTrigger>
+                <SelectValue placeholder="Normal" />
+              </SelectTrigger>
+              <SelectContent>
+                {CRITICIDADE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

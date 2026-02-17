@@ -10,6 +10,7 @@ from app.services.vagas.formatters import (
     formatar_valor_para_mensagem,
     formatar_para_contexto,
     _formatar_valor_contexto,
+    _formatar_criticidade_contexto,
 )
 
 
@@ -142,3 +143,69 @@ class TestFormatarParaContexto:
         """Sem vagas deve retornar mensagem padrao."""
         resultado = formatar_para_contexto([])
         assert "Não há vagas disponíveis" in resultado
+
+    def test_contexto_com_criticidade_urgente(self):
+        """Vaga urgente deve exibir label [URGENTE] no contexto."""
+        vagas = [{
+            "hospitais": {"nome": "Hospital ABC", "cidade": "SP"},
+            "periodos": {"nome": "Noturno", "hora_inicio": "19:00", "hora_fim": "07:00"},
+            "setores": {"nome": "UTI"},
+            "data": "2025-01-15",
+            "valor": 2000,
+            "valor_tipo": "fixo",
+            "criticidade": "urgente",
+            "id": "123",
+        }]
+        resultado = formatar_para_contexto(vagas)
+        assert "[URGENTE]" in resultado
+
+    def test_contexto_com_criticidade_critica(self):
+        """Vaga critica deve exibir label [CRITICA - PRIORIDADE MAXIMA]."""
+        vagas = [{
+            "hospitais": {"nome": "Hospital XYZ", "cidade": "RJ"},
+            "periodos": {"nome": "Diurno", "hora_inicio": "07:00", "hora_fim": "19:00"},
+            "setores": {"nome": "PS"},
+            "data": "2025-01-16",
+            "valor": 3000,
+            "valor_tipo": "fixo",
+            "criticidade": "critica",
+            "id": "456",
+        }]
+        resultado = formatar_para_contexto(vagas)
+        assert "[CRITICA - PRIORIDADE MAXIMA]" in resultado
+
+    def test_contexto_com_criticidade_normal(self):
+        """Vaga normal nao deve exibir label de criticidade."""
+        vagas = [{
+            "hospitais": {"nome": "Hospital ABC", "cidade": "SP"},
+            "periodos": {"nome": "Noturno", "hora_inicio": "19:00", "hora_fim": "07:00"},
+            "setores": {"nome": "UTI"},
+            "data": "2025-01-15",
+            "valor": 2000,
+            "valor_tipo": "fixo",
+            "criticidade": "normal",
+            "id": "789",
+        }]
+        resultado = formatar_para_contexto(vagas)
+        assert "[URGENTE]" not in resultado
+        assert "[CRITICA" not in resultado
+
+
+class TestFormatarCriticidadeContexto:
+    """Testes para formatacao de criticidade no contexto LLM."""
+
+    def test_criticidade_normal(self):
+        """Normal deve retornar string vazia."""
+        assert _formatar_criticidade_contexto("normal") == ""
+
+    def test_criticidade_urgente(self):
+        """Urgente deve retornar [URGENTE]."""
+        assert _formatar_criticidade_contexto("urgente") == " [URGENTE]"
+
+    def test_criticidade_critica(self):
+        """Critica deve retornar [CRITICA - PRIORIDADE MAXIMA]."""
+        assert _formatar_criticidade_contexto("critica") == " [CRITICA - PRIORIDADE MAXIMA]"
+
+    def test_criticidade_desconhecida(self):
+        """Criticidade desconhecida deve retornar vazio."""
+        assert _formatar_criticidade_contexto("outra") == ""

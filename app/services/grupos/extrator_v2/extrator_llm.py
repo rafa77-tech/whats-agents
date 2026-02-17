@@ -161,6 +161,11 @@ REGRAS CRÍTICAS:
    - Múltiplos períodos
    - Múltiplos hospitais
 
+7. NUMERO_VAGAS: quantidade de posições idênticas mencionadas na mensagem.
+   - Ex: "preciso de 3 médicos para plantão noturno" → numero_vagas = 3
+   - Ex: "2 vagas de CM no Hospital X" → numero_vagas = 2
+   - Se não mencionar quantidade, use 1 (default)
+
 Retorne APENAS um JSON válido no formato:
 {{
   "eh_vaga": true/false,
@@ -178,6 +183,7 @@ Retorne APENAS um JSON válido no formato:
       "valor": número inteiro em reais ou null,
       "contato_nome": "Nome do contato" ou null,
       "contato_whatsapp": "Telefone" ou null,
+      "numero_vagas": quantidade de posições idênticas mencionadas (default 1),
       "observacoes": "Informações adicionais" ou null
     }}
   ]
@@ -484,6 +490,7 @@ def converter_para_vagas_atomicas(
                 especialidade_raw=vaga_dict.get("especialidade"),
                 contato_nome=vaga_dict.get("contato_nome"),
                 contato_whatsapp=vaga_dict.get("contato_whatsapp"),
+                numero_vagas=max(1, int(vaga_dict.get("numero_vagas") or 1)),
                 observacoes=vaga_dict.get("observacoes"),
                 confianca_geral=resultado.confianca,
                 mensagem_id=mensagem_id,

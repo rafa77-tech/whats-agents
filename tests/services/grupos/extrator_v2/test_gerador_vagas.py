@@ -387,3 +387,52 @@ class TestCenarioCompleto:
         # Validar contato
         assert all(v.contato_nome == "Eloisa" for v in vagas)
         assert all(v.contato_whatsapp == "5511939050162" for v in vagas)
+
+
+class TestVagaAtomicaToDict:
+    """Testes para VagaAtomica.to_dict incluindo numero_vagas."""
+
+    def test_to_dict_inclui_numero_vagas_default(self):
+        """to_dict deve incluir numero_vagas=1 por default."""
+        vaga = VagaAtomica(
+            data=date(2026, 1, 26),
+            dia_semana=DiaSemana.SEGUNDA,
+            periodo=Periodo.MANHA,
+            valor=1700,
+            hospital_raw="Hospital ABC",
+        )
+
+        d = vaga.to_dict()
+        assert d["numero_vagas"] == 1
+
+    def test_to_dict_inclui_numero_vagas_custom(self):
+        """to_dict deve incluir numero_vagas quando definido."""
+        vaga = VagaAtomica(
+            data=date(2026, 1, 26),
+            dia_semana=DiaSemana.SEGUNDA,
+            periodo=Periodo.MANHA,
+            valor=1700,
+            hospital_raw="Hospital ABC",
+            numero_vagas=5,
+        )
+
+        d = vaga.to_dict()
+        assert d["numero_vagas"] == 5
+
+    def test_to_dict_campos_obrigatorios(self):
+        """to_dict deve incluir todos os campos esperados."""
+        vaga = VagaAtomica(
+            data=date(2026, 1, 26),
+            dia_semana=DiaSemana.SEGUNDA,
+            periodo=Periodo.MANHA,
+            valor=1700,
+            hospital_raw="Hospital ABC",
+        )
+
+        d = vaga.to_dict()
+        assert "data" in d
+        assert "dia_semana" in d
+        assert "periodo" in d
+        assert "valor" in d
+        assert "hospital_raw" in d
+        assert "numero_vagas" in d

@@ -156,6 +156,9 @@ class VagaAtomica:
     contato_nome: Optional[str] = None
     contato_whatsapp: Optional[str] = None
 
+    # Multiplicidade
+    numero_vagas: int = 1  # Quantidade de posicoes identicas (default 1)
+
     # Metadados
     confianca_geral: float = 0.0
     observacoes: Optional[str] = None
@@ -180,6 +183,7 @@ class VagaAtomica:
             "especialidade_raw": self.especialidade_raw,
             "contato_nome": self.contato_nome,
             "contato_whatsapp": self.contato_whatsapp,
+            "numero_vagas": self.numero_vagas,
             "confianca_geral": self.confianca_geral,
             "observacoes": self.observacoes,
             "mensagem_id": str(self.mensagem_id) if self.mensagem_id else None,

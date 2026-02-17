@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
       page,
       per_page: perPage,
       status,
+      criticidade,
       hospital_id,
       especialidade_id,
       date_from,
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
         hora_fim,
         valor,
         status,
+        criticidade,
         total_candidaturas,
         created_at,
         hospital_id,
@@ -67,6 +69,9 @@ export async function GET(request: NextRequest) {
     // Apply filters
     if (status) {
       query = query.eq('status', status)
+    }
+    if (criticidade) {
+      query = query.eq('criticidade', criticidade)
     }
     if (hospital_id) {
       query = query.eq('hospital_id', hospital_id)
@@ -130,6 +135,7 @@ export async function GET(request: NextRequest) {
         hora_fim: v.hora_fim,
         valor: v.valor || 0,
         status: v.status || 'aberta',
+        criticidade: v.criticidade || 'normal',
         reservas_count: v.total_candidaturas || 0,
         created_at: v.created_at,
         contato_nome: v.contato_nome || null,
@@ -169,6 +175,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createAdminClient()
+    const quantidade = parsed.quantidade ?? 1
 
     const insertData: Record<string, unknown> = {
       hospital_id: parsed.hospital_id,
@@ -179,6 +186,7 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString(),
       contato_nome: parsed.contato_nome,
       contato_whatsapp: parsed.contato_whatsapp,
+      criticidade: parsed.criticidade ?? 'normal',
     }
 
     if (parsed.hora_inicio) insertData.hora_inicio = parsed.hora_inicio
@@ -192,14 +200,28 @@ export async function POST(request: NextRequest) {
       insertData.valor_tipo = 'a_combinar'
     }
 
-    const { data, error } = await supabase.from('vagas').insert(insertData).select('id').single()
+    if (quantidade === 1) {
+      const { data, error } = await supabase.from('vagas').insert(insertData).select('id').single()
 
-    if (error) {
-      console.error('Erro ao criar vaga:', error)
-      return NextResponse.json({ detail: 'Erro ao criar vaga no banco' }, { status: 500 })
+      if (error) {
+        console.error('Erro ao criar vaga:', error)
+        return NextResponse.json({ detail: 'Erro ao criar vaga no banco' }, { status: 500 })
+      }
+
+      return NextResponse.json({ id: data.id, success: true, count: 1 }, { status: 201 })
     }
 
-    return NextResponse.json({ id: data.id, success: true }, { status: 201 })
+    // Batch insert: create N identical records
+    const records = Array.from({ length: quantidade }, () => ({ ...insertData }))
+    const { data, error } = await supabase.from('vagas').insert(records).select('id')
+
+    if (error) {
+      console.error('Erro ao criar vagas em lote:', error)
+      return NextResponse.json({ detail: 'Erro ao criar vagas no banco' }, { status: 500 })
+    }
+
+    const ids = (data || []).map((r) => r.id)
+    return NextResponse.json({ ids, success: true, count: ids.length }, { status: 201 })
   } catch (error) {
     console.error('Erro ao criar vaga:', error)
     return NextResponse.json({ detail: 'Erro interno do servidor' }, { status: 500 })

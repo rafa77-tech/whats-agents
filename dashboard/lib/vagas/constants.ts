@@ -2,7 +2,7 @@
  * Constantes para o módulo de Vagas
  */
 
-import type { ShiftStatus } from './types'
+import type { ShiftStatus, Criticidade } from './types'
 
 /**
  * Cores de badge por status (estilo claro para cards)
@@ -62,6 +62,33 @@ export const ALL_STATUSES: ShiftStatus[] = [
   'realizada',
   'fechada',
 ]
+
+/**
+ * Cores de badge por criticidade
+ */
+export const CRITICIDADE_BADGE_COLORS: Record<Criticidade, string> = {
+  normal: 'bg-status-neutral text-status-neutral-foreground',
+  urgente: 'bg-status-warning text-status-warning-foreground',
+  critica: 'bg-status-error text-status-error-foreground',
+}
+
+/**
+ * Labels traduzidos por criticidade
+ */
+export const CRITICIDADE_LABELS: Record<Criticidade, string> = {
+  normal: 'Normal',
+  urgente: 'Urgente',
+  critica: 'Critica',
+}
+
+/**
+ * Opções de criticidade para selects/filtros
+ */
+export const CRITICIDADE_OPTIONS = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'urgente', label: 'Urgente' },
+  { value: 'critica', label: 'Critica' },
+] as const
 
 /**
  * Dias da semana em português (abreviado)

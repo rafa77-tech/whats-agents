@@ -128,7 +128,11 @@ def formatar_para_contexto(vagas: list[dict], especialidade: str = None) -> str:
         # Formatar valor baseado no tipo (Sprint 19)
         valor_display = _formatar_valor_contexto(v)
 
-        texto += f"""**Vaga {i}:**
+        # Label de criticidade para o LLM
+        criticidade = v.get("criticidade", "normal")
+        criticidade_label = _formatar_criticidade_contexto(criticidade)
+
+        texto += f"""**Vaga {i}:**{criticidade_label}
 - Hospital: {hospital_nome} ({hospital_cidade})
 - Data: {v.get("data", "N/A")}
 - Período: {periodo_nome} ({periodo_inicio}-{periodo_fim})
@@ -138,6 +142,23 @@ def formatar_para_contexto(vagas: list[dict], especialidade: str = None) -> str:
 """
 
     return texto
+
+
+def _formatar_criticidade_contexto(criticidade: str) -> str:
+    """
+    Formata criticidade para contexto do LLM.
+
+    Args:
+        criticidade: Nivel de criticidade da vaga
+
+    Returns:
+        String formatada para contexto (vazio para normal)
+    """
+    if criticidade == "urgente":
+        return " [URGENTE]"
+    elif criticidade == "critica":
+        return " [CRITICA - PRIORIDADE MAXIMA]"
+    return ""
 
 
 def _formatar_valor_contexto(vaga: dict) -> str:

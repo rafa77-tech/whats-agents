@@ -6,9 +6,16 @@
 
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Calendar, Clock, DollarSign, Building2, Stethoscope } from 'lucide-react'
+import { AlertTriangle, Calendar, Clock, DollarSign, Building2, Stethoscope } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatCurrency, parseShiftDate } from '@/lib/vagas'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import {
+  formatCurrency,
+  parseShiftDate,
+  getCriticidadeBadgeColor,
+  getCriticidadeLabel,
+} from '@/lib/vagas'
 
 interface ShiftInfoCardProps {
   data: string
@@ -18,6 +25,7 @@ interface ShiftInfoCardProps {
   hospital: string
   especialidade: string
   setor?: string | null
+  criticidade?: string | null
 }
 
 export function ShiftInfoCard({
@@ -28,6 +36,7 @@ export function ShiftInfoCard({
   hospital,
   especialidade,
   setor,
+  criticidade,
 }: ShiftInfoCardProps) {
   const shiftDate = parseShiftDate(data)
 
@@ -87,6 +96,18 @@ export function ShiftInfoCard({
             <div>
               <p className="text-sm text-muted-foreground">Setor</p>
               <p className="font-medium">{setor}</p>
+            </div>
+          </div>
+        )}
+
+        {criticidade && criticidade !== 'normal' && (
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm text-muted-foreground">Criticidade</p>
+              <Badge className={cn('text-xs', getCriticidadeBadgeColor(criticidade))}>
+                {getCriticidadeLabel(criticidade)}
+              </Badge>
             </div>
           </div>
         )}

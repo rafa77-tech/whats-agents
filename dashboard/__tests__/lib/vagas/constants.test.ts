@@ -5,6 +5,9 @@ import {
   STATUS_LABELS,
   STATUS_OPTIONS,
   ALL_STATUSES,
+  CRITICIDADE_BADGE_COLORS,
+  CRITICIDADE_LABELS,
+  CRITICIDADE_OPTIONS,
   WEEK_DAYS,
   PAGINATION,
 } from '@/lib/vagas/constants'
@@ -95,6 +98,49 @@ describe('ALL_STATUSES', () => {
     expect(ALL_STATUSES).toContain('cancelada')
     expect(ALL_STATUSES).toContain('realizada')
     expect(ALL_STATUSES).toContain('fechada')
+  })
+})
+
+describe('CRITICIDADE_BADGE_COLORS', () => {
+  it('has colors for all criticidades', () => {
+    expect(CRITICIDADE_BADGE_COLORS.normal).toBeDefined()
+    expect(CRITICIDADE_BADGE_COLORS.urgente).toBeDefined()
+    expect(CRITICIDADE_BADGE_COLORS.critica).toBeDefined()
+  })
+
+  it('uses semantic token classes', () => {
+    Object.values(CRITICIDADE_BADGE_COLORS).forEach((color) => {
+      expect(color).toMatch(/^bg-status-\w+/)
+      expect(color).toMatch(/text-status-\w+-foreground/)
+    })
+  })
+})
+
+describe('CRITICIDADE_LABELS', () => {
+  it('has labels for all criticidades', () => {
+    expect(CRITICIDADE_LABELS.normal).toBe('Normal')
+    expect(CRITICIDADE_LABELS.urgente).toBe('Urgente')
+    expect(CRITICIDADE_LABELS.critica).toBe('Critica')
+  })
+})
+
+describe('CRITICIDADE_OPTIONS', () => {
+  it('has 3 options', () => {
+    expect(CRITICIDADE_OPTIONS).toHaveLength(3)
+  })
+
+  it('has value and label for each option', () => {
+    CRITICIDADE_OPTIONS.forEach((option) => {
+      expect(option.value).toBeDefined()
+      expect(option.label).toBeDefined()
+    })
+  })
+
+  it('values match criticidade keys', () => {
+    const values = CRITICIDADE_OPTIONS.map((opt) => opt.value)
+    expect(values).toContain('normal')
+    expect(values).toContain('urgente')
+    expect(values).toContain('critica')
   })
 })
 

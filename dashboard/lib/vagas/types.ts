@@ -14,6 +14,11 @@ export type ShiftStatus =
   | 'fechada'
 
 /**
+ * Nível de criticidade/urgência de uma vaga
+ */
+export type Criticidade = 'normal' | 'urgente' | 'critica'
+
+/**
  * Vaga resumida (usada em listagens)
  */
 export interface Shift {
@@ -27,6 +32,7 @@ export interface Shift {
   hora_fim: string // HH:MM
   valor: number
   status: ShiftStatus | string
+  criticidade: string
   reservas_count: number
   created_at: string
   contato_nome: string | null
@@ -61,6 +67,7 @@ export interface Doctor {
  */
 export interface ShiftFilters {
   status?: string | undefined
+  criticidade?: string | undefined
   hospital_id?: string | undefined
   especialidade_id?: string | undefined
   date_from?: string | undefined

@@ -15,6 +15,8 @@ import {
   useDoctorSearch,
   getStatusBadgeColor,
   getStatusLabel,
+  getCriticidadeBadgeColor,
+  getCriticidadeLabel,
   buildCampaignInitialData,
 } from '@/lib/vagas'
 import type { Shift, WizardInitialData } from '@/lib/vagas'
@@ -88,6 +90,7 @@ export default function ShiftDetailPage() {
       hora_fim: shift.hora_fim,
       valor: shift.valor,
       status: shift.status,
+      criticidade: shift.criticidade,
       reservas_count: 0,
       created_at: shift.created_at,
       contato_nome: shift.contato_nome,
@@ -154,6 +157,11 @@ export default function ShiftDetailPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">{shift.hospital}</h1>
               <Badge className={cn('text-xs', statusColor)}>{statusLabel}</Badge>
+              {shift.criticidade && shift.criticidade !== 'normal' && (
+                <Badge className={cn('text-xs', getCriticidadeBadgeColor(shift.criticidade))}>
+                  {getCriticidadeLabel(shift.criticidade)}
+                </Badge>
+              )}
             </div>
             <p className="text-muted-foreground">{shift.especialidade}</p>
           </div>
@@ -190,6 +198,7 @@ export default function ShiftDetailPage() {
             hospital={shift.hospital}
             especialidade={shift.especialidade}
             setor={shift.setor}
+            criticidade={shift.criticidade}
           />
 
           {/* [1,2] Medico Atribuido */}

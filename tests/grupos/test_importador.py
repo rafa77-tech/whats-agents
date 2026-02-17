@@ -424,6 +424,71 @@ class TestCriarVagaPrincipal:
         assert "contato_whatsapp" not in call_args
 
 
+    @pytest.mark.asyncio
+    async def test_criar_vaga_com_numero_vagas_1(self, mock_supabase):
+        """Com numero_vagas=1, deve fazer insert simples (default)."""
+        mock, vaga_id = mock_supabase
+
+        vaga_grupo = {
+            "id": str(uuid4()),
+            "hospital_id": str(uuid4()),
+            "especialidade_id": str(uuid4()),
+            "data": "2024-12-28",
+            "numero_vagas": 1,
+        }
+
+        resultado = await criar_vaga_principal(vaga_grupo)
+
+        assert resultado is not None
+        call_args = mock.table.return_value.insert.call_args[0][0]
+        # Single insert: should be a dict, not list
+        assert isinstance(call_args, dict)
+
+    @pytest.mark.asyncio
+    async def test_criar_vaga_com_numero_vagas_maior_que_1(self, mock_supabase):
+        """Com numero_vagas > 1, deve fazer batch insert de N registros."""
+        mock, vaga_id = mock_supabase
+        # Mock retorna N registros
+        ids = [str(uuid4()) for _ in range(3)]
+        mock.table.return_value.insert.return_value.execute.return_value = MagicMock(
+            data=[{"id": id_} for id_ in ids]
+        )
+
+        vaga_grupo = {
+            "id": str(uuid4()),
+            "hospital_id": str(uuid4()),
+            "especialidade_id": str(uuid4()),
+            "data": "2024-12-28",
+            "numero_vagas": 3,
+        }
+
+        resultado = await criar_vaga_principal(vaga_grupo)
+
+        assert resultado is not None
+        call_args = mock.table.return_value.insert.call_args[0][0]
+        # Batch insert: should be a list of 3 dicts
+        assert isinstance(call_args, list)
+        assert len(call_args) == 3
+
+    @pytest.mark.asyncio
+    async def test_criar_vaga_sem_numero_vagas(self, mock_supabase):
+        """Sem numero_vagas (None), deve usar default 1 (insert simples)."""
+        mock, vaga_id = mock_supabase
+
+        vaga_grupo = {
+            "id": str(uuid4()),
+            "hospital_id": str(uuid4()),
+            "especialidade_id": str(uuid4()),
+            "data": "2024-12-28",
+        }
+
+        resultado = await criar_vaga_principal(vaga_grupo)
+
+        assert resultado is not None
+        call_args = mock.table.return_value.insert.call_args[0][0]
+        assert isinstance(call_args, dict)
+
+
 class TestAtualizarVagaGrupoImportada:
     """Testes de atualização de status."""
 

@@ -9,6 +9,7 @@ export type {
   ShiftFilters,
   ShiftListResponse,
   ShiftStatus,
+  Criticidade,
   Doctor,
   ViewMode,
   SelectOption,
@@ -21,6 +22,9 @@ export {
   STATUS_LABELS,
   STATUS_OPTIONS,
   ALL_STATUSES,
+  CRITICIDADE_BADGE_COLORS,
+  CRITICIDADE_LABELS,
+  CRITICIDADE_OPTIONS,
   WEEK_DAYS,
   PAGINATION,
 } from './constants'
@@ -34,6 +38,8 @@ export {
   getStatusLabel,
   formatTimeRange,
   formatReservasCount,
+  getCriticidadeBadgeColor,
+  getCriticidadeLabel,
 } from './formatters'
 
 // Schemas

@@ -2,8 +2,14 @@
  * Funções de formatação para o módulo de Vagas
  */
 
-import type { ShiftStatus } from './types'
-import { STATUS_BADGE_COLORS, STATUS_INDICATOR_COLORS, STATUS_LABELS } from './constants'
+import type { ShiftStatus, Criticidade } from './types'
+import {
+  STATUS_BADGE_COLORS,
+  STATUS_INDICATOR_COLORS,
+  STATUS_LABELS,
+  CRITICIDADE_BADGE_COLORS,
+  CRITICIDADE_LABELS,
+} from './constants'
 
 /**
  * Formata valor em BRL
@@ -74,4 +80,25 @@ export function formatTimeRange(horaInicio: string, horaFim: string): string {
 export function formatReservasCount(count: number): string {
   if (count === 0) return ''
   return count === 1 ? '1 reserva' : `${count} reservas`
+}
+
+/**
+ * Retorna a cor do badge para uma criticidade
+ * @param criticidade - Criticidade da vaga
+ * @returns String de classes CSS
+ */
+export function getCriticidadeBadgeColor(criticidade: string): string {
+  return (
+    CRITICIDADE_BADGE_COLORS[criticidade as Criticidade] ||
+    'bg-status-neutral text-status-neutral-foreground'
+  )
+}
+
+/**
+ * Retorna o label traduzido para uma criticidade
+ * @param criticidade - Criticidade da vaga
+ * @returns Label traduzido
+ */
+export function getCriticidadeLabel(criticidade: string): string {
+  return CRITICIDADE_LABELS[criticidade as Criticidade] || criticidade
 }

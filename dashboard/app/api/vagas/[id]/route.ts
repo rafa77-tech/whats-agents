@@ -26,6 +26,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         hora_fim,
         valor,
         status,
+        criticidade,
         created_at,
         updated_at,
         hospital_id,
@@ -73,6 +74,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       hora_fim: vaga.hora_fim,
       valor: vaga.valor || 0,
       status: vaga.status || 'aberta',
+      criticidade: vaga.criticidade || 'normal',
       cliente_id: vaga.cliente_id || null,
       cliente_nome: cliente
         ? [cliente.primeiro_nome, cliente.sobrenome].filter(Boolean).join(' ')
@@ -117,6 +119,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const {
       cliente_id,
       status,
+      criticidade,
       hospital_id,
       especialidade_id,
       data,
@@ -141,6 +144,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (status !== undefined) updateData.status = status
+    if (criticidade !== undefined) updateData.criticidade = criticidade
     if (hospital_id !== undefined) updateData.hospital_id = hospital_id
     if (especialidade_id !== undefined) updateData.especialidade_id = especialidade_id
     if (data !== undefined) updateData.data = data

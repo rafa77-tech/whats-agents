@@ -93,6 +93,23 @@ describe('shiftListParamsSchema', () => {
     }
   })
 
+  it('deve aceitar criticidade valida', () => {
+    const criticidades = ['normal', 'urgente', 'critica']
+    for (const criticidade of criticidades) {
+      const result = shiftListParamsSchema.parse({ criticidade })
+      expect(result.criticidade).toBe(criticidade)
+    }
+  })
+
+  it('deve rejeitar criticidade invalida', () => {
+    expect(() => shiftListParamsSchema.parse({ criticidade: 'alta' })).toThrow(ZodError)
+  })
+
+  it('deve aceitar sem criticidade (undefined)', () => {
+    const result = shiftListParamsSchema.parse({})
+    expect(result.criticidade).toBeUndefined()
+  })
+
   it('deve truncar search muito longo', () => {
     const longSearch = 'a'.repeat(300)
     expect(() => shiftListParamsSchema.parse({ search: longSearch })).toThrow(ZodError)
@@ -133,6 +150,14 @@ describe('parseShiftListParams', () => {
     params.set('status', 'invalido')
 
     expect(() => parseShiftListParams(params)).toThrow(ZodError)
+  })
+
+  it('deve parsear criticidade do URLSearchParams', () => {
+    const params = new URLSearchParams()
+    params.set('criticidade', 'urgente')
+
+    const result = parseShiftListParams(params)
+    expect(result.criticidade).toBe('urgente')
   })
 })
 
@@ -188,6 +213,15 @@ describe('shiftUpdateSchema', () => {
 
     expect(result.cliente_id).toBe('550e8400-e29b-41d4-a716-446655440000')
     expect(result.status).toBe('reservada')
+  })
+
+  it('deve aceitar criticidade valida', () => {
+    const result = shiftUpdateSchema.parse({ criticidade: 'urgente' })
+    expect(result.criticidade).toBe('urgente')
+  })
+
+  it('deve rejeitar criticidade invalida', () => {
+    expect(() => shiftUpdateSchema.parse({ criticidade: 'baixa' })).toThrow(ZodError)
   })
 })
 
@@ -377,6 +411,45 @@ describe('shiftCreateSchema', () => {
 
     const result13 = shiftCreateSchema.parse({ ...validBody, contato_whatsapp: '5511999999999' })
     expect(result13.contato_whatsapp).toBe('5511999999999')
+  })
+
+  it('deve aceitar criticidade valida', () => {
+    const result = shiftCreateSchema.parse({ ...validBody, criticidade: 'critica' })
+    expect(result.criticidade).toBe('critica')
+  })
+
+  it('deve aceitar sem criticidade (optional, defaults via API)', () => {
+    const result = shiftCreateSchema.parse(validBody)
+    // criticidade is optional in schema; API route applies 'normal' default
+    expect(result.criticidade).toBeUndefined()
+  })
+
+  it('deve rejeitar criticidade invalida', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, criticidade: 'alta' })).toThrow(ZodError)
+  })
+
+  it('deve aceitar quantidade valida', () => {
+    const result = shiftCreateSchema.parse({ ...validBody, quantidade: 5 })
+    expect(result.quantidade).toBe(5)
+  })
+
+  it('deve aceitar sem quantidade (optional, defaults via API)', () => {
+    const result = shiftCreateSchema.parse(validBody)
+    // quantidade is optional in schema; API route applies default 1
+    expect(result.quantidade).toBeUndefined()
+  })
+
+  it('deve rejeitar quantidade menor que 1', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, quantidade: 0 })).toThrow(ZodError)
+  })
+
+  it('deve rejeitar quantidade maior que 50', () => {
+    expect(() => shiftCreateSchema.parse({ ...validBody, quantidade: 51 })).toThrow(ZodError)
+  })
+
+  it('deve coercer quantidade string para numero', () => {
+    const result = shiftCreateSchema.parse({ ...validBody, quantidade: '3' })
+    expect(result.quantidade).toBe(3)
   })
 })
 

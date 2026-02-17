@@ -160,12 +160,12 @@ describe('NovaVagaDialog', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it('deve renderizar combobox triggers para hospital, especialidade e contato', async () => {
+  it('deve renderizar combobox triggers para hospital, especialidade, contato e criticidade', async () => {
     render(<NovaVagaDialog {...defaultProps} />)
 
     await waitFor(() => {
       const comboboxes = screen.getAllByRole('combobox')
-      expect(comboboxes).toHaveLength(3)
+      expect(comboboxes).toHaveLength(4)
     })
   })
 

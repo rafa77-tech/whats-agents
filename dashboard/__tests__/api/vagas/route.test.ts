@@ -113,6 +113,28 @@ describe('GET /api/vagas', () => {
     expect(mockEq).toHaveBeenCalledWith('status', 'aberta')
   })
 
+  it('filters by criticidade', async () => {
+    const mockEq = vi.fn().mockReturnThis()
+    mockSelect.mockReturnValue({
+      eq: mockEq,
+      gte: vi.fn().mockReturnThis(),
+      lte: vi.fn().mockReturnThis(),
+      or: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue({
+        range: vi.fn().mockResolvedValue({
+          data: [],
+          error: null,
+          count: 0,
+        }),
+      }),
+    })
+
+    const request = createRequest({ criticidade: 'urgente' })
+    await GET(request)
+
+    expect(mockEq).toHaveBeenCalledWith('criticidade', 'urgente')
+  })
+
   it('filters by hospital_id', async () => {
     const mockEq = vi.fn().mockReturnThis()
     mockSelect.mockReturnValue({
@@ -348,6 +370,7 @@ describe('GET /api/vagas', () => {
     expect(data.data[0].reservas_count).toBe(0)
     expect(data.data[0].contato_nome).toBeNull()
     expect(data.data[0].contato_whatsapp).toBeNull()
+    expect(data.data[0].criticidade).toBe('normal')
   })
 })
 
@@ -653,5 +676,79 @@ describe('POST /api/vagas', () => {
     const response = await POST(request)
 
     expect(response.status).toBe(400)
+  })
+
+  it('includes criticidade in insert data', async () => {
+    mockInsert.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'new-id' },
+          error: null,
+        }),
+      }),
+    })
+
+    const request = createPostRequest({ ...validCreateBody, criticidade: 'urgente' })
+    await POST(request)
+
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ criticidade: 'urgente' }))
+  })
+
+  it('defaults criticidade to normal when not provided', async () => {
+    mockInsert.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'new-id' },
+          error: null,
+        }),
+      }),
+    })
+
+    const request = createPostRequest(validCreateBody)
+    await POST(request)
+
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ criticidade: 'normal' }))
+  })
+
+  it('creates batch of N vagas when quantidade > 1', async () => {
+    mockInsert.mockReturnValue({
+      select: vi.fn().mockResolvedValue({
+        data: [{ id: 'id-1' }, { id: 'id-2' }, { id: 'id-3' }],
+        error: null,
+      }),
+    })
+
+    const request = createPostRequest({ ...validCreateBody, quantidade: 3 })
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(data.success).toBe(true)
+    expect(data.count).toBe(3)
+    expect(data.ids).toHaveLength(3)
+
+    // Should insert array of 3 records
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ status: 'aberta', origem: 'manual' })])
+    )
+    const insertArg = mockInsert.mock.calls[0]?.[0] as unknown[]
+    expect(insertArg).toHaveLength(3)
+  })
+
+  it('returns count=1 for single insert', async () => {
+    mockInsert.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'new-id' },
+          error: null,
+        }),
+      }),
+    })
+
+    const request = createPostRequest(validCreateBody)
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(data.count).toBe(1)
   })
 })

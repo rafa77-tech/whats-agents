@@ -210,13 +210,15 @@ def validar_para_importacao(vaga: dict) -> ResultadoValidacao:
 
 async def criar_vaga_principal(vaga_grupo: dict) -> UUID:
     """
-    Cria vaga na tabela principal a partir de vaga do grupo.
+    Cria vaga(s) na tabela principal a partir de vaga do grupo.
+
+    Se numero_vagas > 1, cria N registros identicos (batch insert).
 
     Args:
         vaga_grupo: Dados da vaga_grupo normalizada
 
     Returns:
-        UUID da vaga criada
+        UUID da primeira vaga criada
     """
     # Mapear campos
     dados_vaga = {
@@ -244,10 +246,21 @@ async def criar_vaga_principal(vaga_grupo: dict) -> UUID:
     # Remover campos None
     dados_vaga = {k: v for k, v in dados_vaga.items() if v is not None}
 
-    result = supabase.table("vagas").insert(dados_vaga).execute()
-    vaga_id = UUID(result.data[0]["id"])
+    numero_vagas = vaga_grupo.get("numero_vagas", 1) or 1
 
-    logger.info(f"Vaga criada: {vaga_id} (origem: grupo {vaga_grupo['id']})")
+    if numero_vagas > 1:
+        # Batch insert: N registros identicos
+        registros = [dict(dados_vaga) for _ in range(numero_vagas)]
+        result = supabase.table("vagas").insert(registros).execute()
+        vaga_id = UUID(result.data[0]["id"])
+        logger.info(
+            f"{numero_vagas} vagas criadas (primeira: {vaga_id}, "
+            f"origem: grupo {vaga_grupo['id']})"
+        )
+    else:
+        result = supabase.table("vagas").insert(dados_vaga).execute()
+        vaga_id = UUID(result.data[0]["id"])
+        logger.info(f"Vaga criada: {vaga_id} (origem: grupo {vaga_grupo['id']})")
 
     return vaga_id
 

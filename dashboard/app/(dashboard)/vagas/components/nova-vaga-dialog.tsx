@@ -21,10 +21,18 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useApiError } from '@/hooks/use-api-error'
 import { toast } from 'sonner'
 import { Check, ChevronsUpDown, Loader2, Plus, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CRITICIDADE_OPTIONS } from '@/lib/vagas'
 
 interface NovaVagaDialogProps {
   open: boolean
@@ -64,6 +72,8 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
   const [contatoNome, setContatoNome] = useState('')
   const [contatoWhatsapp, setContatoWhatsapp] = useState('')
   const [contatoManual, setContatoManual] = useState(false)
+  const [criticidade, setCriticidade] = useState('normal')
+  const [quantidade, setQuantidade] = useState('1')
 
   // Combobox lists
   const [hospitais, setHospitais] = useState<Hospital[]>([])
@@ -184,6 +194,8 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
     setContatoManual(false)
     setContatoSearch('')
     setContatos([])
+    setCriticidade('normal')
+    setQuantidade('1')
   }
 
   const canSubmit = (): boolean => {
@@ -297,12 +309,15 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
     setLoading(true)
 
     try {
+      const qty = Math.max(1, Math.min(50, Number(quantidade) || 1))
       const payload: Record<string, unknown> = {
         hospital_id: hospitalId,
         especialidade_id: especialidadeId,
         data,
         contato_nome: contatoNome.trim(),
         contato_whatsapp: contatoWhatsapp.trim(),
+        criticidade,
+        quantidade: qty,
       }
 
       if (horaInicio) payload.hora_inicio = horaInicio
@@ -321,8 +336,12 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
         return
       }
 
-      toast.success('Vaga criada', {
-        description: 'A vaga foi adicionada e ja aparece na lista.',
+      const msg = qty > 1 ? `${qty} vagas criadas` : 'Vaga criada'
+      toast.success(msg, {
+        description:
+          qty > 1
+            ? `${qty} vagas identicas foram adicionadas.`
+            : 'A vaga foi adicionada e ja aparece na lista.',
       })
 
       resetForm()
@@ -654,6 +673,36 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
               rows={3}
               maxLength={500}
             />
+          </div>
+
+          {/* Criticidade + Quantidade */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Criticidade</Label>
+              <Select value={criticidade} onValueChange={setCriticidade}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Normal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CRITICIDADE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Quantidade</Label>
+              <Input
+                type="number"
+                min={1}
+                max={50}
+                value={quantidade}
+                onChange={(e) => setQuantidade(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Posicoes identicas (1-50)</p>
+            </div>
           </div>
         </div>
 

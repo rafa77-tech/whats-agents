@@ -7,6 +7,8 @@ import {
   getStatusLabel,
   formatTimeRange,
   formatReservasCount,
+  getCriticidadeBadgeColor,
+  getCriticidadeLabel,
 } from '@/lib/vagas/formatters'
 
 describe('formatCurrency', () => {
@@ -122,6 +124,31 @@ describe('formatTimeRange', () => {
     expect(formatTimeRange('08:00', '18:00')).toBe('08:00 - 18:00')
     expect(formatTimeRange('19:00', '07:00')).toBe('19:00 - 07:00')
     expect(formatTimeRange('00:00', '23:59')).toBe('00:00 - 23:59')
+  })
+})
+
+describe('getCriticidadeBadgeColor', () => {
+  it('returns correct color for each criticidade', () => {
+    expect(getCriticidadeBadgeColor('normal')).toContain('bg-status-neutral')
+    expect(getCriticidadeBadgeColor('urgente')).toContain('bg-status-warning')
+    expect(getCriticidadeBadgeColor('critica')).toContain('bg-status-error')
+  })
+
+  it('returns default color for unknown criticidade', () => {
+    expect(getCriticidadeBadgeColor('unknown')).toContain('bg-status-neutral')
+    expect(getCriticidadeBadgeColor('')).toContain('bg-status-neutral')
+  })
+})
+
+describe('getCriticidadeLabel', () => {
+  it('returns correct label for each criticidade', () => {
+    expect(getCriticidadeLabel('normal')).toBe('Normal')
+    expect(getCriticidadeLabel('urgente')).toBe('Urgente')
+    expect(getCriticidadeLabel('critica')).toBe('Critica')
+  })
+
+  it('returns raw value for unknown criticidade', () => {
+    expect(getCriticidadeLabel('unknown')).toBe('unknown')
   })
 })
 

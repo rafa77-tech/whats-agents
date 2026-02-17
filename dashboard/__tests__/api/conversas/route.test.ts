@@ -344,7 +344,7 @@ describe('GET /api/conversas', () => {
 
     const request = createRequest({ search: 'Carlos' })
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(conversationsOrCalls.length).toBeGreaterThan(0)
