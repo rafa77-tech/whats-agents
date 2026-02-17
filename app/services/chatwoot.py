@@ -60,7 +60,9 @@ class ChatwootService:
         client = await get_http_client()
         for query in queries:
             try:
-                response = await client.get(url, params={"q": query}, headers=self.headers, timeout=10.0)
+                response = await client.get(
+                    url, params={"q": query}, headers=self.headers, timeout=10.0
+                )
                 response.raise_for_status()
                 data = response.json()
 

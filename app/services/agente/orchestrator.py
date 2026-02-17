@@ -13,19 +13,8 @@ from typing import Optional, List
 
 from app.core.tasks import safe_create_task
 from app.services.policy import (
-    PolicyDecide,
-    StateUpdate,
-    load_doctor_state,
-    save_doctor_state_updates,
     PrimaryAction,
-    log_policy_decision,
-    log_policy_effect,
 )
-from app.services.conversation_mode import (
-    get_mode_router,
-    CapabilitiesGate,
-)
-from app.services.conhecimento import OrquestradorConhecimento
 
 from .types import ProcessamentoResult
 

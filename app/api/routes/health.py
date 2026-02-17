@@ -33,18 +33,9 @@ from app.services.whatsapp import evolution
 from app.services.supabase import supabase
 
 from app.services.health.constants import (
-    APP_ENV,
-    SUPABASE_PROJECT_REF,
-    GIT_SHA,
-    DEPLOYMENT_ID,
-    RAILWAY_ENVIRONMENT,
-    RUN_MODE,
     CRITICAL_TABLES,
     CRITICAL_VIEWS,
     EXPECTED_SCHEMA_VERSION,
-    REQUIRED_PROMPTS,
-    JOB_SLA_SECONDS,
-    CRITICAL_JOBS,
 )
 from app.services.health.schema import gerar_schema_fingerprint, verificar_contrato_prompts
 from app.services.health.scoring import calcular_health_score

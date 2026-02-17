@@ -294,6 +294,12 @@ JOBS = [
         "endpoint": "/jobs/resetar-contadores-chips",
         "schedule": "5 0 * * *",  # 00:05 todos os dias (após o snapshot)
     },
+    # Limpeza de hospitais lixo (Sprint 60 - Épico 6C)
+    {
+        "name": "limpeza_hospitais",
+        "endpoint": "/jobs/limpeza-hospitais",
+        "schedule": "0 4 * * 0",  # Domingo às 4h
+    },
 ]
 
 
@@ -427,9 +433,7 @@ async def execute_job(job: dict):
             )
         else:
             print(f"   ❌ {job['name']} FAIL: {response.status_code}", flush=True)
-            logger.error(
-                f"❌ Job {job['name']} falhou: {response.status_code} - {response.text}"
-            )
+            logger.error(f"❌ Job {job['name']} falhou: {response.status_code} - {response.text}")
 
             # Persistir erro
             await _registrar_fim_job(
@@ -495,9 +499,7 @@ async def scheduler_loop():
                 last_minute = now.minute
 
                 # Sprint 59 Epic 3.1: Paralelizar jobs do mesmo minuto
-                jobs_to_run = [
-                    job for job in JOBS if should_run(job["schedule"], now)
-                ]
+                jobs_to_run = [job for job in JOBS if should_run(job["schedule"], now)]
                 for job in jobs_to_run:
                     print(
                         f"⏰ [{now.strftime('%H:%M:%S')} BRT] Trigger: {job['name']}",

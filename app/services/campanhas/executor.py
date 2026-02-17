@@ -103,8 +103,7 @@ class CampanhaExecutor:
                 if cooldown.is_blocked:
                     skipped_cooldown += 1
                     logger.debug(
-                        f"Campanha {campanha_id}: {cliente_id[:8]} em cooldown "
-                        f"({cooldown.reason})"
+                        f"Campanha {campanha_id}: {cliente_id[:8]} em cooldown ({cooldown.reason})"
                     )
                     continue
 

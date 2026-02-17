@@ -75,6 +75,9 @@ class Settings(BaseSettings):
     VOYAGE_API_KEY: str = ""
     VOYAGE_MODEL: str = "voyage-3.5-lite"
 
+    # Google Places (Sprint 61)
+    GOOGLE_PLACES_API_KEY: str = ""
+
     # Redis
     # IMPORTANTE: Sem default localhost - deve ser configurado via env var
     REDIS_URL: str = ""

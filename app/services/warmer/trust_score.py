@@ -266,8 +266,12 @@ async def calcular_trust_score(chip_id: str) -> dict:
     # por isso usamos "v if v is not None else default" em vez de .get default)
     factors = TrustFactors(
         idade_dias=idade_dias,
-        taxa_resposta=float(chip["taxa_resposta"]) if chip.get("taxa_resposta") is not None else 0.0,
-        taxa_delivery=float(chip["taxa_delivery"]) if chip.get("taxa_delivery") is not None else 1.0,
+        taxa_resposta=float(chip["taxa_resposta"])
+        if chip.get("taxa_resposta") is not None
+        else 0.0,
+        taxa_delivery=float(chip["taxa_delivery"])
+        if chip.get("taxa_delivery") is not None
+        else 1.0,
         taxa_block=float(chip["taxa_block"]) if chip.get("taxa_block") is not None else 0.0,
         diversidade_midia=len(chip.get("tipos_midia_usados") or []),
         erros_24h=chip.get("erros_ultimas_24h") or 0,

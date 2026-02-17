@@ -230,12 +230,14 @@ class FilaService:
     async def reagendar_sem_penalidade(self, mensagem_id: str, delay_segundos: int = 300) -> bool:
         """Reagenda mensagem sem incrementar tentativas. Usado para falta de capacidade temporária."""
         novo_agendamento = datetime.now(timezone.utc) + timedelta(seconds=delay_segundos)
-        supabase.table("fila_mensagens").update({
-            "status": "pendente",
-            "erro": "Sem capacidade (chips no limite)",
-            "agendar_para": novo_agendamento.isoformat(),
-            "processando_desde": None,
-        }).eq("id", mensagem_id).execute()
+        supabase.table("fila_mensagens").update(
+            {
+                "status": "pendente",
+                "erro": "Sem capacidade (chips no limite)",
+                "agendar_para": novo_agendamento.isoformat(),
+                "processando_desde": None,
+            }
+        ).eq("id", mensagem_id).execute()
         return True
 
     async def marcar_erro(self, mensagem_id: str, erro: str) -> bool:

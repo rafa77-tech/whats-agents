@@ -106,6 +106,13 @@ addopts = [
     "--cov-report=html",
     "--cov-fail-under=45",
 ]
+markers = [
+    "unit: testes unitarios sem dependencia externa",
+    "integration: testes que dependem de mocks de servicos externos",
+    "e2e: testes end-to-end com fluxo completo",
+    "slow: testes que demoram mais de 5s",
+    "architectural: testes que validam regras de arquitetura",
+]
 
 [tool.coverage.run]
 source = ["app"]

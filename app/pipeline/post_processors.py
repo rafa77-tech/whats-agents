@@ -366,8 +366,7 @@ class SaveInteractionProcessor(PostProcessor):
                 # Propagar para ExtractionProcessor via context.metadata
                 context.metadata["campanha_id"] = result.attributed_campaign_id
                 logger.debug(
-                    f"Reply {interaction_id} atribuido a campanha "
-                    f"{result.attributed_campaign_id}"
+                    f"Reply {interaction_id} atribuido a campanha {result.attributed_campaign_id}"
                 )
 
                 # Sprint 57: Atualizar contador respondidos
@@ -413,9 +412,7 @@ class SaveInteractionProcessor(PostProcessor):
                 respondidos=clientes_unicos,
             )
 
-            logger.debug(
-                f"Campanha {campaign_id}: respondidos atualizado para {clientes_unicos}"
-            )
+            logger.debug(f"Campanha {campaign_id}: respondidos atualizado para {clientes_unicos}")
         except Exception as e:
             logger.warning(f"Erro ao atualizar respondidos (nao critico): {e}")
 

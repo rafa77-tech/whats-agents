@@ -16,6 +16,8 @@ Baseline documentado:
 
 import asyncio
 import pytest
+
+pytestmark = pytest.mark.architectural
 from unittest.mock import AsyncMock, MagicMock, patch, call
 from uuid import uuid4
 
@@ -673,16 +675,15 @@ class TestTemperatureDecayBaseline:
                 "app.workers.temperature_decay.save_doctor_state_updates",
                 new_callable=AsyncMock,
             ),
-            patch(
-                "app.workers.temperature_decay.load_doctor_state",
-                new_callable=AsyncMock,
-            ) as mock_load,
         ):
             await decay_all_temperatures(batch_size=10)
 
-            # OTIMIZADO: load_doctor_state NÃO deve ser chamado
-            assert mock_load.call_count == 0, (
-                f"load_doctor_state chamado {mock_load.call_count}x, esperado 0. "
+            # OTIMIZADO: load_doctor_state não é importado no módulo,
+            # confirmando que Epic 4.2 usa _row_to_state direto.
+            import app.workers.temperature_decay as td_module
+
+            assert not hasattr(td_module, "load_doctor_state"), (
+                "load_doctor_state não deve ser importado em temperature_decay. "
                 "Epic 4.2: usa _row_to_state direto."
             )
 

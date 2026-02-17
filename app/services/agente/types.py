@@ -6,7 +6,7 @@ Sprint 58 - Epic 2: Extraido de app/services/agente.py
 
 import logging
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional
 
 from app.core.config import settings
 

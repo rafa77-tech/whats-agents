@@ -84,11 +84,13 @@ async def _executar_tool_calls(tool_calls: list, medico: dict, conversa: dict) -
     tool_results = []
     for tc in tool_calls:
         result = await processar_tool_call(tc["name"], tc["input"], medico, conversa)
-        tool_results.append({
-            "type": "tool_result",
-            "tool_use_id": tc["id"],
-            "content": str(result),
-        })
+        tool_results.append(
+            {
+                "type": "tool_result",
+                "tool_use_id": tc["id"],
+                "content": str(result),
+            }
+        )
     return tool_results
 
 
@@ -98,12 +100,14 @@ def _montar_assistant_content(text: Optional[str], tool_calls: list) -> list[dic
     if text:
         content.append({"type": "text", "text": text})
     for tc in tool_calls:
-        content.append({
-            "type": "tool_use",
-            "id": tc["id"],
-            "name": tc["name"],
-            "input": tc["input"],
-        })
+        content.append(
+            {
+                "type": "tool_use",
+                "id": tc["id"],
+                "name": tc["name"],
+                "input": tc["input"],
+            }
+        )
     return content
 
 
@@ -144,11 +148,17 @@ async def gerar_resposta_julia(
     try:
         resposta = await asyncio.wait_for(
             pkg._gerar_resposta_julia_impl(
-                mensagem=mensagem, contexto=contexto, medico=medico,
-                conversa=conversa, incluir_historico=incluir_historico,
-                usar_tools=usar_tools, policy_decision=policy_decision,
-                capabilities_gate=capabilities_gate, mode_info=mode_info,
-                llm_provider=llm_provider, situacao=situacao,
+                mensagem=mensagem,
+                contexto=contexto,
+                medico=medico,
+                conversa=conversa,
+                incluir_historico=incluir_historico,
+                usar_tools=usar_tools,
+                policy_decision=policy_decision,
+                capabilities_gate=capabilities_gate,
+                mode_info=mode_info,
+                llm_provider=llm_provider,
+                situacao=situacao,
             ),
             timeout=pkg.TIMEOUT_GERACAO_RESPOSTA,
         )
@@ -156,7 +166,9 @@ async def gerar_resposta_julia(
         conversation_mode = mode_info.mode.value if mode_info else "unknown"
         conversa_id = conversa.get("id") if conversa else None
         valida, violacao = validar_resposta(
-            resposta=resposta, mode=conversation_mode, conversa_id=conversa_id,
+            resposta=resposta,
+            mode=conversation_mode,
+            conversa_id=conversa_id,
         )
 
         if not valida:
@@ -210,13 +222,16 @@ async def _gerar_resposta_julia_impl(
             historico_msgs = []
             if contexto.get("historico_raw"):
                 historico_msgs = [
-                    m.get("conteudo", "") for m in contexto["historico_raw"]
+                    m.get("conteudo", "")
+                    for m in contexto["historico_raw"]
                     if m.get("tipo") == "recebida"
                 ][-5:]
 
             situacao = await orquestrador.analisar_situacao(
-                mensagem=mensagem, historico=historico_msgs,
-                dados_cliente=medico, stage=medico.get("stage_jornada", "novo"),
+                mensagem=mensagem,
+                historico=historico_msgs,
+                dados_cliente=medico,
+                stage=medico.get("stage_jornada", "novo"),
             )
             conhecimento_dinamico = situacao.resumo
             logger.debug(
@@ -298,12 +313,20 @@ async def _gerar_resposta_julia_impl(
 
     if usar_tools:
         resposta = await _gerar_com_tools(
-            pkg, mensagem, historico_messages, system_prompt, tools_to_use, medico, conversa,
+            pkg,
+            mensagem,
+            historico_messages,
+            system_prompt,
+            tools_to_use,
+            medico,
+            conversa,
         )
     else:
         resposta = await pkg.gerar_resposta(
-            mensagem=mensagem, historico=historico_messages,
-            system_prompt=system_prompt, max_tokens=300,
+            mensagem=mensagem,
+            historico=historico_messages,
+            system_prompt=system_prompt,
+            max_tokens=300,
         )
 
     logger.info(f"Resposta gerada: {resposta[:50]}...")
@@ -313,20 +336,35 @@ async def _gerar_resposta_julia_impl(
     stop_reason = None
     if usar_tools and not houve_tool_use and _resposta_parece_incompleta(resposta, stop_reason):
         resposta = await _retry_com_tool(
-            pkg, resposta, mensagem, historico_messages, system_prompt,
-            tools_to_use, medico, conversa,
+            pkg,
+            resposta,
+            mensagem,
+            historico_messages,
+            system_prompt,
+            tools_to_use,
+            medico,
+            conversa,
         )
 
     return resposta
 
 
 async def _gerar_com_tools(
-    pkg, mensagem, historico_messages, system_prompt, tools_to_use, medico, conversa,
+    pkg,
+    mensagem,
+    historico_messages,
+    system_prompt,
+    tools_to_use,
+    medico,
+    conversa,
 ) -> str:
     """Gera resposta usando tools, com loop de tool calls sequenciais."""
     resultado = await pkg.gerar_resposta_com_tools(
-        mensagem=mensagem, historico=historico_messages,
-        system_prompt=system_prompt, tools=tools_to_use, max_tokens=300,
+        mensagem=mensagem,
+        historico=historico_messages,
+        system_prompt=system_prompt,
+        tools=tools_to_use,
+        max_tokens=300,
     )
 
     if not resultado["tool_use"]:
@@ -343,8 +381,11 @@ async def _gerar_com_tools(
     current_tool_results = tool_results
 
     resultado_final = await pkg.continuar_apos_tool(
-        historico=current_historico, tool_results=tool_results,
-        system_prompt=system_prompt, tools=tools_to_use, max_tokens=300,
+        historico=current_historico,
+        tool_results=tool_results,
+        system_prompt=system_prompt,
+        tools=tools_to_use,
+        max_tokens=300,
     )
 
     # Loop de tool calls sequenciais (max 3 iterações)
@@ -354,7 +395,9 @@ async def _gerar_com_tools(
         logger.info(f"Tool call sequencial {iteration + 1}: {resultado_final['tool_use']}")
 
         new_tool_results = await _executar_tool_calls(resultado_final["tool_use"], medico, conversa)
-        new_content = _montar_assistant_content(resultado_final.get("text"), resultado_final["tool_use"])
+        new_content = _montar_assistant_content(
+            resultado_final.get("text"), resultado_final["tool_use"]
+        )
 
         current_historico = current_historico + [
             {"role": "user", "content": current_tool_results},
@@ -363,8 +406,11 @@ async def _gerar_com_tools(
         current_tool_results = new_tool_results
 
         resultado_final = await pkg.continuar_apos_tool(
-            historico=current_historico, tool_results=new_tool_results,
-            system_prompt=system_prompt, tools=tools_to_use, max_tokens=300,
+            historico=current_historico,
+            tool_results=new_tool_results,
+            system_prompt=system_prompt,
+            tools=tools_to_use,
+            max_tokens=300,
         )
 
     resposta = resultado_final.get("text") or ""
@@ -377,8 +423,10 @@ async def _gerar_com_tools(
             {"role": "user", "content": "Agora responda ao médico de forma natural e curta."},
         ]
         resultado_forcado = await pkg.gerar_resposta(
-            mensagem="", historico=historico_forcar,
-            system_prompt=system_prompt, max_tokens=150,
+            mensagem="",
+            historico=historico_forcar,
+            system_prompt=system_prompt,
+            max_tokens=150,
         )
         resposta = resultado_forcado or ""
 
@@ -386,38 +434,59 @@ async def _gerar_com_tools(
 
 
 async def _retry_com_tool(
-    pkg, resposta, mensagem, historico_messages, system_prompt,
-    tools_to_use, medico, conversa,
+    pkg,
+    resposta,
+    mensagem,
+    historico_messages,
+    system_prompt,
+    tools_to_use,
+    medico,
+    conversa,
 ) -> str:
     """Retry quando resposta parece incompleta - força uso de tool."""
-    logger.warning(f"Resposta incompleta detectada, forçando uso de tool. Resposta: '{resposta[-50:]}'")
+    logger.warning(
+        f"Resposta incompleta detectada, forçando uso de tool. Resposta: '{resposta[-50:]}'"
+    )
 
     historico_retry = historico_messages + [
         {"role": "user", "content": mensagem},
         {"role": "assistant", "content": resposta},
-        {"role": "user", "content": (
-            "Use a ferramenta buscar_vagas para encontrar as vagas disponíveis "
-            "e depois responda ao médico com as opções."
-        )},
+        {
+            "role": "user",
+            "content": (
+                "Use a ferramenta buscar_vagas para encontrar as vagas disponíveis "
+                "e depois responda ao médico com as opções."
+            ),
+        },
     ]
 
     resultado_retry = await pkg.gerar_resposta_com_tools(
-        mensagem="", historico=historico_retry,
-        system_prompt=system_prompt, tools=tools_to_use, max_tokens=300,
+        mensagem="",
+        historico=historico_retry,
+        system_prompt=system_prompt,
+        tools=tools_to_use,
+        max_tokens=300,
     )
 
     if resultado_retry.get("tool_use"):
         logger.info(f"Retry com tool call: {resultado_retry['tool_use']}")
-        tool_results_retry = await _executar_tool_calls(resultado_retry["tool_use"], medico, conversa)
-        assistant_content_retry = _montar_assistant_content(resultado_retry["text"], resultado_retry["tool_use"])
+        tool_results_retry = await _executar_tool_calls(
+            resultado_retry["tool_use"], medico, conversa
+        )
+        assistant_content_retry = _montar_assistant_content(
+            resultado_retry["text"], resultado_retry["tool_use"]
+        )
 
         historico_com_tool_retry = historico_retry + [
             {"role": "assistant", "content": assistant_content_retry}
         ]
 
         resultado_final_retry = await pkg.continuar_apos_tool(
-            historico=historico_com_tool_retry, tool_results=tool_results_retry,
-            system_prompt=system_prompt, tools=tools_to_use, max_tokens=300,
+            historico=historico_com_tool_retry,
+            tool_results=tool_results_retry,
+            system_prompt=system_prompt,
+            tools=tools_to_use,
+            max_tokens=300,
         )
 
         if resultado_final_retry.get("text"):

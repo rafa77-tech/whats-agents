@@ -53,17 +53,13 @@ jobs:
 
       - name: Run Ruff linter
         run: uv run ruff check app/
-        # TODO: Remover continue-on-error após corrigir 261 erros de lint (issue #73)
-        continue-on-error: true
 
       - name: Run Ruff formatter check
         run: uv run ruff format --check app/
-        # TODO: Remover continue-on-error após formatar 354 arquivos (issue #73)
-        continue-on-error: true
 
       - name: Run mypy type checker
         run: uv run mypy app/ --no-error-summary
-        # TODO: Remover continue-on-error após corrigir type errors (issue #73)
+        # mypy tem muitos type errors acumulados — será endereçado em sprint futura
         continue-on-error: true
 
   # Job 2: Testes
@@ -117,9 +113,7 @@ jobs:
           EVOLUTION_API_URL: http://localhost:8080
           EVOLUTION_API_KEY: test
           EVOLUTION_INSTANCE: test
-        run: uv run pytest -v --tb=short --no-cov
-        # TODO: Remover continue-on-error após corrigir 27 testes falhando (issue #48)
-        continue-on-error: true
+        run: uv run pytest -v --tb=short
 
       - name: Skip tests notice
         if: steps.check_secrets.outputs.secrets_available == 'false'

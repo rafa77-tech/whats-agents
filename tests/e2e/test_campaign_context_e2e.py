@@ -14,7 +14,7 @@ verificam a integração entre os componentes do pipeline.
 
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.services.campanhas.types import (
     CampanhaData,
@@ -30,13 +30,13 @@ from app.services.campanhas.types import (
 
 @pytest.fixture
 def campanha_discovery():
-    """Campanha discovery ativa com objetivo e regras."""
+    """Campanha discovery agendada com objetivo e regras."""
     return CampanhaData(
         id=20,
         nome_template="Piloto Discovery APP",
         tipo_campanha=TipoCampanha.DISCOVERY,
         corpo="[DISCOVERY] Usar aberturas dinamicas",
-        status=StatusCampanha.ATIVA,
+        status=StatusCampanha.AGENDADA,
         objetivo="Apresentar o APP Revoluna e incentivar o médico a baixar",
         regras=["Nunca mencionar vagas ou valores", "Foco em apresentar o app"],
         pode_ofertar=False,
@@ -46,13 +46,13 @@ def campanha_discovery():
 
 @pytest.fixture
 def campanha_oferta():
-    """Campanha oferta ativa com escopo."""
+    """Campanha oferta agendada com escopo."""
     return CampanhaData(
         id=30,
         nome_template="Oferta Cardio SP",
         tipo_campanha=TipoCampanha.OFERTA,
         corpo="Oi Dr {nome}! Temos uma vaga de {especialidade}!",
-        status=StatusCampanha.ATIVA,
+        status=StatusCampanha.AGENDADA,
         objetivo="Preencher 3 vagas de cardiologia no Hospital ABC",
         regras=["Consultar vagas reais antes de ofertar", "Não inventar dados"],
         pode_ofertar=True,
@@ -800,6 +800,10 @@ class TestMetadataEnriquecidaE2E:
             {"id": "uuid-1", "primeiro_nome": "Carlos", "especialidade_nome": "Cardiologia"},
         ]
 
+        # Mock cooldown result (não bloqueado)
+        cooldown_result = MagicMock()
+        cooldown_result.is_blocked = False
+
         with (
             patch("app.services.campanhas.executor.campanha_repository") as mock_repo,
             patch("app.services.campanhas.executor.segmentacao_service") as mock_seg,
@@ -810,6 +814,11 @@ class TestMetadataEnriquecidaE2E:
                 new_callable=AsyncMock,
                 return_value="Oi Dr Carlos! Queria te apresentar nosso app!",
             ),
+            patch(
+                "app.services.campanhas.executor.check_campaign_cooldown",
+                new_callable=AsyncMock,
+                return_value=cooldown_result,
+            ),
         ):
             mock_repo.buscar_por_id = AsyncMock(return_value=campanha_discovery)
             mock_repo.atualizar_status = AsyncMock(return_value=True)
@@ -819,6 +828,8 @@ class TestMetadataEnriquecidaE2E:
             mock_fila.enfileirar = AsyncMock()
             # Mock deduplicação
             mock_supabase.table.return_value.select.return_value.contains.return_value.execute.return_value.data = []
+            # Mock outbound sem resposta (não excedeu)
+            mock_supabase.table.return_value.select.return_value.eq.return_value.gte.return_value.is_.return_value.execute.return_value.data = []
 
             await executor.executar(20)
 

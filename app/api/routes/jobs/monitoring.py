@@ -60,9 +60,7 @@ async def job_monitorar_fila(
 
     # Verificar mensagens travadas
     if idade and idade > limite_idade_minutos:
-        alertas.append(
-            f"Mensagem mais antiga há {idade:.0f} min (limite: {limite_idade_minutos})"
-        )
+        alertas.append(f"Mensagem mais antiga há {idade:.0f} min (limite: {limite_idade_minutos})")
 
     # Verificar muitos erros
     if erros_24h > 20:

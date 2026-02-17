@@ -219,10 +219,15 @@ def _extrair_nome_hospital(texto: str) -> Tuple[str, float]:
     Extrai nome do hospital de uma linha.
 
     Returns:
-        Tupla (nome, confiança)
+        Tupla (nome, confiança). Retorna ("", 0.0) se nome inválido.
     """
+    from app.services.grupos.hospital_validator import validar_nome_hospital
+
     texto_limpo = _limpar_texto(texto)
     texto_lower = texto_limpo.lower()
+
+    nome_candidato = ""
+    confianca = 0.5
 
     # Encontrar prefixo de hospital
     for prefixo in PREFIXOS_HOSPITAL:
@@ -234,13 +239,23 @@ def _extrair_nome_hospital(texto: str) -> Tuple[str, float]:
             # Pegar até vírgula, ponto ou fim
             match = re.match(r"^([^,.\n]+)", resto)
             if match:
-                nome = match.group(1).strip()
+                nome_candidato = match.group(1).strip()
                 # Remover número de endereço se presente
-                nome = PATTERN_NUMERO.sub("", nome).strip()
-                return nome, 0.9
+                nome_candidato = PATTERN_NUMERO.sub("", nome_candidato).strip()
+                confianca = 0.9
+                break
 
     # Fallback: usar linha inteira se não tem indicador claro
-    return texto_limpo, 0.5
+    if not nome_candidato:
+        nome_candidato = texto_limpo
+
+    # Validar nome antes de retornar (Sprint 60 - Épico 1)
+    validacao = validar_nome_hospital(nome_candidato)
+    if not validacao.valido:
+        return ("", 0.0)
+
+    confianca = min(confianca, validacao.score)
+    return (nome_candidato, confianca)
 
 
 def extrair_hospitais(linhas_local: List[str]) -> List[HospitalExtraido]:

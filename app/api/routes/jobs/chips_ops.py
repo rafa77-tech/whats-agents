@@ -154,9 +154,7 @@ async def job_snapshot_chips_diario():
     result = supabase.rpc("chip_criar_snapshots_todos").execute()
 
     if not result.data:
-        return JSONResponse(
-            {"status": "error", "message": "RPC retornou vazio"}, status_code=500
-        )
+        return JSONResponse({"status": "error", "message": "RPC retornou vazio"}, status_code=500)
 
     row = result.data[0] if isinstance(result.data, list) else result.data
 
@@ -191,9 +189,7 @@ async def job_resetar_contadores_chips():
     result = supabase.rpc("chip_resetar_contadores_diarios").execute()
 
     if not result.data:
-        return JSONResponse(
-            {"status": "error", "message": "RPC retornou vazio"}, status_code=500
-        )
+        return JSONResponse({"status": "error", "message": "RPC retornou vazio"}, status_code=500)
 
     row = result.data[0] if isinstance(result.data, list) else result.data
     chips_resetados = row.get("chips_resetados", 0)

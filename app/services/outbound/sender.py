@@ -54,7 +54,6 @@ from app.services.outbound.dev_guardrails import _verificar_dev_allowlist
 from app.services.outbound.finalization import _finalizar_envio
 from app.services.outbound.multi_chip import (
     _is_multi_chip_enabled,
-    _determinar_tipo_mensagem,
     _enviar_via_multi_chip,
 )
 

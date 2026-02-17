@@ -140,9 +140,7 @@ async def obter_saude_chips() -> dict:
                 "criticos": chips_criticos,
                 "circuit_aberto": chips_com_circuit_aberto,
                 "desconectados": chips_desconectados,
-                "trust_medio": round(
-                    sum(c.get("trust_score", 0) for c in chips) / total_chips, 1
-                )
+                "trust_medio": round(sum(c.get("trust_score", 0) for c in chips) / total_chips, 1)
                 if total_chips > 0
                 else 0,
             },

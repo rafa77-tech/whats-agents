@@ -264,9 +264,7 @@ def _verificar_dev_guardrails(checks: dict, all_ok: bool) -> bool:
             )
         else:
             checks["dev_guardrails"]["status"] = "ok"
-            logger.info(
-                f"[health/deep] DEV guardrails OK: allowlist has {len(allowlist)} numbers"
-            )
+            logger.info(f"[health/deep] DEV guardrails OK: allowlist has {len(allowlist)} numbers")
     else:
         checks["dev_guardrails"] = {
             "status": "skipped",

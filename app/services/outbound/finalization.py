@@ -5,9 +5,14 @@ Sprint 58 E04 - Extraido de outbound.py monolitico.
 Sprint 24 E03 - Centraliza last_touch e atribuicao.
 """
 
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from app.services.guardrails import OutboundContext
 
 from app.services.guardrails import SendOutcome
 

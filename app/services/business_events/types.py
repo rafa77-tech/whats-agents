@@ -53,6 +53,13 @@ class EventType(Enum):
     # Engajamento com App (Sprint 52+)
     APP_DOWNLOAD_SENT = "app_download_sent"  # Links do app enviados ao médico
 
+    # Qualidade de dados de hospitais (Sprint 60 - Épico 6)
+    HOSPITAL_CREATED = "hospital_created"  # Novo hospital criado no banco
+    HOSPITAL_REUSED = "hospital_reused"  # Hospital existente reutilizado (alias/similaridade)
+    HOSPITAL_REJECTED = "hospital_rejected"  # Nome rejeitado pelo validador
+    HOSPITAL_MERGED = "hospital_merged"  # Hospitais mesclados
+    HOSPITAL_CLEANED = "hospital_cleaned"  # Hospital deletado por cleanup automático
+
 
 class EventSource(Enum):
     """Origens validas de eventos."""

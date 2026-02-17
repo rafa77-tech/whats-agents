@@ -25,7 +25,9 @@ async def buscar_conversa_ativa(cliente_id: str) -> Optional[dict]:
         # Query otimizada - apenas campos necessários
         response = (
             supabase.table("conversations")
-            .select("id, cliente_id, status, controlled_by, chatwoot_conversation_id, created_at, campanha_id, last_touch_campaign_id, last_touch_at")
+            .select(
+                "id, cliente_id, status, controlled_by, chatwoot_conversation_id, created_at, campanha_id, last_touch_campaign_id, last_touch_at"
+            )
             .eq("cliente_id", cliente_id)
             .eq("status", "active")
             .order("created_at", desc=True)

@@ -256,24 +256,20 @@ class TestCheckNumberStatus:
 
             client = EvolutionClient()
 
-            with patch("httpx.AsyncClient.post") as mock_post:
-                mock_response = MagicMock()
-                mock_response.status_code = 200
-                mock_response.json.return_value = [
-                    {"exists": True, "jid": "5511999999999@s.whatsapp.net", "number": "5511999999999"}
-                ]
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = [
+                {"exists": True, "jid": "5511999999999@s.whatsapp.net", "number": "5511999999999"}
+            ]
 
-                # Configurar context manager
-                mock_client = AsyncMock()
-                mock_client.__aenter__.return_value = mock_client
-                mock_client.__aexit__.return_value = None
-                mock_client.post.return_value = mock_response
+            mock_http_client = AsyncMock()
+            mock_http_client.post.return_value = mock_response
 
-                with patch("httpx.AsyncClient", return_value=mock_client):
-                    resultado = await client.check_number_status("5511999999999")
+            with patch("app.services.whatsapp.get_http_client", return_value=mock_http_client):
+                resultado = await client.check_number_status("5511999999999")
 
-                    assert resultado["exists"] is True
-                    assert resultado["jid"] == "5511999999999@s.whatsapp.net"
+                assert resultado["exists"] is True
+                assert resultado["jid"] == "5511999999999@s.whatsapp.net"
 
     @pytest.mark.asyncio
     async def test_check_number_nao_existe(self):
@@ -293,12 +289,10 @@ class TestCheckNumberStatus:
                 {"exists": False, "number": "5511999999999"}
             ]
 
-            mock_client = AsyncMock()
-            mock_client.__aenter__.return_value = mock_client
-            mock_client.__aexit__.return_value = None
-            mock_client.post.return_value = mock_response
+            mock_http_client = AsyncMock()
+            mock_http_client.post.return_value = mock_response
 
-            with patch("httpx.AsyncClient", return_value=mock_client):
+            with patch("app.services.whatsapp.get_http_client", return_value=mock_http_client):
                 resultado = await client.check_number_status("5511999999999")
 
                 assert resultado["exists"] is False
@@ -321,18 +315,16 @@ class TestCheckNumberStatus:
                 {"exists": True, "jid": "5511999999999@s.whatsapp.net", "number": "5511999999999"}
             ]
 
-            mock_client = AsyncMock()
-            mock_client.__aenter__.return_value = mock_client
-            mock_client.__aexit__.return_value = None
-            mock_client.post.return_value = mock_response
+            mock_http_client = AsyncMock()
+            mock_http_client.post.return_value = mock_response
 
-            with patch("httpx.AsyncClient", return_value=mock_client):
+            with patch("app.services.whatsapp.get_http_client", return_value=mock_http_client):
                 # Número sem 55
                 resultado = await client.check_number_status("11999999999")
 
                 assert resultado["exists"] is True
                 # Verificar que o request foi feito com número normalizado
-                call_args = mock_client.post.call_args
+                call_args = mock_http_client.post.call_args
                 assert "5511999999999" in str(call_args)
 
 

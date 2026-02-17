@@ -184,9 +184,9 @@ async def processar_fila():
                 if conversa:
                     conversa_id = conversa["id"]
                     # Atualizar fila_mensagens com conversa_id resolvido
-                    supabase.table("fila_mensagens").update(
-                        {"conversa_id": conversa_id}
-                    ).eq("id", mensagem["id"]).execute()
+                    supabase.table("fila_mensagens").update({"conversa_id": conversa_id}).eq(
+                        "id", mensagem["id"]
+                    ).execute()
 
             # Criar contexto com conversa_id já resolvido
             if campaign_id:

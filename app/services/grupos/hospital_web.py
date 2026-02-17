@@ -4,10 +4,16 @@ Criação automática de hospitais via busca web.
 Sprint 14 - E07 - Criação de Hospital via Web
 """
 
+from __future__ import annotations
+
 import json
 import re
 from dataclasses import dataclass
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from app.services.grupos.hospital_cnes import InfoCNES
+    from app.services.grupos.hospital_google_places import InfoGooglePlaces
 from uuid import UUID
 
 import anthropic
@@ -17,6 +23,8 @@ from app.core.config import settings
 from app.core.logging import get_logger
 from app.services.supabase import supabase
 from app.services.grupos.normalizador import normalizar_para_busca
+from app.services.business_events.types import BusinessEvent, EventType, EventSource
+from app.services.business_events.repository import emit_event
 
 logger = get_logger(__name__)
 
@@ -39,6 +47,47 @@ class InfoHospitalWeb:
     cep: Optional[str] = None
     confianca: float = 0.0
     fonte: Optional[str] = None
+    # Sprint 61 — Enriquecimento CNES + Google Places
+    cnes_codigo: Optional[str] = None
+    google_place_id: Optional[str] = None
+    telefone: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+def cnes_to_info_web(info: "InfoCNES") -> InfoHospitalWeb:
+    """Converte dados CNES para InfoHospitalWeb."""
+    return InfoHospitalWeb(
+        nome_oficial=info.nome_oficial,
+        logradouro=info.logradouro,
+        numero=info.numero,
+        bairro=info.bairro,
+        cidade=info.cidade,
+        estado=info.estado,
+        cep=info.cep,
+        confianca=min(info.score + 0.2, 1.0),
+        fonte="cnes",
+        cnes_codigo=info.cnes_codigo,
+        telefone=info.telefone,
+        latitude=info.latitude,
+        longitude=info.longitude,
+    )
+
+
+def google_to_info_web(info: "InfoGooglePlaces") -> InfoHospitalWeb:
+    """Converte dados Google Places para InfoHospitalWeb."""
+    return InfoHospitalWeb(
+        nome_oficial=info.nome,
+        cidade=info.cidade,
+        estado=info.estado,
+        cep=info.cep,
+        confianca=info.confianca,
+        fonte="google_places",
+        google_place_id=info.place_id,
+        telefone=info.telefone,
+        latitude=info.latitude,
+        longitude=info.longitude,
+    )
 
 
 PROMPT_BUSCA_HOSPITAL = """
@@ -155,68 +204,90 @@ async def criar_hospital(info: InfoHospitalWeb, alias_original: str) -> UUID:
     """
     Cria hospital no banco de dados com dados da web.
 
+    Usa RPC atômica para evitar race conditions (Sprint 60 - Épico 2).
+
     Args:
         info: Informações da web
         alias_original: Nome original da mensagem (para criar alias)
 
     Returns:
-        UUID do hospital criado
+        UUID do hospital criado ou reutilizado
     """
-    dados_hospital = {
-        "nome": info.nome_oficial,
-        "logradouro": info.logradouro,
-        "numero": info.numero,
-        "bairro": info.bairro,
-        "cidade": info.cidade or "Não informada",  # Evitar NULL
-        "estado": info.estado or "SP",  # Default SP
-        "cep": info.cep,
-        "criado_automaticamente": True,
-        "precisa_revisao": True,  # Sempre revisar criados automaticamente
-    }
-
-    # Remover campos None (exceto cidade/estado que têm defaults)
-    dados_hospital = {k: v for k, v in dados_hospital.items() if v is not None}
-
-    result = supabase.table("hospitais").insert(dados_hospital).execute()
-    hospital_id = UUID(result.data[0]["id"])
-
-    logger.info(f"Hospital criado via web: {hospital_id} - {info.nome_oficial}")
-
-    # Criar alias com nome original
     alias_norm = normalizar_para_busca(alias_original)
 
-    try:
-        supabase.table("hospitais_alias").insert(
-            {
-                "hospital_id": str(hospital_id),
-                "alias": alias_original,
-                "alias_normalizado": alias_norm,
-                "origem": "sistema_auto",
-                "criado_por": "busca_web",
-                "confianca": info.confianca,
-                "confirmado": False,
-            }
-        ).execute()
-    except Exception as e:
-        logger.warning(f"Erro ao criar alias original: {e}")
+    result = supabase.rpc(
+        "buscar_ou_criar_hospital",
+        {
+            "p_nome": info.nome_oficial,
+            "p_alias_normalizado": alias_norm,
+            "p_cidade": info.cidade or "Não informada",
+            "p_estado": info.estado or "SP",
+            "p_confianca": info.confianca,
+            "p_criado_por": "busca_web",
+        },
+    ).execute()
 
-    # Criar alias com nome oficial também (se diferente)
-    if info.nome_oficial.lower() != alias_original.lower():
-        nome_norm = normalizar_para_busca(info.nome_oficial)
-        try:
-            supabase.table("hospitais_alias").insert(
-                {
-                    "hospital_id": str(hospital_id),
-                    "alias": info.nome_oficial,
-                    "alias_normalizado": nome_norm,
-                    "origem": "sistema_auto",
-                    "criado_por": "busca_web",
-                    "confianca": 1.0,
-                    "confirmado": False,
-                }
-            ).execute()
-        except Exception as e:
-            logger.warning(f"Erro ao criar alias oficial: {e}")
+    if not result.data:
+        raise Exception("RPC buscar_ou_criar_hospital retornou vazio")
+
+    row = result.data[0]
+    hospital_id = UUID(row["out_hospital_id"])
+
+    if row["out_foi_criado"]:
+        logger.info(
+            "Hospital criado via web (RPC)",
+            extra={"hospital_id": str(hospital_id), "nome": info.nome_oficial},
+        )
+
+        # Sprint 61: Persistir campos de enriquecimento (CNES, Google Places)
+        if info.cnes_codigo or info.google_place_id or info.telefone:
+            from datetime import datetime, UTC
+
+            updates: dict = {}
+            if info.cnes_codigo:
+                updates["cnes_codigo"] = info.cnes_codigo
+            if info.google_place_id:
+                updates["google_place_id"] = info.google_place_id
+            if info.telefone:
+                updates["telefone"] = info.telefone
+            if info.latitude is not None:
+                updates["latitude"] = info.latitude
+            if info.longitude is not None:
+                updates["longitude"] = info.longitude
+            if updates:
+                updates["enriched_at"] = datetime.now(UTC).isoformat()
+                updates["enriched_by"] = info.fonte or "pipeline"
+                try:
+                    supabase.table("hospitais").update(updates).eq("id", str(hospital_id)).execute()
+                except Exception as e:
+                    logger.warning(f"Erro ao salvar enriquecimento: {e}")
+
+        # Criar alias adicional com nome oficial (se diferente do original)
+        if info.nome_oficial.lower() != alias_original.lower():
+            nome_norm = normalizar_para_busca(info.nome_oficial)
+            try:
+                supabase.table("hospitais_alias").insert(
+                    {
+                        "hospital_id": str(hospital_id),
+                        "alias": info.nome_oficial,
+                        "alias_normalizado": nome_norm,
+                        "origem": "sistema_auto",
+                        "criado_por": "busca_web",
+                        "confianca": 1.0,
+                        "confirmado": False,
+                    }
+                ).execute()
+            except Exception as e:
+                logger.warning(f"Erro ao criar alias oficial: {e}")
+    else:
+        logger.info(
+            "Hospital reutilizado via RPC",
+            extra={
+                "hospital_id": str(hospital_id),
+                "nome": row["out_nome"],
+                "alias_buscado": alias_original,
+            },
+        )
 
     return hospital_id
 
@@ -281,6 +352,7 @@ async def criar_hospital_minimo(nome: str, regiao_grupo: str = "") -> UUID:
     """
     Cria hospital com dados mínimos.
 
+    Usa RPC atômica para evitar race conditions (Sprint 60 - Épico 2).
     Usado quando busca web falha.
 
     Args:
@@ -288,39 +360,39 @@ async def criar_hospital_minimo(nome: str, regiao_grupo: str = "") -> UUID:
         regiao_grupo: Região do grupo (para inferir cidade)
 
     Returns:
-        UUID do hospital criado
+        UUID do hospital criado ou reutilizado
     """
     cidade, estado = inferir_cidade_regiao(regiao_grupo)
-
-    dados = {
-        "nome": nome,
-        "cidade": cidade or "Não informada",  # Evitar NULL
-        "estado": estado or "SP",  # Default SP
-        "criado_automaticamente": True,
-        "precisa_revisao": True,  # Sempre precisa revisão
-    }
-
-    result = supabase.table("hospitais").insert(dados).execute()
-    hospital_id = UUID(result.data[0]["id"])
-
-    # Criar alias
     alias_norm = normalizar_para_busca(nome)
-    try:
-        supabase.table("hospitais_alias").insert(
-            {
-                "hospital_id": str(hospital_id),
-                "alias": nome,
-                "alias_normalizado": alias_norm,
-                "origem": "sistema_auto",
-                "criado_por": "fallback",
-                "confianca": 0.3,  # Baixa confiança
-                "confirmado": False,
-            }
-        ).execute()
-    except Exception as e:
-        logger.warning(f"Erro ao criar alias fallback: {e}")
 
-    logger.info(f"Hospital mínimo criado: {hospital_id} - {nome}")
+    result = supabase.rpc(
+        "buscar_ou_criar_hospital",
+        {
+            "p_nome": nome,
+            "p_alias_normalizado": alias_norm,
+            "p_cidade": cidade or "Não informada",
+            "p_estado": estado or "SP",
+            "p_confianca": 0.3,
+            "p_criado_por": "fallback",
+        },
+    ).execute()
+
+    if not result.data:
+        raise Exception("RPC buscar_ou_criar_hospital retornou vazio")
+
+    row = result.data[0]
+    hospital_id = UUID(row["out_hospital_id"])
+
+    if row["out_foi_criado"]:
+        logger.info(
+            "Hospital mínimo criado (RPC)",
+            extra={"hospital_id": str(hospital_id), "nome": nome},
+        )
+    else:
+        logger.info(
+            "Hospital reutilizado (fallback RPC)",
+            extra={"hospital_id": str(hospital_id), "nome": row["out_nome"]},
+        )
 
     return hospital_id
 
@@ -338,7 +410,26 @@ class ResultadoHospitalAuto:
     nome: str
     score: float
     foi_criado: bool
-    fonte: str  # "alias_exato", "similaridade", "web", "fallback"
+    fonte: str  # "alias_exato", "similaridade", "cnes", "google_places", "web", "fallback"
+
+
+async def _emitir_evento_hospital(
+    event_type: EventType,
+    hospital_id: Optional[str] = None,
+    props: Optional[dict] = None,
+) -> None:
+    """Emite evento de qualidade de hospital (fire-and-forget)."""
+    try:
+        await emit_event(
+            BusinessEvent(
+                event_type=event_type,
+                source=EventSource.SYSTEM,
+                hospital_id=hospital_id,
+                event_props=props or {},
+            )
+        )
+    except Exception as e:
+        logger.warning(f"Erro ao emitir evento hospital: {e}")
 
 
 async def normalizar_ou_criar_hospital(
@@ -365,6 +456,11 @@ async def normalizar_ou_criar_hospital(
     # 1. Buscar alias exato
     match = await buscar_hospital_por_alias(texto)
     if match:
+        await _emitir_evento_hospital(
+            EventType.HOSPITAL_REUSED,
+            hospital_id=str(match.entidade_id),
+            props={"fonte": "alias_exato", "score": match.score, "texto_original": texto},
+        )
         return ResultadoHospitalAuto(
             hospital_id=match.entidade_id,
             nome=match.nome,
@@ -376,6 +472,11 @@ async def normalizar_ou_criar_hospital(
     # 2. Buscar por similaridade (threshold alto: 70%)
     match = await buscar_hospital_por_similaridade(texto, threshold=0.7)
     if match:
+        await _emitir_evento_hospital(
+            EventType.HOSPITAL_REUSED,
+            hospital_id=str(match.entidade_id),
+            props={"fonte": "similaridade", "score": match.score, "texto_original": texto},
+        )
         return ResultadoHospitalAuto(
             hospital_id=match.entidade_id,
             nome=match.nome,
@@ -384,13 +485,94 @@ async def normalizar_ou_criar_hospital(
             fonte="similaridade",
         )
 
-    # 3. Não encontrou - buscar na web
-    logger.info(f"Hospital não encontrado, buscando na web: {texto}")
+    # Gate de validação ANTES de criar (Sprint 60 - Épico 1)
+    from app.services.grupos.hospital_validator import validar_nome_hospital
+
+    validacao = validar_nome_hospital(texto)
+    if not validacao.valido:
+        logger.warning(
+            "Hospital rejeitado pelo validador",
+            extra={"nome": texto, "motivo": validacao.motivo},
+        )
+        await _emitir_evento_hospital(
+            EventType.HOSPITAL_REJECTED,
+            props={"nome": texto, "motivo": validacao.motivo},
+        )
+        return None
+
+    # 3. Inferir cidade/estado da região do grupo
+    cidade_hint, estado_hint = inferir_cidade_regiao(regiao_grupo)
+
+    # 4. Buscar no CNES (grátis, local)
+    try:
+        from app.services.grupos.hospital_cnes import buscar_hospital_cnes
+
+        info_cnes = await buscar_hospital_cnes(texto, cidade_hint, estado_hint or "SP")
+        if info_cnes and info_cnes.score >= 0.6:
+            info_web = cnes_to_info_web(info_cnes)
+            hospital_id = await criar_hospital(info_web, texto)
+            await _emitir_evento_hospital(
+                EventType.HOSPITAL_CREATED,
+                hospital_id=str(hospital_id),
+                props={
+                    "fonte": "cnes",
+                    "nome": info_web.nome_oficial,
+                    "confianca": info_web.confianca,
+                    "cnes": info_cnes.cnes_codigo,
+                },
+            )
+            return ResultadoHospitalAuto(
+                hospital_id=hospital_id,
+                nome=info_web.nome_oficial,
+                score=info_web.confianca,
+                foi_criado=True,
+                fonte="cnes",
+            )
+    except Exception as e:
+        logger.warning(f"Erro no lookup CNES, continuando: {e}")
+
+    # 5. Buscar no Google Places (pago, mas dados frescos)
+    try:
+        from app.services.grupos.hospital_google_places import (
+            buscar_hospital_google_places,
+        )
+
+        info_google = await buscar_hospital_google_places(texto, regiao_grupo)
+        if info_google and info_google.confianca >= 0.7:
+            info_web = google_to_info_web(info_google)
+            hospital_id = await criar_hospital(info_web, texto)
+            await _emitir_evento_hospital(
+                EventType.HOSPITAL_CREATED,
+                hospital_id=str(hospital_id),
+                props={
+                    "fonte": "google_places",
+                    "nome": info_web.nome_oficial,
+                    "confianca": info_web.confianca,
+                    "place_id": info_google.place_id,
+                },
+            )
+            return ResultadoHospitalAuto(
+                hospital_id=hospital_id,
+                nome=info_web.nome_oficial,
+                score=info_web.confianca,
+                foi_criado=True,
+                fonte="google_places",
+            )
+    except Exception as e:
+        logger.warning(f"Erro no lookup Google Places, continuando: {e}")
+
+    # 6. Buscar na web (LLM - fallback)
+    logger.info(f"Hospital não encontrado em CNES/Google, buscando via LLM: {texto}")
 
     info = await buscar_hospital_web(texto, regiao_grupo)
 
     if info and info.confianca >= 0.6:
         hospital_id = await criar_hospital(info, texto)
+        await _emitir_evento_hospital(
+            EventType.HOSPITAL_CREATED,
+            hospital_id=str(hospital_id),
+            props={"fonte": "web", "nome": info.nome_oficial, "confianca": info.confianca},
+        )
         return ResultadoHospitalAuto(
             hospital_id=hospital_id,
             nome=info.nome_oficial,
@@ -399,8 +581,13 @@ async def normalizar_ou_criar_hospital(
             fonte="web",
         )
 
-    # 4. Fallback - criar com dados mínimos
+    # 7. Fallback - criar com dados mínimos
     hospital_id = await criar_hospital_minimo(texto, regiao_grupo)
+    await _emitir_evento_hospital(
+        EventType.HOSPITAL_CREATED,
+        hospital_id=str(hospital_id),
+        props={"fonte": "fallback", "nome": texto, "confianca": 0.3},
+    )
     return ResultadoHospitalAuto(
         hospital_id=hospital_id, nome=texto, score=0.3, foi_criado=True, fonte="fallback"
     )

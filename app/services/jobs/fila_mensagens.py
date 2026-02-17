@@ -10,7 +10,11 @@ from dataclasses import dataclass
 from app.services.supabase import supabase
 from app.services.fila import fila_service
 from app.services.interacao import salvar_interacao
-from app.services.outbound import send_outbound_message, criar_contexto_followup, criar_contexto_campanha
+from app.services.outbound import (
+    send_outbound_message,
+    criar_contexto_followup,
+    criar_contexto_campanha,
+)
 from app.services.guardrails.types import SendOutcome
 from app.services.conversa import buscar_ou_criar_conversa
 
@@ -95,9 +99,9 @@ async def _processar_mensagem(mensagem: dict) -> str:
         conversa_id = conversa["id"] if conversa else None
         # Atualizar fila_mensagens com conversa_id resolvido
         if conversa_id:
-            supabase.table("fila_mensagens").update(
-                {"conversa_id": conversa_id}
-            ).eq("id", mensagem_id).execute()
+            supabase.table("fila_mensagens").update({"conversa_id": conversa_id}).eq(
+                "id", mensagem_id
+            ).execute()
 
     # Enviar mensagem com GUARDRAIL
     try:
@@ -137,7 +141,9 @@ async def _processar_mensagem(mensagem: dict) -> str:
             SendOutcome.FAILED_CIRCUIT_OPEN,
             SendOutcome.FAILED_RATE_LIMIT,
         ):
-            logger.info(f"Mensagem {mensagem_id} temporária: {result.outcome.value}, reagendando +5min")
+            logger.info(
+                f"Mensagem {mensagem_id} temporária: {result.outcome.value}, reagendando +5min"
+            )
             await fila_service.reagendar_sem_penalidade(mensagem_id)
             await fila_service.registrar_outcome(
                 mensagem_id=mensagem_id,

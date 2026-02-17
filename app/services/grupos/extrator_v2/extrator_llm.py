@@ -149,7 +149,14 @@ REGRAS CRÍTICAS:
    - "diurno" ou "SD" (07:00-19:00, 12h)
    - "cinderela" (19:00-01:00)
 
-5. Uma mensagem pode ter MÚLTIPLAS VAGAS se mencionar:
+5. HOSPITAL deve ser o nome de um estabelecimento de saúde real:
+   - Hospitais, UPAs, UBSs, clínicas, prontos-socorros, maternidades, centros médicos
+   - NÃO use nomes de pessoas ou contatos como hospital (ex: "Dr. Fulano", "Maria:")
+   - NÃO use especialidades médicas como hospital (ex: "Cardiologia", "Ortopedia")
+   - NÃO use fragmentos de texto, empresas não-médicas ou palavras genéricas
+   - Se não conseguir identificar o hospital com certeza, use null no campo "hospital"
+
+6. Uma mensagem pode ter MÚLTIPLAS VAGAS se mencionar:
    - Múltiplas datas
    - Múltiplos períodos
    - Múltiplos hospitais

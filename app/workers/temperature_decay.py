@@ -16,7 +16,6 @@ from app.core.timezone import agora_utc
 from app.services.supabase import supabase
 from app.services.policy.state_update import StateUpdate
 from app.services.policy.repository import (
-    load_doctor_state,
     save_doctor_state_updates,
     buscar_states_para_decay,
     _row_to_state,

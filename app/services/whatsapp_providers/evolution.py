@@ -71,9 +71,7 @@ class EvolutionProvider(WhatsAppProvider):
                     provider=self.provider_type.value,
                 )
 
-            logger.warning(
-                f"[Evolution] Erro ao enviar: {response.status_code} - {response.text}"
-            )
+            logger.warning(f"[Evolution] Erro ao enviar: {response.status_code} - {response.text}")
             return MessageResult(
                 success=False,
                 error=f"HTTP {response.status_code}: {response.text}",
