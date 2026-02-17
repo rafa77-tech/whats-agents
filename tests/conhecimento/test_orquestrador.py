@@ -1,4 +1,5 @@
 """Testes de integração para o OrquestradorConhecimento."""
+
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -21,10 +22,16 @@ class TestOrquestradorConhecimento:
     @pytest.mark.asyncio
     async def test_analisar_situacao_detecta_objecao(self, orquestrador):
         """Deve detectar objeção e buscar conhecimento relevante."""
-        with patch.object(
-            orquestrador.buscador, "buscar_para_objecao", new_callable=AsyncMock
-        ) as mock_buscar:
+        with (
+            patch.object(
+                orquestrador.buscador, "buscar_para_objecao", new_callable=AsyncMock
+            ) as mock_buscar,
+            patch.object(
+                orquestrador.buscador, "buscar", new_callable=AsyncMock
+            ) as mock_buscar_geral,
+        ):
             mock_buscar.return_value = []
+            mock_buscar_geral.return_value = []
 
             resultado = await orquestrador.analisar_situacao(
                 mensagem="O valor está muito baixo pra mim",
@@ -41,10 +48,16 @@ class TestOrquestradorConhecimento:
     @pytest.mark.asyncio
     async def test_analisar_situacao_detecta_perfil(self, orquestrador):
         """Deve detectar perfil baseado nos dados do cliente."""
-        with patch.object(
-            orquestrador.buscador, "buscar_para_perfil", new_callable=AsyncMock
-        ) as mock_buscar:
+        with (
+            patch.object(
+                orquestrador.buscador, "buscar_para_perfil", new_callable=AsyncMock
+            ) as mock_buscar,
+            patch.object(
+                orquestrador.buscador, "buscar", new_callable=AsyncMock
+            ) as mock_buscar_geral,
+        ):
             mock_buscar.return_value = []
+            mock_buscar_geral.return_value = []
 
             resultado = await orquestrador.analisar_situacao(
                 mensagem="Olá",
@@ -58,9 +71,7 @@ class TestOrquestradorConhecimento:
     @pytest.mark.asyncio
     async def test_analisar_situacao_detecta_objetivo(self, orquestrador):
         """Deve detectar objetivo baseado no stage."""
-        with patch.object(
-            orquestrador.buscador, "buscar", new_callable=AsyncMock
-        ) as mock_buscar:
+        with patch.object(orquestrador.buscador, "buscar", new_callable=AsyncMock) as mock_buscar:
             mock_buscar.return_value = []
 
             resultado = await orquestrador.analisar_situacao(
@@ -79,10 +90,16 @@ class TestOrquestradorConhecimento:
     @pytest.mark.asyncio
     async def test_analisar_situacao_gera_resumo(self, orquestrador):
         """Deve gerar resumo formatado para injeção."""
-        with patch.object(
-            orquestrador.buscador, "buscar_para_objecao", new_callable=AsyncMock
-        ) as mock_buscar:
+        with (
+            patch.object(
+                orquestrador.buscador, "buscar_para_objecao", new_callable=AsyncMock
+            ) as mock_buscar,
+            patch.object(
+                orquestrador.buscador, "buscar", new_callable=AsyncMock
+            ) as mock_buscar_geral,
+        ):
             mock_buscar.return_value = []
+            mock_buscar_geral.return_value = []
 
             resultado = await orquestrador.analisar_situacao(
                 mensagem="Paga pouco demais",
@@ -98,9 +115,7 @@ class TestOrquestradorConhecimento:
     @pytest.mark.asyncio
     async def test_analisar_rapido_sem_rag(self, orquestrador):
         """Deve fazer análise rápida sem busca de conhecimento."""
-        resultado = await orquestrador.analisar_rapido(
-            "Não tenho tempo agora"
-        )
+        resultado = await orquestrador.analisar_rapido("Não tenho tempo agora")
 
         assert isinstance(resultado, dict)
         assert resultado["tem_objecao"] is True
@@ -118,13 +133,20 @@ class TestOrquestradorCenariosReais:
     @pytest.mark.asyncio
     async def test_cenario_medico_senior_com_objecao_preco(self, orquestrador):
         """Cenário: médico sênior reclama do valor."""
-        with patch.object(
-            orquestrador.buscador, "buscar_para_objecao", new_callable=AsyncMock
-        ) as mock_objecao, patch.object(
-            orquestrador.buscador, "buscar_para_perfil", new_callable=AsyncMock
-        ) as mock_perfil:
+        with (
+            patch.object(
+                orquestrador.buscador, "buscar_para_objecao", new_callable=AsyncMock
+            ) as mock_objecao,
+            patch.object(
+                orquestrador.buscador, "buscar_para_perfil", new_callable=AsyncMock
+            ) as mock_perfil,
+            patch.object(
+                orquestrador.buscador, "buscar", new_callable=AsyncMock
+            ) as mock_buscar_geral,
+        ):
             mock_objecao.return_value = []
             mock_perfil.return_value = []
+            mock_buscar_geral.return_value = []
 
             resultado = await orquestrador.analisar_situacao(
                 mensagem="Paga muito pouco para o que fazemos",
@@ -147,9 +169,7 @@ class TestOrquestradorCenariosReais:
     @pytest.mark.asyncio
     async def test_cenario_recem_formado_interessado(self, orquestrador):
         """Cenário: recém-formado mostrando interesse."""
-        with patch.object(
-            orquestrador.buscador, "buscar", new_callable=AsyncMock
-        ) as mock_buscar:
+        with patch.object(orquestrador.buscador, "buscar", new_callable=AsyncMock) as mock_buscar:
             mock_buscar.return_value = []
 
             resultado = await orquestrador.analisar_situacao(
@@ -171,9 +191,7 @@ class TestOrquestradorCenariosReais:
     @pytest.mark.asyncio
     async def test_cenario_medico_inativo_reativacao(self, orquestrador):
         """Cenário: médico inativo há mais de 7 dias."""
-        with patch.object(
-            orquestrador.buscador, "buscar", new_callable=AsyncMock
-        ) as mock_buscar:
+        with patch.object(orquestrador.buscador, "buscar", new_callable=AsyncMock) as mock_buscar:
             mock_buscar.return_value = []
 
             resultado = await orquestrador.analisar_situacao(

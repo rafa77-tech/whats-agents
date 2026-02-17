@@ -18,7 +18,12 @@ from app.services.grupos.pipeline_worker import (
 )
 from app.services.grupos.heuristica import ResultadoHeuristica
 from app.services.grupos.classificador_llm import ResultadoClassificacaoLLM
-from app.services.grupos.extrator import ResultadoExtracao, VagaExtraida, DadosVagaExtraida, ConfiancaExtracao
+from app.services.grupos.extrator import (
+    ResultadoExtracao,
+    VagaExtraida,
+    DadosVagaExtraida,
+    ConfiancaExtracao,
+)
 from app.services.grupos.normalizador import ResultadoNormalizacao
 from app.services.grupos.deduplicador import ResultadoDedup
 from app.services.grupos.importador import ResultadoImportacao
@@ -27,6 +32,7 @@ from app.services.grupos.importador import ResultadoImportacao
 # =============================================================================
 # Testes de Constantes
 # =============================================================================
+
 
 class TestConstantes:
     """Testes das constantes de threshold."""
@@ -47,6 +53,7 @@ class TestConstantes:
 # =============================================================================
 # Testes do ResultadoPipeline
 # =============================================================================
+
 
 class TestResultadoPipeline:
     """Testes do dataclass ResultadoPipeline."""
@@ -70,7 +77,7 @@ class TestResultadoPipeline:
             score=0.85,
             confianca=0.92,
             vagas_criadas=["vaga1", "vaga2"],
-            detalhes={"hospital": "São Luiz"}
+            detalhes={"hospital": "São Luiz"},
         )
 
         assert resultado.mensagem_id == mensagem_id
@@ -81,6 +88,7 @@ class TestResultadoPipeline:
 # =============================================================================
 # Testes do mapear_acao_para_estagio
 # =============================================================================
+
 
 class TestMapearAcaoParaEstagio:
     """Testes do mapeamento de ações."""
@@ -125,6 +133,7 @@ class TestMapearAcaoParaEstagio:
 # =============================================================================
 # Testes do PipelineGrupos
 # =============================================================================
+
 
 class TestPipelineProcessarPendente:
     """Testes do estágio pendente."""
@@ -174,12 +183,17 @@ class TestPipelineProcessarPendente:
                 data={"texto": "Oi pessoal, tudo bem?", "nome_grupo": "Teste"}
             )
 
-            with patch("app.services.grupos.pipeline_worker.calcular_score_heuristica") as mock_heuristica:
+            with (
+                patch(
+                    "app.services.grupos.pipeline_worker.calcular_score_heuristica"
+                ) as mock_heuristica,
+                patch(
+                    "app.services.grupos.pipeline_worker.atualizar_resultado_heuristica",
+                    new_callable=AsyncMock,
+                ),
+            ):
                 mock_heuristica.return_value = ResultadoHeuristica(
-                    passou=False,
-                    score=0.1,
-                    keywords_encontradas=[],
-                    motivo_rejeicao="score_baixo"
+                    passou=False, score=0.1, keywords_encontradas=[], motivo_rejeicao="score_baixo"
                 )
 
                 resultado = await pipeline.processar_pendente({"mensagem_id": str(mensagem_id)})
@@ -194,15 +208,26 @@ class TestPipelineProcessarPendente:
 
         with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
             mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
-                data={"texto": "Plantão dia 28/12 no Hospital São Luiz, R$ 1.800 noturno", "nome_grupo": "Vagas"}
+                data={
+                    "texto": "Plantão dia 28/12 no Hospital São Luiz, R$ 1.800 noturno",
+                    "nome_grupo": "Vagas",
+                }
             )
 
-            with patch("app.services.grupos.pipeline_worker.calcular_score_heuristica") as mock_heuristica:
+            with (
+                patch(
+                    "app.services.grupos.pipeline_worker.calcular_score_heuristica"
+                ) as mock_heuristica,
+                patch(
+                    "app.services.grupos.pipeline_worker.atualizar_resultado_heuristica",
+                    new_callable=AsyncMock,
+                ),
+            ):
                 mock_heuristica.return_value = ResultadoHeuristica(
                     passou=True,
                     score=0.9,
                     keywords_encontradas=["plantão", "hospital"],
-                    motivo_rejeicao=None
+                    motivo_rejeicao=None,
                 )
 
                 resultado = await pipeline.processar_pendente({"mensagem_id": str(mensagem_id)})
@@ -220,12 +245,17 @@ class TestPipelineProcessarPendente:
                 data={"texto": "Vaga disponível amanhã", "nome_grupo": "Vagas"}
             )
 
-            with patch("app.services.grupos.pipeline_worker.calcular_score_heuristica") as mock_heuristica:
+            with (
+                patch(
+                    "app.services.grupos.pipeline_worker.calcular_score_heuristica"
+                ) as mock_heuristica,
+                patch(
+                    "app.services.grupos.pipeline_worker.atualizar_resultado_heuristica",
+                    new_callable=AsyncMock,
+                ),
+            ):
                 mock_heuristica.return_value = ResultadoHeuristica(
-                    passou=True,
-                    score=0.5,
-                    keywords_encontradas=["vaga"],
-                    motivo_rejeicao=None
+                    passou=True, score=0.5, keywords_encontradas=["vaga"], motivo_rejeicao=None
                 )
 
                 resultado = await pipeline.processar_pendente({"mensagem_id": str(mensagem_id)})
@@ -252,14 +282,20 @@ class TestPipelineProcessarClassificacao:
                 data={"texto": "Plantão disponível", "nome_grupo": "Vagas", "nome_contato": "Dr."}
             )
 
-            with patch("app.services.grupos.pipeline_worker.classificar_com_llm") as mock_llm:
+            with (
+                patch("app.services.grupos.pipeline_worker.classificar_com_llm") as mock_llm,
+                patch(
+                    "app.services.grupos.pipeline_worker.atualizar_resultado_classificacao_llm",
+                    new_callable=AsyncMock,
+                ),
+            ):
                 mock_llm.return_value = ResultadoClassificacaoLLM(
-                    eh_oferta=True,
-                    confianca=0.85,
-                    motivo="Contém palavras-chave de oferta"
+                    eh_oferta=True, confianca=0.85, motivo="Contém palavras-chave de oferta"
                 )
 
-                resultado = await pipeline.processar_classificacao({"mensagem_id": str(mensagem_id)})
+                resultado = await pipeline.processar_classificacao(
+                    {"mensagem_id": str(mensagem_id)}
+                )
 
                 assert resultado.acao == "extrair"
                 assert resultado.confianca == 0.85
@@ -274,14 +310,20 @@ class TestPipelineProcessarClassificacao:
                 data={"texto": "Bom dia pessoal", "nome_grupo": "Vagas", "nome_contato": "Fulano"}
             )
 
-            with patch("app.services.grupos.pipeline_worker.classificar_com_llm") as mock_llm:
+            with (
+                patch("app.services.grupos.pipeline_worker.classificar_com_llm") as mock_llm,
+                patch(
+                    "app.services.grupos.pipeline_worker.atualizar_resultado_classificacao_llm",
+                    new_callable=AsyncMock,
+                ),
+            ):
                 mock_llm.return_value = ResultadoClassificacaoLLM(
-                    eh_oferta=False,
-                    confianca=0.2,
-                    motivo="Cumprimento genérico"
+                    eh_oferta=False, confianca=0.2, motivo="Cumprimento genérico"
                 )
 
-                resultado = await pipeline.processar_classificacao({"mensagem_id": str(mensagem_id)})
+                resultado = await pipeline.processar_classificacao(
+                    {"mensagem_id": str(mensagem_id)}
+                )
 
                 assert resultado.acao == "descartar"
                 assert resultado.motivo == "nao_eh_oferta"
@@ -299,6 +341,7 @@ class TestPipelineProcessarExtracao:
     async def test_extracao_sucesso(self, pipeline):
         """Extração bem-sucedida (usando v1 para teste)."""
         import os
+
         mensagem_id = uuid4()
         vaga_id = uuid4()
 
@@ -312,24 +355,28 @@ class TestPipelineProcessarExtracao:
                         "nome_grupo": "Vagas",
                         "regiao": "SP",
                         "nome_contato": "Escalista",
-                        "grupo_id": str(uuid4())
+                        "grupo_id": str(uuid4()),
                     }
                 )
 
                 # Mock criação vaga
-                mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
-                    data=[{"id": str(vaga_id)}]
+                mock_supabase.table.return_value.insert.return_value.execute.return_value = (
+                    MagicMock(data=[{"id": str(vaga_id)}])
                 )
 
-                with patch("app.services.grupos.pipeline_worker.extrair_dados_mensagem") as mock_extrator:
+                with patch(
+                    "app.services.grupos.pipeline_worker.extrair_dados_mensagem"
+                ) as mock_extrator:
                     mock_extrator.return_value = ResultadoExtracao(
                         vagas=[
                             VagaExtraida(
-                                dados=DadosVagaExtraida(hospital="São Luiz", especialidade="Clínica"),
-                                confianca=ConfiancaExtracao(hospital=0.9, especialidade=0.7)
+                                dados=DadosVagaExtraida(
+                                    hospital="São Luiz", especialidade="Clínica"
+                                ),
+                                confianca=ConfiancaExtracao(hospital=0.9, especialidade=0.7),
                             )
                         ],
-                        total_vagas=1
+                        total_vagas=1,
                     )
 
                     resultado = await pipeline.processar_extracao({"mensagem_id": str(mensagem_id)})
@@ -341,6 +388,7 @@ class TestPipelineProcessarExtracao:
     async def test_extracao_falha(self, pipeline):
         """Extração sem vagas (usando v1 para teste)."""
         import os
+
         mensagem_id = uuid4()
 
         # Force v1 extractor for this test (testes escritos para v1)
@@ -350,11 +398,10 @@ class TestPipelineProcessarExtracao:
                     data={"texto": "Texto confuso", "nome_grupo": "Vagas"}
                 )
 
-                with patch("app.services.grupos.pipeline_worker.extrair_dados_mensagem") as mock_extrator:
-                    mock_extrator.return_value = ResultadoExtracao(
-                        vagas=[],
-                        total_vagas=0
-                    )
+                with patch(
+                    "app.services.grupos.pipeline_worker.extrair_dados_mensagem"
+                ) as mock_extrator:
+                    mock_extrator.return_value = ResultadoExtracao(vagas=[], total_vagas=0)
 
                     resultado = await pipeline.processar_extracao({"mensagem_id": str(mensagem_id)})
 
@@ -383,7 +430,7 @@ class TestPipelineProcessarNormalizacao:
                 especialidade_id=uuid4(),
                 especialidade_nome="Clínica Médica",
                 especialidade_score=0.9,
-                status="normalizada"
+                status="normalizada",
             )
 
             resultado = await pipeline.processar_normalizacao({"vaga_grupo_id": str(vaga_grupo_id)})
@@ -414,9 +461,7 @@ class TestPipelineProcessarDeduplicacao:
 
         with patch("app.services.grupos.pipeline_worker.processar_deduplicacao") as mock_dedup:
             mock_dedup.return_value = ResultadoDedup(
-                duplicada=False,
-                principal_id=None,
-                hash_dedup="abc123"
+                duplicada=False, principal_id=None, hash_dedup="abc123"
             )
 
             resultado = await pipeline.processar_deduplicacao({"vaga_grupo_id": str(vaga_grupo_id)})
@@ -431,9 +476,7 @@ class TestPipelineProcessarDeduplicacao:
 
         with patch("app.services.grupos.pipeline_worker.processar_deduplicacao") as mock_dedup:
             mock_dedup.return_value = ResultadoDedup(
-                duplicada=True,
-                principal_id=vaga_principal_id,
-                hash_dedup="abc123"
+                duplicada=True, principal_id=vaga_principal_id, hash_dedup="abc123"
             )
 
             resultado = await pipeline.processar_deduplicacao({"vaga_grupo_id": str(vaga_grupo_id)})
@@ -462,7 +505,7 @@ class TestPipelineProcessarImportacao:
                 acao="importar",
                 score=0.95,
                 status="importada",
-                vaga_id=str(vaga_id)
+                vaga_id=str(vaga_id),
             )
 
             resultado = await pipeline.processar_importacao({"vaga_grupo_id": str(vaga_grupo_id)})
@@ -481,7 +524,7 @@ class TestPipelineProcessarImportacao:
                 acao="revisar",
                 score=0.65,
                 status="aguardando_revisao",
-                motivo="confianca_media"
+                motivo="confianca_media",
             )
 
             resultado = await pipeline.processar_importacao({"vaga_grupo_id": str(vaga_grupo_id)})
