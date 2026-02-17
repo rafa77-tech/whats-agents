@@ -27,7 +27,7 @@ export default defineConfig({
         '**/*.test.{ts,tsx}',
         '**/*.spec.{ts,tsx}',
         '**/types/**',
-        'app/api/**',
+        // 'app/api/**', // Removed Sprint 62 — API routes now included in coverage
         // ============================================================
         // EXCLUSÕES JUSTIFICADAS (revisadas em 2026-01-16)
         // ============================================================
@@ -175,10 +175,13 @@ export default defineConfig({
         // - Cobertura temporariamente reduzida de 50% para 40%
         // - TODO: Aumentar cobertura em sprint futuro
         // ============================================================
-        statements: 40,
-        branches: 75,
-        functions: 45,
-        lines: 40,
+        // Thresholds lowered Sprint 62: included app/api/** in coverage
+        // Actual coverage: stmts 56.89%, branches 49.98%, funcs 62.16%, lines 57.59%
+        // TODO: raise as API route tests are added
+        statements: 50,
+        branches: 45,
+        functions: 55,
+        lines: 50,
       },
     },
     testTimeout: 10000,
