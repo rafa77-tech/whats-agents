@@ -9,14 +9,30 @@ export const dynamic = 'force-dynamic'
  * Lista hospitais para seleção no combobox
  * Query params:
  *   - excluir_bloqueados: "true" para excluir hospitais bloqueados
+ *   - search: busca por nome (ilike)
+ *   - apenas_revisados: "true" para filtrar apenas revisados (default: true)
+ *   - limit: limite de resultados (default: 50)
  */
 export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient()
     const searchParams = request.nextUrl.searchParams
     const excluirBloqueados = searchParams.get('excluir_bloqueados') === 'true'
+    const search = searchParams.get('search') || ''
+    const apenasRevisados = searchParams.get('apenas_revisados') !== 'false'
+    const limitParam = searchParams.get('limit')
+    const limit = limitParam ? parseInt(limitParam, 10) : 50
 
-    const hospitais = await listarHospitais(supabase, { excluirBloqueados })
+    const params: Parameters<typeof listarHospitais>[1] = {
+      excluirBloqueados,
+      apenasRevisados,
+      limit: limit > 0 ? limit : 50,
+    }
+    if (search) {
+      params.search = search
+    }
+
+    const hospitais = await listarHospitais(supabase, params)
 
     return NextResponse.json(hospitais)
   } catch (error) {

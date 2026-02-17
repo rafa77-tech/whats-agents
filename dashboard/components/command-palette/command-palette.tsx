@@ -92,7 +92,7 @@ const pages: PageItem[] = [
     id: 'hospitais',
     label: 'Hospitais',
     icon: Building2,
-    href: '/hospitais/bloqueados',
+    href: '/hospitais',
     keywords: ['hospital', 'bloqueado', 'instituicao'],
     description: 'Hospitais bloqueados',
   },

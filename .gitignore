@@ -43,6 +43,9 @@ tests/*_rows.csv
 # Google credentials
 credentials/
 
+# Dados CNES (DataSUS) - muito grande para git
+data/BASE_DE_DADOS_CNES_*/
+
 # Dados sensíveis - grupos WhatsApp
 data/grupos_zap/grupos_consolidado.csv
 data/grupos_zap/grupos_whatsapp_saude.csv

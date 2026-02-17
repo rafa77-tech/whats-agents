@@ -6,12 +6,18 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
   Hospital,
   HospitalBloqueado,
+  HospitalDetalhado,
+  HospitalAlias,
+  HospitalGestaoItem,
+  HospitaisGestaoResponse,
   ListarBloqueadosParams,
   ListarHospitaisParams,
+  ListarHospitaisGestaoParams,
   BloquearResult,
   DesbloquearResult,
   VerificarHospitalResult,
   VerificarBloqueioResult,
+  MergeResult,
 } from './types'
 
 // ============================================
@@ -63,19 +69,33 @@ export async function listarHospitaisBloqueados(
 }
 
 /**
- * Lista hospitais ativos para seleção
- * @param excluirBloqueados - Se true, exclui hospitais atualmente bloqueados
+ * Lista hospitais para seleção com busca server-side
+ * @param params.excluirBloqueados - Exclui hospitais atualmente bloqueados
+ * @param params.search - Busca por nome (ilike)
+ * @param params.apenasRevisados - Filtra apenas hospitais revisados (default: false)
+ * @param params.limit - Limita resultados (default: sem limite)
  */
 export async function listarHospitais(
   supabase: SupabaseClient,
   params: ListarHospitaisParams = {}
 ): Promise<Hospital[]> {
-  const { excluirBloqueados = false } = params
+  const { excluirBloqueados = false, search, apenasRevisados = false, limit = 0 } = params
 
-  const { data: hospitais, error } = await supabase
-    .from('hospitais')
-    .select('id, nome, cidade')
-    .order('nome')
+  let query = supabase.from('hospitais').select('id, nome, cidade').order('nome')
+
+  if (apenasRevisados) {
+    query = query.eq('precisa_revisao', false)
+  }
+
+  if (search) {
+    query = query.ilike('nome', `%${search}%`)
+  }
+
+  if (limit > 0) {
+    query = query.limit(limit)
+  }
+
+  const { data: hospitais, error } = await query
 
   if (error) {
     throw new Error(`Erro ao buscar hospitais: ${error.message}`)
@@ -93,7 +113,12 @@ export async function listarHospitais(
     resultado = resultado.filter((h) => !idsBloqueados.has(h.id))
   }
 
-  // Buscar contagem de vagas abertas
+  // Skip vagas count when doing server-side search (not needed for dropdown)
+  if (search || limit > 0) {
+    return resultado
+  }
+
+  // Buscar contagem de vagas abertas (full list mode)
   const { data: vagasCount } = await supabase
     .from('vagas')
     .select('hospital_id')
@@ -301,4 +326,260 @@ export async function registrarAuditLog(
     details,
     created_at: new Date().toISOString(),
   })
+}
+
+// ============================================
+// Gestão de Hospitais (Sprint 60 - Épico 5)
+// ============================================
+
+/**
+ * Lista hospitais para a página de gestão com paginação e filtros
+ */
+export async function listarHospitaisGestao(
+  supabase: SupabaseClient,
+  params: ListarHospitaisGestaoParams = {}
+): Promise<HospitaisGestaoResponse> {
+  const { page = 1, perPage = 20, search, status = 'todos', cidade } = params
+
+  const from = (page - 1) * perPage
+  const to = from + perPage - 1
+
+  let query = supabase
+    .from('hospitais')
+    .select('id, nome, cidade, estado, criado_automaticamente, precisa_revisao, created_at', {
+      count: 'exact',
+    })
+    .order('created_at', { ascending: false })
+
+  if (search) {
+    query = query.ilike('nome', `%${search}%`)
+  }
+
+  if (status === 'revisados') {
+    query = query.eq('precisa_revisao', false)
+  } else if (status === 'pendentes') {
+    query = query.eq('precisa_revisao', true)
+  }
+
+  if (cidade) {
+    query = query.ilike('cidade', `%${cidade}%`)
+  }
+
+  query = query.range(from, to)
+
+  const { data: hospitais, error, count } = await query
+
+  if (error) {
+    throw new Error(`Erro ao buscar hospitais: ${error.message}`)
+  }
+
+  const total = count || 0
+  const ids = (hospitais || []).map((h) => h.id)
+
+  // Fetch vagas count and aliases count for these hospitals
+  const vagasPorHospital = new Map<string, number>()
+  const aliasesPorHospital = new Map<string, number>()
+
+  if (ids.length > 0) {
+    const { data: vagasData } = await supabase
+      .from('vagas')
+      .select('hospital_id')
+      .in('hospital_id', ids)
+
+    ;(vagasData || []).forEach((v) => {
+      vagasPorHospital.set(v.hospital_id, (vagasPorHospital.get(v.hospital_id) || 0) + 1)
+    })
+
+    const { data: aliasesData } = await supabase
+      .from('hospitais_alias')
+      .select('hospital_id')
+      .in('hospital_id', ids)
+
+    ;(aliasesData || []).forEach((a) => {
+      aliasesPorHospital.set(a.hospital_id, (aliasesPorHospital.get(a.hospital_id) || 0) + 1)
+    })
+  }
+
+  const data: HospitalGestaoItem[] = (hospitais || []).map((h) => ({
+    ...h,
+    vagas_count: vagasPorHospital.get(h.id) || 0,
+    aliases_count: aliasesPorHospital.get(h.id) || 0,
+  }))
+
+  // Global counts (independent of current filters/page)
+  const { count: pendentesCount } = await supabase
+    .from('hospitais')
+    .select('id', { count: 'exact', head: true })
+    .eq('precisa_revisao', true)
+
+  const { count: autoCriadosCount } = await supabase
+    .from('hospitais')
+    .select('id', { count: 'exact', head: true })
+    .eq('criado_automaticamente', true)
+
+  return {
+    data,
+    total,
+    pages: Math.ceil(total / perPage),
+    pendentes: pendentesCount || 0,
+    auto_criados: autoCriadosCount || 0,
+  }
+}
+
+/**
+ * Busca hospital por ID com aliases e contagens
+ */
+export async function buscarHospitalDetalhado(
+  supabase: SupabaseClient,
+  hospitalId: string
+): Promise<HospitalDetalhado | null> {
+  const { data: hospital, error } = await supabase
+    .from('hospitais')
+    .select('id, nome, cidade, estado, criado_automaticamente, precisa_revisao, created_at')
+    .eq('id', hospitalId)
+    .single()
+
+  if (error || !hospital) {
+    return null
+  }
+
+  const { data: aliases } = await supabase
+    .from('hospitais_alias')
+    .select('id, hospital_id, alias, alias_normalizado, origem, confianca, confirmado, created_at')
+    .eq('hospital_id', hospitalId)
+    .order('created_at', { ascending: false })
+
+  const { count: vagasCount } = await supabase
+    .from('vagas')
+    .select('id', { count: 'exact', head: true })
+    .eq('hospital_id', hospitalId)
+
+  return {
+    ...hospital,
+    vagas_count: vagasCount || 0,
+    aliases: (aliases || []) as HospitalAlias[],
+  }
+}
+
+/**
+ * Atualiza dados de um hospital
+ */
+export async function atualizarHospital(
+  supabase: SupabaseClient,
+  hospitalId: string,
+  dados: { nome?: string; cidade?: string; estado?: string; precisa_revisao?: boolean }
+): Promise<void> {
+  const { error } = await supabase.from('hospitais').update(dados).eq('id', hospitalId)
+
+  if (error) {
+    throw new Error(`Erro ao atualizar hospital: ${error.message}`)
+  }
+}
+
+/**
+ * Adiciona alias a um hospital
+ */
+export async function adicionarAlias(
+  supabase: SupabaseClient,
+  hospitalId: string,
+  alias: string,
+  aliasNormalizado: string
+): Promise<HospitalAlias> {
+  const { data, error } = await supabase
+    .from('hospitais_alias')
+    .insert({
+      hospital_id: hospitalId,
+      alias,
+      alias_normalizado: aliasNormalizado,
+      origem: 'manual_dashboard',
+      confianca: 1.0,
+      confirmado: true,
+      criado_por: 'dashboard',
+    })
+    .select('id, hospital_id, alias, alias_normalizado, origem, confianca, confirmado, created_at')
+    .single()
+
+  if (error) {
+    throw new Error(`Erro ao adicionar alias: ${error.message}`)
+  }
+
+  return data as HospitalAlias
+}
+
+/**
+ * Remove alias de um hospital
+ */
+export async function removerAlias(supabase: SupabaseClient, aliasId: string): Promise<void> {
+  const { error } = await supabase.from('hospitais_alias').delete().eq('id', aliasId)
+
+  if (error) {
+    throw new Error(`Erro ao remover alias: ${error.message}`)
+  }
+}
+
+/**
+ * Mescla hospital duplicado no principal via RPC atômica
+ */
+export async function mesclarHospitais(
+  supabase: SupabaseClient,
+  principalId: string,
+  duplicadoId: string,
+  executadoPor: string
+): Promise<MergeResult> {
+  const { data, error } = await supabase.rpc('mesclar_hospitais', {
+    p_principal_id: principalId,
+    p_duplicado_id: duplicadoId,
+    p_executado_por: executadoPor,
+  })
+
+  if (error) {
+    throw new Error(`Erro ao mesclar hospitais: ${error.message}`)
+  }
+
+  return data as MergeResult
+}
+
+/**
+ * Deleta hospital se não tem referências em nenhuma tabela FK
+ */
+export async function deletarHospitalSeguro(
+  supabase: SupabaseClient,
+  hospitalId: string
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc('deletar_hospital_sem_referencias', {
+    p_hospital_id: hospitalId,
+  })
+
+  if (error) {
+    throw new Error(`Erro ao deletar hospital: ${error.message}`)
+  }
+
+  return data === true
+}
+
+/**
+ * Busca hospitais duplicados por similaridade para um hospital
+ */
+export async function buscarDuplicados(
+  supabase: SupabaseClient,
+  hospitalId: string,
+  hospitalNome: string,
+  limite: number = 10
+): Promise<Array<{ id: string; nome: string; cidade: string; similarity: number }>> {
+  // Use pg_trgm similarity via RPC or manual query
+  const { data, error } = await supabase
+    .from('hospitais')
+    .select('id, nome, cidade')
+    .neq('id', hospitalId)
+    .ilike('nome', `%${hospitalNome.split(' ').slice(0, 2).join('%')}%`)
+    .limit(limite)
+
+  if (error) {
+    throw new Error(`Erro ao buscar duplicados: ${error.message}`)
+  }
+
+  return (data || []).map((h) => ({
+    ...h,
+    similarity: 0, // Client-side similarity would need pg_trgm RPC
+  }))
 }

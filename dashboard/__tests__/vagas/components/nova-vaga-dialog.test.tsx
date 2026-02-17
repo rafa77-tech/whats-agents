@@ -49,7 +49,7 @@ describe('NovaVagaDialog', () => {
 
     // Default mocks for hospital and especialidade lists
     mockFetch.mockImplementation((url: string) => {
-      if (url === '/api/hospitais') {
+      if (typeof url === 'string' && url.startsWith('/api/hospitais')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve(mockHospitais),
@@ -87,7 +87,7 @@ describe('NovaVagaDialog', () => {
     render(<NovaVagaDialog {...defaultProps} />)
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/hospitais')
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/hospitais'))
       expect(mockFetch).toHaveBeenCalledWith('/api/especialidades')
     })
   })
@@ -232,7 +232,7 @@ describe('NovaVagaDialog', () => {
 
   it('deve submeter form com dados corretos', async () => {
     mockFetch.mockImplementation((url: string, options?: RequestInit) => {
-      if (url === '/api/hospitais') {
+      if (typeof url === 'string' && url.startsWith('/api/hospitais')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve(mockHospitais),
@@ -257,7 +257,7 @@ describe('NovaVagaDialog', () => {
 
     // Wait for lists to load
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/hospitais')
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/hospitais'))
     })
 
     // Fill date (the only field we can easily fill without opening comboboxes)
@@ -271,7 +271,7 @@ describe('NovaVagaDialog', () => {
 
   it('deve tratar erro na resposta do POST', async () => {
     mockFetch.mockImplementation((url: string, options?: RequestInit) => {
-      if (url === '/api/hospitais') {
+      if (typeof url === 'string' && url.startsWith('/api/hospitais')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve(mockHospitais),
@@ -296,7 +296,7 @@ describe('NovaVagaDialog', () => {
     render(<NovaVagaDialog {...defaultProps} />)
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/hospitais')
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/hospitais'))
     })
   })
 
@@ -316,7 +316,7 @@ describe('NovaVagaDialog', () => {
 
   it('deve lidar com resposta nao-array de hospitais', async () => {
     mockFetch.mockImplementation((url: string) => {
-      if (url === '/api/hospitais') {
+      if (typeof url === 'string' && url.startsWith('/api/hospitais')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ detail: 'error' }),

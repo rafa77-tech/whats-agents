@@ -63,7 +63,7 @@ const navigationGroups: NavGroup[] = [
     label: 'Cadastros',
     items: [
       { name: 'Medicos', href: '/medicos', icon: Stethoscope },
-      { name: 'Hospitais', href: '/hospitais/bloqueados', icon: Building2 },
+      { name: 'Hospitais', href: '/hospitais', icon: Building2 },
       { name: 'Grupos', href: '/grupos', icon: Users },
     ],
   },

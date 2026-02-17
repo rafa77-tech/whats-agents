@@ -69,7 +69,9 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
   const [hospitais, setHospitais] = useState<Hospital[]>([])
   const [especialidades, setEspecialidades] = useState<Especialidade[]>([])
   const [contatos, setContatos] = useState<ContatoGrupo[]>([])
+  const [selectedHospitalData, setSelectedHospitalData] = useState<Hospital | null>(null)
   const [loadingListas, setLoadingListas] = useState(false)
+  const [loadingHospitais, setLoadingHospitais] = useState(false)
   const [loadingContatos, setLoadingContatos] = useState(false)
 
   // Combobox open state
@@ -126,24 +128,49 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
     return () => clearTimeout(timer)
   }, [contatoSearch, contatoOpen, searchContatos])
 
+  // Debounced hospital search (server-side)
+  const searchHospitais = useCallback(async (search: string) => {
+    setLoadingHospitais(true)
+    try {
+      const params = new URLSearchParams({ limit: '50', apenas_revisados: 'true' })
+      if (search.trim()) {
+        params.set('search', search.trim())
+      }
+      const res = await fetch(`/api/hospitais?${params}`)
+      const json = await res.json()
+      setHospitais(Array.isArray(json) ? json : [])
+    } catch {
+      setHospitais([])
+    } finally {
+      setLoadingHospitais(false)
+    }
+  }, [])
+
+  // Load initial data when dialog opens
   useEffect(() => {
     if (open) {
+      searchHospitais('')
       setLoadingListas(true)
-      Promise.all([
-        fetch('/api/hospitais').then((r) => r.json()),
-        fetch('/api/especialidades').then((r) => r.json()),
-      ])
-        .then(([h, e]) => {
-          setHospitais(Array.isArray(h) ? h : [])
-          setEspecialidades(Array.isArray(e) ? e : [])
-        })
+      fetch('/api/especialidades')
+        .then((r) => r.json())
+        .then((e) => setEspecialidades(Array.isArray(e) ? e : []))
         .catch(console.error)
         .finally(() => setLoadingListas(false))
     }
-  }, [open])
+  }, [open, searchHospitais])
+
+  // Debounced search when typing in hospital combobox
+  useEffect(() => {
+    if (!hospitalOpen) return
+    const timer = setTimeout(() => {
+      searchHospitais(hospitalSearch)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [hospitalSearch, hospitalOpen, searchHospitais])
 
   const resetForm = () => {
     setHospitalId('')
+    setSelectedHospitalData(null)
     setEspecialidadeId('')
     setData('')
     setHoraInicio('')
@@ -168,12 +195,13 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
     return true
   }
 
-  const selectedHospital = hospitais.find((h) => h.id === hospitalId)
+  const selectedHospital = selectedHospitalData
   const selectedEspecialidade = especialidades.find((e) => e.id === especialidadeId)
 
   const hospitalSearchTrimmed = hospitalSearch.trim().toLowerCase()
   const showCreateHospital =
     hospitalSearchTrimmed.length > 0 &&
+    !loadingHospitais &&
     !hospitais.some((h) => h.nome.toLowerCase() === hospitalSearchTrimmed)
 
   const especialidadeSearchTrimmed = especialidadeSearch.trim().toLowerCase()
@@ -206,6 +234,7 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
       const newHospital: Hospital = await res.json()
       setHospitais((prev) => [...prev, newHospital].sort((a, b) => a.nome.localeCompare(b.nome)))
       setHospitalId(newHospital.id)
+      setSelectedHospitalData(newHospital)
       setHospitalOpen(false)
       setHospitalSearch('')
     } catch {
@@ -335,14 +364,14 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
                 >
                   {selectedHospital
                     ? selectedHospital.nome
-                    : loadingListas
+                    : loadingHospitais
                       ? 'Carregando...'
                       : 'Selecione o hospital'}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command shouldFilter={true}>
+                <Command shouldFilter={false}>
                   <CommandInput
                     placeholder="Buscar hospital..."
                     value={hospitalSearch}
@@ -350,7 +379,7 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
                   />
                   <CommandList>
                     <CommandEmpty>
-                      {loadingListas ? 'Carregando...' : 'Nenhum hospital encontrado'}
+                      {loadingHospitais ? 'Buscando...' : 'Nenhum hospital encontrado'}
                     </CommandEmpty>
                     <CommandGroup className="max-h-[200px] overflow-auto">
                       {hospitais.map((hospital) => (
@@ -359,6 +388,7 @@ export function NovaVagaDialog({ open, onOpenChange, onSuccess }: NovaVagaDialog
                           value={hospital.nome}
                           onSelect={() => {
                             setHospitalId(hospital.id)
+                            setSelectedHospitalData(hospital)
                             setHospitalOpen(false)
                             setHospitalSearch('')
                           }}

@@ -83,6 +83,7 @@ export default defineConfig({
         'app/\\(dashboard\\)/health/**', // Health page (UI shell)
         'app/\\(dashboard\\)/integridade/**', // Integridade page (UI shell)
         'app/\\(dashboard\\)/qualidade/**', // Qualidade page (UI shell)
+        'app/\\(dashboard\\)/hospitais/**', // Hospitais management pages (UI, lógica no backend)
         'app/auth/callback/**', // Auth callback (Supabase OAuth flow)
         'app/makeover/**', // Makeover prototype pages
         // Chips module - complex UI components (lógica de negócio nos hooks/formatters testados)

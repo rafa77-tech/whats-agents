@@ -53,6 +53,8 @@ describe('GET /api/hospitais', () => {
     expect(data).toEqual(mockData)
     expect(mockListarHospitais).toHaveBeenCalledWith(expect.anything(), {
       excluirBloqueados: false,
+      apenasRevisados: true,
+      limit: 50,
     })
   })
 
@@ -66,7 +68,11 @@ describe('GET /api/hospitais', () => {
 
     expect(response.status).toBe(200)
     expect(data).toHaveLength(1)
-    expect(mockListarHospitais).toHaveBeenCalledWith(expect.anything(), { excluirBloqueados: true })
+    expect(mockListarHospitais).toHaveBeenCalledWith(expect.anything(), {
+      excluirBloqueados: true,
+      apenasRevisados: true,
+      limit: 50,
+    })
   })
 
   it('deve retornar array vazio quando nao ha hospitais', async () => {
@@ -110,6 +116,48 @@ describe('GET /api/hospitais', () => {
 
     expect(mockListarHospitais).toHaveBeenCalledWith(expect.anything(), {
       excluirBloqueados: false,
+      apenasRevisados: true,
+      limit: 50,
+    })
+  })
+
+  it('deve desabilitar apenasRevisados quando parametro for false', async () => {
+    mockListarHospitais.mockResolvedValue([])
+
+    const request = createRequest({ apenas_revisados: 'false' })
+    await GET(request)
+
+    expect(mockListarHospitais).toHaveBeenCalledWith(expect.anything(), {
+      excluirBloqueados: false,
+      apenasRevisados: false,
+      limit: 50,
+    })
+  })
+
+  it('deve passar search quando parametro fornecido', async () => {
+    mockListarHospitais.mockResolvedValue([])
+
+    const request = createRequest({ search: 'São Luiz' })
+    await GET(request)
+
+    expect(mockListarHospitais).toHaveBeenCalledWith(expect.anything(), {
+      excluirBloqueados: false,
+      apenasRevisados: true,
+      limit: 50,
+      search: 'São Luiz',
+    })
+  })
+
+  it('deve respeitar limit customizado', async () => {
+    mockListarHospitais.mockResolvedValue([])
+
+    const request = createRequest({ limit: '20' })
+    await GET(request)
+
+    expect(mockListarHospitais).toHaveBeenCalledWith(expect.anything(), {
+      excluirBloqueados: false,
+      apenasRevisados: true,
+      limit: 20,
     })
   })
 })

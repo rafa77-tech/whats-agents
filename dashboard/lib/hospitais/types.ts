@@ -67,6 +67,9 @@ export interface ListarBloqueadosParams {
 
 export interface ListarHospitaisParams {
   excluirBloqueados?: boolean
+  search?: string
+  apenasRevisados?: boolean
+  limit?: number
 }
 
 // ============================================
@@ -94,4 +97,67 @@ export interface VerificarHospitalResult {
 export interface VerificarBloqueioResult {
   bloqueado: boolean
   bloqueio?: HospitalBloqueado
+}
+
+// ============================================
+// Gestão de hospitais (Sprint 60 - Épico 5)
+// ============================================
+
+export interface HospitalDetalhado {
+  id: string
+  nome: string
+  cidade: string
+  estado: string
+  criado_automaticamente: boolean
+  precisa_revisao: boolean
+  created_at: string
+  vagas_count: number
+  aliases: HospitalAlias[]
+}
+
+export interface HospitalAlias {
+  id: string
+  hospital_id: string
+  alias: string
+  alias_normalizado: string
+  origem: string
+  confianca: number
+  confirmado: boolean
+  created_at: string
+}
+
+export interface ListarHospitaisGestaoParams {
+  page?: number
+  perPage?: number
+  search?: string
+  status?: 'todos' | 'revisados' | 'pendentes'
+  cidade?: string
+}
+
+export interface HospitaisGestaoResponse {
+  data: HospitalGestaoItem[]
+  total: number
+  pages: number
+  pendentes: number
+  auto_criados: number
+}
+
+export interface HospitalGestaoItem {
+  id: string
+  nome: string
+  cidade: string
+  estado: string
+  criado_automaticamente: boolean
+  precisa_revisao: boolean
+  created_at: string
+  vagas_count: number
+  aliases_count: number
+}
+
+export interface MergeResult {
+  principal_id: string
+  duplicado_id: string
+  duplicado_nome: string
+  vagas_migradas: number
+  aliases_migrados: number
 }
