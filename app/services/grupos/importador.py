@@ -254,8 +254,7 @@ async def criar_vaga_principal(vaga_grupo: dict) -> UUID:
         result = supabase.table("vagas").insert(registros).execute()
         vaga_id = UUID(result.data[0]["id"])
         logger.info(
-            f"{numero_vagas} vagas criadas (primeira: {vaga_id}, "
-            f"origem: grupo {vaga_grupo['id']})"
+            f"{numero_vagas} vagas criadas (primeira: {vaga_id}, origem: grupo {vaga_grupo['id']})"
         )
     else:
         result = supabase.table("vagas").insert(dados_vaga).execute()
