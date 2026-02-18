@@ -183,13 +183,13 @@ describe('POST /api/hospitais', () => {
     vi.restoreAllMocks()
   })
 
-  it('deve criar hospital com nome valido', async () => {
+  it('deve criar hospital com nome, cidade e estado', async () => {
     mockSingle.mockResolvedValue({
       data: { id: 'new-hospital-id', nome: 'Hospital Novo' },
       error: null,
     })
 
-    const request = createPostRequest({ nome: 'Hospital Novo' })
+    const request = createPostRequest({ nome: 'Hospital Novo', cidade: 'São Paulo', estado: 'SP' })
     const response = await POST(request)
     const data = await response.json()
 
@@ -197,11 +197,19 @@ describe('POST /api/hospitais', () => {
     expect(data.id).toBe('new-hospital-id')
     expect(data.nome).toBe('Hospital Novo')
     expect(mockAdminFrom).toHaveBeenCalledWith('hospitais')
-    expect(mockInsert).toHaveBeenCalledWith({ nome: 'Hospital Novo' })
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nome: 'Hospital Novo',
+        cidade: 'São Paulo',
+        estado: 'SP',
+        precisa_revisao: true,
+        endereco_verificado: false,
+      })
+    )
   })
 
   it('deve retornar 400 quando nome esta vazio', async () => {
-    const request = createPostRequest({ nome: '' })
+    const request = createPostRequest({ nome: '', cidade: 'SP', estado: 'SP' })
     const response = await POST(request)
     const data = await response.json()
 
@@ -210,7 +218,7 @@ describe('POST /api/hospitais', () => {
   })
 
   it('deve retornar 400 quando nome nao e string', async () => {
-    const request = createPostRequest({ nome: 123 })
+    const request = createPostRequest({ nome: 123, cidade: 'SP', estado: 'SP' })
     const response = await POST(request)
     const data = await response.json()
 
@@ -219,7 +227,7 @@ describe('POST /api/hospitais', () => {
   })
 
   it('deve retornar 400 quando nome e apenas espacos', async () => {
-    const request = createPostRequest({ nome: '   ' })
+    const request = createPostRequest({ nome: '   ', cidade: 'SP', estado: 'SP' })
     const response = await POST(request)
     const data = await response.json()
 
@@ -236,6 +244,88 @@ describe('POST /api/hospitais', () => {
     expect(data.detail).toBe('Nome e obrigatorio')
   })
 
+  it('deve retornar 400 quando cidade esta vazia', async () => {
+    const request = createPostRequest({ nome: 'Hospital A', cidade: '', estado: 'SP' })
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.detail).toBe('Cidade e obrigatoria')
+  })
+
+  it('deve retornar 400 quando cidade nao fornecida', async () => {
+    const request = createPostRequest({ nome: 'Hospital A', estado: 'SP' })
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.detail).toBe('Cidade e obrigatoria')
+  })
+
+  it('deve retornar 400 quando estado esta vazio', async () => {
+    const request = createPostRequest({ nome: 'Hospital A', cidade: 'São Paulo', estado: '' })
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.detail).toBe('Estado e obrigatorio')
+  })
+
+  it('deve retornar 400 quando estado nao fornecido', async () => {
+    const request = createPostRequest({ nome: 'Hospital A', cidade: 'São Paulo' })
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.detail).toBe('Estado e obrigatorio')
+  })
+
+  it('deve setar endereco_verificado true quando lat/long presentes', async () => {
+    mockSingle.mockResolvedValue({
+      data: { id: 'id', nome: 'Hospital Geo' },
+      error: null,
+    })
+
+    const request = createPostRequest({
+      nome: 'Hospital Geo',
+      cidade: 'São Paulo',
+      estado: 'SP',
+      latitude: -23.55,
+      longitude: -46.63,
+    })
+    await POST(request)
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endereco_verificado: true,
+        precisa_revisao: false,
+        latitude: -23.55,
+        longitude: -46.63,
+      })
+    )
+  })
+
+  it('deve setar precisa_revisao true quando sem lat/long', async () => {
+    mockSingle.mockResolvedValue({
+      data: { id: 'id', nome: 'Hospital Sem Geo' },
+      error: null,
+    })
+
+    const request = createPostRequest({
+      nome: 'Hospital Sem Geo',
+      cidade: 'São Paulo',
+      estado: 'SP',
+    })
+    await POST(request)
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endereco_verificado: false,
+        precisa_revisao: true,
+      })
+    )
+  })
+
   it('deve retornar 500 quando banco retorna erro', async () => {
     mockSingle.mockResolvedValue({
       data: null,
@@ -244,7 +334,11 @@ describe('POST /api/hospitais', () => {
 
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    const request = createPostRequest({ nome: 'Hospital Duplicado' })
+    const request = createPostRequest({
+      nome: 'Hospital Duplicado',
+      cidade: 'São Paulo',
+      estado: 'SP',
+    })
     const response = await POST(request)
     const data = await response.json()
 
@@ -260,9 +354,13 @@ describe('POST /api/hospitais', () => {
       error: null,
     })
 
-    const request = createPostRequest({ nome: '  Hospital Trim  ' })
+    const request = createPostRequest({
+      nome: '  Hospital Trim  ',
+      cidade: 'São Paulo',
+      estado: 'SP',
+    })
     await POST(request)
 
-    expect(mockInsert).toHaveBeenCalledWith({ nome: 'Hospital Trim' })
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ nome: 'Hospital Trim' }))
   })
 })

@@ -33,7 +33,7 @@ FIELD_MASK = ",".join(
 
 # Centroide de SP como location bias default
 SP_CENTER = {"latitude": -23.55, "longitude": -46.63}
-SP_RADIUS = 150000.0  # 150km
+SP_RADIUS = 50000.0  # 50km (Google Places limita radius do locationBias)
 
 
 @dataclass

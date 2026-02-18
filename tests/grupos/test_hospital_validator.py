@@ -244,10 +244,8 @@ class TestValidadorIntegracaoHospitalWeb:
 
     @pytest.mark.asyncio
     async def test_hospital_valido_continua_pipeline(self):
-        """normalizar_ou_criar_hospital continua para nomes válidos."""
+        """normalizar_ou_criar_hospital continua para nomes válidos (retorna None se sem match)."""
         from app.services.grupos.hospital_web import normalizar_ou_criar_hospital
-
-        mock_hospital_id = "123e4567-e89b-12d3-a456-426614174000"
 
         with (
             patch(
@@ -266,19 +264,23 @@ class TestValidadorIntegracaoHospitalWeb:
                 return_value=None,
             ),
             patch(
+                "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
                 "app.services.grupos.hospital_web.buscar_hospital_web",
                 new_callable=AsyncMock,
                 return_value=None,
             ),
             patch(
-                "app.services.grupos.hospital_web.criar_hospital_minimo",
+                "app.services.grupos.hospital_web.emit_event",
                 new_callable=AsyncMock,
-                return_value=mock_hospital_id,
             ),
         ):
+            # Válido mas sem match em nenhuma fonte → None (revisão humana)
             result = await normalizar_ou_criar_hospital("Hospital São Luiz")
-            assert result is not None
-            assert result.fonte == "fallback"
+            assert result is None
 
     @pytest.mark.asyncio
     async def test_alias_existente_bypassa_validacao(self):

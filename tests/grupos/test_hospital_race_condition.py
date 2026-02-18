@@ -85,72 +85,20 @@ class TestCriarHospitalUsaRPC:
             assert result == UUID(MOCK_HOSPITAL_ID)
 
 
-class TestCriarHospitalMinimoUsaRPC:
-    """Verifica que criar_hospital_minimo() usa RPC."""
-
-    @pytest.mark.asyncio
-    async def test_criar_hospital_minimo_chama_rpc(self):
-        """criar_hospital_minimo chama buscar_ou_criar_hospital via RPC."""
-        from app.services.grupos.hospital_web import criar_hospital_minimo
-
-        mock_rpc = MagicMock(return_value=MagicMock())
-        mock_rpc.return_value.execute.return_value = _mock_rpc_response(True)
-
-        with patch("app.services.grupos.hospital_web.supabase") as mock_supa:
-            mock_supa.rpc = mock_rpc
-            result = await criar_hospital_minimo("Hospital Teste", "sp")
-
-            mock_rpc.assert_called_once_with(
-                "buscar_ou_criar_hospital",
-                {
-                    "p_nome": "Hospital Teste",
-                    "p_alias_normalizado": "hospital teste",
-                    "p_cidade": "São Paulo",
-                    "p_estado": "SP",
-                    "p_confianca": 0.3,
-                    "p_criado_por": "fallback",
-                },
-            )
-            assert result == UUID(MOCK_HOSPITAL_ID)
-
-    @pytest.mark.asyncio
-    async def test_criar_hospital_minimo_reutilizado(self):
-        """criar_hospital_minimo retorna hospital existente quando RPC diz foi_criado=false."""
-        from app.services.grupos.hospital_web import criar_hospital_minimo
-
-        mock_rpc = MagicMock(return_value=MagicMock())
-        mock_rpc.return_value.execute.return_value = _mock_rpc_response(False)
-
-        with patch("app.services.grupos.hospital_web.supabase") as mock_supa:
-            mock_supa.rpc = mock_rpc
-            result = await criar_hospital_minimo("Hospital Teste")
-
-            assert result == UUID(MOCK_HOSPITAL_ID)
-
-    @pytest.mark.asyncio
-    async def test_criar_hospital_minimo_infere_cidade(self):
-        """criar_hospital_minimo infere cidade da região do grupo."""
-        from app.services.grupos.hospital_web import criar_hospital_minimo
-
-        mock_rpc = MagicMock(return_value=MagicMock())
-        mock_rpc.return_value.execute.return_value = _mock_rpc_response(True)
-
-        with patch("app.services.grupos.hospital_web.supabase") as mock_supa:
-            mock_supa.rpc = mock_rpc
-            await criar_hospital_minimo("Hospital ABC", "abc")
-
-            call_args = mock_rpc.call_args[0][1]
-            assert call_args["p_cidade"] == "Santo André"
-            assert call_args["p_estado"] == "SP"
-
-
 class TestIdempotencia:
     """Verifica idempotência via RPC."""
 
     @pytest.mark.asyncio
     async def test_mesma_chamada_duas_vezes_mesmo_resultado(self):
         """Duas chamadas com mesmo alias retornam mesmo hospital_id."""
-        from app.services.grupos.hospital_web import criar_hospital_minimo
+        from app.services.grupos.hospital_web import InfoHospitalWeb, criar_hospital
+
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital X",
+            cidade="São Paulo",
+            estado="SP",
+            confianca=0.8,
+        )
 
         mock_rpc = MagicMock(return_value=MagicMock())
         # Primeira chamada: criou. Segunda: reutilizou.
@@ -161,8 +109,8 @@ class TestIdempotencia:
 
         with patch("app.services.grupos.hospital_web.supabase") as mock_supa:
             mock_supa.rpc = mock_rpc
-            result1 = await criar_hospital_minimo("Hospital X")
-            result2 = await criar_hospital_minimo("Hospital X")
+            result1 = await criar_hospital(info, "Hospital X")
+            result2 = await criar_hospital(info, "Hospital X")
 
             assert result1 == result2
             assert mock_rpc.call_count == 2

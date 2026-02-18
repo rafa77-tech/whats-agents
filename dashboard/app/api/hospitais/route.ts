@@ -55,11 +55,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'Nome e obrigatorio' }, { status: 400 })
     }
 
+    const cidade = typeof body.cidade === 'string' ? body.cidade.trim() : ''
+    if (!cidade) {
+      return NextResponse.json({ detail: 'Cidade e obrigatoria' }, { status: 400 })
+    }
+
+    const estado = typeof body.estado === 'string' ? body.estado.trim() : ''
+    if (!estado) {
+      return NextResponse.json({ detail: 'Estado e obrigatorio' }, { status: 400 })
+    }
+
+    const latitude =
+      typeof body.latitude === 'number' && !Number.isNaN(body.latitude) ? body.latitude : null
+    const longitude =
+      typeof body.longitude === 'number' && !Number.isNaN(body.longitude) ? body.longitude : null
+    const logradouro = typeof body.logradouro === 'string' ? body.logradouro.trim() : null
+    const bairro = typeof body.bairro === 'string' ? body.bairro.trim() : null
+    const cep = typeof body.cep === 'string' ? body.cep.trim() : null
+
+    const hasLatLong = latitude !== null && longitude !== null
+
+    const insertData: Record<string, unknown> = {
+      nome,
+      cidade,
+      estado,
+      endereco_verificado: hasLatLong,
+      precisa_revisao: !hasLatLong,
+    }
+    if (latitude !== null) insertData.latitude = latitude
+    if (longitude !== null) insertData.longitude = longitude
+    if (logradouro) insertData.logradouro = logradouro
+    if (bairro) insertData.bairro = bairro
+    if (cep) insertData.cep = cep
+
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
       .from('hospitais')
-      .insert({ nome })
+      .insert(insertData)
       .select('id, nome')
       .single()
 
