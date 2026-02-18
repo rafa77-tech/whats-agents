@@ -85,6 +85,18 @@ async def enriquecer_hospitais_batch(
 
             resultado.sem_match += 1
             logger.debug(f"[{i + 1}/{len(hospitais)}] Sem match: {nome}")
+            try:
+                from datetime import datetime, UTC
+
+                supabase.table("hospitais").update(
+                    {
+                        "precisa_revisao": True,
+                        "enriched_at": datetime.now(UTC).isoformat(),
+                        "enriched_by": "batch_sem_match",
+                    }
+                ).eq("id", hospital_id).execute()
+            except Exception as e:
+                logger.warning(f"Erro ao marcar hospital para revisão: {e}")
 
         except Exception as e:
             resultado.erros += 1
@@ -101,7 +113,27 @@ async def enriquecer_hospitais_batch(
 
 
 async def _aplicar_enriquecimento_cnes(hospital_id: str, info: InfoCNES) -> None:
-    """Aplica dados CNES no hospital."""
+    """Aplica dados CNES no hospital. Mergeia se duplicata detectada."""
+    from uuid import UUID
+
+    # Dedup: checar se outro hospital já tem esse cnes_codigo
+    if info.cnes_codigo:
+        existing = (
+            supabase.table("hospitais")
+            .select("id")
+            .eq("cnes_codigo", info.cnes_codigo)
+            .neq("id", hospital_id)
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            destino_id = UUID(existing.data[0]["id"])
+            from app.services.grupos.hospital_web import mergear_hospitais
+
+            await mergear_hospitais(UUID(hospital_id), destino_id)
+            logger.info(f"Merge CNES: {hospital_id} → {destino_id} (cnes duplicado)")
+            return
+
     from datetime import datetime, UTC
 
     updates: dict = {
@@ -109,6 +141,8 @@ async def _aplicar_enriquecimento_cnes(hospital_id: str, info: InfoCNES) -> None
         "enriched_at": datetime.now(UTC).isoformat(),
         "enriched_by": "cnes_batch",
     }
+    if info.score >= 0.8 and info.nome_oficial:
+        updates["nome"] = info.nome_oficial
     if info.logradouro:
         updates["logradouro"] = info.logradouro
     if info.numero:
@@ -128,7 +162,27 @@ async def _aplicar_enriquecimento_cnes(hospital_id: str, info: InfoCNES) -> None
 
 
 async def _aplicar_enriquecimento_google(hospital_id: str, info) -> None:
-    """Aplica dados Google Places no hospital."""
+    """Aplica dados Google Places no hospital. Mergeia se duplicata detectada."""
+    from uuid import UUID
+
+    # Dedup: checar se outro hospital já tem esse google_place_id
+    if info.place_id:
+        existing = (
+            supabase.table("hospitais")
+            .select("id")
+            .eq("google_place_id", info.place_id)
+            .neq("id", hospital_id)
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            destino_id = UUID(existing.data[0]["id"])
+            from app.services.grupos.hospital_web import mergear_hospitais
+
+            await mergear_hospitais(UUID(hospital_id), destino_id)
+            logger.info(f"Merge Google: {hospital_id} → {destino_id} (google_place_id duplicado)")
+            return
+
     from datetime import datetime, UTC
 
     updates: dict = {
@@ -136,6 +190,8 @@ async def _aplicar_enriquecimento_google(hospital_id: str, info) -> None:
         "enriched_at": datetime.now(UTC).isoformat(),
         "enriched_by": "google_batch",
     }
+    if info.confianca >= 0.8 and info.nome:
+        updates["nome"] = info.nome
     if info.cidade:
         updates["cidade"] = info.cidade
     if info.estado:

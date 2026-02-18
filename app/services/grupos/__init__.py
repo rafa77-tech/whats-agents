@@ -50,8 +50,9 @@ from app.services.grupos.normalizador import (
 from app.services.grupos.hospital_web import (
     buscar_hospital_web,
     criar_hospital,
-    criar_hospital_minimo,
+    mergear_hospitais,
     normalizar_ou_criar_hospital,
+    hospital_tem_endereco_completo,
     InfoHospitalWeb,
     ResultadoHospitalAuto,
 )
@@ -143,7 +144,8 @@ __all__ = [
     # Hospital Web
     "buscar_hospital_web",
     "criar_hospital",
-    "criar_hospital_minimo",
+    "mergear_hospitais",
+    "hospital_tem_endereco_completo",
     "normalizar_ou_criar_hospital",
     "InfoHospitalWeb",
     "ResultadoHospitalAuto",

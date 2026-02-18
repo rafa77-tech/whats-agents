@@ -12,7 +12,8 @@ from app.services.grupos.hospital_web import (
     InfoHospitalWeb,
     buscar_hospital_web,
     criar_hospital,
-    criar_hospital_minimo,
+    mergear_hospitais,
+    hospital_tem_endereco_completo,
     normalizar_ou_criar_hospital,
     inferir_cidade_regiao,
     listar_hospitais_para_revisao,
@@ -40,7 +41,7 @@ class TestInfoHospitalWeb:
             estado="SP",
             cep="01234-567",
             confianca=0.95,
-            fonte="Google"
+            fonte="Google",
         )
 
         assert info.nome_oficial == "Hospital São Luiz"
@@ -129,7 +130,9 @@ class TestBuscarHospitalWeb:
         """Deve retornar info quando hospital encontrado."""
         mock_anthropic.messages.create = AsyncMock(
             return_value=MagicMock(
-                content=[MagicMock(text='''
+                content=[
+                    MagicMock(
+                        text="""
                 {
                     "encontrado": true,
                     "nome_oficial": "Hospital São Luiz Anália Franco",
@@ -137,7 +140,9 @@ class TestBuscarHospitalWeb:
                     "estado": "SP",
                     "confianca": 0.95
                 }
-                ''')]
+                """
+                    )
+                ]
             )
         )
 
@@ -151,9 +156,7 @@ class TestBuscarHospitalWeb:
     async def test_hospital_nao_encontrado(self, mock_anthropic):
         """Deve retornar None quando hospital não encontrado."""
         mock_anthropic.messages.create = AsyncMock(
-            return_value=MagicMock(
-                content=[MagicMock(text='{"encontrado": false}')]
-            )
+            return_value=MagicMock(content=[MagicMock(text='{"encontrado": false}')])
         )
 
         resultado = await buscar_hospital_web("Hospital XYZ 123")
@@ -164,9 +167,7 @@ class TestBuscarHospitalWeb:
     async def test_resposta_invalida(self, mock_anthropic):
         """Deve retornar None para resposta inválida."""
         mock_anthropic.messages.create = AsyncMock(
-            return_value=MagicMock(
-                content=[MagicMock(text="Resposta inválida sem JSON")]
-            )
+            return_value=MagicMock(content=[MagicMock(text="Resposta inválida sem JSON")])
         )
 
         resultado = await buscar_hospital_web("Hospital")
@@ -189,11 +190,13 @@ class TestCriarHospital:
         with patch("app.services.grupos.hospital_web.supabase") as mock:
             hospital_id = str(uuid4())
             mock.rpc.return_value.execute.return_value = MagicMock(
-                data=[{
-                    "out_hospital_id": hospital_id,
-                    "out_nome": "Hospital ABC",
-                    "out_foi_criado": True,
-                }]
+                data=[
+                    {
+                        "out_hospital_id": hospital_id,
+                        "out_nome": "Hospital ABC",
+                        "out_foi_criado": True,
+                    }
+                ]
             )
             yield mock, hospital_id
 
@@ -203,10 +206,7 @@ class TestCriarHospital:
         mock, hospital_id = mock_supabase
 
         info = InfoHospitalWeb(
-            nome_oficial="Hospital ABC",
-            cidade="São Paulo",
-            estado="SP",
-            confianca=0.9
+            nome_oficial="Hospital ABC", cidade="São Paulo", estado="SP", confianca=0.9
         )
 
         resultado = await criar_hospital(info, "HSL ABC")
@@ -229,48 +229,9 @@ class TestCriarHospital:
         """Deve criar hospital com dados mínimos via RPC."""
         mock, hospital_id = mock_supabase
 
-        info = InfoHospitalWeb(
-            nome_oficial="Hospital XYZ",
-            confianca=0.5
-        )
+        info = InfoHospitalWeb(nome_oficial="Hospital XYZ", confianca=0.5)
 
         resultado = await criar_hospital(info, "XYZ")
-
-        assert resultado is not None
-
-
-class TestCriarHospitalMinimo:
-    """Testes da criação mínima (via RPC — Sprint 60)."""
-
-    @pytest.fixture
-    def mock_supabase(self):
-        """Mock do Supabase com RPC."""
-        with patch("app.services.grupos.hospital_web.supabase") as mock:
-            hospital_id = str(uuid4())
-            mock.rpc.return_value.execute.return_value = MagicMock(
-                data=[{
-                    "out_hospital_id": hospital_id,
-                    "out_nome": "Hospital Novo",
-                    "out_foi_criado": True,
-                }]
-            )
-            yield mock, hospital_id
-
-    @pytest.mark.asyncio
-    async def test_criar_com_regiao(self, mock_supabase):
-        """Deve criar hospital inferindo cidade da região via RPC."""
-        mock, hospital_id = mock_supabase
-
-        resultado = await criar_hospital_minimo("Hospital Novo", "ABC")
-
-        assert resultado is not None
-
-    @pytest.mark.asyncio
-    async def test_criar_sem_regiao(self, mock_supabase):
-        """Deve criar hospital sem cidade se região desconhecida via RPC."""
-        mock, hospital_id = mock_supabase
-
-        resultado = await criar_hospital_minimo("Hospital Novo", "")
 
         assert resultado is not None
 
@@ -281,8 +242,10 @@ class TestNormalizarOuCriarHospital:
     @pytest.fixture
     def mock_normalizador(self):
         """Mock das funções do normalizador."""
-        with patch("app.services.grupos.normalizador.buscar_hospital_por_alias") as alias, \
-             patch("app.services.grupos.normalizador.buscar_hospital_por_similaridade") as sim:
+        with (
+            patch("app.services.grupos.normalizador.buscar_hospital_por_alias") as alias,
+            patch("app.services.grupos.normalizador.buscar_hospital_por_similaridade") as sim,
+        ):
             yield alias, sim
 
     @pytest.fixture
@@ -291,11 +254,13 @@ class TestNormalizarOuCriarHospital:
         with patch("app.services.grupos.hospital_web.supabase") as mock:
             hospital_id = str(uuid4())
             mock.rpc.return_value.execute.return_value = MagicMock(
-                data=[{
-                    "out_hospital_id": hospital_id,
-                    "out_nome": "Hospital ABC",
-                    "out_foi_criado": True,
-                }]
+                data=[
+                    {
+                        "out_hospital_id": hospital_id,
+                        "out_nome": "Hospital ABC",
+                        "out_foi_criado": True,
+                    }
+                ]
             )
             yield mock, hospital_id
 
@@ -307,10 +272,7 @@ class TestNormalizarOuCriarHospital:
         from app.services.grupos.normalizador import ResultadoMatch
 
         alias_mock.return_value = ResultadoMatch(
-            entidade_id=uuid4(),
-            nome="Hospital ABC",
-            score=1.0,
-            fonte="alias_exato"
+            entidade_id=uuid4(), nome="Hospital ABC", score=1.0, fonte="alias_exato"
         )
 
         resultado = await normalizar_ou_criar_hospital("ABC")
@@ -328,10 +290,7 @@ class TestNormalizarOuCriarHospital:
 
         alias_mock.return_value = None
         sim_mock.return_value = ResultadoMatch(
-            entidade_id=uuid4(),
-            nome="Hospital ABC",
-            score=0.85,
-            fonte="nome_similar"
+            entidade_id=uuid4(), nome="Hospital ABC", score=0.85, fonte="nome_similar"
         )
 
         resultado = await normalizar_ou_criar_hospital("ABC Hospital")
@@ -353,11 +312,7 @@ class TestResultadoHospitalAuto:
     def test_criacao(self):
         """Deve criar resultado corretamente."""
         resultado = ResultadoHospitalAuto(
-            hospital_id=uuid4(),
-            nome="Hospital ABC",
-            score=0.9,
-            foi_criado=True,
-            fonte="web"
+            hospital_id=uuid4(), nome="Hospital ABC", score=0.9, foi_criado=True, fonte="web"
         )
 
         assert resultado.nome == "Hospital ABC"
@@ -410,7 +365,9 @@ class TestMarcarHospitalRevisado:
     @pytest.mark.asyncio
     async def test_erro_ao_marcar(self, mock_supabase):
         """Deve retornar False em caso de erro."""
-        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.side_effect = Exception("Erro")
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.side_effect = (
+            Exception("Erro")
+        )
 
         resultado = await marcar_hospital_revisado(uuid4(), "admin")
 
@@ -457,9 +414,7 @@ class TestCnesToInfoWeb:
 
     def test_confianca_cap_1_0(self):
         """Deve limitar confiança em 1.0."""
-        info = InfoCNES(
-            cnes_codigo="123", nome_oficial="H", cidade="SP", estado="SP", score=0.95
-        )
+        info = InfoCNES(cnes_codigo="123", nome_oficial="H", cidade="SP", estado="SP", score=0.95)
 
         result = cnes_to_info_web(info)
 
@@ -467,9 +422,7 @@ class TestCnesToInfoWeb:
 
     def test_confianca_soma_correta(self):
         """Deve somar 0.2 ao score CNES."""
-        info = InfoCNES(
-            cnes_codigo="123", nome_oficial="H", cidade="SP", estado="SP", score=0.5
-        )
+        info = InfoCNES(cnes_codigo="123", nome_oficial="H", cidade="SP", estado="SP", score=0.5)
 
         result = cnes_to_info_web(info)
 
@@ -477,9 +430,7 @@ class TestCnesToInfoWeb:
 
     def test_google_place_id_none(self):
         """Deve ter google_place_id como None."""
-        info = InfoCNES(
-            cnes_codigo="123", nome_oficial="H", cidade="SP", estado="SP", score=0.5
-        )
+        info = InfoCNES(cnes_codigo="123", nome_oficial="H", cidade="SP", estado="SP", score=0.5)
 
         result = cnes_to_info_web(info)
 
@@ -519,9 +470,7 @@ class TestGoogleToInfoWeb:
 
     def test_cnes_codigo_none(self):
         """Deve ter cnes_codigo como None."""
-        info = InfoGooglePlaces(
-            place_id="abc", nome="H", endereco_formatado="", confianca=0.5
-        )
+        info = InfoGooglePlaces(place_id="abc", nome="H", endereco_formatado="", confianca=0.5)
 
         result = google_to_info_web(info)
 
@@ -576,13 +525,17 @@ class TestCriarHospitalEnrichment:
         with patch("app.services.grupos.hospital_web.supabase") as mock:
             hospital_id = str(uuid4())
             mock.rpc.return_value.execute.return_value = MagicMock(
-                data=[{
-                    "out_hospital_id": hospital_id,
-                    "out_nome": "Hospital CNES",
-                    "out_foi_criado": True,
-                }]
+                data=[
+                    {
+                        "out_hospital_id": hospital_id,
+                        "out_nome": "Hospital CNES",
+                        "out_foi_criado": True,
+                    }
+                ]
             )
-            mock.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+            mock.table.return_value.update.return_value.eq.return_value.execute.return_value = (
+                MagicMock()
+            )
             mock.table.return_value.insert.return_value.execute.return_value = MagicMock()
             yield mock, hospital_id
 
@@ -603,9 +556,7 @@ class TestCriarHospitalEnrichment:
         await criar_hospital(info, "Hospital CNES")
 
         # Verifica que update foi chamado (table("hospitais").update(...))
-        update_calls = [
-            c for c in mock.table.return_value.update.call_args_list
-        ]
+        update_calls = [c for c in mock.table.return_value.update.call_args_list]
         assert len(update_calls) >= 1
         update_data = update_calls[0][0][0]
         assert update_data["cnes_codigo"] == "2077485"
@@ -631,9 +582,7 @@ class TestCriarHospitalEnrichment:
 
         await criar_hospital(info, "Hospital Google")
 
-        update_calls = [
-            c for c in mock.table.return_value.update.call_args_list
-        ]
+        update_calls = [c for c in mock.table.return_value.update.call_args_list]
         assert len(update_calls) >= 1
         update_data = update_calls[0][0][0]
         assert update_data["google_place_id"] == "ChIJ_abc123"
@@ -675,8 +624,15 @@ class TestNormalizarOuCriarHospitalSprint61:
     @pytest.fixture
     def mock_normalizador(self):
         """Mock das funções do normalizador — nenhum match."""
-        with patch("app.services.grupos.normalizador.buscar_hospital_por_alias", return_value=None) as alias, \
-             patch("app.services.grupos.normalizador.buscar_hospital_por_similaridade", return_value=None) as sim:
+        with (
+            patch(
+                "app.services.grupos.normalizador.buscar_hospital_por_alias", return_value=None
+            ) as alias,
+            patch(
+                "app.services.grupos.normalizador.buscar_hospital_por_similaridade",
+                return_value=None,
+            ) as sim,
+        ):
             yield alias, sim
 
     @pytest.fixture
@@ -692,13 +648,17 @@ class TestNormalizarOuCriarHospitalSprint61:
         with patch("app.services.grupos.hospital_web.supabase") as mock:
             hospital_id = str(uuid4())
             mock.rpc.return_value.execute.return_value = MagicMock(
-                data=[{
-                    "out_hospital_id": hospital_id,
-                    "out_nome": "Hospital Via CNES",
-                    "out_foi_criado": True,
-                }]
+                data=[
+                    {
+                        "out_hospital_id": hospital_id,
+                        "out_nome": "Hospital Via CNES",
+                        "out_foi_criado": True,
+                    }
+                ]
             )
-            mock.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+            mock.table.return_value.update.return_value.eq.return_value.execute.return_value = (
+                MagicMock()
+            )
             mock.table.return_value.insert.return_value.execute.return_value = MagicMock()
             yield mock, hospital_id
 
@@ -749,14 +709,17 @@ class TestNormalizarOuCriarHospitalSprint61:
             confianca=0.85,
         )
 
-        with patch(
-            "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
-            new_callable=AsyncMock,
-            return_value=cnes_low,
-        ), patch(
-            "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
-            new_callable=AsyncMock,
-            return_value=google_info,
+        with (
+            patch(
+                "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
+                new_callable=AsyncMock,
+                return_value=cnes_low,
+            ),
+            patch(
+                "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                return_value=google_info,
+            ),
         ):
             resultado = await normalizar_ou_criar_hospital("Hospital ABC", "SP")
 
@@ -779,18 +742,22 @@ class TestNormalizarOuCriarHospitalSprint61:
             confianca=0.8,
         )
 
-        with patch(
-            "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
-            new_callable=AsyncMock,
-            return_value=None,
-        ), patch(
-            "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
-            new_callable=AsyncMock,
-            return_value=google_low,
-        ), patch(
-            "app.services.grupos.hospital_web.buscar_hospital_web",
-            new_callable=AsyncMock,
-            return_value=llm_info,
+        with (
+            patch(
+                "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                return_value=google_low,
+            ),
+            patch(
+                "app.services.grupos.hospital_web.buscar_hospital_web",
+                new_callable=AsyncMock,
+                return_value=llm_info,
+            ),
         ):
             resultado = await normalizar_ou_criar_hospital("Hospital XYZ", "SP")
 
@@ -802,67 +769,383 @@ class TestNormalizarOuCriarHospitalSprint61:
         self, mock_normalizador, mock_validador, mock_supabase, mock_emit
     ):
         """Erro no CNES não deve bloquear pipeline — continua para Google/LLM."""
-        with patch(
-            "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
-            new_callable=AsyncMock,
-            side_effect=Exception("CNES falhou"),
-        ), patch(
-            "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
-            new_callable=AsyncMock,
-            return_value=None,
-        ), patch(
-            "app.services.grupos.hospital_web.buscar_hospital_web",
-            new_callable=AsyncMock,
-            return_value=None,
+        with (
+            patch(
+                "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
+                new_callable=AsyncMock,
+                side_effect=Exception("CNES falhou"),
+            ),
+            patch(
+                "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.grupos.hospital_web.buscar_hospital_web",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
         ):
             resultado = await normalizar_ou_criar_hospital("Hospital Erro", "SP")
 
-        # Deve chegar até o fallback sem explodir
-        assert resultado is not None
-        assert resultado.fonte == "fallback"
+        # Sem match em nenhuma fonte → retorna None para revisão humana
+        assert resultado is None
 
     @pytest.mark.asyncio
     async def test_pipeline_google_erro_nao_bloqueia(
         self, mock_normalizador, mock_validador, mock_supabase, mock_emit
     ):
         """Erro no Google não deve bloquear pipeline — continua para LLM."""
-        with patch(
-            "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
-            new_callable=AsyncMock,
-            return_value=None,
-        ), patch(
-            "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
-            new_callable=AsyncMock,
-            side_effect=Exception("Google falhou"),
-        ), patch(
-            "app.services.grupos.hospital_web.buscar_hospital_web",
-            new_callable=AsyncMock,
-            return_value=None,
+        with (
+            patch(
+                "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                side_effect=Exception("Google falhou"),
+            ),
+            patch(
+                "app.services.grupos.hospital_web.buscar_hospital_web",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
         ):
             resultado = await normalizar_ou_criar_hospital("Hospital Erro", "SP")
 
-        assert resultado is not None
-        assert resultado.fonte == "fallback"
+        assert resultado is None
 
     @pytest.mark.asyncio
-    async def test_pipeline_sem_cnes_sem_google_usa_llm(
+    async def test_pipeline_sem_cnes_sem_google_sem_llm_retorna_none(
         self, mock_normalizador, mock_validador, mock_supabase, mock_emit
     ):
-        """Pipeline completo: CNES vazio + Google vazio → LLM fallback."""
-        with patch(
-            "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
-            new_callable=AsyncMock,
-            return_value=None,
-        ), patch(
-            "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
-            new_callable=AsyncMock,
-            return_value=None,
-        ), patch(
-            "app.services.grupos.hospital_web.buscar_hospital_web",
-            new_callable=AsyncMock,
-            return_value=None,
+        """Pipeline completo: CNES vazio + Google vazio + LLM vazio → None (revisão humana)."""
+        with (
+            patch(
+                "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.grupos.hospital_web.buscar_hospital_web",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
         ):
             resultado = await normalizar_ou_criar_hospital("Hospital Teste", "SP")
 
-        assert resultado is not None
-        assert resultado.fonte == "fallback"
+        assert resultado is None
+
+
+# =====================================================================
+# hospital_tem_endereco_completo
+# =====================================================================
+
+
+class TestHospitalTemEnderecoCompleto:
+    """Testes do helper hospital_tem_endereco_completo."""
+
+    def test_completo_true(self):
+        """Deve retornar True com lat/long + cidade + estado."""
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital ABC",
+            latitude=-23.55,
+            longitude=-46.63,
+            cidade="São Paulo",
+            estado="SP",
+        )
+        assert hospital_tem_endereco_completo(info) is True
+
+    def test_false_sem_latitude(self):
+        """Deve retornar False sem latitude."""
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital ABC",
+            longitude=-46.63,
+            cidade="São Paulo",
+            estado="SP",
+        )
+        assert hospital_tem_endereco_completo(info) is False
+
+    def test_false_sem_longitude(self):
+        """Deve retornar False sem longitude."""
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital ABC",
+            latitude=-23.55,
+            cidade="São Paulo",
+            estado="SP",
+        )
+        assert hospital_tem_endereco_completo(info) is False
+
+    def test_false_sem_cidade(self):
+        """Deve retornar False sem cidade."""
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital ABC",
+            latitude=-23.55,
+            longitude=-46.63,
+            estado="SP",
+        )
+        assert hospital_tem_endereco_completo(info) is False
+
+    def test_false_sem_estado(self):
+        """Deve retornar False sem estado."""
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital ABC",
+            latitude=-23.55,
+            longitude=-46.63,
+            cidade="São Paulo",
+        )
+        assert hospital_tem_endereco_completo(info) is False
+
+    def test_false_cidade_vazia(self):
+        """Deve retornar False com cidade vazia."""
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital ABC",
+            latitude=-23.55,
+            longitude=-46.63,
+            cidade="",
+            estado="SP",
+        )
+        assert hospital_tem_endereco_completo(info) is False
+
+
+# =====================================================================
+# criar_hospital persiste endereço do LLM
+# =====================================================================
+
+
+class TestCriarHospitalPersisteEnderecoLLM:
+    """Testes de que criar_hospital persiste dados de endereço do LLM."""
+
+    @pytest.fixture
+    def mock_supabase(self):
+        """Mock do Supabase com RPC + update."""
+        with patch("app.services.grupos.hospital_web.supabase") as mock:
+            hospital_id = str(uuid4())
+            mock.rpc.return_value.execute.return_value = MagicMock(
+                data=[
+                    {
+                        "out_hospital_id": hospital_id,
+                        "out_nome": "Hospital LLM",
+                        "out_foi_criado": True,
+                    }
+                ]
+            )
+            mock.table.return_value.update.return_value.eq.return_value.execute.return_value = (
+                MagicMock()
+            )
+            mock.table.return_value.insert.return_value.execute.return_value = MagicMock()
+            yield mock, hospital_id
+
+    @pytest.mark.asyncio
+    async def test_persiste_endereco_llm(self, mock_supabase):
+        """Deve persistir logradouro/bairro/cep quando vem do LLM (sem CNES/Google)."""
+        mock, hospital_id = mock_supabase
+
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital LLM",
+            cidade="São Paulo",
+            estado="SP",
+            confianca=0.8,
+            fonte="web",
+            logradouro="Rua das Flores",
+            bairro="Centro",
+            cep="01234-567",
+            latitude=-23.55,
+            longitude=-46.63,
+        )
+
+        await criar_hospital(info, "Hospital LLM")
+
+        update_calls = [c for c in mock.table.return_value.update.call_args_list]
+        assert len(update_calls) >= 1
+        update_data = update_calls[0][0][0]
+        assert update_data["logradouro"] == "Rua das Flores"
+        assert update_data["bairro"] == "Centro"
+        assert update_data["cep"] == "01234-567"
+        assert update_data["latitude"] == -23.55
+        assert update_data["longitude"] == -46.63
+        assert update_data["endereco_verificado"] is True
+
+    @pytest.mark.asyncio
+    async def test_persiste_logradouro_sem_cnes_google(self, mock_supabase):
+        """Deve fazer UPDATE mesmo sem cnes_codigo ou google_place_id."""
+        mock, hospital_id = mock_supabase
+
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital Só Endereço",
+            cidade="São Paulo",
+            estado="SP",
+            confianca=0.7,
+            fonte="web",
+            logradouro="Av. Brasil",
+        )
+
+        await criar_hospital(info, "Hospital Só Endereço")
+
+        update_calls = [c for c in mock.table.return_value.update.call_args_list]
+        assert len(update_calls) >= 1
+        update_data = update_calls[0][0][0]
+        assert update_data["logradouro"] == "Av. Brasil"
+        assert "endereco_verificado" not in update_data  # sem lat/long
+
+    @pytest.mark.asyncio
+    async def test_marca_verificado_com_latlong(self, mock_supabase):
+        """Deve setar endereco_verificado=True quando tem lat/long."""
+        mock, hospital_id = mock_supabase
+
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital Coords",
+            cidade="São Paulo",
+            estado="SP",
+            confianca=0.9,
+            fonte="cnes",
+            cnes_codigo="2077485",
+            latitude=-23.55,
+            longitude=-46.63,
+        )
+
+        await criar_hospital(info, "Hospital Coords")
+
+        update_calls = [c for c in mock.table.return_value.update.call_args_list]
+        assert len(update_calls) >= 1
+        update_data = update_calls[0][0][0]
+        assert update_data["endereco_verificado"] is True
+
+
+# =====================================================================
+# mergear_hospitais
+# =====================================================================
+
+
+class TestMergearHospitais:
+    """Testes do helper mergear_hospitais."""
+
+    @pytest.fixture
+    def mock_supabase(self):
+        """Mock do Supabase."""
+        with patch("app.services.grupos.hospital_web.supabase") as mock:
+            yield mock
+
+    @pytest.mark.asyncio
+    async def test_chama_rpc_corretamente(self, mock_supabase):
+        """Deve chamar RPC mergear_hospitais com parâmetros corretos."""
+        fonte = uuid4()
+        destino = uuid4()
+        mock_supabase.rpc.return_value.execute.return_value = MagicMock(
+            data={
+                "vagas": 2,
+                "vagas_grupo": 1,
+                "grupos": 0,
+                "eventos": 3,
+                "alertas": 0,
+                "aliases": 1,
+            }
+        )
+
+        resultado = await mergear_hospitais(fonte, destino)
+
+        mock_supabase.rpc.assert_called_once_with(
+            "mergear_hospitais",
+            {"p_fonte_id": str(fonte), "p_destino_id": str(destino)},
+        )
+        assert resultado["vagas"] == 2
+
+    @pytest.mark.asyncio
+    async def test_erro_rpc_vazio(self, mock_supabase):
+        """Deve levantar exceção quando RPC retorna vazio."""
+        mock_supabase.rpc.return_value.execute.return_value = MagicMock(data=None)
+
+        with pytest.raises(Exception, match="retornou vazio"):
+            await mergear_hospitais(uuid4(), uuid4())
+
+
+# =====================================================================
+# Dedup em criar_hospital
+# =====================================================================
+
+
+class TestCriarHospitalDedup:
+    """Testes do dedup automático em criar_hospital."""
+
+    @pytest.fixture
+    def mock_supabase(self):
+        """Mock do Supabase com RPC + dedup."""
+        with patch("app.services.grupos.hospital_web.supabase") as mock:
+            novo_id = str(uuid4())
+            mock.rpc.return_value.execute.return_value = MagicMock(
+                data=[
+                    {
+                        "out_hospital_id": novo_id,
+                        "out_nome": "Hospital Novo",
+                        "out_foi_criado": True,
+                    }
+                ]
+            )
+            mock.table.return_value.update.return_value.eq.return_value.execute.return_value = (
+                MagicMock()
+            )
+            mock.table.return_value.insert.return_value.execute.return_value = MagicMock()
+            yield mock, novo_id
+
+    @pytest.mark.asyncio
+    async def test_merge_quando_cnes_duplicado(self, mock_supabase):
+        """Deve mergear quando outro hospital já tem o mesmo cnes_codigo."""
+        mock, novo_id = mock_supabase
+        destino_id = str(uuid4())
+
+        # Primeira chamada a table() para select (dedup check) retorna match
+        # Segunda chamada para rpc (merge) retorna resultado
+        select_mock = MagicMock()
+        select_mock.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[{"id": destino_id}]
+        )
+
+        # Setup table mock to return select_mock on first call
+        mock.table.return_value = select_mock
+
+        # RPC for merge (second rpc call)
+        merge_result = MagicMock(
+            data={
+                "vagas": 0,
+                "vagas_grupo": 0,
+                "grupos": 0,
+                "eventos": 0,
+                "alertas": 0,
+                "aliases": 1,
+            }
+        )
+        mock.rpc.return_value.execute.side_effect = [
+            # First call: buscar_ou_criar_hospital
+            MagicMock(
+                data=[
+                    {
+                        "out_hospital_id": novo_id,
+                        "out_nome": "Hospital Novo",
+                        "out_foi_criado": True,
+                    }
+                ]
+            ),
+            # Second call: mergear_hospitais
+            merge_result,
+        ]
+
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital Novo",
+            cidade="São Paulo",
+            estado="SP",
+            confianca=0.9,
+            fonte="cnes",
+            cnes_codigo="2077485",
+        )
+
+        result = await criar_hospital(info, "Hospital Novo")
+
+        # Should return the destino_id (existing hospital)
+        assert str(result) == destino_id

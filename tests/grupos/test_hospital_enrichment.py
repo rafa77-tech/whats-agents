@@ -63,6 +63,10 @@ def _make_info_google(confianca=0.85):
 def mock_supabase():
     """Mock do Supabase."""
     with patch("app.services.grupos.hospital_enrichment.supabase") as mock:
+        # Default: dedup check retorna vazio (sem duplicata)
+        mock.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
         yield mock
 
 
@@ -77,6 +81,10 @@ class TestAplicarEnriquecimentoCnes:
     @pytest.mark.asyncio
     async def test_atualiza_campos_cnes(self, mock_supabase):
         """Deve atualizar hospital com dados CNES completos."""
+        # Dedup check retorna vazio (sem duplicata)
+        mock_supabase.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
 
         info = _make_info_cnes()
@@ -93,6 +101,10 @@ class TestAplicarEnriquecimentoCnes:
     @pytest.mark.asyncio
     async def test_nao_inclui_campos_none(self, mock_supabase):
         """Deve omitir campos que são None."""
+        # Dedup check retorna vazio (sem duplicata)
+        mock_supabase.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
 
         info = InfoCNES(
@@ -121,6 +133,10 @@ class TestAplicarEnriquecimentoGoogle:
     @pytest.mark.asyncio
     async def test_atualiza_campos_google(self, mock_supabase):
         """Deve atualizar hospital com dados Google completos."""
+        # Dedup check retorna vazio (sem duplicata)
+        mock_supabase.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
 
         info = _make_info_google()
@@ -170,14 +186,17 @@ class TestEnriquecerHospitaisBatch:
         )
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
 
-        with patch(
-            "app.services.grupos.hospital_enrichment.buscar_hospital_cnes",
-            new_callable=AsyncMock,
-            return_value=None,
-        ), patch(
-            "app.services.grupos.hospital_enrichment.buscar_hospital_google_places",
-            new_callable=AsyncMock,
-            return_value=_make_info_google(confianca=0.85),
+        with (
+            patch(
+                "app.services.grupos.hospital_enrichment.buscar_hospital_cnes",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.grupos.hospital_enrichment.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                return_value=_make_info_google(confianca=0.85),
+            ),
         ):
             resultado = await enriquecer_hospitais_batch()
 
@@ -191,21 +210,57 @@ class TestEnriquecerHospitaisBatch:
         mock_supabase.table.return_value.select.return_value.is_.return_value.order.return_value.limit.return_value.execute.return_value = MagicMock(
             data=[_make_hospital()]
         )
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
 
-        with patch(
-            "app.services.grupos.hospital_enrichment.buscar_hospital_cnes",
-            new_callable=AsyncMock,
-            return_value=None,
-        ), patch(
-            "app.services.grupos.hospital_enrichment.buscar_hospital_google_places",
-            new_callable=AsyncMock,
-            return_value=None,
+        with (
+            patch(
+                "app.services.grupos.hospital_enrichment.buscar_hospital_cnes",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.grupos.hospital_enrichment.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
         ):
             resultado = await enriquecer_hospitais_batch()
 
         assert resultado.sem_match == 1
         assert resultado.enriquecidos_cnes == 0
         assert resultado.enriquecidos_google == 0
+
+    @pytest.mark.asyncio
+    async def test_sem_match_marca_precisa_revisao(self, mock_supabase):
+        """Deve marcar hospital como precisa_revisao e setar enriched_at quando sem match."""
+        mock_supabase.table.return_value.select.return_value.is_.return_value.order.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[_make_hospital(id="h1", nome="Hospital Sem Match")]
+        )
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        with (
+            patch(
+                "app.services.grupos.hospital_enrichment.buscar_hospital_cnes",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.grupos.hospital_enrichment.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+        ):
+            resultado = await enriquecer_hospitais_batch()
+
+        assert resultado.sem_match == 1
+
+        # Verificar que update foi chamado com precisa_revisao
+        update_calls = mock_supabase.table.return_value.update.call_args_list
+        assert len(update_calls) >= 1
+        update_data = update_calls[0][0][0]
+        assert update_data["precisa_revisao"] is True
+        assert update_data["enriched_by"] == "batch_sem_match"
+        assert "enriched_at" in update_data
 
     @pytest.mark.asyncio
     async def test_cnes_score_baixo_vai_para_google(self, mock_supabase):
@@ -217,14 +272,17 @@ class TestEnriquecerHospitaisBatch:
 
         low_score_cnes = _make_info_cnes(score=0.3)
 
-        with patch(
-            "app.services.grupos.hospital_enrichment.buscar_hospital_cnes",
-            new_callable=AsyncMock,
-            return_value=low_score_cnes,
-        ), patch(
-            "app.services.grupos.hospital_enrichment.buscar_hospital_google_places",
-            new_callable=AsyncMock,
-            return_value=_make_info_google(),
+        with (
+            patch(
+                "app.services.grupos.hospital_enrichment.buscar_hospital_cnes",
+                new_callable=AsyncMock,
+                return_value=low_score_cnes,
+            ),
+            patch(
+                "app.services.grupos.hospital_enrichment.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                return_value=_make_info_google(),
+            ),
         ):
             resultado = await enriquecer_hospitais_batch()
 
@@ -290,14 +348,17 @@ class TestEnriquecerHospitaisBatch:
 
         cnes_responses = [_make_info_cnes(), None, _make_info_cnes()]
 
-        with patch(
-            "app.services.grupos.hospital_enrichment.buscar_hospital_cnes",
-            new_callable=AsyncMock,
-            side_effect=cnes_responses,
-        ), patch(
-            "app.services.grupos.hospital_enrichment.buscar_hospital_google_places",
-            new_callable=AsyncMock,
-            return_value=None,
+        with (
+            patch(
+                "app.services.grupos.hospital_enrichment.buscar_hospital_cnes",
+                new_callable=AsyncMock,
+                side_effect=cnes_responses,
+            ),
+            patch(
+                "app.services.grupos.hospital_enrichment.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
         ):
             resultado = await enriquecer_hospitais_batch()
 
@@ -323,3 +384,101 @@ class TestResultadoEnriquecimento:
         assert r.sem_match == 0
         assert r.erros == 0
         assert r.erros_detalhe == []
+
+
+# =====================================================================
+# Dedup em _aplicar_enriquecimento_cnes / _aplicar_enriquecimento_google
+# =====================================================================
+
+
+class TestCnesDuplicadoFazMerge:
+    """Testes de dedup por CNES duplicado."""
+
+    @pytest.mark.asyncio
+    async def test_cnes_duplicado_faz_merge(self, mock_supabase):
+        """Deve mergear quando outro hospital já tem o mesmo cnes_codigo."""
+        from uuid import uuid4
+
+        fonte_id = str(uuid4())
+        destino_id = str(uuid4())
+
+        # select().eq().neq().limit().execute() → retorna match
+        mock_supabase.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[{"id": destino_id}]
+        )
+
+        # mergear_hospitais is imported inside the function from hospital_web
+        with patch(
+            "app.services.grupos.hospital_web.mergear_hospitais",
+            new_callable=AsyncMock,
+        ) as mock_merge:
+            info = _make_info_cnes()
+            await _aplicar_enriquecimento_cnes(fonte_id, info)
+
+            mock_merge.assert_called_once()
+            args = mock_merge.call_args[0]
+            assert str(args[0]) == fonte_id
+            assert str(args[1]) == destino_id
+
+    @pytest.mark.asyncio
+    async def test_cnes_sem_duplicata_faz_update_normal(self, mock_supabase):
+        """Deve fazer update normal quando não há duplicata CNES."""
+        from uuid import uuid4
+
+        fonte_id = str(uuid4())
+
+        mock_supabase.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        info = _make_info_cnes()
+        await _aplicar_enriquecimento_cnes(fonte_id, info)
+
+        # update DEVE ter sido chamado
+        mock_supabase.table.return_value.update.assert_called_once()
+
+
+class TestGoogleDuplicadoFazMerge:
+    """Testes de dedup por Google Place ID duplicado."""
+
+    @pytest.mark.asyncio
+    async def test_google_duplicado_faz_merge(self, mock_supabase):
+        """Deve mergear quando outro hospital já tem o mesmo google_place_id."""
+        from uuid import uuid4
+
+        fonte_id = str(uuid4())
+        destino_id = str(uuid4())
+
+        mock_supabase.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[{"id": destino_id}]
+        )
+
+        with patch(
+            "app.services.grupos.hospital_web.mergear_hospitais",
+            new_callable=AsyncMock,
+        ) as mock_merge:
+            info = _make_info_google()
+            await _aplicar_enriquecimento_google(fonte_id, info)
+
+            mock_merge.assert_called_once()
+            args = mock_merge.call_args[0]
+            assert str(args[0]) == fonte_id
+            assert str(args[1]) == destino_id
+
+    @pytest.mark.asyncio
+    async def test_google_sem_duplicata_faz_update_normal(self, mock_supabase):
+        """Deve fazer update normal quando não há duplicata Google."""
+        from uuid import uuid4
+
+        fonte_id = str(uuid4())
+
+        mock_supabase.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        info = _make_info_google()
+        await _aplicar_enriquecimento_google(fonte_id, info)
+
+        mock_supabase.table.return_value.update.assert_called_once()

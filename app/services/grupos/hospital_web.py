@@ -90,6 +90,16 @@ def google_to_info_web(info: "InfoGooglePlaces") -> InfoHospitalWeb:
     )
 
 
+def hospital_tem_endereco_completo(info: InfoHospitalWeb) -> bool:
+    """Verifica se o hospital tem endereço completo com lat/long."""
+    return (
+        info.latitude is not None
+        and info.longitude is not None
+        and bool(info.cidade)
+        and bool(info.estado)
+    )
+
+
 PROMPT_BUSCA_HOSPITAL = """
 Você é um assistente que busca informações sobre hospitais brasileiros.
 
@@ -200,6 +210,41 @@ async def buscar_hospital_web(
 # =============================================================================
 
 
+async def _checar_duplicata_por_chave(
+    hospital_id: UUID, cnes_codigo: Optional[str], google_place_id: Optional[str]
+) -> Optional[UUID]:
+    """Checa se outro hospital já possui o mesmo cnes_codigo ou google_place_id.
+
+    Returns:
+        UUID do hospital destino (existente) se duplicata encontrada, None caso contrário.
+    """
+    if cnes_codigo:
+        existing = (
+            supabase.table("hospitais")
+            .select("id")
+            .eq("cnes_codigo", cnes_codigo)
+            .neq("id", str(hospital_id))
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            return UUID(existing.data[0]["id"])
+
+    if google_place_id:
+        existing = (
+            supabase.table("hospitais")
+            .select("id")
+            .eq("google_place_id", google_place_id)
+            .neq("id", str(hospital_id))
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            return UUID(existing.data[0]["id"])
+
+    return None
+
+
 async def criar_hospital(info: InfoHospitalWeb, alias_original: str) -> UUID:
     """
     Cria hospital no banco de dados com dados da web.
@@ -239,11 +284,37 @@ async def criar_hospital(info: InfoHospitalWeb, alias_original: str) -> UUID:
             extra={"hospital_id": str(hospital_id), "nome": info.nome_oficial},
         )
 
-        # Sprint 61: Persistir campos de enriquecimento (CNES, Google Places)
-        if info.cnes_codigo or info.google_place_id or info.telefone:
+        # Dedup: checar se outro hospital já tem o mesmo cnes_codigo ou google_place_id
+        try:
+            merge_destino = await _checar_duplicata_por_chave(
+                hospital_id, info.cnes_codigo, info.google_place_id
+            )
+            if merge_destino:
+                await mergear_hospitais(hospital_id, merge_destino)
+                logger.info(f"Merge em criar_hospital: {hospital_id} → {merge_destino}")
+                return merge_destino
+        except Exception as e:
+            logger.warning(f"Erro no dedup de criar_hospital: {e}")
+
+        # Sprint 61: Persistir campos de enriquecimento (CNES, Google Places, LLM)
+        has_enrichment = any(
+            [
+                info.cnes_codigo,
+                info.google_place_id,
+                info.telefone,
+                info.latitude is not None,
+                info.longitude is not None,
+                info.logradouro,
+                info.bairro,
+                info.cep,
+            ]
+        )
+        if has_enrichment:
             from datetime import datetime, UTC
 
             updates: dict = {}
+            if info.confianca >= 0.8 and info.nome_oficial:
+                updates["nome"] = info.nome_oficial
             if info.cnes_codigo:
                 updates["cnes_codigo"] = info.cnes_codigo
             if info.google_place_id:
@@ -254,6 +325,14 @@ async def criar_hospital(info: InfoHospitalWeb, alias_original: str) -> UUID:
                 updates["latitude"] = info.latitude
             if info.longitude is not None:
                 updates["longitude"] = info.longitude
+            if info.logradouro:
+                updates["logradouro"] = info.logradouro
+            if info.bairro:
+                updates["bairro"] = info.bairro
+            if info.cep:
+                updates["cep"] = info.cep
+            if info.latitude is not None and info.longitude is not None:
+                updates["endereco_verificado"] = True
             if updates:
                 updates["enriched_at"] = datetime.now(UTC).isoformat()
                 updates["enriched_by"] = info.fonte or "pipeline"
@@ -346,55 +425,6 @@ def inferir_cidade_regiao(regiao_grupo: str) -> tuple:
             return (cidade, estado)
 
     return (None, None)
-
-
-async def criar_hospital_minimo(nome: str, regiao_grupo: str = "") -> UUID:
-    """
-    Cria hospital com dados mínimos.
-
-    Usa RPC atômica para evitar race conditions (Sprint 60 - Épico 2).
-    Usado quando busca web falha.
-
-    Args:
-        nome: Nome do hospital
-        regiao_grupo: Região do grupo (para inferir cidade)
-
-    Returns:
-        UUID do hospital criado ou reutilizado
-    """
-    cidade, estado = inferir_cidade_regiao(regiao_grupo)
-    alias_norm = normalizar_para_busca(nome)
-
-    result = supabase.rpc(
-        "buscar_ou_criar_hospital",
-        {
-            "p_nome": nome,
-            "p_alias_normalizado": alias_norm,
-            "p_cidade": cidade or "Não informada",
-            "p_estado": estado or "SP",
-            "p_confianca": 0.3,
-            "p_criado_por": "fallback",
-        },
-    ).execute()
-
-    if not result.data:
-        raise Exception("RPC buscar_ou_criar_hospital retornou vazio")
-
-    row = result.data[0]
-    hospital_id = UUID(row["out_hospital_id"])
-
-    if row["out_foi_criado"]:
-        logger.info(
-            "Hospital mínimo criado (RPC)",
-            extra={"hospital_id": str(hospital_id), "nome": nome},
-        )
-    else:
-        logger.info(
-            "Hospital reutilizado (fallback RPC)",
-            extra={"hospital_id": str(hospital_id), "nome": row["out_nome"]},
-        )
-
-    return hospital_id
 
 
 # =============================================================================
@@ -511,6 +541,13 @@ async def normalizar_ou_criar_hospital(
         if info_cnes and info_cnes.score >= 0.6:
             info_web = cnes_to_info_web(info_cnes)
             hospital_id = await criar_hospital(info_web, texto)
+            if not hospital_tem_endereco_completo(info_web):
+                try:
+                    supabase.table("hospitais").update({"precisa_revisao": True}).eq(
+                        "id", str(hospital_id)
+                    ).execute()
+                except Exception:
+                    pass
             await _emitir_evento_hospital(
                 EventType.HOSPITAL_CREATED,
                 hospital_id=str(hospital_id),
@@ -541,6 +578,13 @@ async def normalizar_ou_criar_hospital(
         if info_google and info_google.confianca >= 0.7:
             info_web = google_to_info_web(info_google)
             hospital_id = await criar_hospital(info_web, texto)
+            if not hospital_tem_endereco_completo(info_web):
+                try:
+                    supabase.table("hospitais").update({"precisa_revisao": True}).eq(
+                        "id", str(hospital_id)
+                    ).execute()
+                except Exception:
+                    pass
             await _emitir_evento_hospital(
                 EventType.HOSPITAL_CREATED,
                 hospital_id=str(hospital_id),
@@ -568,6 +612,13 @@ async def normalizar_ou_criar_hospital(
 
     if info and info.confianca >= 0.6:
         hospital_id = await criar_hospital(info, texto)
+        if not hospital_tem_endereco_completo(info):
+            try:
+                supabase.table("hospitais").update({"precisa_revisao": True}).eq(
+                    "id", str(hospital_id)
+                ).execute()
+            except Exception:
+                pass
         await _emitir_evento_hospital(
             EventType.HOSPITAL_CREATED,
             hospital_id=str(hospital_id),
@@ -581,21 +632,43 @@ async def normalizar_ou_criar_hospital(
             fonte="web",
         )
 
-    # 7. Fallback - criar com dados mínimos
-    hospital_id = await criar_hospital_minimo(texto, regiao_grupo)
+    # 7. Sem match — enviar para revisão humana
+    logger.warning(
+        "Hospital não encontrado em nenhuma fonte, requer revisão humana",
+        extra={"nome": texto, "regiao": regiao_grupo},
+    )
     await _emitir_evento_hospital(
-        EventType.HOSPITAL_CREATED,
-        hospital_id=str(hospital_id),
-        props={"fonte": "fallback", "nome": texto, "confianca": 0.3},
+        EventType.HOSPITAL_REJECTED,
+        props={"nome": texto, "motivo": "sem_endereco_verificado", "regiao": regiao_grupo},
     )
-    return ResultadoHospitalAuto(
-        hospital_id=hospital_id, nome=texto, score=0.3, foi_criado=True, fonte="fallback"
-    )
+    return None
 
 
 # =============================================================================
 # Funções de Manutenção
 # =============================================================================
+
+
+async def mergear_hospitais(fonte_id: UUID, destino_id: UUID) -> dict:
+    """Mergeia hospital fonte no destino. Move vagas, aliases, grupos."""
+    result = supabase.rpc(
+        "mergear_hospitais",
+        {
+            "p_fonte_id": str(fonte_id),
+            "p_destino_id": str(destino_id),
+        },
+    ).execute()
+    if not result.data:
+        raise Exception("RPC mergear_hospitais retornou vazio")
+    logger.info(
+        "Hospital mergeado",
+        extra={
+            "fonte_id": str(fonte_id),
+            "destino_id": str(destino_id),
+            "resultado": result.data,
+        },
+    )
+    return result.data
 
 
 async def listar_hospitais_para_revisao(limite: int = 50) -> list:
