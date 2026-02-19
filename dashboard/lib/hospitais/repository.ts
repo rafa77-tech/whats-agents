@@ -8,6 +8,8 @@ import type {
   HospitalBloqueado,
   HospitalDetalhado,
   HospitalAlias,
+  HospitalSetor,
+  HospitalVaga,
   HospitalGestaoItem,
   HospitaisGestaoResponse,
   ListarBloqueadosParams,
@@ -339,7 +341,14 @@ export async function listarHospitaisGestao(
   supabase: SupabaseClient,
   params: ListarHospitaisGestaoParams = {}
 ): Promise<HospitaisGestaoResponse> {
-  const { page = 1, perPage = 20, search, status = 'todos', cidade } = params
+  const {
+    page = 1,
+    perPage = 20,
+    search,
+    status = 'todos',
+    cidade,
+    criadoAutomaticamente,
+  } = params
 
   const from = (page - 1) * perPage
   const to = from + perPage - 1
@@ -363,6 +372,10 @@ export async function listarHospitaisGestao(
 
   if (cidade) {
     query = query.ilike('cidade', `%${cidade}%`)
+  }
+
+  if (criadoAutomaticamente !== undefined) {
+    query = query.eq('criado_automaticamente', criadoAutomaticamente)
   }
 
   query = query.range(from, to)
@@ -435,7 +448,9 @@ export async function buscarHospitalDetalhado(
 ): Promise<HospitalDetalhado | null> {
   const { data: hospital, error } = await supabase
     .from('hospitais')
-    .select('id, nome, cidade, estado, criado_automaticamente, precisa_revisao, created_at')
+    .select(
+      'id, nome, cidade, estado, logradouro, numero, bairro, cep, latitude, longitude, endereco_formatado, criado_automaticamente, precisa_revisao, created_at'
+    )
     .eq('id', hospitalId)
     .single()
 
@@ -449,6 +464,65 @@ export async function buscarHospitalDetalhado(
     .eq('hospital_id', hospitalId)
     .order('created_at', { ascending: false })
 
+  // Fetch last 50 vagas with joins
+  const { data: vagasData } = await supabase
+    .from('vagas')
+    .select(
+      `
+      id, data, hora_inicio, hora_fim, valor, status,
+      especialidades (nome),
+      setores (id, nome),
+      periodos (nome)
+    `
+    )
+    .eq('hospital_id', hospitalId)
+    .order('data', { ascending: false })
+    .limit(50)
+
+  type VagaRow = {
+    id: string
+    data: string
+    hora_inicio: string | null
+    hora_fim: string | null
+    valor: number | null
+    status: string
+    especialidades: { nome: string } | null
+    setores: { id: string; nome: string } | null
+    periodos: { nome: string } | null
+  }
+
+  const vagasRaw = (vagasData || []) as unknown as VagaRow[]
+
+  const vagas: HospitalVaga[] = vagasRaw.map((v) => ({
+    id: v.id,
+    data: v.data,
+    hora_inicio: v.hora_inicio,
+    hora_fim: v.hora_fim,
+    valor: v.valor,
+    status: v.status,
+    especialidade_nome: v.especialidades?.nome || null,
+    setor_nome: v.setores?.nome || null,
+    periodo_nome: v.periodos?.nome || null,
+  }))
+
+  // Derive setores from vagas
+  const setorMap = new Map<string, { id: string; nome: string; count: number }>()
+  for (const v of vagasRaw) {
+    if (v.setores?.id && v.setores?.nome) {
+      const existing = setorMap.get(v.setores.id)
+      if (existing) {
+        existing.count++
+      } else {
+        setorMap.set(v.setores.id, { id: v.setores.id, nome: v.setores.nome, count: 1 })
+      }
+    }
+  }
+  const setores: HospitalSetor[] = Array.from(setorMap.values()).map((s) => ({
+    id: s.id,
+    nome: s.nome,
+    vagas_count: s.count,
+  }))
+
   const { count: vagasCount } = await supabase
     .from('vagas')
     .select('id', { count: 'exact', head: true })
@@ -458,6 +532,8 @@ export async function buscarHospitalDetalhado(
     ...hospital,
     vagas_count: vagasCount || 0,
     aliases: (aliases || []) as HospitalAlias[],
+    setores,
+    vagas,
   }
 }
 
@@ -467,7 +543,16 @@ export async function buscarHospitalDetalhado(
 export async function atualizarHospital(
   supabase: SupabaseClient,
   hospitalId: string,
-  dados: { nome?: string; cidade?: string; estado?: string; precisa_revisao?: boolean }
+  dados: {
+    nome?: string
+    cidade?: string
+    estado?: string
+    precisa_revisao?: boolean
+    logradouro?: string
+    numero?: string
+    bairro?: string
+    cep?: string
+  }
 ): Promise<void> {
   const { error } = await supabase.from('hospitais').update(dados).eq('id', hospitalId)
 

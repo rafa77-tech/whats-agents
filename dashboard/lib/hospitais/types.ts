@@ -108,11 +108,38 @@ export interface HospitalDetalhado {
   nome: string
   cidade: string
   estado: string
+  logradouro: string | null
+  numero: string | null
+  bairro: string | null
+  cep: string | null
+  latitude: number | null
+  longitude: number | null
+  endereco_formatado: string | null
   criado_automaticamente: boolean
   precisa_revisao: boolean
   created_at: string
   vagas_count: number
   aliases: HospitalAlias[]
+  setores: HospitalSetor[]
+  vagas: HospitalVaga[]
+}
+
+export interface HospitalSetor {
+  id: string
+  nome: string
+  vagas_count: number
+}
+
+export interface HospitalVaga {
+  id: string
+  data: string
+  hora_inicio: string | null
+  hora_fim: string | null
+  valor: number | null
+  status: string
+  especialidade_nome: string | null
+  setor_nome: string | null
+  periodo_nome: string | null
 }
 
 export interface HospitalAlias {
@@ -132,6 +159,7 @@ export interface ListarHospitaisGestaoParams {
   search?: string
   status?: 'todos' | 'revisados' | 'pendentes'
   cidade?: string
+  criadoAutomaticamente?: boolean
 }
 
 export interface HospitaisGestaoResponse {

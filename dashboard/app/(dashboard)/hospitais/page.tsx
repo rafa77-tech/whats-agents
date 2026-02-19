@@ -21,10 +21,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Building2, Search, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+import {
+  Building2,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
+  ArrowLeft,
+} from 'lucide-react'
 import type { HospitalGestaoItem } from '@/lib/hospitais/types'
 
 type StatusFilter = 'todos' | 'revisados' | 'pendentes'
+type CardFilter = 'all' | 'pendentes' | 'auto_criados'
 
 export default function HospitaisPage() {
   const router = useRouter()
@@ -37,6 +45,7 @@ export default function HospitaisPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<StatusFilter>('todos')
+  const [cardFilter, setCardFilter] = useState<CardFilter>('all')
 
   const fetchHospitais = useCallback(async () => {
     setLoading(true)
@@ -48,6 +57,9 @@ export default function HospitaisPage() {
       })
       if (search.trim()) {
         params.set('search', search.trim())
+      }
+      if (cardFilter === 'auto_criados') {
+        params.set('criado_automaticamente', 'true')
       }
 
       const res = await fetch(`/api/hospitais/gestao?${params}`)
@@ -62,7 +74,7 @@ export default function HospitaisPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, search, status])
+  }, [page, search, status, cardFilter])
 
   useEffect(() => {
     fetchHospitais()
@@ -78,7 +90,30 @@ export default function HospitaisPage() {
     return () => clearTimeout(timer)
   }, [searchInput])
 
-  // pendentes and autoCriados are global counts from the API
+  const handleCardClick = (filter: CardFilter) => {
+    if (filter === cardFilter) return
+    setCardFilter(filter)
+    setPage(1)
+    if (filter === 'all') {
+      setStatus('todos')
+    } else if (filter === 'pendentes') {
+      setStatus('pendentes')
+    } else if (filter === 'auto_criados') {
+      setStatus('todos')
+    }
+  }
+
+  const handleClearFilter = () => {
+    setCardFilter('all')
+    setStatus('todos')
+    setPage(1)
+  }
+
+  const handleStatusChange = (v: string) => {
+    setStatus(v as StatusFilter)
+    setCardFilter('all')
+    setPage(1)
+  }
 
   return (
     <div className="space-y-6">
@@ -96,27 +131,48 @@ export default function HospitaisPage() {
         </Button>
       </div>
 
-      {/* Stats banner */}
-      {!loading && total > 0 && (
-        <div className="flex flex-wrap gap-4">
-          <div className="rounded-lg border bg-card px-4 py-2">
+      {/* Stats banner - always visible, clickable */}
+      {!loading && (
+        <div className="flex flex-wrap items-center gap-4">
+          <button
+            className={`rounded-lg border bg-card px-4 py-2 text-left transition-shadow ${
+              cardFilter === 'all' ? 'ring-2 ring-primary' : 'hover:shadow-md'
+            }`}
+            onClick={() => handleCardClick('all')}
+          >
             <p className="text-xs text-muted-foreground">Total</p>
             <p className="text-lg font-semibold">{total}</p>
-          </div>
-          {status === 'todos' && pendentes > 0 && (
-            <div className="rounded-lg border border-status-warning-border bg-status-warning px-4 py-2">
+          </button>
+          {pendentes > 0 && (
+            <button
+              className={`rounded-lg border border-status-warning-border bg-status-warning px-4 py-2 text-left transition-shadow ${
+                cardFilter === 'pendentes' ? 'ring-2 ring-primary' : 'hover:shadow-md'
+              }`}
+              onClick={() => handleCardClick('pendentes')}
+            >
               <p className="flex items-center gap-1 text-xs text-status-warning-foreground">
                 <AlertTriangle className="h-3 w-3" />
                 Pendentes de revisao
               </p>
               <p className="text-lg font-semibold text-status-warning-foreground">{pendentes}</p>
-            </div>
+            </button>
           )}
-          {status === 'todos' && autoCriados > 0 && (
-            <div className="rounded-lg border bg-card px-4 py-2">
+          {autoCriados > 0 && (
+            <button
+              className={`rounded-lg border bg-card px-4 py-2 text-left transition-shadow ${
+                cardFilter === 'auto_criados' ? 'ring-2 ring-primary' : 'hover:shadow-md'
+              }`}
+              onClick={() => handleCardClick('auto_criados')}
+            >
               <p className="text-xs text-muted-foreground">Auto-criados</p>
               <p className="text-lg font-semibold">{autoCriados}</p>
-            </div>
+            </button>
+          )}
+          {cardFilter !== 'all' && (
+            <Button variant="ghost" size="sm" onClick={handleClearFilter}>
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Limpar filtro
+            </Button>
           )}
         </div>
       )}
@@ -132,13 +188,7 @@ export default function HospitaisPage() {
             className="pl-9"
           />
         </div>
-        <Select
-          value={status}
-          onValueChange={(v) => {
-            setStatus(v as StatusFilter)
-            setPage(1)
-          }}
-        >
+        <Select value={status} onValueChange={handleStatusChange}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>

@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || undefined
     const status = (searchParams.get('status') as 'todos' | 'revisados' | 'pendentes') || 'todos'
     const cidade = searchParams.get('cidade') || undefined
+    const criadoAutomaticamente = searchParams.get('criado_automaticamente')
 
     const params: Parameters<typeof listarHospitaisGestao>[1] = {
       page,
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
     }
     if (search) params.search = search
     if (cidade) params.cidade = cidade
+    if (criadoAutomaticamente === 'true') params.criadoAutomaticamente = true
 
     const result = await listarHospitaisGestao(supabase, params)
 

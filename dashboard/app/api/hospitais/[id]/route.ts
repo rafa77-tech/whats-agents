@@ -42,6 +42,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (typeof body.cidade === 'string') updates.cidade = body.cidade.trim()
     if (typeof body.estado === 'string') updates.estado = body.estado.trim()
     if (typeof body.precisa_revisao === 'boolean') updates.precisa_revisao = body.precisa_revisao
+    if (typeof body.logradouro === 'string') updates.logradouro = body.logradouro.trim()
+    if (typeof body.numero === 'string') updates.numero = body.numero.trim()
+    if (typeof body.bairro === 'string') updates.bairro = body.bairro.trim()
+    if (typeof body.cep === 'string') updates.cep = body.cep.trim()
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ detail: 'Nenhum campo para atualizar' }, { status: 400 })

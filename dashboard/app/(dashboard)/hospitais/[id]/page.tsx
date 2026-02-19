@@ -9,6 +9,14 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -27,8 +35,50 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
-import { ArrowLeft, Building2, Check, GitMerge, Loader2, Plus, Trash2, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  Building2,
+  Check,
+  ExternalLink,
+  GitMerge,
+  Loader2,
+  MapPin,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react'
 import type { HospitalDetalhado, HospitalAlias } from '@/lib/hospitais/types'
+
+function formatHorario(hora: string | null): string {
+  if (!hora) return '—'
+  return hora.slice(0, 5)
+}
+
+function formatValor(valor: number | null): string {
+  if (valor == null) return '—'
+  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function formatData(data: string): string {
+  const [year, month, day] = data.split('-')
+  return `${day}/${month}/${year}`
+}
+
+function getGoogleMapsUrl(hospital: HospitalDetalhado): string | null {
+  if (hospital.latitude && hospital.longitude) {
+    return `https://www.google.com/maps/search/?api=1&query=${hospital.latitude},${hospital.longitude}`
+  }
+  if (hospital.endereco_formatado) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.endereco_formatado)}`
+  }
+  if (hospital.logradouro && hospital.cidade) {
+    const addr = [hospital.logradouro, hospital.numero, hospital.bairro, hospital.cidade, hospital.estado]
+      .filter(Boolean)
+      .join(', ')
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
+  }
+  return null
+}
 
 export default function HospitalDetalhePage() {
   const params = useParams()
@@ -43,6 +93,10 @@ export default function HospitalDetalhePage() {
   const [editNome, setEditNome] = useState('')
   const [editCidade, setEditCidade] = useState('')
   const [editEstado, setEditEstado] = useState('')
+  const [editLogradouro, setEditLogradouro] = useState('')
+  const [editNumero, setEditNumero] = useState('')
+  const [editBairro, setEditBairro] = useState('')
+  const [editCep, setEditCep] = useState('')
 
   // Alias management
   const [newAlias, setNewAlias] = useState('')
@@ -75,6 +129,10 @@ export default function HospitalDetalhePage() {
       setEditNome(data.nome)
       setEditCidade(data.cidade || '')
       setEditEstado(data.estado || '')
+      setEditLogradouro(data.logradouro || '')
+      setEditNumero(data.numero || '')
+      setEditBairro(data.bairro || '')
+      setEditCep(data.cep || '')
     } catch {
       toast.error('Erro ao carregar hospital')
     } finally {
@@ -97,6 +155,10 @@ export default function HospitalDetalhePage() {
           nome: editNome.trim(),
           cidade: editCidade.trim(),
           estado: editEstado.trim(),
+          logradouro: editLogradouro.trim(),
+          numero: editNumero.trim(),
+          bairro: editBairro.trim(),
+          cep: editCep.trim(),
         }),
       })
       if (!res.ok) {
@@ -261,7 +323,13 @@ export default function HospitalDetalhePage() {
   const hasChanges =
     editNome !== hospital.nome ||
     editCidade !== (hospital.cidade || '') ||
-    editEstado !== (hospital.estado || '')
+    editEstado !== (hospital.estado || '') ||
+    editLogradouro !== (hospital.logradouro || '') ||
+    editNumero !== (hospital.numero || '') ||
+    editBairro !== (hospital.bairro || '') ||
+    editCep !== (hospital.cep || '')
+
+  const mapsUrl = getGoogleMapsUrl(hospital)
 
   return (
     <div className="space-y-6">
@@ -345,6 +413,58 @@ export default function HospitalDetalhePage() {
                 />
               </div>
             </div>
+
+            {/* Address fields */}
+            <div className="space-y-2">
+              <Label>Logradouro</Label>
+              <Input
+                value={editLogradouro}
+                onChange={(e) => setEditLogradouro(e.target.value)}
+                placeholder="Rua, Avenida..."
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Numero</Label>
+                <Input
+                  value={editNumero}
+                  onChange={(e) => setEditNumero(e.target.value)}
+                  placeholder="123"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Bairro</Label>
+                <Input
+                  value={editBairro}
+                  onChange={(e) => setEditBairro(e.target.value)}
+                  placeholder="Centro"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>CEP</Label>
+                <Input
+                  value={editCep}
+                  onChange={(e) => setEditCep(e.target.value)}
+                  placeholder="00000-000"
+                  maxLength={9}
+                />
+              </div>
+            </div>
+
+            {/* Google Maps link */}
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+              >
+                <MapPin className="h-4 w-4" />
+                Ver no Google Maps
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+
             {hasChanges && (
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? (
@@ -419,6 +539,86 @@ export default function HospitalDetalhePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Setores card */}
+      {hospital.setores.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Setores</CardTitle>
+            <CardDescription>Setores derivados das vagas deste hospital</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {hospital.setores.map((setor) => (
+                <Badge key={setor.id} variant="secondary" className="text-sm">
+                  {setor.nome}
+                  <span className="ml-1 text-xs text-muted-foreground">({setor.vagas_count})</span>
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Vagas card */}
+      {hospital.vagas.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Vagas</CardTitle>
+            <CardDescription>
+              Ultimas {hospital.vagas.length} vagas deste hospital
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Especialidade</TableHead>
+                    <TableHead>Setor</TableHead>
+                    <TableHead>Horario</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {hospital.vagas.map((vaga) => (
+                    <TableRow
+                      key={vaga.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/vagas/${vaga.id}`)}
+                    >
+                      <TableCell>{formatData(vaga.data)}</TableCell>
+                      <TableCell>{vaga.especialidade_nome || '—'}</TableCell>
+                      <TableCell>{vaga.setor_nome || '—'}</TableCell>
+                      <TableCell>
+                        {vaga.periodo_nome ||
+                          `${formatHorario(vaga.hora_inicio)} - ${formatHorario(vaga.hora_fim)}`}
+                      </TableCell>
+                      <TableCell className="text-right">{formatValor(vaga.valor)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            vaga.status === 'aberta'
+                              ? 'border-status-success-border text-status-success-foreground'
+                              : vaga.status === 'preenchida'
+                                ? 'border-status-info-border text-status-info-foreground'
+                                : ''
+                          }
+                        >
+                          {vaga.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Merge Dialog */}
       <Dialog open={mergeOpen} onOpenChange={setMergeOpen}>

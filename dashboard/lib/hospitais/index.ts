@@ -9,6 +9,8 @@ export type {
   HospitalBloqueado,
   HospitalDetalhado,
   HospitalAlias,
+  HospitalSetor,
+  HospitalVaga,
   HospitalGestaoItem,
   HospitaisGestaoResponse,
   BloquearHospitalRequest,
