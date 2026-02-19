@@ -21,6 +21,59 @@ logger = get_logger(__name__)
 # =============================================================================
 
 
+def extrair_qualificador(texto: str) -> Optional[str]:
+    """
+    Extrai texto entre parênteses como qualificador (ex: IVA, SEDE, 24h).
+
+    Útil para desambiguação de unidades hospitalares.
+    """
+    if not texto:
+        return None
+    match = re.search(r"\(([^)]+)\)", texto)
+    return match.group(1).strip().lower() if match else None
+
+
+# Abreviações comuns em nomes de hospitais
+_ABREVIACOES_HOSPITAL = {
+    "h": "hospital",
+    "hm": "hospital municipal",
+    "hr": "hospital regional",
+    "he": "hospital estadual",
+    "hge": "hospital geral estadual",
+    "ps": "pronto socorro",
+    "sta": "santa",
+    "sto": "santo",
+    "s": "sao",
+    "ns": "nossa senhora",
+    "dr": "doutor",
+    "dra": "doutora",
+    "prof": "professor",
+}
+
+
+def expandir_abreviacoes_hospital(texto: str) -> str:
+    """
+    Expande abreviações comuns em nomes de hospitais.
+
+    Ex: "H. BENEDICTO MONTENEGRO" → "hospital BENEDICTO MONTENEGRO"
+    Ex: "HM Dr. José Silva" → "hospital municipal doutor José Silva"
+    """
+    if not texto:
+        return texto
+
+    palavras = texto.split()
+    resultado = []
+    for palavra in palavras:
+        # Remover ponto final para lookup (ex: "H." → "h")
+        chave = palavra.lower().rstrip(".")
+        expandida = _ABREVIACOES_HOSPITAL.get(chave)
+        if expandida:
+            resultado.append(expandida)
+        else:
+            resultado.append(palavra)
+    return " ".join(resultado)
+
+
 def normalizar_para_busca(texto: str) -> str:
     """
     Normaliza texto para busca.
@@ -117,10 +170,12 @@ async def buscar_hospital_por_alias(texto: str) -> Optional[ResultadoMatch]:
     """
     Busca hospital por alias exato.
 
+    Expande abreviações antes de normalizar (ex: "H." → "hospital").
+
     Returns:
         ResultadoMatch ou None
     """
-    texto_norm = normalizar_para_busca(texto)
+    texto_norm = normalizar_para_busca(expandir_abreviacoes_hospital(texto))
 
     if not texto_norm:
         return None
@@ -167,6 +222,8 @@ async def buscar_hospital_por_similaridade(
     """
     Busca hospital por similaridade de texto usando pg_trgm.
 
+    Expande abreviações antes de normalizar (ex: "H." → "hospital").
+
     Args:
         texto: Texto para buscar
         threshold: Score mínimo de similaridade (0-1)
@@ -174,7 +231,7 @@ async def buscar_hospital_por_similaridade(
     Returns:
         ResultadoMatch ou None
     """
-    texto_norm = normalizar_para_busca(texto)
+    texto_norm = normalizar_para_busca(expandir_abreviacoes_hospital(texto))
 
     if not texto_norm:
         return None

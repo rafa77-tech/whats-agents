@@ -17,7 +17,6 @@ from app.services.grupos.importador import (
     decidir_acao,
     aplicar_acao,
     processar_importacao,
-    processar_batch_importacao,
     listar_vagas_para_revisao,
     aprovar_vaga_revisao,
     rejeitar_vaga_revisao,
@@ -28,7 +27,27 @@ from app.services.grupos.importador import (
     AcaoImportacao,
     THRESHOLD_IMPORTAR,
     THRESHOLD_REVISAR,
+    VALOR_PLANTAO_MIN,
+    VALOR_PLANTAO_MAX,
+    JANELA_DATA_FUTURA_DIAS,
 )
+
+
+class TestConstantesImportador:
+    """Testes das constantes de validação vindas de GruposConfig."""
+
+    def test_valor_plantao_min(self):
+        assert VALOR_PLANTAO_MIN == 100
+
+    def test_valor_plantao_max(self):
+        assert VALOR_PLANTAO_MAX == 10000
+
+    def test_janela_data_futura(self):
+        assert JANELA_DATA_FUTURA_DIAS == 90
+
+    def test_thresholds_consistentes(self):
+        """THRESHOLD_IMPORTAR deve ser maior que THRESHOLD_REVISAR."""
+        assert THRESHOLD_IMPORTAR > THRESHOLD_REVISAR
 
 
 class TestCalcularConfiancaGeral:
@@ -423,7 +442,6 @@ class TestCriarVagaPrincipal:
         assert "contato_nome" not in call_args
         assert "contato_whatsapp" not in call_args
 
-
     @pytest.mark.asyncio
     async def test_criar_vaga_com_numero_vagas_1(self, mock_supabase):
         """Com numero_vagas=1, deve fazer insert simples (default)."""
@@ -576,11 +594,7 @@ class TestScoreConfianca:
 
     def test_valores_preenchidos(self):
         """Deve aceitar valores."""
-        score = ScoreConfianca(
-            hospital=0.9,
-            especialidade=0.8,
-            geral=0.85
-        )
+        score = ScoreConfianca(hospital=0.9, especialidade=0.8, geral=0.85)
 
         assert score.hospital == 0.9
         assert score.geral == 0.85
@@ -598,10 +612,7 @@ class TestResultadoValidacao:
 
     def test_invalido(self):
         """Deve criar resultado inválido."""
-        resultado = ResultadoValidacao(
-            valido=False,
-            erros=["campo ausente"]
-        )
+        resultado = ResultadoValidacao(valido=False, erros=["campo ausente"])
 
         assert resultado.valido is False
         assert len(resultado.erros) == 1
@@ -617,7 +628,7 @@ class TestResultadoImportacao:
             acao="importar",
             score=0.95,
             status="importada",
-            vaga_id=str(uuid4())
+            vaga_id=str(uuid4()),
         )
 
         assert resultado.acao == "importar"

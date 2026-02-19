@@ -321,6 +321,12 @@ class GruposConfig:
     # Fan-out cap (máximo de vagas atômicas por mensagem)
     MAX_VAGAS_POR_MENSAGEM: int = 20
 
+    # Validação de vagas (importador)
+    VALOR_PLANTAO_MIN: int = 100
+    VALOR_PLANTAO_MAX: int = 10000
+    JANELA_DATA_FUTURA_DIAS: int = 90
+    MARGEM_DATA_PASSADA_DIAS: int = 1
+
     # Alertas
     ALERTA_THRESHOLD_ERROS: int = 10
     ALERTA_THRESHOLD_CUSTO_USD: float = 1.0

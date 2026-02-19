@@ -11,6 +11,8 @@ from unittest.mock import patch, MagicMock
 from app.services.grupos.normalizador import (
     normalizar_para_busca,
     extrair_tokens,
+    extrair_qualificador,
+    expandir_abreviacoes_hospital,
     buscar_hospital_por_alias,
     buscar_hospital_por_similaridade,
     normalizar_hospital,
@@ -124,10 +126,7 @@ class TestBuscarHospitalPorAlias:
         """Deve retornar match quando alias existe."""
         hospital_id = str(uuid4())
         mock_supabase.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
-            data=[{
-                "hospital_id": hospital_id,
-                "hospitais": {"nome": "Hospital São Luiz"}
-            }]
+            data=[{"hospital_id": hospital_id, "hospitais": {"nome": "Hospital São Luiz"}}]
         )
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
         mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
@@ -173,12 +172,14 @@ class TestBuscarHospitalPorSimilaridade:
         """Deve retornar match com score."""
         hospital_id = str(uuid4())
         mock_supabase.rpc.return_value.execute.return_value = MagicMock(
-            data=[{
-                "hospital_id": hospital_id,
-                "nome": "Hospital São Luiz",
-                "score": 0.85,
-                "fonte": "alias"
-            }]
+            data=[
+                {
+                    "hospital_id": hospital_id,
+                    "nome": "Hospital São Luiz",
+                    "score": 0.85,
+                    "fonte": "alias",
+                }
+            ]
         )
 
         resultado = await buscar_hospital_por_similaridade("sao luiz")
@@ -191,12 +192,7 @@ class TestBuscarHospitalPorSimilaridade:
     async def test_similaridade_abaixo_threshold(self, mock_supabase):
         """Deve retornar None quando score baixo."""
         mock_supabase.rpc.return_value.execute.return_value = MagicMock(
-            data=[{
-                "hospital_id": str(uuid4()),
-                "nome": "Hospital",
-                "score": 0.2,
-                "fonte": "nome"
-            }]
+            data=[{"hospital_id": str(uuid4()), "nome": "Hospital", "score": 0.2, "fonte": "nome"}]
         )
 
         resultado = await buscar_hospital_por_similaridade("xyz", threshold=0.3)
@@ -219,10 +215,7 @@ class TestNormalizarHospital:
         hospital_id = str(uuid4())
         # Mock para alias exato
         mock_supabase.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
-            data=[{
-                "hospital_id": hospital_id,
-                "hospitais": {"nome": "Hospital ABC"}
-            }]
+            data=[{"hospital_id": hospital_id, "hospitais": {"nome": "Hospital ABC"}}]
         )
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
         mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
@@ -250,10 +243,7 @@ class TestNormalizarEspecialidade:
         """Deve encontrar especialidade por alias."""
         esp_id = str(uuid4())
         mock_supabase.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
-            data=[{
-                "especialidade_id": esp_id,
-                "especialidades": {"nome": "Clínica Médica"}
-            }]
+            data=[{"especialidade_id": esp_id, "especialidades": {"nome": "Clínica Médica"}}]
         )
 
         resultado = await buscar_especialidade_por_alias("CM")
@@ -370,10 +360,7 @@ class TestNormalizarVaga:
 
         # Mock do hospital - alias exato
         mock_supabase.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
-            data=[{
-                "hospital_id": hospital_id,
-                "hospitais": {"nome": "Hospital ABC"}
-            }]
+            data=[{"hospital_id": hospital_id, "hospitais": {"nome": "Hospital ABC"}}]
         )
 
         # Mock do update
@@ -396,10 +383,7 @@ class TestResultadoMatch:
     def test_criacao(self):
         """Deve criar resultado corretamente."""
         resultado = ResultadoMatch(
-            entidade_id=uuid4(),
-            nome="Hospital ABC",
-            score=0.95,
-            fonte="alias_exato"
+            entidade_id=uuid4(), nome="Hospital ABC", score=0.95, fonte="alias_exato"
         )
 
         assert resultado.nome == "Hospital ABC"
@@ -425,8 +409,146 @@ class TestResultadoNormalizacao:
             hospital_id=hospital_id,
             hospital_nome="Hospital ABC",
             hospital_score=0.9,
-            status="normalizada"
+            status="normalizada",
         )
 
         assert resultado.hospital_id == hospital_id
         assert resultado.status == "normalizada"
+
+
+# =============================================================================
+# Sprint 63 - Testes de Expansão de Abreviações
+# =============================================================================
+
+
+class TestExpandirAbreviacoesHospital:
+    """Testes da expansão de abreviações de hospital."""
+
+    def test_h_ponto_para_hospital(self):
+        """H. deve expandir para hospital."""
+        assert (
+            expandir_abreviacoes_hospital("H. BENEDICTO MONTENEGRO")
+            == "hospital BENEDICTO MONTENEGRO"
+        )
+
+    def test_h_sem_ponto_para_hospital(self):
+        """H sem ponto deve expandir para hospital."""
+        assert expandir_abreviacoes_hospital("H BENEDICTO") == "hospital BENEDICTO"
+
+    def test_hm_para_hospital_municipal(self):
+        """HM deve expandir para hospital municipal."""
+        assert (
+            expandir_abreviacoes_hospital("HM Dr. José Silva")
+            == "hospital municipal doutor José Silva"
+        )
+
+    def test_hr_para_hospital_regional(self):
+        """HR deve expandir para hospital regional."""
+        assert expandir_abreviacoes_hospital("HR. Mário Gatti") == "hospital regional Mário Gatti"
+
+    def test_upa_nao_altera(self):
+        """UPA não deve ser alterado (nome próprio)."""
+        assert expandir_abreviacoes_hospital("UPA VERGUEIRO") == "UPA VERGUEIRO"
+
+    def test_santa_casa_nao_altera(self):
+        """Santa Casa não abreviada não deve mudar."""
+        assert expandir_abreviacoes_hospital("Santa Casa") == "Santa Casa"
+
+    def test_sta_para_santa(self):
+        """STA. deve expandir para santa."""
+        assert expandir_abreviacoes_hospital("STA. Casa de Sao Paulo") == "santa Casa de Sao Paulo"
+
+    def test_dr_para_doutor(self):
+        """Dr. deve expandir para doutor."""
+        assert expandir_abreviacoes_hospital("Dr. Benedicto") == "doutor Benedicto"
+
+    def test_prof_para_professor(self):
+        """Prof. deve expandir para professor."""
+        assert expandir_abreviacoes_hospital("Prof. Almeida") == "professor Almeida"
+
+    def test_texto_sem_abreviacoes(self):
+        """Texto sem abreviações não deve mudar."""
+        assert expandir_abreviacoes_hospital("Hospital Sao Paulo") == "Hospital Sao Paulo"
+
+    def test_texto_vazio(self):
+        """Texto vazio deve retornar vazio."""
+        assert expandir_abreviacoes_hospital("") == ""
+
+    def test_texto_none(self):
+        """None deve retornar None."""
+        assert expandir_abreviacoes_hospital(None) is None
+
+
+class TestExtrairQualificador:
+    """Testes da extração de qualificador entre parênteses."""
+
+    def test_qualificador_iva(self):
+        """Deve extrair IVA."""
+        assert extrair_qualificador("H. BENEDICTO MONTENEGRO (IVA)") == "iva"
+
+    def test_qualificador_sede(self):
+        """Deve extrair SEDE."""
+        assert extrair_qualificador("Hospital Sao Paulo (SEDE)") == "sede"
+
+    def test_qualificador_24h(self):
+        """Deve extrair 24h."""
+        assert extrair_qualificador("UPA (24h)") == "24h"
+
+    def test_sem_qualificador(self):
+        """Deve retornar None sem parênteses."""
+        assert extrair_qualificador("Hospital Sao Paulo") is None
+
+    def test_texto_vazio(self):
+        """Deve retornar None para vazio."""
+        assert extrair_qualificador("") is None
+
+    def test_texto_none(self):
+        """Deve retornar None para None."""
+        assert extrair_qualificador(None) is None
+
+
+class TestNormalizacaoIntegradaAbreviacoes:
+    """Testes que verificam que abreviações funcionam na cadeia completa."""
+
+    def test_h_ponto_normalizado_para_busca(self):
+        """H. BENEDICTO MONTENEGRO (IVA) deve virar 'hospital benedicto montenegro'."""
+        expandido = expandir_abreviacoes_hospital("H. BENEDICTO MONTENEGRO (IVA)")
+        normalizado = normalizar_para_busca(expandido)
+        assert normalizado == "hospital benedicto montenegro"
+
+    def test_hm_dr_normalizado(self):
+        """HM Dr. José Silva deve virar 'hospital municipal doutor jose silva'."""
+        expandido = expandir_abreviacoes_hospital("HM Dr. José Silva")
+        normalizado = normalizar_para_busca(expandido)
+        assert normalizado == "hospital municipal doutor jose silva"
+
+    def test_sta_casa_normalizado(self):
+        """STA. CASA DE SÃO PAULO deve virar 'santa casa de sao paulo'."""
+        expandido = expandir_abreviacoes_hospital("STA. CASA DE SÃO PAULO")
+        normalizado = normalizar_para_busca(expandido)
+        assert normalizado == "santa casa de sao paulo"
+
+    @pytest.fixture
+    def mock_supabase(self):
+        """Mock do Supabase."""
+        with patch("app.services.grupos.normalizador.supabase") as mock:
+            yield mock
+
+    @pytest.mark.asyncio
+    async def test_busca_alias_expande_abreviacoes(self, mock_supabase):
+        """buscar_hospital_por_alias deve expandir H. para hospital antes de buscar."""
+        hospital_id = str(uuid4())
+        mock_supabase.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[
+                {"hospital_id": hospital_id, "hospitais": {"nome": "Hospital Benedicto Montenegro"}}
+            ]
+        )
+
+        resultado = await buscar_hospital_por_alias("H. BENEDICTO MONTENEGRO (IVA)")
+
+        assert resultado is not None
+        assert resultado.nome == "Hospital Benedicto Montenegro"
+        # Verifica que buscou com texto expandido/normalizado
+        mock_supabase.table.return_value.select.return_value.eq.assert_called_with(
+            "alias_normalizado", "hospital benedicto montenegro"
+        )

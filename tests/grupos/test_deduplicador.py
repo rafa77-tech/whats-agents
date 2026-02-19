@@ -15,7 +15,6 @@ from app.services.grupos.deduplicador import (
     registrar_fonte_vaga,
     marcar_como_duplicada,
     processar_deduplicacao,
-    processar_batch_deduplicacao,
     listar_fontes_vaga,
     obter_estatisticas_dedup,
     ResultadoDedup,
@@ -182,9 +181,7 @@ class TestRegistrarFonteVaga:
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
 
         resultado = await registrar_fonte_vaga(
-            vaga_principal_id=uuid4(),
-            mensagem_id=uuid4(),
-            grupo_id=uuid4()
+            vaga_principal_id=uuid4(), mensagem_id=uuid4(), grupo_id=uuid4()
         )
 
         assert resultado is not None
@@ -200,9 +197,7 @@ class TestRegistrarFonteVaga:
         )
 
         resultado = await registrar_fonte_vaga(
-            vaga_principal_id=uuid4(),
-            mensagem_id=uuid4(),
-            grupo_id=uuid4()
+            vaga_principal_id=uuid4(), mensagem_id=uuid4(), grupo_id=uuid4()
         )
 
         assert str(resultado) == fonte_id
@@ -229,7 +224,7 @@ class TestRegistrarFonteVaga:
             vaga_principal_id=uuid4(),
             mensagem_id=uuid4(),
             grupo_id=uuid4(),
-            texto_original=texto_longo
+            texto_original=texto_longo,
         )
 
         # Verifica que insert foi chamado
@@ -431,11 +426,7 @@ class TestResultadoDedup:
     def test_criacao_nova(self):
         """Deve criar resultado para vaga nova."""
         vaga_id = uuid4()
-        resultado = ResultadoDedup(
-            duplicada=False,
-            principal_id=vaga_id,
-            hash_dedup="abc123"
-        )
+        resultado = ResultadoDedup(duplicada=False, principal_id=vaga_id, hash_dedup="abc123")
 
         assert resultado.duplicada is False
         assert resultado.principal_id == vaga_id
@@ -443,21 +434,14 @@ class TestResultadoDedup:
     def test_criacao_duplicada(self):
         """Deve criar resultado para vaga duplicada."""
         principal_id = uuid4()
-        resultado = ResultadoDedup(
-            duplicada=True,
-            principal_id=principal_id,
-            hash_dedup="xyz789"
-        )
+        resultado = ResultadoDedup(duplicada=True, principal_id=principal_id, hash_dedup="xyz789")
 
         assert resultado.duplicada is True
         assert resultado.principal_id == principal_id
 
     def test_criacao_erro(self):
         """Deve criar resultado de erro."""
-        resultado = ResultadoDedup(
-            duplicada=False,
-            erro="vaga_nao_encontrada"
-        )
+        resultado = ResultadoDedup(duplicada=False, erro="vaga_nao_encontrada")
 
         assert resultado.erro == "vaga_nao_encontrada"
 
@@ -499,9 +483,15 @@ class TestObterEstatisticasDedup:
     async def test_estatisticas(self, mock_supabase):
         """Deve retornar estatísticas corretas."""
         # Mock para cada query
-        mock_supabase.table.return_value.select.return_value.execute.return_value = MagicMock(count=100)
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = MagicMock(count=80)
-        mock_supabase.table.return_value.select.return_value.gt.return_value.execute.return_value = MagicMock(count=10)
+        mock_supabase.table.return_value.select.return_value.execute.return_value = MagicMock(
+            count=100
+        )
+        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = MagicMock(
+            count=80
+        )
+        mock_supabase.table.return_value.select.return_value.gt.return_value.execute.return_value = MagicMock(
+            count=10
+        )
 
         resultado = await obter_estatisticas_dedup()
 

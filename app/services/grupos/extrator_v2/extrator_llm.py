@@ -260,10 +260,18 @@ def _hash_texto(texto: str) -> str:
     return hashlib.md5(normalizado.encode()).hexdigest()
 
 
-async def buscar_extracao_cache(texto: str) -> Optional[ResultadoExtracaoLLM]:
+def _chave_cache(texto: str, data_referencia: Optional[date] = None) -> str:
+    """Gera chave de cache incluindo data de referência."""
+    sufixo_data = data_referencia.isoformat() if data_referencia else "sem_data"
+    return f"{CACHE_PREFIX}{_hash_texto(texto)}:{sufixo_data}"
+
+
+async def buscar_extracao_cache(
+    texto: str, data_referencia: Optional[date] = None
+) -> Optional[ResultadoExtracaoLLM]:
     """Busca extração no cache."""
     try:
-        chave = f"{CACHE_PREFIX}{_hash_texto(texto)}"
+        chave = _chave_cache(texto, data_referencia)
         dados = await cache_get(chave)
         if dados:
             dados = json.loads(dados)
@@ -280,10 +288,12 @@ async def buscar_extracao_cache(texto: str) -> Optional[ResultadoExtracaoLLM]:
     return None
 
 
-async def salvar_extracao_cache(texto: str, resultado: ResultadoExtracaoLLM) -> None:
+async def salvar_extracao_cache(
+    texto: str, resultado: ResultadoExtracaoLLM, data_referencia: Optional[date] = None
+) -> None:
     """Salva extração no cache."""
     try:
-        chave = f"{CACHE_PREFIX}{_hash_texto(texto)}"
+        chave = _chave_cache(texto, data_referencia)
         dados = json.dumps(
             {
                 "eh_vaga": resultado.eh_vaga,
@@ -373,9 +383,12 @@ async def extrair_com_llm(
     Returns:
         ResultadoExtracaoLLM com classificação e dados extraídos
     """
+    # Usar data de referência real (nunca None para cache)
+    data_ref = data_referencia or date.today()
+
     # Verificar cache
     if usar_cache:
-        cached = await buscar_extracao_cache(texto)
+        cached = await buscar_extracao_cache(texto, data_ref)
         if cached:
             logger.debug(f"Extração LLM do cache: eh_vaga={cached.eh_vaga}")
             return cached
@@ -387,7 +400,7 @@ async def extrair_com_llm(
         texto=texto,
         nome_grupo=nome_grupo or "Desconhecido",
         nome_contato=nome_contato or "Desconhecido",
-        data_referencia=(data_referencia or date.today()).isoformat(),
+        data_referencia=data_ref.isoformat(),
         especialidades=especialidades_str,
     )
 
@@ -398,7 +411,7 @@ async def extrair_com_llm(
 
         # Salvar no cache
         if usar_cache:
-            await salvar_extracao_cache(texto, resultado)
+            await salvar_extracao_cache(texto, resultado, data_ref)
 
         logger.info(
             f"Extração LLM: eh_vaga={resultado.eh_vaga}, "

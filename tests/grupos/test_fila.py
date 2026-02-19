@@ -31,6 +31,7 @@ from app.services.grupos.fila import (
 # Testes do Enum EstagioPipeline
 # =============================================================================
 
+
 class TestEstagioPipeline:
     """Testes do enum de estágios."""
 
@@ -57,11 +58,7 @@ class TestItemFila:
 
     def test_criar_item_minimo(self):
         """Cria item com campos obrigatórios."""
-        item = ItemFila(
-            id=uuid4(),
-            mensagem_id=uuid4(),
-            estagio=EstagioPipeline.PENDENTE
-        )
+        item = ItemFila(id=uuid4(), mensagem_id=uuid4(), estagio=EstagioPipeline.PENDENTE)
         assert item.tentativas == 0
         assert item.max_tentativas == 3
         assert item.ultimo_erro is None
@@ -78,7 +75,7 @@ class TestItemFila:
             proximo_retry=datetime.now(UTC),
             vaga_grupo_id=uuid4(),
             criado_em=datetime.now(UTC),
-            atualizado_em=datetime.now(UTC)
+            atualizado_em=datetime.now(UTC),
         )
         assert item.tentativas == 2
         assert item.max_tentativas == 5
@@ -88,6 +85,7 @@ class TestItemFila:
 # =============================================================================
 # Testes de Enfileiramento
 # =============================================================================
+
 
 class TestEnfileirarMensagem:
     """Testes de enfileiramento de mensagens."""
@@ -132,6 +130,7 @@ class TestEnfileirarMensagem:
 # =============================================================================
 # Testes de Busca
 # =============================================================================
+
 
 class TestBuscarProximosPendentes:
     """Testes de busca de itens pendentes."""
@@ -203,6 +202,7 @@ class TestBuscarItemPorMensagem:
 # Testes de Atualização
 # =============================================================================
 
+
 class TestAtualizarEstagio:
     """Testes de atualização de estágio."""
 
@@ -247,9 +247,7 @@ class TestAtualizarEstagio:
             mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
 
             await atualizar_estagio(
-                item_id,
-                EstagioPipeline.NORMALIZACAO,
-                vaga_grupo_id=vaga_grupo_id
+                item_id, EstagioPipeline.NORMALIZACAO, vaga_grupo_id=vaga_grupo_id
             )
 
             mock_supabase.table.assert_called()
@@ -276,20 +274,25 @@ class TestMarcarComoDescartado:
 
     @pytest.mark.asyncio
     async def test_marcar_descartado(self):
-        """Marca item como descartado."""
+        """Marca item como descartado via atualizar_estagio."""
         item_id = uuid4()
 
-        with patch("app.services.grupos.fila.supabase") as mock_supabase:
-            mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+        with patch("app.services.grupos.fila.atualizar_estagio") as mock_atualizar:
+            mock_atualizar.return_value = None
 
             await marcar_como_descartado(item_id, "heuristica_baixa")
 
-            mock_supabase.table.assert_called_with("fila_processamento_grupos")
+            mock_atualizar.assert_called_once_with(
+                item_id=item_id,
+                novo_estagio=EstagioPipeline.DESCARTADO,
+                erro="descartado: heuristica_baixa",
+            )
 
 
 # =============================================================================
 # Testes de Estatísticas
 # =============================================================================
+
 
 class TestObterEstatisticasFila:
     """Testes de estatísticas da fila."""
@@ -319,9 +322,7 @@ class TestObterItensTravados:
         """Obtém itens travados."""
         with patch("app.services.grupos.fila.supabase") as mock_supabase:
             mock_result = MagicMock()
-            mock_result.data = [
-                {"id": str(uuid4()), "estagio": "classificacao", "tentativas": 2}
-            ]
+            mock_result.data = [{"id": str(uuid4()), "estagio": "classificacao", "tentativas": 2}]
 
             # Chain completo: table().select().not_.in_().lt().order().limit().execute()
             mock_supabase.table.return_value.select.return_value.not_.in_.return_value.lt.return_value.order.return_value.limit.return_value.execute.return_value = mock_result
@@ -334,6 +335,7 @@ class TestObterItensTravados:
 # =============================================================================
 # Testes de Reprocessamento
 # =============================================================================
+
 
 class TestReprocessarErros:
     """Testes de reprocessamento de erros."""
@@ -376,6 +378,7 @@ class TestLimparFinalizados:
 # =============================================================================
 # Testes de Retry Delays
 # =============================================================================
+
 
 class TestRetryDelays:
     """Testes dos delays de retry."""

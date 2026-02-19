@@ -15,17 +15,21 @@ from enum import Enum
 from typing import Optional, List
 from uuid import UUID
 
+from app.core.config import GruposConfig
 from app.core.logging import get_logger
 from app.services.supabase import supabase
 
 logger = get_logger(__name__)
 
 
-# Thresholds de decisão
-# Sprint 29: Baixado de 0.90 para 0.85 - Julia intermedia ofertas,
-# então vagas com confiança média-alta podem ser importadas
-THRESHOLD_IMPORTAR = 0.85
-THRESHOLD_REVISAR = 0.70
+# Thresholds de decisão (centralizados em GruposConfig)
+THRESHOLD_IMPORTAR = GruposConfig.THRESHOLD_IMPORTAR
+THRESHOLD_REVISAR = GruposConfig.THRESHOLD_REVISAR
+
+# Validação de vagas
+VALOR_PLANTAO_MIN = GruposConfig.VALOR_PLANTAO_MIN
+VALOR_PLANTAO_MAX = GruposConfig.VALOR_PLANTAO_MAX
+JANELA_DATA_FUTURA_DIAS = GruposConfig.JANELA_DATA_FUTURA_DIAS
 
 
 # =============================================================================
@@ -96,7 +100,7 @@ def calcular_confianca_geral(vaga: dict) -> ScoreConfianca:
     valor_minimo = vaga.get("valor_minimo")
     valor_maximo = vaga.get("valor_maximo")
 
-    if valor_tipo == "fixo" and valor and 100 <= valor <= 10000:
+    if valor_tipo == "fixo" and valor and VALOR_PLANTAO_MIN <= valor <= VALOR_PLANTAO_MAX:
         scores.valor = 1.0  # Valor fixo válido
     elif valor_tipo == "faixa" and (valor_minimo or valor_maximo):
         scores.valor = 0.9  # Faixa definida
@@ -178,8 +182,8 @@ def validar_para_importacao(vaga: dict) -> ResultadoValidacao:
 
             if data_vaga < hoje:
                 erros.append("data no passado")
-            elif data_vaga > hoje + timedelta(days=90):
-                avisos.append("data muito distante (>90 dias)")
+            elif data_vaga > hoje + timedelta(days=JANELA_DATA_FUTURA_DIAS):
+                avisos.append(f"data muito distante (>{JANELA_DATA_FUTURA_DIAS} dias)")
 
         except (ValueError, TypeError):
             erros.append("data em formato inválido")
@@ -476,65 +480,6 @@ async def processar_importacao(vaga_grupo_id: UUID) -> ResultadoImportacao:
         vaga_id=resultado.get("vaga_id"),
         motivo=resultado.get("motivo"),
     )
-
-
-async def processar_batch_importacao(limite: int = 50) -> dict:
-    """
-    Processa batch de vagas prontas para importação.
-
-    Busca vagas com status 'pronta_importacao' (após deduplicação).
-
-    Args:
-        limite: Máximo de vagas a processar
-
-    Returns:
-        Estatísticas do processamento
-    """
-    # Buscar vagas prontas (não duplicadas, não importadas)
-    vagas = (
-        supabase.table("vagas_grupo")
-        .select("id")
-        .eq("status", "pronta_importacao")
-        .eq("eh_duplicada", False)
-        .is_("vaga_importada_id", "null")
-        .order("created_at")
-        .limit(limite)
-        .execute()
-    )
-
-    stats = {
-        "total": len(vagas.data),
-        "importadas": 0,
-        "revisao": 0,
-        "descartadas": 0,
-        "erros": 0,
-    }
-
-    for vaga in vagas.data:
-        try:
-            resultado = await processar_importacao(UUID(vaga["id"]))
-
-            if resultado.status == "importada":
-                stats["importadas"] += 1
-            elif resultado.status == "aguardando_revisao":
-                stats["revisao"] += 1
-            elif resultado.status == "descartada":
-                stats["descartadas"] += 1
-            else:
-                stats["erros"] += 1
-
-        except Exception as e:
-            logger.error(f"Erro ao importar vaga {vaga['id']}: {e}")
-            stats["erros"] += 1
-
-    logger.info(
-        f"Importação: {stats['total']} processadas, "
-        f"{stats['importadas']} importadas, "
-        f"{stats['revisao']} para revisão, "
-        f"{stats['descartadas']} descartadas"
-    )
-
-    return stats
 
 
 # =============================================================================

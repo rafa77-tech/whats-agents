@@ -462,28 +462,23 @@ async def _emitir_evento_hospital(
         logger.warning(f"Erro ao emitir evento hospital: {e}")
 
 
-async def normalizar_ou_criar_hospital(
-    texto: str, regiao_grupo: str = ""
-) -> Optional[ResultadoHospitalAuto]:
-    """
-    Normaliza hospital, criando automaticamente se necessário.
+async def _buscar_existente(texto: str) -> Optional[ResultadoHospitalAuto]:
+    """Busca hospital existente por alias, similaridade ou safety net.
 
-    Args:
-        texto: Nome do hospital extraído
-        regiao_grupo: Região do grupo (para contexto)
+    Tenta, em ordem:
+    1. Alias exato
+    2. Similaridade (threshold 70%)
+    3. Safety net: remove sufixos (" - ", " (", " / ") e re-tenta
 
     Returns:
-        ResultadoHospitalAuto ou None
+        ResultadoHospitalAuto se encontrado, None caso contrário
     """
     from app.services.grupos.normalizador import (
         buscar_hospital_por_alias,
         buscar_hospital_por_similaridade,
     )
 
-    if not texto:
-        return None
-
-    # 1. Buscar alias exato
+    # 1. Alias exato
     match = await buscar_hospital_por_alias(texto)
     if match:
         await _emitir_evento_hospital(
@@ -499,7 +494,7 @@ async def normalizar_ou_criar_hospital(
             fonte="alias_exato",
         )
 
-    # 2. Buscar por similaridade (threshold alto: 70%)
+    # 2. Similaridade (threshold alto: 70%)
     match = await buscar_hospital_por_similaridade(texto, threshold=0.7)
     if match:
         await _emitir_evento_hospital(
@@ -515,7 +510,7 @@ async def normalizar_ou_criar_hospital(
             fonte="similaridade",
         )
 
-    # 2b. Safety net: tentar sem sufixo " - ", " (" ou " / " (setor/ala embutido)
+    # 3. Safety net: tentar sem sufixo (setor/ala embutido)
     for separador in [" - ", " (", " / "]:
         if separador in texto:
             texto_base = texto.split(separador)[0].strip()
@@ -547,7 +542,138 @@ async def normalizar_ou_criar_hospital(
                         fonte="safety_net_sem_sufixo",
                     )
 
-    # Gate de validação ANTES de criar (Sprint 60 - Épico 1)
+    return None
+
+
+async def _criar_e_rastrear_hospital(
+    info_web: InfoHospitalWeb, alias_original: str, fonte: str, evento_props: Optional[dict] = None
+) -> ResultadoHospitalAuto:
+    """Cria hospital, marca para revisão se necessário e emite evento.
+
+    Padrão compartilhado entre CNES, Google Places e LLM web.
+
+    Args:
+        info_web: Dados do hospital
+        alias_original: Nome original da mensagem
+        fonte: Identificador da fonte ("cnes", "google_places", "web")
+        evento_props: Props adicionais para o evento
+
+    Returns:
+        ResultadoHospitalAuto com hospital criado
+    """
+    hospital_id = await criar_hospital(info_web, alias_original)
+
+    if not hospital_tem_endereco_completo(info_web):
+        try:
+            supabase.table("hospitais").update({"precisa_revisao": True}).eq(
+                "id", str(hospital_id)
+            ).execute()
+        except Exception:
+            pass
+
+    props = {
+        "fonte": fonte,
+        "nome": info_web.nome_oficial,
+        "confianca": info_web.confianca,
+    }
+    if evento_props:
+        props.update(evento_props)
+
+    await _emitir_evento_hospital(
+        EventType.HOSPITAL_CREATED,
+        hospital_id=str(hospital_id),
+        props=props,
+    )
+
+    return ResultadoHospitalAuto(
+        hospital_id=hospital_id,
+        nome=info_web.nome_oficial,
+        score=info_web.confianca,
+        foi_criado=True,
+        fonte=fonte,
+    )
+
+
+async def _buscar_e_criar_via_cnes(
+    texto: str, cidade_hint: Optional[str], estado_hint: Optional[str]
+) -> Optional[ResultadoHospitalAuto]:
+    """Busca hospital no CNES e cria se encontrado."""
+    try:
+        from app.services.grupos.hospital_cnes import buscar_hospital_cnes
+
+        info_cnes = await buscar_hospital_cnes(texto, cidade_hint, estado_hint or "SP")
+        if info_cnes and info_cnes.score >= 0.6:
+            info_web = cnes_to_info_web(info_cnes)
+            return await _criar_e_rastrear_hospital(
+                info_web, texto, "cnes", {"cnes": info_cnes.cnes_codigo}
+            )
+    except Exception as e:
+        logger.warning(f"Erro no lookup CNES, continuando: {e}")
+
+    return None
+
+
+async def _buscar_e_criar_via_google(
+    texto: str, regiao_grupo: str
+) -> Optional[ResultadoHospitalAuto]:
+    """Busca hospital no Google Places e cria se encontrado."""
+    try:
+        from app.services.grupos.hospital_google_places import (
+            buscar_hospital_google_places,
+        )
+
+        info_google = await buscar_hospital_google_places(texto, regiao_grupo)
+        if info_google and info_google.confianca >= 0.7:
+            info_web = google_to_info_web(info_google)
+            return await _criar_e_rastrear_hospital(
+                info_web, texto, "google_places", {"place_id": info_google.place_id}
+            )
+    except Exception as e:
+        logger.warning(f"Erro no lookup Google Places, continuando: {e}")
+
+    return None
+
+
+async def _buscar_e_criar_via_web(texto: str, regiao_grupo: str) -> Optional[ResultadoHospitalAuto]:
+    """Busca hospital via LLM (fallback) e cria se encontrado."""
+    logger.info(f"Hospital não encontrado em CNES/Google, buscando via LLM: {texto}")
+
+    info = await buscar_hospital_web(texto, regiao_grupo)
+    if info and info.confianca >= 0.6:
+        return await _criar_e_rastrear_hospital(info, texto, "web")
+
+    return None
+
+
+async def normalizar_ou_criar_hospital(
+    texto: str, regiao_grupo: str = ""
+) -> Optional[ResultadoHospitalAuto]:
+    """
+    Normaliza hospital, criando automaticamente se necessário.
+
+    Estratégias em cascata:
+    1. Alias exato / similaridade / safety net
+    2. Validação de nome
+    3. CNES (grátis, local)
+    4. Google Places (pago, dados frescos)
+    5. LLM web (fallback)
+
+    Args:
+        texto: Nome do hospital extraído
+        regiao_grupo: Região do grupo (para contexto)
+
+    Returns:
+        ResultadoHospitalAuto ou None
+    """
+    if not texto:
+        return None
+
+    # 1. Buscar hospital existente
+    resultado = await _buscar_existente(texto)
+    if resultado:
+        return resultado
+
+    # 2. Gate de validação ANTES de criar (Sprint 60)
     from app.services.grupos.hospital_validator import validar_nome_hospital
 
     validacao = validar_nome_hospital(texto)
@@ -565,106 +691,20 @@ async def normalizar_ou_criar_hospital(
     # 3. Inferir cidade/estado da região do grupo
     cidade_hint, estado_hint = inferir_cidade_regiao(regiao_grupo)
 
-    # 4. Buscar no CNES (grátis, local)
-    try:
-        from app.services.grupos.hospital_cnes import buscar_hospital_cnes
+    # 4. CNES → Google Places → LLM Web (cascata)
+    resultado = await _buscar_e_criar_via_cnes(texto, cidade_hint, estado_hint)
+    if resultado:
+        return resultado
 
-        info_cnes = await buscar_hospital_cnes(texto, cidade_hint, estado_hint or "SP")
-        if info_cnes and info_cnes.score >= 0.6:
-            info_web = cnes_to_info_web(info_cnes)
-            hospital_id = await criar_hospital(info_web, texto)
-            if not hospital_tem_endereco_completo(info_web):
-                try:
-                    supabase.table("hospitais").update({"precisa_revisao": True}).eq(
-                        "id", str(hospital_id)
-                    ).execute()
-                except Exception:
-                    pass
-            await _emitir_evento_hospital(
-                EventType.HOSPITAL_CREATED,
-                hospital_id=str(hospital_id),
-                props={
-                    "fonte": "cnes",
-                    "nome": info_web.nome_oficial,
-                    "confianca": info_web.confianca,
-                    "cnes": info_cnes.cnes_codigo,
-                },
-            )
-            return ResultadoHospitalAuto(
-                hospital_id=hospital_id,
-                nome=info_web.nome_oficial,
-                score=info_web.confianca,
-                foi_criado=True,
-                fonte="cnes",
-            )
-    except Exception as e:
-        logger.warning(f"Erro no lookup CNES, continuando: {e}")
+    resultado = await _buscar_e_criar_via_google(texto, regiao_grupo)
+    if resultado:
+        return resultado
 
-    # 5. Buscar no Google Places (pago, mas dados frescos)
-    try:
-        from app.services.grupos.hospital_google_places import (
-            buscar_hospital_google_places,
-        )
+    resultado = await _buscar_e_criar_via_web(texto, regiao_grupo)
+    if resultado:
+        return resultado
 
-        info_google = await buscar_hospital_google_places(texto, regiao_grupo)
-        if info_google and info_google.confianca >= 0.7:
-            info_web = google_to_info_web(info_google)
-            hospital_id = await criar_hospital(info_web, texto)
-            if not hospital_tem_endereco_completo(info_web):
-                try:
-                    supabase.table("hospitais").update({"precisa_revisao": True}).eq(
-                        "id", str(hospital_id)
-                    ).execute()
-                except Exception:
-                    pass
-            await _emitir_evento_hospital(
-                EventType.HOSPITAL_CREATED,
-                hospital_id=str(hospital_id),
-                props={
-                    "fonte": "google_places",
-                    "nome": info_web.nome_oficial,
-                    "confianca": info_web.confianca,
-                    "place_id": info_google.place_id,
-                },
-            )
-            return ResultadoHospitalAuto(
-                hospital_id=hospital_id,
-                nome=info_web.nome_oficial,
-                score=info_web.confianca,
-                foi_criado=True,
-                fonte="google_places",
-            )
-    except Exception as e:
-        logger.warning(f"Erro no lookup Google Places, continuando: {e}")
-
-    # 6. Buscar na web (LLM - fallback)
-    logger.info(f"Hospital não encontrado em CNES/Google, buscando via LLM: {texto}")
-
-    info = await buscar_hospital_web(texto, regiao_grupo)
-
-    if info and info.confianca >= 0.6:
-        hospital_id = await criar_hospital(info, texto)
-        if not hospital_tem_endereco_completo(info):
-            try:
-                supabase.table("hospitais").update({"precisa_revisao": True}).eq(
-                    "id", str(hospital_id)
-                ).execute()
-            except Exception:
-                pass
-        await _emitir_evento_hospital(
-            EventType.HOSPITAL_CREATED,
-            hospital_id=str(hospital_id),
-            props={"fonte": "web", "nome": info.nome_oficial, "confianca": info.confianca},
-        )
-        return ResultadoHospitalAuto(
-            hospital_id=hospital_id,
-            nome=info.nome_oficial,
-            score=info.confianca,
-            foi_criado=True,
-            fonte="web",
-        )
-
-    # 7. Sem match — enviar para revisão humana
+    # 5. Sem match — enviar para revisão humana
     logger.warning(
         "Hospital não encontrado em nenhuma fonte, requer revisão humana",
         extra={"nome": texto, "regiao": regiao_grupo},

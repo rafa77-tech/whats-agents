@@ -3,6 +3,7 @@ Pipeline de processamento de mensagens de grupos.
 
 Sprint 14 - E11 - Worker e Orquestração
 Sprint 51 - Correções críticas de persistência
+Sprint 63 - Refatoração: helpers compartilhados, feature flags como constantes
 
 Orquestra os estágios de processamento:
 1. Heurística - filtro rápido
@@ -13,7 +14,9 @@ Orquestra os estágios de processamento:
 6. Importação - criar vaga final
 """
 
+import os
 from dataclasses import dataclass
+from enum import Enum
 from typing import Optional, List
 from uuid import UUID
 
@@ -26,7 +29,6 @@ from app.services.grupos.classificador import (
     atualizar_resultado_heuristica,
     atualizar_resultado_classificacao_llm,
 )
-from app.services.grupos.extrator import extrair_dados_mensagem
 from app.services.grupos.normalizador import normalizar_vaga
 from app.services.grupos.deduplicador import processar_deduplicacao
 from app.services.grupos.importador import processar_importacao
@@ -49,12 +51,28 @@ THRESHOLD_HEURISTICA_ALTO = GruposConfig.THRESHOLD_HEURISTICA_ALTO
 THRESHOLD_LLM = GruposConfig.THRESHOLD_LLM
 MAX_VAGAS_POR_MENSAGEM = GruposConfig.MAX_VAGAS_POR_MENSAGEM
 
+# Feature flags (lidos uma vez na importação do módulo)
+PIPELINE_V3_ENABLED = os.environ.get("PIPELINE_V3_ENABLED", "false").lower() == "true"
+
+
+class AcaoPipeline(str, Enum):
+    """Ações possíveis do resultado de cada estágio do pipeline."""
+
+    CLASSIFICAR = "classificar"
+    EXTRAIR = "extrair"
+    NORMALIZAR = "normalizar"
+    DEDUPLICAR = "deduplicar"
+    IMPORTAR = "importar"
+    FINALIZAR = "finalizar"
+    DESCARTAR = "descartar"
+    ERRO = "erro"
+
 
 @dataclass
 class ResultadoPipeline:
     """Resultado de um estágio do pipeline."""
 
-    acao: str  # proximo estágio ou ação
+    acao: str  # AcaoPipeline value (str Enum para backward compat)
     mensagem_id: Optional[UUID] = None
     vaga_grupo_id: Optional[UUID] = None
     motivo: Optional[str] = None
@@ -71,6 +89,74 @@ class ResultadoPipeline:
 
 class PipelineGrupos:
     """Processador do pipeline de mensagens de grupos."""
+
+    # -------------------------------------------------------------------------
+    # Helpers compartilhados
+    # -------------------------------------------------------------------------
+
+    async def _fetch_mensagem(
+        self, mensagem_id: UUID, campos: str = "*, grupos_whatsapp(nome, regiao)"
+    ) -> Optional[dict]:
+        """Busca dados da mensagem no banco.
+
+        Args:
+            mensagem_id: ID da mensagem
+            campos: Select fields (default inclui join com grupo)
+
+        Returns:
+            Dados da mensagem ou None
+        """
+        result = (
+            supabase.table("mensagens_grupo")
+            .select(campos)
+            .eq("id", str(mensagem_id))
+            .single()
+            .execute()
+        )
+        return result.data
+
+    def _aplicar_fan_out_cap(self, vagas: list, mensagem_id: UUID, label: str = "") -> list:
+        """Limita vagas ao MAX_VAGAS_POR_MENSAGEM.
+
+        Args:
+            vagas: Lista de vagas extraídas
+            mensagem_id: ID da mensagem (para log)
+            label: Prefixo opcional no log (ex: "[Pipeline v3] ")
+
+        Returns:
+            Lista truncada se necessário
+        """
+        if len(vagas) > MAX_VAGAS_POR_MENSAGEM:
+            logger.warning(
+                f"{label}Mensagem {mensagem_id} gerou {len(vagas)} vagas, "
+                f"limitando a {MAX_VAGAS_POR_MENSAGEM}"
+            )
+            return vagas[:MAX_VAGAS_POR_MENSAGEM]
+        return vagas
+
+    async def _criar_vagas_em_lote(
+        self, mensagem_id: UUID, vagas: list, msg_data: dict
+    ) -> List[str]:
+        """Cria vagas_grupo para cada vaga atômica.
+
+        Args:
+            mensagem_id: ID da mensagem original
+            vagas: Lista de VagaAtomica
+            msg_data: Dados completos da mensagem
+
+        Returns:
+            Lista de IDs de vagas criadas
+        """
+        vagas_criadas = []
+        for vaga in vagas:
+            vaga_id = await self._criar_vaga_grupo_v2(mensagem_id, vaga, msg_data)
+            if vaga_id:
+                vagas_criadas.append(str(vaga_id))
+        return vagas_criadas
+
+    # -------------------------------------------------------------------------
+    # Estágios do pipeline
+    # -------------------------------------------------------------------------
 
     async def processar_pendente(self, item: dict) -> ResultadoPipeline:
         """
@@ -99,13 +185,17 @@ class PipelineGrupos:
 
         if not msg.data:
             return ResultadoPipeline(
-                acao="descartar", mensagem_id=mensagem_id, motivo="mensagem_nao_encontrada"
+                acao=AcaoPipeline.DESCARTAR,
+                mensagem_id=mensagem_id,
+                motivo="mensagem_nao_encontrada",
             )
 
         texto = msg.data.get("texto", "")
         msg.data.get("grupos_whatsapp") or {}
         if not texto or len(texto) < 10:
-            return ResultadoPipeline(acao="descartar", mensagem_id=mensagem_id, motivo="sem_texto")
+            return ResultadoPipeline(
+                acao=AcaoPipeline.DESCARTAR, mensagem_id=mensagem_id, motivo="sem_texto"
+            )
 
         # Aplicar heurística
         resultado = calcular_score_heuristica(texto)
@@ -116,7 +206,7 @@ class PipelineGrupos:
         if resultado.score < THRESHOLD_HEURISTICA:
             logger.debug(f"Mensagem {mensagem_id} descartada por heurística: {resultado.score:.2f}")
             return ResultadoPipeline(
-                acao="descartar",
+                acao=AcaoPipeline.DESCARTAR,
                 mensagem_id=mensagem_id,
                 motivo="heuristica_baixa",
                 score=resultado.score,
@@ -125,10 +215,14 @@ class PipelineGrupos:
         if resultado.score >= THRESHOLD_HEURISTICA_ALTO:
             # Alta confiança - pula classificação LLM
             logger.debug(f"Mensagem {mensagem_id} aprovada direto: {resultado.score:.2f}")
-            return ResultadoPipeline(acao="extrair", mensagem_id=mensagem_id, score=resultado.score)
+            return ResultadoPipeline(
+                acao=AcaoPipeline.EXTRAIR, mensagem_id=mensagem_id, score=resultado.score
+            )
 
         # Score intermediário - precisa classificação LLM
-        return ResultadoPipeline(acao="classificar", mensagem_id=mensagem_id, score=resultado.score)
+        return ResultadoPipeline(
+            acao=AcaoPipeline.CLASSIFICAR, mensagem_id=mensagem_id, score=resultado.score
+        )
 
     async def processar_classificacao(self, item: dict) -> ResultadoPipeline:
         """
@@ -155,7 +249,9 @@ class PipelineGrupos:
 
         if not msg.data:
             return ResultadoPipeline(
-                acao="descartar", mensagem_id=mensagem_id, motivo="mensagem_nao_encontrada"
+                acao=AcaoPipeline.DESCARTAR,
+                mensagem_id=mensagem_id,
+                motivo="mensagem_nao_encontrada",
             )
 
         grupo_info = msg.data.get("grupos_whatsapp") or {}
@@ -175,12 +271,12 @@ class PipelineGrupos:
                 f"Mensagem {mensagem_id} classificada como oferta: {resultado.confianca:.2f}"
             )
             return ResultadoPipeline(
-                acao="extrair", mensagem_id=mensagem_id, confianca=resultado.confianca
+                acao=AcaoPipeline.EXTRAIR, mensagem_id=mensagem_id, confianca=resultado.confianca
             )
 
         logger.debug(f"Mensagem {mensagem_id} descartada pelo LLM: {resultado.confianca:.2f}")
         return ResultadoPipeline(
-            acao="descartar",
+            acao=AcaoPipeline.DESCARTAR,
             mensagem_id=mensagem_id,
             motivo="nao_eh_oferta",
             confianca=resultado.confianca,
@@ -193,7 +289,6 @@ class PipelineGrupos:
         Pipeline versões:
         - v3 (Sprint 52): LLM unificado - classifica E extrai em uma chamada
         - v2 (Sprint 40): Regex para extração
-        - v1 (legado): Extrator original
 
         Args:
             item: Item da fila com mensagem_id
@@ -201,76 +296,10 @@ class PipelineGrupos:
         Returns:
             ResultadoPipeline com ação a tomar
         """
-        import os
-
-        # Feature flag: usar pipeline v3 (Sprint 52 - LLM unificado)
-        # Default: False (gradual rollout)
-        use_v3 = os.getenv("PIPELINE_V3_ENABLED", "false").lower() == "true"
-
-        if use_v3:
+        if PIPELINE_V3_ENABLED:
             return await self.processar_extracao_v3(item)
 
-        # Feature flag: usar extrator v2 (Sprint 40)
-        # Default: True (v2 habilitado)
-        use_v2 = os.getenv("EXTRATOR_V2_ENABLED", "true").lower() == "true"
-
-        if use_v2:
-            return await self.processar_extracao_v2(item)
-
-        # Fallback para extrator v1 (legado)
-        mensagem_id = item.get("mensagem_id")
-        if isinstance(mensagem_id, str):
-            mensagem_id = UUID(mensagem_id)
-
-        # Buscar mensagem completa com dados do grupo
-        msg = (
-            supabase.table("mensagens_grupo")
-            .select("*, grupos_whatsapp(nome, regiao)")
-            .eq("id", str(mensagem_id))
-            .single()
-            .execute()
-        )
-
-        if not msg.data:
-            return ResultadoPipeline(
-                acao="descartar", mensagem_id=mensagem_id, motivo="mensagem_nao_encontrada"
-            )
-
-        grupo_info = msg.data.get("grupos_whatsapp") or {}
-
-        # Extrair dados
-        resultado = await extrair_dados_mensagem(
-            texto=msg.data.get("texto", ""),
-            nome_grupo=grupo_info.get("nome", ""),
-            regiao_grupo=grupo_info.get("regiao", ""),
-            nome_contato=msg.data.get("sender_nome", ""),
-        )
-
-        if not resultado.vagas:
-            return ResultadoPipeline(
-                acao="descartar", mensagem_id=mensagem_id, motivo="extracao_falhou"
-            )
-
-        # Fan-out cap: limitar vagas por mensagem
-        vagas = resultado.vagas
-        if len(vagas) > MAX_VAGAS_POR_MENSAGEM:
-            logger.warning(
-                f"Mensagem {mensagem_id} gerou {len(vagas)} vagas, "
-                f"limitando a {MAX_VAGAS_POR_MENSAGEM}"
-            )
-            vagas = vagas[:MAX_VAGAS_POR_MENSAGEM]
-
-        # Criar vagas_grupo para cada vaga extraída
-        vagas_criadas = []
-        for vaga in vagas:
-            vaga_id = await self._criar_vaga_grupo(mensagem_id, vaga, msg.data)
-            vagas_criadas.append(str(vaga_id))
-
-        logger.info(f"Mensagem {mensagem_id}: {len(vagas_criadas)} vaga(s) extraída(s)")
-
-        return ResultadoPipeline(
-            acao="normalizar", mensagem_id=mensagem_id, vagas_criadas=vagas_criadas
-        )
+        return await self.processar_extracao_v2(item)
 
     async def processar_extracao_v2(self, item: dict) -> ResultadoPipeline:
         """
@@ -291,27 +320,20 @@ class PipelineGrupos:
         if isinstance(mensagem_id, str):
             mensagem_id = UUID(mensagem_id)
 
-        # Buscar mensagem completa com dados do grupo
-        msg = (
-            supabase.table("mensagens_grupo")
-            .select("*, grupos_whatsapp(nome, regiao)")
-            .eq("id", str(mensagem_id))
-            .single()
-            .execute()
-        )
-
-        if not msg.data:
+        msg_data = await self._fetch_mensagem(mensagem_id)
+        if not msg_data:
             return ResultadoPipeline(
-                acao="descartar", mensagem_id=mensagem_id, motivo="mensagem_nao_encontrada"
+                acao=AcaoPipeline.DESCARTAR,
+                mensagem_id=mensagem_id,
+                motivo="mensagem_nao_encontrada",
             )
 
-        grupo_id = msg.data.get("grupo_id")
+        grupo_id = msg_data.get("grupo_id")
         if grupo_id:
             grupo_id = UUID(grupo_id) if isinstance(grupo_id, str) else grupo_id
 
-        # Extrair usando v2
         resultado = await extrair_vagas_v2(
-            texto=msg.data.get("texto", ""),
+            texto=msg_data.get("texto", ""),
             mensagem_id=mensagem_id,
             grupo_id=grupo_id,
             data_referencia=date.today(),
@@ -320,26 +342,13 @@ class PipelineGrupos:
         if not resultado.vagas:
             logger.warning(f"Extração v2 falhou para {mensagem_id}: {resultado.erro}")
             return ResultadoPipeline(
-                acao="descartar",
+                acao=AcaoPipeline.DESCARTAR,
                 mensagem_id=mensagem_id,
                 motivo=f"extracao_v2_falhou: {resultado.erro}",
             )
 
-        # Fan-out cap: limitar vagas por mensagem
-        vagas = resultado.vagas
-        if len(vagas) > MAX_VAGAS_POR_MENSAGEM:
-            logger.warning(
-                f"Mensagem {mensagem_id} gerou {len(vagas)} vagas [v2], "
-                f"limitando a {MAX_VAGAS_POR_MENSAGEM}"
-            )
-            vagas = vagas[:MAX_VAGAS_POR_MENSAGEM]
-
-        # Criar vagas_grupo para cada vaga atômica
-        vagas_criadas = []
-        for vaga in vagas:
-            vaga_id = await self._criar_vaga_grupo_v2(mensagem_id, vaga, msg.data)
-            if vaga_id:
-                vagas_criadas.append(str(vaga_id))
+        vagas = self._aplicar_fan_out_cap(resultado.vagas, mensagem_id, "[v2] ")
+        vagas_criadas = await self._criar_vagas_em_lote(mensagem_id, vagas, msg_data)
 
         logger.info(
             f"Mensagem {mensagem_id}: {len(vagas_criadas)} vaga(s) extraída(s) [v2] "
@@ -347,7 +356,7 @@ class PipelineGrupos:
         )
 
         return ResultadoPipeline(
-            acao="normalizar",
+            acao=AcaoPipeline.NORMALIZAR,
             mensagem_id=mensagem_id,
             vagas_criadas=vagas_criadas,
             detalhes={
@@ -380,20 +389,11 @@ class PipelineGrupos:
         if isinstance(mensagem_id, str):
             mensagem_id = UUID(mensagem_id)
 
-        # Sprint 51 - E04: Log estruturado de início
         start_time = time.time()
         logger.info(f"[Pipeline v3] INICIO mensagem_id={mensagem_id} estagio=EXTRACAO_LLM")
 
-        # Buscar mensagem completa com dados do grupo
-        msg = (
-            supabase.table("mensagens_grupo")
-            .select("*, grupos_whatsapp(nome, regiao)")
-            .eq("id", str(mensagem_id))
-            .single()
-            .execute()
-        )
-
-        if not msg.data:
+        msg_data = await self._fetch_mensagem(mensagem_id)
+        if not msg_data:
             tempo_ms = int((time.time() - start_time) * 1000)
             logger.warning(
                 f"[Pipeline v3] DESCARTADA mensagem_id={mensagem_id} "
@@ -401,22 +401,23 @@ class PipelineGrupos:
                 f"tempo_ms={tempo_ms}"
             )
             return ResultadoPipeline(
-                acao="descartar", mensagem_id=mensagem_id, motivo="mensagem_nao_encontrada"
+                acao=AcaoPipeline.DESCARTAR,
+                mensagem_id=mensagem_id,
+                motivo="mensagem_nao_encontrada",
             )
 
-        grupo_id = msg.data.get("grupo_id")
+        grupo_id = msg_data.get("grupo_id")
         if grupo_id:
             grupo_id = UUID(grupo_id) if isinstance(grupo_id, str) else grupo_id
 
-        grupo_info = msg.data.get("grupos_whatsapp") or {}
+        grupo_info = msg_data.get("grupos_whatsapp") or {}
 
-        # Extrair usando v3 (LLM unificado)
         resultado = await extrair_vagas_v3(
-            texto=msg.data.get("texto", ""),
+            texto=msg_data.get("texto", ""),
             mensagem_id=mensagem_id,
             grupo_id=grupo_id,
             nome_grupo=grupo_info.get("nome", ""),
-            nome_contato=msg.data.get("sender_nome", ""),
+            nome_contato=msg_data.get("sender_nome", ""),
             data_referencia=date.today(),
         )
 
@@ -428,7 +429,7 @@ class PipelineGrupos:
                 f"tempo_ms={tempo_ms} tokens={resultado.tokens_usados}"
             )
             return ResultadoPipeline(
-                acao="descartar",
+                acao=AcaoPipeline.DESCARTAR,
                 mensagem_id=mensagem_id,
                 motivo=f"extracao_v3_falhou: {resultado.erro}",
                 detalhes={
@@ -437,21 +438,8 @@ class PipelineGrupos:
                 },
             )
 
-        # Fan-out cap: limitar vagas por mensagem
-        vagas = resultado.vagas
-        if len(vagas) > MAX_VAGAS_POR_MENSAGEM:
-            logger.warning(
-                f"[Pipeline v3] Mensagem {mensagem_id} gerou {len(vagas)} vagas, "
-                f"limitando a {MAX_VAGAS_POR_MENSAGEM}"
-            )
-            vagas = vagas[:MAX_VAGAS_POR_MENSAGEM]
-
-        # Criar vagas_grupo para cada vaga atômica
-        vagas_criadas = []
-        for vaga in vagas:
-            vaga_id = await self._criar_vaga_grupo_v2(mensagem_id, vaga, msg.data)
-            if vaga_id:
-                vagas_criadas.append(str(vaga_id))
+        vagas = self._aplicar_fan_out_cap(resultado.vagas, mensagem_id, "[Pipeline v3] ")
+        vagas_criadas = await self._criar_vagas_em_lote(mensagem_id, vagas, msg_data)
 
         tempo_total_ms = int((time.time() - start_time) * 1000)
         logger.info(
@@ -462,7 +450,7 @@ class PipelineGrupos:
         )
 
         return ResultadoPipeline(
-            acao="normalizar",
+            acao=AcaoPipeline.NORMALIZAR,
             mensagem_id=mensagem_id,
             vagas_criadas=vagas_criadas,
             detalhes={
@@ -545,75 +533,6 @@ class PipelineGrupos:
             logger.error(f"Erro ao criar vaga_grupo v2: {e}")
             return None
 
-    async def _criar_vaga_grupo(self, mensagem_id: UUID, vaga, msg_data: dict) -> UUID:
-        """
-        Cria registro de vaga_grupo a partir de extração.
-
-        Args:
-            mensagem_id: ID da mensagem original
-            vaga: Dados extraídos da vaga
-            msg_data: Dados completos da mensagem
-
-        Returns:
-            ID da vaga_grupo criada
-        """
-        # Serializar data se existir
-        data_extraida = None
-        if vaga.dados and vaga.dados.data:
-            data_extraida = (
-                vaga.dados.data.isoformat()
-                if hasattr(vaga.dados.data, "isoformat")
-                else str(vaga.dados.data)
-            )
-
-        # Extrair valores com validação defensiva (Sprint 19 - fix)
-        valor = vaga.dados.valor if vaga.dados else None
-        valor_minimo = vaga.dados.valor_minimo if vaga.dados else None
-        valor_maximo = vaga.dados.valor_maximo if vaga.dados else None
-        valor_tipo = vaga.dados.valor_tipo if vaga.dados else "a_combinar"
-
-        # Validação defensiva antes do INSERT para evitar erro do trigger
-        # Se valor_tipo='fixo' mas não tem valor válido, mudar para 'a_combinar'
-        if valor_tipo == "fixo" and (valor is None or valor <= 0):
-            logger.warning(
-                f"Corrigindo valor_tipo: fixo->a_combinar (valor={valor}) "
-                f"para mensagem {mensagem_id}"
-            )
-            valor_tipo = "a_combinar"
-            valor = None
-
-        # Se valor_tipo='faixa' mas não tem limites, mudar para 'a_combinar'
-        if valor_tipo == "faixa" and valor_minimo is None and valor_maximo is None:
-            logger.warning(
-                f"Corrigindo valor_tipo: faixa->a_combinar (sem limites) "
-                f"para mensagem {mensagem_id}"
-            )
-            valor_tipo = "a_combinar"
-
-        dados = {
-            "mensagem_id": str(mensagem_id),
-            "grupo_origem_id": msg_data.get("grupo_id"),
-            "hospital_raw": vaga.dados.hospital if vaga.dados else None,
-            "especialidade_raw": vaga.dados.especialidade if vaga.dados else None,
-            "data": data_extraida,
-            "hora_inicio": vaga.dados.hora_inicio if vaga.dados else None,
-            "hora_fim": vaga.dados.hora_fim if vaga.dados else None,
-            # Campos de valor flexível (Sprint 19)
-            "valor": valor,
-            "valor_minimo": valor_minimo,
-            "valor_maximo": valor_maximo,
-            "valor_tipo": valor_tipo,
-            "observacoes_raw": vaga.dados.observacoes if vaga.dados else None,
-            "confianca_geral": vaga.confianca.media_ponderada() if vaga.confianca else None,
-            "status": "extraido",
-            # Rastreabilidade: instância que captou
-            "instance_name": msg_data.get("instance_name"),
-        }
-
-        result = supabase.table("vagas_grupo").insert(dados).execute()
-
-        return UUID(result.data[0]["id"])
-
     async def processar_normalizacao(self, item: dict) -> ResultadoPipeline:
         """
         Normaliza dados da vaga com entidades do banco.
@@ -626,7 +545,7 @@ class PipelineGrupos:
         """
         vaga_grupo_id = item.get("vaga_grupo_id")
         if not vaga_grupo_id:
-            return ResultadoPipeline(acao="erro", motivo="vaga_grupo_id_ausente")
+            return ResultadoPipeline(acao=AcaoPipeline.ERRO, motivo="vaga_grupo_id_ausente")
 
         if isinstance(vaga_grupo_id, str):
             vaga_grupo_id = UUID(vaga_grupo_id)
@@ -638,7 +557,7 @@ class PipelineGrupos:
             # Continua mesmo com erros de normalização - vai para revisão
 
         return ResultadoPipeline(
-            acao="deduplicar",
+            acao=AcaoPipeline.DEDUPLICAR,
             vaga_grupo_id=vaga_grupo_id,
             detalhes={
                 "hospital_match": resultado.hospital_nome,
@@ -658,7 +577,7 @@ class PipelineGrupos:
         """
         vaga_grupo_id = item.get("vaga_grupo_id")
         if not vaga_grupo_id:
-            return ResultadoPipeline(acao="erro", motivo="vaga_grupo_id_ausente")
+            return ResultadoPipeline(acao=AcaoPipeline.ERRO, motivo="vaga_grupo_id_ausente")
 
         if isinstance(vaga_grupo_id, str):
             vaga_grupo_id = UUID(vaga_grupo_id)
@@ -668,7 +587,7 @@ class PipelineGrupos:
         if resultado.duplicada:
             logger.debug(f"Vaga {vaga_grupo_id} é duplicata de {resultado.principal_id}")
             return ResultadoPipeline(
-                acao="finalizar",
+                acao=AcaoPipeline.FINALIZAR,
                 vaga_grupo_id=vaga_grupo_id,
                 motivo="duplicada",
                 detalhes={
@@ -678,7 +597,7 @@ class PipelineGrupos:
                 },
             )
 
-        return ResultadoPipeline(acao="importar", vaga_grupo_id=vaga_grupo_id)
+        return ResultadoPipeline(acao=AcaoPipeline.IMPORTAR, vaga_grupo_id=vaga_grupo_id)
 
     async def processar_importacao(self, item: dict) -> ResultadoPipeline:
         """
@@ -692,7 +611,7 @@ class PipelineGrupos:
         """
         vaga_grupo_id = item.get("vaga_grupo_id")
         if not vaga_grupo_id:
-            return ResultadoPipeline(acao="erro", motivo="vaga_grupo_id_ausente")
+            return ResultadoPipeline(acao=AcaoPipeline.ERRO, motivo="vaga_grupo_id_ausente")
 
         if isinstance(vaga_grupo_id, str):
             vaga_grupo_id = UUID(vaga_grupo_id)
@@ -700,7 +619,7 @@ class PipelineGrupos:
         resultado = await processar_importacao(vaga_grupo_id)
 
         return ResultadoPipeline(
-            acao="finalizar",
+            acao=AcaoPipeline.FINALIZAR,
             vaga_grupo_id=vaga_grupo_id,
             detalhes={
                 "acao": resultado.acao,
@@ -719,20 +638,22 @@ def mapear_acao_para_estagio(acao: str) -> str:
     """
     Mapeia ação do resultado para próximo estágio.
 
+    Aceita tanto AcaoPipeline quanto strings (backward compat).
+
     Args:
-        acao: Ação retornada pelo pipeline
+        acao: Ação retornada pelo pipeline (AcaoPipeline ou str)
 
     Returns:
         Nome do próximo estágio
     """
     mapeamento = {
-        "descartar": "descartado",
-        "classificar": "classificacao",
-        "extrair": "extracao",
-        "normalizar": "normalizacao",
-        "deduplicar": "deduplicacao",
-        "importar": "importacao",
-        "finalizar": "finalizado",
-        "erro": "erro",
+        AcaoPipeline.DESCARTAR: "descartado",
+        AcaoPipeline.CLASSIFICAR: "classificacao",
+        AcaoPipeline.EXTRAIR: "extracao",
+        AcaoPipeline.NORMALIZAR: "normalizacao",
+        AcaoPipeline.DEDUPLICAR: "deduplicacao",
+        AcaoPipeline.IMPORTAR: "importacao",
+        AcaoPipeline.FINALIZAR: "finalizado",
+        AcaoPipeline.ERRO: "erro",
     }
     return mapeamento.get(acao, "erro")

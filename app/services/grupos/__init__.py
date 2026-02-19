@@ -21,14 +21,6 @@ from app.services.grupos.classificador_llm import (
     classificar_com_llm,
     ResultadoClassificacaoLLM,
 )
-from app.services.grupos.extrator import (
-    extrair_dados_mensagem,
-    extrair_batch,
-    VagaExtraida,
-    DadosVagaExtraida,
-    ConfiancaExtracao,
-    ResultadoExtracao,
-)
 from app.services.grupos.validacoes import (
     validar_vaga_completa,
     validar_valor,
@@ -59,7 +51,6 @@ from app.services.grupos.hospital_web import (
 from app.services.grupos.deduplicador import (
     calcular_hash_dedup,
     processar_deduplicacao,
-    processar_batch_deduplicacao,
     listar_fontes_vaga,
     ResultadoDedup,
 )
@@ -69,7 +60,6 @@ from app.services.grupos.importador import (
     decidir_acao,
     criar_vaga_principal,
     processar_importacao,
-    processar_batch_importacao,
     listar_vagas_para_revisao,
     aprovar_vaga_revisao,
     rejeitar_vaga_revisao,
@@ -118,13 +108,6 @@ __all__ = [
     "classificar_batch_llm",
     "classificar_com_llm",
     "ResultadoClassificacaoLLM",
-    # Extrator
-    "extrair_dados_mensagem",
-    "extrair_batch",
-    "VagaExtraida",
-    "DadosVagaExtraida",
-    "ConfiancaExtracao",
-    "ResultadoExtracao",
     # Validações
     "validar_vaga_completa",
     "validar_valor",
@@ -152,7 +135,6 @@ __all__ = [
     # Deduplicador
     "calcular_hash_dedup",
     "processar_deduplicacao",
-    "processar_batch_deduplicacao",
     "listar_fontes_vaga",
     "ResultadoDedup",
     # Importador
@@ -161,7 +143,6 @@ __all__ = [
     "decidir_acao",
     "criar_vaga_principal",
     "processar_importacao",
-    "processar_batch_importacao",
     "listar_vagas_para_revisao",
     "aprovar_vaga_revisao",
     "rejeitar_vaga_revisao",

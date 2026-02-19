@@ -22,6 +22,11 @@ from app.services.grupos.hospital_web import (
     REGIOES_CONHECIDAS,
     cnes_to_info_web,
     google_to_info_web,
+    _buscar_existente,
+    _criar_e_rastrear_hospital,
+    _buscar_e_criar_via_cnes,
+    _buscar_e_criar_via_google,
+    _buscar_e_criar_via_web,
 )
 from app.services.grupos.hospital_cnes import InfoCNES
 from app.services.grupos.hospital_google_places import InfoGooglePlaces
@@ -1149,3 +1154,388 @@ class TestCriarHospitalDedup:
 
         # Should return the destino_id (existing hospital)
         assert str(result) == destino_id
+
+
+# =====================================================================
+# Sprint 63 — Testes das funções extraídas (refatoração god function)
+# =====================================================================
+
+
+class TestBuscarExistente:
+    """Testes da função _buscar_existente."""
+
+    @pytest.mark.asyncio
+    async def test_encontra_alias_exato(self):
+        """Deve retornar resultado quando alias exato é encontrado."""
+        from app.services.grupos.normalizador import ResultadoMatch
+
+        hospital_id = uuid4()
+
+        with (
+            patch(
+                "app.services.grupos.normalizador.buscar_hospital_por_alias",
+                new_callable=AsyncMock,
+                return_value=ResultadoMatch(
+                    entidade_id=hospital_id, nome="Hospital ABC", score=1.0, fonte="alias_exato"
+                ),
+            ),
+            patch("app.services.grupos.hospital_web.emit_event", new_callable=AsyncMock),
+        ):
+            resultado = await _buscar_existente("Hospital ABC")
+
+        assert resultado is not None
+        assert resultado.hospital_id == hospital_id
+        assert resultado.fonte == "alias_exato"
+        assert resultado.foi_criado is False
+
+    @pytest.mark.asyncio
+    async def test_encontra_similaridade(self):
+        """Deve retornar resultado quando similaridade é encontrada."""
+        from app.services.grupos.normalizador import ResultadoMatch
+
+        hospital_id = uuid4()
+
+        with (
+            patch(
+                "app.services.grupos.normalizador.buscar_hospital_por_alias",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.grupos.normalizador.buscar_hospital_por_similaridade",
+                new_callable=AsyncMock,
+                return_value=ResultadoMatch(
+                    entidade_id=hospital_id, nome="Hospital ABC", score=0.85, fonte="nome_similar"
+                ),
+            ),
+            patch("app.services.grupos.hospital_web.emit_event", new_callable=AsyncMock),
+        ):
+            resultado = await _buscar_existente("Hospital ABC Teste")
+
+        assert resultado is not None
+        assert resultado.fonte == "similaridade"
+
+    @pytest.mark.asyncio
+    async def test_retorna_none_sem_match(self):
+        """Deve retornar None quando nenhuma busca encontra match."""
+        with (
+            patch(
+                "app.services.grupos.normalizador.buscar_hospital_por_alias",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.services.grupos.normalizador.buscar_hospital_por_similaridade",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+        ):
+            resultado = await _buscar_existente("Hospital XYZ Nao Existe")
+
+        assert resultado is None
+
+    @pytest.mark.asyncio
+    async def test_safety_net_encontra_sem_sufixo(self):
+        """Deve encontrar hospital removendo sufixo com separador."""
+        from app.services.grupos.normalizador import ResultadoMatch
+
+        hospital_id = uuid4()
+
+        with (
+            patch(
+                "app.services.grupos.normalizador.buscar_hospital_por_alias",
+                new_callable=AsyncMock,
+                side_effect=[
+                    None,
+                    ResultadoMatch(
+                        entidade_id=hospital_id,
+                        nome="Hospital ABC",
+                        score=0.95,
+                        fonte="alias_exato",
+                    ),
+                ],
+            ),
+            patch(
+                "app.services.grupos.normalizador.buscar_hospital_por_similaridade",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("app.services.grupos.hospital_web.emit_event", new_callable=AsyncMock),
+        ):
+            resultado = await _buscar_existente("Hospital ABC - Ala Norte")
+
+        assert resultado is not None
+        assert resultado.fonte == "safety_net_sem_sufixo"
+
+
+class TestCriarERastrearHospital:
+    """Testes da função _criar_e_rastrear_hospital."""
+
+    @pytest.fixture
+    def mock_supabase(self):
+        """Mock do Supabase."""
+        with patch("app.services.grupos.hospital_web.supabase") as mock:
+            hospital_id = str(uuid4())
+            mock.rpc.return_value.execute.return_value = MagicMock(
+                data=[
+                    {
+                        "out_hospital_id": hospital_id,
+                        "out_nome": "Hospital Teste",
+                        "out_foi_criado": True,
+                    }
+                ]
+            )
+            mock.table.return_value.update.return_value.eq.return_value.execute.return_value = (
+                MagicMock()
+            )
+            mock.table.return_value.insert.return_value.execute.return_value = MagicMock()
+            mock.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+                data=[]
+            )
+            yield mock, hospital_id
+
+    @pytest.mark.asyncio
+    async def test_cria_hospital_e_emite_evento(self, mock_supabase):
+        """Deve criar hospital e emitir evento HOSPITAL_CREATED."""
+        mock, hospital_id = mock_supabase
+
+        info = InfoHospitalWeb(
+            nome_oficial="Hospital CNES", cidade="SP", estado="SP", confianca=0.8, fonte="cnes"
+        )
+
+        with patch(
+            "app.services.grupos.hospital_web.emit_event", new_callable=AsyncMock
+        ) as mock_emit:
+            resultado = await _criar_e_rastrear_hospital(info, "H CNES", "cnes", {"cnes": "123"})
+
+        assert resultado.foi_criado is True
+        assert resultado.fonte == "cnes"
+        assert resultado.nome == "Hospital CNES"
+
+    @pytest.mark.asyncio
+    async def test_marca_revisao_sem_endereco_completo(self, mock_supabase):
+        """Deve marcar para revisão quando endereço incompleto."""
+        mock, hospital_id = mock_supabase
+
+        info = InfoHospitalWeb(nome_oficial="Hospital Simples", confianca=0.7)
+
+        with patch("app.services.grupos.hospital_web.emit_event", new_callable=AsyncMock):
+            await _criar_e_rastrear_hospital(info, "H Simples", "web")
+
+        # Verifica que update com precisa_revisao=True foi chamado
+        update_calls = mock.table.return_value.update.call_args_list
+        revisao_chamada = any(call[0][0].get("precisa_revisao") is True for call in update_calls)
+        assert revisao_chamada
+
+
+class TestBuscarECriarViaCnes:
+    """Testes da função _buscar_e_criar_via_cnes."""
+
+    @pytest.fixture
+    def mock_supabase(self):
+        with patch("app.services.grupos.hospital_web.supabase") as mock:
+            hospital_id = str(uuid4())
+            mock.rpc.return_value.execute.return_value = MagicMock(
+                data=[
+                    {
+                        "out_hospital_id": hospital_id,
+                        "out_nome": "Hospital CNES",
+                        "out_foi_criado": True,
+                    }
+                ]
+            )
+            mock.table.return_value.update.return_value.eq.return_value.execute.return_value = (
+                MagicMock()
+            )
+            mock.table.return_value.insert.return_value.execute.return_value = MagicMock()
+            mock.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+                data=[]
+            )
+            yield mock
+
+    @pytest.mark.asyncio
+    async def test_retorna_resultado_quando_cnes_encontra(self, mock_supabase):
+        """Deve retornar resultado quando CNES encontra hospital com score >= 0.6."""
+        cnes_info = InfoCNES(
+            cnes_codigo="2077485", nome_oficial="Hospital CNES", cidade="SP", estado="SP", score=0.7
+        )
+
+        with (
+            patch(
+                "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
+                new_callable=AsyncMock,
+                return_value=cnes_info,
+            ),
+            patch("app.services.grupos.hospital_web.emit_event", new_callable=AsyncMock),
+        ):
+            resultado = await _buscar_e_criar_via_cnes("Hospital CNES", "São Paulo", "SP")
+
+        assert resultado is not None
+        assert resultado.fonte == "cnes"
+
+    @pytest.mark.asyncio
+    async def test_retorna_none_quando_cnes_score_baixo(self, mock_supabase):
+        """Deve retornar None quando CNES tem score < 0.6."""
+        cnes_info = InfoCNES(
+            cnes_codigo="123", nome_oficial="H", cidade="SP", estado="SP", score=0.3
+        )
+
+        with patch(
+            "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
+            new_callable=AsyncMock,
+            return_value=cnes_info,
+        ):
+            resultado = await _buscar_e_criar_via_cnes("Hospital XYZ", None, None)
+
+        assert resultado is None
+
+    @pytest.mark.asyncio
+    async def test_retorna_none_quando_cnes_falha(self, mock_supabase):
+        """Deve retornar None quando CNES lança exceção."""
+        with patch(
+            "app.services.grupos.hospital_cnes.buscar_hospital_cnes",
+            new_callable=AsyncMock,
+            side_effect=Exception("CNES offline"),
+        ):
+            resultado = await _buscar_e_criar_via_cnes("Hospital Erro", None, None)
+
+        assert resultado is None
+
+
+class TestBuscarECriarViaGoogle:
+    """Testes da função _buscar_e_criar_via_google."""
+
+    @pytest.fixture
+    def mock_supabase(self):
+        with patch("app.services.grupos.hospital_web.supabase") as mock:
+            hospital_id = str(uuid4())
+            mock.rpc.return_value.execute.return_value = MagicMock(
+                data=[
+                    {
+                        "out_hospital_id": hospital_id,
+                        "out_nome": "Hospital Google",
+                        "out_foi_criado": True,
+                    }
+                ]
+            )
+            mock.table.return_value.update.return_value.eq.return_value.execute.return_value = (
+                MagicMock()
+            )
+            mock.table.return_value.insert.return_value.execute.return_value = MagicMock()
+            mock.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+                data=[]
+            )
+            yield mock
+
+    @pytest.mark.asyncio
+    async def test_retorna_resultado_quando_google_encontra(self, mock_supabase):
+        """Deve retornar resultado quando Google Places encontra hospital."""
+        google_info = InfoGooglePlaces(
+            place_id="ChIJ_abc",
+            nome="Hospital Google",
+            endereco_formatado="Rua XYZ",
+            cidade="São Paulo",
+            estado="SP",
+            confianca=0.85,
+        )
+
+        with (
+            patch(
+                "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
+                new_callable=AsyncMock,
+                return_value=google_info,
+            ),
+            patch("app.services.grupos.hospital_web.emit_event", new_callable=AsyncMock),
+        ):
+            resultado = await _buscar_e_criar_via_google("Hospital Google", "SP")
+
+        assert resultado is not None
+        assert resultado.fonte == "google_places"
+
+    @pytest.mark.asyncio
+    async def test_retorna_none_quando_google_confianca_baixa(self, mock_supabase):
+        """Deve retornar None quando Google tem confiança < 0.7."""
+        google_low = InfoGooglePlaces(
+            place_id="abc", nome="H", endereco_formatado="", confianca=0.5
+        )
+
+        with patch(
+            "app.services.grupos.hospital_google_places.buscar_hospital_google_places",
+            new_callable=AsyncMock,
+            return_value=google_low,
+        ):
+            resultado = await _buscar_e_criar_via_google("Hospital XYZ", "SP")
+
+        assert resultado is None
+
+
+class TestBuscarECriarViaWeb:
+    """Testes da função _buscar_e_criar_via_web."""
+
+    @pytest.fixture
+    def mock_supabase(self):
+        with patch("app.services.grupos.hospital_web.supabase") as mock:
+            hospital_id = str(uuid4())
+            mock.rpc.return_value.execute.return_value = MagicMock(
+                data=[
+                    {
+                        "out_hospital_id": hospital_id,
+                        "out_nome": "Hospital LLM",
+                        "out_foi_criado": True,
+                    }
+                ]
+            )
+            mock.table.return_value.update.return_value.eq.return_value.execute.return_value = (
+                MagicMock()
+            )
+            mock.table.return_value.insert.return_value.execute.return_value = MagicMock()
+            mock.table.return_value.select.return_value.eq.return_value.neq.return_value.limit.return_value.execute.return_value = MagicMock(
+                data=[]
+            )
+            yield mock
+
+    @pytest.mark.asyncio
+    async def test_retorna_resultado_quando_llm_encontra(self, mock_supabase):
+        """Deve retornar resultado quando LLM web encontra hospital."""
+        llm_info = InfoHospitalWeb(
+            nome_oficial="Hospital LLM", cidade="SP", estado="SP", confianca=0.8
+        )
+
+        with (
+            patch(
+                "app.services.grupos.hospital_web.buscar_hospital_web",
+                new_callable=AsyncMock,
+                return_value=llm_info,
+            ),
+            patch("app.services.grupos.hospital_web.emit_event", new_callable=AsyncMock),
+        ):
+            resultado = await _buscar_e_criar_via_web("Hospital LLM", "SP")
+
+        assert resultado is not None
+        assert resultado.fonte == "web"
+
+    @pytest.mark.asyncio
+    async def test_retorna_none_quando_llm_confianca_baixa(self, mock_supabase):
+        """Deve retornar None quando LLM tem confiança < 0.6."""
+        llm_low = InfoHospitalWeb(nome_oficial="Hospital?", confianca=0.3)
+
+        with patch(
+            "app.services.grupos.hospital_web.buscar_hospital_web",
+            new_callable=AsyncMock,
+            return_value=llm_low,
+        ):
+            resultado = await _buscar_e_criar_via_web("Hospital XYZ", "SP")
+
+        assert resultado is None
+
+    @pytest.mark.asyncio
+    async def test_retorna_none_quando_llm_retorna_none(self, mock_supabase):
+        """Deve retornar None quando LLM não encontra nada."""
+        with patch(
+            "app.services.grupos.hospital_web.buscar_hospital_web",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            resultado = await _buscar_e_criar_via_web("Hospital XYZ", "SP")
+
+        assert resultado is None

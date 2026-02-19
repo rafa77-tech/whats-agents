@@ -358,13 +358,11 @@ async def marcar_como_finalizado(item_id: UUID) -> None:
 
 async def marcar_como_descartado(item_id: UUID, motivo: str) -> None:
     """Marca item como descartado."""
-    supabase.table("fila_processamento_grupos").update(
-        {
-            "estagio": EstagioPipeline.DESCARTADO.value,
-            "ultimo_erro": f"descartado: {motivo}",
-            "updated_at": datetime.now(UTC).isoformat(),
-        }
-    ).eq("id", str(item_id)).execute()
+    await atualizar_estagio(
+        item_id=item_id,
+        novo_estagio=EstagioPipeline.DESCARTADO,
+        erro=f"descartado: {motivo}",
+    )
 
 
 # =============================================================================

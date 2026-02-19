@@ -288,57 +288,6 @@ async def processar_deduplicacao(vaga_id: UUID) -> ResultadoDedup:
     )
 
 
-async def processar_batch_deduplicacao(limite: int = 100) -> dict:
-    """
-    Processa batch de vagas normalizadas para deduplicação.
-
-    Args:
-        limite: Máximo de vagas a processar
-
-    Returns:
-        Estatísticas do processamento
-    """
-    # Buscar vagas normalizadas sem hash
-    vagas = (
-        supabase.table("vagas_grupo")
-        .select("id")
-        .eq("status", "normalizada")
-        .is_("hash_dedup", "null")
-        .order("created_at")
-        .limit(limite)
-        .execute()
-    )
-
-    stats = {
-        "total": len(vagas.data),
-        "novas": 0,
-        "duplicadas": 0,
-        "erros": 0,
-    }
-
-    for vaga in vagas.data:
-        try:
-            resultado = await processar_deduplicacao(UUID(vaga["id"]))
-
-            if resultado.erro:
-                stats["erros"] += 1
-            elif resultado.duplicada:
-                stats["duplicadas"] += 1
-            else:
-                stats["novas"] += 1
-
-        except Exception as e:
-            logger.error(f"Erro ao deduplicar vaga {vaga['id']}: {e}")
-            stats["erros"] += 1
-
-    logger.info(
-        f"Deduplicação: {stats['total']} processadas, "
-        f"{stats['novas']} novas, {stats['duplicadas']} duplicadas"
-    )
-
-    return stats
-
-
 # =============================================================================
 # Funções de Consulta
 # =============================================================================

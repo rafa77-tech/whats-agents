@@ -11,19 +11,21 @@ from uuid import uuid4
 from app.services.grupos.pipeline_worker import (
     PipelineGrupos,
     ResultadoPipeline,
+    AcaoPipeline,
     mapear_acao_para_estagio,
     THRESHOLD_HEURISTICA,
     THRESHOLD_HEURISTICA_ALTO,
     THRESHOLD_LLM,
     MAX_VAGAS_POR_MENSAGEM,
+    PIPELINE_V3_ENABLED,
 )
 from app.services.grupos.heuristica import ResultadoHeuristica
 from app.services.grupos.classificador_llm import ResultadoClassificacaoLLM
-from app.services.grupos.extrator import (
-    ResultadoExtracao,
-    VagaExtraida,
-    DadosVagaExtraida,
-    ConfiancaExtracao,
+from app.services.grupos.extrator_v2.types import (
+    VagaAtomica,
+    ResultadoExtracaoV2,
+    DiaSemana,
+    Periodo,
 )
 from app.services.grupos.normalizador import ResultadoNormalizacao
 from app.services.grupos.deduplicador import ResultadoDedup
@@ -49,6 +51,41 @@ class TestConstantes:
     def test_threshold_llm(self):
         """Threshold de confiança do LLM."""
         assert THRESHOLD_LLM == 0.7
+
+
+class TestAcaoPipeline:
+    """Testes do enum AcaoPipeline."""
+
+    def test_str_enum_compatibilidade(self):
+        """AcaoPipeline deve ser compatível com strings."""
+        assert AcaoPipeline.DESCARTAR == "descartar"
+        assert AcaoPipeline.CLASSIFICAR == "classificar"
+        assert AcaoPipeline.EXTRAIR == "extrair"
+        assert AcaoPipeline.NORMALIZAR == "normalizar"
+        assert AcaoPipeline.DEDUPLICAR == "deduplicar"
+        assert AcaoPipeline.IMPORTAR == "importar"
+        assert AcaoPipeline.FINALIZAR == "finalizar"
+        assert AcaoPipeline.ERRO == "erro"
+
+    def test_mapeamento_com_enum(self):
+        """mapear_acao_para_estagio deve funcionar com AcaoPipeline."""
+        assert mapear_acao_para_estagio(AcaoPipeline.DESCARTAR) == "descartado"
+        assert mapear_acao_para_estagio(AcaoPipeline.CLASSIFICAR) == "classificacao"
+        assert mapear_acao_para_estagio(AcaoPipeline.EXTRAIR) == "extracao"
+        assert mapear_acao_para_estagio(AcaoPipeline.NORMALIZAR) == "normalizacao"
+        assert mapear_acao_para_estagio(AcaoPipeline.DEDUPLICAR) == "deduplicacao"
+        assert mapear_acao_para_estagio(AcaoPipeline.IMPORTAR) == "importacao"
+        assert mapear_acao_para_estagio(AcaoPipeline.FINALIZAR) == "finalizado"
+        assert mapear_acao_para_estagio(AcaoPipeline.ERRO) == "erro"
+
+    def test_mapeamento_com_string_backward_compat(self):
+        """mapear_acao_para_estagio deve funcionar com strings puras."""
+        assert mapear_acao_para_estagio("descartar") == "descartado"
+        assert mapear_acao_para_estagio("extrair") == "extracao"
+
+    def test_mapeamento_acao_desconhecida(self):
+        """Ação desconhecida deve retornar 'erro'."""
+        assert mapear_acao_para_estagio("acao_inventada") == "erro"
 
 
 # =============================================================================
@@ -331,7 +368,7 @@ class TestPipelineProcessarClassificacao:
 
 
 class TestPipelineProcessarExtracao:
-    """Testes do estágio extração."""
+    """Testes do estágio extração (v2)."""
 
     @pytest.fixture
     def pipeline(self):
@@ -339,75 +376,68 @@ class TestPipelineProcessarExtracao:
         return PipelineGrupos()
 
     @pytest.mark.asyncio
-    async def test_extracao_sucesso(self, pipeline):
-        """Extração bem-sucedida (usando v1 para teste)."""
-        import os
+    async def test_extracao_v2_sucesso(self, pipeline):
+        """Extração v2 bem-sucedida."""
+        from datetime import date
 
         mensagem_id = uuid4()
         vaga_id = uuid4()
 
-        # Force v1 extractor for this test (testes escritos para v1)
-        with patch.dict(os.environ, {"EXTRATOR_V2_ENABLED": "false"}):
-            with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
-                # Mock busca mensagem
-                mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
-                    data={
-                        "texto": "Plantão Hospital São Luiz",
-                        "nome_grupo": "Vagas",
-                        "regiao": "SP",
-                        "nome_contato": "Escalista",
-                        "grupo_id": str(uuid4()),
-                    }
+        with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
+            mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+                data={
+                    "texto": "Plantão Hospital São Luiz",
+                    "nome_grupo": "Vagas",
+                    "grupo_id": str(uuid4()),
+                    "sender_nome": "Escalista",
+                }
+            )
+            mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
+                data=[{"id": str(vaga_id)}]
+            )
+
+            with patch("app.services.grupos.pipeline_worker.extrair_vagas_v2") as mock_extrator:
+                mock_extrator.return_value = ResultadoExtracaoV2(
+                    vagas=[
+                        VagaAtomica(
+                            data=date(2026, 3, 15),
+                            dia_semana=DiaSemana.SEGUNDA,
+                            periodo=Periodo.DIURNO,
+                            valor=2500,
+                            hospital_raw="São Luiz",
+                            especialidade_raw="Clínica Médica",
+                        )
+                    ],
+                    total_vagas=1,
                 )
 
-                # Mock criação vaga
-                mock_supabase.table.return_value.insert.return_value.execute.return_value = (
-                    MagicMock(data=[{"id": str(vaga_id)}])
-                )
+                resultado = await pipeline.processar_extracao({"mensagem_id": str(mensagem_id)})
 
-                with patch(
-                    "app.services.grupos.pipeline_worker.extrair_dados_mensagem"
-                ) as mock_extrator:
-                    mock_extrator.return_value = ResultadoExtracao(
-                        vagas=[
-                            VagaExtraida(
-                                dados=DadosVagaExtraida(
-                                    hospital="São Luiz", especialidade="Clínica"
-                                ),
-                                confianca=ConfiancaExtracao(hospital=0.9, especialidade=0.7),
-                            )
-                        ],
-                        total_vagas=1,
-                    )
-
-                    resultado = await pipeline.processar_extracao({"mensagem_id": str(mensagem_id)})
-
-                    assert resultado.acao == "normalizar"
-                    assert len(resultado.vagas_criadas) == 1
+                assert resultado.acao == "normalizar"
+                assert len(resultado.vagas_criadas) == 1
 
     @pytest.mark.asyncio
-    async def test_extracao_falha(self, pipeline):
-        """Extração sem vagas (usando v1 para teste)."""
-        import os
-
+    async def test_extracao_v2_falha(self, pipeline):
+        """Extração v2 sem vagas."""
         mensagem_id = uuid4()
 
-        # Force v1 extractor for this test (testes escritos para v1)
-        with patch.dict(os.environ, {"EXTRATOR_V2_ENABLED": "false"}):
-            with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
-                mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
-                    data={"texto": "Texto confuso", "nome_grupo": "Vagas"}
+        with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
+            mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+                data={
+                    "texto": "Texto confuso",
+                    "nome_grupo": "Vagas",
+                    "grupo_id": str(uuid4()),
+                }
+            )
+
+            with patch("app.services.grupos.pipeline_worker.extrair_vagas_v2") as mock_extrator:
+                mock_extrator.return_value = ResultadoExtracaoV2(
+                    erro="nao_eh_vaga", vagas=[], total_vagas=0
                 )
 
-                with patch(
-                    "app.services.grupos.pipeline_worker.extrair_dados_mensagem"
-                ) as mock_extrator:
-                    mock_extrator.return_value = ResultadoExtracao(vagas=[], total_vagas=0)
+                resultado = await pipeline.processar_extracao({"mensagem_id": str(mensagem_id)})
 
-                    resultado = await pipeline.processar_extracao({"mensagem_id": str(mensagem_id)})
-
-                    assert resultado.acao == "descartar"
-                    assert resultado.motivo == "extracao_falhou"
+                assert resultado.acao == "descartar"
 
 
 class TestPipelineProcessarNormalizacao:
@@ -548,9 +578,9 @@ class TestFanOutCap:
         assert MAX_VAGAS_POR_MENSAGEM == 20
 
     @pytest.mark.asyncio
-    async def test_extracao_v1_respeita_cap(self):
-        """Extração v1 deve limitar vagas ao MAX_VAGAS_POR_MENSAGEM."""
-        import os
+    async def test_extracao_v2_respeita_cap(self):
+        """Extração v2 deve limitar vagas ao MAX_VAGAS_POR_MENSAGEM."""
+        from datetime import date
 
         mensagem_id = uuid4()
         pipeline = PipelineGrupos()
@@ -558,79 +588,185 @@ class TestFanOutCap:
         # Gerar mais vagas que o limite
         n_vagas = MAX_VAGAS_POR_MENSAGEM + 10
         vagas = [
-            VagaExtraida(
-                dados=DadosVagaExtraida(hospital=f"Hospital {i}", especialidade="CM"),
-                confianca=ConfiancaExtracao(hospital=0.9, especialidade=0.7),
+            VagaAtomica(
+                data=date(2026, 3, 15),
+                dia_semana=DiaSemana.SEGUNDA,
+                periodo=Periodo.DIURNO,
+                valor=2000,
+                hospital_raw=f"Hospital {i}",
+                especialidade_raw="Clínica Médica",
             )
             for i in range(n_vagas)
         ]
 
-        with patch.dict(os.environ, {"EXTRATOR_V2_ENABLED": "false"}):
-            with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
-                mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
-                    data={
-                        "texto": "Muitas vagas",
-                        "nome_grupo": "Vagas",
-                        "grupo_id": str(uuid4()),
-                    }
-                )
-                mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
-                    data=[{"id": str(uuid4())}]
-                )
+        with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
+            mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+                data={
+                    "texto": "Muitas vagas",
+                    "nome_grupo": "Vagas",
+                    "grupo_id": str(uuid4()),
+                }
+            )
+            mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
+                data=[{"id": str(uuid4())}]
+            )
 
-                with patch(
-                    "app.services.grupos.pipeline_worker.extrair_dados_mensagem"
-                ) as mock_extrator:
-                    mock_extrator.return_value = ResultadoExtracao(
-                        vagas=vagas, total_vagas=n_vagas
-                    )
+            with patch("app.services.grupos.pipeline_worker.extrair_vagas_v2") as mock_extrator:
+                mock_extrator.return_value = ResultadoExtracaoV2(vagas=vagas, total_vagas=n_vagas)
 
-                    resultado = await pipeline.processar_extracao(
-                        {"mensagem_id": str(mensagem_id)}
-                    )
+                resultado = await pipeline.processar_extracao({"mensagem_id": str(mensagem_id)})
 
-                    assert resultado.acao == "normalizar"
-                    assert len(resultado.vagas_criadas) == MAX_VAGAS_POR_MENSAGEM
+                assert resultado.acao == "normalizar"
+                assert len(resultado.vagas_criadas) == MAX_VAGAS_POR_MENSAGEM
 
     @pytest.mark.asyncio
     async def test_extracao_dentro_do_cap_nao_trunca(self):
         """Extração com poucas vagas não deve truncar."""
-        import os
+        from datetime import date
 
         mensagem_id = uuid4()
         pipeline = PipelineGrupos()
 
         vagas = [
-            VagaExtraida(
-                dados=DadosVagaExtraida(hospital="Hospital A", especialidade="CM"),
-                confianca=ConfiancaExtracao(hospital=0.9, especialidade=0.7),
+            VagaAtomica(
+                data=date(2026, 3, 15),
+                dia_semana=DiaSemana.SEGUNDA,
+                periodo=Periodo.DIURNO,
+                valor=2000,
+                hospital_raw="Hospital A",
+                especialidade_raw="Clínica Médica",
             )
             for _ in range(3)
         ]
 
-        with patch.dict(os.environ, {"EXTRATOR_V2_ENABLED": "false"}):
-            with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
-                mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
-                    data={
-                        "texto": "Poucas vagas",
-                        "nome_grupo": "Vagas",
-                        "grupo_id": str(uuid4()),
-                    }
-                )
-                mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
-                    data=[{"id": str(uuid4())}]
-                )
+        with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
+            mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+                data={
+                    "texto": "Poucas vagas",
+                    "nome_grupo": "Vagas",
+                    "grupo_id": str(uuid4()),
+                }
+            )
+            mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
+                data=[{"id": str(uuid4())}]
+            )
 
-                with patch(
-                    "app.services.grupos.pipeline_worker.extrair_dados_mensagem"
-                ) as mock_extrator:
-                    mock_extrator.return_value = ResultadoExtracao(
-                        vagas=vagas, total_vagas=3
-                    )
+            with patch("app.services.grupos.pipeline_worker.extrair_vagas_v2") as mock_extrator:
+                mock_extrator.return_value = ResultadoExtracaoV2(vagas=vagas, total_vagas=3)
 
-                    resultado = await pipeline.processar_extracao(
-                        {"mensagem_id": str(mensagem_id)}
-                    )
+                resultado = await pipeline.processar_extracao({"mensagem_id": str(mensagem_id)})
 
-                    assert resultado.acao == "normalizar"
-                    assert len(resultado.vagas_criadas) == 3
+                assert resultado.acao == "normalizar"
+                assert len(resultado.vagas_criadas) == 3
+
+
+# =============================================================================
+# Testes dos helpers compartilhados
+# =============================================================================
+
+
+class TestFetchMensagem:
+    """Testes do helper _fetch_mensagem."""
+
+    @pytest.mark.asyncio
+    async def test_fetch_retorna_dados(self):
+        """Deve retornar dados da mensagem."""
+        pipeline = PipelineGrupos()
+        mensagem_id = uuid4()
+
+        with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
+            mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+                data={"id": str(mensagem_id), "texto": "plantão CM"}
+            )
+
+            result = await pipeline._fetch_mensagem(mensagem_id)
+
+            assert result is not None
+            assert result["texto"] == "plantão CM"
+
+    @pytest.mark.asyncio
+    async def test_fetch_retorna_none_sem_dados(self):
+        """Deve retornar None se mensagem não existe."""
+        pipeline = PipelineGrupos()
+        mensagem_id = uuid4()
+
+        with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
+            mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+                data=None
+            )
+
+            result = await pipeline._fetch_mensagem(mensagem_id)
+
+            assert result is None
+
+
+class TestAplicarFanOutCap:
+    """Testes do helper _aplicar_fan_out_cap."""
+
+    def test_trunca_quando_excede(self):
+        """Deve truncar lista quando excede o limite."""
+        pipeline = PipelineGrupos()
+        mensagem_id = uuid4()
+        vagas = list(range(MAX_VAGAS_POR_MENSAGEM + 5))
+
+        resultado = pipeline._aplicar_fan_out_cap(vagas, mensagem_id)
+
+        assert len(resultado) == MAX_VAGAS_POR_MENSAGEM
+
+    def test_nao_trunca_dentro_do_limite(self):
+        """Não deve truncar quando dentro do limite."""
+        pipeline = PipelineGrupos()
+        mensagem_id = uuid4()
+        vagas = list(range(3))
+
+        resultado = pipeline._aplicar_fan_out_cap(vagas, mensagem_id)
+
+        assert len(resultado) == 3
+
+    def test_label_no_log(self):
+        """Deve aceitar label para log."""
+        pipeline = PipelineGrupos()
+        mensagem_id = uuid4()
+        vagas = list(range(MAX_VAGAS_POR_MENSAGEM + 1))
+
+        resultado = pipeline._aplicar_fan_out_cap(vagas, mensagem_id, "[v3] ")
+
+        assert len(resultado) == MAX_VAGAS_POR_MENSAGEM
+
+
+class TestPipelineV3Enabled:
+    """Testes da feature flag como constante."""
+
+    def test_pipeline_v3_enabled_eh_bool(self):
+        """PIPELINE_V3_ENABLED deve ser booleano."""
+        assert isinstance(PIPELINE_V3_ENABLED, bool)
+
+    @pytest.mark.asyncio
+    async def test_extracao_usa_v3_quando_habilitado(self):
+        """processar_extracao deve chamar v3 quando PIPELINE_V3_ENABLED=True."""
+        pipeline = PipelineGrupos()
+        item = {"mensagem_id": str(uuid4())}
+
+        with patch.object(pipeline, "processar_extracao_v3", new_callable=AsyncMock) as mock_v3:
+            mock_v3.return_value = ResultadoPipeline(acao="normalizar")
+
+            with patch("app.services.grupos.pipeline_worker.PIPELINE_V3_ENABLED", True):
+                resultado = await pipeline.processar_extracao(item)
+
+            mock_v3.assert_called_once_with(item)
+            assert resultado.acao == "normalizar"
+
+    @pytest.mark.asyncio
+    async def test_extracao_usa_v2_quando_desabilitado(self):
+        """processar_extracao deve chamar v2 quando PIPELINE_V3_ENABLED=False."""
+        pipeline = PipelineGrupos()
+        item = {"mensagem_id": str(uuid4())}
+
+        with patch.object(pipeline, "processar_extracao_v2", new_callable=AsyncMock) as mock_v2:
+            mock_v2.return_value = ResultadoPipeline(acao="normalizar")
+
+            with patch("app.services.grupos.pipeline_worker.PIPELINE_V3_ENABLED", False):
+                resultado = await pipeline.processar_extracao(item)
+
+            mock_v2.assert_called_once_with(item)
+            assert resultado.acao == "normalizar"
