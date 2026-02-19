@@ -299,8 +299,29 @@ interface CampanhaCardProps {
 
 function CampanhaCard({ campanha, onUpdate: _onUpdate, readOnly }: CampanhaCardProps) {
   const router = useRouter()
+  const { toast } = useToast()
+  const [duplicating, setDuplicating] = useState(false)
   const status = statusConfig[campanha.status] || statusConfig.rascunho
   const StatusIcon = status.icon
+
+  const handleDuplicate = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setDuplicating(true)
+    try {
+      const res = await fetch(`/api/campanhas/${campanha.id}/duplicate`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast({ title: 'Erro ao duplicar', description: data.detail, variant: 'destructive' })
+        return
+      }
+      toast({ title: 'Campanha duplicada', description: 'Redirecionando para edicao...' })
+      router.push(`/campanhas/${data.id}/editar`)
+    } catch {
+      toast({ title: 'Erro ao duplicar', description: 'Erro de conexao', variant: 'destructive' })
+    } finally {
+      setDuplicating(false)
+    }
+  }
 
   const taxaEntrega =
     campanha.enviados > 0 ? Math.round((campanha.entregues / campanha.enviados) * 100) : 0
@@ -309,7 +330,10 @@ function CampanhaCard({ campanha, onUpdate: _onUpdate, readOnly }: CampanhaCardP
     campanha.entregues > 0 ? Math.round((campanha.respondidos / campanha.entregues) * 100) : 0
 
   return (
-    <Card>
+    <Card
+      className="cursor-pointer transition-shadow hover:shadow-md"
+      onClick={() => router.push(`/campanhas/${campanha.id}`)}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div>
@@ -330,29 +354,34 @@ function CampanhaCard({ campanha, onUpdate: _onUpdate, readOnly }: CampanhaCardP
             </Badge>
 
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="icon">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => router.push(`/campanhas/${campanha.id}`)}>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/campanhas/${campanha.id}`)
+                  }}
+                >
                   <Eye className="mr-2 h-4 w-4" />
                   Ver Detalhes
                 </DropdownMenuItem>
-                {!readOnly && (
-                  <>
-                    <DropdownMenuItem>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Duplicar
-                    </DropdownMenuItem>
-                    {campanha.status === 'rascunho' && (
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir
-                      </DropdownMenuItem>
-                    )}
-                  </>
+                <DropdownMenuItem onClick={handleDuplicate} disabled={duplicating}>
+                  {duplicating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Copy className="mr-2 h-4 w-4" />
+                  )}
+                  Duplicar
+                </DropdownMenuItem>
+                {!readOnly && campanha.status === 'rascunho' && (
+                  <DropdownMenuItem className="text-destructive">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir
+                  </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>

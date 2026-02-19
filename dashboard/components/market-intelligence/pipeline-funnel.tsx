@@ -43,6 +43,7 @@ const STAGE_COLORS: Record<string, string> = {
   heuristica: 'bg-blue-400',
   ofertas: 'bg-indigo-500',
   extraidas: 'bg-violet-500',
+  unicas: 'bg-violet-400',
   validadas: 'bg-purple-500',
   importadas: 'bg-green-500',
 }
@@ -52,9 +53,13 @@ const STAGE_BG_COLORS: Record<string, string> = {
   heuristica: 'bg-blue-50 dark:bg-blue-950',
   ofertas: 'bg-indigo-100 dark:bg-indigo-950',
   extraidas: 'bg-violet-100 dark:bg-violet-950',
+  unicas: 'bg-violet-50 dark:bg-violet-950',
   validadas: 'bg-purple-100 dark:bg-purple-950',
   importadas: 'bg-green-100 dark:bg-green-950',
 }
+
+const MESSAGE_STAGE_IDS = new Set(['mensagens', 'heuristica', 'ofertas'])
+const VACANCY_STAGE_IDS = new Set(['extraidas', 'unicas', 'validadas', 'importadas'])
 
 // =============================================================================
 // HELPERS
@@ -346,17 +351,49 @@ export function PipelineFunnel({
 
   // Modo compacto: layout condensado sem arrows de conversão
   if (compact) {
+    const msgStages = data.etapas.filter((e) => MESSAGE_STAGE_IDS.has(e.id))
+    const vacStages = data.etapas.filter((e) => VACANCY_STAGE_IDS.has(e.id))
+    const ofertas = data.etapas.find((e) => e.id === 'ofertas')?.valor ?? 0
+    const extraidas = data.etapas.find((e) => e.id === 'extraidas')?.valor ?? 0
+    const expansionRate = ofertas > 0 ? (extraidas / ofertas).toFixed(1) : null
+
     return (
       <Card className={cn('flex h-full flex-col', className)}>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">{title}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-1 flex-col justify-between">
-          <div className="space-y-2.5">
-            {data.etapas.map((etapa) => (
-              <FunnelStageCompact key={etapa.id} etapa={etapa} />
-            ))}
+          {/* Seção Mensagens */}
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+              Filtragem de Mensagens
+            </p>
+            <div className="space-y-2.5">
+              {msgStages.map((etapa) => (
+                <FunnelStageCompact key={etapa.id} etapa={etapa} />
+              ))}
+            </div>
           </div>
+
+          {/* Divisor com taxa de expansão */}
+          <div className="my-3 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex-1 border-t" />
+            <span>{expansionRate ? `1 msg → ${expansionRate} vagas` : 'Extração'}</span>
+            <div className="flex-1 border-t" />
+          </div>
+
+          {/* Seção Vagas */}
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+              Processamento de Vagas
+            </p>
+            <div className="space-y-2.5">
+              {vacStages.map((etapa) => (
+                <FunnelStageCompact key={etapa.id} etapa={etapa} />
+              ))}
+            </div>
+          </div>
+
           {/* Resumo de conversão no rodapé */}
           {data.conversoes && (
             <div className="mt-4 flex items-center justify-between border-t pt-3 text-xs">
@@ -371,6 +408,12 @@ export function PipelineFunnel({
     )
   }
 
+  const msgEtapas = etapasComConversao.filter(({ etapa }) => MESSAGE_STAGE_IDS.has(etapa.id))
+  const vacEtapas = etapasComConversao.filter(({ etapa }) => VACANCY_STAGE_IDS.has(etapa.id))
+  const ofertas = data.etapas.find((e) => e.id === 'ofertas')?.valor ?? 0
+  const extraidas = data.etapas.find((e) => e.id === 'extraidas')?.valor ?? 0
+  const expansionRate = ofertas > 0 ? (extraidas / ofertas).toFixed(1) : null
+
   return (
     <div className={cn('space-y-4', className)}>
       {/* Funil Principal */}
@@ -379,11 +422,39 @@ export function PipelineFunnel({
           <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {etapasComConversao.map(({ etapa, conversaoProxima }, index) => (
+          {/* Seção Mensagens */}
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Filtragem de Mensagens
+          </p>
+          {msgEtapas.map(({ etapa, conversaoProxima }, index) => (
             <FunnelStage
               key={etapa.id}
               etapa={etapa}
-              isLast={index === etapasComConversao.length - 1}
+              isLast={index === msgEtapas.length - 1}
+              conversaoProxima={index < msgEtapas.length - 1 ? conversaoProxima : undefined}
+            />
+          ))}
+
+          {/* Divisor com taxa de expansão */}
+          <div className="flex items-center gap-3 py-2 text-sm text-muted-foreground">
+            <div className="flex-1 border-t border-dashed" />
+            <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium">
+              {expansionRate
+                ? `${formatNumber(ofertas)} ofertas → ${formatNumber(extraidas)} vagas (${expansionRate}x)`
+                : 'Extração de Vagas'}
+            </span>
+            <div className="flex-1 border-t border-dashed" />
+          </div>
+
+          {/* Seção Vagas */}
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Processamento de Vagas
+          </p>
+          {vacEtapas.map(({ etapa, conversaoProxima }, index) => (
+            <FunnelStage
+              key={etapa.id}
+              etapa={etapa}
+              isLast={index === vacEtapas.length - 1}
               conversaoProxima={conversaoProxima}
             />
           ))}

@@ -35,6 +35,7 @@ import { VolumeChart } from '@/components/market-intelligence/volume-chart'
 import { PipelineFunnel } from '@/components/market-intelligence/pipeline-funnel'
 import { GroupsRanking } from '@/components/market-intelligence/groups-ranking'
 import { PeriodSelector } from '@/components/market-intelligence/period-selector'
+import { VagasHoje } from '@/components/market-intelligence/vagas-hoje'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { AnalyticsPeriod } from '@/types/market-intelligence'
 
@@ -415,6 +416,9 @@ export function GroupEntryPageContent() {
           </Card>
         </CollapsibleContent>
       </Collapsible>
+
+      {/* Vagas por Grupo + Vagas Importadas Hoje */}
+      <VagasHoje />
 
       {/* Modals */}
       {isImportOpen && (

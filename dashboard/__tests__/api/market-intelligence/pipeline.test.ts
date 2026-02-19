@@ -168,7 +168,7 @@ describe('API /api/market-intelligence/pipeline', () => {
 
       expect(data.funil).toHaveProperty('etapas')
       expect(Array.isArray(data.funil.etapas)).toBe(true)
-      expect(data.funil.etapas.length).toBe(6) // 6 etapas do funil
+      expect(data.funil.etapas.length).toBe(7) // 7 etapas do funil (includes Vagas Unicas)
     })
 
     it('deve retornar etapas com estrutura correta', async () => {
@@ -267,10 +267,10 @@ describe('API /api/market-intelligence/pipeline', () => {
       expect(data.funil.etapas[0].percentual).toBe(100)
       expect(data.funil.etapas[0].valor).toBe(1000)
 
-      // Ultima etapa (importadas) - percentual relativo a baseVagas (vagasExtraidas=200)
+      // Ultima etapa (importadas) - percentual relativo a vagasUnicas (200-20=180)
       const ultimaEtapa = data.funil.etapas[data.funil.etapas.length - 1]
       expect(ultimaEtapa.valor).toBe(150)
-      expect(ultimaEtapa.percentual).toBe(75) // 150/200 = 75% (relativo a vagas extraidas)
+      expect(ultimaEtapa.percentual).toBe(83.3) // 150/180 = 83.3% (relativo a vagas unicas)
     })
 
     it('deve calcular taxas de conversao corretamente', async () => {
@@ -300,7 +300,7 @@ describe('API /api/market-intelligence/pipeline', () => {
 
       expect(data.funil.conversoes.mensagemParaOferta).toBe(20) // 200/1000
       expect(data.funil.conversoes.ofertaParaExtracao).toBe(50) // 100/200
-      expect(data.funil.conversoes.extracaoParaImportacao).toBe(50) // 50/100
+      expect(data.funil.conversoes.extracaoParaImportacao).toBe(55.6) // 50/90 (vagasUnicas=100-10)
       expect(data.funil.conversoes.totalPipeline).toBe(5) // 50/1000
     })
 

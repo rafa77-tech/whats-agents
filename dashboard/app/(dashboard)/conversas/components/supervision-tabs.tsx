@@ -26,7 +26,7 @@ const TABS: TabConfig[] = [
   },
   {
     id: 'julia_ativa',
-    label: 'Julia Ativa',
+    label: 'Julia',
     icon: <Bot className="h-3.5 w-3.5" />,
     badgeColor: 'bg-state-ai text-state-ai-foreground',
   },

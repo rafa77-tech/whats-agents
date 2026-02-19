@@ -110,6 +110,8 @@ interface MetricasPipeline {
   mensagensPassouHeuristica: number
   mensagensEhOferta: number
   vagasExtraidas: number
+  vagasUnicas: number
+  vagasUnicasDadosOk: number
   vagasDadosOk: number
   vagasImportadas: number
   vagasDuplicadas: number
@@ -172,11 +174,20 @@ async function buscarMetricasPipeline(
       }
     )
 
+    const vagasUnicas = agregado.vagasExtraidas - agregado.vagasDuplicadas
+    // MV doesn't track unique+dados_ok separately; approximate by capping at vagasUnicas
+    const vagasUnicasDadosOk = Math.min(
+      agregado.vagasDadosOk - agregado.vagasDuplicadas,
+      vagasUnicas
+    )
+
     return {
       mensagensTotal: agregado.mensagensTotal,
       mensagensPassouHeuristica: agregado.mensagensPassouHeuristica,
       mensagensEhOferta: agregado.mensagensEhOferta,
       vagasExtraidas: agregado.vagasExtraidas,
+      vagasUnicas: Math.max(vagasUnicas, 0),
+      vagasUnicasDadosOk: Math.max(vagasUnicasDadosOk, 0),
       vagasDadosOk: agregado.vagasDadosOk,
       vagasImportadas: agregado.vagasImportadas,
       vagasDuplicadas: agregado.vagasDuplicadas,
@@ -231,9 +242,11 @@ async function buscarMetricasDireto(
   const mensagensEhOferta = msgArray.filter((m) => m.eh_oferta).length
 
   const vagasExtraidas = vagasArray.length
+  const vagasDuplicadas = vagasArray.filter((v) => v.eh_duplicada).length
+  const vagasUnicas = vagasExtraidas - vagasDuplicadas
+  const vagasUnicasDadosOk = vagasArray.filter((v) => !v.eh_duplicada && v.dados_minimos_ok).length
   const vagasDadosOk = vagasArray.filter((v) => v.dados_minimos_ok).length
   const vagasImportadas = vagasArray.filter((v) => v.status === 'importada').length
-  const vagasDuplicadas = vagasArray.filter((v) => v.eh_duplicada).length
   const vagasDescartadas = vagasArray.filter((v) => v.status === 'descartada').length
   const vagasRevisao = vagasArray.filter((v) => v.status === 'revisao').length
 
@@ -249,6 +262,8 @@ async function buscarMetricasDireto(
     mensagensPassouHeuristica,
     mensagensEhOferta,
     vagasExtraidas,
+    vagasUnicas,
+    vagasUnicasDadosOk,
     vagasDadosOk,
     vagasImportadas,
     vagasDuplicadas,
@@ -298,10 +313,11 @@ export async function GET(request: NextRequest) {
     // 4. Construir etapas do funil
     // O funil tem duas partes: mensagens e vagas
     // Mensagens: mensagensTotal -> passouHeuristica -> ehOferta
-    // Vagas: vagasExtraidas -> dadosOk -> importadas
+    // Vagas: vagasExtraidas -> unicas (dedup) -> dadosOk -> importadas
     // Cada parte usa sua própria base para percentuais
     const baseMensagens = metricas.mensagensTotal
     const baseVagas = metricas.vagasExtraidas
+    const baseUnicas = metricas.vagasUnicas
 
     const etapas: PipelineEtapa[] = [
       {
@@ -330,16 +346,22 @@ export async function GET(request: NextRequest) {
         percentual: baseVagas > 0 ? 100 : 0,
       },
       {
+        id: 'unicas',
+        nome: 'Vagas Unicas',
+        valor: metricas.vagasUnicas,
+        percentual: calcularPercentual(metricas.vagasUnicas, baseVagas),
+      },
+      {
         id: 'validadas',
         nome: 'Dados Minimos OK',
-        valor: metricas.vagasDadosOk,
-        percentual: calcularPercentual(metricas.vagasDadosOk, baseVagas),
+        valor: metricas.vagasUnicasDadosOk,
+        percentual: calcularPercentual(metricas.vagasUnicasDadosOk, baseUnicas),
       },
       {
         id: 'importadas',
         nome: 'Vagas Importadas',
         valor: metricas.vagasImportadas,
-        percentual: calcularPercentual(metricas.vagasImportadas, baseVagas),
+        percentual: calcularPercentual(metricas.vagasImportadas, baseUnicas),
       },
     ]
 
@@ -353,10 +375,7 @@ export async function GET(request: NextRequest) {
         metricas.vagasExtraidas,
         metricas.mensagensEhOferta
       ),
-      extracaoParaImportacao: calcularTaxaConversao(
-        metricas.vagasImportadas,
-        metricas.vagasExtraidas
-      ),
+      extracaoParaImportacao: calcularTaxaConversao(metricas.vagasImportadas, metricas.vagasUnicas),
       totalPipeline: calcularTaxaConversao(metricas.vagasImportadas, metricas.mensagensTotal),
     }
 
@@ -365,7 +384,7 @@ export async function GET(request: NextRequest) {
       duplicadas: metricas.vagasDuplicadas,
       descartadas: metricas.vagasDescartadas,
       revisao: metricas.vagasRevisao,
-      semDadosMinimos: metricas.vagasExtraidas - metricas.vagasDadosOk,
+      semDadosMinimos: metricas.vagasUnicas - metricas.vagasUnicasDadosOk,
     }
 
     // 7. Montar response

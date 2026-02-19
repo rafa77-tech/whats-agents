@@ -13,6 +13,7 @@ export type {
   Doctor,
   ViewMode,
   SelectOption,
+  MensagemOriginal,
 } from './types'
 
 // Constants

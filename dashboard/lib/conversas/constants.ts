@@ -69,7 +69,7 @@ export const MAX_PAGE_SIZE = 100
 
 export const SUPERVISION_TABS = [
   { id: 'atencao', label: 'Atencao', icon: 'AlertTriangle' },
-  { id: 'julia_ativa', label: 'Julia Ativa', icon: 'Bot' },
+  { id: 'julia_ativa', label: 'Julia', icon: 'Bot' },
   { id: 'aguardando', label: 'Aguardando', icon: 'Clock' },
   { id: 'encerradas', label: 'Encerradas', icon: 'CheckCircle' },
 ] as const

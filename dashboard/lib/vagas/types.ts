@@ -42,6 +42,18 @@ export interface Shift {
 /**
  * Vaga detalhada (usada em página de detalhes)
  */
+/**
+ * Mensagem original do grupo WhatsApp que originou a vaga
+ */
+export interface MensagemOriginal {
+  texto: string
+  sender_nome: string
+  created_at: string
+}
+
+/**
+ * Vaga detalhada (usada em página de detalhes)
+ */
 export interface ShiftDetail extends Omit<Shift, 'reservas_count'> {
   setor: string | null
   setor_id: string | null
@@ -50,6 +62,8 @@ export interface ShiftDetail extends Omit<Shift, 'reservas_count'> {
   updated_at: string | null
   contato_nome: string | null
   contato_whatsapp: string | null
+  grupo_origem: string | null
+  mensagem_original: MensagemOriginal | null
 }
 
 /**

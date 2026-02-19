@@ -35,6 +35,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         cliente_id,
         contato_nome,
         contato_whatsapp,
+        vaga_grupo_id,
         hospitais!inner(id, nome),
         especialidades!inner(id, nome),
         setores(id, nome),
@@ -50,6 +51,39 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       }
       console.error('Erro ao buscar vaga:', error)
       throw error
+    }
+
+    // Buscar grupo de origem e mensagem original separadamente (evita ambiguidade de FK)
+    let grupoOrigem: string | null = null
+    let mensagemOriginal: { texto: string; sender_nome: string; created_at: string } | null = null
+    if (vaga.vaga_grupo_id) {
+      const { data: vg } = await supabase
+        .from('vagas_grupo')
+        .select('grupo_origem_id, mensagem_id, grupos_whatsapp(nome)')
+        .eq('id', vaga.vaga_grupo_id)
+        .single()
+
+      if (vg) {
+        const grupo = vg.grupos_whatsapp as unknown as { nome: string } | null
+        grupoOrigem = grupo?.nome || null
+
+        // Buscar mensagem original do grupo
+        if (vg.mensagem_id) {
+          const { data: msg } = await supabase
+            .from('mensagens_grupo')
+            .select('texto, sender_nome, created_at')
+            .eq('id', vg.mensagem_id)
+            .single()
+
+          if (msg) {
+            mensagemOriginal = {
+              texto: msg.texto,
+              sender_nome: msg.sender_nome,
+              created_at: msg.created_at,
+            }
+          }
+        }
+      }
     }
 
     const hospital = vaga.hospitais as unknown as { id: string; nome: string } | null
@@ -83,6 +117,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       updated_at: vaga.updated_at,
       contato_nome: vaga.contato_nome || null,
       contato_whatsapp: vaga.contato_whatsapp || null,
+      grupo_origem: grupoOrigem,
+      mensagem_original: mensagemOriginal,
     }
 
     return NextResponse.json(shift)

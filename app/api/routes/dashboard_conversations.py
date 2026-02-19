@@ -110,9 +110,17 @@ async def _get_conversation_with_chip(conversation_id: str) -> dict:
     if chip_result.data and chip_result.data[0].get("chips"):
         chip = chip_result.data[0]["chips"]
 
-    # Se nao tem chip associado, buscar um chip ativo
-    if not chip:
-        active_chip = supabase.table("chips").select("*").eq("status", "active").limit(1).execute()
+    # Se nao tem chip associado ou chip nao pode enviar (listener/scraper),
+    # buscar um chip ativo que possa enviar
+    if not chip or chip.get("tipo") in ("listener", "scraper"):
+        active_chip = (
+            supabase.table("chips")
+            .select("*")
+            .eq("status", "active")
+            .not_("tipo", "in", '("listener","scraper")')
+            .limit(1)
+            .execute()
+        )
 
         if active_chip.data:
             chip = active_chip.data[0]

@@ -255,6 +255,8 @@ export default function ShiftDetailPage() {
             id={shift.id}
             createdAt={shift.created_at}
             updatedAt={shift.updated_at}
+            grupoOrigem={shift.grupo_origem}
+            mensagemOriginal={shift.mensagem_original}
           />
         </div>
       </div>
