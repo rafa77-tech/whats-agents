@@ -109,12 +109,9 @@ describe('VagasHoje', () => {
   it('deve renderizar nada quando fetch falha', async () => {
     mockFetch.mockResolvedValue({ ok: false })
 
-    const { container } = render(<VagasHoje />)
+    render(<VagasHoje />)
 
     await waitFor(() => {
-      // After loading, component returns null on failure
-      const cards = container.querySelectorAll('[class*="space-y"]')
-      // Either renders nothing or empty state
       expect(mockFetch).toHaveBeenCalled()
     })
   })

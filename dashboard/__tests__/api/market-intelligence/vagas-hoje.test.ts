@@ -30,10 +30,7 @@ interface MockConfig {
 }
 
 function createSupabaseMock(config: MockConfig) {
-  const {
-    rpcResult = { data: null, error: { message: 'not found' } },
-    fromResults = [],
-  } = config
+  const { rpcResult = { data: null, error: { message: 'not found' } }, fromResults = [] } = config
 
   let fromCallIndex = 0
 
@@ -121,9 +118,7 @@ describe('API /api/market-intelligence/vagas-hoje', () => {
     const data = await response.json()
 
     expect(data.grupos).toHaveLength(2)
-    const grupoFallback = data.grupos.find(
-      (g: { nome: string }) => g.nome === 'Grupo Fallback'
-    )
+    const grupoFallback = data.grupos.find((g: { nome: string }) => g.nome === 'Grupo Fallback')
     expect(grupoFallback.vagas_importadas).toBe(2)
   })
 
