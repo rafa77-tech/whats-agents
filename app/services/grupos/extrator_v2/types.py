@@ -149,12 +149,18 @@ class VagaAtomica:
     cidade: Optional[str] = None
     estado: Optional[str] = None
 
+    # Setor
+    setor_raw: Optional[str] = None
+
     # Especialidade
     especialidade_raw: Optional[str] = None
 
     # Contato
     contato_nome: Optional[str] = None
     contato_whatsapp: Optional[str] = None
+
+    # Tipo de vaga
+    tipo_vaga_raw: Optional[str] = None  # plantao, ambulatorial, fixo, cobertura
 
     # Multiplicidade
     numero_vagas: int = 1  # Quantidade de posicoes identicas (default 1)
@@ -177,12 +183,14 @@ class VagaAtomica:
             "hora_inicio": self.hora_inicio.isoformat() if self.hora_inicio else None,
             "hora_fim": self.hora_fim.isoformat() if self.hora_fim else None,
             "hospital_raw": self.hospital_raw,
+            "setor_raw": self.setor_raw,
             "endereco_raw": self.endereco_raw,
             "cidade": self.cidade,
             "estado": self.estado,
             "especialidade_raw": self.especialidade_raw,
             "contato_nome": self.contato_nome,
             "contato_whatsapp": self.contato_whatsapp,
+            "tipo_vaga_raw": self.tipo_vaga_raw,
             "numero_vagas": self.numero_vagas,
             "confianca_geral": self.confianca_geral,
             "observacoes": self.observacoes,

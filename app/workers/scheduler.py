@@ -300,6 +300,12 @@ JOBS = [
         "endpoint": "/jobs/limpeza-hospitais",
         "schedule": "0 4 * * 0",  # Domingo às 4h
     },
+    # Recovery de vagas incompletas (Sprint 63 - Épico D)
+    {
+        "name": "recovery_vagas_incompletas",
+        "endpoint": "/jobs/recovery-vagas-incompletas",
+        "schedule": "0,30 9-19 * * 1-5",  # A cada 30 min, 9h-19h, seg-sex
+    },
 ]
 
 

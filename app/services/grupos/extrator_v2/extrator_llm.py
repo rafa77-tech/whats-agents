@@ -149,12 +149,13 @@ REGRAS CRÍTICAS:
    - "diurno" ou "SD" (07:00-19:00, 12h)
    - "cinderela" (19:00-01:00)
 
-5. HOSPITAL deve ser o nome de um estabelecimento de saúde real:
+5. HOSPITAL deve ser APENAS o nome do estabelecimento de saúde:
    - Hospitais, UPAs, UBSs, clínicas, prontos-socorros, maternidades, centros médicos
    - NÃO use nomes de pessoas ou contatos como hospital (ex: "Dr. Fulano", "Maria:")
    - NÃO use especialidades médicas como hospital (ex: "Cardiologia", "Ortopedia")
    - NÃO use fragmentos de texto, empresas não-médicas ou palavras genéricas
    - Se não conseguir identificar o hospital com certeza, use null no campo "hospital"
+   - NÃO inclua setores/alas/unidades no nome do hospital (separe no campo "setor")
 
 6. Uma mensagem pode ter MÚLTIPLAS VAGAS se mencionar:
    - Múltiplas datas
@@ -166,6 +167,35 @@ REGRAS CRÍTICAS:
    - Ex: "2 vagas de CM no Hospital X" → numero_vagas = 2
    - Se não mencionar quantidade, use 1 (default)
 
+8. HOSPITAL vs SETOR: Separe sempre o hospital do setor/ala/unidade.
+   - "hospital" = APENAS o nome do estabelecimento de saúde
+   - "setor" = o setor/ala/unidade dentro do hospital
+   - Se o texto mencionar "Hospital X - Setor Y" ou "Hospital X (Ala Y)", separe:
+     hospital: "Hospital X", setor: "Setor Y"
+   - Setores comuns: PS, pronto-socorro, UTI, centro cirúrgico, centro obstétrico,
+     enfermaria, ambulatório, SADT, RPA, internação, ala, unidade
+   - Bairros e cidades NÃO são setores (ex: "Vila Mariana", "Santo André")
+   - Se o setor não for mencionado explicitamente, use null
+
+9. TIPO DE VAGA: Classifique o tipo da oportunidade:
+   - "plantao" = plantão médico (urgência, emergência, 12h, 24h, cobertura avulsa)
+   - "ambulatorial" = consultório, ambulatório, hora marcada, agenda fixa, consultas
+   - "fixo" = escala fixa, vaga mensal, plantão fixo recorrente
+   - "cobertura" = cobertura avulsa, extra, substituição
+   - Se não for claro, use "plantao" (default)
+   - Palavras-chave ambulatorial: "hora marcada", "agenda fixa", "consultório",
+     "ambulatório", "consulta", "atendimento ambulatorial", "presencial"
+
+10. OBSERVAÇÕES: Capture SEMPRE informações relevantes no campo "observacoes":
+   - Pré-requisitos: RQE, título, residência completa, R2/R3, anos de experiência,
+     cadastro em operadora (Hapvida, CEJAM, SPDM), cursos (ACLS, ATLS)
+   - Benefícios: conforto médico, estacionamento, alimentação, hospedagem, traslado
+   - Pagamento: à vista, antecipado, dia seguinte, líquido, PJ/PF/CLT
+   - Restrições: "não pode ter vínculo com X", "apenas para médicos sem plantão fixo"
+   - Estrutura: sistema (Tasy, MV), técnico gesso, retaguarda cirúrgica
+   - Se houver várias dessas informações, combine em uma string separada por vírgulas
+   - NUNCA deixe observacoes null quando há pré-requisitos na mensagem
+
 Retorne APENAS um JSON válido no formato:
 {{
   "eh_vaga": true/false,
@@ -174,6 +204,7 @@ Retorne APENAS um JSON válido no formato:
   "vagas": [
     {{
       "hospital": "Nome do hospital ou local",
+      "setor": "Setor/ala/unidade dentro do hospital" ou null,
       "especialidade": "Especialidade normalizada da lista acima",
       "data": "YYYY-MM-DD",
       "dia_semana": "segunda/terca/quarta/quinta/sexta/sabado/domingo",
@@ -183,8 +214,9 @@ Retorne APENAS um JSON válido no formato:
       "valor": número inteiro em reais ou null,
       "contato_nome": "Nome do contato" ou null,
       "contato_whatsapp": "Telefone" ou null,
+      "tipo_vaga": "plantao/ambulatorial/fixo/cobertura" (default "plantao"),
       "numero_vagas": quantidade de posições idênticas mencionadas (default 1),
-      "observacoes": "Informações adicionais" ou null
+      "observacoes": "Pré-requisitos, benefícios e informações relevantes" ou null
     }}
   ]
 }}
@@ -485,11 +517,13 @@ def converter_para_vagas_atomicas(
                 periodo=_periodo_from_str(vaga_dict.get("periodo", "diurno")),
                 valor=vaga_dict.get("valor") or 0,
                 hospital_raw=hospital,
+                setor_raw=vaga_dict.get("setor"),
                 hora_inicio=_parse_time(vaga_dict.get("hora_inicio")),
                 hora_fim=_parse_time(vaga_dict.get("hora_fim")),
                 especialidade_raw=vaga_dict.get("especialidade"),
                 contato_nome=vaga_dict.get("contato_nome"),
                 contato_whatsapp=vaga_dict.get("contato_whatsapp"),
+                tipo_vaga_raw=vaga_dict.get("tipo_vaga"),
                 numero_vagas=max(1, int(vaga_dict.get("numero_vagas") or 1)),
                 observacoes=vaga_dict.get("observacoes"),
                 confianca_geral=resultado.confianca,

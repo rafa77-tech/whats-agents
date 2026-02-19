@@ -515,6 +515,40 @@ async def normalizar_ou_criar_hospital(
             fonte="similaridade",
         )
 
+    # 2b. Safety net: tentar sem sufixo " - ", " (" ou " / " (setor/ala embutido)
+    for separador in [" - ", " (", " / "]:
+        if separador in texto:
+            texto_base = texto.split(separador)[0].strip()
+            if texto_base and len(texto_base) >= 4:
+                match_base = await buscar_hospital_por_alias(texto_base)
+                if not match_base:
+                    match_base = await buscar_hospital_por_similaridade(
+                        texto_base, threshold=0.7
+                    )
+                if match_base:
+                    logger.info(
+                        f"Hospital match via safety net (sem sufixo '{separador}'): "
+                        f"'{texto}' → '{match_base.nome}'"
+                    )
+                    await _emitir_evento_hospital(
+                        EventType.HOSPITAL_REUSED,
+                        hospital_id=str(match_base.entidade_id),
+                        props={
+                            "fonte": "safety_net_sem_sufixo",
+                            "score": match_base.score,
+                            "texto_original": texto,
+                            "texto_base": texto_base,
+                            "separador": separador,
+                        },
+                    )
+                    return ResultadoHospitalAuto(
+                        hospital_id=match_base.entidade_id,
+                        nome=match_base.nome,
+                        score=match_base.score,
+                        foi_criado=False,
+                        fonte="safety_net_sem_sufixo",
+                    )
+
     # Gate de validação ANTES de criar (Sprint 60 - Épico 1)
     from app.services.grupos.hospital_validator import validar_nome_hospital
 

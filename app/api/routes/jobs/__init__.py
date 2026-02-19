@@ -20,6 +20,7 @@ from .warming import router as warming_router
 from .hospital_cleanup import router as hospital_cleanup_router
 from .hospital_llm_review import router as hospital_llm_review_router
 from .hospital_enrichment import router as hospital_enrichment_router
+from .recovery import router as recovery_router
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 router.include_router(core_router)
@@ -35,3 +36,4 @@ router.include_router(warming_router)
 router.include_router(hospital_cleanup_router)
 router.include_router(hospital_llm_review_router)
 router.include_router(hospital_enrichment_router)
+router.include_router(recovery_router)

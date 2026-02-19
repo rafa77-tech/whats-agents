@@ -384,16 +384,34 @@ MAPA_SETORES = {
     "pronto socorro": "Pronto atendimento",
     "pronto atendimento": "Pronto atendimento",
     "emergencia": "Pronto atendimento",
+    "emergência": "Pronto atendimento",
     "uti": "Hospital",
+    "uti adulto": "Hospital",
+    "uti pediatrica": "Hospital",
+    "uti neonatal": "Hospital",
     "enfermaria": "Hospital",
     "internacao": "Hospital",
+    "internação": "Hospital",
     "centro cirurgico": "C. Cirúrgico",
+    "centro cirúrgico": "C. Cirúrgico",
     "cc": "C. Cirúrgico",
     "bloco cirurgico": "C. Cirúrgico",
+    "bloco cirúrgico": "C. Cirúrgico",
+    "centro obstetrico": "C. Obstétrico",
+    "centro obstétrico": "C. Obstétrico",
+    "co": "C. Obstétrico",
+    "maternidade": "C. Obstétrico",
     "rpa": "RPA",
     "recuperacao": "RPA",
+    "recuperação": "RPA",
+    "sala de recuperacao": "RPA",
     "sadt": "SADT",
     "ambulatorio": "SADT",
+    "ambulatório": "SADT",
+    "consultorio": "Consultório",
+    "consultório": "Consultório",
+    "ala": "Hospital",
+    "unidade": "Hospital",
 }
 
 MAPA_TIPOS_VAGA = {
@@ -689,9 +707,34 @@ async def normalizar_vaga(vaga_id: UUID) -> ResultadoNormalizacao:
                 updates["forma_pagamento_id"] = str(forma_id)
                 resultado.forma_pagamento_id = forma_id
 
-        # Determinar status
-        if resultado.hospital_id and resultado.especialidade_id:
-            # Match completo
+        # Determinar status — checar campos obrigatórios
+        # Ambulatoriais não exigem horário/período (não são plantões)
+        eh_ambulatorial = (dados.get("tipo_vaga_raw") or "").lower() == "ambulatorial"
+
+        # Horário: precisa de (hora_inicio E hora_fim) OU periodo resolvido
+        tem_horario_completo = dados.get("hora_inicio") and dados.get("hora_fim")
+        tem_periodo = (
+            resultado.periodo_id is not None
+            or dados.get("periodo")
+            or dados.get("periodo_raw")
+        )
+
+        campos_faltando = []
+        if not resultado.hospital_id:
+            campos_faltando.append("hospital")
+        if not resultado.especialidade_id:
+            campos_faltando.append("especialidade")
+        if not resultado.setor_id:
+            campos_faltando.append("setor")
+        if not dados.get("data"):
+            campos_faltando.append("data")
+        if not eh_ambulatorial and not tem_horario_completo and not tem_periodo:
+            campos_faltando.append("horario")
+        if not dados.get("valor"):
+            campos_faltando.append("valor")
+
+        if not campos_faltando:
+            # Match completo — checar scores
             if resultado.hospital_score >= 0.8 and resultado.especialidade_score >= 0.8:
                 updates["status"] = "normalizada"
                 resultado.status = "normalizada"
@@ -702,11 +745,6 @@ async def normalizar_vaga(vaga_id: UUID) -> ResultadoNormalizacao:
                 resultado.motivo_status = "score_baixo"
         else:
             updates["status"] = "aguardando_revisao"
-            campos_faltando = []
-            if not resultado.hospital_id:
-                campos_faltando.append("hospital")
-            if not resultado.especialidade_id:
-                campos_faltando.append("especialidade")
             updates["motivo_status"] = f"match_incompleto:{','.join(campos_faltando)}"
             resultado.status = "aguardando_revisao"
             resultado.motivo_status = updates["motivo_status"]
