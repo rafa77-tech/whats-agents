@@ -109,9 +109,7 @@ class TestExecutarAtividade:
         # Sem ID, não deve chamar marcar_executada
 
     @patch("app.services.warmer.orchestrator._executor_executar")
-    async def test_rejeita_chip_duplicado(
-        self, mock_executor, orchestrator, atividade_conversa
-    ):
+    async def test_rejeita_chip_duplicado(self, mock_executor, orchestrator, atividade_conversa):
         # Simular chip já em processamento: criar e adquirir o lock
         orchestrator._chip_locks[CHIP_ID] = asyncio.Lock()
         await orchestrator._chip_locks[CHIP_ID].acquire()
@@ -157,7 +155,6 @@ class TestExecutarAtividade:
 
 
 class TestIniciarChip:
-
     @patch("app.services.warmer.orchestrator.scheduler")
     @patch("app.services.warmer.orchestrator.calcular_trust_score")
     @patch("app.services.warmer.orchestrator.supabase")
@@ -174,9 +171,7 @@ class TestIniciarChip:
             }
         )
         # Mock update
-        mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value = (
-            None
-        )
+        mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value = None
         # Mock insert (transição)
         mock_sb.table.return_value.insert.return_value.execute.return_value = None
 
@@ -240,35 +235,27 @@ class TestIniciarChip:
 
 
 class TestPausarChip:
-
     @patch("app.services.warmer.orchestrator.supabase")
     @patch("app.services.warmer.orchestrator.scheduler")
     async def test_pausa_cancela_atividades_e_volta_repouso(
         self, mock_scheduler, mock_sb, orchestrator
     ):
         mock_scheduler.cancelar_atividades = AsyncMock(return_value=5)
-        mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value = (
-            None
-        )
+        mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value = None
 
         result = await orchestrator.pausar_chip(CHIP_ID, "teste_pausa")
 
         assert result["success"] is True
         assert result["atividades_canceladas"] == 5
-        mock_scheduler.cancelar_atividades.assert_awaited_once_with(
-            CHIP_ID, "teste_pausa"
-        )
+        mock_scheduler.cancelar_atividades.assert_awaited_once_with(CHIP_ID, "teste_pausa")
 
 
 # ── verificar_transicao ───────────────────────────────────────
 
 
 class TestVerificarTransicao:
-
     @patch("app.services.warmer.orchestrator.supabase")
-    async def test_transiciona_quando_criterios_atendidos(
-        self, mock_sb, orchestrator
-    ):
+    async def test_transiciona_quando_criterios_atendidos(self, mock_sb, orchestrator):
         created_at = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
         mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
             data={
@@ -377,7 +364,6 @@ class TestVerificarTransicao:
 
 
 class TestExecutarTransicao:
-
     @patch("app.services.warmer.orchestrator.scheduler")
     @patch("app.services.warmer.orchestrator.calcular_trust_score")
     @patch("app.services.warmer.orchestrator.supabase")
@@ -389,9 +375,7 @@ class TestExecutarTransicao:
             data={"fase_warmup": "setup"}
         )
         # Mock update e insert
-        mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value = (
-            None
-        )
+        mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value = None
         mock_sb.table.return_value.insert.return_value.execute.return_value = None
 
         mock_trust.return_value = {"score": 55}
@@ -414,7 +398,6 @@ class TestExecutarTransicao:
 
 
 class TestCicloWarmup:
-
     @patch("app.services.warmer.orchestrator.calcular_trust_score")
     @patch("app.services.warmer.orchestrator.supabase")
     @patch("app.services.warmer.orchestrator.scheduler")
@@ -423,8 +406,8 @@ class TestCicloWarmup:
         self, mock_executor, mock_scheduler, mock_sb, mock_trust, orchestrator
     ):
         # Mock _garantir_planejamento_diario (chips ativos sem atividades)
-        mock_sb.table.return_value.select.return_value.neq.return_value.execute.return_value = MagicMock(
-            data=[]
+        mock_sb.table.return_value.select.return_value.neq.return_value.execute.return_value = (
+            MagicMock(data=[])
         )
         # Atividades pendentes
         atividade = AtividadeAgendada(
@@ -450,19 +433,23 @@ class TestCicloWarmup:
         assert not orchestrator._ciclo_lock.locked()
 
     async def test_ciclo_nao_reentra(self, orchestrator):
-        orchestrator.running = True
+        # Simular ciclo já em andamento adquirindo o lock
+        await orchestrator._ciclo_lock.acquire()
 
-        # Não deve lançar exceção, apenas retorna
+        # Não deve lançar exceção, apenas retorna (lock já adquirido)
         await orchestrator.ciclo_warmup()
 
-        assert orchestrator.running is True
+        # Lock ainda deve estar adquirido (ciclo não executou)
+        assert orchestrator._ciclo_lock.locked()
+
+        # Limpar
+        orchestrator._ciclo_lock.release()
 
 
 # ── obter_status_pool ──────────────────────────────────────────
 
 
 class TestObterStatusPool:
-
     @patch("app.services.warmer.orchestrator.supabase")
     async def test_calcula_estatisticas_do_pool(self, mock_sb, orchestrator):
         mock_sb.table.return_value.select.return_value.execute.return_value = MagicMock(
@@ -484,9 +471,7 @@ class TestObterStatusPool:
 
     @patch("app.services.warmer.orchestrator.supabase")
     async def test_pool_vazio(self, mock_sb, orchestrator):
-        mock_sb.table.return_value.select.return_value.execute.return_value = MagicMock(
-            data=[]
-        )
+        mock_sb.table.return_value.select.return_value.execute.return_value = MagicMock(data=[])
 
         stats = await orchestrator.obter_status_pool()
 
@@ -499,7 +484,6 @@ class TestObterStatusPool:
 
 
 class TestConstantes:
-
     def test_sequencia_fases_completa(self):
         assert len(SEQUENCIA_FASES) == 7
         assert SEQUENCIA_FASES[0] == FaseWarmup.REPOUSO
