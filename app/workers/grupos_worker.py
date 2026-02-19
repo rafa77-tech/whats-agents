@@ -181,10 +181,9 @@ class GruposWorker:
             return estagio_stats
 
         # Rodar todos os estágios em paralelo
-        resultados = await asyncio.gather(*[
-            processar_estagio(estagio, handler_name)
-            for estagio, handler_name in estagios
-        ])
+        resultados = await asyncio.gather(
+            *[processar_estagio(estagio, handler_name) for estagio, handler_name in estagios]
+        )
 
         # Consolidar estatísticas
         for (estagio, _), resultado in zip(estagios, resultados):
