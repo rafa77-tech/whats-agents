@@ -23,6 +23,7 @@ from app.services.warmer import (
     FaseWarmup,
     # Trust Score
     calcular_trust_score,
+    obter_trust_score_cached,
     obter_permissoes,
     TrustLevel,
     # Early Warning
@@ -143,6 +144,12 @@ class TransicaoRequest(BaseModel):
     nova_fase: str
 
 
+class VerificarConformidadeRequest(BaseModel):
+    """Request para verificar conformidade de ação."""
+
+    acao: str
+
+
 # ============================================================================
 # Chip Warmup Endpoints
 # ============================================================================
@@ -234,39 +241,9 @@ async def api_obter_trust_score(chip_id: str, recalcular: bool = False):
         if recalcular:
             resultado = await calcular_trust_score(chip_id)
         else:
-            # Buscar do banco
-            from app.services.supabase import supabase
-
-            result = (
-                supabase.table("chips")
-                .select(
-                    "trust_score, trust_level, trust_factors, "
-                    "pode_prospectar, pode_followup, pode_responder, "
-                    "limite_hora, limite_dia, delay_minimo_segundos"
-                )
-                .eq("id", chip_id)
-                .single()
-                .execute()
-            )
-
-            if not result.data:
+            resultado = await obter_trust_score_cached(chip_id)
+            if not resultado:
                 raise HTTPException(status_code=404, detail="Chip não encontrado")
-
-            chip = result.data
-            resultado = {
-                "chip_id": chip_id,
-                "score": chip.get("trust_score", 0),
-                "nivel": chip.get("trust_level", "critico"),
-                "permissoes": {
-                    "pode_prospectar": chip.get("pode_prospectar", False),
-                    "pode_followup": chip.get("pode_followup", False),
-                    "pode_responder": chip.get("pode_responder", True),
-                    "limite_hora": chip.get("limite_hora", 5),
-                    "limite_dia": chip.get("limite_dia", 30),
-                    "delay_minimo_segundos": chip.get("delay_minimo_segundos", 120),
-                },
-                "factors": chip.get("trust_factors", {}),
-            }
 
         return TrustScoreResponse(**resultado)
     except HTTPException:
@@ -511,15 +488,15 @@ async def api_consultar_politicas(
 
 
 @router.post("/politicas/verificar", response_model=ConformidadeResponse)
-async def api_verificar_conformidade(acao: str = Query(..., min_length=3)):
+async def api_verificar_conformidade(body: VerificarConformidadeRequest):
     """
     Verifica se uma ação está em conformidade com políticas.
 
     Args:
-        acao: Descrição da ação a verificar
+        body: Request com a ação a verificar
     """
     try:
-        resultado = await verificar_conformidade(acao)
+        resultado = await verificar_conformidade(body.acao)
         return ConformidadeResponse(**resultado)
     except Exception as e:
         logger.error(f"[Warmer API] Erro ao verificar conformidade: {e}")

@@ -18,6 +18,7 @@ from app.services.warmer.trust_score import (
     TrustFactors,
     Permissoes,
     calcular_trust_score,
+    obter_trust_score_cached,
     obter_permissoes,
 )
 
@@ -89,6 +90,7 @@ __all__ = [
     "TrustFactors",
     "Permissoes",
     "calcular_trust_score",
+    "obter_trust_score_cached",
     "obter_permissoes",
     # Human Simulator
     "HumanSimulator",

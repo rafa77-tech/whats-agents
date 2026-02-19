@@ -88,8 +88,7 @@ class PairingEngine:
     MIN_INTERVALO_MESMO_PAR = timedelta(hours=4)  # Mínimo entre conversas do mesmo par
 
     def __init__(self):
-        self.cache_chips: List[ChipInfo] = []
-        self.ultimo_refresh: Optional[datetime] = None
+        pass
 
     async def _carregar_chips_disponiveis(self) -> List[ChipInfo]:
         """
@@ -116,7 +115,14 @@ class PairingEngine:
         chips = []
         for row in result.data or []:
             telefone = row["telefone"]
-            ddd = int(telefone[2:4]) if len(telefone) >= 4 else 11
+            # Normalizar: strip '+' e prefixo '55' antes de extrair DDD
+            tel_norm = telefone.lstrip("+")
+            if tel_norm.startswith("55") and len(tel_norm) >= 4:
+                ddd = int(tel_norm[2:4])
+            elif len(tel_norm) >= 2:
+                ddd = int(tel_norm[:2])
+            else:
+                ddd = 11  # fallback SP
 
             ultimo_pareamento = None
             if row.get("ultimo_pareamento"):
@@ -140,6 +146,40 @@ class PairingEngine:
         logger.info(f"[Pairing] {len(chips)} chips disponíveis para pareamento")
 
         return chips
+
+    async def _carregar_pares_recentes_batch(
+        self, chip_ids: List[str], horas: int = 24
+    ) -> dict[str, List[str]]:
+        """
+        Carrega pares recentes para múltiplos chips em uma única query.
+
+        Args:
+            chip_ids: Lista de IDs de chips
+            horas: Janela de tempo em horas
+
+        Returns:
+            Dict mapeando chip_id -> lista de IDs de chips pareados
+        """
+        desde = agora_brasilia() - timedelta(hours=horas)
+
+        result = (
+            supabase.table("chip_pairs")
+            .select("chip_a_id, chip_b_id")
+            .gte("created_at", desde.isoformat())
+            .execute()
+        )
+
+        pares_por_chip: dict[str, set] = {cid: set() for cid in chip_ids}
+        chip_set = set(chip_ids)
+
+        for row in result.data or []:
+            a, b = row["chip_a_id"], row["chip_b_id"]
+            if a in chip_set:
+                pares_por_chip[a].add(b)
+            if b in chip_set:
+                pares_por_chip[b].add(a)
+
+        return {cid: list(pares) for cid, pares in pares_por_chip.items()}
 
     async def _carregar_pares_recentes(self, chip_id: str, horas: int = 24) -> List[str]:
         """
@@ -336,9 +376,10 @@ class PairingEngine:
             logger.warning("[Pairing] Chips insuficientes para pareamento")
             return []
 
-        # Carregar pares recentes de todos
+        # Carregar pares recentes de todos (batch: 1 query em vez de N)
+        pares_map = await self._carregar_pares_recentes_batch([c.id for c in chips])
         for chip in chips:
-            chip.pares_recentes = await self._carregar_pares_recentes(chip.id)
+            chip.pares_recentes = pares_map.get(chip.id, [])
 
         # Criar matriz de compatibilidade
         pares_possiveis = []

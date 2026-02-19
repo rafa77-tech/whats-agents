@@ -7,6 +7,7 @@ o processo de warmup, simulando conversas reais.
 
 import random
 import logging
+from collections import deque
 from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
@@ -165,7 +166,7 @@ class ConversationGenerator:
     """Gerador de conversas para warmup."""
 
     def __init__(self):
-        self.historico_tipos: List[TipoConversa] = []
+        self.historico_tipos: deque[TipoConversa] = deque(maxlen=50)
         self.ultimo_tipo: Optional[TipoConversa] = None
 
     def _escolher_tipo_conversa(self) -> TipoConversa:
