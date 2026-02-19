@@ -714,9 +714,7 @@ async def normalizar_vaga(vaga_id: UUID) -> ResultadoNormalizacao:
         # Horário: precisa de (hora_inicio E hora_fim) OU periodo resolvido
         tem_horario_completo = dados.get("hora_inicio") and dados.get("hora_fim")
         tem_periodo = (
-            resultado.periodo_id is not None
-            or dados.get("periodo")
-            or dados.get("periodo_raw")
+            resultado.periodo_id is not None or dados.get("periodo") or dados.get("periodo_raw")
         )
 
         campos_faltando = []

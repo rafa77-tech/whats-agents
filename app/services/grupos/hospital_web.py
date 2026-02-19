@@ -522,9 +522,7 @@ async def normalizar_ou_criar_hospital(
             if texto_base and len(texto_base) >= 4:
                 match_base = await buscar_hospital_por_alias(texto_base)
                 if not match_base:
-                    match_base = await buscar_hospital_por_similaridade(
-                        texto_base, threshold=0.7
-                    )
+                    match_base = await buscar_hospital_por_similaridade(texto_base, threshold=0.7)
                 if match_base:
                     logger.info(
                         f"Hospital match via safety net (sem sufixo '{separador}'): "

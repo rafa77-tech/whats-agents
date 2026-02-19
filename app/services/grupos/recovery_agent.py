@@ -103,11 +103,7 @@ async def buscar_nome_grupo(grupo_id: Optional[str]) -> str:
         return "grupo"
     try:
         result = (
-            supabase.table("grupos_whatsapp")
-            .select("nome")
-            .eq("id", grupo_id)
-            .single()
-            .execute()
+            supabase.table("grupos_whatsapp").select("nome").eq("id", grupo_id).single().execute()
         )
         return result.data.get("nome", "grupo") if result.data else "grupo"
     except Exception:
