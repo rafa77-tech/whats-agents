@@ -1,8 +1,6 @@
 """
 Testes do modulo de tipos de abordagem.
 """
-import pytest
-from datetime import datetime
 
 from app.services.tipos_abordagem import (
     TipoAbordagem,
@@ -13,11 +11,6 @@ from app.services.tipos_abordagem import (
     extrair_telefone,
     extrair_hospital,
     extrair_data,
-    PROMPT_DISCOVERY,
-    PROMPT_OFERTA,
-    PROMPT_REATIVACAO,
-    PROMPT_FOLLOWUP,
-    PROMPT_CUSTOM,
 )
 
 
@@ -93,11 +86,16 @@ class TestInferirTipo:
     # Custom
     def test_inferir_custom_instrucao_especifica(self):
         """Testa inferencia de custom com instrucao especifica."""
-        assert inferir_tipo("pergunta se ele conhece algum colega anestesista") == TipoAbordagem.CUSTOM
+        assert (
+            inferir_tipo("pergunta se ele conhece algum colega anestesista") == TipoAbordagem.CUSTOM
+        )
 
     def test_inferir_custom_instrucao_longa(self):
         """Testa que instrucao longa nao padrao = custom."""
-        assert inferir_tipo("fala que temos uma oportunidade especial para indicacoes") == TipoAbordagem.CUSTOM
+        assert (
+            inferir_tipo("fala que temos uma oportunidade especial para indicacoes")
+            == TipoAbordagem.CUSTOM
+        )
 
 
 class TestObterPrompt:
@@ -141,9 +139,7 @@ class TestPrepararPrompt:
     def test_preparar_prompt_discovery(self):
         """Testa preparacao do prompt discovery."""
         prompt = preparar_prompt(
-            TipoAbordagem.DISCOVERY,
-            nome="Dr Carlos",
-            especialidade="Anestesiologia"
+            TipoAbordagem.DISCOVERY, nome="Dr Carlos", especialidade="Anestesiologia"
         )
         assert "Dr Carlos" in prompt
         assert "Anestesiologia" in prompt
@@ -158,8 +154,8 @@ class TestPrepararPrompt:
                 "data": "15/12",
                 "periodo": "Noturno",
                 "valor": "2500",
-                "especialidade": "Anestesio"
-            }
+                "especialidade": "Anestesio",
+            },
         )
         assert "Dr Carlos" in prompt
         assert "Sao Luiz" in prompt
@@ -168,9 +164,7 @@ class TestPrepararPrompt:
     def test_preparar_prompt_com_instrucao(self):
         """Testa preparacao com instrucao."""
         prompt = preparar_prompt(
-            TipoAbordagem.CUSTOM,
-            nome="Dr Carlos",
-            instrucao="perguntar se conhece colegas"
+            TipoAbordagem.CUSTOM, nome="Dr Carlos", instrucao="perguntar se conhece colegas"
         )
         assert "perguntar se conhece colegas" in prompt
 
@@ -251,14 +245,18 @@ class TestExtrairData:
 
     def test_extrair_data_hoje(self):
         """Testa extracao de hoje."""
+        from app.core.timezone import agora_brasilia
+
         resultado = extrair_data("plantao hoje")
-        assert resultado == datetime.now().strftime("%Y-%m-%d")
+        assert resultado == agora_brasilia().strftime("%Y-%m-%d")
 
     def test_extrair_data_amanha(self):
         """Testa extracao de amanha."""
         from datetime import timedelta
+        from app.core.timezone import agora_brasilia
+
         resultado = extrair_data("plantao amanha")
-        esperado = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+        esperado = (agora_brasilia() + timedelta(days=1)).strftime("%Y-%m-%d")
         assert resultado == esperado
 
     def test_extrair_data_dia_especifico(self):
