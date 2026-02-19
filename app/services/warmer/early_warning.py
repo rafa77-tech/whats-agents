@@ -238,17 +238,29 @@ class EarlyWarningSystem:
         # Taxa de bloqueio (alerta quando acima do threshold)
         taxa_block = chip.get("taxa_block", 0)
         alerta = self._check_threshold(
-            chip_id, taxa_block, TipoAlerta.TAXA_BLOCK_ALTA, "taxa_block",
+            chip_id,
+            taxa_block,
+            TipoAlerta.TAXA_BLOCK_ALTA,
+            "taxa_block",
             niveis=[
-                ("taxa_block_critico", SeveridadeAlerta.CRITICO,
-                 "Taxa de bloqueio crítica: {valor:.1f}%",
-                 "PARAR envios imediatamente - risco de ban"),
-                ("taxa_block_alerta", SeveridadeAlerta.ALERTA,
-                 "Taxa de bloqueio alta: {valor:.1f}%",
-                 "Pausar prospecção e revisar abordagem"),
-                ("taxa_block_atencao", SeveridadeAlerta.ATENCAO,
-                 "Taxa de bloqueio elevada: {valor:.1f}%",
-                 "Monitorar e ajustar mensagens se necessário"),
+                (
+                    "taxa_block_critico",
+                    SeveridadeAlerta.CRITICO,
+                    "Taxa de bloqueio crítica: {valor:.1f}%",
+                    "PARAR envios imediatamente - risco de ban",
+                ),
+                (
+                    "taxa_block_alerta",
+                    SeveridadeAlerta.ALERTA,
+                    "Taxa de bloqueio alta: {valor:.1f}%",
+                    "Pausar prospecção e revisar abordagem",
+                ),
+                (
+                    "taxa_block_atencao",
+                    SeveridadeAlerta.ATENCAO,
+                    "Taxa de bloqueio elevada: {valor:.1f}%",
+                    "Monitorar e ajustar mensagens se necessário",
+                ),
             ],
             acima=True,
         )
@@ -258,17 +270,29 @@ class EarlyWarningSystem:
         # Taxa de delivery (alerta quando abaixo do threshold)
         taxa_delivery = chip.get("taxa_delivery", 1.0)
         alerta = self._check_threshold(
-            chip_id, taxa_delivery, TipoAlerta.DELIVERY_BAIXO, "taxa_delivery",
+            chip_id,
+            taxa_delivery,
+            TipoAlerta.DELIVERY_BAIXO,
+            "taxa_delivery",
             niveis=[
-                ("taxa_delivery_critico", SeveridadeAlerta.CRITICO,
-                 "Taxa de entrega muito baixa: {valor:.1f}%",
-                 "Verificar conexão e status do WhatsApp"),
-                ("taxa_delivery_alerta", SeveridadeAlerta.ALERTA,
-                 "Taxa de entrega baixa: {valor:.1f}%",
-                 "Investigar problemas de rede ou número bloqueado"),
-                ("taxa_delivery_atencao", SeveridadeAlerta.ATENCAO,
-                 "Taxa de entrega abaixo do ideal: {valor:.1f}%",
-                 "Monitorar entregas nas próximas horas"),
+                (
+                    "taxa_delivery_critico",
+                    SeveridadeAlerta.CRITICO,
+                    "Taxa de entrega muito baixa: {valor:.1f}%",
+                    "Verificar conexão e status do WhatsApp",
+                ),
+                (
+                    "taxa_delivery_alerta",
+                    SeveridadeAlerta.ALERTA,
+                    "Taxa de entrega baixa: {valor:.1f}%",
+                    "Investigar problemas de rede ou número bloqueado",
+                ),
+                (
+                    "taxa_delivery_atencao",
+                    SeveridadeAlerta.ATENCAO,
+                    "Taxa de entrega abaixo do ideal: {valor:.1f}%",
+                    "Monitorar entregas nas próximas horas",
+                ),
             ],
             acima=False,
         )
@@ -278,11 +302,17 @@ class EarlyWarningSystem:
         # Taxa de resposta
         taxa_resposta = chip.get("taxa_resposta", 0)
         alerta = self._check_threshold(
-            chip_id, taxa_resposta, TipoAlerta.RESPOSTA_BAIXA, "taxa_resposta",
+            chip_id,
+            taxa_resposta,
+            TipoAlerta.RESPOSTA_BAIXA,
+            "taxa_resposta",
             niveis=[
-                ("taxa_resposta_baixa", SeveridadeAlerta.ATENCAO,
-                 "Taxa de resposta baixa: {valor:.1f}%",
-                 "Revisar qualidade das mensagens enviadas"),
+                (
+                    "taxa_resposta_baixa",
+                    SeveridadeAlerta.ATENCAO,
+                    "Taxa de resposta baixa: {valor:.1f}%",
+                    "Revisar qualidade das mensagens enviadas",
+                ),
             ],
             acima=False,
         )
@@ -458,9 +488,7 @@ class EarlyWarningSystem:
             .execute()
         )
 
-        alertas_existentes = {
-            (r["chip_id"], r["tipo"]) for r in (existentes.data or [])
-        }
+        alertas_existentes = {(r["chip_id"], r["tipo"]) for r in (existentes.data or [])}
 
         registros = []
         for alerta in alertas:
@@ -487,7 +515,9 @@ class EarlyWarningSystem:
         result = supabase.table("chip_alerts").insert(registros).execute()
 
         count = len(result.data) if result.data else 0
-        logger.info(f"[EarlyWarning] {count} alertas novos salvos ({len(alertas) - count} duplicados ignorados)")
+        logger.info(
+            f"[EarlyWarning] {count} alertas novos salvos ({len(alertas) - count} duplicados ignorados)"
+        )
 
         return count
 
