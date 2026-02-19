@@ -133,13 +133,7 @@ describe('ChatSidebar', () => {
       },
     ]
 
-    render(
-      <ChatSidebar
-        conversations={convWithSpecialty}
-        selectedId={null}
-        onSelect={vi.fn()}
-      />
-    )
+    render(<ChatSidebar conversations={convWithSpecialty} selectedId={null} onSelect={vi.fn()} />)
 
     expect(screen.getByText('· Cardiologia')).toBeInTheDocument()
   })

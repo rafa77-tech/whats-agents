@@ -489,9 +489,7 @@ export function ChatPanel({
       </div>
 
       {/* Summary */}
-      {conversation.summary && (
-        <ConversationSummary summary={conversation.summary} />
-      )}
+      {conversation.summary && <ConversationSummary summary={conversation.summary} />}
 
       {/* Messages */}
       <div
@@ -597,17 +595,13 @@ export function ChatPanel({
                               ) : (
                                 <>
                                   <button
-                                    onClick={() =>
-                                      handleFeedback(message.id, 'positive')
-                                    }
+                                    onClick={() => handleFeedback(message.id, 'positive')}
                                     className="rounded p-0.5 hover:bg-muted"
                                   >
                                     <ThumbsUp className="h-3 w-3 text-muted-foreground hover:text-status-success-solid" />
                                   </button>
                                   <button
-                                    onClick={() =>
-                                      handleFeedback(message.id, 'negative')
-                                    }
+                                    onClick={() => handleFeedback(message.id, 'negative')}
                                     className="rounded p-0.5 hover:bg-muted"
                                   >
                                     <ThumbsDown className="h-3 w-3 text-muted-foreground hover:text-destructive" />
@@ -671,7 +665,7 @@ export function ChatPanel({
                   {isPaused
                     ? conversation.motivo_pausa || 'Pausada pelo supervisor'
                     : lastJuliaMessage
-                      ? `Ultima resposta ${format(new Date(lastJuliaMessage.created_at), "HH:mm", { locale: ptBR })}`
+                      ? `Ultima resposta ${format(new Date(lastJuliaMessage.created_at), 'HH:mm', { locale: ptBR })}`
                       : 'Respostas automaticas ativas'}
                 </p>
               </div>

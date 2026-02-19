@@ -143,8 +143,18 @@ describe('GET /api/conversas/counts', () => {
     // Active conversations: 1 human, 1 AI
     activeConversationsResult = {
       data: [
-        { id: 'conv-1', status: 'active', controlled_by: 'human', last_message_at: new Date().toISOString() },
-        { id: 'conv-2', status: 'active', controlled_by: 'ai', last_message_at: new Date().toISOString() },
+        {
+          id: 'conv-1',
+          status: 'active',
+          controlled_by: 'human',
+          last_message_at: new Date().toISOString(),
+        },
+        {
+          id: 'conv-2',
+          status: 'active',
+          controlled_by: 'ai',
+          last_message_at: new Date().toISOString(),
+        },
       ],
       error: null,
     }

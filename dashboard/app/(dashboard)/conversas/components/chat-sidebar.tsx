@@ -75,9 +75,7 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
               {/* Line 1: Name + specialty + time */}
               <div className="flex items-center justify-between">
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <span className="truncate text-sm font-medium">
-                    {conversation.cliente_nome}
-                  </span>
+                  <span className="truncate text-sm font-medium">{conversation.cliente_nome}</span>
                   {conversation.especialidade && (
                     <span className="hidden truncate text-xs text-muted-foreground sm:inline">
                       · {conversation.especialidade}

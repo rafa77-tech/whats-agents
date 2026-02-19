@@ -23,18 +23,10 @@ function makeConversation(overrides: Partial<ConversationListItem> = {}): Conver
 
 describe('AttentionFeed', () => {
   it('shows empty state when no conversations', () => {
-    render(
-      <AttentionFeed
-        conversations={[]}
-        selectedId={null}
-        onSelect={vi.fn()}
-      />
-    )
+    render(<AttentionFeed conversations={[]} selectedId={null} onSelect={vi.fn()} />)
 
     expect(screen.getByText('Tudo sob controle')).toBeInTheDocument()
-    expect(
-      screen.getByText('Nenhuma conversa precisa de atencao no momento.')
-    ).toBeInTheDocument()
+    expect(screen.getByText('Nenhuma conversa precisa de atencao no momento.')).toBeInTheDocument()
   })
 
   it('renders conversation cards with name and attention reason', () => {
@@ -47,13 +39,7 @@ describe('AttentionFeed', () => {
       }),
     ]
 
-    render(
-      <AttentionFeed
-        conversations={convs}
-        selectedId={null}
-        onSelect={vi.fn()}
-      />
-    )
+    render(<AttentionFeed conversations={convs} selectedId={null} onSelect={vi.fn()} />)
 
     expect(screen.getByText('Dr. Carlos Silva')).toBeInTheDocument()
     expect(screen.getByText('Handoff pendente')).toBeInTheDocument()
@@ -67,13 +53,7 @@ describe('AttentionFeed', () => {
       }),
     ]
 
-    render(
-      <AttentionFeed
-        conversations={convs}
-        selectedId={null}
-        onSelect={vi.fn()}
-      />
-    )
+    render(<AttentionFeed conversations={convs} selectedId={null} onSelect={vi.fn()} />)
 
     expect(screen.getByText(/Tenho interesse na vaga/)).toBeInTheDocument()
   })
@@ -88,13 +68,7 @@ describe('AttentionFeed', () => {
       }),
     ]
 
-    render(
-      <AttentionFeed
-        conversations={convs}
-        selectedId={null}
-        onSelect={onSelect}
-      />
-    )
+    render(<AttentionFeed conversations={convs} selectedId={null} onSelect={onSelect} />)
 
     await user.click(screen.getByText('Dr. Carlos Silva'))
     expect(onSelect).toHaveBeenCalledWith('conv-1')
@@ -107,13 +81,7 @@ describe('AttentionFeed', () => {
       }),
     ]
 
-    render(
-      <AttentionFeed
-        conversations={convs}
-        selectedId={null}
-        onSelect={vi.fn()}
-      />
-    )
+    render(<AttentionFeed conversations={convs} selectedId={null} onSelect={vi.fn()} />)
 
     expect(screen.getByText('Ver conversa')).toBeInTheDocument()
   })
@@ -172,13 +140,7 @@ describe('AttentionFeed', () => {
       }),
     ]
 
-    render(
-      <AttentionFeed
-        conversations={convs}
-        selectedId="conv-1"
-        onSelect={vi.fn()}
-      />
-    )
+    render(<AttentionFeed conversations={convs} selectedId="conv-1" onSelect={vi.fn()} />)
 
     // The selected card should have ring class
     const allButtons = screen.getAllByRole('button')
@@ -196,13 +158,7 @@ describe('AttentionFeed', () => {
       }),
     ]
 
-    render(
-      <AttentionFeed
-        conversations={convs}
-        selectedId={null}
-        onSelect={vi.fn()}
-      />
-    )
+    render(<AttentionFeed conversations={convs} selectedId={null} onSelect={vi.fn()} />)
 
     expect(screen.getByText('· Cardiologia')).toBeInTheDocument()
   })

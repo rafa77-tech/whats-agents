@@ -1,14 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import {
-  Search,
-  MessageSquare,
-  X,
-  AlertTriangle,
-  Bot,
-  Clock,
-} from 'lucide-react'
+import { Search, MessageSquare, X, AlertTriangle, Bot, Clock } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -223,9 +216,7 @@ export default function ConversasPage() {
               onClick={() => handleTabChange('aguardando')}
               className={cn(
                 'flex items-center gap-1',
-                activeTab === 'aguardando'
-                  ? 'font-medium text-foreground'
-                  : 'text-muted-foreground'
+                activeTab === 'aguardando' ? 'font-medium text-foreground' : 'text-muted-foreground'
               )}
             >
               <Clock className="h-3.5 w-3.5" />
@@ -380,10 +371,7 @@ export default function ConversasPage() {
       {/* Desktop: always visible                   */}
       {/* ========================================= */}
       <div
-        className={cn(
-          'h-full min-h-0 flex-1',
-          mobileView === 'list' ? 'hidden md:flex' : 'flex'
-        )}
+        className={cn('h-full min-h-0 flex-1', mobileView === 'list' ? 'hidden md:flex' : 'flex')}
       >
         {selectedId ? (
           <ChatPanel
@@ -434,10 +422,7 @@ export default function ConversasPage() {
       >
         <SheetContent side="right" className="w-[340px] p-0 lg:hidden">
           {selectedId && (
-            <DoctorContextPanel
-              conversationId={selectedId}
-              onClose={() => setShowContext(false)}
-            />
+            <DoctorContextPanel conversationId={selectedId} onClose={() => setShowContext(false)} />
           )}
         </SheetContent>
       </Sheet>

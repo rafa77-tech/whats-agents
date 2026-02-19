@@ -503,7 +503,11 @@ export function DoctorContextPanel({ conversationId, onClose }: Props) {
             <ProfileSection context={context} />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Notas" icon={<StickyNote className="h-3.5 w-3.5" />} defaultOpen>
+          <CollapsibleSection
+            title="Notas"
+            icon={<StickyNote className="h-3.5 w-3.5" />}
+            defaultOpen
+          >
             <NotesSection conversationId={conversationId} />
           </CollapsibleSection>
 

@@ -52,7 +52,9 @@ function generateSummary(
     parts.push(stageLabels[doctor.stage_jornada] + '.')
   }
 
-  parts.push(`${totalMedico + totalJulia} mensagens trocadas (${totalMedico} medico, ${totalJulia} Julia).`)
+  parts.push(
+    `${totalMedico + totalJulia} mensagens trocadas (${totalMedico} medico, ${totalJulia} Julia).`
+  )
 
   // Calculate duration
   let duracaoDias = 0
