@@ -227,7 +227,7 @@ CRM, RG e dados bancários, blz?
 |------------|------------|--------|
 | Backend | Python 3.13+ / FastAPI | ✅ Implementado |
 | Package Manager | uv (Astral) | ✅ Configurado |
-| LLM Principal | Claude 3.5 Haiku | ✅ Funcionando |
+| LLM Principal | Claude Haiku 4.5 | ✅ Funcionando |
 | LLM Complexo | Claude 4 Sonnet | ✅ Funcionando |
 | Banco de Dados | Supabase (PostgreSQL + pgvector) | ✅ Funcionando |
 | WhatsApp | Evolution API | ✅ Integrado |

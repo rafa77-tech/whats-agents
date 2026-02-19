@@ -25,7 +25,7 @@ class LLMProvider(Protocol):
     Não precisa herdar explicitamente.
 
     Attributes:
-        model_id: Identificador do modelo (ex: "claude-3-haiku-20240307")
+        model_id: Identificador do modelo (ex: "claude-haiku-4-5-20251001")
     """
 
     @property

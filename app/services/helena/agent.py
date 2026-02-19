@@ -107,7 +107,7 @@ class AgenteHelena:
 
         # Chamar Claude
         response = self.client.messages.create(
-            model=settings.LLM_MODEL,  # claude-3-5-haiku ou equivalente
+            model=settings.LLM_MODEL,  # claude-haiku-4-5 ou equivalente
             max_tokens=2048,
             system=system_prompt,
             tools=self._get_tools(),

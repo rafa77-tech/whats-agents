@@ -38,7 +38,7 @@ class AnthropicProvider:
         client: Cliente Anthropic
 
     Exemplo:
-        provider = AnthropicProvider(model_id="claude-3-haiku-20240307")
+        provider = AnthropicProvider(model_id="claude-haiku-4-5-20251001")
         response = await provider.generate(request)
     """
 

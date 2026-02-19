@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 # Modelos
 MODEL_OPUS = "claude-sonnet-4-20250514"  # Para interpretação e planejamento
-MODEL_HAIKU = "claude-3-5-haiku-20241022"  # Para execução
+MODEL_HAIKU = "claude-haiku-4-5-20251001"  # Para execução
 
 # Status do comando
 STATUS_PENDENTE = "pendente"

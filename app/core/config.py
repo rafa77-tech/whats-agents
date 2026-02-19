@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # Anthropic
     ANTHROPIC_API_KEY: str = ""
-    LLM_MODEL: str = "claude-3-5-haiku-20241022"
+    LLM_MODEL: str = "claude-haiku-4-5-20251001"
     LLM_MODEL_COMPLEX: str = "claude-sonnet-4-20250514"
 
     # Evolution API

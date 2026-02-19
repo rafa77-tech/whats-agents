@@ -27,7 +27,7 @@ from app.services.grupos.hospital_cleanup import (
 
 logger = get_logger(__name__)
 
-MODEL = "claude-3-haiku-20240307"
+MODEL = "claude-haiku-4-5-20251001"
 MAX_TOKENS_CLASSIFICACAO = 4096
 MAX_TOKENS_MERGE = 4096
 

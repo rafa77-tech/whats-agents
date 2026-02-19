@@ -115,7 +115,7 @@ Conversa a resumir:
 RESUMO (máximo 150 palavras, em português):"""
 
         response = await client.messages.create(
-            model="claude-3-5-haiku-20241022",  # Haiku para custo baixo
+            model="claude-haiku-4-5-20251001",  # Haiku para custo baixo
             max_tokens=MAX_TOKENS_RESUMO,
             messages=[{"role": "user", "content": prompt}],
         )
