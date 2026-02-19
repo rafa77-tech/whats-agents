@@ -41,7 +41,12 @@ class IngestaoGrupoProcessor(PreProcessor):
             mensagem = parsear_mensagem(data)
 
             if mensagem:
-                mensagem_id = await ingerir_mensagem_grupo(mensagem, data)
+                # Webhook principal (/webhook/evolution) = instância default
+                from app.core.config import settings
+
+                mensagem_id = await ingerir_mensagem_grupo(
+                    mensagem, data, instance_name=settings.EVOLUTION_INSTANCE
+                )
                 logger.debug(f"Mensagem de grupo ingerida: {mensagem_id}")
                 return ProcessorResult(
                     success=True,

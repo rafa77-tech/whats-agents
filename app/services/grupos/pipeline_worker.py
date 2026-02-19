@@ -481,6 +481,7 @@ class PipelineGrupos:
                 "grupo_origem_id": msg_data.get("grupo_id"),
                 # Campos do extrator v2
                 "hospital_raw": vaga.hospital_raw,
+                "setor_raw": vaga.setor_raw,
                 "especialidade_raw": vaga.especialidade_raw,
                 "data": data_str,
                 "hora_inicio": hora_inicio,
@@ -490,6 +491,8 @@ class PipelineGrupos:
                 # Campos adicionais do v2
                 "dia_semana": vaga.dia_semana.value if vaga.dia_semana else None,
                 "periodo": vaga.periodo.value if vaga.periodo else None,
+                "periodo_raw": vaga.periodo.value if vaga.periodo else None,
+                "tipo_vaga_raw": vaga.tipo_vaga_raw,
                 "endereco_raw": vaga.endereco_raw,
                 "cidade": vaga.cidade,
                 "estado": vaga.estado,
@@ -502,6 +505,8 @@ class PipelineGrupos:
                 # Flag para identificar origem v2
                 "dados_minimos_ok": True,
                 "data_valida": True,
+                # Rastreabilidade: instância que captou
+                "instance_name": msg_data.get("instance_name"),
             }
 
             result = supabase.table("vagas_grupo").insert(dados).execute()
@@ -573,6 +578,8 @@ class PipelineGrupos:
             "observacoes_raw": vaga.dados.observacoes if vaga.dados else None,
             "confianca_geral": vaga.confianca.media_ponderada() if vaga.confianca else None,
             "status": "extraido",
+            # Rastreabilidade: instância que captou
+            "instance_name": msg_data.get("instance_name"),
         }
 
         result = supabase.table("vagas_grupo").insert(dados).execute()

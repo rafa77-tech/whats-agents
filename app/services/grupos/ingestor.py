@@ -250,7 +250,11 @@ def separar_nome_empresa(nome_completo: str) -> tuple[str, Optional[str]]:
 
 
 async def salvar_mensagem_grupo(
-    grupo_id: UUID, contato_id: UUID, mensagem: MensagemRecebida, dados_raw: dict
+    grupo_id: UUID,
+    contato_id: UUID,
+    mensagem: MensagemRecebida,
+    dados_raw: dict,
+    instance_name: Optional[str] = None,
 ) -> UUID:
     """
     Salva mensagem de grupo no banco.
@@ -314,6 +318,7 @@ async def salvar_mensagem_grupo(
         .get("contextInfo", {})
         .get("isForwarded", False),
         "status": status,
+        "instance_name": instance_name,
     }
 
     result = supabase.table("mensagens_grupo").insert(nova_mensagem).execute()
@@ -333,7 +338,11 @@ async def atualizar_contadores(grupo_id: UUID, contato_id: UUID) -> None:
         logger.warning(f"Erro ao atualizar contadores: {e}")
 
 
-async def ingerir_mensagem_grupo(mensagem: MensagemRecebida, dados_raw: dict) -> Optional[UUID]:
+async def ingerir_mensagem_grupo(
+    mensagem: MensagemRecebida,
+    dados_raw: dict,
+    instance_name: Optional[str] = None,
+) -> Optional[UUID]:
     """
     Função principal de ingestão.
 
@@ -342,6 +351,7 @@ async def ingerir_mensagem_grupo(mensagem: MensagemRecebida, dados_raw: dict) ->
     Args:
         mensagem: Mensagem parseada
         dados_raw: Dados originais do webhook
+        instance_name: Nome da instância Evolution que captou a mensagem
 
     Returns:
         UUID da mensagem salva, ou None se não salvou
@@ -379,7 +389,11 @@ async def ingerir_mensagem_grupo(mensagem: MensagemRecebida, dados_raw: dict) ->
 
         # Salvar mensagem
         mensagem_id = await salvar_mensagem_grupo(
-            grupo_id=grupo_id, contato_id=contato_id, mensagem=mensagem, dados_raw=dados_raw
+            grupo_id=grupo_id,
+            contato_id=contato_id,
+            mensagem=mensagem,
+            dados_raw=dados_raw,
+            instance_name=instance_name,
         )
 
         # Atualizar contadores
