@@ -2,7 +2,7 @@
  * API: GET /api/conversas/counts
  *
  * Retorna contadores por tab de supervisao.
- * Sprint 54: Supervision Dashboard
+ * Sprint 64: Real counts (no more 30% guessing)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,6 +10,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import type { TabCounts } from '@/types/conversas'
 
 export const dynamic = 'force-dynamic'
+
+const TWO_DAYS_MS = 48 * 60 * 60 * 1000
+const ONE_HOUR_MS = 60 * 60 * 1000
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -41,22 +44,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+    const twoDaysAgo = new Date(Date.now() - TWO_DAYS_MS).toISOString()
 
+    // Try RPC first
     const { data, error } = await supabase.rpc('get_supervision_tab_counts', {
       chip_conv_ids: conversationFilter,
       two_days_ago: twoDaysAgo,
     })
 
-    if (error) {
-      // Fallback: count manually if RPC doesn't exist
-      console.warn('RPC get_supervision_tab_counts not found, using fallback counts')
-
-      const counts = await getCountsFallback(supabase, conversationFilter, twoDaysAgo)
-      return NextResponse.json(counts)
+    if (!error && data) {
+      return NextResponse.json(data)
     }
 
-    return NextResponse.json(data)
+    // Fallback: compute real counts
+    console.warn('RPC get_supervision_tab_counts not available, using fallback')
+    const counts = await computeRealCounts(supabase, conversationFilter, twoDaysAgo)
+    return NextResponse.json(counts)
   } catch (error) {
     console.error('Erro ao buscar contadores:', error)
     const emptyCounts: TabCounts = {
@@ -69,33 +72,88 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-async function getCountsFallback(
+async function computeRealCounts(
   supabase: ReturnType<typeof createAdminClient>,
   conversationFilter: string[] | null,
   twoDaysAgo: string
 ): Promise<TabCounts> {
-  // Count handoff/human controlled (atencao)
-  let atencaoQuery = supabase
+  // Fetch active conversations with their last message direction
+  let activeQuery = supabase
     .from('conversations')
-    .select('id', { count: 'exact', head: true })
-    .eq('controlled_by', 'human')
+    .select('id, status, controlled_by, last_message_at')
+    .not('status', 'in', '("completed","archived","encerrada","arquivada")')
 
   if (conversationFilter) {
-    atencaoQuery = atencaoQuery.in('id', conversationFilter)
+    activeQuery = activeQuery.in('id', conversationFilter)
   }
 
-  // Count active AI conversations (julia_ativa + aguardando combined)
-  let activeAiQuery = supabase
-    .from('conversations')
-    .select('id', { count: 'exact', head: true })
-    .eq('controlled_by', 'ai')
-    .eq('status', 'active')
+  const { data: activeConversations } = await activeQuery.limit(1000)
 
-  if (conversationFilter) {
-    activeAiQuery = activeAiQuery.in('id', conversationFilter)
+  // Fetch last message direction for active conversations
+  const activeIds = (activeConversations || []).map((c) => c.id)
+
+  const lastMsgDirectionMap = new Map<string, 'entrada' | 'saida'>()
+
+  if (activeIds.length > 0) {
+    const { data: lastMessages } = await supabase
+      .from('interacoes')
+      .select('conversation_id, autor_tipo, created_at')
+      .in('conversation_id', activeIds)
+      .order('created_at', { ascending: false })
+      .limit(activeIds.length * 2)
+
+    // Deduplicate: keep first (most recent) per conversation
+    lastMessages?.forEach((msg) => {
+      if (!lastMsgDirectionMap.has(msg.conversation_id)) {
+        lastMsgDirectionMap.set(
+          msg.conversation_id,
+          msg.autor_tipo === 'medico' ? 'entrada' : 'saida'
+        )
+      }
+    })
   }
 
-  // Count encerradas (last 48h)
+  // Fetch active handoffs
+  const { data: handoffs } = await supabase
+    .from('handoffs')
+    .select('conversation_id')
+    .in('conversation_id', activeIds.length > 0 ? activeIds : ['__none__'])
+    .eq('status', 'pendente')
+
+  const handoffSet = new Set(handoffs?.map((h) => h.conversation_id) || [])
+
+  // Categorize each conversation
+  const counts: TabCounts = { atencao: 0, julia_ativa: 0, aguardando: 0, encerradas: 0 }
+
+  for (const conv of activeConversations || []) {
+    const lastMsgDirection = lastMsgDirectionMap.get(conv.id) || null
+    const hasHandoff = handoffSet.has(conv.id)
+
+    // Atencao: handoff, human-controlled, or waiting > 1h with last msg from doctor
+    if (conv.controlled_by === 'human' || hasHandoff) {
+      counts.atencao++
+      continue
+    }
+
+    if (lastMsgDirection === 'entrada' && conv.last_message_at) {
+      const waitMs = Date.now() - new Date(conv.last_message_at).getTime()
+      if (waitMs > ONE_HOUR_MS) {
+        counts.atencao++
+        continue
+      }
+    }
+
+    // Aguardando: AI, last msg is outgoing (Julia sent, waiting for doctor)
+    if (lastMsgDirection === 'saida' && conv.controlled_by === 'ai') {
+      counts.aguardando++
+      continue
+    }
+
+    // Julia ativa: AI active, doctor engaged
+    counts.julia_ativa++
+  }
+
+  // Count encerradas separately (last 48h)
   let encerradasQuery = supabase
     .from('conversations')
     .select('id', { count: 'exact', head: true })
@@ -106,22 +164,8 @@ async function getCountsFallback(
     encerradasQuery = encerradasQuery.in('id', conversationFilter)
   }
 
-  const [atencaoResult, activeAiResult, encerradasResult] = await Promise.all([
-    atencaoQuery,
-    activeAiQuery,
-    encerradasQuery,
-  ])
+  const { count: encerradasCount } = await encerradasQuery
+  counts.encerradas = encerradasCount || 0
 
-  const atencao = atencaoResult.count || 0
-  const totalActiveAi = activeAiResult.count || 0
-  // Split active AI roughly: assume half are waiting for response
-  const aguardando = Math.floor(totalActiveAi * 0.3)
-  const juliaAtiva = totalActiveAi - aguardando
-
-  return {
-    atencao,
-    julia_ativa: juliaAtiva,
-    aguardando,
-    encerradas: encerradasResult.count || 0,
-  }
+  return counts
 }

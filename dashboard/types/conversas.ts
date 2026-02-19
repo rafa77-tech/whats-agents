@@ -61,6 +61,8 @@ export interface ConversationListItem {
   has_handoff?: boolean | undefined
   handoff_reason?: string | undefined
   last_message_direction?: 'entrada' | 'saida' | undefined
+  // Sprint 64: Attention feed
+  attention_reason?: string | null | undefined
 }
 
 // ============================================
@@ -85,6 +87,13 @@ export interface Message {
 // Full conversation detail
 // ============================================
 
+export interface ConversationSummary {
+  text: string
+  total_msg_medico: number
+  total_msg_julia: number
+  duracao_dias: number
+}
+
 export interface ConversationDetail {
   id: string
   status: string
@@ -99,6 +108,8 @@ export interface ConversationDetail {
   // Sprint 54: Pause state
   pausada_em?: string | null | undefined
   motivo_pausa?: string | null | undefined
+  // Sprint 64: Summary
+  summary?: ConversationSummary | undefined
 }
 
 // ============================================

@@ -2,10 +2,9 @@
 
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Bot, UserCheck, CheckCheck, Smartphone } from 'lucide-react'
+import { Bot, UserCheck } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { cn, formatPhone } from '@/lib/utils'
-import { getSentimentColor } from '@/lib/conversas/constants'
+import { cn } from '@/lib/utils'
 import type { ConversationListItem } from '@/types/conversas'
 
 interface Props {
@@ -25,16 +24,6 @@ function getUrgencyBorder(conv: ConversationListItem): string {
   return 'border-l-4 border-l-transparent'
 }
 
-function getWaitTime(conv: ConversationListItem): string | null {
-  if (conv.last_message_direction !== 'entrada' || !conv.last_message_at) return null
-  const waitMs = Date.now() - new Date(conv.last_message_at).getTime()
-  if (waitMs < 10 * 60 * 1000) return null // < 10 min, no display
-  const minutes = Math.floor(waitMs / 60000)
-  if (minutes < 60) return `${minutes}min`
-  const hours = Math.floor(minutes / 60)
-  return `${hours}h`
-}
-
 export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLoadMore }: Props) {
   return (
     <div className="divide-y">
@@ -42,7 +31,6 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
         const isSelected = conversation.id === selectedId
         const isHandoff = conversation.controlled_by === 'human'
         const urgencyBorder = getUrgencyBorder(conversation)
-        const waitTime = getWaitTime(conversation)
 
         const timeAgo = conversation.last_message_at
           ? formatDistanceToNow(new Date(conversation.last_message_at), {
@@ -63,90 +51,53 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
             key={conversation.id}
             onClick={() => onSelect(conversation.id)}
             className={cn(
-              'flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50',
+              'flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50',
               urgencyBorder,
               isSelected && 'bg-muted'
             )}
           >
-            {/* Avatar with sentiment dot */}
-            <div className="relative flex-shrink-0">
-              <Avatar className="h-12 w-12">
-                <AvatarFallback
-                  className={cn(
-                    'text-sm font-medium',
-                    isHandoff
-                      ? 'bg-state-handoff text-state-handoff-foreground'
-                      : 'bg-state-ai text-state-ai-foreground'
-                  )}
-                >
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              {/* Sentiment indicator dot */}
-              {conversation.sentimento_score != null && (
-                <span
-                  className={cn(
-                    'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background',
-                    getSentimentColor(conversation.sentimento_score)
-                  )}
-                />
-              )}
-            </div>
+            {/* Avatar */}
+            <Avatar className="h-10 w-10 flex-shrink-0">
+              <AvatarFallback
+                className={cn(
+                  'text-xs font-medium',
+                  isHandoff
+                    ? 'bg-state-handoff text-state-handoff-foreground'
+                    : 'bg-state-ai text-state-ai-foreground'
+                )}
+              >
+                {initials}
+              </AvatarFallback>
+            </Avatar>
 
-            {/* Content */}
+            {/* Content — 2 lines only */}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate font-medium">{conversation.cliente_nome}</span>
-                <div className="flex flex-shrink-0 items-center gap-1">
-                  {waitTime && (
-                    <span className="text-[10px] font-medium text-status-warning-foreground">
-                      {waitTime}
+              {/* Line 1: Name + specialty + time */}
+              <div className="flex items-center justify-between">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate text-sm font-medium">
+                    {conversation.cliente_nome}
+                  </span>
+                  {conversation.especialidade && (
+                    <span className="hidden truncate text-xs text-muted-foreground sm:inline">
+                      · {conversation.especialidade}
                     </span>
                   )}
-                  <span className="text-xs text-muted-foreground">{timeAgo}</span>
                 </div>
+                <span className="flex-shrink-0 text-xs text-muted-foreground">{timeAgo}</span>
               </div>
 
-              {/* Especialidade + Stage */}
-              {(conversation.especialidade || conversation.stage_jornada) && (
-                <div className="mt-0.5 flex items-center gap-1.5">
-                  {conversation.especialidade && (
-                    <span className="truncate text-[10px] text-muted-foreground">
-                      {conversation.especialidade}
-                    </span>
-                  )}
-                  {conversation.stage_jornada && (
-                    <span className="rounded bg-muted px-1 py-0.5 text-[9px] font-medium">
-                      {conversation.stage_jornada}
-                    </span>
-                  )}
-                </div>
-              )}
-
+              {/* Line 2: Last message + badges */}
               <div className="mt-0.5 flex items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-1">
-                  {conversation.last_message && (
-                    <>
-                      <CheckCheck className="h-3.5 w-3.5 flex-shrink-0 text-state-unread" />
-                      <span className="truncate text-sm text-muted-foreground">
-                        {conversation.last_message}
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                {/* Badges */}
+                <span className="min-w-0 truncate text-xs text-muted-foreground">
+                  {conversation.last_message || ''}
+                </span>
                 <div className="flex flex-shrink-0 items-center gap-1">
                   {isHandoff ? (
-                    <span className="flex items-center gap-0.5 rounded bg-state-handoff px-1.5 py-0.5 text-[10px] font-medium text-state-handoff-foreground">
-                      <UserCheck className="h-3 w-3" />
-                    </span>
+                    <UserCheck className="h-3.5 w-3.5 text-state-handoff-foreground" />
                   ) : (
-                    <span className="flex items-center gap-0.5 rounded bg-state-ai px-1.5 py-0.5 text-[10px] font-medium text-state-ai-foreground">
-                      <Bot className="h-3 w-3" />
-                    </span>
+                    <Bot className="h-3.5 w-3.5 text-state-ai-muted" />
                   )}
-
                   {conversation.unread_count > 0 && (
                     <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-state-ai-button px-1.5 text-xs font-medium text-white">
                       {conversation.unread_count}
@@ -154,16 +105,6 @@ export function ChatSidebar({ conversations, selectedId, onSelect, hasMore, onLo
                   )}
                 </div>
               </div>
-
-              {/* Chip info */}
-              {conversation.chip && (
-                <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <Smartphone className="h-3 w-3" />
-                  <span className="truncate">
-                    {conversation.chip.instance_name} • {formatPhone(conversation.chip.telefone)}
-                  </span>
-                </div>
-              )}
             </div>
           </button>
         )

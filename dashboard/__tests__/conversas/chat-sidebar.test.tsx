@@ -80,23 +80,16 @@ describe('ChatSidebar', () => {
   it('shows handoff indicator for human-controlled conversations', () => {
     render(<ChatSidebar conversations={mockConversations} selectedId={null} onSelect={vi.fn()} />)
 
-    // The human-controlled conversation shows UserCheck icon which renders as an SVG
-    // We can verify this by checking for the handoff state background in badges
+    // The human-controlled conversation uses bg-state-handoff on the avatar
     const buttons = screen.getAllByRole('button')
     const humanControlledButton = buttons.find((btn) =>
       btn.textContent?.includes('Dra. Maria Santos')
     )
     expect(humanControlledButton).toBeDefined()
 
-    // Check that the handoff badge has semantic state-handoff styling
-    const handoffBadge = humanControlledButton?.querySelector('.bg-state-handoff')
-    expect(handoffBadge).toBeInTheDocument()
-  })
-
-  it('shows chip info when available', () => {
-    render(<ChatSidebar conversations={mockConversations} selectedId={null} onSelect={vi.fn()} />)
-
-    expect(screen.getByText(/julia-01/)).toBeInTheDocument()
+    // Check for handoff state styling on avatar fallback
+    const handoffAvatar = humanControlledButton?.querySelector('.bg-state-handoff')
+    expect(handoffAvatar).toBeInTheDocument()
   })
 
   it('shows load more button when hasMore is true', () => {
@@ -131,10 +124,23 @@ describe('ChatSidebar', () => {
     expect(screen.queryByText(/carregar mais/i)).not.toBeInTheDocument()
   })
 
-  it('shows chip phone formatted correctly', () => {
-    render(<ChatSidebar conversations={mockConversations} selectedId={null} onSelect={vi.fn()} />)
+  it('shows specialty when available', () => {
+    const base = mockConversations[0]!
+    const convWithSpecialty: ConversationListItem[] = [
+      {
+        ...base,
+        especialidade: 'Cardiologia',
+      },
+    ]
 
-    // Chip phone should be formatted as (11) 88888-8888
-    expect(screen.getByText(/\(11\) 88888-8888/)).toBeInTheDocument()
+    render(
+      <ChatSidebar
+        conversations={convWithSpecialty}
+        selectedId={null}
+        onSelect={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText('· Cardiologia')).toBeInTheDocument()
   })
 })

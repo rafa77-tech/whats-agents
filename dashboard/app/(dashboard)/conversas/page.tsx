@@ -1,13 +1,22 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Search, MessageSquare, Smartphone, X } from 'lucide-react'
+import {
+  Search,
+  MessageSquare,
+  X,
+  AlertTriangle,
+  Bot,
+  Clock,
+} from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { ChatSidebar } from './components/chat-sidebar'
 import { ChatPanel } from './components/chat-panel'
+import { AttentionFeed } from './components/attention-feed'
 import { SupervisionTabs } from './components/supervision-tabs'
 import { DoctorContextPanel } from './components/doctor-context-panel'
 import { NewConversationDialog } from './components/new-conversation-dialog'
@@ -33,6 +42,8 @@ export default function ConversasPage() {
   const [showContext, setShowContext] = useState(false)
   const [chips, setChips] = useState<Chip[]>([])
   const [chipsLoading, setChipsLoading] = useState(true)
+  // Mobile: two-state navigation (list ↔ chat)
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
 
   // SWR hooks
   const {
@@ -67,7 +78,7 @@ export default function ConversasPage() {
     fetchChips()
   }, [fetchChips])
 
-  // Auto-select first conversation
+  // Auto-select first conversation (desktop only)
   useEffect(() => {
     if (!selectedId && data?.data && data.data.length > 0) {
       const firstConversation = data.data[0]
@@ -100,6 +111,33 @@ export default function ConversasPage() {
     }
   }
 
+  const handleSelectConversation = (id: string) => {
+    setSelectedId(id)
+    // On mobile, switch to chat view
+    setMobileView('chat')
+  }
+
+  const handleMobileBack = () => {
+    setMobileView('list')
+  }
+
+  const handleAssumeConversation = async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/conversas/${conversationId}/control`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ controlled_by: 'human' }),
+      })
+      if (response.ok) {
+        await mutateConversations()
+        setSelectedId(conversationId)
+        setMobileView('chat')
+      }
+    } catch (err) {
+      console.error('Failed to assume conversation:', err)
+    }
+  }
+
   const handleNewConversation = async (phone: string, doctorId?: string) => {
     try {
       const response = await fetch('/api/conversas/new', {
@@ -112,6 +150,7 @@ export default function ConversasPage() {
         const result = await response.json()
         await mutateConversations()
         setSelectedId(result.conversation_id)
+        setMobileView('chat')
       }
     } catch (err) {
       console.error('Failed to start conversation:', err)
@@ -119,9 +158,6 @@ export default function ConversasPage() {
   }
 
   const selectedChip = chips.find((c) => c.id === selectedChipId)
-  const totalConversations = selectedChipId
-    ? data?.total || 0
-    : chips.reduce((sum, c) => sum + c.conversation_count, 0)
 
   if (loading && !data && chipsLoading) {
     return (
@@ -132,7 +168,7 @@ export default function ConversasPage() {
           </div>
           <div className="space-y-1 p-2">
             {[...Array(8)].map((_, i) => (
-              <Skeleton key={i} className="h-[72px]" />
+              <Skeleton key={i} className="h-[56px]" />
             ))}
           </div>
         </div>
@@ -145,67 +181,110 @@ export default function ConversasPage() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Left Sidebar - Conversation List */}
-      <div className="flex h-full w-full flex-col border-r bg-background md:w-[380px] lg:w-[420px]">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b bg-state-ai px-3 py-2">
-          <div className="flex items-center gap-2">
-            <Smartphone className="h-4 w-4 text-state-ai-muted" />
-            <span className="text-xs text-state-ai-muted">
-              {chips.length} chips • {totalConversations} conversas
-            </span>
+      {/* ========================================= */}
+      {/* Left Sidebar - Conversation List          */}
+      {/* Mobile: visible in 'list' view only       */}
+      {/* Desktop: always visible                   */}
+      {/* ========================================= */}
+      <div
+        className={cn(
+          'flex h-full w-full flex-col border-r bg-background md:w-[380px] lg:w-[420px]',
+          mobileView === 'chat' && 'hidden md:flex'
+        )}
+      >
+        {/* Header: Quick status overview */}
+        <div className="flex items-center justify-between border-b px-3 py-2">
+          <div className="flex items-center gap-3 text-xs">
+            {counts.atencao > 0 && (
+              <button
+                onClick={() => handleTabChange('atencao')}
+                className={cn(
+                  'flex items-center gap-1 font-medium',
+                  activeTab === 'atencao' ? 'text-destructive' : 'text-destructive/70'
+                )}
+              >
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {counts.atencao}
+              </button>
+            )}
+            <button
+              onClick={() => handleTabChange('julia_ativa')}
+              className={cn(
+                'flex items-center gap-1',
+                activeTab === 'julia_ativa'
+                  ? 'font-medium text-state-ai-foreground'
+                  : 'text-state-ai-muted'
+              )}
+            >
+              <Bot className="h-3.5 w-3.5" />
+              {counts.julia_ativa}
+            </button>
+            <button
+              onClick={() => handleTabChange('aguardando')}
+              className={cn(
+                'flex items-center gap-1',
+                activeTab === 'aguardando'
+                  ? 'font-medium text-foreground'
+                  : 'text-muted-foreground'
+              )}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              {counts.aguardando}
+            </button>
           </div>
           <NewConversationDialog onStart={handleNewConversation} />
         </div>
 
         {/* Chip Pills */}
-        <ScrollArea className="w-full border-b">
-          <div className="flex w-max gap-1.5 p-2">
-            <button
-              onClick={() => handleChipSelect(null)}
-              className={cn(
-                'flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                !selectedChipId
-                  ? 'bg-state-ai-button text-white'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              )}
-            >
-              Todos
-              <span
-                className={cn(
-                  'rounded-full px-1.5 py-0.5 text-[10px]',
-                  !selectedChipId ? 'bg-white/20' : 'bg-background'
-                )}
-              >
-                {chips.reduce((sum, c) => sum + c.conversation_count, 0)}
-              </span>
-            </button>
-
-            {chips.map((chip) => (
+        {chips.length > 1 && (
+          <ScrollArea className="w-full border-b">
+            <div className="flex w-max gap-1.5 p-2">
               <button
-                key={chip.id}
-                onClick={() => handleChipSelect(chip.id)}
+                onClick={() => handleChipSelect(null)}
                 className={cn(
                   'flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                  selectedChipId === chip.id
+                  !selectedChipId
                     ? 'bg-state-ai-button text-white'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 )}
               >
-                {chip.instance_name}
+                Todos
                 <span
                   className={cn(
                     'rounded-full px-1.5 py-0.5 text-[10px]',
-                    selectedChipId === chip.id ? 'bg-white/20' : 'bg-background'
+                    !selectedChipId ? 'bg-white/20' : 'bg-background'
                   )}
                 >
-                  {chip.conversation_count}
+                  {chips.reduce((sum, c) => sum + c.conversation_count, 0)}
                 </span>
               </button>
-            ))}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+
+              {chips.map((chip) => (
+                <button
+                  key={chip.id}
+                  onClick={() => handleChipSelect(chip.id)}
+                  className={cn(
+                    'flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                    selectedChipId === chip.id
+                      ? 'bg-state-ai-button text-white'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  )}
+                >
+                  {chip.instance_name}
+                  <span
+                    className={cn(
+                      'rounded-full px-1.5 py-0.5 text-[10px]',
+                      selectedChipId === chip.id ? 'bg-white/20' : 'bg-background'
+                    )}
+                  >
+                    {chip.conversation_count}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        )}
 
         {/* Selected chip info */}
         {selectedChip && (
@@ -257,16 +336,25 @@ export default function ConversasPage() {
           </div>
         </div>
 
-        {/* Conversation List */}
+        {/* Conversation List / Attention Feed */}
         <div className="min-h-0 flex-1 overflow-y-auto">
           {data?.data && data.data.length > 0 ? (
-            <ChatSidebar
-              conversations={data.data}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              hasMore={page < (data?.pages || 1)}
-              onLoadMore={handleLoadMore}
-            />
+            activeTab === 'atencao' ? (
+              <AttentionFeed
+                conversations={data.data}
+                selectedId={selectedId}
+                onSelect={handleSelectConversation}
+                onAssume={handleAssumeConversation}
+              />
+            ) : (
+              <ChatSidebar
+                conversations={data.data}
+                selectedId={selectedId}
+                onSelect={handleSelectConversation}
+                hasMore={page < (data?.pages || 1)}
+                onLoadMore={handleLoadMore}
+              />
+            )
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
               <MessageSquare className="h-12 w-12 opacity-20" />
@@ -286,14 +374,25 @@ export default function ConversasPage() {
         </div>
       </div>
 
-      {/* Center Panel - Chat */}
-      <div className="hidden h-full min-h-0 flex-1 md:flex">
+      {/* ========================================= */}
+      {/* Center Panel - Chat                       */}
+      {/* Mobile: visible in 'chat' view only       */}
+      {/* Desktop: always visible                   */}
+      {/* ========================================= */}
+      <div
+        className={cn(
+          'h-full min-h-0 flex-1',
+          mobileView === 'list' ? 'hidden md:flex' : 'flex'
+        )}
+      >
         {selectedId ? (
           <ChatPanel
             conversationId={selectedId}
             onControlChange={() => mutateConversations()}
             showContextPanel={showContext}
             onToggleContext={() => setShowContext((prev) => !prev)}
+            onBack={handleMobileBack}
+            showBackButton={mobileView === 'chat'}
           />
         ) : (
           <div className="flex h-full flex-1 flex-col items-center justify-center gap-4 bg-muted/10">
@@ -315,12 +414,33 @@ export default function ConversasPage() {
         )}
       </div>
 
-      {/* Right Panel - Doctor Context (collapsible) */}
+      {/* ========================================= */}
+      {/* Right Panel - Doctor Context               */}
+      {/* Desktop lg+: fixed panel                   */}
+      {/* < lg: Sheet/Drawer from right              */}
+      {/* ========================================= */}
       {showContext && selectedId && (
-        <div className="hidden h-full w-[340px] border-l xl:block">
+        <div className="hidden h-full w-[340px] border-l lg:block">
           <DoctorContextPanel conversationId={selectedId} onClose={() => setShowContext(false)} />
         </div>
       )}
+
+      {/* Sheet for smaller screens */}
+      <Sheet
+        open={showContext && !!selectedId}
+        onOpenChange={(open) => {
+          if (!open) setShowContext(false)
+        }}
+      >
+        <SheetContent side="right" className="w-[340px] p-0 lg:hidden">
+          {selectedId && (
+            <DoctorContextPanel
+              conversationId={selectedId}
+              onClose={() => setShowContext(false)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

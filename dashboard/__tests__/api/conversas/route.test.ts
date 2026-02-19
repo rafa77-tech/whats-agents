@@ -1,5 +1,6 @@
 /**
  * Testes para GET /api/conversas
+ * Sprint 64: Updated for server-side tab filtering, attention_reason, unread_count
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -11,6 +12,7 @@ import { NextRequest } from 'next/server'
 interface MockQueryResult {
   data: unknown[] | null
   error: unknown
+  count?: number | null
 }
 
 let conversationsResult: MockQueryResult = { data: [], error: null }
@@ -56,8 +58,7 @@ function makeThenableChain(resultGetter: () => MockQueryResult) {
   return proxy
 }
 
-// The conversations chain needs special tracking for .or() and .in() calls,
-// and .limit() at the end resolves the result.
+// The conversations chain needs special tracking for .or() and .in() calls
 function makeConversationsChain() {
   const handler: ProxyHandler<object> = {
     get(_target, prop) {
@@ -265,15 +266,17 @@ describe('GET /api/conversas', () => {
     const data = await response.json()
 
     expect(response.status).toBe(200)
-    expect(data.data).toHaveLength(1)
-    expect(data.data[0].id).toBe('conv-human')
-    expect(data.total).toBe(1)
+    // Human-controlled should be categorized as atencao
+    const atencaoConvs = data.data.filter(
+      (c: { attention_reason: string | null }) => c.attention_reason !== null
+    )
+    expect(atencaoConvs.length).toBeGreaterThanOrEqual(1)
+    expect(atencaoConvs[0].id).toBe('conv-human')
   })
 
   it('filters by tab=encerradas (completed conversations)', async () => {
     const completedConv = { ...sampleConversation, id: 'conv-done', status: 'completed' }
-    const activeConv = { ...sampleConversation, id: 'conv-active', status: 'active' }
-    conversationsResult = { data: [completedConv, activeConv], error: null }
+    conversationsResult = { data: [completedConv], error: null }
 
     const request = createRequest({ tab: 'encerradas' })
     const response = await GET(request)
@@ -475,84 +478,38 @@ describe('GET /api/conversas', () => {
     expect(data.total).toBe(60)
     expect(data.pages).toBe(2)
   })
-})
 
-// ---------- categorizeConversation (indirect via tab filter) ----------
+  // Sprint 64: New tests
 
-describe('categorizeConversation (via tab filter)', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    resetState()
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  it('categorizes conversation with handoff as atencao', async () => {
+  it('computes unread_count based on last message direction', async () => {
     conversationsResult = { data: [sampleConversation], error: null }
-    handoffsResult = {
-      data: [{ conversation_id: 'conv-1', motivo: 'Pediu humano', status: 'pendente' }],
-      error: null,
-    }
-
-    const request = createRequest({ tab: 'atencao' })
-    const response = await GET(request)
-    const data = await response.json()
-
-    expect(data.data).toHaveLength(1)
-    expect(data.data[0].has_handoff).toBe(true)
-  })
-
-  it('categorizes archived status as encerradas', async () => {
-    conversationsResult = {
-      data: [{ ...sampleConversation, status: 'archived' }],
-      error: null,
-    }
-
-    const request = createRequest({ tab: 'encerradas' })
-    const response = await GET(request)
-    const data = await response.json()
-
-    expect(data.data).toHaveLength(1)
-  })
-
-  it('categorizes encerrada status as encerradas', async () => {
-    conversationsResult = {
-      data: [{ ...sampleConversation, status: 'encerrada' }],
-      error: null,
-    }
-
-    const request = createRequest({ tab: 'encerradas' })
-    const response = await GET(request)
-    const data = await response.json()
-
-    expect(data.data).toHaveLength(1)
-  })
-
-  it('categorizes active AI conversation without messages as julia_ativa', async () => {
-    conversationsResult = {
-      data: [{ ...sampleConversation, controlled_by: 'ai', status: 'active' }],
-      error: null,
-    }
-
-    const request = createRequest({ tab: 'julia_ativa' })
-    const response = await GET(request)
-    const data = await response.json()
-
-    expect(data.data).toHaveLength(1)
-  })
-
-  it('categorizes AI conversation with outgoing last message as aguardando', async () => {
-    conversationsResult = {
-      data: [{ ...sampleConversation, controlled_by: 'ai', status: 'active' }],
-      error: null,
-    }
     interacoesResult = {
       data: [
         {
           conversation_id: 'conv-1',
-          conteudo: 'Oi!',
+          conteudo: 'Oi Julia',
+          autor_tipo: 'medico',
+          created_at: '2024-01-10T10:00:00Z',
+        },
+      ],
+      error: null,
+    }
+
+    const request = createRequest()
+    const response = await GET(request)
+    const data = await response.json()
+
+    // Last message from medico (entrada) = 1 unread
+    expect(data.data[0].unread_count).toBe(1)
+  })
+
+  it('sets unread_count to 0 when last message is outgoing', async () => {
+    conversationsResult = { data: [sampleConversation], error: null }
+    interacoesResult = {
+      data: [
+        {
+          conversation_id: 'conv-1',
+          conteudo: 'Oi doutor!',
           autor_tipo: 'julia',
           created_at: '2024-01-10T10:00:00Z',
         },
@@ -560,10 +517,62 @@ describe('categorizeConversation (via tab filter)', () => {
       error: null,
     }
 
-    const request = createRequest({ tab: 'aguardando' })
+    const request = createRequest()
     const response = await GET(request)
     const data = await response.json()
 
-    expect(data.data).toHaveLength(1)
+    expect(data.data[0].unread_count).toBe(0)
+  })
+
+  it('includes attention_reason for human-controlled conversations', async () => {
+    const humanConv = { ...sampleConversation, controlled_by: 'human' }
+    conversationsResult = { data: [humanConv], error: null }
+
+    const request = createRequest()
+    const response = await GET(request)
+    const data = await response.json()
+
+    expect(data.data[0].attention_reason).toBe('Handoff pendente')
+  })
+
+  it('includes handoff_reason as attention_reason when available', async () => {
+    conversationsResult = { data: [sampleConversation], error: null }
+    handoffsResult = {
+      data: [
+        {
+          conversation_id: 'conv-1',
+          motivo: 'Medico quer falar com humano',
+          status: 'pendente',
+        },
+      ],
+      error: null,
+    }
+
+    const request = createRequest()
+    const response = await GET(request)
+    const data = await response.json()
+
+    expect(data.data[0].attention_reason).toBe('Medico quer falar com humano')
+  })
+
+  it('attention_reason is null for normal AI conversations', async () => {
+    conversationsResult = { data: [sampleConversation], error: null }
+    interacoesResult = {
+      data: [
+        {
+          conversation_id: 'conv-1',
+          conteudo: 'Oi doutor!',
+          autor_tipo: 'julia',
+          created_at: new Date().toISOString(),
+        },
+      ],
+      error: null,
+    }
+
+    const request = createRequest()
+    const response = await GET(request)
+    const data = await response.json()
+
+    expect(data.data[0].attention_reason).toBeNull()
   })
 })

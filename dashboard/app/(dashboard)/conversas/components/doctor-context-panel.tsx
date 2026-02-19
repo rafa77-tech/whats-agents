@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -330,16 +330,26 @@ function NotesSection({ conversationId }: { conversationId: string }) {
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
 
-  // Load notes on mount
-  useState(() => {
+  // Load notes when conversationId changes
+  useEffect(() => {
+    let cancelled = false
+    setLoaded(false)
+    setNotes([])
+
     fetch(`/api/conversas/${conversationId}/notes`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.notes) setNotes(data.notes as SupervisorNote[])
-        setLoaded(true)
+        if (!cancelled && data.notes) setNotes(data.notes as SupervisorNote[])
+        if (!cancelled) setLoaded(true)
       })
-      .catch(() => setLoaded(true))
-  })
+      .catch(() => {
+        if (!cancelled) setLoaded(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [conversationId])
 
   const handleAddNote = async (): Promise<void> => {
     if (!newNote.trim()) return
@@ -493,11 +503,23 @@ export function DoctorContextPanel({ conversationId, onClose }: Props) {
             <ProfileSection context={context} />
           </CollapsibleSection>
 
+          <CollapsibleSection title="Notas" icon={<StickyNote className="h-3.5 w-3.5" />} defaultOpen>
+            <NotesSection conversationId={conversationId} />
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Handoffs"
+            icon={<AlertTriangle className="h-3.5 w-3.5" />}
+            badge={context.handoff_history.length}
+            defaultOpen={context.handoff_history.some((h) => h.status === 'pendente')}
+          >
+            <HandoffTimeline context={context} />
+          </CollapsibleSection>
+
           <CollapsibleSection
             title="Memoria Julia"
             icon={<Brain className="h-3.5 w-3.5" />}
             badge={context.memory.length}
-            defaultOpen
           >
             <MemorySection memory={context.memory} />
           </CollapsibleSection>
@@ -507,23 +529,11 @@ export function DoctorContextPanel({ conversationId, onClose }: Props) {
           </CollapsibleSection>
 
           <CollapsibleSection
-            title="Handoffs"
-            icon={<AlertTriangle className="h-3.5 w-3.5" />}
-            badge={context.handoff_history.length}
-          >
-            <HandoffTimeline context={context} />
-          </CollapsibleSection>
-
-          <CollapsibleSection
             title="Eventos"
             icon={<Activity className="h-3.5 w-3.5" />}
             badge={context.recent_events.length}
           >
             <EventsTimeline context={context} />
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Notas" icon={<StickyNote className="h-3.5 w-3.5" />}>
-            <NotesSection conversationId={conversationId} />
           </CollapsibleSection>
         </div>
       )}
