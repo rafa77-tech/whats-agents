@@ -72,7 +72,13 @@ function getGoogleMapsUrl(hospital: HospitalDetalhado): string | null {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.endereco_formatado)}`
   }
   if (hospital.logradouro && hospital.cidade) {
-    const addr = [hospital.logradouro, hospital.numero, hospital.bairro, hospital.cidade, hospital.estado]
+    const addr = [
+      hospital.logradouro,
+      hospital.numero,
+      hospital.bairro,
+      hospital.cidade,
+      hospital.estado,
+    ]
       .filter(Boolean)
       .join(', ')
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
@@ -565,9 +571,7 @@ export default function HospitalDetalhePage() {
         <Card>
           <CardHeader>
             <CardTitle>Vagas</CardTitle>
-            <CardDescription>
-              Ultimas {hospital.vagas.length} vagas deste hospital
-            </CardDescription>
+            <CardDescription>Ultimas {hospital.vagas.length} vagas deste hospital</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">

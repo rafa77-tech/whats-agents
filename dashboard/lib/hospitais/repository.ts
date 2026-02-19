@@ -341,14 +341,7 @@ export async function listarHospitaisGestao(
   supabase: SupabaseClient,
   params: ListarHospitaisGestaoParams = {}
 ): Promise<HospitaisGestaoResponse> {
-  const {
-    page = 1,
-    perPage = 20,
-    search,
-    status = 'todos',
-    cidade,
-    criadoAutomaticamente,
-  } = params
+  const { page = 1, perPage = 20, search, status = 'todos', cidade, criadoAutomaticamente } = params
 
   const from = (page - 1) * perPage
   const to = from + perPage - 1
