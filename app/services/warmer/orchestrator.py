@@ -22,18 +22,11 @@ from app.services.supabase import supabase
 from app.services.warmer.trust_score import (
     calcular_trust_score,
 )
-from app.services.warmer.conversation_generator import (
-    gerar_conversa_warmup,
-)
-from app.services.warmer.pairing_engine import (
-    encontrar_par,
-    pairing_engine,
-)
 from app.services.warmer.scheduler import (
     scheduler,
     AtividadeAgendada,
-    TipoAtividade,
 )
+from app.services.warmer.executor import executar_atividade as _executor_executar
 
 logger = logging.getLogger(__name__)
 
@@ -136,8 +129,8 @@ class WarmingOrchestrator:
     """Orquestrador principal do sistema de aquecimento."""
 
     def __init__(self):
-        self.running = False
-        self.chips_em_processamento: set = set()
+        self._ciclo_lock = asyncio.Lock()
+        self._chip_locks: dict[str, asyncio.Lock] = {}
 
     async def iniciar_chip(self, chip_id: str) -> dict:
         """
@@ -276,7 +269,7 @@ class WarmingOrchestrator:
 
         # Calcular idade
         created_at = datetime.fromisoformat(chip["created_at"].replace("Z", "+00:00"))
-        idade_dias = (datetime.now(created_at.tzinfo) - created_at).days
+        idade_dias = (agora_brasilia() - created_at).days
 
         # Verificar cada critério
         if idade_dias < criterios.dias_minimos:
@@ -385,6 +378,9 @@ class WarmingOrchestrator:
         """
         Executa uma atividade agendada.
 
+        Delega ao executor.executar_atividade que envia mensagens reais
+        via enviar_via_chip (Evolution API / Z-API).
+
         Args:
             atividade: Atividade a executar
 
@@ -393,140 +389,31 @@ class WarmingOrchestrator:
         """
         chip_id = atividade.chip_id
 
-        # Evitar processamento duplicado
-        if chip_id in self.chips_em_processamento:
+        # Lock por chip para evitar processamento duplicado (atômico)
+        if chip_id not in self._chip_locks:
+            self._chip_locks[chip_id] = asyncio.Lock()
+
+        chip_lock = self._chip_locks[chip_id]
+
+        if chip_lock.locked():
             return {"success": False, "error": "Chip já em processamento"}
 
-        self.chips_em_processamento.add(chip_id)
-
-        try:
-            resultado = {"success": False}
-
-            if atividade.tipo == TipoAtividade.CONVERSA_PAR:
-                resultado = await self._executar_conversa_par(chip_id, atividade)
-
-            elif atividade.tipo == TipoAtividade.MARCAR_LIDO:
-                resultado = await self._executar_marcar_lido(chip_id)
-
-            elif atividade.tipo == TipoAtividade.ENVIAR_MIDIA:
-                resultado = await self._executar_enviar_midia(chip_id)
-
-            elif atividade.tipo == TipoAtividade.ENTRAR_GRUPO:
-                resultado = await self._executar_entrar_grupo(chip_id)
-
-            elif atividade.tipo == TipoAtividade.MENSAGEM_GRUPO:
-                resultado = await self._executar_mensagem_grupo(chip_id)
-
-            elif atividade.tipo == TipoAtividade.ATUALIZAR_PERFIL:
-                resultado = await self._executar_atualizar_perfil(chip_id)
+        async with chip_lock:
+            success = await _executor_executar(atividade)
+            resultado = {
+                "success": success,
+                "tipo": atividade.tipo.value,
+            }
 
             # Marcar atividade como executada
             if atividade.id:
                 await scheduler.marcar_executada(
                     atividade.id,
-                    resultado.get("success", False),
+                    success,
                     resultado,
                 )
 
             return resultado
-
-        finally:
-            self.chips_em_processamento.discard(chip_id)
-
-    async def _executar_conversa_par(
-        self,
-        chip_id: str,
-        atividade: AtividadeAgendada,
-    ) -> dict:
-        """Executa conversa com chip pareado."""
-        # Encontrar par
-        par_info = await encontrar_par(chip_id)
-
-        if not par_info:
-            return {"success": False, "error": "Nenhum par disponível"}
-
-        # Buscar fase do chip
-        result = supabase.table("chips").select("fase_warmup").eq("id", chip_id).single().execute()
-
-        fase = result.data.get("fase_warmup", "setup") if result.data else "setup"
-
-        # Gerar conversa
-        sequencia = gerar_conversa_warmup(turnos=3, fase_warmup=fase)
-
-        # Registrar pareamento
-        pair_id = await pairing_engine.registrar_pareamento(
-            chip_id,
-            par_info.chip_b.id,
-            "warmup_conversa",
-        )
-
-        # TODO: Integrar com Evolution API para enviar mensagens reais
-        # Por enquanto, apenas simular e registrar
-        logger.info(
-            f"[Orchestrator] Conversa simulada: {chip_id[:8]}... <-> {par_info.chip_b.id[:8]}... "
-            f"({len(sequencia)} mensagens)"
-        )
-
-        # Finalizar pareamento
-        await pairing_engine.finalizar_pareamento(pair_id, sucesso=True)
-
-        return {
-            "success": True,
-            "tipo": "conversa_par",
-            "par_id": par_info.chip_b.id,
-            "mensagens": len(sequencia),
-            "pair_id": pair_id,
-        }
-
-    async def _executar_marcar_lido(self, chip_id: str) -> dict:
-        """Marca mensagens como lidas."""
-        # TODO: Integrar com Evolution API
-        logger.debug(f"[Orchestrator] Marcar lido simulado para {chip_id[:8]}...")
-
-        return {
-            "success": True,
-            "tipo": "marcar_lido",
-        }
-
-    async def _executar_enviar_midia(self, chip_id: str) -> dict:
-        """Envia mídia variada."""
-        # TODO: Integrar com Evolution API
-        logger.debug(f"[Orchestrator] Envio de mídia simulado para {chip_id[:8]}...")
-
-        return {
-            "success": True,
-            "tipo": "enviar_midia",
-        }
-
-    async def _executar_entrar_grupo(self, chip_id: str) -> dict:
-        """Entra em um grupo."""
-        # TODO: Implementar com grupos reais
-        logger.debug(f"[Orchestrator] Entrada em grupo simulada para {chip_id[:8]}...")
-
-        return {
-            "success": True,
-            "tipo": "entrar_grupo",
-        }
-
-    async def _executar_mensagem_grupo(self, chip_id: str) -> dict:
-        """Envia mensagem em grupo."""
-        # TODO: Integrar com Evolution API
-        logger.debug(f"[Orchestrator] Mensagem em grupo simulada para {chip_id[:8]}...")
-
-        return {
-            "success": True,
-            "tipo": "mensagem_grupo",
-        }
-
-    async def _executar_atualizar_perfil(self, chip_id: str) -> dict:
-        """Atualiza perfil do WhatsApp."""
-        # TODO: Integrar com Evolution API
-        logger.debug(f"[Orchestrator] Atualização de perfil simulada para {chip_id[:8]}...")
-
-        return {
-            "success": True,
-            "tipo": "atualizar_perfil",
-        }
 
     async def _garantir_planejamento_diario(self):
         """Garante que chips em warming tenham atividades planejadas para hoje."""
@@ -560,13 +447,11 @@ class WarmingOrchestrator:
 
         Este método deve ser chamado periodicamente (ex: a cada 5 minutos).
         """
-        if self.running:
+        if self._ciclo_lock.locked():
             logger.warning("[Orchestrator] Ciclo já em execução")
             return
 
-        self.running = True
-
-        try:
+        async with self._ciclo_lock:
             logger.info("[Orchestrator] Iniciando ciclo de warmup")
 
             # 1. Garantir que chips ativos tenham atividades planejadas para hoje
@@ -615,9 +500,6 @@ class WarmingOrchestrator:
                     logger.error(f"[Orchestrator] Erro ao calcular trust: {e}")
 
             logger.info("[Orchestrator] Ciclo de warmup concluído")
-
-        finally:
-            self.running = False
 
     async def obter_status_pool(self) -> dict:
         """
