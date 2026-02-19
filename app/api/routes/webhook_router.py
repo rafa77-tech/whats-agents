@@ -120,9 +120,28 @@ async def processar_mensagem_recebida(chip: dict, payload: dict) -> dict:
     remote_jid = key.get("remoteJid", "")
     telefone = remote_jid.split("@")[0]
 
-    # Ignorar grupos e broadcasts
-    if "@g.us" in remote_jid or "@broadcast" in remote_jid:
-        return {"status": "ignored", "reason": "group_or_broadcast"}
+    # Ignorar broadcasts
+    if "@broadcast" in remote_jid:
+        return {"status": "ignored", "reason": "broadcast"}
+
+    # Interceptar mensagens de grupo para extração de vagas
+    if "@g.us" in remote_jid:
+        try:
+            from app.services.parser import parsear_mensagem
+            from app.services.grupos.ingestor import ingerir_mensagem_grupo
+
+            mensagem = parsear_mensagem(data)
+            if mensagem:
+                mensagem_id = await ingerir_mensagem_grupo(
+                    mensagem, data, instance_name=chip["instance_name"]
+                )
+                logger.info(
+                    f"[WebhookRouter] Grupo ingerido via chip {chip['telefone']}: {mensagem_id}"
+                )
+        except Exception as e:
+            logger.error(f"[WebhookRouter] Erro ingestão grupo: {e}", exc_info=True)
+
+        return {"status": "ok", "reason": "group_ingested"}
 
     # Extrair tipo de midia
     tipo_midia = "text"

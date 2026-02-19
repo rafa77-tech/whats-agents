@@ -108,6 +108,7 @@ class PairingEngine:
                 "msgs_enviadas_hoje, msgs_recebidas_hoje, ultimo_pareamento"
             )
             .eq("status", "connected")
+            .neq("tipo", "listener")
             .in_("fase_warmup", fases_validas)
             .execute()
         )
