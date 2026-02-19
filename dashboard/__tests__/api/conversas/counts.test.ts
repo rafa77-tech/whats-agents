@@ -65,7 +65,11 @@ const mockFrom = vi.fn((table: string) => {
   return makeThenableChain(() => ({ data: [], error: null }))
 })
 
-const mockRpc = vi.fn(() => {
+const mockRpc = vi.fn((fn: string) => {
+  if (fn === 'get_last_messages') {
+    return makeThenableChain(() => interacoesResult)
+  }
+  // get_supervision_tab_counts returns directly (not thenable)
   return rpcResult
 })
 

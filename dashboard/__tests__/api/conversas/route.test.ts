@@ -134,7 +134,12 @@ const mockFrom = vi.fn((table: string) => {
   return makeThenableChain(() => ({ data: [], error: null }))
 })
 
-const mockSupabase = { from: mockFrom }
+const mockRpc = vi.fn((_fn: string, _params?: unknown) => {
+  // get_last_messages RPC returns same data as interacoes query
+  return makeThenableChain(() => interacoesResult)
+})
+
+const mockSupabase = { from: mockFrom, rpc: mockRpc }
 
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => mockSupabase,

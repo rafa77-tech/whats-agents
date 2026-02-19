@@ -95,21 +95,15 @@ async function computeRealCounts(
   const lastMsgDirectionMap = new Map<string, 'entrada' | 'saida'>()
 
   if (activeIds.length > 0) {
-    const { data: lastMessages } = await supabase
-      .from('interacoes')
-      .select('conversation_id, autor_tipo, created_at')
-      .in('conversation_id', activeIds)
-      .order('created_at', { ascending: false })
-      .limit(activeIds.length * 2)
+    const { data: lastMessages } = await supabase.rpc('get_last_messages', {
+      conv_ids: activeIds,
+    })
 
-    // Deduplicate: keep first (most recent) per conversation
-    lastMessages?.forEach((msg) => {
-      if (!lastMsgDirectionMap.has(msg.conversation_id)) {
-        lastMsgDirectionMap.set(
-          msg.conversation_id,
-          msg.autor_tipo === 'medico' ? 'entrada' : 'saida'
-        )
-      }
+    lastMessages?.forEach((msg: { conversation_id: string; autor_tipo: string | null }) => {
+      lastMsgDirectionMap.set(
+        msg.conversation_id,
+        msg.autor_tipo === 'medico' ? 'entrada' : 'saida'
+      )
     })
   }
 

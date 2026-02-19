@@ -171,15 +171,8 @@ export async function GET(request: NextRequest) {
         .in('conversa_id', conversaIds)
         .eq('active', true),
 
-      // Last message per conversation — use RPC or DISTINCT ON
-      // Supabase JS doesn't support DISTINCT ON, so we fetch ordered and deduplicate in JS
-      // But limit to 1 per conversation by fetching only recent ones
-      supabase
-        .from('interacoes')
-        .select('conversation_id, conteudo, autor_tipo, created_at')
-        .in('conversation_id', conversaIds)
-        .order('created_at', { ascending: false })
-        .limit(conversaIds.length * 2), // At most 2 per conversation (usually enough for last msg)
+      // Last message per conversation via DISTINCT ON (exactly 1 per conversation)
+      supabase.rpc('get_last_messages', { conv_ids: conversaIds }),
 
       // Active handoffs
       supabase
@@ -205,20 +198,25 @@ export async function GET(request: NextRequest) {
       if (chip) chipMap.set(link.conversa_id, chip)
     })
 
-    // Deduplicate last messages (keep first = most recent due to ORDER BY desc)
+    // Map last messages (RPC returns exactly 1 per conversation via DISTINCT ON)
     const lastMessageMap = new Map<
       string,
       { conteudo: string; direction: 'entrada' | 'saida'; created_at: string }
     >()
-    lastMessagesResult.data?.forEach((msg) => {
-      if (!lastMessageMap.has(msg.conversation_id)) {
+    lastMessagesResult.data?.forEach(
+      (msg: {
+        conversation_id: string
+        conteudo: string | null
+        autor_tipo: string | null
+        created_at: string | null
+      }) => {
         lastMessageMap.set(msg.conversation_id, {
           conteudo: msg.conteudo || '',
           direction: msg.autor_tipo === 'medico' ? 'entrada' : 'saida',
           created_at: msg.created_at || '',
         })
       }
-    })
+    )
 
     const handoffMap = new Map<string, string>()
     handoffsResult.data?.forEach((h) => {
