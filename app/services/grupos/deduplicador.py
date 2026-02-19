@@ -214,6 +214,9 @@ async def processar_deduplicacao(vaga_id: UUID) -> ResultadoDedup:
     """
     Processa deduplicação para uma vaga.
 
+    Usa RPC com advisory lock para garantir atomicidade (evita race condition
+    quando vagas com mesmo hash chegam no mesmo ciclo do worker).
+
     Args:
         vaga_id: ID da vaga a processar
 
@@ -240,18 +243,21 @@ async def processar_deduplicacao(vaga_id: UUID) -> ResultadoDedup:
         especialidade_id=UUID(dados["especialidade_id"]),
     )
 
-    # Salvar hash na vaga
-    supabase.table("vagas_grupo").update({"hash_dedup": hash_dedup}).eq(
-        "id", str(vaga_id)
+    # Deduplicação atômica via RPC (advisory lock no banco)
+    result = supabase.rpc(
+        "dedup_vaga_grupo",
+        {"p_vaga_id": str(vaga_id), "p_hash": hash_dedup},
     ).execute()
 
-    # Verificar duplicata existente
-    existente = await buscar_vaga_duplicada(hash_dedup, excluir_id=vaga_id)
+    if not result.data:
+        return ResultadoDedup(duplicada=False, erro="rpc_sem_resultado")
 
-    if existente:
-        # É duplicata - registrar fonte e marcar
-        principal_id = UUID(existente["id"])
+    row = result.data[0]
+    duplicada = row["eh_duplicada"]
+    principal_id = UUID(row["principal_id"]) if row.get("principal_id") else None
 
+    # Registrar fonte (tracking multi-grupo)
+    if duplicada and principal_id:
         await registrar_fonte_vaga(
             vaga_principal_id=principal_id,
             mensagem_id=UUID(dados["mensagem_id"]),
@@ -261,32 +267,25 @@ async def processar_deduplicacao(vaga_id: UUID) -> ResultadoDedup:
             else None,
             valor_informado=dados.get("valor"),
         )
-
-        await marcar_como_duplicada(vaga_id, principal_id)
-
         logger.info(f"Vaga {vaga_id} é duplicata de {principal_id}")
+    else:
+        # Registrar como fonte principal (primeira)
+        await registrar_fonte_vaga(
+            vaga_principal_id=vaga_id,
+            mensagem_id=UUID(dados["mensagem_id"]),
+            grupo_id=UUID(dados["grupo_origem_id"]),
+            contato_id=UUID(dados["contato_responsavel_id"])
+            if dados.get("contato_responsavel_id")
+            else None,
+            valor_informado=dados.get("valor"),
+        )
+        logger.debug(f"Vaga {vaga_id} processada - nova (não duplicata)")
 
-        return ResultadoDedup(duplicada=True, principal_id=principal_id, hash_dedup=hash_dedup)
-
-    # Não é duplicata - registrar como fonte principal (primeira)
-    await registrar_fonte_vaga(
-        vaga_principal_id=vaga_id,
-        mensagem_id=UUID(dados["mensagem_id"]),
-        grupo_id=UUID(dados["grupo_origem_id"]),
-        contato_id=UUID(dados["contato_responsavel_id"])
-        if dados.get("contato_responsavel_id")
-        else None,
-        valor_informado=dados.get("valor"),
+    return ResultadoDedup(
+        duplicada=duplicada,
+        principal_id=principal_id,
+        hash_dedup=hash_dedup,
     )
-
-    # Atualizar status para pronta para importação
-    supabase.table("vagas_grupo").update({"status": "pronta_importacao"}).eq(
-        "id", str(vaga_id)
-    ).execute()
-
-    logger.debug(f"Vaga {vaga_id} processada - nova (não duplicata)")
-
-    return ResultadoDedup(duplicada=False, principal_id=vaga_id, hash_dedup=hash_dedup)
 
 
 async def processar_batch_deduplicacao(limite: int = 100) -> dict:

@@ -263,7 +263,7 @@ class TestMarcarComoDuplicada:
 
 
 class TestProcessarDeduplicacao:
-    """Testes do processador de deduplicação."""
+    """Testes do processador de deduplicação (via RPC atômica)."""
 
     @pytest.fixture
     def mock_supabase(self):
@@ -297,6 +297,132 @@ class TestProcessarDeduplicacao:
         resultado = await processar_deduplicacao(uuid4())
 
         assert resultado.erro == "dados_insuficientes"
+
+    @pytest.mark.asyncio
+    async def test_dedup_rpc_nova_vaga(self, mock_supabase):
+        """Deve usar RPC e retornar não-duplicada para vaga nova."""
+        vaga_id = uuid4()
+        hospital_id = uuid4()
+        esp_id = uuid4()
+        mensagem_id = uuid4()
+        grupo_id = uuid4()
+
+        # Mock select vaga
+        mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data={
+                "id": str(vaga_id),
+                "hospital_id": str(hospital_id),
+                "especialidade_id": str(esp_id),
+                "periodo_id": None,
+                "data": "2026-03-15",
+                "mensagem_id": str(mensagem_id),
+                "grupo_origem_id": str(grupo_id),
+                "contato_responsavel_id": None,
+                "valor": 2500,
+            }
+        )
+
+        # Mock RPC dedup_vaga_grupo
+        mock_supabase.rpc.return_value.execute.return_value = MagicMock(
+            data=[{"eh_duplicada": False, "principal_id": str(vaga_id)}]
+        )
+
+        # Mock registrar_fonte_vaga (select existente, count, insert, update)
+        mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
+        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = MagicMock(
+            count=0
+        )
+        mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
+            data=[{"id": str(uuid4())}]
+        )
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        resultado = await processar_deduplicacao(vaga_id)
+
+        assert resultado.duplicada is False
+        assert resultado.principal_id == vaga_id
+        assert resultado.hash_dedup is not None
+
+        # Verifica que RPC foi chamada
+        mock_supabase.rpc.assert_called_once_with(
+            "dedup_vaga_grupo",
+            {"p_vaga_id": str(vaga_id), "p_hash": resultado.hash_dedup},
+        )
+
+    @pytest.mark.asyncio
+    async def test_dedup_rpc_duplicata(self, mock_supabase):
+        """Deve usar RPC e retornar duplicada quando hash já existe."""
+        vaga_id = uuid4()
+        principal_id = uuid4()
+        hospital_id = uuid4()
+        esp_id = uuid4()
+        mensagem_id = uuid4()
+        grupo_id = uuid4()
+
+        # Mock select vaga
+        mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data={
+                "id": str(vaga_id),
+                "hospital_id": str(hospital_id),
+                "especialidade_id": str(esp_id),
+                "periodo_id": None,
+                "data": "2026-03-15",
+                "mensagem_id": str(mensagem_id),
+                "grupo_origem_id": str(grupo_id),
+                "contato_responsavel_id": None,
+                "valor": 2500,
+            }
+        )
+
+        # Mock RPC retorna duplicata
+        mock_supabase.rpc.return_value.execute.return_value = MagicMock(
+            data=[{"eh_duplicada": True, "principal_id": str(principal_id)}]
+        )
+
+        # Mock registrar_fonte_vaga
+        mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
+        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = MagicMock(
+            count=1
+        )
+        mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
+            data=[{"id": str(uuid4())}]
+        )
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        resultado = await processar_deduplicacao(vaga_id)
+
+        assert resultado.duplicada is True
+        assert resultado.principal_id == principal_id
+
+    @pytest.mark.asyncio
+    async def test_dedup_rpc_sem_resultado(self, mock_supabase):
+        """Deve retornar erro se RPC não retorna dados."""
+        vaga_id = uuid4()
+
+        mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data={
+                "id": str(vaga_id),
+                "hospital_id": str(uuid4()),
+                "especialidade_id": str(uuid4()),
+                "periodo_id": None,
+                "data": "2026-03-15",
+                "mensagem_id": str(uuid4()),
+                "grupo_origem_id": str(uuid4()),
+                "contato_responsavel_id": None,
+                "valor": None,
+            }
+        )
+
+        # RPC retorna vazio
+        mock_supabase.rpc.return_value.execute.return_value = MagicMock(data=[])
+
+        resultado = await processar_deduplicacao(vaga_id)
+
+        assert resultado.erro == "rpc_sem_resultado"
 
 
 class TestResultadoDedup:

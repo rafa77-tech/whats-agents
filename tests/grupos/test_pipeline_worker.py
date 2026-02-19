@@ -15,6 +15,7 @@ from app.services.grupos.pipeline_worker import (
     THRESHOLD_HEURISTICA,
     THRESHOLD_HEURISTICA_ALTO,
     THRESHOLD_LLM,
+    MAX_VAGAS_POR_MENSAGEM,
 )
 from app.services.grupos.heuristica import ResultadoHeuristica
 from app.services.grupos.classificador_llm import ResultadoClassificacaoLLM
@@ -531,3 +532,105 @@ class TestPipelineProcessarImportacao:
 
             assert resultado.acao == "finalizar"
             assert resultado.detalhes["acao"] == "revisar"
+
+
+# =============================================================================
+# Testes do Fan-out Cap
+# =============================================================================
+
+
+class TestFanOutCap:
+    """Testes do limite de vagas por mensagem."""
+
+    def test_max_vagas_configurado(self):
+        """MAX_VAGAS_POR_MENSAGEM deve ter valor razoável."""
+        assert MAX_VAGAS_POR_MENSAGEM > 0
+        assert MAX_VAGAS_POR_MENSAGEM == 20
+
+    @pytest.mark.asyncio
+    async def test_extracao_v1_respeita_cap(self):
+        """Extração v1 deve limitar vagas ao MAX_VAGAS_POR_MENSAGEM."""
+        import os
+
+        mensagem_id = uuid4()
+        pipeline = PipelineGrupos()
+
+        # Gerar mais vagas que o limite
+        n_vagas = MAX_VAGAS_POR_MENSAGEM + 10
+        vagas = [
+            VagaExtraida(
+                dados=DadosVagaExtraida(hospital=f"Hospital {i}", especialidade="CM"),
+                confianca=ConfiancaExtracao(hospital=0.9, especialidade=0.7),
+            )
+            for i in range(n_vagas)
+        ]
+
+        with patch.dict(os.environ, {"EXTRATOR_V2_ENABLED": "false"}):
+            with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
+                mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+                    data={
+                        "texto": "Muitas vagas",
+                        "nome_grupo": "Vagas",
+                        "grupo_id": str(uuid4()),
+                    }
+                )
+                mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
+                    data=[{"id": str(uuid4())}]
+                )
+
+                with patch(
+                    "app.services.grupos.pipeline_worker.extrair_dados_mensagem"
+                ) as mock_extrator:
+                    mock_extrator.return_value = ResultadoExtracao(
+                        vagas=vagas, total_vagas=n_vagas
+                    )
+
+                    resultado = await pipeline.processar_extracao(
+                        {"mensagem_id": str(mensagem_id)}
+                    )
+
+                    assert resultado.acao == "normalizar"
+                    assert len(resultado.vagas_criadas) == MAX_VAGAS_POR_MENSAGEM
+
+    @pytest.mark.asyncio
+    async def test_extracao_dentro_do_cap_nao_trunca(self):
+        """Extração com poucas vagas não deve truncar."""
+        import os
+
+        mensagem_id = uuid4()
+        pipeline = PipelineGrupos()
+
+        vagas = [
+            VagaExtraida(
+                dados=DadosVagaExtraida(hospital="Hospital A", especialidade="CM"),
+                confianca=ConfiancaExtracao(hospital=0.9, especialidade=0.7),
+            )
+            for _ in range(3)
+        ]
+
+        with patch.dict(os.environ, {"EXTRATOR_V2_ENABLED": "false"}):
+            with patch("app.services.grupos.pipeline_worker.supabase") as mock_supabase:
+                mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+                    data={
+                        "texto": "Poucas vagas",
+                        "nome_grupo": "Vagas",
+                        "grupo_id": str(uuid4()),
+                    }
+                )
+                mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
+                    data=[{"id": str(uuid4())}]
+                )
+
+                with patch(
+                    "app.services.grupos.pipeline_worker.extrair_dados_mensagem"
+                ) as mock_extrator:
+                    mock_extrator.return_value = ResultadoExtracao(
+                        vagas=vagas, total_vagas=3
+                    )
+
+                    resultado = await pipeline.processar_extracao(
+                        {"mensagem_id": str(mensagem_id)}
+                    )
+
+                    assert resultado.acao == "normalizar"
+                    assert len(resultado.vagas_criadas) == 3

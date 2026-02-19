@@ -2,6 +2,7 @@
 Worker para processamento de mensagens de grupos WhatsApp.
 
 Sprint 14 - E11 - Worker e Orquestração
+Sprint 63 - Escalabilidade: estágios em paralelo, semáforos por tipo, guard de ciclo
 
 Processa mensagens em batch através do pipeline:
 Pendente -> Heurística -> Classificação -> Extração -> Normalização -> Deduplicação -> Importação
@@ -23,17 +24,53 @@ from app.services.grupos.pipeline_worker import PipelineGrupos, mapear_acao_para
 logger = get_logger(__name__)
 
 
+# =============================================================================
+# Budget de concorrência por tipo de estágio
+# =============================================================================
+
+# Estágios que chamam LLM (Anthropic rate limit)
+_ESTAGIOS_LLM = {EstagioPipeline.CLASSIFICACAO, EstagioPipeline.EXTRACAO}
+
+# Estágios que chamam APIs externas (CNES, Google Places)
+_ESTAGIOS_API_EXTERNA = {EstagioPipeline.NORMALIZACAO}
+
+# Estágios apenas banco/CPU (rápidos)
+_ESTAGIOS_DB = {
+    EstagioPipeline.PENDENTE,
+    EstagioPipeline.HEURISTICA,
+    EstagioPipeline.DEDUPLICACAO,
+    EstagioPipeline.IMPORTACAO,
+}
+
+# Limites por tipo
+BUDGET_LLM = 5
+BUDGET_API_EXTERNA = 10
+BUDGET_DB = 20
+
+
+def _semaforo_para_estagio(
+    estagio: EstagioPipeline,
+    semaforos: dict[str, asyncio.Semaphore],
+) -> asyncio.Semaphore:
+    """Retorna o semáforo adequado para o tipo de estágio."""
+    if estagio in _ESTAGIOS_LLM:
+        return semaforos["llm"]
+    if estagio in _ESTAGIOS_API_EXTERNA:
+        return semaforos["api_externa"]
+    return semaforos["db"]
+
+
 class GruposWorker:
     """Worker para processar mensagens de grupos."""
 
-    def __init__(self, batch_size: int = 50, intervalo_segundos: int = 10, max_workers: int = 5):
+    def __init__(self, batch_size: int = 50, intervalo_segundos: int = 10, max_workers: int = 20):
         """
         Inicializa o worker.
 
         Args:
-            batch_size: Quantidade de itens a processar por ciclo
+            batch_size: Quantidade de itens a processar por ciclo por estágio
             intervalo_segundos: Intervalo entre ciclos
-            max_workers: Máximo de processamentos paralelos
+            max_workers: Máximo global de processamentos paralelos (fallback)
         """
         self.batch_size = batch_size
         self.intervalo = intervalo_segundos
@@ -41,6 +78,13 @@ class GruposWorker:
         self.pipeline = PipelineGrupos()
         self.running = False
         self._stats = {"ciclos": 0, "processados": 0, "erros": 0}
+
+        # Semáforos por tipo de recurso (persistem entre ciclos)
+        self._semaforos: dict[str, asyncio.Semaphore] = {
+            "llm": asyncio.Semaphore(BUDGET_LLM),
+            "api_externa": asyncio.Semaphore(BUDGET_API_EXTERNA),
+            "db": asyncio.Semaphore(BUDGET_DB),
+        }
 
     async def start(self):
         """Inicia o worker em loop contínuo."""
@@ -64,17 +108,18 @@ class GruposWorker:
         """
         Processa um ciclo completo de todas as filas.
 
+        Estágios rodam em paralelo (não sequencial) com semáforos por tipo
+        de recurso para evitar sobrecarga de LLM ou APIs externas.
+
         Returns:
             Estatísticas do ciclo
         """
         self._stats["ciclos"] += 1
-        stats = {"processados": 0, "erros": 0}
+        stats = {"processados": 0, "erros": 0, "por_estagio": {}}
 
-        # Processar cada estágio em ordem
-        # Cada estágio tem seu handler no pipeline
         estagios = [
             (EstagioPipeline.PENDENTE, "processar_pendente"),
-            (EstagioPipeline.HEURISTICA, "processar_pendente"),  # Heurística é parte do pendente
+            (EstagioPipeline.HEURISTICA, "processar_pendente"),
             (EstagioPipeline.CLASSIFICACAO, "processar_classificacao"),
             (EstagioPipeline.EXTRACAO, "processar_extracao"),
             (EstagioPipeline.NORMALIZACAO, "processar_normalizacao"),
@@ -82,37 +127,38 @@ class GruposWorker:
             (EstagioPipeline.IMPORTACAO, "processar_importacao"),
         ]
 
-        for estagio, handler_name in estagios:
-            # Buscar itens pendentes neste estágio
-            itens = await buscar_proximos_pendentes(estagio, self.batch_size)
+        async def processar_estagio(
+            estagio: EstagioPipeline,
+            handler_name: str,
+        ) -> dict:
+            """Processa todos os itens de um estágio."""
+            estagio_stats = {"processados": 0, "erros": 0}
 
+            itens = await buscar_proximos_pendentes(estagio, self.batch_size)
             if not itens:
-                continue
+                return estagio_stats
 
             logger.info(f"Processando {len(itens)} itens em {estagio.value}")
 
-            # Processar em paralelo (limitado por semaphore)
-            semaphore = asyncio.Semaphore(self.max_workers)
             handler = getattr(self.pipeline, handler_name)
+            semaphore = _semaforo_para_estagio(estagio, self._semaforos)
 
-            async def processar_item(item: dict, estagio_atual: EstagioPipeline):
+            async def processar_item(item: dict):
                 async with semaphore:
                     try:
                         resultado = await handler(item)
                         proximo_estagio = mapear_acao_para_estagio(resultado.acao)
 
-                        # Se extração criou múltiplas vagas, criar itens separados
                         if resultado.vagas_criadas and len(resultado.vagas_criadas) > 0:
                             await criar_itens_para_vagas(
-                                mensagem_id=resultado.mensagem_id, vagas_ids=resultado.vagas_criadas
+                                mensagem_id=resultado.mensagem_id,
+                                vagas_ids=resultado.vagas_criadas,
                             )
-                            # Item original marcado como finalizado (vagas já criadas)
                             await atualizar_estagio(
                                 item_id=UUID(item["id"]),
                                 novo_estagio=EstagioPipeline.FINALIZADO,
                             )
                         else:
-                            # Fluxo normal - atualizar estágio
                             await atualizar_estagio(
                                 item_id=UUID(item["id"]),
                                 novo_estagio=EstagioPipeline(proximo_estagio),
@@ -120,23 +166,38 @@ class GruposWorker:
                                 erro=resultado.motivo if resultado.acao == "erro" else None,
                             )
 
-                        stats["processados"] += 1
-                        self._stats["processados"] += 1
+                        estagio_stats["processados"] += 1
 
                     except Exception as e:
                         logger.error(f"Erro ao processar item {item['id']}: {e}")
-                        # Mantém no mesmo estágio para retry
                         await atualizar_estagio(
-                            item_id=UUID(item["id"]), novo_estagio=estagio_atual, erro=str(e)[:500]
+                            item_id=UUID(item["id"]),
+                            novo_estagio=estagio,
+                            erro=str(e)[:500],
                         )
-                        stats["erros"] += 1
-                        self._stats["erros"] += 1
+                        estagio_stats["erros"] += 1
 
-            # Executar todos em paralelo
-            await asyncio.gather(*[processar_item(item, estagio) for item in itens])
+            await asyncio.gather(*[processar_item(item) for item in itens])
+            return estagio_stats
+
+        # Rodar todos os estágios em paralelo
+        resultados = await asyncio.gather(*[
+            processar_estagio(estagio, handler_name)
+            for estagio, handler_name in estagios
+        ])
+
+        # Consolidar estatísticas
+        for (estagio, _), resultado in zip(estagios, resultados):
+            stats["processados"] += resultado["processados"]
+            stats["erros"] += resultado["erros"]
+            if resultado["processados"] > 0 or resultado["erros"] > 0:
+                stats["por_estagio"][estagio.value] = resultado
+
+        self._stats["processados"] += stats["processados"]
+        self._stats["erros"] += stats["erros"]
 
         if stats["processados"] > 0 or stats["erros"] > 0:
-            logger.info(f"Ciclo concluído: {stats}")
+            logger.info(f"Ciclo concluído: {stats['processados']} ok, {stats['erros']} erros")
 
         return stats
 
@@ -147,36 +208,42 @@ class GruposWorker:
 
 
 # =============================================================================
-# Função para execução via job/endpoint
+# Guard contra ciclos sobrepostos
 # =============================================================================
 
+_ciclo_lock = asyncio.Lock()
 
-async def processar_ciclo_grupos(batch_size: int = 50, max_workers: int = 5) -> dict:
+
+async def processar_ciclo_grupos(batch_size: int = 50, max_workers: int = 20) -> dict:
     """
     Processa um ciclo de mensagens de grupos.
 
-    Função chamada pelo endpoint de job.
+    Usa lock para evitar ciclos sobrepostos (se o scheduler dispara
+    antes do ciclo anterior terminar, o novo ciclo é ignorado).
 
     Args:
         batch_size: Quantidade de itens por estágio
-        max_workers: Processamentos paralelos
+        max_workers: Processamentos paralelos (fallback)
 
     Returns:
         Resultado do processamento
     """
-    worker = GruposWorker(batch_size=batch_size, max_workers=max_workers)
+    if _ciclo_lock.locked():
+        logger.debug("Ciclo de grupos ignorado: ciclo anterior ainda em andamento")
+        return {"sucesso": True, "skipped": True, "motivo": "ciclo_anterior_em_andamento"}
 
-    try:
-        stats = await worker.processar_ciclo()
+    async with _ciclo_lock:
+        worker = GruposWorker(batch_size=batch_size, max_workers=max_workers)
 
-        # Obter estatísticas da fila
-        fila_stats = await obter_estatisticas_fila()
+        try:
+            stats = await worker.processar_ciclo()
+            fila_stats = await obter_estatisticas_fila()
 
-        return {"sucesso": True, "ciclo": stats, "fila": fila_stats}
+            return {"sucesso": True, "ciclo": stats, "fila": fila_stats}
 
-    except Exception as e:
-        logger.error(f"Erro ao processar ciclo de grupos: {e}", exc_info=True)
-        return {"sucesso": False, "erro": str(e)}
+        except Exception as e:
+            logger.error(f"Erro ao processar ciclo de grupos: {e}", exc_info=True)
+            return {"sucesso": False, "erro": str(e)}
 
 
 async def obter_status_worker() -> dict:
@@ -189,13 +256,9 @@ async def obter_status_worker() -> dict:
     from datetime import datetime, UTC
     from app.services.grupos.fila import obter_itens_travados
 
-    # Estatísticas da fila
     fila_stats = await obter_estatisticas_fila()
-
-    # Itens travados (>1h sem atualização)
     travados = await obter_itens_travados(horas=1)
 
-    # Determinar status
     status = "healthy"
     if len(travados) > 100:
         status = "degraded"
@@ -206,5 +269,6 @@ async def obter_status_worker() -> dict:
         "status": status,
         "fila": fila_stats,
         "travados": len(travados),
+        "ciclo_em_andamento": _ciclo_lock.locked(),
         "timestamp": datetime.now(UTC).isoformat(),
     }

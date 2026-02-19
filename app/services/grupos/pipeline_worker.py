@@ -47,6 +47,7 @@ logger = get_logger(__name__)
 THRESHOLD_HEURISTICA = GruposConfig.THRESHOLD_HEURISTICA
 THRESHOLD_HEURISTICA_ALTO = GruposConfig.THRESHOLD_HEURISTICA_ALTO
 THRESHOLD_LLM = GruposConfig.THRESHOLD_LLM
+MAX_VAGAS_POR_MENSAGEM = GruposConfig.MAX_VAGAS_POR_MENSAGEM
 
 
 @dataclass
@@ -250,9 +251,18 @@ class PipelineGrupos:
                 acao="descartar", mensagem_id=mensagem_id, motivo="extracao_falhou"
             )
 
+        # Fan-out cap: limitar vagas por mensagem
+        vagas = resultado.vagas
+        if len(vagas) > MAX_VAGAS_POR_MENSAGEM:
+            logger.warning(
+                f"Mensagem {mensagem_id} gerou {len(vagas)} vagas, "
+                f"limitando a {MAX_VAGAS_POR_MENSAGEM}"
+            )
+            vagas = vagas[:MAX_VAGAS_POR_MENSAGEM]
+
         # Criar vagas_grupo para cada vaga extraída
         vagas_criadas = []
-        for vaga in resultado.vagas:
+        for vaga in vagas:
             vaga_id = await self._criar_vaga_grupo(mensagem_id, vaga, msg.data)
             vagas_criadas.append(str(vaga_id))
 
@@ -315,9 +325,18 @@ class PipelineGrupos:
                 motivo=f"extracao_v2_falhou: {resultado.erro}",
             )
 
+        # Fan-out cap: limitar vagas por mensagem
+        vagas = resultado.vagas
+        if len(vagas) > MAX_VAGAS_POR_MENSAGEM:
+            logger.warning(
+                f"Mensagem {mensagem_id} gerou {len(vagas)} vagas [v2], "
+                f"limitando a {MAX_VAGAS_POR_MENSAGEM}"
+            )
+            vagas = vagas[:MAX_VAGAS_POR_MENSAGEM]
+
         # Criar vagas_grupo para cada vaga atômica
         vagas_criadas = []
-        for vaga in resultado.vagas:
+        for vaga in vagas:
             vaga_id = await self._criar_vaga_grupo_v2(mensagem_id, vaga, msg.data)
             if vaga_id:
                 vagas_criadas.append(str(vaga_id))
@@ -418,9 +437,18 @@ class PipelineGrupos:
                 },
             )
 
+        # Fan-out cap: limitar vagas por mensagem
+        vagas = resultado.vagas
+        if len(vagas) > MAX_VAGAS_POR_MENSAGEM:
+            logger.warning(
+                f"[Pipeline v3] Mensagem {mensagem_id} gerou {len(vagas)} vagas, "
+                f"limitando a {MAX_VAGAS_POR_MENSAGEM}"
+            )
+            vagas = vagas[:MAX_VAGAS_POR_MENSAGEM]
+
         # Criar vagas_grupo para cada vaga atômica
         vagas_criadas = []
-        for vaga in resultado.vagas:
+        for vaga in vagas:
             vaga_id = await self._criar_vaga_grupo_v2(mensagem_id, vaga, msg.data)
             if vaga_id:
                 vagas_criadas.append(str(vaga_id))

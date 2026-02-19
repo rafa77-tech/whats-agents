@@ -318,6 +318,9 @@ class GruposConfig:
     MAX_WORKERS: int = 20  # Paralelismo alto
     INTERVALO_CICLO_SEGUNDOS: int = 10
 
+    # Fan-out cap (máximo de vagas atômicas por mensagem)
+    MAX_VAGAS_POR_MENSAGEM: int = 20
+
     # Alertas
     ALERTA_THRESHOLD_ERROS: int = 10
     ALERTA_THRESHOLD_CUSTO_USD: float = 1.0
