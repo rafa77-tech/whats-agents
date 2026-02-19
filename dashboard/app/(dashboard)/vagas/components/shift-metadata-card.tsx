@@ -10,8 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface ShiftMetadataCardProps {
   id: string
-  createdAt: string
+  createdAt: string | null
   updatedAt: string | null
+}
+
+function formatDate(value: string | null): string {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return '—'
+  return format(date, "dd/MM/yyyy 'as' HH:mm", { locale: ptBR })
 }
 
 export function ShiftMetadataCard({ id, createdAt, updatedAt }: ShiftMetadataCardProps) {
@@ -29,20 +36,12 @@ export function ShiftMetadataCard({ id, createdAt, updatedAt }: ShiftMetadataCar
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Criado em</p>
-          <p className="text-sm">
-            {format(new Date(createdAt), "dd/MM/yyyy 'as' HH:mm", {
-              locale: ptBR,
-            })}
-          </p>
+          <p className="text-sm">{formatDate(createdAt)}</p>
         </div>
         {updatedAt && (
           <div>
             <p className="text-sm text-muted-foreground">Atualizado em</p>
-            <p className="text-sm">
-              {format(new Date(updatedAt), "dd/MM/yyyy 'as' HH:mm", {
-                locale: ptBR,
-              })}
-            </p>
+            <p className="text-sm">{formatDate(updatedAt)}</p>
           </div>
         )}
       </CardContent>
