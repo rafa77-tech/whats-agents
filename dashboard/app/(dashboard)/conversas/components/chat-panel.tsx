@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
+  ArrowLeft,
   Phone,
   MoreVertical,
   User,
@@ -19,10 +20,12 @@ import {
   PanelRightOpen,
   PanelRightClose,
   Pause,
+  Trash2,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ConversationSummary } from './conversation-summary'
 import { MessageInput } from './message-input'
 import {
   DropdownMenu,
@@ -31,6 +34,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { getSentimentColor } from '@/lib/conversas/constants'
 import { useConversationStream } from '@/lib/conversas/use-conversation-stream'
@@ -41,6 +61,8 @@ interface Props {
   onControlChange?: () => void
   showContextPanel?: boolean
   onToggleContext?: () => void
+  onBack?: () => void
+  showBackButton?: boolean
 }
 
 export function ChatPanel({
@@ -48,6 +70,8 @@ export function ChatPanel({
   onControlChange,
   showContextPanel,
   onToggleContext,
+  onBack,
+  showBackButton,
 }: Props) {
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -56,6 +80,9 @@ export function ChatPanel({
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
   const [feedbackMap, setFeedbackMap] = useState<Record<string, 'positive' | 'negative'>>({})
+  const [discardOpen, setDiscardOpen] = useState(false)
+  const [discardReason, setDiscardReason] = useState('')
+  const [discarding, setDiscarding] = useState(false)
 
   // SSE real-time updates
   useConversationStream(conversationId, {
@@ -106,11 +133,14 @@ export function ChatPanel({
     }
   }
 
-  const handleFeedback = async (
-    messageId: string,
-    interacaoId: number,
-    type: 'positive' | 'negative'
-  ) => {
+  const handleFeedback = async (messageId: string, type: 'positive' | 'negative') => {
+    // message.id is String(interacoes.id) — a bigint converted to string
+    const interacaoId = Number(messageId)
+    if (!Number.isFinite(interacaoId)) {
+      console.error('Invalid interacao_id:', messageId)
+      return
+    }
+
     try {
       const response = await fetch(`/api/conversas/${conversationId}/feedback`, {
         method: 'POST',
@@ -187,14 +217,33 @@ export function ChatPanel({
     }
   }
 
+  const handleDiscard = async () => {
+    if (!discardReason) return
+    setDiscarding(true)
+    try {
+      const response = await fetch(`/api/conversas/${conversationId}/discard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: discardReason }),
+      })
+
+      if (response.ok) {
+        setDiscardOpen(false)
+        setDiscardReason('')
+        onControlChange?.()
+      }
+    } catch (err) {
+      console.error('Failed to discard contact:', err)
+    } finally {
+      setDiscarding(false)
+    }
+  }
+
   useEffect(() => {
     setLoading(true)
     setFeedbackMap({})
     fetchConversation()
-
-    // Refresh every 10 seconds (fallback if SSE not active)
-    const interval = setInterval(fetchConversation, 10000)
-    return () => clearInterval(interval)
+    // Real-time updates handled by useConversationStream (SSE + fallback polling)
   }, [fetchConversation])
 
   // Scroll to bottom instantly when conversation loads
@@ -235,6 +284,7 @@ export function ChatPanel({
   const cliente = conversation.cliente
   const isHandoff = conversation.controlled_by === 'human'
   const isPaused = !!conversation.pausada_em
+  const lastJuliaMessage = [...conversation.messages].reverse().find((m) => m.tipo === 'saida')
 
   const initials = cliente.nome
     .split(' ')
@@ -264,6 +314,12 @@ export function ChatPanel({
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2">
         <div className="flex items-center gap-3">
+          {/* Mobile back button */}
+          {showBackButton && onBack && (
+            <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8 md:hidden">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
           <Avatar className="h-10 w-10">
             <AvatarFallback
               className={cn(
@@ -379,10 +435,63 @@ export function ChatPanel({
                   Assumir conversa
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setDiscardOpen(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Descartar contato
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Descartar este contato?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  O contato sera marcado como opt-out e a conversa sera arquivada. Julia nao entrara
+                  mais em contato com este numero.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <Select value={discardReason} onValueChange={setDiscardReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o motivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Nao e medico">Nao e medico</SelectItem>
+                  <SelectItem value="Spam/Bot">Spam/Bot</SelectItem>
+                  <SelectItem value="Numero errado">Numero errado</SelectItem>
+                  <SelectItem value="Outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  onClick={() => {
+                    setDiscardReason('')
+                  }}
+                >
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDiscard}
+                  disabled={!discardReason || discarding}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {discarding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Descartar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
+
+      {/* Summary */}
+      {conversation.summary && (
+        <ConversationSummary summary={conversation.summary} />
+      )}
 
       {/* Messages */}
       <div
@@ -489,7 +598,7 @@ export function ChatPanel({
                                 <>
                                   <button
                                     onClick={() =>
-                                      handleFeedback(message.id, parseInt(message.id), 'positive')
+                                      handleFeedback(message.id, 'positive')
                                     }
                                     className="rounded p-0.5 hover:bg-muted"
                                   >
@@ -497,7 +606,7 @@ export function ChatPanel({
                                   </button>
                                   <button
                                     onClick={() =>
-                                      handleFeedback(message.id, parseInt(message.id), 'negative')
+                                      handleFeedback(message.id, 'negative')
                                     }
                                     className="rounded p-0.5 hover:bg-muted"
                                   >
@@ -561,7 +670,9 @@ export function ChatPanel({
                 <p className="text-xs text-state-ai-muted">
                   {isPaused
                     ? conversation.motivo_pausa || 'Pausada pelo supervisor'
-                    : 'Respostas automaticas ativas'}
+                    : lastJuliaMessage
+                      ? `Ultima resposta ${format(new Date(lastJuliaMessage.created_at), "HH:mm", { locale: ptBR })}`
+                      : 'Respostas automaticas ativas'}
                 </p>
               </div>
             </div>
