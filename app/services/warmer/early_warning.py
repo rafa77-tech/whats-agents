@@ -168,7 +168,7 @@ class EarlyWarningSystem:
         )
 
         if historico.data and len(historico.data) >= 2:
-            score_anterior = historico.data[-1]["score"]
+            score_anterior = historico.data[1]["score"]  # Segundo mais recente (anterior imediato)
             queda = score_anterior - trust_atual
 
             if queda >= THRESHOLDS["trust_queda_critica"]:
@@ -196,99 +196,98 @@ class EarlyWarningSystem:
 
         return alertas
 
+    def _check_threshold(
+        self,
+        chip_id: str,
+        valor: float,
+        tipo: TipoAlerta,
+        campo: str,
+        niveis: List[tuple],
+        acima: bool = True,
+    ) -> Optional[Alerta]:
+        """
+        Verifica valor contra thresholds e retorna alerta se necessário.
+
+        Args:
+            chip_id: ID do chip
+            valor: Valor a verificar
+            tipo: Tipo do alerta
+            campo: Nome do campo para dados
+            niveis: Lista de (threshold_key, severidade, mensagem, recomendacao)
+                    ordenada do mais severo ao menos severo
+            acima: True se alerta quando valor >= threshold, False se valor < threshold
+        """
+        for threshold_key, severidade, mensagem, recomendacao in niveis:
+            threshold = THRESHOLDS[threshold_key]
+            if (acima and valor >= threshold) or (not acima and valor < threshold):
+                return Alerta(
+                    chip_id=chip_id,
+                    tipo=tipo,
+                    severidade=severidade,
+                    mensagem=mensagem.format(valor=valor * 100),
+                    dados={campo: valor},
+                    recomendacao=recomendacao,
+                )
+        return None
+
     async def _verificar_taxas(self, chip: dict) -> List[Alerta]:
         """Verifica taxas de block, delivery e resposta."""
         alertas = []
         chip_id = chip["id"]
 
-        # Taxa de bloqueio
+        # Taxa de bloqueio (alerta quando acima do threshold)
         taxa_block = chip.get("taxa_block", 0)
+        alerta = self._check_threshold(
+            chip_id, taxa_block, TipoAlerta.TAXA_BLOCK_ALTA, "taxa_block",
+            niveis=[
+                ("taxa_block_critico", SeveridadeAlerta.CRITICO,
+                 "Taxa de bloqueio crítica: {valor:.1f}%",
+                 "PARAR envios imediatamente - risco de ban"),
+                ("taxa_block_alerta", SeveridadeAlerta.ALERTA,
+                 "Taxa de bloqueio alta: {valor:.1f}%",
+                 "Pausar prospecção e revisar abordagem"),
+                ("taxa_block_atencao", SeveridadeAlerta.ATENCAO,
+                 "Taxa de bloqueio elevada: {valor:.1f}%",
+                 "Monitorar e ajustar mensagens se necessário"),
+            ],
+            acima=True,
+        )
+        if alerta:
+            alertas.append(alerta)
 
-        if taxa_block >= THRESHOLDS["taxa_block_critico"]:
-            alertas.append(
-                Alerta(
-                    chip_id=chip_id,
-                    tipo=TipoAlerta.TAXA_BLOCK_ALTA,
-                    severidade=SeveridadeAlerta.CRITICO,
-                    mensagem=f"Taxa de bloqueio crítica: {taxa_block * 100:.1f}%",
-                    dados={"taxa_block": taxa_block},
-                    recomendacao="PARAR envios imediatamente - risco de ban",
-                )
-            )
-        elif taxa_block >= THRESHOLDS["taxa_block_alerta"]:
-            alertas.append(
-                Alerta(
-                    chip_id=chip_id,
-                    tipo=TipoAlerta.TAXA_BLOCK_ALTA,
-                    severidade=SeveridadeAlerta.ALERTA,
-                    mensagem=f"Taxa de bloqueio alta: {taxa_block * 100:.1f}%",
-                    dados={"taxa_block": taxa_block},
-                    recomendacao="Pausar prospecção e revisar abordagem",
-                )
-            )
-        elif taxa_block >= THRESHOLDS["taxa_block_atencao"]:
-            alertas.append(
-                Alerta(
-                    chip_id=chip_id,
-                    tipo=TipoAlerta.TAXA_BLOCK_ALTA,
-                    severidade=SeveridadeAlerta.ATENCAO,
-                    mensagem=f"Taxa de bloqueio elevada: {taxa_block * 100:.1f}%",
-                    dados={"taxa_block": taxa_block},
-                    recomendacao="Monitorar e ajustar mensagens se necessário",
-                )
-            )
-
-        # Taxa de delivery
+        # Taxa de delivery (alerta quando abaixo do threshold)
         taxa_delivery = chip.get("taxa_delivery", 1.0)
-
-        if taxa_delivery < THRESHOLDS["taxa_delivery_critico"]:
-            alertas.append(
-                Alerta(
-                    chip_id=chip_id,
-                    tipo=TipoAlerta.DELIVERY_BAIXO,
-                    severidade=SeveridadeAlerta.CRITICO,
-                    mensagem=f"Taxa de entrega muito baixa: {taxa_delivery * 100:.1f}%",
-                    dados={"taxa_delivery": taxa_delivery},
-                    recomendacao="Verificar conexão e status do WhatsApp",
-                )
-            )
-        elif taxa_delivery < THRESHOLDS["taxa_delivery_alerta"]:
-            alertas.append(
-                Alerta(
-                    chip_id=chip_id,
-                    tipo=TipoAlerta.DELIVERY_BAIXO,
-                    severidade=SeveridadeAlerta.ALERTA,
-                    mensagem=f"Taxa de entrega baixa: {taxa_delivery * 100:.1f}%",
-                    dados={"taxa_delivery": taxa_delivery},
-                    recomendacao="Investigar problemas de rede ou número bloqueado",
-                )
-            )
-        elif taxa_delivery < THRESHOLDS["taxa_delivery_atencao"]:
-            alertas.append(
-                Alerta(
-                    chip_id=chip_id,
-                    tipo=TipoAlerta.DELIVERY_BAIXO,
-                    severidade=SeveridadeAlerta.ATENCAO,
-                    mensagem=f"Taxa de entrega abaixo do ideal: {taxa_delivery * 100:.1f}%",
-                    dados={"taxa_delivery": taxa_delivery},
-                    recomendacao="Monitorar entregas nas próximas horas",
-                )
-            )
+        alerta = self._check_threshold(
+            chip_id, taxa_delivery, TipoAlerta.DELIVERY_BAIXO, "taxa_delivery",
+            niveis=[
+                ("taxa_delivery_critico", SeveridadeAlerta.CRITICO,
+                 "Taxa de entrega muito baixa: {valor:.1f}%",
+                 "Verificar conexão e status do WhatsApp"),
+                ("taxa_delivery_alerta", SeveridadeAlerta.ALERTA,
+                 "Taxa de entrega baixa: {valor:.1f}%",
+                 "Investigar problemas de rede ou número bloqueado"),
+                ("taxa_delivery_atencao", SeveridadeAlerta.ATENCAO,
+                 "Taxa de entrega abaixo do ideal: {valor:.1f}%",
+                 "Monitorar entregas nas próximas horas"),
+            ],
+            acima=False,
+        )
+        if alerta:
+            alertas.append(alerta)
 
         # Taxa de resposta
         taxa_resposta = chip.get("taxa_resposta", 0)
-
-        if taxa_resposta < THRESHOLDS["taxa_resposta_baixa"]:
-            alertas.append(
-                Alerta(
-                    chip_id=chip_id,
-                    tipo=TipoAlerta.RESPOSTA_BAIXA,
-                    severidade=SeveridadeAlerta.ATENCAO,
-                    mensagem=f"Taxa de resposta baixa: {taxa_resposta * 100:.1f}%",
-                    dados={"taxa_resposta": taxa_resposta},
-                    recomendacao="Revisar qualidade das mensagens enviadas",
-                )
-            )
+        alerta = self._check_threshold(
+            chip_id, taxa_resposta, TipoAlerta.RESPOSTA_BAIXA, "taxa_resposta",
+            niveis=[
+                ("taxa_resposta_baixa", SeveridadeAlerta.ATENCAO,
+                 "Taxa de resposta baixa: {valor:.1f}%",
+                 "Revisar qualidade das mensagens enviadas"),
+            ],
+            acima=False,
+        )
+        if alerta:
+            alertas.append(alerta)
 
         return alertas
 
@@ -409,7 +408,7 @@ class EarlyWarningSystem:
             return alertas
 
         dt_transicao = datetime.fromisoformat(ultima_transicao.replace("Z", "+00:00"))
-        dias_na_fase = (datetime.now(dt_transicao.tzinfo) - dt_transicao).days
+        dias_na_fase = (agora_brasilia() - dt_transicao).days
 
         if dias_na_fase >= THRESHOLDS["dias_sem_transicao_alerta"]:
             alertas.append(
@@ -438,7 +437,7 @@ class EarlyWarningSystem:
 
     async def salvar_alertas(self, alertas: List[Alerta]) -> int:
         """
-        Salva alertas no banco.
+        Salva alertas no banco, deduplicando alertas ativos do mesmo tipo/chip.
 
         Args:
             alertas: Lista de alertas
@@ -449,8 +448,26 @@ class EarlyWarningSystem:
         if not alertas:
             return 0
 
+        # Buscar alertas ativos para deduplicação
+        chip_ids = list({a.chip_id for a in alertas})
+        existentes = (
+            supabase.table("chip_alerts")
+            .select("chip_id, tipo")
+            .in_("chip_id", chip_ids)
+            .eq("status", "ativo")
+            .execute()
+        )
+
+        alertas_existentes = {
+            (r["chip_id"], r["tipo"]) for r in (existentes.data or [])
+        }
+
         registros = []
         for alerta in alertas:
+            chave = (alerta.chip_id, alerta.tipo.value)
+            if chave in alertas_existentes:
+                continue  # Já existe alerta ativo deste tipo para este chip
+
             registros.append(
                 {
                     "chip_id": alerta.chip_id,
@@ -463,10 +480,14 @@ class EarlyWarningSystem:
                 }
             )
 
+        if not registros:
+            logger.debug("[EarlyWarning] Todos os alertas já existem, nenhum novo salvo")
+            return 0
+
         result = supabase.table("chip_alerts").insert(registros).execute()
 
         count = len(result.data) if result.data else 0
-        logger.info(f"[EarlyWarning] {count} alertas salvos")
+        logger.info(f"[EarlyWarning] {count} alertas novos salvos ({len(alertas) - count} duplicados ignorados)")
 
         return count
 

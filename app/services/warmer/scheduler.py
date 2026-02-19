@@ -17,7 +17,6 @@ from enum import Enum
 
 from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
-from app.services.warmer.trust_score import TrustScoreEngine
 
 logger = logging.getLogger(__name__)
 
@@ -131,40 +130,7 @@ class WarmingScheduler:
     HORA_FIM = 20
 
     def __init__(self):
-        self.trust_engine = TrustScoreEngine()
-
-    def _esta_em_horario_comercial(self, dt: datetime) -> bool:
-        """Verifica se datetime está em horário comercial."""
-        if dt.weekday() >= 5:  # Fim de semana
-            return False
-        return self.HORA_INICIO <= dt.hour < self.HORA_FIM
-
-    def _proximo_horario_valido(self, base: datetime) -> datetime:
-        """
-        Calcula próximo horário válido para atividade.
-
-        Args:
-            base: Datetime de referência
-
-        Returns:
-            Próximo datetime válido
-        """
-        dt = base
-
-        # Se já passou do horário, vai para amanhã
-        if dt.hour >= self.HORA_FIM:
-            dt = dt.replace(hour=self.HORA_INICIO, minute=0, second=0)
-            dt += timedelta(days=1)
-
-        # Se antes do horário, ajusta para início
-        if dt.hour < self.HORA_INICIO:
-            dt = dt.replace(hour=self.HORA_INICIO, minute=0, second=0)
-
-        # Pula fim de semana
-        while dt.weekday() >= 5:
-            dt += timedelta(days=1)
-
-        return dt
+        pass
 
     def _gerar_horarios_distribuidos(
         self,
@@ -185,14 +151,21 @@ class WarmingScheduler:
         """
         horarios = []
 
-        # Calcular janela disponível
-        inicio = data.replace(hour=self.HORA_INICIO, minute=0, second=0)
+        # Calcular janela disponível (não gerar no passado)
+        agora = agora_brasilia()
+        hora_inicio = self.HORA_INICIO
+        if data.date() == agora.date() and agora.hour >= self.HORA_INICIO:
+            hora_inicio = agora.hour
+
+        inicio = data.replace(hour=hora_inicio, minute=0, second=0)
         fim = data.replace(hour=self.HORA_FIM, minute=0, second=0)
-        (fim - inicio).total_seconds() / 60  # Em minutos
+
+        if inicio >= fim:
+            return []
 
         # Distribuir baseado nos pesos horários
         slots = []
-        for hora in range(self.HORA_INICIO, self.HORA_FIM):
+        for hora in range(hora_inicio, self.HORA_FIM):
             peso = DISTRIBUICAO_HORARIA.get(hora, 1.0)
             # Criar slots de 15 minutos
             for minuto in [0, 15, 30, 45]:

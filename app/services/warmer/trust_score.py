@@ -111,7 +111,7 @@ class TrustScoreEngine:
         Returns:
             Score de 0 a 100
         """
-        score = 50  # Base inicial
+        score = 30  # Base conservadora (chip novo ~45 = LARANJA)
 
         # Idade (max +15 pontos em 30 dias)
         idade_score = min(factors.idade_dias / 30, 1.0) * self.PESOS["idade"]
@@ -260,7 +260,7 @@ async def calcular_trust_score(chip_id: str) -> dict:
 
     # Calcular idade
     created_at = datetime.fromisoformat(chip["created_at"].replace("Z", "+00:00"))
-    idade_dias = (datetime.now(created_at.tzinfo) - created_at).days
+    idade_dias = (agora_brasilia() - created_at).days
 
     # Montar fatores (chip.get retorna None se a key existe com valor NULL,
     # por isso usamos "v if v is not None else default" em vez de .get default)
@@ -345,6 +345,48 @@ async def calcular_trust_score(chip_id: str) -> dict:
             "delay_minimo_segundos": permissoes.delay_minimo_segundos,
         },
         "factors": update_data["trust_factors"],
+    }
+
+
+async def obter_trust_score_cached(chip_id: str) -> dict:
+    """
+    Obtém Trust Score salvo no banco (sem recalcular).
+
+    Args:
+        chip_id: UUID do chip
+
+    Returns:
+        dict com score, nivel, permissoes e factors. None se chip não encontrado.
+    """
+    result = (
+        supabase.table("chips")
+        .select(
+            "trust_score, trust_level, trust_factors, "
+            "pode_prospectar, pode_followup, pode_responder, "
+            "limite_hora, limite_dia, delay_minimo_segundos"
+        )
+        .eq("id", chip_id)
+        .single()
+        .execute()
+    )
+
+    if not result.data:
+        return None
+
+    chip = result.data
+    return {
+        "chip_id": chip_id,
+        "score": chip.get("trust_score", 0),
+        "nivel": chip.get("trust_level", "critico"),
+        "permissoes": {
+            "pode_prospectar": chip.get("pode_prospectar", False),
+            "pode_followup": chip.get("pode_followup", False),
+            "pode_responder": chip.get("pode_responder", True),
+            "limite_hora": chip.get("limite_hora", 5),
+            "limite_dia": chip.get("limite_dia", 30),
+            "delay_minimo_segundos": chip.get("delay_minimo_segundos", 120),
+        },
+        "factors": chip.get("trust_factors", {}),
     }
 
 

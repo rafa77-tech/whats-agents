@@ -15,13 +15,13 @@ Responsável por executar cada tipo de atividade:
 
 import logging
 import random
-from datetime import datetime, timezone
 from typing import Optional
 
+from app.core.timezone import agora_brasilia
 from app.services.supabase import supabase
 from app.services.warmer.scheduler import AtividadeAgendada, TipoAtividade
-from app.services.warmer.conversation_generator import gerar_mensagem_warmup
-from app.services.warmer.pairing_engine import selecionar_par
+from app.services.warmer.conversation_generator import gerar_mensagem_inicial
+from app.services.warmer.pairing_engine import encontrar_par
 from app.services.chips.sender import enviar_via_chip
 
 logger = logging.getLogger(__name__)
@@ -107,29 +107,25 @@ async def _executar_conversa_par(chip: dict, atividade: AtividadeAgendada) -> bo
             return False
 
         # Selecionar par para conversa
-        par = await selecionar_par(chip["id"])
-        if not par:
+        par_info = await encontrar_par(chip["id"])
+        if not par_info:
             logger.warning(f"[WarmupExecutor] Nenhum par disponível para {chip['telefone']}")
             # Fallback: marcar como lido
             return await _executar_marcar_lido(chip)
 
-        # Gerar mensagem de warmup
-        mensagem = await gerar_mensagem_warmup(
-            chip_origem_id=chip["id"],
-            chip_destino_id=par["id"],
-            contexto="warmup_diario",
-        )
+        par_telefone = par_info.chip_b.telefone
 
-        if not mensagem:
-            mensagem = _gerar_mensagem_simples()
+        # Gerar mensagem de warmup
+        msg_gerada = gerar_mensagem_inicial(fase_warmup=chip.get("fase_warmup", "setup"))
+        mensagem = msg_gerada.texto if msg_gerada else _gerar_mensagem_simples()
 
         # Sprint 56: Usar enviar_via_chip para capturar erros corretamente
         # Isso garante que erros são registrados via chip_registrar_envio_erro
-        resultado = await enviar_via_chip(chip, par["telefone"], mensagem)
+        resultado = await enviar_via_chip(chip, par_telefone, mensagem)
 
         if resultado.success:
             logger.info(
-                f"[WarmupExecutor] Conversa par: {chip['telefone'][-4:]} -> {par['telefone'][-4:]}"
+                f"[WarmupExecutor] Conversa par: {chip['telefone'][-4:]} -> {par_telefone[-4:]}"
             )
             return True
 
@@ -150,7 +146,8 @@ async def _executar_marcar_lido(chip: dict) -> bool:
     Na prática, apenas registra a atividade (WhatsApp não tem API para "marcar lido").
     """
     try:
-        if not chip.get("evolution_connected"):
+        provider_tipo = chip.get("provider") or "evolution"
+        if provider_tipo == "evolution" and not chip.get("evolution_connected"):
             return False
 
         # Registrar atividade de "verificação"
@@ -174,7 +171,7 @@ async def _executar_entrar_grupo(chip: dict) -> bool:
         # Por enquanto, marca como executado (placeholder)
         logger.info(f"[WarmupExecutor] entrar_grupo simulado para {chip['telefone'][-4:]}")
 
-        await _registrar_interacao(chip["id"], "entrar_grupo", sucesso=True)
+        await _registrar_interacao(chip["id"], "entrar_grupo", sucesso=True, simulada=True)
         return True
 
     except Exception as e:
@@ -192,7 +189,7 @@ async def _executar_mensagem_grupo(chip: dict) -> bool:
         # TODO: Implementar quando houver grupos
         logger.info(f"[WarmupExecutor] mensagem_grupo simulado para {chip['telefone'][-4:]}")
 
-        await _registrar_interacao(chip["id"], "mensagem_grupo", sucesso=True)
+        await _registrar_interacao(chip["id"], "mensagem_grupo", sucesso=True, simulada=True)
         return True
 
     except Exception as e:
@@ -210,7 +207,7 @@ async def _executar_atualizar_perfil(chip: dict) -> bool:
         # TODO: Implementar atualização de perfil via Evolution API
         logger.info(f"[WarmupExecutor] atualizar_perfil simulado para {chip['telefone'][-4:]}")
 
-        await _registrar_interacao(chip["id"], "atualizar_perfil", sucesso=True)
+        await _registrar_interacao(chip["id"], "atualizar_perfil", sucesso=True, simulada=True)
         return True
 
     except Exception as e:
@@ -237,7 +234,11 @@ async def _executar_enviar_midia(chip: dict, atividade: AtividadeAgendada) -> bo
 
 
 async def _registrar_interacao(
-    chip_id: str, tipo: str, destinatario: str = None, sucesso: bool = True
+    chip_id: str,
+    tipo: str,
+    destinatario: str = None,
+    sucesso: bool = True,
+    simulada: bool = False,
 ) -> None:
     """Registra interação na tabela chip_interactions."""
     try:
@@ -251,9 +252,10 @@ async def _registrar_interacao(
                 "metadata": {
                     "tipo_warmup": tipo,
                     "sucesso": sucesso,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "simulada": simulada,
+                    "timestamp": agora_brasilia().isoformat(),
                 },
-                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": agora_brasilia().isoformat(),
             }
         ).execute()
     except Exception as e:
