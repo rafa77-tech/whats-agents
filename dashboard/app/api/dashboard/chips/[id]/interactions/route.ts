@@ -3,6 +3,7 @@
  *
  * Retorna interacoes recentes de um chip.
  * Sprint 39 - Chip Interactions
+ * Sprint 64 - Resolve conversationId por telefone do destinatario
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -17,6 +18,11 @@ interface InteractionRow {
   created_at: string
   metadata: Record<string, unknown> | null
   destinatario: string | null
+  remetente: string | null
+  erro_mensagem: string | null
+  midia_tipo: string | null
+  obteve_resposta: boolean | null
+  tempo_resposta_segundos: number | null
 }
 
 function mapInteractionType(tipo: string): InteractionType {
@@ -57,6 +63,50 @@ function isSuccessfulInteraction(tipo: string): boolean {
   return tipo !== 'erro'
 }
 
+/**
+ * Resolve conversation IDs for a set of phone numbers.
+ * Does a batch lookup: phone → clientes → conversations.
+ */
+async function resolveConversationsByPhone(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  phones: string[]
+): Promise<Map<string, string>> {
+  const phoneToConversation = new Map<string, string>()
+  if (phones.length === 0) return phoneToConversation
+
+  // Batch lookup: find clients by phone numbers
+  const { data: clients } = await supabase
+    .from('clientes')
+    .select('id, telefone')
+    .in('telefone', phones)
+
+  if (!clients || clients.length === 0) return phoneToConversation
+
+  const clientIds = clients.map((c: { id: string }) => c.id)
+  const clientIdToPhone = new Map(
+    clients.map((c: { id: string; telefone: string }) => [c.id, c.telefone])
+  )
+
+  // Find most recent conversation for each client
+  const { data: conversations } = await supabase
+    .from('conversations')
+    .select('id, cliente_id')
+    .in('cliente_id', clientIds)
+    .order('last_message_at', { ascending: false })
+
+  if (!conversations) return phoneToConversation
+
+  // Map phone → first (most recent) conversation found
+  for (const conv of conversations as { id: string; cliente_id: string }[]) {
+    const phone = clientIdToPhone.get(conv.cliente_id)
+    if (phone && !phoneToConversation.has(phone)) {
+      phoneToConversation.set(phone, conv.id)
+    }
+  }
+
+  return phoneToConversation
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient()
@@ -93,7 +143,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Buscar interacoes com paginacao
     let query = supabase
       .from('chip_interactions')
-      .select('id, tipo, created_at, metadata, destinatario')
+      .select(
+        'id, tipo, created_at, metadata, destinatario, remetente, erro_mensagem, midia_tipo, obteve_resposta, tempo_resposta_segundos'
+      )
       .eq('chip_id', chipId)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
@@ -112,16 +164,37 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const rows = (interactions as InteractionRow[] | null) || []
     const total = totalCount ?? 0
 
+    // Collect unique phone numbers to resolve conversations
+    const phones = Array.from(
+      new Set(
+        rows
+          .map((r) => r.destinatario || r.remetente)
+          .filter((p): p is string => p !== null && p !== '')
+      )
+    )
+
+    const phoneToConversation = await resolveConversationsByPhone(supabase, phones)
+
     const formattedInteractions: ChipInteraction[] = rows.map((row) => {
+      const phone = row.destinatario || row.remetente
       const interaction: ChipInteraction = {
         id: row.id,
         type: mapInteractionType(row.tipo),
         timestamp: row.created_at,
         description: getInteractionDescription(row.tipo, row.metadata),
         success: isSuccessfulInteraction(row.tipo),
+        destinatario: row.destinatario,
+        remetente: row.remetente,
+        erroMensagem: row.erro_mensagem,
+        midiaTipo: row.midia_tipo,
+        obteveResposta: row.obteve_resposta,
+        tempoRespostaSegundos: row.tempo_resposta_segundos,
       }
       if (row.metadata) {
         interaction.metadata = row.metadata
+      }
+      if (phone && phoneToConversation.has(phone)) {
+        interaction.conversationId = phoneToConversation.get(phone)!
       }
       return interaction
     })

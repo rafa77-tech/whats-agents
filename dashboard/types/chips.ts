@@ -193,6 +193,13 @@ export interface ChipInteraction {
   description: string
   success: boolean
   metadata?: Record<string, unknown>
+  destinatario?: string | null
+  remetente?: string | null
+  erroMensagem?: string | null
+  midiaTipo?: string | null
+  obteveResposta?: boolean | null
+  tempoRespostaSegundos?: number | null
+  conversationId?: string
 }
 
 export interface ChipInteractionsResponse {

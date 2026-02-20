@@ -2,6 +2,7 @@
  * Chip Interactions Timeline - Sprint 36
  *
  * Timeline de interações recentes do chip.
+ * Sprint 64: Clique na interação abre modal de chat.
  */
 
 'use client'
@@ -13,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { chipsApi } from '@/lib/api/chips'
 import { ChipInteraction, ChipInteractionsResponse } from '@/types/chips'
+import { ConversationChatDialog } from './conversation-chat-dialog'
 import {
   MessageSquare,
   Users,
@@ -21,7 +23,12 @@ import {
   AlertCircle,
   Heart,
   ChevronDown,
+  ChevronRight,
   Loader2,
+  Phone,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react'
 
 interface ChipInteractionsTimelineProps {
@@ -82,6 +89,7 @@ export function ChipInteractionsTimeline({ chipId, initialData }: ChipInteractio
   const [interactions, setInteractions] = useState<ChipInteraction[]>(initialData.interactions)
   const [hasMore, setHasMore] = useState(initialData.hasMore)
   const [isLoading, setIsLoading] = useState(false)
+  const [chatConversationId, setChatConversationId] = useState<string | null>(null)
 
   const handleLoadMore = async () => {
     setIsLoading(true)
@@ -100,61 +108,109 @@ export function ChipInteractionsTimeline({ chipId, initialData }: ChipInteractio
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between text-base">
-          <span>Interações Recentes</span>
-          <span className="text-sm font-normal text-muted-foreground">
-            {initialData.total} total
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {interactions.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">Nenhuma interação registrada</div>
-        ) : (
-          <div className="space-y-1">
-            {interactions.map((interaction, index) => (
-              <InteractionItem
-                key={interaction.id}
-                interaction={interaction}
-                isLast={index === interactions.length - 1}
-              />
-            ))}
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between text-base">
+            <span>Interações Recentes</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              {initialData.total} total
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {interactions.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Nenhuma interação registrada
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {interactions.map((interaction, index) => (
+                <InteractionItem
+                  key={interaction.id}
+                  interaction={interaction}
+                  isLast={index === interactions.length - 1}
+                  onOpenChat={setChatConversationId}
+                />
+              ))}
 
-            {hasMore && (
-              <div className="flex justify-center pt-4">
-                <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Carregando...
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="mr-2 h-4 w-4" />
-                      Carregar mais
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              {hasMore && (
+                <div className="flex justify-center pt-4">
+                  <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="mr-2 h-4 w-4" />
+                        Carregar mais
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <ConversationChatDialog
+        conversationId={chatConversationId}
+        open={chatConversationId !== null}
+        onOpenChange={(open) => {
+          if (!open) setChatConversationId(null)
+        }}
+      />
+    </>
   )
+}
+
+function hasExpandableDetails(interaction: ChipInteraction): boolean {
+  return !!(
+    interaction.erroMensagem ||
+    interaction.midiaTipo ||
+    interaction.obteveResposta != null ||
+    interaction.tempoRespostaSegundos != null ||
+    (interaction.metadata && Object.keys(interaction.metadata).length > 0)
+  )
+}
+
+function formatPhone(phone: string): string {
+  if (phone.length === 13 && phone.startsWith('55')) {
+    const ddd = phone.slice(2, 4)
+    const num = phone.slice(4)
+    return `(${ddd}) ${num.slice(0, 5)}-${num.slice(5)}`
+  }
+  return phone
 }
 
 function InteractionItem({
   interaction,
   isLast,
+  onOpenChat,
 }: {
   interaction: ChipInteraction
   isLast: boolean
+  onOpenChat: (conversationId: string) => void
 }) {
+  const [expanded, setExpanded] = useState(false)
   const config = interactionTypeConfig[interaction.type] || defaultInteractionConfig
   const Icon = config.icon
+
+  const hasConversation = !!interaction.conversationId
+  const hasDetails = hasExpandableDetails(interaction)
+  const isClickable = hasConversation || hasDetails
+  const phone = interaction.destinatario || interaction.remetente
+
+  const handleClick = () => {
+    if (hasConversation && interaction.conversationId) {
+      onOpenChat(interaction.conversationId)
+    } else if (hasDetails) {
+      setExpanded(!expanded)
+    }
+  }
 
   return (
     <div className="flex gap-3">
@@ -173,25 +229,167 @@ function InteractionItem({
 
       {/* Content */}
       <div className={cn('flex-1 pb-4', isLast && 'pb-0')}>
-        <div className="flex items-start justify-between gap-2">
-          <div>
+        <div
+          className={cn(
+            'flex items-start justify-between gap-2',
+            isClickable &&
+              '-mx-1 cursor-pointer rounded-md px-1 transition-colors hover:bg-muted/50'
+          )}
+          onClick={isClickable ? handleClick : undefined}
+        >
+          <div className="flex-1">
             <div className="flex items-center gap-2">
+              {hasConversation ? (
+                <MessageSquare className="h-3.5 w-3.5 text-primary" />
+              ) : hasDetails ? (
+                <ChevronRight
+                  className={cn(
+                    'h-3.5 w-3.5 text-muted-foreground transition-transform',
+                    expanded && 'rotate-90'
+                  )}
+                />
+              ) : null}
               <span className="text-sm font-medium text-foreground">{config.label}</span>
               {!interaction.success && (
                 <Badge variant="destructive" className="text-xs">
                   Falhou
                 </Badge>
               )}
+              {phone && <span className="text-xs text-muted-foreground">{formatPhone(phone)}</span>}
             </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">{interaction.description}</p>
+            <p className={cn('mt-0.5 text-sm text-muted-foreground', isClickable && 'ml-6')}>
+              {interaction.description}
+              {hasConversation && <span className="ml-1 text-xs text-primary">Ver conversa</span>}
+            </p>
           </div>
           <span className="whitespace-nowrap text-xs text-muted-foreground">
             {formatTimestamp(interaction.timestamp)}
           </span>
         </div>
+
+        {/* Expanded details (only for non-conversation interactions) */}
+        {expanded && !hasConversation && (
+          <div className="ml-6 mt-2 space-y-1.5 rounded-md border bg-muted/30 p-3 text-sm">
+            <InteractionDetails interaction={interaction} />
+          </div>
+        )}
       </div>
     </div>
   )
+}
+
+function InteractionDetails({ interaction }: { interaction: ChipInteraction }) {
+  return (
+    <>
+      {interaction.destinatario && (
+        <DetailRow
+          icon={Phone}
+          label="Destinatário"
+          value={formatPhone(interaction.destinatario)}
+        />
+      )}
+      {interaction.remetente && (
+        <DetailRow icon={Phone} label="Remetente" value={formatPhone(interaction.remetente)} />
+      )}
+
+      {interaction.erroMensagem && (
+        <DetailRow
+          icon={XCircle}
+          label="Erro"
+          value={interaction.erroMensagem}
+          className="text-status-error-solid"
+        />
+      )}
+
+      {interaction.midiaTipo && (
+        <DetailRow icon={Image} label="Tipo de mídia" value={interaction.midiaTipo} />
+      )}
+
+      {interaction.obteveResposta != null && (
+        <DetailRow
+          icon={interaction.obteveResposta ? CheckCircle2 : XCircle}
+          label="Obteve resposta"
+          value={interaction.obteveResposta ? 'Sim' : 'Não'}
+          className={interaction.obteveResposta ? 'text-status-success-solid' : ''}
+        />
+      )}
+
+      {interaction.tempoRespostaSegundos != null && (
+        <DetailRow
+          icon={Clock}
+          label="Tempo de resposta"
+          value={formatDuration(interaction.tempoRespostaSegundos)}
+        />
+      )}
+
+      {interaction.metadata && Object.keys(interaction.metadata).length > 0 && (
+        <MetadataDetails metadata={interaction.metadata} />
+      )}
+
+      <DetailRow
+        icon={Clock}
+        label="Data/hora"
+        value={new Date(interaction.timestamp).toLocaleString('pt-BR')}
+      />
+    </>
+  )
+}
+
+function DetailRow({
+  icon: IconComponent,
+  label,
+  value,
+  className,
+}: {
+  icon: typeof Phone
+  label: string
+  value: string
+  className?: string
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <IconComponent className={cn('mt-0.5 h-3.5 w-3.5 text-muted-foreground', className)} />
+      <span className="text-muted-foreground">{label}:</span>
+      <span className={cn('font-medium text-foreground', className)}>{value}</span>
+    </div>
+  )
+}
+
+function MetadataDetails({ metadata }: { metadata: Record<string, unknown> }) {
+  const displayKeys = Object.entries(metadata).filter(
+    ([, v]) => v !== null && v !== undefined && v !== ''
+  )
+
+  if (displayKeys.length === 0) return null
+
+  const labelMap: Record<string, string> = {
+    tipo_warmup: 'Tipo warmup',
+    simulada: 'Simulada',
+    sucesso: 'Sucesso',
+    error: 'Erro',
+    grupo_nome: 'Grupo',
+    grupo_id: 'ID do grupo',
+  }
+
+  return (
+    <>
+      {displayKeys.map(([key, value]) => (
+        <div key={key} className="flex items-start gap-2">
+          <span className="text-muted-foreground">{labelMap[key] || key}:</span>
+          <span className="font-medium text-foreground">
+            {typeof value === 'boolean' ? (value ? 'Sim' : 'Não') : String(value)}
+          </span>
+        </div>
+      ))}
+    </>
+  )
+}
+
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return secs > 0 ? `${mins}min ${secs}s` : `${mins}min`
 }
 
 function formatTimestamp(timestamp: string): string {
