@@ -3,11 +3,12 @@
  *
  * Timeline de interações recentes do chip.
  * Sprint 64: Clique na interação abre modal de chat.
+ * Sprint 64: Agrupa interações por número de telefone.
  */
 
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +35,14 @@ import {
 interface ChipInteractionsTimelineProps {
   chipId: string
   initialData: ChipInteractionsResponse
+}
+
+interface InteractionGroup {
+  phone: string | null
+  interactions: ChipInteraction[]
+  conversationId: string | undefined
+  lastTimestamp: string
+  hasErrors: boolean
 }
 
 const interactionTypeConfig: Record<
@@ -85,11 +94,58 @@ const defaultInteractionConfig = {
   label: 'Interação',
 }
 
+function groupInteractionsByPhone(interactions: ChipInteraction[]): InteractionGroup[] {
+  const phoneMap = new Map<string, InteractionGroup>()
+  const result: InteractionGroup[] = []
+
+  for (const interaction of interactions) {
+    const phone = interaction.destinatario || interaction.remetente
+
+    if (!phone) {
+      // No phone — keep as individual entry
+      result.push({
+        phone: null,
+        interactions: [interaction],
+        conversationId: interaction.conversationId,
+        lastTimestamp: interaction.timestamp,
+        hasErrors: !interaction.success,
+      })
+      continue
+    }
+
+    const existing = phoneMap.get(phone)
+    if (existing) {
+      existing.interactions.push(interaction)
+      // Keep the most recent conversationId
+      if (interaction.conversationId && !existing.conversationId) {
+        existing.conversationId = interaction.conversationId
+      }
+      if (!interaction.success) {
+        existing.hasErrors = true
+      }
+    } else {
+      const group: InteractionGroup = {
+        phone,
+        interactions: [interaction],
+        conversationId: interaction.conversationId,
+        lastTimestamp: interaction.timestamp,
+        hasErrors: !interaction.success,
+      }
+      phoneMap.set(phone, group)
+      result.push(group)
+    }
+  }
+
+  return result
+}
+
 export function ChipInteractionsTimeline({ chipId, initialData }: ChipInteractionsTimelineProps) {
   const [interactions, setInteractions] = useState<ChipInteraction[]>(initialData.interactions)
   const [hasMore, setHasMore] = useState(initialData.hasMore)
   const [isLoading, setIsLoading] = useState(false)
   const [chatConversationId, setChatConversationId] = useState<string | null>(null)
+
+  const groups = useMemo(() => groupInteractionsByPhone(interactions), [interactions])
 
   const handleLoadMore = async () => {
     setIsLoading(true)
@@ -125,11 +181,11 @@ export function ChipInteractionsTimeline({ chipId, initialData }: ChipInteractio
             </div>
           ) : (
             <div className="space-y-1">
-              {interactions.map((interaction, index) => (
-                <InteractionItem
-                  key={interaction.id}
-                  interaction={interaction}
-                  isLast={index === interactions.length - 1}
+              {groups.map((group, index) => (
+                <GroupItem
+                  key={group.phone || group.interactions[0]?.id}
+                  group={group}
+                  isLast={index === groups.length - 1}
                   onOpenChat={setChatConversationId}
                 />
               ))}
@@ -164,6 +220,150 @@ export function ChipInteractionsTimeline({ chipId, initialData }: ChipInteractio
         }}
       />
     </>
+  )
+}
+
+function GroupItem({
+  group,
+  isLast,
+  onOpenChat,
+}: {
+  group: InteractionGroup
+  isLast: boolean
+  onOpenChat: (conversationId: string) => void
+}) {
+  const first = group.interactions[0]
+
+  // Single interaction — render individually (no grouping needed)
+  if (group.interactions.length === 1 && first) {
+    return <InteractionItem interaction={first} isLast={isLast} onOpenChat={onOpenChat} />
+  }
+
+  // Multiple interactions grouped by phone
+  return <PhoneGroupItem group={group} isLast={isLast} onOpenChat={onOpenChat} />
+}
+
+function PhoneGroupItem({
+  group,
+  isLast,
+  onOpenChat,
+}: {
+  group: InteractionGroup
+  isLast: boolean
+  onOpenChat: (conversationId: string) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const hasConversation = !!group.conversationId
+  const count = group.interactions.length
+  const typeCounts = new Map<string, number>()
+
+  for (const i of group.interactions) {
+    const config = interactionTypeConfig[i.type] || defaultInteractionConfig
+    typeCounts.set(config.label, (typeCounts.get(config.label) || 0) + 1)
+  }
+
+  const summaryParts = Array.from(typeCounts.entries()).map(([label, c]) =>
+    c > 1 ? `${c} ${label.toLowerCase()}` : label.toLowerCase()
+  )
+
+  const handleHeaderClick = () => {
+    if (hasConversation && group.conversationId) {
+      onOpenChat(group.conversationId)
+    } else {
+      setExpanded(!expanded)
+    }
+  }
+
+  return (
+    <div className="flex gap-3">
+      {/* Timeline line and dot */}
+      <div className="flex flex-col items-center">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-status-info/10">
+          <Phone className="h-4 w-4 text-status-info-solid" />
+        </div>
+        {!isLast && <div className="my-1 w-0.5 flex-1 bg-muted" />}
+      </div>
+
+      {/* Content */}
+      <div className={cn('flex-1 pb-4', isLast && 'pb-0')}>
+        <div
+          className="-mx-1 cursor-pointer rounded-md px-1 transition-colors hover:bg-muted/50"
+          onClick={handleHeaderClick}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                {hasConversation ? (
+                  <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                ) : (
+                  <ChevronRight
+                    className={cn(
+                      'h-3.5 w-3.5 text-muted-foreground transition-transform',
+                      expanded && 'rotate-90'
+                    )}
+                  />
+                )}
+                <span className="text-sm font-medium text-foreground">
+                  {formatPhone(group.phone!)}
+                </span>
+                <Badge variant="secondary" className="text-xs">
+                  {count} interações
+                </Badge>
+                {group.hasErrors && (
+                  <Badge variant="destructive" className="text-xs">
+                    Erros
+                  </Badge>
+                )}
+              </div>
+              <p className="ml-6 mt-0.5 text-sm text-muted-foreground">
+                {summaryParts.join(', ')}
+                {hasConversation && <span className="ml-1 text-xs text-primary">Ver conversa</span>}
+              </p>
+            </div>
+            <span className="whitespace-nowrap text-xs text-muted-foreground">
+              {formatTimestamp(group.lastTimestamp)}
+            </span>
+          </div>
+        </div>
+
+        {/* Expanded: show individual interactions */}
+        {expanded && !hasConversation && (
+          <div className="ml-6 mt-2 space-y-2 rounded-md border bg-muted/30 p-3">
+            {group.interactions.map((interaction) => (
+              <ExpandedInteractionRow key={interaction.id} interaction={interaction} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ExpandedInteractionRow({ interaction }: { interaction: ChipInteraction }) {
+  const config = interactionTypeConfig[interaction.type] || defaultInteractionConfig
+  const Icon = config.icon
+
+  return (
+    <div className="flex items-start gap-2 text-sm">
+      <Icon className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', config.color)} />
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{config.label}</span>
+          {!interaction.success && (
+            <Badge variant="destructive" className="text-xs">
+              Falhou
+            </Badge>
+          )}
+        </div>
+        <p className="text-muted-foreground">{interaction.description}</p>
+        {interaction.erroMensagem && (
+          <p className="text-xs text-status-error-solid">{interaction.erroMensagem}</p>
+        )}
+      </div>
+      <span className="whitespace-nowrap text-xs text-muted-foreground">
+        {formatTimestamp(interaction.timestamp)}
+      </span>
+    </div>
   )
 }
 
