@@ -117,7 +117,7 @@ async def _get_conversation_with_chip(conversation_id: str) -> dict:
             supabase.table("chips")
             .select("*")
             .eq("status", "active")
-            .not_("tipo", "in", '("listener","scraper")')
+            .not_.in_("tipo", ["listener", "scraper"])
             .limit(1)
             .execute()
         )
