@@ -30,7 +30,7 @@ export default defineConfig({
   /* Shared settings for all the projects below */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3099',
 
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
@@ -72,9 +72,9 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run build && npm run start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
+    command: 'npm run build && PORT=3099 npm run start',
+    url: 'http://localhost:3099',
+    reuseExistingServer: !process.env.CI,
     timeout: 120000,
     env: {
       E2E_MOCK: 'true', // Enable mock data for E2E tests
