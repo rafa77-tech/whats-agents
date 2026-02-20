@@ -379,6 +379,77 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
  * PUT /api/campanhas/[id]
  * Atualiza os dados de uma campanha em rascunho
  */
+/**
+ * DELETE /api/campanhas/[id]
+ * Exclui uma campanha em rascunho (hard delete)
+ */
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  try {
+    const supabase = await createClient()
+    const { id } = await params
+
+    // Verificar autenticacao
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ detail: 'Nao autorizado' }, { status: 401 })
+    }
+
+    // Buscar campanha
+    const { data: campanha, error: fetchError } = await supabase
+      .from('campanhas')
+      .select('id, status, nome_template')
+      .eq('id', id)
+      .single()
+
+    if (fetchError || !campanha) {
+      return NextResponse.json({ detail: 'Campanha nao encontrada' }, { status: 404 })
+    }
+
+    // Apenas rascunhos podem ser excluidos
+    if (campanha.status !== 'rascunho') {
+      return NextResponse.json(
+        { detail: 'Apenas campanhas em rascunho podem ser excluidas' },
+        { status: 409 }
+      )
+    }
+
+    // Deletar registros filhos (FK sem CASCADE)
+    await supabase.from('metricas_campanhas').delete().eq('campanha_id', id)
+    await supabase.from('envios').delete().eq('campanha_id', id)
+    await supabase.from('execucoes_campanhas').delete().eq('campanha_id', id)
+
+    // Deletar campanha
+    const { error: deleteError } = await supabase.from('campanhas').delete().eq('id', id)
+
+    if (deleteError) {
+      console.error('Erro ao excluir campanha:', deleteError)
+      return NextResponse.json({ detail: 'Erro ao excluir campanha' }, { status: 500 })
+    }
+
+    // Registrar no audit_log
+    await supabase.from('audit_log').insert({
+      action: 'campanha_excluida',
+      user_email: user.email,
+      details: {
+        campanha_id: id,
+        nome: campanha.nome_template,
+      },
+      created_at: new Date().toISOString(),
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Erro ao excluir campanha:', error)
+    return NextResponse.json({ detail: 'Erro interno do servidor' }, { status: 500 })
+  }
+}
+
+/**
+ * PUT /api/campanhas/[id]
+ * Atualiza os dados de uma campanha em rascunho
+ */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = await createClient()

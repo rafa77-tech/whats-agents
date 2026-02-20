@@ -7,18 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { InteracaoRow } from '@/types/conversas'
 
 export const dynamic = 'force-dynamic'
-
-interface InteracaoRow {
-  id: number
-  conteudo: string | null
-  autor_tipo: string | null
-  autor_nome: string | null
-  created_at: string | null
-  sentimento_score: number | null
-  ai_confidence: number | null
-}
 
 function generateSummary(
   clienteNome: string,

@@ -22,6 +22,7 @@ export interface PeriodDates {
  */
 export function getPeriodDates(period: DashboardPeriod | string): PeriodDates {
   const periodMap: Record<string, number> = {
+    '24h': 1,
     '7d': 7,
     '14d': 14,
     '30d': 30,
@@ -94,7 +95,7 @@ export function roundTo(value: number, decimals: number = 1): number {
  * @returns Periodo valido
  */
 export function validatePeriod(period: string | null): DashboardPeriod {
-  const validPeriods = ['7d', '14d', '30d']
+  const validPeriods = ['24h', '7d', '14d', '30d']
   if (period && validPeriods.includes(period)) {
     return period as DashboardPeriod
   }

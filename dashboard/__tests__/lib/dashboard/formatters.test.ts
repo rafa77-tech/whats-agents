@@ -151,6 +151,10 @@ describe('Dashboard Formatters', () => {
   })
 
   describe('formatPeriodLabel', () => {
+    it('deve retornar label para 24h', () => {
+      expect(formatPeriodLabel('24h')).toBe('24 horas')
+    })
+
     it('deve retornar label para 7d', () => {
       expect(formatPeriodLabel('7d')).toBe('7 dias')
     })
@@ -170,6 +174,14 @@ describe('Dashboard Formatters', () => {
       expect(result.start).toBeInstanceOf(Date)
       expect(result.end).toBeInstanceOf(Date)
       expect(result.end.getTime()).toBeGreaterThan(result.start.getTime())
+    })
+
+    it('deve retornar intervalo de 24h para periodo 24h', () => {
+      const result = formatPeriodDates('24h')
+      expect(result.start).toBeInstanceOf(Date)
+      expect(result.end).toBeInstanceOf(Date)
+      const diffHours = (result.end.getTime() - result.start.getTime()) / (1000 * 60 * 60)
+      expect(Math.round(diffHours)).toBe(24)
     })
   })
 

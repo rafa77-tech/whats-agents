@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { STAGE_COLORS } from '@/lib/conversas/constants'
 import { useDoctorContext } from '@/lib/conversas/hooks'
@@ -325,6 +326,7 @@ function EventsTimeline({ context }: { context: DoctorContextData }) {
 // ============================================
 
 function NotesSection({ conversationId }: { conversationId: string }) {
+  const { toast } = useToast()
   const [notes, setNotes] = useState<SupervisorNote[]>([])
   const [newNote, setNewNote] = useState('')
   const [saving, setSaving] = useState(false)
@@ -369,6 +371,11 @@ function NotesSection({ conversationId }: { conversationId: string }) {
       }
     } catch (err) {
       console.error('Failed to add note:', err)
+      toast({
+        title: 'Erro ao salvar nota',
+        description: 'Erro de conexao com o servidor',
+        variant: 'destructive',
+      })
     } finally {
       setSaving(false)
     }

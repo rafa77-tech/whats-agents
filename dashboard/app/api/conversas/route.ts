@@ -11,6 +11,33 @@ import type { SupervisionTab } from '@/types/conversas'
 
 export const dynamic = 'force-dynamic'
 
+/** Shape retornado pelo join com tabela chips */
+interface ChipJoinResult {
+  id: string
+  telefone: string
+  instance_name: string
+  status: string
+  trust_level: string
+}
+
+/** Shape retornado pelo join com tabela clientes */
+interface ClienteJoinResult {
+  id: string
+  primeiro_nome: string | null
+  sobrenome: string | null
+  telefone: string
+  stage_jornada?: string | null
+  especialidade?: string | null
+}
+
+/** Shape retornado pelo RPC get_last_messages */
+interface LastMessageRow {
+  conversation_id: string
+  conteudo: string | null
+  autor_tipo: string | null
+  created_at: string | null
+}
+
 const TWO_DAYS_MS = 48 * 60 * 60 * 1000
 const ONE_HOUR_MS = 60 * 60 * 1000
 
@@ -188,13 +215,7 @@ export async function GET(request: NextRequest) {
       { id: string; telefone: string; instance_name: string; status: string; trust_level: string }
     >()
     chipLinksResult.data?.forEach((link) => {
-      const chip = link.chips as unknown as {
-        id: string
-        telefone: string
-        instance_name: string
-        status: string
-        trust_level: string
-      }
+      const chip = link.chips as unknown as ChipJoinResult
       if (chip) chipMap.set(link.conversa_id, chip)
     })
 
@@ -203,20 +224,13 @@ export async function GET(request: NextRequest) {
       string,
       { conteudo: string; direction: 'entrada' | 'saida'; created_at: string }
     >()
-    lastMessagesResult.data?.forEach(
-      (msg: {
-        conversation_id: string
-        conteudo: string | null
-        autor_tipo: string | null
-        created_at: string | null
-      }) => {
-        lastMessageMap.set(msg.conversation_id, {
-          conteudo: msg.conteudo || '',
-          direction: msg.autor_tipo === 'medico' ? 'entrada' : 'saida',
-          created_at: msg.created_at || '',
-        })
-      }
-    )
+    lastMessagesResult.data?.forEach((msg: LastMessageRow) => {
+      lastMessageMap.set(msg.conversation_id, {
+        conteudo: msg.conteudo || '',
+        direction: msg.autor_tipo === 'medico' ? 'entrada' : 'saida',
+        created_at: msg.created_at || '',
+      })
+    })
 
     const handoffMap = new Map<string, string>()
     handoffsResult.data?.forEach((h) => {
@@ -225,14 +239,7 @@ export async function GET(request: NextRequest) {
 
     // Step 5: Transform + categorize + compute unread_count + attention_reason
     let enrichedData = (conversations || []).map((c) => {
-      const cliente = c.clientes as unknown as {
-        id: string
-        primeiro_nome: string | null
-        sobrenome: string | null
-        telefone: string
-        stage_jornada?: string | null
-        especialidade?: string | null
-      } | null
+      const cliente = c.clientes as unknown as ClienteJoinResult | null
 
       const clienteNome = cliente
         ? [cliente.primeiro_nome, cliente.sobrenome].filter(Boolean).join(' ') || 'Sem nome'

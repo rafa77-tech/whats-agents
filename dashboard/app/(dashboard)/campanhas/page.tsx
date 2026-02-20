@@ -33,6 +33,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { NovaCampanhaWizard } from '@/components/campanhas/nova-campanha-wizard'
 
 interface Campanha {
@@ -297,12 +307,33 @@ interface CampanhaCardProps {
   readOnly?: boolean
 }
 
-function CampanhaCard({ campanha, onUpdate: _onUpdate, readOnly }: CampanhaCardProps) {
+function CampanhaCard({ campanha, onUpdate, readOnly }: CampanhaCardProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [duplicating, setDuplicating] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const status = statusConfig[campanha.status] || statusConfig.rascunho
   const StatusIcon = status.icon
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/campanhas/${campanha.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast({ title: 'Erro ao excluir', description: data.detail, variant: 'destructive' })
+        return
+      }
+      toast({ title: 'Campanha excluida', description: 'A campanha foi removida com sucesso.' })
+      onUpdate()
+    } catch {
+      toast({ title: 'Erro ao excluir', description: 'Erro de conexao', variant: 'destructive' })
+    } finally {
+      setDeleting(false)
+      setConfirmDelete(false)
+    }
+  }
 
   const handleDuplicate = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -378,13 +409,47 @@ function CampanhaCard({ campanha, onUpdate: _onUpdate, readOnly }: CampanhaCardP
                   Duplicar
                 </DropdownMenuItem>
                 {!readOnly && campanha.status === 'rascunho' && (
-                  <DropdownMenuItem className="text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setConfirmDelete(true)
+                    }}
+                    disabled={deleting}
+                  >
+                    {deleting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="mr-2 h-4 w-4" />
+                    )}
                     Excluir
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir campanha?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    A campanha &quot;{campanha.nome_template}&quot; sera excluida permanentemente.
+                    Esta acao nao pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => void handleDelete()}
+                    disabled={deleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </CardHeader>

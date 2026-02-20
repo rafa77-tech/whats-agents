@@ -20,15 +20,17 @@ import {
 describe('Dashboard Constants', () => {
   describe('DASHBOARD_PERIODS', () => {
     it('deve conter todos os periodos validos', () => {
+      expect(DASHBOARD_PERIODS).toContain('24h')
       expect(DASHBOARD_PERIODS).toContain('7d')
       expect(DASHBOARD_PERIODS).toContain('14d')
       expect(DASHBOARD_PERIODS).toContain('30d')
-      expect(DASHBOARD_PERIODS).toHaveLength(3)
+      expect(DASHBOARD_PERIODS).toHaveLength(4)
     })
   })
 
   describe('PERIOD_LABELS', () => {
     it('deve ter labels para todos os periodos', () => {
+      expect(PERIOD_LABELS['24h']).toBe('24 horas')
       expect(PERIOD_LABELS['7d']).toBe('7 dias')
       expect(PERIOD_LABELS['14d']).toBe('14 dias')
       expect(PERIOD_LABELS['30d']).toBe('30 dias')

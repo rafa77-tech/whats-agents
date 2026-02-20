@@ -13,6 +13,7 @@ import { AttentionFeed } from './components/attention-feed'
 import { SupervisionTabs } from './components/supervision-tabs'
 import { DoctorContextPanel } from './components/doctor-context-panel'
 import { NewConversationDialog } from './components/new-conversation-dialog'
+import { useToast } from '@/hooks/use-toast'
 import { cn, formatPhone } from '@/lib/utils'
 import { useConversationList, useTabCounts } from '@/lib/conversas/hooks'
 import type { SupervisionTab } from '@/types/conversas'
@@ -27,6 +28,7 @@ interface Chip {
 }
 
 export default function ConversasPage() {
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState<SupervisionTab>('atencao')
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -128,6 +130,11 @@ export default function ConversasPage() {
       }
     } catch (err) {
       console.error('Failed to assume conversation:', err)
+      toast({
+        title: 'Erro ao assumir conversa',
+        description: 'Erro de conexao com o servidor',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -147,6 +154,11 @@ export default function ConversasPage() {
       }
     } catch (err) {
       console.error('Failed to start conversation:', err)
+      toast({
+        title: 'Erro ao criar conversa',
+        description: 'Erro de conexao com o servidor',
+        variant: 'destructive',
+      })
     }
   }
 

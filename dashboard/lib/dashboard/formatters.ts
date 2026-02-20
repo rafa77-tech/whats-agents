@@ -146,6 +146,7 @@ export function formatQualityValue(value: number, unit: QualityUnit): string {
 
 export function formatPeriodLabel(period: DashboardPeriod): string {
   const labels: Record<DashboardPeriod, string> = {
+    '24h': '24 horas',
     '7d': '7 dias',
     '14d': '14 dias',
     '30d': '30 dias',
@@ -157,8 +158,12 @@ export function formatPeriodDates(period: DashboardPeriod): { start: Date; end: 
   const end = new Date()
   const start = new Date()
 
-  const days = parseInt(period.replace('d', ''), 10)
-  start.setDate(start.getDate() - days)
+  if (period === '24h') {
+    start.setHours(start.getHours() - 24)
+  } else {
+    const days = parseInt(period.replace('d', ''), 10)
+    start.setDate(start.getDate() - days)
+  }
 
   return { start, end }
 }

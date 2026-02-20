@@ -16,6 +16,11 @@ import {
 } from '@/lib/dashboard/calculations'
 
 describe('getPeriodDates', () => {
+  it('should return 1 day for "24h" period', () => {
+    const result = getPeriodDates('24h')
+    expect(result.days).toBe(1)
+  })
+
   it('should return 7 days for "7d" period', () => {
     const result = getPeriodDates('7d')
     expect(result.days).toBe(7)
@@ -128,6 +133,10 @@ describe('roundTo', () => {
 })
 
 describe('validatePeriod', () => {
+  it('should return "24h" for valid "24h" input', () => {
+    expect(validatePeriod('24h')).toBe('24h')
+  })
+
   it('should return "7d" for valid "7d" input', () => {
     expect(validatePeriod('7d')).toBe('7d')
   })

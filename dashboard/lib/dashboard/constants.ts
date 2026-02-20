@@ -16,9 +16,10 @@ import type {
 // Period Constants
 // ============================================
 
-export const DASHBOARD_PERIODS: DashboardPeriod[] = ['7d', '14d', '30d']
+export const DASHBOARD_PERIODS: DashboardPeriod[] = ['24h', '7d', '14d', '30d']
 
 export const PERIOD_LABELS: Record<DashboardPeriod, string> = {
+  '24h': '24 horas',
   '7d': '7 dias',
   '14d': '14 dias',
   '30d': '30 dias',

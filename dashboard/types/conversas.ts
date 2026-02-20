@@ -66,6 +66,20 @@ export interface ConversationListItem {
 }
 
 // ============================================
+// Interacao row (raw DB shape)
+// ============================================
+
+export interface InteracaoRow {
+  id: number
+  conteudo: string | null
+  autor_tipo: string | null
+  autor_nome: string | null
+  created_at: string | null
+  sentimento_score: number | null
+  ai_confidence: number | null
+}
+
+// ============================================
 // Message in a conversation
 // ============================================
 
