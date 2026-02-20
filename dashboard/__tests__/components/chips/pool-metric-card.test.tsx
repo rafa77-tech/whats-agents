@@ -85,17 +85,17 @@ describe('PoolMetricCard', () => {
   describe('trend indicator', () => {
     it('should show positive trend with plus sign', () => {
       render(<PoolMetricCard {...defaultProps} trend={{ direction: 'up', value: 15 }} />)
-      expect(screen.getByText('+15%')).toBeInTheDocument()
+      expect(screen.getByText('+15.0%')).toBeInTheDocument()
     })
 
     it('should show negative trend with minus sign', () => {
       render(<PoolMetricCard {...defaultProps} trend={{ direction: 'down', value: 10 }} />)
-      expect(screen.getByText('-10%')).toBeInTheDocument()
+      expect(screen.getByText('-10.0%')).toBeInTheDocument()
     })
 
     it('should show stable trend without sign', () => {
       render(<PoolMetricCard {...defaultProps} trend={{ direction: 'stable', value: 0 }} />)
-      expect(screen.getByText('0%')).toBeInTheDocument()
+      expect(screen.getByText('0.0%')).toBeInTheDocument()
     })
 
     it('should show trend label when provided', () => {
@@ -110,19 +110,19 @@ describe('PoolMetricCard', () => {
 
     it('should apply green color for up trend', () => {
       render(<PoolMetricCard {...defaultProps} trend={{ direction: 'up', value: 15 }} />)
-      const trendElement = screen.getByText('+15%').closest('div')
+      const trendElement = screen.getByText('+15.0%').closest('div')
       expect(trendElement).toHaveClass('text-status-success-foreground')
     })
 
     it('should apply red color for down trend', () => {
       render(<PoolMetricCard {...defaultProps} trend={{ direction: 'down', value: 10 }} />)
-      const trendElement = screen.getByText('-10%').closest('div')
+      const trendElement = screen.getByText('-10.0%').closest('div')
       expect(trendElement).toHaveClass('text-status-error-foreground')
     })
 
     it('should apply gray color for stable trend', () => {
       render(<PoolMetricCard {...defaultProps} trend={{ direction: 'stable', value: 0 }} />)
-      const trendElement = screen.getByText('0%').closest('div')
+      const trendElement = screen.getByText('0.0%').closest('div')
       expect(trendElement).toHaveClass('text-muted-foreground')
     })
   })

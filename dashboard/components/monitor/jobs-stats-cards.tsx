@@ -65,7 +65,7 @@ export function JobsStatsCards({ stats, isLoading }: JobsStatsCardsProps) {
             : 'bg-status-error',
     },
     {
-      label: 'Jobs com Erro',
+      label: 'Jobs c/ Erro (24h)',
       value: stats.failedJobs24h,
       icon: XCircle,
       color:

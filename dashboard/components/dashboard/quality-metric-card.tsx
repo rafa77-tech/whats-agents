@@ -106,7 +106,7 @@ export function QualityMetricCard({ data }: QualityMetricCardProps) {
 
         <div className="mt-4 flex items-center justify-between border-t pt-4">
           <span className="text-sm text-muted-foreground">
-            vs sem. ant: {formatValue(previousValue, unit)}
+            vs per. anterior: {formatValue(previousValue, unit)}
           </span>
           {Math.abs(diff) >= 1 && (
             <span

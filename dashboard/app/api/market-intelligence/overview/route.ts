@@ -61,15 +61,15 @@ function calcularPeriodo(
       break
     case '7d':
       inicio = new Date(fim)
-      inicio.setDate(inicio.getDate() - 6)
+      inicio.setDate(inicio.getDate() - 7)
       break
     case '30d':
       inicio = new Date(fim)
-      inicio.setDate(inicio.getDate() - 29)
+      inicio.setDate(inicio.getDate() - 30)
       break
     case '90d':
       inicio = new Date(fim)
-      inicio.setDate(inicio.getDate() - 89)
+      inicio.setDate(inicio.getDate() - 90)
       break
     case 'custom':
       inicio = new Date(startDate!)

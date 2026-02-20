@@ -61,7 +61,7 @@ export function PoolMetricCard({
               {trend.direction === 'stable' && <Minus className="h-4 w-4" />}
               <span>
                 {trend.direction === 'up' ? '+' : trend.direction === 'down' ? '-' : ''}
-                {Math.abs(trend.value)}%
+                {Math.abs(trend.value).toFixed(1)}%
               </span>
               {trend.label && <span className="text-muted-foreground/70">{trend.label}</span>}
             </div>

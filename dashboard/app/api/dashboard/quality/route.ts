@@ -52,44 +52,38 @@ export async function GET(request: NextRequest) {
     // === Latencia Media ===
 
     // Buscar latencia media das interacoes (tempo entre msg recebida e resposta)
-    // Usando chip_metrics_hourly que tem tempo_resposta_medio_segundos
+    // Usando chip_metrics_hourly com media ponderada por volume de mensagens
     const { data: latencyCurrent } = await supabase
       .from('chip_metrics_hourly')
-      .select('tempo_resposta_medio_segundos')
+      .select('tempo_resposta_medio_segundos, msgs_enviadas')
       .gte('hora', currentStart)
       .lte('hora', currentEnd)
       .not('tempo_resposta_medio_segundos', 'is', null)
 
     const { data: latencyPrevious } = await supabase
       .from('chip_metrics_hourly')
-      .select('tempo_resposta_medio_segundos')
+      .select('tempo_resposta_medio_segundos, msgs_enviadas')
       .gte('hora', previousStart)
       .lte('hora', previousEnd)
       .not('tempo_resposta_medio_segundos', 'is', null)
 
-    const avgLatencyCurrent =
-      latencyCurrent && latencyCurrent.length > 0
-        ? Number(
-            (
-              latencyCurrent.reduce(
-                (sum, row) => sum + ((row.tempo_resposta_medio_segundos as number) || 0),
-                0
-              ) / latencyCurrent.length
-            ).toFixed(1)
-          )
-        : 0
+    // Media ponderada pelo volume de mensagens enviadas por hora
+    const weightedAvg = (
+      rows: { tempo_resposta_medio_segundos: number; msgs_enviadas: number }[] | null
+    ): number => {
+      if (!rows || rows.length === 0) return 0
+      let totalWeight = 0
+      let weightedSum = 0
+      for (const row of rows) {
+        const weight = (row.msgs_enviadas as number) || 1
+        weightedSum += ((row.tempo_resposta_medio_segundos as number) || 0) * weight
+        totalWeight += weight
+      }
+      return totalWeight > 0 ? Number((weightedSum / totalWeight).toFixed(1)) : 0
+    }
 
-    const avgLatencyPrevious =
-      latencyPrevious && latencyPrevious.length > 0
-        ? Number(
-            (
-              latencyPrevious.reduce(
-                (sum, row) => sum + ((row.tempo_resposta_medio_segundos as number) || 0),
-                0
-              ) / latencyPrevious.length
-            ).toFixed(1)
-          )
-        : 0
+    const avgLatencyCurrent = weightedAvg(latencyCurrent)
+    const avgLatencyPrevious = weightedAvg(latencyPrevious)
 
     // === Handoff Rate ===
 

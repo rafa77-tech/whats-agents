@@ -141,7 +141,7 @@ describe('MetricCard', () => {
 
     it('should display previous value comparison', () => {
       render(<MetricCard data={baseMetric} />)
-      expect(screen.getByText(/vs sem\. ant:.*30\.0%/)).toBeInTheDocument()
+      expect(screen.getByText(/vs per\. anterior:.*30\.0%/)).toBeInTheDocument()
     })
   })
 })

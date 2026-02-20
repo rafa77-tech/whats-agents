@@ -198,12 +198,14 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
     // Sprint 57: fila_mensagens/envios é a fonte de verdade para enviados/entregues
     // campanhas.enviados registra total ENFILEIRADO, não efetivamente enviado
-    const storedTotal = campanha.total_destinatarios ?? 0
+    // Usar fonte consistente: se temos dados calculados, usar todos calculados
+    const hasCalculatedData = calculatedEnviados > 0 || calculatedEntregues > 0
 
-    const total = storedTotal > 0 ? storedTotal : calculatedTotal
-    // Fonte de verdade: calculado da fila/envios, fallback: stored
-    const enviados = calculatedEnviados > 0 ? calculatedEnviados : (campanha.enviados ?? 0)
-    const entregues = calculatedEntregues > 0 ? calculatedEntregues : (campanha.entregues ?? 0)
+    const total = hasCalculatedData
+      ? calculatedTotal
+      : (campanha.total_destinatarios ?? calculatedTotal)
+    const enviados = hasCalculatedData ? calculatedEnviados : (campanha.enviados ?? 0)
+    const entregues = hasCalculatedData ? calculatedEntregues : (campanha.entregues ?? 0)
 
     return NextResponse.json({
       ...campanha,
@@ -214,8 +216,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
         entregues,
         visualizados,
         falhas,
-        taxa_entrega: enviados > 0 ? Math.round((entregues / enviados) * 100) : 0,
-        taxa_visualizacao: entregues > 0 ? Math.round((visualizados / entregues) * 100) : 0,
+        taxa_entrega: enviados > 0 ? Number(((entregues / enviados) * 100).toFixed(1)) : 0,
+        taxa_visualizacao:
+          entregues > 0 ? Number(((visualizados / entregues) * 100).toFixed(1)) : 0,
       },
     })
   } catch (error) {

@@ -115,15 +115,17 @@ export async function GET(request: NextRequest) {
     }
 
     let totalTrustScore = 0
+    let chipsWithTrustScore = 0
     typedChips.forEach((chip) => {
-      const score = chip.trust_score || 0
+      const score = chip.trust_score ?? 0
       totalTrustScore += score
+      if (chip.trust_score !== null) chipsWithTrustScore++
       const level = getTrustLevelExtended(score)
       byTrustLevel[level]++
     })
 
     const totalChips = typedChips.length
-    const avgTrustScore = totalChips > 0 ? totalTrustScore / totalChips : 0
+    const avgTrustScore = chipsWithTrustScore > 0 ? totalTrustScore / chipsWithTrustScore : 0
 
     // Mensagens do período - buscar de interacoes (fonte real)
     const { count: totalMessagesPeriod } = await supabase
@@ -151,17 +153,18 @@ export async function GET(request: NextRequest) {
 
     const currentConvIds = Array.from(new Set((convsWithSent || []).map((i) => i.conversa_id)))
 
-    // Dessas, quantas tiveram resposta (entrada)?
+    // Dessas, quantas tiveram resposta (entrada)? Deduplicar por conversa_id
     let convsWithResponse = 0
     if (currentConvIds.length > 0) {
-      const { count } = await supabase
+      const { data: responseData } = await supabase
         .from('interacoes')
-        .select('conversa_id', { count: 'exact', head: true })
+        .select('conversa_id')
         .eq('tipo', 'entrada')
         .in('conversa_id', currentConvIds)
         .gte('created_at', currentStart)
         .lte('created_at', currentEnd)
-      convsWithResponse = count || 0
+      const uniqueResponseConvs = new Set((responseData || []).map((r) => r.conversa_id))
+      convsWithResponse = uniqueResponseConvs.size
     }
 
     // Período anterior
@@ -176,14 +179,15 @@ export async function GET(request: NextRequest) {
 
     let prevConvsWithResponse = 0
     if (prevConvIds.length > 0) {
-      const { count } = await supabase
+      const { data: prevResponseData } = await supabase
         .from('interacoes')
-        .select('conversa_id', { count: 'exact', head: true })
+        .select('conversa_id')
         .eq('tipo', 'entrada')
         .in('conversa_id', prevConvIds)
         .gte('created_at', previousStart)
         .lte('created_at', previousEnd)
-      prevConvsWithResponse = count || 0
+      const uniquePrevResponseConvs = new Set((prevResponseData || []).map((r) => r.conversa_id))
+      prevConvsWithResponse = uniquePrevResponseConvs.size
     }
 
     // Calcular taxas

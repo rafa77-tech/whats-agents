@@ -242,9 +242,7 @@ describe('PATCH /api/vagas/[id]', () => {
     const response = await PATCH(request, createParams())
 
     expect(response.status).toBe(200)
-    expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ criticidade: 'urgente' })
-    )
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ criticidade: 'urgente' }))
   })
 
   it('rejects invalid criticidade', async () => {

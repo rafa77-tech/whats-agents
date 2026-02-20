@@ -52,14 +52,16 @@ export function getPeriodDates(period: DashboardPeriod | string): PeriodDates {
 
 /**
  * Calcula a variacao percentual entre dois valores.
+ * Retorna 0 quando o valor anterior e zero (evita divisao por zero).
  *
+ * @deprecated Use calculatePercentageChange que retorna null para divisao por zero.
  * @param current - Valor atual
  * @param previous - Valor anterior
  * @returns Variacao percentual (positivo = aumento, negativo = queda)
  */
 export function calculatePercentChange(current: number, previous: number): number {
   if (previous === 0) {
-    return current > 0 ? 100 : 0
+    return 0
   }
   return Number((((current - previous) / previous) * 100).toFixed(1))
 }

@@ -185,7 +185,7 @@ describe('QualityMetricCard', () => {
 
   it('should show previous value comparison', () => {
     render(<QualityMetricCard data={baseMetric} />)
-    expect(screen.getByText(/vs sem\. ant: 3\.0%/)).toBeInTheDocument()
+    expect(screen.getByText(/vs per\. anterior: 3\.0%/)).toBeInTheDocument()
   })
 
   it('should show improvement trend when value decreased (lt operator)', () => {

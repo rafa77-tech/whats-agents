@@ -71,8 +71,8 @@ describe('calculatePercentChange', () => {
     expect(calculatePercentChange(50, 100)).toBe(-50)
   })
 
-  it('should return 100 when previous is 0 and current is positive', () => {
-    expect(calculatePercentChange(50, 0)).toBe(100)
+  it('should return 0 when previous is 0 and current is positive', () => {
+    expect(calculatePercentChange(50, 0)).toBe(0)
   })
 
   it('should return 0 when previous is 0 and current is 0', () => {

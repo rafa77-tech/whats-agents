@@ -98,8 +98,8 @@ export async function GET(request: NextRequest) {
     const conversionCurrent = calculateRate(fechamentosCurrent || 0, medicosResponderamCurrent)
     const conversionPrevious = calculateRate(fechamentosPrevious || 0, medicosResponderamPrevious)
 
-    // Normalizar fechamentos por semana
-    const weeksInPeriod = days / 7
+    // Normalizar fechamentos por semana (mínimo 1 semana para evitar projeções enganosas)
+    const weeksInPeriod = Math.max(days / 7, 1)
     const closingsPerWeekCurrent = Number(((fechamentosCurrent || 0) / weeksInPeriod).toFixed(1))
     const closingsPerWeekPrevious = Number(((fechamentosPrevious || 0) / weeksInPeriod).toFixed(1))
 

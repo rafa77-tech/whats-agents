@@ -114,15 +114,15 @@ export async function GET(request: NextRequest) {
       .from('conversations')
       .select('*', { count: 'exact', head: true })
       .in('stage', ['interesse', 'negociacao', 'qualificado', 'proposta'])
-      .gte('updated_at', currentStart)
-      .lte('updated_at', currentEnd)
+      .gte('created_at', currentStart)
+      .lte('created_at', currentEnd)
 
     const { count: interessePrevious } = await supabase
       .from('conversations')
       .select('*', { count: 'exact', head: true })
       .in('stage', ['interesse', 'negociacao', 'qualificado', 'proposta'])
-      .gte('updated_at', previousStart)
-      .lte('updated_at', previousEnd)
+      .gte('created_at', previousStart)
+      .lte('created_at', previousEnd)
 
     // === Fechadas (conversations com status fechado/completed) ===
 
@@ -141,11 +141,13 @@ export async function GET(request: NextRequest) {
       .lte('completed_at', previousEnd)
 
     // Calculate percentages based on enviadas
-    const enviadasCount = enviadasCurrent || 1
+    const enviadasCount = enviadasCurrent || 0
     const entreguesCount = entreguesCurrent || 0
     const respostasCount = respostasCurrent || 0
     const interesseCount = interesseCurrent || 0
     const fechadasCount = fechadasCurrent || 0
+
+    const safePercent = (n: number, d: number) => (d > 0 ? Number(((n / d) * 100).toFixed(1)) : 0)
 
     return NextResponse.json({
       stages: [
@@ -154,35 +156,35 @@ export async function GET(request: NextRequest) {
           label: 'Enviadas',
           count: enviadasCount,
           previousCount: enviadasPrevious || 0,
-          percentage: 100,
+          percentage: enviadasCount > 0 ? 100 : 0,
         },
         {
           id: 'entregues',
           label: 'Entregues',
           count: entreguesCount,
           previousCount: entreguesPrevious || 0,
-          percentage: Number(((entreguesCount / enviadasCount) * 100).toFixed(1)),
+          percentage: safePercent(entreguesCount, enviadasCount),
         },
         {
           id: 'respostas',
           label: 'Respostas',
           count: respostasCount,
           previousCount: respostasPrevious || 0,
-          percentage: Number(((respostasCount / enviadasCount) * 100).toFixed(1)),
+          percentage: safePercent(respostasCount, enviadasCount),
         },
         {
           id: 'interesse',
           label: 'Interesse',
           count: interesseCount,
           previousCount: interessePrevious || 0,
-          percentage: Number(((interesseCount / enviadasCount) * 100).toFixed(1)),
+          percentage: safePercent(interesseCount, enviadasCount),
         },
         {
           id: 'fechadas',
           label: 'Fechadas',
           count: fechadasCount,
           previousCount: fechadasPrevious || 0,
-          percentage: Number(((fechadasCount / enviadasCount) * 100).toFixed(1)),
+          percentage: safePercent(fechadasCount, enviadasCount),
         },
       ],
       period: `${days} dias`,
