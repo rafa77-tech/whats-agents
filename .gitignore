@@ -55,3 +55,4 @@ scripts/notebooks/grupos_whatsapp_EVOLUTION_API.csv
 scripts/notebooks/grupos_whatsapp_medicos_COMPLETO.csv
 scripts/notebooks/grupos_whatsapp_medicos_POR_ESTADO.csv
 .coverage
+coverage.json
