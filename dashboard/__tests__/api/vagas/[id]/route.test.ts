@@ -235,6 +235,25 @@ describe('PATCH /api/vagas/[id]', () => {
     )
   })
 
+  it('updates criticidade', async () => {
+    mockEq.mockResolvedValue({ error: null })
+
+    const request = createRequest('PATCH', { criticidade: 'urgente' })
+    const response = await PATCH(request, createParams())
+
+    expect(response.status).toBe(200)
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ criticidade: 'urgente' })
+    )
+  })
+
+  it('rejects invalid criticidade', async () => {
+    const request = createRequest('PATCH', { criticidade: 'invalida' })
+    const response = await PATCH(request, createParams())
+
+    expect(response.status).toBe(400)
+  })
+
   it('handles database errors', async () => {
     mockEq.mockResolvedValue({ error: { message: 'Database error' } })
 

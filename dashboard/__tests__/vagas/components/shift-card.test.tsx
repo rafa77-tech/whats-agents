@@ -127,6 +127,25 @@ describe('ShiftCard', () => {
     expect(screen.getByText('R$ 15.000,00')).toBeInTheDocument()
   })
 
+  describe('criticidade badge', () => {
+    it('does not render badge for normal criticidade', () => {
+      render(<ShiftCard shift={mockShift} />)
+      expect(screen.queryByText('Normal')).not.toBeInTheDocument()
+      expect(screen.queryByText('Urgente')).not.toBeInTheDocument()
+      expect(screen.queryByText('Crítica')).not.toBeInTheDocument()
+    })
+
+    it('renders Urgente badge for urgente criticidade', () => {
+      render(<ShiftCard shift={{ ...mockShift, criticidade: 'urgente' }} />)
+      expect(screen.getByText('Urgente')).toBeInTheDocument()
+    })
+
+    it('renders Critica badge for critica criticidade', () => {
+      render(<ShiftCard shift={{ ...mockShift, criticidade: 'critica' }} />)
+      expect(screen.getByText('Critica')).toBeInTheDocument()
+    })
+  })
+
   describe('selection mode (Sprint 58)', () => {
     it('renders checkbox when selectable', () => {
       render(<ShiftCard shift={mockShift} selectable selected={false} onSelectChange={vi.fn()} />)

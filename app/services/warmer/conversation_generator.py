@@ -8,7 +8,7 @@ o processo de warmup, simulando conversas reais.
 import random
 import logging
 from collections import deque
-from typing import List, Optional, Tuple
+from typing import Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -121,36 +121,6 @@ TEMPLATES_CONVERSA = {
         ("Essa foi boa hein", "Kkkkk realmente"),
     ],
 }
-
-# Respostas genéricas para continuar conversa
-RESPOSTAS_GENERICAS = [
-    "Entendi",
-    "Boa!",
-    "Show",
-    "Beleza",
-    "Tranquilo",
-    "Ok!",
-    "Blz",
-    "Top",
-    "Legal",
-    "Perfeito",
-    "Combinado",
-    "Fechou",
-]
-
-# Finalizadores de conversa
-FINALIZADORES = [
-    "Valeu!",
-    "Beleza, falamos!",
-    "Blz, até mais!",
-    "Ok, qualquer coisa me chama",
-    "Show, valeu!",
-    "Perfeito, obrigado!",
-    "Fechou então",
-    "Combinado!",
-    "Até!",
-    "Falou!",
-]
 
 # Emojis por contexto
 EMOJIS = {
@@ -299,144 +269,9 @@ class ConversationGenerator:
             espera_resposta=True,
         )
 
-    def gerar_resposta(
-        self,
-        mensagem_anterior: str,
-        contexto: Optional[str] = None,
-        fase_warmup: str = "operacao",
-    ) -> MensagemGerada:
-        """
-        Gera resposta para mensagem recebida.
-
-        Args:
-            mensagem_anterior: Mensagem que está respondendo
-            contexto: Contexto da conversa
-            fase_warmup: Fase atual do chip
-
-        Returns:
-            MensagemGerada com resposta
-        """
-        tipo_midia = self._escolher_tipo_midia(fase_warmup)
-
-        # Se tem contexto, tentar usar template apropriado
-        if contexto:
-            try:
-                tipo = TipoConversa(contexto)
-                templates = TEMPLATES_CONVERSA[tipo]
-
-                # Procurar resposta que faça sentido
-                for abertura, resposta in templates:
-                    if mensagem_anterior.lower() in abertura.lower():
-                        return MensagemGerada(
-                            texto=self._adicionar_emoji_opcional(resposta),
-                            tipo_midia=tipo_midia,
-                            contexto=contexto,
-                            espera_resposta=random.random() > 0.3,
-                        )
-            except ValueError:
-                pass
-
-        # Resposta genérica
-        resposta = random.choice(RESPOSTAS_GENERICAS)
-
-        return MensagemGerada(
-            texto=self._adicionar_emoji_opcional(resposta),
-            tipo_midia=tipo_midia,
-            contexto=contexto,
-            espera_resposta=random.random() > 0.5,
-        )
-
-    def gerar_finalizacao(self) -> MensagemGerada:
-        """
-        Gera mensagem de finalização de conversa.
-
-        Returns:
-            MensagemGerada finalizando conversa
-        """
-        texto = random.choice(FINALIZADORES)
-
-        return MensagemGerada(
-            texto=self._adicionar_emoji_opcional(texto),
-            tipo_midia=TipoMidia.TEXTO,
-            espera_resposta=False,
-        )
-
-    def gerar_sequencia_conversa(
-        self,
-        turnos: int = 4,
-        fase_warmup: str = "operacao",
-    ) -> List[Tuple[str, MensagemGerada]]:
-        """
-        Gera sequência completa de conversa.
-
-        Args:
-            turnos: Número de turnos (pares de mensagens)
-            fase_warmup: Fase atual do chip
-
-        Returns:
-            Lista de (papel, MensagemGerada) onde papel é "A" ou "B"
-        """
-        sequencia = []
-
-        # Abertura
-        abertura = self.gerar_abertura(fase_warmup)
-        sequencia.append(("A", abertura))
-
-        # Resposta à abertura
-        if abertura.sugestao_resposta:
-            resposta = MensagemGerada(
-                texto=self._adicionar_emoji_opcional(abertura.sugestao_resposta),
-                tipo_midia=self._escolher_tipo_midia(fase_warmup),
-                contexto=abertura.contexto,
-                espera_resposta=True,
-            )
-            sequencia.append(("B", resposta))
-
-        # Turnos adicionais
-        for i in range(turnos - 1):
-            papel = "A" if len(sequencia) % 2 == 0 else "B"
-            ultima = sequencia[-1][1]
-
-            msg = self.gerar_resposta(
-                ultima.texto,
-                ultima.contexto,
-                fase_warmup,
-            )
-            sequencia.append((papel, msg))
-
-            # Chance de finalizar antes
-            if i >= turnos // 2 and random.random() > 0.7:
-                break
-
-        # Finalização
-        papel_final = "A" if len(sequencia) % 2 == 0 else "B"
-        finalizacao = self.gerar_finalizacao()
-        sequencia.append((papel_final, finalizacao))
-
-        logger.info(f"[ConvGen] Sequência gerada: {len(sequencia)} mensagens")
-
-        return sequencia
-
 
 # Instância global
 conversation_generator = ConversationGenerator()
-
-
-def gerar_conversa_warmup(
-    turnos: int = 4,
-    fase_warmup: str = "operacao",
-) -> List[Tuple[str, MensagemGerada]]:
-    """
-    Função de conveniência para gerar conversa de warmup.
-
-    Args:
-        turnos: Número de turnos desejados
-        fase_warmup: Fase atual do chip
-
-    Returns:
-        Sequência de mensagens
-    """
-    return conversation_generator.gerar_sequencia_conversa(turnos, fase_warmup)
 
 
 def gerar_mensagem_inicial(fase_warmup: str = "operacao") -> MensagemGerada:

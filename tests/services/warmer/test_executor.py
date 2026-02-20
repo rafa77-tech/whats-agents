@@ -429,14 +429,11 @@ class TestExecutarMarcarLido:
 
 class TestExecutarEntrarGrupo:
 
-    @patch("app.services.warmer.executor._registrar_interacao")
-    async def test_registra_interacao_simulada(self, mock_registrar, chip_evolution):
+    async def test_stub_retorna_false(self, chip_evolution):
+        """Stub não implementado deve retornar False para não inflar métricas."""
         result = await _executar_entrar_grupo(chip_evolution)
 
-        assert result is True
-        mock_registrar.assert_awaited_once_with(
-            chip_evolution["id"], "entrar_grupo", sucesso=True, simulada=True
-        )
+        assert result is False
 
 
 # ── _executar_mensagem_grupo ───────────────────────────────────
@@ -444,14 +441,11 @@ class TestExecutarEntrarGrupo:
 
 class TestExecutarMensagemGrupo:
 
-    @patch("app.services.warmer.executor._registrar_interacao")
-    async def test_registra_interacao_simulada(self, mock_registrar, chip_evolution):
+    async def test_stub_retorna_false(self, chip_evolution):
+        """Stub não implementado deve retornar False para não inflar métricas."""
         result = await _executar_mensagem_grupo(chip_evolution)
 
-        assert result is True
-        mock_registrar.assert_awaited_once_with(
-            chip_evolution["id"], "mensagem_grupo", sucesso=True, simulada=True
-        )
+        assert result is False
 
 
 # ── _executar_atualizar_perfil ─────────────────────────────────
@@ -459,14 +453,11 @@ class TestExecutarMensagemGrupo:
 
 class TestExecutarAtualizarPerfil:
 
-    @patch("app.services.warmer.executor._registrar_interacao")
-    async def test_registra_interacao_simulada(self, mock_registrar, chip_evolution):
+    async def test_stub_retorna_false(self, chip_evolution):
+        """Stub não implementado deve retornar False para não inflar métricas."""
         result = await _executar_atualizar_perfil(chip_evolution)
 
-        assert result is True
-        mock_registrar.assert_awaited_once_with(
-            chip_evolution["id"], "atualizar_perfil", sucesso=True, simulada=True
-        )
+        assert result is False
 
 
 # ── _executar_enviar_midia ─────────────────────────────────────

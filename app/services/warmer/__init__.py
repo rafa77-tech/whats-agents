@@ -22,6 +22,8 @@ from app.services.warmer.trust_score import (
     obter_permissoes,
 )
 
+# Nota: HumanSimulator não é usado pelo warming pipeline (executor envia direto).
+# É usado por app.services.group_entry.worker para delays naturais em grupos.
 from app.services.warmer.human_simulator import (
     HumanSimulator,
     HumanProfile,
@@ -35,7 +37,6 @@ from app.services.warmer.conversation_generator import (
     TipoConversa,
     TipoMidia,
     MensagemGerada,
-    gerar_conversa_warmup,
     gerar_mensagem_inicial,
 )
 
@@ -103,7 +104,6 @@ __all__ = [
     "TipoConversa",
     "TipoMidia",
     "MensagemGerada",
-    "gerar_conversa_warmup",
     "gerar_mensagem_inicial",
     # Pairing Engine
     "PairingEngine",

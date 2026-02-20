@@ -164,55 +164,35 @@ async def _executar_entrar_grupo(chip: dict) -> bool:
     """
     Entra em um grupo WhatsApp.
 
-    Nota: Requer link de convite válido. Por enquanto, apenas simula.
+    Nota: Stub — requer link de convite válido. Retorna False para não
+    inflar métricas de progresso enquanto não estiver implementado.
     """
-    try:
-        # TODO: Implementar quando houver grupos disponíveis
-        # Por enquanto, marca como executado (placeholder)
-        logger.info(f"[WarmupExecutor] entrar_grupo simulado para {chip['telefone'][-4:]}")
-
-        await _registrar_interacao(chip["id"], "entrar_grupo", sucesso=True, simulada=True)
-        return True
-
-    except Exception as e:
-        logger.error(f"[WarmupExecutor] Erro em entrar_grupo: {e}")
-        return False
+    logger.debug(f"[WarmupExecutor] entrar_grupo não implementado, skip {chip['telefone'][-4:]}")
+    return False
 
 
 async def _executar_mensagem_grupo(chip: dict) -> bool:
     """
     Envia mensagem em grupo.
 
-    Nota: Requer grupo ativo. Por enquanto, apenas simula.
+    Nota: Stub — requer grupo ativo. Retorna False para não
+    inflar métricas de progresso enquanto não estiver implementado.
     """
-    try:
-        # TODO: Implementar quando houver grupos
-        logger.info(f"[WarmupExecutor] mensagem_grupo simulado para {chip['telefone'][-4:]}")
-
-        await _registrar_interacao(chip["id"], "mensagem_grupo", sucesso=True, simulada=True)
-        return True
-
-    except Exception as e:
-        logger.error(f"[WarmupExecutor] Erro em mensagem_grupo: {e}")
-        return False
+    logger.debug(f"[WarmupExecutor] mensagem_grupo não implementado, skip {chip['telefone'][-4:]}")
+    return False
 
 
 async def _executar_atualizar_perfil(chip: dict) -> bool:
     """
-    Atualiza perfil do WhatsApp.
+    Atualiza perfil do WhatsApp (foto, status, nome).
 
-    Pode incluir: foto, status, nome.
+    Nota: Stub — requer integração com Evolution API. Retorna False para não
+    inflar métricas de progresso enquanto não estiver implementado.
     """
-    try:
-        # TODO: Implementar atualização de perfil via Evolution API
-        logger.info(f"[WarmupExecutor] atualizar_perfil simulado para {chip['telefone'][-4:]}")
-
-        await _registrar_interacao(chip["id"], "atualizar_perfil", sucesso=True, simulada=True)
-        return True
-
-    except Exception as e:
-        logger.error(f"[WarmupExecutor] Erro em atualizar_perfil: {e}")
-        return False
+    logger.debug(
+        f"[WarmupExecutor] atualizar_perfil não implementado, skip {chip['telefone'][-4:]}"
+    )
+    return False
 
 
 async def _executar_enviar_midia(chip: dict, atividade: AtividadeAgendada) -> bool:
