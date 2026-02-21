@@ -11,6 +11,7 @@ import type {
   MetaCostByChip,
   MetaCostByTemplate,
   MetaTemplateWithAnalytics,
+  MetaFlow,
   MetaDashboardResponse,
 } from '@/types/meta'
 
@@ -109,6 +110,28 @@ export async function getTemplates(): Promise<MetaTemplateWithAnalytics[]> {
 }
 
 // ============================================================================
+// Flows
+// ============================================================================
+
+export async function getFlows(): Promise<MetaFlow[]> {
+  const res = await fetchApi<MetaDashboardResponse<MetaFlow[]>>('/api/dashboard/meta/flows')
+  return res.data
+}
+
+export async function getFlow(id: string): Promise<MetaFlow> {
+  const res = await fetchApi<MetaDashboardResponse<MetaFlow>>(`/api/dashboard/meta/flows/${id}`)
+  return res.data
+}
+
+export async function publishFlow(id: string): Promise<void> {
+  await fetchApi(`/api/dashboard/meta/flows/${id}/publish`, { method: 'POST' })
+}
+
+export async function deprecateFlow(id: string): Promise<void> {
+  await fetchApi(`/api/dashboard/meta/flows/${id}`, { method: 'DELETE' })
+}
+
+// ============================================================================
 // Export as namespace
 // ============================================================================
 
@@ -120,4 +143,8 @@ export const metaApi = {
   getCostByChip,
   getCostByTemplate,
   getTemplates,
+  getFlows,
+  getFlow,
+  publishFlow,
+  deprecateFlow,
 }

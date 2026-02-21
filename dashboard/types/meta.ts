@@ -12,6 +12,13 @@ export type TemplateStatus = 'APPROVED' | 'PENDING' | 'REJECTED' | 'PAUSED' | 'D
 
 export type TemplateCategory = 'MARKETING' | 'UTILITY' | 'AUTHENTICATION'
 
+export interface TemplateComponent {
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS'
+  text?: string
+  format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'
+  buttons?: Array<{ type: string; text: string }>
+}
+
 export interface MetaTemplate {
   id: string
   waba_id: string
@@ -19,9 +26,8 @@ export interface MetaTemplate {
   category: TemplateCategory
   status: TemplateStatus
   language: string
-  body_text: string
-  variable_mapping: Record<string, string>
-  header_format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'
+  components?: TemplateComponent[]
+  variable_mapping?: Record<string, string>
   created_at: string
   updated_at: string
 }
@@ -126,6 +132,49 @@ export interface MetaBudgetStatus {
 
 export type FlowStatus = 'DRAFT' | 'PUBLISHED' | 'DEPRECATED' | 'BLOCKED'
 
+export type FlowComponentType =
+  | 'TextInput'
+  | 'Dropdown'
+  | 'RadioButtonsGroup'
+  | 'CheckboxGroup'
+  | 'Footer'
+  | 'TextHeading'
+  | 'TextSubheading'
+  | 'TextBody'
+
+export interface FlowComponent {
+  type: FlowComponentType
+  name?: string
+  label?: string
+  required?: boolean
+  'helper-text'?: string
+  'input-type'?: string
+  'data-source'?: Array<{ id: string; title: string }>
+  'on-click-action'?: {
+    name: string
+    next?: { type: string; name: string }
+    payload?: Record<string, unknown>
+  }
+  children?: FlowComponent[]
+}
+
+export interface FlowScreen {
+  id: string
+  title: string
+  terminal?: boolean
+  layout: {
+    type: string
+    children: FlowComponent[]
+  }
+}
+
+export interface FlowDefinition {
+  version: string
+  data_api_version?: string
+  routing_model?: Record<string, string[]>
+  screens: FlowScreen[]
+}
+
 export interface MetaFlow {
   id: string
   waba_id: string
@@ -133,6 +182,7 @@ export interface MetaFlow {
   name: string
   flow_type: string
   status: FlowStatus
+  json_definition?: FlowDefinition
   created_at: string
   updated_at: string
   response_count?: number

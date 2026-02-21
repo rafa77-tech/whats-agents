@@ -99,6 +99,65 @@ class CampanhaRepository:
             logger.error(f"Erro ao listar campanhas ativas: {e}")
             return []
 
+    async def listar(
+        self,
+        status: Optional[str] = None,
+        tipo: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[CampanhaData]:
+        """
+        Lista campanhas com filtros opcionais.
+
+        Args:
+            status: Filtrar por status (valor string do enum)
+            tipo: Filtrar por tipo de campanha (valor string do enum)
+            limit: Limite de resultados
+
+        Returns:
+            Lista de CampanhaData
+        """
+        try:
+            query = supabase.table(self.TABLE).select("*")
+
+            if status:
+                query = query.eq("status", status)
+            if tipo:
+                query = query.eq("tipo_campanha", tipo)
+
+            query = query.order("created_at", desc=True).limit(limit)
+
+            response = query.execute()
+
+            return [CampanhaData.from_db_row(row) for row in (response.data or [])]
+
+        except Exception as e:
+            logger.error(f"Erro ao listar campanhas: {e}")
+            return []
+
+    async def buscar_envios_da_fila(self, campanha_id: int) -> List[dict]:
+        """
+        Busca envios de uma campanha na fila_mensagens.
+
+        Args:
+            campanha_id: ID da campanha
+
+        Returns:
+            Lista de dicts com campo 'status' de cada envio
+        """
+        try:
+            response = (
+                supabase.table("fila_mensagens")
+                .select("status")
+                .eq("metadata->>campanha_id", str(campanha_id))
+                .execute()
+            )
+
+            return response.data or []
+
+        except Exception as e:
+            logger.error(f"Erro ao buscar envios da fila para campanha {campanha_id}: {e}")
+            return []
+
     async def listar_por_status(self, status: StatusCampanha) -> List[CampanhaData]:
         """
         Lista campanhas por status.

@@ -2,24 +2,29 @@
 Endpoints para gerenciamento de campanhas.
 
 Sprint 35 - Epic 05: Atualizado para usar novos modulos
+Fase 2 DDD: Delega ao CampanhasApplicationService (ADR-007)
 """
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 from datetime import datetime
 
-from app.services.supabase import supabase
-from app.services.segmentacao import segmentacao_service
-from app.services.campanhas import (
-    campanha_executor,
-    campanha_repository,
-    AudienceFilters,
-    StatusCampanha,
-    TipoCampanha,
-)
+from app.contexts.campanhas.application import get_campanhas_service
+from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
 
 router = APIRouter(prefix="/campanhas", tags=["campanhas"])
+
+
+def _handle_domain_exception(exc: Exception):
+    """Converte exceções de domínio para HTTPException."""
+    if isinstance(exc, NotFoundError):
+        raise HTTPException(status_code=404, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        raise HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, DatabaseError):
+        raise HTTPException(status_code=500, detail=str(exc))
+    raise HTTPException(status_code=500, detail="Erro interno inesperado")
 
 
 class CriarCampanhaRequest(BaseModel):
@@ -72,57 +77,32 @@ async def criar_campanha(dados: CriarCampanhaRequest):
 
     Usa os novos nomes de colunas do schema atualizado.
     """
-    # Validar tipo de campanha
+    service = get_campanhas_service()
+
     try:
-        tipo = TipoCampanha(dados.tipo_campanha)
-    except ValueError:
-        raise HTTPException(
-            status_code=400, detail=f"Tipo de campanha invalido: {dados.tipo_campanha}"
+        campanha = await service.criar_campanha(
+            nome_template=dados.nome_template,
+            tipo_campanha=dados.tipo_campanha,
+            corpo=dados.corpo,
+            tom=dados.tom,
+            objetivo=dados.objetivo,
+            especialidades=dados.especialidades,
+            regioes=dados.regioes,
+            quantidade_alvo=dados.quantidade_alvo,
+            modo_selecao=dados.modo_selecao,
+            agendar_para=dados.agendar_para,
+            pode_ofertar=dados.pode_ofertar,
+            chips_excluidos=dados.chips_excluidos,
         )
-
-    # Montar filtros para contagem
-    filtros = {}
-    if dados.especialidades:
-        filtros["especialidade"] = dados.especialidades[0]
-    if dados.regioes:
-        filtros["regiao"] = dados.regioes[0]
-
-    # Contar destinatarios
-    total_destinatarios = await segmentacao_service.contar_segmento(filtros)
-
-    # Criar audience_filters
-    audience_filters = AudienceFilters(
-        regioes=dados.regioes or [],
-        especialidades=dados.especialidades or [],
-        quantidade_alvo=dados.quantidade_alvo,
-        modo_selecao=dados.modo_selecao,
-        chips_excluidos=dados.chips_excluidos or [],
-    )
-
-    # Criar campanha usando o repository
-    campanha = await campanha_repository.criar(
-        nome_template=dados.nome_template,
-        tipo_campanha=tipo,
-        corpo=dados.corpo,
-        tom=dados.tom,
-        objetivo=dados.objetivo,
-        agendar_para=dados.agendar_para,
-        audience_filters=audience_filters,
-        pode_ofertar=dados.pode_ofertar,
-    )
-
-    if not campanha:
-        raise HTTPException(status_code=500, detail="Erro ao criar campanha")
-
-    # Atualizar total de destinatarios
-    await campanha_repository.atualizar_total_destinatarios(campanha.id, total_destinatarios)
+    except (NotFoundError, ValidationError, DatabaseError) as exc:
+        _handle_domain_exception(exc)
 
     return CampanhaResponse(
         id=campanha.id,
         nome_template=campanha.nome_template,
         tipo_campanha=campanha.tipo_campanha.value,
         status=campanha.status.value,
-        total_destinatarios=total_destinatarios,
+        total_destinatarios=campanha.total_destinatarios,
         enviados=campanha.enviados,
         entregues=campanha.entregues,
         respondidos=campanha.respondidos,
@@ -137,34 +117,12 @@ async def iniciar_campanha(campanha_id: int):
 
     Usa o CampanhaExecutor para processar a campanha.
     """
-    # Verificar se campanha existe
-    campanha = await campanha_repository.buscar_por_id(campanha_id)
-    if not campanha:
-        raise HTTPException(status_code=404, detail="Campanha nao encontrada")
+    service = get_campanhas_service()
 
-    # Verificar status
-    # Aceita ATIVA também para casos onde a campanha foi ativada mas não executada
-    if campanha.status not in (
-        StatusCampanha.AGENDADA,
-        StatusCampanha.RASCUNHO,
-        StatusCampanha.ATIVA,
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Campanha com status '{campanha.status.value}' nao pode ser iniciada",
-        )
-
-    # Executar campanha
-    sucesso = await campanha_executor.executar(campanha_id)
-
-    if not sucesso:
-        raise HTTPException(status_code=500, detail="Erro ao executar campanha")
-
-    return {
-        "status": "iniciada",
-        "campanha_id": campanha_id,
-        "message": "Campanha iniciada com sucesso",
-    }
+    try:
+        return await service.executar_campanha(campanha_id)
+    except (NotFoundError, ValidationError, DatabaseError) as exc:
+        _handle_domain_exception(exc)
 
 
 @router.post("/segmento/preview")
@@ -174,20 +132,9 @@ async def preview_segmento(filtros: Dict[str, Any]):
 
     Retorna contagem e amostra de medicos.
     """
-    total = await segmentacao_service.contar_segmento(filtros)
-    amostra = await segmentacao_service.buscar_segmento(filtros, limite=10)
+    service = get_campanhas_service()
 
-    return {
-        "total": total,
-        "amostra": [
-            {
-                "nome": m.get("primeiro_nome"),
-                "especialidade": m.get("especialidade_nome"),
-                "regiao": m.get("regiao"),
-            }
-            for m in amostra
-        ],
-    }
+    return await service.preview_segmento(filtros)
 
 
 @router.get("/{campanha_id}/relatorio")
@@ -197,54 +144,12 @@ async def relatorio_campanha(campanha_id: int):
 
     Usa nomes de colunas atualizados.
     """
-    # Buscar campanha usando repository
-    campanha = await campanha_repository.buscar_por_id(campanha_id)
+    service = get_campanhas_service()
 
-    if not campanha:
-        raise HTTPException(status_code=404, detail="Campanha nao encontrada")
-
-    # Buscar envios da campanha na fila_mensagens
-    envios_resp = (
-        supabase.table("fila_mensagens")
-        .select("status")
-        .eq("metadata->>campanha_id", str(campanha_id))
-        .execute()
-    )
-
-    envios = envios_resp.data or []
-
-    enviados_fila = len([e for e in envios if e["status"] == "enviada"])
-    erros = len([e for e in envios if e["status"] == "erro"])
-    pendentes = len([e for e in envios if e["status"] == "pendente"])
-
-    return {
-        "campanha_id": campanha_id,
-        "nome": campanha.nome_template,
-        "tipo_campanha": campanha.tipo_campanha.value,
-        "status": campanha.status.value,
-        "contadores": {
-            "total_destinatarios": campanha.total_destinatarios,
-            "enviados": campanha.enviados,
-            "entregues": campanha.entregues,
-            "respondidos": campanha.respondidos,
-        },
-        "fila": {
-            "total": len(envios),
-            "enviados": enviados_fila,
-            "erros": erros,
-            "pendentes": pendentes,
-            "taxa_entrega": enviados_fila / len(envios) if envios else 0,
-        },
-        "periodo": {
-            "criada_em": campanha.created_at.isoformat() if campanha.created_at else None,
-            "agendada_para": campanha.agendar_para.isoformat() if campanha.agendar_para else None,
-            "iniciada_em": campanha.iniciada_em.isoformat() if campanha.iniciada_em else None,
-            "concluida_em": campanha.concluida_em.isoformat() if campanha.concluida_em else None,
-        },
-        "audience_filters": campanha.audience_filters.to_dict()
-        if campanha.audience_filters
-        else {},
-    }
+    try:
+        return await service.relatorio_campanha(campanha_id)
+    except (NotFoundError, ValidationError, DatabaseError) as exc:
+        _handle_domain_exception(exc)
 
 
 @router.get("/")
@@ -256,35 +161,12 @@ async def listar_campanhas(
     """
     Lista campanhas com filtros opcionais.
     """
-    query = supabase.table("campanhas").select("*")
+    service = get_campanhas_service()
 
-    if status:
-        query = query.eq("status", status)
-    if tipo:
-        query = query.eq("tipo_campanha", tipo)
-
-    query = query.order("created_at", desc=True).limit(limit)
-
-    resp = query.execute()
-
-    campanhas = []
-    for row in resp.data or []:
-        campanhas.append(
-            {
-                "id": row["id"],
-                "nome_template": row.get("nome_template"),
-                "tipo_campanha": row.get("tipo_campanha"),
-                "status": row.get("status"),
-                "total_destinatarios": row.get("total_destinatarios", 0),
-                "enviados": row.get("enviados", 0),
-                "entregues": row.get("entregues", 0),
-                "respondidos": row.get("respondidos", 0),
-                "created_at": row.get("created_at"),
-                "agendar_para": row.get("agendar_para"),
-            }
-        )
-
-    return {"campanhas": campanhas, "total": len(campanhas)}
+    try:
+        return await service.listar_campanhas(status=status, tipo=tipo, limit=limit)
+    except (NotFoundError, ValidationError, DatabaseError) as exc:
+        _handle_domain_exception(exc)
 
 
 @router.get("/{campanha_id}")
@@ -292,12 +174,13 @@ async def buscar_campanha(campanha_id: int):
     """
     Busca detalhes de uma campanha.
     """
-    campanha = await campanha_repository.buscar_por_id(campanha_id)
+    service = get_campanhas_service()
 
-    if not campanha:
-        raise HTTPException(status_code=404, detail="Campanha nao encontrada")
-
-    return campanha.to_dict()
+    try:
+        campanha = await service.buscar_campanha(campanha_id)
+        return campanha.to_dict()
+    except (NotFoundError, ValidationError, DatabaseError) as exc:
+        _handle_domain_exception(exc)
 
 
 @router.patch("/{campanha_id}/status")
@@ -305,25 +188,9 @@ async def atualizar_status_campanha(campanha_id: int, novo_status: str):
     """
     Atualiza status de uma campanha.
     """
-    # Validar status
+    service = get_campanhas_service()
+
     try:
-        status = StatusCampanha(novo_status)
-    except ValueError:
-        raise HTTPException(status_code=400, detail=f"Status invalido: {novo_status}")
-
-    # Verificar se campanha existe
-    campanha = await campanha_repository.buscar_por_id(campanha_id)
-    if not campanha:
-        raise HTTPException(status_code=404, detail="Campanha nao encontrada")
-
-    # Atualizar status
-    sucesso = await campanha_repository.atualizar_status(campanha_id, status)
-
-    if not sucesso:
-        raise HTTPException(status_code=500, detail="Erro ao atualizar status")
-
-    return {
-        "campanha_id": campanha_id,
-        "status_anterior": campanha.status.value,
-        "status_novo": status.value,
-    }
+        return await service.atualizar_status(campanha_id, novo_status)
+    except (NotFoundError, ValidationError, DatabaseError) as exc:
+        _handle_domain_exception(exc)
