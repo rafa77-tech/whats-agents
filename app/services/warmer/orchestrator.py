@@ -8,6 +8,8 @@ Coordena todos os componentes do warmer:
 - Pairing Engine para pares
 - Scheduler para agendamento
 - Transições de fase
+
+Sprint 65: Fix timestamp transição, warming_day, critérios grupos, structured logging.
 """
 
 import logging
@@ -58,6 +60,8 @@ class CriteriosTransicao:
 
 
 # Critérios de transição por fase
+# Sprint 65: grupos_min=0 em todas as fases (ENTRAR_GRUPO não implementado).
+# Compensado com +5 em conversas_bidirecionais_min nas fases que tinham grupos_min > 0.
 CRITERIOS_FASE = {
     FaseWarmup.SETUP: CriteriosTransicao(
         dias_minimos=1,
@@ -81,8 +85,7 @@ CRITERIOS_FASE = {
         msgs_recebidas_min=25,
         taxa_resposta_min=0.4,
         trust_score_min=55,
-        conversas_bidirecionais_min=10,
-        grupos_min=1,
+        conversas_bidirecionais_min=12,  # Sprint 65: compensação por grupos_min=0
     ),
     FaseWarmup.PRE_OPERACAO: CriteriosTransicao(
         dias_minimos=14,
@@ -90,8 +93,7 @@ CRITERIOS_FASE = {
         msgs_recebidas_min=40,
         taxa_resposta_min=0.35,
         trust_score_min=60,
-        conversas_bidirecionais_min=15,
-        grupos_min=2,
+        conversas_bidirecionais_min=18,  # Sprint 65: compensação por grupos_min=0
     ),
     FaseWarmup.TESTE_GRADUACAO: CriteriosTransicao(
         dias_minimos=21,
@@ -99,8 +101,7 @@ CRITERIOS_FASE = {
         msgs_recebidas_min=50,
         taxa_resposta_min=0.3,
         trust_score_min=70,
-        conversas_bidirecionais_min=20,
-        grupos_min=3,
+        conversas_bidirecionais_min=23,  # Sprint 65: compensação por grupos_min=0
     ),
     FaseWarmup.OPERACAO: CriteriosTransicao(
         dias_minimos=28,
@@ -108,8 +109,7 @@ CRITERIOS_FASE = {
         msgs_recebidas_min=60,
         taxa_resposta_min=0.25,
         trust_score_min=75,
-        conversas_bidirecionais_min=25,
-        grupos_min=3,
+        conversas_bidirecionais_min=28,  # Sprint 65: compensação por grupos_min=0
     ),
 }
 
@@ -175,6 +175,7 @@ class WarmingOrchestrator:
             {
                 "fase_warmup": FaseWarmup.SETUP.value,
                 "warming_started_at": agora_brasilia().isoformat(),
+                "warming_day": 0,
             }
         ).eq("id", chip_id).execute()
 
@@ -239,6 +240,8 @@ class WarmingOrchestrator:
         """
         Verifica se chip pode transicionar de fase.
 
+        Sprint 65: Usa warming_started_at ao invés de created_at para calcular idade.
+
         Args:
             chip_id: ID do chip
 
@@ -267,9 +270,13 @@ class WarmingOrchestrator:
         if not criterios:
             return None
 
-        # Calcular idade
-        created_at = datetime.fromisoformat(chip["created_at"].replace("Z", "+00:00"))
-        idade_dias = (agora_brasilia() - created_at).days
+        # Sprint 65: Calcular idade usando warming_started_at (não created_at)
+        # Fallback chain: warming_started_at → fase_iniciada_em → created_at
+        warming_ref = (
+            chip.get("warming_started_at") or chip.get("fase_iniciada_em") or chip.get("created_at")
+        )
+        warming_ref_dt = datetime.fromisoformat(str(warming_ref).replace("Z", "+00:00"))
+        idade_dias = (agora_brasilia() - warming_ref_dt).days
 
         # Verificar cada critério
         if idade_dias < criterios.dias_minimos:
@@ -282,6 +289,8 @@ class WarmingOrchestrator:
             return None
 
         taxa_resposta = chip.get("taxa_resposta", 0)
+        if isinstance(taxa_resposta, str):
+            taxa_resposta = float(taxa_resposta)
         if taxa_resposta < criterios.taxa_resposta_min:
             return None
 
@@ -326,7 +335,7 @@ class WarmingOrchestrator:
         supabase.table("chips").update(
             {
                 "fase_warmup": nova_fase,
-                "ultima_transicao": agora_brasilia().isoformat(),
+                "fase_iniciada_em": agora_brasilia().isoformat(),
             }
         ).eq("id", chip_id).execute()
 
@@ -441,11 +450,47 @@ class WarmingOrchestrator:
 
         return planejados
 
+    async def _atualizar_warming_days(self):
+        """
+        Atualiza warming_day para todos os chips em warmup.
+
+        Sprint 65: Calcula dias desde warming_started_at e persiste no banco.
+        """
+        chips_result = (
+            supabase.table("chips")
+            .select("id, warming_started_at")
+            .in_("status", ["warming", "active"])
+            .not_.is_("warming_started_at", "null")
+            .execute()
+        )
+
+        agora = agora_brasilia()
+        atualizados = 0
+        for chip in chips_result.data or []:
+            try:
+                warming_started = datetime.fromisoformat(
+                    chip["warming_started_at"].replace("Z", "+00:00")
+                )
+                warming_day = (agora - warming_started).days
+
+                supabase.table("chips").update({"warming_day": warming_day}).eq(
+                    "id", chip["id"]
+                ).execute()
+                atualizados += 1
+            except (ValueError, TypeError, KeyError) as e:
+                logger.warning(
+                    f"[Orchestrator] Erro ao calcular warming_day para chip {chip['id'][:8]}: {e}"
+                )
+
+        if atualizados:
+            logger.info(f"[Orchestrator] warming_day atualizado para {atualizados} chips")
+
     async def ciclo_warmup(self):
         """
         Executa ciclo principal de warmup.
 
         Este método deve ser chamado periodicamente (ex: a cada 5 minutos).
+        Sprint 65: Adiciona warming_day update e structured logging.
         """
         if self._ciclo_lock.locked():
             logger.warning("[Orchestrator] Ciclo já em execução")
@@ -459,26 +504,36 @@ class WarmingOrchestrator:
             if planejados:
                 logger.info(f"[Orchestrator] {planejados} atividades auto-planejadas")
 
-            # 2. Buscar atividades pendentes
+            # 2. Sprint 65: Atualizar warming_day
+            await self._atualizar_warming_days()
+
+            # 3. Buscar atividades pendentes
             atividades = await scheduler.obter_proximas_atividades(limite=20)
 
             logger.info(f"[Orchestrator] {len(atividades)} atividades para executar")
 
-            # 3. Executar atividades
+            # 4. Executar atividades e coletar resultados
+            resultados = []
             for atividade in atividades:
                 try:
                     resultado = await self.executar_atividade(atividade)
+                    resultados.append(resultado)
                     logger.debug(
                         f"[Orchestrator] Atividade {atividade.tipo.value}: "
                         f"{'OK' if resultado.get('success') else 'FALHA'}"
                     )
                 except Exception as e:
-                    logger.error(f"[Orchestrator] Erro em atividade: {e}")
+                    logger.error(
+                        f"[Orchestrator] Erro em atividade {atividade.tipo.value} "
+                        f"chip={atividade.chip_id[:8]}: {e}",
+                        exc_info=True,
+                    )
+                    resultados.append({"success": False, "error": str(e)})
 
                 # Delay entre atividades
                 await asyncio.sleep(2)
 
-            # 4. Verificar transições de fase
+            # 5. Verificar transições de fase
             chips_result = (
                 supabase.table("chips")
                 .select("id")
@@ -487,28 +542,57 @@ class WarmingOrchestrator:
                 .execute()
             )
 
+            transicoes = 0
             for chip in chips_result.data or []:
-                nova_fase = await self.verificar_transicao(chip["id"])
-                if nova_fase:
-                    await self.executar_transicao(chip["id"], nova_fase)
+                try:
+                    nova_fase = await self.verificar_transicao(chip["id"])
+                    if nova_fase:
+                        await self.executar_transicao(chip["id"], nova_fase)
+                        transicoes += 1
+                except Exception as e:
+                    logger.error(
+                        f"[Orchestrator] Erro ao verificar transição chip={chip['id'][:8]}: {e}",
+                        exc_info=True,
+                    )
 
-            # 5. Recalcular trust scores
+            # 6. Recalcular trust scores
             for chip in chips_result.data or []:
                 try:
                     await calcular_trust_score(chip["id"])
                 except Exception as e:
-                    logger.error(f"[Orchestrator] Erro ao calcular trust: {e}")
+                    logger.error(
+                        f"[Orchestrator] Erro ao calcular trust chip={chip['id'][:8]}: {e}",
+                        exc_info=True,
+                    )
 
-            logger.info("[Orchestrator] Ciclo de warmup concluído")
+            # Sprint 65: Structured logging — resumo do ciclo
+            executadas = sum(1 for r in resultados if r.get("success"))
+            falhas = sum(1 for r in resultados if not r.get("success"))
+            total = len(resultados)
+
+            logger.info(
+                f"[Orchestrator] Ciclo concluído: "
+                f"{executadas}/{total} OK, {falhas} falhas, "
+                f"{planejados} auto-planejadas, {transicoes} transições"
+            )
 
     async def obter_status_pool(self) -> dict:
         """
         Obtém status geral do pool de chips.
 
+        Sprint 65: Inclui warming_day nos dados.
+
         Returns:
             Dict com estatísticas do pool
         """
-        result = supabase.table("chips").select("fase_warmup, trust_score, status").execute()
+        result = (
+            supabase.table("chips")
+            .select(
+                "telefone, fase_warmup, trust_score, trust_level, status, "
+                "warming_day, msgs_enviadas_hoje, evolution_connected, provider"
+            )
+            .execute()
+        )
 
         stats = {
             "total": 0,
@@ -516,6 +600,7 @@ class WarmingOrchestrator:
             "por_status": {},
             "trust_medio": 0,
             "prontos_operacao": 0,
+            "chips": [],
         }
 
         trust_total = 0
@@ -534,6 +619,20 @@ class WarmingOrchestrator:
 
             if fase == "operacao" and trust >= 75:
                 stats["prontos_operacao"] += 1
+
+            stats["chips"].append(
+                {
+                    "telefone_masked": chip.get("telefone", "????")[-4:],
+                    "status": status,
+                    "fase": fase,
+                    "warming_day": chip.get("warming_day", 0),
+                    "trust": trust,
+                    "trust_level": chip.get("trust_level", "unknown"),
+                    "msgs_hoje": chip.get("msgs_enviadas_hoje", 0),
+                    "connected": chip.get("evolution_connected", False),
+                    "provider": chip.get("provider", "evolution"),
+                }
+            )
 
         if stats["total"] > 0:
             stats["trust_medio"] = round(trust_total / stats["total"], 1)

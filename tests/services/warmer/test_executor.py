@@ -2,11 +2,13 @@
 
 Valida que atividades de warmup são executadas corretamente,
 enviando mensagens reais via enviar_via_chip.
+
+Sprint 65: Testes de pre-send validation (circuit breaker, cooldown, z-api).
 """
 
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from app.services.warmer.executor import (
     executar_atividade,
@@ -18,6 +20,7 @@ from app.services.warmer.executor import (
     _executar_enviar_midia,
     _registrar_interacao,
     _gerar_mensagem_simples,
+    _verificar_pre_send,
 )
 from app.services.warmer.scheduler import AtividadeAgendada, TipoAtividade
 from app.services.warmer.conversation_generator import MensagemGerada, TipoMidia
@@ -544,3 +547,167 @@ class TestGerarMensagemSimples:
         }
         for _ in range(20):
             assert _gerar_mensagem_simples() in mensagens_validas
+
+
+# ── _verificar_pre_send (Sprint 65) ─────────────────────────
+
+
+class TestVerificarPreSend:
+    """Sprint 65: Testa validação pré-envio."""
+
+    @patch("app.services.warmer.executor.ChipCircuitBreaker")
+    def test_chip_evolution_conectado_ok(self, mock_cb):
+        mock_cb.pode_usar_chip.return_value = True
+        chip = {
+            "id": CHIP_ID,
+            "telefone": "5511999990001",
+            "provider": "evolution",
+            "evolution_connected": True,
+        }
+
+        result = _verificar_pre_send(chip)
+
+        assert result is None
+
+    @patch("app.services.warmer.executor.ChipCircuitBreaker")
+    def test_chip_evolution_desconectado_bloqueia(self, mock_cb):
+        chip = {
+            "id": CHIP_ID,
+            "telefone": "5511999990001",
+            "provider": "evolution",
+            "evolution_connected": False,
+        }
+
+        result = _verificar_pre_send(chip)
+
+        assert result is not None
+        assert "desconectado" in result.lower()
+
+    @patch("app.services.warmer.executor.ChipCircuitBreaker")
+    def test_circuit_breaker_aberto_bloqueia(self, mock_cb):
+        mock_cb.pode_usar_chip.return_value = False
+        chip = {
+            "id": CHIP_ID,
+            "telefone": "5511999990001",
+            "provider": "evolution",
+            "evolution_connected": True,
+        }
+
+        result = _verificar_pre_send(chip)
+
+        assert result is not None
+        assert "circuit breaker" in result.lower()
+
+    @patch("app.services.warmer.executor.agora_brasilia")
+    @patch("app.services.warmer.executor.ChipCircuitBreaker")
+    def test_chip_em_cooldown_bloqueia(self, mock_cb, mock_agora):
+        mock_cb.pode_usar_chip.return_value = True
+        futuro = datetime.now(timezone.utc) + timedelta(hours=1)
+        mock_agora.return_value = datetime.now(timezone.utc)
+        chip = {
+            "id": CHIP_ID,
+            "telefone": "5511999990001",
+            "provider": "evolution",
+            "evolution_connected": True,
+            "cooldown_until": futuro.isoformat(),
+        }
+
+        result = _verificar_pre_send(chip)
+
+        assert result is not None
+        assert "cooldown" in result.lower()
+
+    @patch("app.services.warmer.executor.agora_brasilia")
+    @patch("app.services.warmer.executor.ChipCircuitBreaker")
+    def test_chip_cooldown_expirado_ok(self, mock_cb, mock_agora):
+        mock_cb.pode_usar_chip.return_value = True
+        passado = datetime.now(timezone.utc) - timedelta(hours=1)
+        mock_agora.return_value = datetime.now(timezone.utc)
+        chip = {
+            "id": CHIP_ID,
+            "telefone": "5511999990001",
+            "provider": "evolution",
+            "evolution_connected": True,
+            "cooldown_until": passado.isoformat(),
+        }
+
+        result = _verificar_pre_send(chip)
+
+        assert result is None
+
+    @patch("app.services.warmer.executor.agora_brasilia")
+    @patch("app.services.warmer.executor.ChipCircuitBreaker")
+    def test_zapi_com_erro_recente_bloqueia(self, mock_cb, mock_agora):
+        mock_cb.pode_usar_chip.return_value = True
+        agora = datetime.now(timezone.utc)
+        mock_agora.return_value = agora
+        erro_recente = (agora - timedelta(minutes=5)).isoformat()
+        chip = {
+            "id": CHIP_ID,
+            "telefone": "5511999990001",
+            "provider": "z-api",
+            "ultimo_erro_em": erro_recente,
+            "ultimo_erro_msg": "Event loop is closed",
+        }
+
+        result = _verificar_pre_send(chip)
+
+        assert result is not None
+        assert "z-api" in result.lower()
+
+    @patch("app.services.warmer.executor.agora_brasilia")
+    @patch("app.services.warmer.executor.ChipCircuitBreaker")
+    def test_zapi_com_erro_antigo_ok(self, mock_cb, mock_agora):
+        mock_cb.pode_usar_chip.return_value = True
+        agora = datetime.now(timezone.utc)
+        mock_agora.return_value = agora
+        erro_antigo = (agora - timedelta(minutes=30)).isoformat()
+        chip = {
+            "id": CHIP_ID,
+            "telefone": "5511999990001",
+            "provider": "z-api",
+            "ultimo_erro_em": erro_antigo,
+            "ultimo_erro_msg": "old error",
+        }
+
+        result = _verificar_pre_send(chip)
+
+        assert result is None
+
+    @patch("app.services.warmer.executor.ChipCircuitBreaker")
+    def test_provider_none_assume_evolution(self, mock_cb):
+        """Provider null no DB deve ser tratado como evolution."""
+        mock_cb.pode_usar_chip.return_value = True
+        chip = {
+            "id": CHIP_ID,
+            "telefone": "5511999990001",
+            "provider": None,
+            "evolution_connected": True,
+        }
+
+        result = _verificar_pre_send(chip)
+
+        assert result is None
+
+
+# ── _executar_marcar_lido com circuit breaker (Sprint 65) ────
+
+
+class TestExecutarMarcarLidoCircuitBreaker:
+    """Sprint 65: Testa que marcar_lido verifica circuit breaker."""
+
+    @patch("app.services.warmer.executor.ChipCircuitBreaker")
+    @patch("app.services.warmer.executor._registrar_interacao")
+    async def test_circuit_breaker_aberto_retorna_false(self, mock_registrar, mock_cb):
+        mock_cb.pode_usar_chip.return_value = False
+        chip = {
+            "id": CHIP_ID,
+            "telefone": "5511999990001",
+            "provider": "evolution",
+            "evolution_connected": True,
+        }
+
+        result = await _executar_marcar_lido(chip)
+
+        assert result is False
+        mock_registrar.assert_not_awaited()

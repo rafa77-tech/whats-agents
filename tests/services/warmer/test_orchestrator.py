@@ -2,6 +2,8 @@
 
 Valida que o orchestrator delega execução ao executor real,
 gerencia transições de fase e coordena o ciclo de warmup.
+
+Sprint 65: Testes para warming_started_at, warming_day, obter_status_pool com chips.
 """
 
 import asyncio
@@ -508,3 +510,202 @@ class TestConstantes:
             criterio = CRITERIOS_FASE[fase]
             assert criterio.dias_minimos >= dias_anterior
             dias_anterior = criterio.dias_minimos
+
+    def test_grupos_min_zero_em_todas_as_fases(self):
+        """Sprint 65: Todas as fases devem ter grupos_min=0 (stub não implementado)."""
+        for fase, criterio in CRITERIOS_FASE.items():
+            assert criterio.grupos_min == 0, f"Fase {fase} tem grupos_min={criterio.grupos_min}"
+
+
+# ── verificar_transicao — Sprint 65 (warming_started_at) ────
+
+
+class TestVerificarTransicaoSprint65:
+    """Sprint 65: Testa que warming_started_at é usado para calcular idade."""
+
+    @patch("app.services.warmer.orchestrator.supabase")
+    async def test_usa_warming_started_at_quando_disponivel(self, mock_sb, orchestrator):
+        """warming_started_at deve ter prioridade sobre created_at."""
+        # warming_started_at = 5 dias atrás (deve transicionar)
+        warming_started = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+        # created_at = hoje (não deveria transicionar se usado)
+        created_at = datetime.now(timezone.utc).isoformat()
+
+        mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data={
+                "fase_warmup": "setup",
+                "warming_started_at": warming_started,
+                "created_at": created_at,
+                "msgs_enviadas_total": 30,
+                "msgs_recebidas_total": 15,
+                "taxa_resposta": 0.5,
+                "trust_score": 55,
+                "conversas_bidirecionais": 6,
+                "grupos_count": 0,
+                "erros_ultimas_24h": 0,
+            }
+        )
+
+        nova_fase = await orchestrator.verificar_transicao(CHIP_ID)
+
+        # Deve transicionar porque warming_started_at indica 5 dias
+        assert nova_fase == "primeiros_contatos"
+
+    @patch("app.services.warmer.orchestrator.supabase")
+    async def test_fallback_para_created_at_quando_sem_warming_started(
+        self, mock_sb, orchestrator
+    ):
+        """Sem warming_started_at, deve usar created_at como fallback."""
+        created_at = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+
+        mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data={
+                "fase_warmup": "setup",
+                "warming_started_at": None,
+                "fase_iniciada_em": None,
+                "created_at": created_at,
+                "msgs_enviadas_total": 30,
+                "msgs_recebidas_total": 15,
+                "taxa_resposta": 0.5,
+                "trust_score": 55,
+                "conversas_bidirecionais": 6,
+                "grupos_count": 0,
+                "erros_ultimas_24h": 0,
+            }
+        )
+
+        nova_fase = await orchestrator.verificar_transicao(CHIP_ID)
+
+        assert nova_fase == "primeiros_contatos"
+
+    @patch("app.services.warmer.orchestrator.supabase")
+    async def test_taxa_resposta_string_convertida(self, mock_sb, orchestrator):
+        """Sprint 65: taxa_resposta pode vir como string do banco."""
+        warming_started = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+
+        mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data={
+                "fase_warmup": "setup",
+                "warming_started_at": warming_started,
+                "created_at": warming_started,
+                "msgs_enviadas_total": 30,
+                "msgs_recebidas_total": 15,
+                "taxa_resposta": "0.5",  # String ao invés de float
+                "trust_score": 55,
+                "conversas_bidirecionais": 6,
+                "grupos_count": 0,
+                "erros_ultimas_24h": 0,
+            }
+        )
+
+        nova_fase = await orchestrator.verificar_transicao(CHIP_ID)
+
+        assert nova_fase == "primeiros_contatos"
+
+
+# ── _atualizar_warming_days (Sprint 65) ──────────────────────
+
+
+class TestAtualizarWarmingDays:
+    """Sprint 65: Testa cálculo e persistência de warming_day."""
+
+    @patch("app.services.warmer.orchestrator.agora_brasilia")
+    @patch("app.services.warmer.orchestrator.supabase")
+    async def test_calcula_warming_day_corretamente(self, mock_sb, mock_agora, orchestrator):
+        agora = datetime(2026, 2, 20, 12, 0, 0, tzinfo=timezone.utc)
+        mock_agora.return_value = agora
+
+        warming_started = (agora - timedelta(days=7)).isoformat()
+        mock_sb.table.return_value.select.return_value.in_.return_value.not_.is_.return_value.execute.return_value = MagicMock(
+            data=[{"id": CHIP_ID, "warming_started_at": warming_started}]
+        )
+        mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+
+        await orchestrator._atualizar_warming_days()
+
+        # Verificar que update foi chamado com warming_day=7
+        update_call = mock_sb.table.return_value.update.call_args[0][0]
+        assert update_call["warming_day"] == 7
+
+    @patch("app.services.warmer.orchestrator.agora_brasilia")
+    @patch("app.services.warmer.orchestrator.supabase")
+    async def test_sem_chips_nao_faz_update(self, mock_sb, mock_agora, orchestrator):
+        mock_agora.return_value = datetime.now(timezone.utc)
+        mock_sb.table.return_value.select.return_value.in_.return_value.not_.is_.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
+
+        await orchestrator._atualizar_warming_days()
+
+        mock_sb.table.return_value.update.assert_not_called()
+
+
+# ── obter_status_pool — Sprint 65 (com chips array) ─────────
+
+
+class TestObterStatusPoolSprint65:
+    """Sprint 65: Verifica que obter_status_pool retorna chips array com detalhes."""
+
+    @patch("app.services.warmer.orchestrator.supabase")
+    async def test_retorna_chips_com_detalhes(self, mock_sb, orchestrator):
+        mock_sb.table.return_value.select.return_value.execute.return_value = MagicMock(
+            data=[
+                {
+                    "telefone": "5511999990001",
+                    "fase_warmup": "expansao",
+                    "trust_score": 60,
+                    "trust_level": "amarelo",
+                    "status": "warming",
+                    "warming_day": 10,
+                    "msgs_enviadas_hoje": 5,
+                    "evolution_connected": True,
+                    "provider": "evolution",
+                },
+            ]
+        )
+
+        stats = await orchestrator.obter_status_pool()
+
+        assert "chips" in stats
+        assert len(stats["chips"]) == 1
+        chip = stats["chips"][0]
+        assert chip["telefone_masked"] == "0001"
+        assert chip["fase"] == "expansao"
+        assert chip["warming_day"] == 10
+        assert chip["trust"] == 60
+        assert chip["provider"] == "evolution"
+
+    @patch("app.services.warmer.orchestrator.supabase")
+    async def test_por_status_calculado(self, mock_sb, orchestrator):
+        mock_sb.table.return_value.select.return_value.execute.return_value = MagicMock(
+            data=[
+                {
+                    "telefone": "5511999990001",
+                    "fase_warmup": "setup",
+                    "trust_score": 40,
+                    "trust_level": "vermelho",
+                    "status": "warming",
+                    "warming_day": 1,
+                    "msgs_enviadas_hoje": 0,
+                    "evolution_connected": True,
+                    "provider": "evolution",
+                },
+                {
+                    "telefone": "5511999990002",
+                    "fase_warmup": "operacao",
+                    "trust_score": 80,
+                    "trust_level": "verde",
+                    "status": "active",
+                    "warming_day": 30,
+                    "msgs_enviadas_hoje": 3,
+                    "evolution_connected": True,
+                    "provider": "z-api",
+                },
+            ]
+        )
+
+        stats = await orchestrator.obter_status_pool()
+
+        assert stats["por_status"]["warming"] == 1
+        assert stats["por_status"]["active"] == 1
+        assert stats["prontos_operacao"] == 1

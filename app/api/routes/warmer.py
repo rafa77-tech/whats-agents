@@ -151,6 +151,33 @@ class VerificarConformidadeRequest(BaseModel):
 
 
 # ============================================================================
+# Health Check (Sprint 65)
+# ============================================================================
+
+
+@router.get("/health")
+async def api_warmer_health():
+    """
+    Health check do sistema de warmup.
+
+    Retorna diagnóstico completo: health_status, pool summary,
+    taxa de sucesso por tipo de atividade, alertas ativos.
+
+    health_status:
+    - healthy: CONVERSA_PAR >80% sucesso e chips ativos
+    - degraded: CONVERSA_PAR 50-80% ou sem dados hoje
+    - critical: CONVERSA_PAR <50% ou sem chips ativos
+    """
+    from app.services.warmer.health import diagnostico_warmup
+
+    try:
+        return await diagnostico_warmup()
+    except Exception as e:
+        logger.error(f"[Warmer API] Erro no health check: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
 # Chip Warmup Endpoints
 # ============================================================================
 
