@@ -212,6 +212,14 @@ def register_legacy_tools():
         handle_criar_handoff_externo,
         handle_registrar_status_intermediacao,
     )
+    from app.tools.interactive_messages import (
+        TOOL_ENVIAR_OPCOES,
+        TOOL_ENVIAR_LISTA,
+        TOOL_ENVIAR_CTA,
+        handle_enviar_opcoes,
+        handle_enviar_lista,
+        handle_enviar_cta,
+    )
 
     # Registrar cada tool com seu handler
     legacy_tools = [
@@ -226,6 +234,9 @@ def register_legacy_tools():
             handle_registrar_status_intermediacao,
             "intermediacao",
         ),
+        (TOOL_ENVIAR_OPCOES, handle_enviar_opcoes, "interactive"),
+        (TOOL_ENVIAR_LISTA, handle_enviar_lista, "interactive"),
+        (TOOL_ENVIAR_CTA, handle_enviar_cta, "interactive"),
     ]
 
     for tool_def, handler, category in legacy_tools:

@@ -29,6 +29,10 @@ from app.api.routes import (
     webhook_zapi,
     webhook_meta,
     meta_templates,
+    meta_analytics,
+    meta_flows,
+    meta_catalog,
+    meta_dashboard,
     chips_dashboard,
     sistema,
     guardrails,
@@ -118,6 +122,10 @@ app.include_router(webhook_router.router)  # Sprint 26 - Multi-chip Webhook Rout
 app.include_router(webhook_zapi.router)  # Sprint 27 - Z-API Webhook
 app.include_router(webhook_meta.router)  # Sprint 66 - Meta Cloud API Webhook
 app.include_router(meta_templates.router)  # Sprint 66 - Meta Template Management
+app.include_router(meta_analytics.router)  # Sprint 67 - Meta Analytics
+app.include_router(meta_flows.router)  # Sprint 68 - WhatsApp Flows
+app.include_router(meta_catalog.router)  # Sprint 68 - Meta Catalog/Commerce
+app.include_router(meta_dashboard.router)  # Sprint 69 - Meta Dashboard
 app.include_router(chips_dashboard.router)  # Sprint 26 - Chips Dashboard
 app.include_router(sistema.router)  # Sprint 32 - Sistema Config (Modo Piloto)
 app.include_router(guardrails.router)  # Sprint 43 - Guardrails API

@@ -306,6 +306,36 @@ JOBS = [
         "endpoint": "/jobs/recovery-vagas-incompletas",
         "schedule": "0,30 9-19 * * 1-5",  # A cada 30 min, 9h-19h, seg-sex
     },
+    # Sprint 67: Meta Quality Monitor
+    {
+        "name": "meta_quality_check",
+        "endpoint": "/jobs/meta-quality-check",
+        "schedule": "*/15 * * * *",  # A cada 15 minutos
+    },
+    # Sprint 67: Meta Template Analytics
+    {
+        "name": "meta_template_analytics",
+        "endpoint": "/jobs/meta-template-analytics",
+        "schedule": "0 6 * * *",  # Diário às 6h
+    },
+    # Sprint 67: Meta Budget Check
+    {
+        "name": "meta_budget_check",
+        "endpoint": "/jobs/meta-budget-check",
+        "schedule": "0 * * * *",  # A cada hora
+    },
+    # Sprint 68: MM Lite Metrics
+    {
+        "name": "meta_mm_lite_metrics",
+        "endpoint": "/jobs/meta-mm-lite-metrics",
+        "schedule": "0 7 * * *",  # Diário às 7h
+    },
+    # Sprint 68: Catalog Sync
+    {
+        "name": "meta_catalog_sync",
+        "endpoint": "/jobs/meta-catalog-sync",
+        "schedule": "0 8 * * 1-5",  # Diário às 8h, seg-sex
+    },
 ]
 
 

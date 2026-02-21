@@ -34,6 +34,14 @@ from app.tools.intermediacao import (
     handle_criar_handoff_externo,
     handle_registrar_status_intermediacao,
 )
+from app.tools.interactive_messages import (
+    TOOL_ENVIAR_OPCOES,
+    TOOL_ENVIAR_LISTA,
+    TOOL_ENVIAR_CTA,
+    handle_enviar_opcoes,
+    handle_enviar_lista,
+    handle_enviar_cta,
+)
 
 from .types import _resposta_parece_incompleta
 
@@ -54,6 +62,9 @@ JULIA_TOOLS = [
     TOOL_SALVAR_MEMORIA,
     TOOL_CRIAR_HANDOFF_EXTERNO,
     TOOL_REGISTRAR_STATUS_INTERMEDIACAO,
+    TOOL_ENVIAR_OPCOES,
+    TOOL_ENVIAR_LISTA,
+    TOOL_ENVIAR_CTA,
 ]
 
 
@@ -71,6 +82,9 @@ async def processar_tool_call(
         "salvar_memoria": handle_salvar_memoria,
         "criar_handoff_externo": handle_criar_handoff_externo,
         "registrar_status_intermediacao": handle_registrar_status_intermediacao,
+        "enviar_opcoes": handle_enviar_opcoes,
+        "enviar_lista": handle_enviar_lista,
+        "enviar_cta": handle_enviar_cta,
     }
 
     handler = handlers.get(tool_name)

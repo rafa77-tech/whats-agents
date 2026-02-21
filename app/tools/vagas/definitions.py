@@ -37,6 +37,9 @@ PARAMETROS OPCIONAIS:
 - valor_minimo: Se medico mencionar valor minimo aceitavel
 - dias_semana: Se medico restringir a dias especificos
 
+DICA: Apos buscar vagas, considere usar 'enviar_opcoes' (ate 3 vagas) ou
+'enviar_lista' (ate 10 vagas) para apresentar as opcoes de forma interativa.
+
 NAO use esta tool se:
 - Medico ja recusou vagas recentemente
 - Medico pediu para parar de mandar vagas

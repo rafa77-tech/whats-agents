@@ -216,6 +216,77 @@ class VagasResponseFormatter:
             f"Nao tem vaga de {especialidade_nome} no momento. Mas assim que surgir algo, te aviso!"
         )
 
+    def formatar_vagas_interactive_list(
+        self, vagas: list[dict], especialidade_nome: Optional[str] = None
+    ) -> dict:
+        """
+        Formata vagas como itens de lista interativa WhatsApp.
+
+        Args:
+            vagas: Lista de vagas formatadas (output de formatar_vagas_resumo)
+            especialidade_nome: Nome da especialidade
+
+        Returns:
+            Dict com texto, botao_texto e itens para enviar_lista tool
+        """
+        itens = []
+        for v in vagas[:10]:
+            hospital = v.get("hospital", "Hospital")
+            data = v.get("data", "")
+            periodo = v.get("periodo", "")
+            valor = v.get("valor_display", "")
+
+            titulo = f"{hospital}"[:24]
+            partes_desc = []
+            if data:
+                partes_desc.append(data)
+            if periodo:
+                partes_desc.append(periodo)
+            if valor:
+                partes_desc.append(valor)
+            descricao = " | ".join(partes_desc)[:72]
+
+            itens.append({"titulo": titulo, "descricao": descricao})
+
+        esp = especialidade_nome or "sua especialidade"
+        return {
+            "texto": f"Encontrei {len(itens)} vagas de {esp}. Veja as opcoes:",
+            "botao_texto": "Ver vagas",
+            "itens": itens,
+        }
+
+    def formatar_vagas_interactive_buttons(
+        self, vagas: list[dict], especialidade_nome: Optional[str] = None
+    ) -> Optional[dict]:
+        """
+        Formata vagas como botões de resposta rápida (max 3).
+
+        Ideal quando há poucas vagas (1-3).
+
+        Args:
+            vagas: Lista de vagas formatadas
+            especialidade_nome: Nome da especialidade
+
+        Returns:
+            Dict com texto e opcoes para enviar_opcoes tool,
+            ou None se mais de 3 vagas (usar lista)
+        """
+        if len(vagas) > 3:
+            return None
+
+        opcoes = []
+        for v in vagas[:3]:
+            hospital = v.get("hospital", "Hospital")
+            data = v.get("data", "")
+            label = f"{hospital} {data}"[:20]
+            opcoes.append(label)
+
+        esp = especialidade_nome or "sua especialidade"
+        return {
+            "texto": f"Tenho {len(opcoes)} vagas de {esp}. Qual te interessa?",
+            "opcoes": opcoes,
+        }
+
     def mensagem_especialidade_nao_encontrada(self, especialidade: str) -> str:
         """Mensagem quando especialidade não existe."""
         return f"Nao conheco a especialidade '{especialidade}'. Pode confirmar o nome?"
