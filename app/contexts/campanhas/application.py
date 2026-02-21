@@ -132,9 +132,7 @@ class CampanhasApplicationService:
 
         # Atualizar total de destinatários após a criação
         if total_destinatarios > 0:
-            await self._repository.atualizar_total_destinatarios(
-                campanha.id, total_destinatarios
-            )
+            await self._repository.atualizar_total_destinatarios(campanha.id, total_destinatarios)
 
         logger.info(
             f"[CampanhasApplicationService] Campanha criada: id={campanha.id}, tipo={tipo.value}"
@@ -171,9 +169,7 @@ class CampanhasApplicationService:
         if not sucesso:
             raise DatabaseError("Erro interno ao executar a campanha.")
 
-        logger.info(
-            f"[CampanhasApplicationService] Campanha {campanha_id} iniciada com sucesso."
-        )
+        logger.info(f"[CampanhasApplicationService] Campanha {campanha_id} iniciada com sucesso.")
         return {
             "status": "iniciada",
             "campanha_id": campanha_id,
@@ -268,15 +264,11 @@ class CampanhasApplicationService:
                 "respondidos": campanha.respondidos,
             },
             "periodo": {
-                "criada_em": campanha.created_at.isoformat()
-                if campanha.created_at
-                else None,
+                "criada_em": campanha.created_at.isoformat() if campanha.created_at else None,
                 "agendada_para": campanha.agendar_para.isoformat()
                 if campanha.agendar_para
                 else None,
-                "iniciada_em": campanha.iniciada_em.isoformat()
-                if campanha.iniciada_em
-                else None,
+                "iniciada_em": campanha.iniciada_em.isoformat() if campanha.iniciada_em else None,
                 "concluida_em": campanha.concluida_em.isoformat()
                 if campanha.concluida_em
                 else None,
@@ -286,9 +278,7 @@ class CampanhasApplicationService:
             else {},
         }
 
-    async def atualizar_status(
-        self, campanha_id: int, novo_status: str
-    ) -> Dict[str, Any]:
+    async def atualizar_status(self, campanha_id: int, novo_status: str) -> Dict[str, Any]:
         """
         Caso de Uso: Atualizar o status de uma campanha.
 
