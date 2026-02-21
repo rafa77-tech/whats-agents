@@ -1,4 +1,5 @@
 # Dicionário de Domínio (Linguagem Ubíqua) - Projeto Julia
+
 **Status:** Proposta Inicial (v1.0)
 **Data:** 2026-02-21
 **Autores:** Manus AI, Rafael
@@ -24,26 +25,33 @@ Este dicionário é um documento vivo e deve ser atualizado à medida que o dom�
 ## 3. Catálogo de Estados Canônicos
 
 A padronização de estados é crucial para a consistência das regras de negócio.
+Os valores abaixo correspondem aos enums definidos em `app/services/campanhas/types.py`
+e nos demais módulos de domínio.
 
-### 3.1. Estado do Plantão (`VagasAlocacao`)
+### 3.1. Status da Campanha (`CampanhasOutbound`)
 
-| Estado Canônico | Alias(es) / Legado | Definição |
+Referência: `StatusCampanha` em `app/services/campanhas/types.py`
+
+| Estado Canônico | Valor no Código | Alias(es) / Legado | Definição |
+| :--- | :--- | :--- | :--- |
+| `RASCUNHO` | `rascunho` | `draft` | A campanha está sendo criada e ainda não está pronta para execução. |
+| `AGENDADA` | `agendada` | `scheduled` | A campanha está pronta e aguardando a data/hora programada para iniciar. |
+| `ATIVA` | `ativa` | `enviando`, `running` | A campanha está em processo de execução e envio das mensagens. |
+| `PAUSADA` | `pausada` | — | A campanha foi temporariamente suspensa. |
+| `CONCLUIDA` | `concluida` | `completed`, `finalizada` | A campanha finalizou todos os envios programados. |
+| `CANCELADA` | `cancelada` | `cancelled` | A campanha foi interrompida manualmente antes de sua conclusão. |
+
+### 3.2. Tipo de Campanha (`CampanhasOutbound`)
+
+Referência: `TipoCampanha` em `app/services/campanhas/types.py`
+
+| Estado Canônico | Valor no Código | Definição |
 | :--- | :--- | :--- |
-| `DISPONIVEL` | `aberta` | O plantão está publicado e pode ser oferecido e reservado. |
-| `RESERVADO` | `reservada` | Um médico manifestou interesse e o plantão está temporariamente bloqueado para ele. |
-| `ALOCADO` | `confirmada`, `preenchida` | O plantão foi confirmado para um médico específico. |
-| `CONCLUIDO` | `realizada` | O plantão ocorreu e foi finalizado com sucesso. |
-| `CANCELADO` | `cancelada` | O plantão foi cancelado antes ou depois da sua data de realização. |
-
-### 3.2. Status da Campanha (`CampanhasOutbound`)
-
-| Estado Canônico | Alias(es) / Legado | Definição |
-| :--- | :--- | :--- |
-| `RASCUNHO` | `draft` | A campanha está sendo criada e ainda não está pronta para execução. |
-| `AGENDADA` | `scheduled` | A campanha está pronta e aguardando a data/hora programada para iniciar. |
-| `ATIVA` | `enviando`, `running` | A campanha está em processo de execução e envio das mensagens. |
-| `CONCLUIDA` | `completed`, `finalizada` | A campanha finalizou todos os envios programados. |
-| `CANCELADA` | `cancelled` | A campanha foi interrompida manualmente antes de sua conclusão. |
+| `DISCOVERY` | `discovery` | Campanha de descoberta / prospecção. |
+| `OFERTA` | `oferta` | Oferta genérica de oportunidades. |
+| `OFERTA_PLANTAO` | `oferta_plantao` | Oferta específica de plantões. |
+| `REATIVACAO` | `reativacao` | Reativação de médicos inativos. |
+| `FOLLOWUP` | `followup` | Seguimento de interações anteriores. |
 
 ### 3.3. Permissão de Contato (`PolicyContato`)
 

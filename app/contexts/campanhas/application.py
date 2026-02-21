@@ -10,14 +10,17 @@ Princípio: ADR-007 — As rotas da API chamam apenas este módulo.
 A rota não sabe nada sobre Supabase, repositórios ou regras de negócio.
 
 Padrão: API Route -> Application Service -> Repository/Domain Service
+
+IMPORTANTE: Este módulo lança exceções de domínio (app.core.exceptions),
+NUNCA exceções HTTP. A conversão para HTTP é responsabilidade da rota.
 """
+
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import HTTPException
-
-from app.contexts.campanhas.repositories import campanha_repository
+from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
 from app.services.campanhas.executor import campanha_executor
+from app.services.campanhas.repository import campanha_repository
 from app.services.campanhas.types import (
     AudienceFilters,
     CampanhaData,
@@ -36,7 +39,25 @@ class CampanhasApplicationService:
     Cada método público representa um caso de uso (use case) do sistema.
     A rota da API deve chamar apenas estes métodos, sem acessar diretamente
     repositórios, serviços de domínio ou o banco de dados.
+
+    Exceções lançadas:
+        - NotFoundError: recurso não encontrado
+        - ValidationError: dados de entrada inválidos
+        - DatabaseError: falha na persistência
     """
+
+    def __init__(self, repository=None, executor=None, segmentacao=None):
+        """
+        Permite injeção de dependências para testes.
+
+        Args:
+            repository: Repositório de campanhas (default: singleton existente)
+            executor: Executor de campanhas (default: singleton existente)
+            segmentacao: Serviço de segmentação (default: singleton existente)
+        """
+        self._repository = repository or campanha_repository
+        self._executor = executor or campanha_executor
+        self._segmentacao = segmentacao or segmentacao_service
 
     async def criar_campanha(
         self,
@@ -57,23 +78,23 @@ class CampanhasApplicationService:
         Caso de Uso: Criar uma nova campanha.
 
         Valida os dados de entrada, conta a audiência e persiste a campanha.
-        Delega a criação ao repositório legado (services/campanhas/repository.py)
-        para manter compatibilidade durante a migração gradual.
+        Usa o repositório existente (services/campanhas/repository.py) que
+        inclui invalidação de cache Redis.
 
         Returns:
             O objeto CampanhaData da campanha criada.
 
         Raises:
-            HTTPException 400: Se o tipo de campanha for inválido.
+            ValidationError: Se o tipo de campanha for inválido.
+            DatabaseError: Se a persistência falhar.
         """
-        # 1. Validar tipo de campanha (regra de negócio simples de entrada)
+        # 1. Validar tipo de campanha
         try:
             tipo = TipoCampanha(tipo_campanha)
         except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Tipo de campanha inválido: '{tipo_campanha}'. "
-                       f"Valores aceitos: {[t.value for t in TipoCampanha]}",
+            raise ValidationError(
+                f"Tipo de campanha inválido: '{tipo_campanha}'. "
+                f"Valores aceitos: {[t.value for t in TipoCampanha]}",
             )
 
         # 2. Montar filtros para contagem de audiência
@@ -83,7 +104,7 @@ class CampanhasApplicationService:
         if regioes:
             filtros["regiao"] = regioes[0]
 
-        total_destinatarios = await segmentacao_service.contar_segmento(filtros)
+        total_destinatarios = await self._segmentacao.contar_segmento(filtros)
 
         # 3. Montar o objeto de filtros de audiência
         audience_filters = AudienceFilters(
@@ -94,10 +115,8 @@ class CampanhasApplicationService:
             chips_excluidos=chips_excluidos or [],
         )
 
-        # 4. Delegar a persistência ao repositório legado (durante a migração)
-        # TODO (Fase 2): Migrar a lógica de criação para campanha_repository
-        from app.services.campanhas.repository import campanha_repository as legacy_repo
-        campanha = await legacy_repo.criar(
+        # 4. Persistir via repositório existente (com cache Redis)
+        campanha = await self._repository.criar(
             nome_template=nome_template,
             tipo_campanha=tipo,
             corpo=corpo,
@@ -108,14 +127,18 @@ class CampanhasApplicationService:
             pode_ofertar=pode_ofertar,
         )
 
-        # Atualizar total de destinatários após a criação
-        if campanha and total_destinatarios > 0:
-            await legacy_repo.atualizar_total_destinatarios(campanha.id, total_destinatarios)
-
         if not campanha:
-            raise HTTPException(status_code=500, detail="Erro ao criar campanha no banco de dados.")
+            raise DatabaseError("Erro ao criar campanha no banco de dados.")
 
-        logger.info(f"[CampanhasApplicationService] Campanha criada: id={campanha.id}, tipo={tipo.value}")
+        # Atualizar total de destinatários após a criação
+        if total_destinatarios > 0:
+            await self._repository.atualizar_total_destinatarios(
+                campanha.id, total_destinatarios
+            )
+
+        logger.info(
+            f"[CampanhasApplicationService] Campanha criada: id={campanha.id}, tipo={tipo.value}"
+        )
         return campanha
 
     async def executar_campanha(self, campanha_id: int) -> Dict[str, Any]:
@@ -125,39 +148,32 @@ class CampanhasApplicationService:
         Valida se a campanha existe e se está em um estado que permite
         execução, antes de delegar ao executor de domínio.
 
-        Args:
-            campanha_id: O identificador único da campanha a ser executada.
-
-        Returns:
-            Um dicionário com o resultado da operação.
-
         Raises:
-            HTTPException 404: Se a campanha não for encontrada.
-            HTTPException 400: Se a campanha não puder ser iniciada no estado atual.
-            HTTPException 500: Se ocorrer um erro durante a execução.
+            NotFoundError: Se a campanha não for encontrada.
+            ValidationError: Se a campanha não puder ser iniciada no estado atual.
+            DatabaseError: Se ocorrer um erro durante a execução.
         """
-        # 1. Buscar a campanha pelo repositório (sem SQL na rota)
-        campanha = await campanha_repository.buscar_por_id(campanha_id)
+        # 1. Buscar a campanha pelo repositório
+        campanha = await self._repository.buscar_por_id(campanha_id)
         if not campanha:
-            raise HTTPException(status_code=404, detail=f"Campanha {campanha_id} não encontrada.")
+            raise NotFoundError("Campanha", str(campanha_id))
 
-        # 2. Validar a transição de estado (regra de negócio)
+        # 2. Validar a transição de estado
         estados_executaveis = (StatusCampanha.AGENDADA, StatusCampanha.ATIVA)
         if campanha.status not in estados_executaveis:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"Campanha com status '{campanha.status.value}' não pode ser iniciada. "
-                    f"Status permitidos: {[s.value for s in estados_executaveis]}"
-                ),
+            raise ValidationError(
+                f"Campanha com status '{campanha.status.value}' não pode ser iniciada. "
+                f"Status permitidos: {[s.value for s in estados_executaveis]}",
             )
 
-        # 3. Delegar a execução ao serviço de domínio (executor)
-        sucesso = await campanha_executor.executar(campanha_id)
+        # 3. Delegar a execução ao executor
+        sucesso = await self._executor.executar(campanha_id)
         if not sucesso:
-            raise HTTPException(status_code=500, detail="Erro interno ao executar a campanha.")
+            raise DatabaseError("Erro interno ao executar a campanha.")
 
-        logger.info(f"[CampanhasApplicationService] Campanha {campanha_id} iniciada com sucesso.")
+        logger.info(
+            f"[CampanhasApplicationService] Campanha {campanha_id} iniciada com sucesso."
+        )
         return {
             "status": "iniciada",
             "campanha_id": campanha_id,
@@ -168,18 +184,12 @@ class CampanhasApplicationService:
         """
         Caso de Uso: Buscar os detalhes de uma campanha específica.
 
-        Args:
-            campanha_id: O identificador único da campanha.
-
-        Returns:
-            O objeto CampanhaData da campanha.
-
         Raises:
-            HTTPException 404: Se a campanha não for encontrada.
+            NotFoundError: Se a campanha não for encontrada.
         """
-        campanha = await campanha_repository.buscar_por_id(campanha_id)
+        campanha = await self._repository.buscar_por_id(campanha_id)
         if not campanha:
-            raise HTTPException(status_code=404, detail=f"Campanha {campanha_id} não encontrada.")
+            raise NotFoundError("Campanha", str(campanha_id))
         return campanha
 
     async def listar_campanhas(
@@ -191,46 +201,61 @@ class CampanhasApplicationService:
         """
         Caso de Uso: Listar campanhas com filtros opcionais.
 
-        Este método substitui o acesso direto ao Supabase que existia
-        na rota GET /campanhas/.
-
-        Returns:
-            Um dicionário com a lista de campanhas e o total.
+        Delega ao repositório existente que já possui método listar_por_status.
+        Para listagem geral, usa busca direta.
         """
-        campanhas = await campanha_repository.listar(status=status, tipo=tipo, limit=limit)
-        campanhas_dict = [c.to_dict() for c in campanhas]
+        if status:
+            try:
+                status_enum = StatusCampanha(status)
+                campanhas = await self._repository.listar_por_status(status_enum)
+            except ValueError:
+                raise ValidationError(
+                    f"Status inválido: '{status}'. "
+                    f"Valores aceitos: {[s.value for s in StatusCampanha]}",
+                )
+        else:
+            # O repositório existente não tem listar genérico com filtros,
+            # mas listar_ativas/listar_agendadas cobrem os casos de uso.
+            # Para listagem geral, delegamos ao repositório.
+            campanhas = await self._listar_todas(tipo=tipo, limit=limit)
+
+        campanhas_dict = [c.to_dict() for c in campanhas[:limit]]
         return {"campanhas": campanhas_dict, "total": len(campanhas_dict)}
+
+    async def _listar_todas(
+        self,
+        tipo: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[CampanhaData]:
+        """
+        Listagem interna que agrega resultados de todos os status.
+
+        Usa os métodos existentes do repositório para evitar duplicação.
+        """
+        todas = []
+        for status_enum in StatusCampanha:
+            campanhas = await self._repository.listar_por_status(status_enum)
+            if tipo:
+                campanhas = [c for c in campanhas if c.tipo_campanha.value == tipo]
+            todas.extend(campanhas)
+
+        # Ordenar por created_at decrescente
+        todas.sort(key=lambda c: c.created_at or "", reverse=True)
+        return todas[:limit]
 
     async def relatorio_campanha(self, campanha_id: int) -> Dict[str, Any]:
         """
         Caso de Uso: Gerar o relatório completo de uma campanha.
 
-        Consolida os dados da campanha com os dados da fila de envios,
-        sem que a rota precise conhecer nenhuma dessas fontes de dados.
-
-        Args:
-            campanha_id: O identificador único da campanha.
-
-        Returns:
-            Um dicionário com o relatório consolidado.
+        Consolida os dados da campanha com métricas de envio.
 
         Raises:
-            HTTPException 404: Se a campanha não for encontrada.
+            NotFoundError: Se a campanha não for encontrada.
         """
-        # 1. Buscar dados da campanha
-        campanha = await campanha_repository.buscar_por_id(campanha_id)
+        campanha = await self._repository.buscar_por_id(campanha_id)
         if not campanha:
-            raise HTTPException(status_code=404, detail=f"Campanha {campanha_id} não encontrada.")
+            raise NotFoundError("Campanha", str(campanha_id))
 
-        # 2. Buscar dados da fila de envios (via repositório, sem SQL na rota)
-        envios = await campanha_repository.buscar_envios_da_fila(campanha_id)
-
-        # 3. Calcular métricas da fila
-        enviados_fila = len([e for e in envios if e["status"] == "enviada"])
-        erros = len([e for e in envios if e["status"] == "erro"])
-        pendentes = len([e for e in envios if e["status"] == "pendente"])
-
-        # 4. Montar e retornar o relatório consolidado
         return {
             "campanha_id": campanha_id,
             "nome": campanha.nome_template,
@@ -242,18 +267,19 @@ class CampanhasApplicationService:
                 "entregues": campanha.entregues,
                 "respondidos": campanha.respondidos,
             },
-            "fila": {
-                "total": len(envios),
-                "enviados": enviados_fila,
-                "erros": erros,
-                "pendentes": pendentes,
-                "taxa_entrega": enviados_fila / len(envios) if envios else 0,
-            },
             "periodo": {
-                "criada_em": campanha.created_at.isoformat() if campanha.created_at else None,
-                "agendada_para": campanha.agendar_para.isoformat() if campanha.agendar_para else None,
-                "iniciada_em": campanha.iniciada_em.isoformat() if campanha.iniciada_em else None,
-                "concluida_em": campanha.concluida_em.isoformat() if campanha.concluida_em else None,
+                "criada_em": campanha.created_at.isoformat()
+                if campanha.created_at
+                else None,
+                "agendada_para": campanha.agendar_para.isoformat()
+                if campanha.agendar_para
+                else None,
+                "iniciada_em": campanha.iniciada_em.isoformat()
+                if campanha.iniciada_em
+                else None,
+                "concluida_em": campanha.concluida_em.isoformat()
+                if campanha.concluida_em
+                else None,
             },
             "audience_filters": campanha.audience_filters.to_dict()
             if campanha.audience_filters
@@ -266,37 +292,31 @@ class CampanhasApplicationService:
         """
         Caso de Uso: Atualizar o status de uma campanha.
 
-        Args:
-            campanha_id: O identificador único da campanha.
-            novo_status: O novo status em formato string.
-
-        Returns:
-            Um dicionário confirmando a mudança de status.
+        Usa o repositório existente que inclui invalidação de cache Redis.
 
         Raises:
-            HTTPException 400: Se o status for inválido.
-            HTTPException 404: Se a campanha não for encontrada.
-            HTTPException 500: Se a atualização falhar.
+            ValidationError: Se o status for inválido.
+            NotFoundError: Se a campanha não for encontrada.
+            DatabaseError: Se a atualização falhar.
         """
         # 1. Validar o novo status
         try:
             status = StatusCampanha(novo_status)
         except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Status inválido: '{novo_status}'. "
-                       f"Valores aceitos: {[s.value for s in StatusCampanha]}",
+            raise ValidationError(
+                f"Status inválido: '{novo_status}'. "
+                f"Valores aceitos: {[s.value for s in StatusCampanha]}",
             )
 
         # 2. Verificar se a campanha existe
-        campanha = await campanha_repository.buscar_por_id(campanha_id)
+        campanha = await self._repository.buscar_por_id(campanha_id)
         if not campanha:
-            raise HTTPException(status_code=404, detail=f"Campanha {campanha_id} não encontrada.")
+            raise NotFoundError("Campanha", str(campanha_id))
 
-        # 3. Persistir a mudança de status
-        sucesso = await campanha_repository.atualizar_status(campanha_id, status)
+        # 3. Persistir (repositório existente já invalida cache Redis)
+        sucesso = await self._repository.atualizar_status(campanha_id, status)
         if not sucesso:
-            raise HTTPException(status_code=500, detail="Erro ao atualizar o status da campanha.")
+            raise DatabaseError("Erro ao atualizar o status da campanha.")
 
         return {
             "campanha_id": campanha_id,
@@ -306,16 +326,10 @@ class CampanhasApplicationService:
 
     async def preview_segmento(self, filtros: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Caso de Uso: Pré-visualizar um segmento de audiência antes de criar uma campanha.
-
-        Args:
-            filtros: Dicionário com os filtros de segmentação.
-
-        Returns:
-            Um dicionário com o total e uma amostra de médicos.
+        Caso de Uso: Pré-visualizar um segmento de audiência.
         """
-        total = await segmentacao_service.contar_segmento(filtros)
-        amostra = await segmentacao_service.buscar_segmento(filtros, limite=10)
+        total = await self._segmentacao.contar_segmento(filtros)
+        amostra = await self._segmentacao.buscar_segmento(filtros, limite=10)
         return {
             "total": total,
             "amostra": [
@@ -329,5 +343,16 @@ class CampanhasApplicationService:
         }
 
 
-# Instância singleton para uso nas rotas
-campanhas_service = CampanhasApplicationService()
+# Factory function seguindo o padrão de deps.py
+def get_campanhas_service() -> CampanhasApplicationService:
+    """
+    Retorna instância do CampanhasApplicationService.
+
+    Para testes, crie com dependências mockadas:
+        service = CampanhasApplicationService(
+            repository=mock_repo,
+            executor=mock_executor,
+            segmentacao=mock_seg,
+        )
+    """
+    return CampanhasApplicationService()
