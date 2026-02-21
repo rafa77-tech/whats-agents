@@ -23,6 +23,14 @@ Architecture Decision Records (ADRs) documentam decisoes tecnicas significativas
 | [004](004-business-events-audit.md) | Event Sourcing para Auditoria e Automacao | Jan 2026 | Sprint 17 | Aceita |
 | [005](005-pgvector-embeddings.md) | pgvector para Embeddings (nao Pinecone) | Jan 2026 | Sprint 13 | Aceita |
 
+### Decisoes Propostas (Priorizadas)
+
+| Prioridade | ADR | Titulo | Data | Status |
+|------------|-----|--------|------|--------|
+| P1 | [006](006-ddd-bounded-contexts.md) | Formalizar Bounded Contexts do Dominio Julia | 2026-02-21 | Proposta |
+| P2 | [007](007-domain-boundary-no-direct-sql-in-routes.md) | Isolar Dominio de Interface (Sem SQL Direto em Rotas) | 2026-02-21 | Proposta |
+| P3 | [008](008-ubiquitous-language-and-canonical-states.md) | Linguagem Ubiqua e Estados Canonicos de Dominio | 2026-02-21 | Proposta |
+
 ## Como usar este diretorio
 
 1. **Consultar decisoes existentes**: Antes de propor mudancas arquiteturais, revisar os ADRs para entender decisoes previas
@@ -116,6 +124,6 @@ Este diretorio segue versionamento semantico para ADRs:
 
 ---
 
-**Ultimo Update:** 10/02/2026
-**Total de ADRs:** 5
+**Ultimo Update:** 21/02/2026
+**Total de ADRs:** 8
 **Manutencao:** Engenharia
