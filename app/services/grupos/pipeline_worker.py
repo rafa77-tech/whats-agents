@@ -350,6 +350,17 @@ class PipelineGrupos:
         vagas = self._aplicar_fan_out_cap(resultado.vagas, mensagem_id, "[v2] ")
         vagas_criadas = await self._criar_vagas_em_lote(mensagem_id, vagas, msg_data)
 
+        if not vagas_criadas:
+            logger.error(
+                f"Mensagem {mensagem_id}: extração v2 encontrou {len(vagas)} vaga(s) "
+                f"mas falhou ao persistir no banco"
+            )
+            return ResultadoPipeline(
+                acao=AcaoPipeline.ERRO,
+                mensagem_id=mensagem_id,
+                motivo="falha_persistir_vagas_grupo",
+            )
+
         logger.info(
             f"Mensagem {mensagem_id}: {len(vagas_criadas)} vaga(s) extraída(s) [v2] "
             f"(tempo: {resultado.tempo_processamento_ms}ms)"
@@ -441,6 +452,19 @@ class PipelineGrupos:
         vagas = self._aplicar_fan_out_cap(resultado.vagas, mensagem_id, "[Pipeline v3] ")
         vagas_criadas = await self._criar_vagas_em_lote(mensagem_id, vagas, msg_data)
 
+        if not vagas_criadas:
+            tempo_total_ms = int((time.time() - start_time) * 1000)
+            logger.error(
+                f"[Pipeline v3] ERRO mensagem_id={mensagem_id} "
+                f"estagio=EXTRACAO_LLM motivo=falha_persistir_vagas_grupo "
+                f"vagas_extraidas={len(vagas)} tempo_ms={tempo_total_ms}"
+            )
+            return ResultadoPipeline(
+                acao=AcaoPipeline.ERRO,
+                mensagem_id=mensagem_id,
+                motivo="falha_persistir_vagas_grupo",
+            )
+
         tempo_total_ms = int((time.time() - start_time) * 1000)
         logger.info(
             f"[Pipeline v3] SUCESSO mensagem_id={mensagem_id} "
@@ -502,7 +526,7 @@ class PipelineGrupos:
                 "data": data_str,
                 "hora_inicio": hora_inicio,
                 "hora_fim": hora_fim,
-                "valor": vaga.valor if vaga.valor > 0 else None,
+                "valor": vaga.valor if vaga.valor and vaga.valor > 0 else None,
                 "valor_tipo": valor_tipo,
                 # Campos adicionais do v2
                 "dia_semana": vaga.dia_semana.value if vaga.dia_semana else None,

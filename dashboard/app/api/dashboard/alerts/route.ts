@@ -132,7 +132,7 @@ export async function GET() {
       .from('vagas')
       .select('id', { count: 'exact', head: true })
       .lte('data', tomorrow.toISOString())
-      .is('medico_confirmado_id', null)
+      .is('cliente_id', null)
       .eq('status', 'aberta')
 
     if (vagasCount && vagasCount > 0) {
