@@ -33,6 +33,7 @@ import {
   Power,
   Users,
   Target,
+  CloudCog,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -69,7 +70,10 @@ const navigationGroups: NavGroup[] = [
   },
   {
     label: 'WhatsApp',
-    items: [{ name: 'Chips', href: '/chips', icon: Smartphone }],
+    items: [
+      { name: 'Chips', href: '/chips', icon: Smartphone },
+      { name: 'Meta', href: '/meta', icon: CloudCog },
+    ],
   },
   {
     label: 'Monitoramento',

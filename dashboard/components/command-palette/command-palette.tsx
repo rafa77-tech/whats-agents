@@ -33,6 +33,7 @@ import {
   Search,
   Clock,
   ArrowRight,
+  CloudCog,
   type LucideIcon,
 } from 'lucide-react'
 import type { Route } from 'next'
@@ -111,6 +112,14 @@ const pages: PageItem[] = [
     href: '/chips/grupos',
     keywords: ['grupo', 'whatsapp', 'comunidade'],
     description: 'Grupos WhatsApp',
+  },
+  {
+    id: 'meta',
+    label: 'Meta',
+    icon: CloudCog,
+    href: '/meta',
+    keywords: ['meta', 'cloud', 'api', 'template', 'qualidade', 'custo', 'flow'],
+    description: 'Meta WhatsApp Cloud API',
   },
   {
     id: 'monitor',
