@@ -90,11 +90,7 @@ class AgentRegistry:
 
     def encontrar_por_capacidade(self, capability: str) -> List[AgentInfo]:
         """Encontra agentes com determinada capacidade."""
-        return [
-            a
-            for a in self._agents.values()
-            if a.active and capability in a.capabilities
-        ]
+        return [a for a in self._agents.values() if a.active and capability in a.capabilities]
 
 
 # Singleton

@@ -53,14 +53,6 @@ class HandoffProtocol:
 
             # Registrar handoff
             now = datetime.now(timezone.utc).isoformat()
-            handoff_record = {
-                "conversation_id": conversation_id,
-                "from_agent": from_agent,
-                "to_agent": to_agent,
-                "context": context or {},
-                "status": "completed",
-                "created_at": now,
-            }
 
             # Atualizar conversa
             supabase.table("conversations").update(

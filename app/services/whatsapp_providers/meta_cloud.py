@@ -411,7 +411,9 @@ class MetaCloudProvider(WhatsAppProvider):
         phone_clean = self.format_phone(phone)
         interactive = {
             "type": "product_list",
-            "header": {"type": "text", "text": header_text} if header_text else {"type": "text", "text": " "},
+            "header": {"type": "text", "text": header_text}
+            if header_text
+            else {"type": "text", "text": " "},
             "body": {"text": body_text} if body_text else {"text": " "},
             "action": {
                 "catalog_id": catalog_id,

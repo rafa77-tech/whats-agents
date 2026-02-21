@@ -9,7 +9,7 @@ Up to 10 cards per carousel.
 
 import logging
 from typing import List, Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,6 @@ class CarouselBuilder:
         cards = []
         for vaga in vagas[: self.MAX_CARDS]:
             hospital = vaga.get("hospital_nome", "Hospital")
-            esp = vaga.get("especialidade_nome", "")
             valor = vaga.get("valor", "")
             data = vaga.get("data", "")
 

@@ -239,9 +239,7 @@ class MetaDashboardService:
                 templates[tname]["total_cost_usd"] += float(row["cost_usd"])
 
             for tname in templates:
-                templates[tname]["total_cost_usd"] = round(
-                    templates[tname]["total_cost_usd"], 4
-                )
+                templates[tname]["total_cost_usd"] = round(templates[tname]["total_cost_usd"], 4)
 
             return sorted(templates.values(), key=lambda x: x["total_cost_usd"], reverse=True)
 

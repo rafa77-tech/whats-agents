@@ -11,7 +11,6 @@ import hmac
 import logging
 import secrets
 import string
-from typing import Optional
 
 from app.core.config import settings
 
@@ -121,7 +120,9 @@ class MetaOtpConfirmation:
             failures_key = self._redis_failures_key(telefone)
             failures = await redis.get(failures_key)
             if failures:
-                failure_count = int(failures if isinstance(failures, str) else failures.decode("utf-8"))
+                failure_count = int(
+                    failures if isinstance(failures, str) else failures.decode("utf-8")
+                )
                 if failure_count >= self.MAX_ATTEMPTS:
                     logger.warning(
                         "[MetaOTP] Lockout ativo para ***%s (%d tentativas)",

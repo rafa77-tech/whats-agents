@@ -8,9 +8,7 @@ Interface ready for when Meta rolls out BSUIDs.
 """
 
 import logging
-from typing import Optional
 
-from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
 

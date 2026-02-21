@@ -234,8 +234,7 @@ class MetaCostOptimizer:
                 {
                     "tipo": "mm_lite",
                     "mensagem": (
-                        "Habilitar MM Lite pode aumentar delivery rate em ~9% "
-                        "sem custo adicional."
+                        "Habilitar MM Lite pode aumentar delivery rate em ~9% sem custo adicional."
                     ),
                     "economia_estimada": 0,
                 }

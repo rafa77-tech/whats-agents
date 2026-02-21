@@ -116,7 +116,6 @@ async def enviar_flow(
 ):
     """Envia flow para um telefone."""
     await _verificar_api_key(api_key)
-    from app.services.meta.flow_service import flow_service
 
     # v1: retorna info, não envia via provider
     return {

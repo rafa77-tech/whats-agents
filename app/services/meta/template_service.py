@@ -391,7 +391,6 @@ class MetaTemplateService:
         logger.info(f"[MetaTemplate] Sincronizados {synced}/{len(templates)} templates")
         return {"success": True, "total": len(templates), "synced": synced}
 
-
     async def criar_template_com_media(
         self,
         waba_id: str,
@@ -429,7 +428,6 @@ class MetaTemplateService:
             "format": header_format.upper(),
         }
         if header_media_url:
-            media_key = header_format.lower()
             header_component["example"] = {
                 "header_handle": [header_media_url],
             }

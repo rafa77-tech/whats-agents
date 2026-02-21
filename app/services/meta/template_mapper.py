@@ -100,7 +100,6 @@ class TemplateMapper:
         logger.debug(f"[TemplateMapper] Variável '{var_name}' não encontrada")
         return ""
 
-
     def mapear_variaveis_com_media(
         self,
         template: dict,

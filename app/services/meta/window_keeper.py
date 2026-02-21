@@ -97,9 +97,7 @@ class MetaWindowKeeper:
         for janela in janelas:
             try:
                 # Verificar se conversa está engajada
-                engajada = await self._conversa_engajada(
-                    janela["chip_id"], janela["telefone"]
-                )
+                engajada = await self._conversa_engajada(janela["chip_id"], janela["telefone"])
                 if not engajada:
                     continue
 

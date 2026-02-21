@@ -129,10 +129,7 @@ class FlowBuilder:
                         {
                             "type": "TextBody",
                             "text": (
-                                f"🏥 {hospital}\n"
-                                f"📅 {data_plantao}\n"
-                                f"⏰ {horario}\n"
-                                f"💰 R$ {valor}"
+                                f"🏥 {hospital}\n📅 {data_plantao}\n⏰ {horario}\n💰 R$ {valor}"
                             ),
                         },
                         self._construir_componente_radio(

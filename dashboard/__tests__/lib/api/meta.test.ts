@@ -102,6 +102,7 @@ describe('metaApi', () => {
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
+        json: () => Promise.resolve({ error: 'Internal Server Error' }),
       })
 
       await expect(metaApi.getTemplates()).rejects.toThrow(MetaApiError)
