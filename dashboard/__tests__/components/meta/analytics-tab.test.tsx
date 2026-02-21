@@ -14,12 +14,14 @@ vi.mock('@/hooks/use-toast', () => ({
 const mockGetCostSummary = vi.fn()
 const mockGetCostByChip = vi.fn()
 const mockGetCostByTemplate = vi.fn()
+const mockGetBudgetStatus = vi.fn()
 
 vi.mock('@/lib/api/meta', () => ({
   metaApi: {
     getCostSummary: (...args: unknown[]) => mockGetCostSummary(...args),
     getCostByChip: (...args: unknown[]) => mockGetCostByChip(...args),
     getCostByTemplate: (...args: unknown[]) => mockGetCostByTemplate(...args),
+    getBudgetStatus: (...args: unknown[]) => mockGetBudgetStatus(...args),
   },
 }))
 
@@ -42,10 +44,25 @@ const mockByTemplate: MetaCostByTemplate[] = [
   { template_name: 'discovery', category: 'MARKETING', total_sent: 300, total_cost_usd: 10 },
 ]
 
+const mockBudget = {
+  daily_limit_usd: 50,
+  daily_used_usd: 5,
+  daily_percent: 10,
+  weekly_limit_usd: 300,
+  weekly_used_usd: 30,
+  weekly_percent: 10,
+  monthly_limit_usd: 1200,
+  monthly_used_usd: 120,
+  monthly_percent: 10,
+  status: 'ok' as const,
+}
+
 beforeEach(() => {
   mockGetCostSummary.mockReset()
   mockGetCostByChip.mockReset()
   mockGetCostByTemplate.mockReset()
+  mockGetBudgetStatus.mockReset()
+  mockGetBudgetStatus.mockResolvedValue(mockBudget)
   stableToast.mockReset()
 })
 
@@ -58,6 +75,7 @@ describe('AnalyticsTab', () => {
     mockGetCostSummary.mockReturnValue(new Promise(() => {}))
     mockGetCostByChip.mockReturnValue(new Promise(() => {}))
     mockGetCostByTemplate.mockReturnValue(new Promise(() => {}))
+    mockGetBudgetStatus.mockReturnValue(new Promise(() => {}))
     render(<AnalyticsTab />)
     expect(screen.getByText('Carregando custos...')).toBeInTheDocument()
   })

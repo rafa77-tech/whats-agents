@@ -10,7 +10,12 @@ import type {
   MetaCostSummary,
   MetaCostByChip,
   MetaCostByTemplate,
+  MetaBudgetStatus,
+  MetaMMLiteMetrics,
+  MetaCatalogProduct,
+  MetaWindowSummary,
   MetaTemplateWithAnalytics,
+  MetaFlow,
   MetaDashboardResponse,
 } from '@/types/meta'
 
@@ -98,6 +103,50 @@ export async function getCostByTemplate(): Promise<MetaCostByTemplate[]> {
 }
 
 // ============================================================================
+// Budget
+// ============================================================================
+
+export async function getBudgetStatus(): Promise<MetaBudgetStatus> {
+  const res = await fetchApi<MetaDashboardResponse<MetaBudgetStatus>>(
+    '/api/dashboard/meta/budget'
+  )
+  return res.data
+}
+
+// ============================================================================
+// MM Lite
+// ============================================================================
+
+export async function getMMLiteMetrics(): Promise<MetaMMLiteMetrics> {
+  const res = await fetchApi<MetaDashboardResponse<MetaMMLiteMetrics>>(
+    '/api/dashboard/meta/mm-lite'
+  )
+  return res.data
+}
+
+// ============================================================================
+// Catalog
+// ============================================================================
+
+export async function getCatalogProducts(): Promise<MetaCatalogProduct[]> {
+  const res = await fetchApi<MetaDashboardResponse<MetaCatalogProduct[]>>(
+    '/api/dashboard/meta/catalog'
+  )
+  return res.data
+}
+
+// ============================================================================
+// Windows
+// ============================================================================
+
+export async function getWindowSummary(): Promise<MetaWindowSummary> {
+  const res = await fetchApi<MetaDashboardResponse<MetaWindowSummary>>(
+    '/api/dashboard/meta/windows'
+  )
+  return res.data
+}
+
+// ============================================================================
 // Templates
 // ============================================================================
 
@@ -106,6 +155,28 @@ export async function getTemplates(): Promise<MetaTemplateWithAnalytics[]> {
     '/api/dashboard/meta/templates'
   )
   return res.data
+}
+
+// ============================================================================
+// Flows
+// ============================================================================
+
+export async function getFlows(): Promise<MetaFlow[]> {
+  const res = await fetchApi<MetaDashboardResponse<MetaFlow[]>>('/api/dashboard/meta/flows')
+  return res.data
+}
+
+export async function getFlow(id: string): Promise<MetaFlow> {
+  const res = await fetchApi<MetaDashboardResponse<MetaFlow>>(`/api/dashboard/meta/flows/${id}`)
+  return res.data
+}
+
+export async function publishFlow(id: string): Promise<void> {
+  await fetchApi(`/api/dashboard/meta/flows/${id}/publish`, { method: 'POST' })
+}
+
+export async function deprecateFlow(id: string): Promise<void> {
+  await fetchApi(`/api/dashboard/meta/flows/${id}`, { method: 'DELETE' })
 }
 
 // ============================================================================
@@ -119,5 +190,13 @@ export const metaApi = {
   getCostSummary,
   getCostByChip,
   getCostByTemplate,
+  getBudgetStatus,
+  getMMLiteMetrics,
+  getCatalogProducts,
+  getWindowSummary,
   getTemplates,
+  getFlows,
+  getFlow,
+  publishFlow,
+  deprecateFlow,
 }
