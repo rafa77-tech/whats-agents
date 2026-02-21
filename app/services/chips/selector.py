@@ -183,6 +183,14 @@ class ChipSelector:
                         f"não está ativo, ignorando afinidade"
                     )
                     return None
+            elif provider == "meta":
+                # Sprint 66: Meta Cloud API — sempre conectado, verificar quality
+                if chip.get("meta_quality_rating") == "RED":
+                    logger.warning(
+                        f"[ChipSelector] Chip Meta {chip.get('telefone')} "
+                        f"quality RED, ignorando afinidade"
+                    )
+                    return None
             else:
                 # Evolution: verificar evolution_connected
                 if not chip.get("evolution_connected"):
@@ -263,6 +271,15 @@ class ChipSelector:
             if provider == "z-api":
                 # Z-API: já filtrado por status = 'active' na query
                 pass
+            elif provider == "meta":
+                # Sprint 66: Meta Cloud API — não precisa de evolution_connected
+                # Verificar quality rating
+                if chip.get("meta_quality_rating") == "RED":
+                    logger.debug(
+                        f"[ChipSelector] Chip Meta {chip['telefone']} quality RED"
+                    )
+                    chips_desconectados += 1
+                    continue
             else:
                 # Evolution: verificar evolution_connected
                 if not chip.get("evolution_connected"):

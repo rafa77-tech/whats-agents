@@ -123,6 +123,10 @@ def _normalizar_status(status: str) -> Optional[str]:
     if status_upper == "PLAYED":
         return "read"  # Áudio reproduzido = lido
 
+    # Meta Cloud API (Sprint 66)
+    if status_upper in ("SENT", "ACCEPTED"):
+        return "sent"
+
     # Erros
     if status_upper in ("FAILED", "ERROR"):
         return "failed"

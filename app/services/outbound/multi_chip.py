@@ -118,8 +118,13 @@ async def _enviar_via_multi_chip(
 
         await asyncio.sleep(tempo)
 
+    # Sprint 66: Extrair template_info da metadata (para chips Meta)
+    template_info = None
+    if hasattr(ctx, "metadata") and ctx.metadata:
+        template_info = ctx.metadata.get("meta_template")
+
     # Enviar mensagem
-    result = await enviar_via_chip(chip, telefone, texto)
+    result = await enviar_via_chip(chip, telefone, texto, template_info=template_info)
 
     # Registrar envio para metricas
     if result.success and ctx.conversation_id:

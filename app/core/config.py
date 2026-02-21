@@ -94,6 +94,11 @@ class Settings(BaseSettings):
     CHIP_ACTIVATOR_URL: str = ""  # URL do VPS (ex: https://165.227.76.85)
     CHIP_ACTIVATOR_API_KEY: str = ""  # API Key para autenticação
 
+    # Meta Cloud API (WhatsApp Business API) - Sprint 66
+    META_GRAPH_API_VERSION: str = "v21.0"
+    META_WEBHOOK_VERIFY_TOKEN: str = ""
+    META_APP_SECRET: str = ""
+
     # CORS - origens permitidas (separadas por vírgula)
     # Em produção, definir explicitamente: "https://app.revoluna.com,https://admin.revoluna.com"
     CORS_ORIGINS: str = "*"  # "*" apenas para desenvolvimento

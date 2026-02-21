@@ -40,14 +40,21 @@ async def enviar_via_chip(
     chip: Dict,
     telefone: str,
     texto: str,
+    template_info: Optional[Dict] = None,
 ) -> MessageResult:
     """
     Envia mensagem usando o provider do chip.
+
+    Sprint 66: Para chips Meta, respeita janela 24h.
+    - Dentro da janela: send_text (free-form)
+    - Fora da janela + template_info: send_template
+    - Fora da janela + sem template: erro
 
     Args:
         chip: Dict com dados do chip (da tabela chips)
         telefone: Número do destinatário
         texto: Texto da mensagem
+        template_info: Info do template Meta (name, language, components)
 
     Returns:
         MessageResult com status do envio
@@ -59,12 +66,18 @@ async def enviar_via_chip(
             f"[ChipSender] BLOQUEIO: Tentativa de envio via chip listener! "
             f"chip={chip.get('telefone', 'N/A')}, destino={telefone[-4:]}"
         )
-        # TODO: Adicionar alerta Slack aqui (Sprint 51 E03.3)
         return MessageResult(success=False, error="Chip listener não pode enviar mensagens")
 
     try:
         provider = get_provider(chip)
-        result = await provider.send_text(telefone, texto)
+
+        # Sprint 66: Smart routing para chips Meta
+        if chip.get("provider") == "meta":
+            result = await _enviar_meta_smart(
+                provider, chip, telefone, texto, template_info
+            )
+        else:
+            result = await provider.send_text(telefone, texto)
 
         # Atualizar métricas do chip (Sprint 36 - T08.1)
         await _registrar_envio(
@@ -101,6 +114,7 @@ async def enviar_mensagem_inteligente(
     texto: str,
     conversa_id: Optional[str] = None,
     max_retries: int = 3,
+    template_info: Optional[Dict] = None,
 ) -> Dict:
     """
     Seleciona melhor chip e envia mensagem com retry automático.
@@ -158,7 +172,7 @@ async def enviar_mensagem_inteligente(
         chips_tentados.append(chip["id"])
 
         # 2. Tentar enviar
-        result = await enviar_via_chip(chip, telefone, texto)
+        result = await enviar_via_chip(chip, telefone, texto, template_info=template_info)
 
         if result.success:
             # Sucesso!
@@ -385,6 +399,55 @@ async def _registrar_envio(
     except Exception as e:
         # Não falhar o envio por erro de métrica
         logger.warning(f"[ChipSender] Erro ao registrar métricas: {e}")
+
+
+async def _enviar_meta_smart(
+    provider,
+    chip: Dict,
+    telefone: str,
+    texto: str,
+    template_info: Optional[Dict] = None,
+) -> MessageResult:
+    """
+    Sprint 66: Envio inteligente para chips Meta respeitando janela 24h.
+
+    - Dentro da janela: envia texto livre (free-form)
+    - Fora da janela + template: envia via template
+    - Fora da janela + sem template: retorna erro
+
+    Args:
+        provider: MetaCloudProvider
+        chip: Dict do chip
+        telefone: Número do destinatário
+        texto: Texto da mensagem
+        template_info: Dict com name, language, components do template
+
+    Returns:
+        MessageResult
+    """
+    from app.services.meta.window_tracker import window_tracker
+
+    na_janela = await window_tracker.esta_na_janela(chip["id"], telefone)
+
+    if na_janela:
+        return await provider.send_text(telefone, texto)
+    elif template_info:
+        return await provider.send_template(
+            telefone,
+            template_info["name"],
+            template_info.get("language", "pt_BR"),
+            template_info.get("components"),
+        )
+    else:
+        logger.warning(
+            f"[ChipSender] Chip Meta fora da janela 24h e sem template: "
+            f"chip={chip.get('telefone', 'N/A')[-4:]}, destino={telefone[-4:]}"
+        )
+        return MessageResult(
+            success=False,
+            error="meta_fora_janela_sem_template",
+            provider="meta",
+        )
 
 
 # Alias para retrocompatibilidade

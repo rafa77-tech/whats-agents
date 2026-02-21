@@ -286,6 +286,12 @@ class CampanhaExecutor:
         if campanha.audience_filters and campanha.audience_filters.chips_excluidos:
             metadata["chips_excluidos"] = campanha.audience_filters.chips_excluidos
 
+        # Sprint 66: Meta template info para envio via template
+        if campanha.meta_template_name:
+            await self._adicionar_meta_template_info(
+                metadata, campanha, destinatario
+            )
+
         # Enfileirar
         await fila_service.enfileirar(
             cliente_id=cliente_id,
@@ -395,6 +401,59 @@ class CampanhaExecutor:
             return self._formatar_template(campanha.corpo, nome, especialidade)
 
         return None
+
+    async def _adicionar_meta_template_info(
+        self,
+        metadata: dict,
+        campanha: "CampanhaData",
+        destinatario: dict,
+    ) -> None:
+        """
+        Sprint 66: Adiciona meta_template info à metadata do envio.
+
+        Busca template aprovado e mapeia variáveis do destinatário.
+
+        Args:
+            metadata: Dict de metadata do envio (modificado in-place)
+            campanha: Dados da campanha
+            destinatario: Dados do destinatário
+        """
+        try:
+            from app.services.meta.template_service import template_service
+            from app.services.meta.template_mapper import template_mapper
+
+            template = await template_service.buscar_template_por_nome(
+                campanha.meta_template_name
+            )
+            if not template:
+                logger.warning(
+                    f"Template Meta '{campanha.meta_template_name}' não encontrado "
+                    f"ou não aprovado, campanha {campanha.id} usará texto"
+                )
+                return
+
+            if template.get("status") != "APPROVED":
+                logger.warning(
+                    f"Template '{campanha.meta_template_name}' status "
+                    f"'{template.get('status')}', ignorando"
+                )
+                return
+
+            # Mapear variáveis
+            components = template_mapper.mapear_variaveis(
+                template, destinatario, campanha.escopo_vagas or {}
+            )
+
+            metadata["meta_template"] = {
+                "name": campanha.meta_template_name,
+                "language": campanha.meta_template_language,
+                "components": components,
+            }
+
+        except Exception as e:
+            logger.warning(
+                f"Erro ao preparar template Meta para campanha {campanha.id}: {e}"
+            )
 
     def _formatar_template(
         self,

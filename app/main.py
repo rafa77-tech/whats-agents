@@ -27,6 +27,8 @@ from app.api.routes import (
     group_entry,
     webhook_router,
     webhook_zapi,
+    webhook_meta,
+    meta_templates,
     chips_dashboard,
     sistema,
     guardrails,
@@ -114,6 +116,8 @@ app.include_router(warmer.router)  # Sprint 25 - Julia Warmer
 app.include_router(group_entry.router)  # Sprint 25 - Group Entry Engine
 app.include_router(webhook_router.router)  # Sprint 26 - Multi-chip Webhook Router
 app.include_router(webhook_zapi.router)  # Sprint 27 - Z-API Webhook
+app.include_router(webhook_meta.router)  # Sprint 66 - Meta Cloud API Webhook
+app.include_router(meta_templates.router)  # Sprint 66 - Meta Template Management
 app.include_router(chips_dashboard.router)  # Sprint 26 - Chips Dashboard
 app.include_router(sistema.router)  # Sprint 32 - Sistema Config (Modo Piloto)
 app.include_router(guardrails.router)  # Sprint 43 - Guardrails API

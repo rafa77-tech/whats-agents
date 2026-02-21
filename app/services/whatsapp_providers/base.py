@@ -18,6 +18,7 @@ class ProviderType(str, Enum):
 
     EVOLUTION = "evolution"
     ZAPI = "z-api"
+    META = "meta"
 
 
 @dataclass
@@ -28,6 +29,7 @@ class MessageResult:
     message_id: Optional[str] = None
     error: Optional[str] = None
     provider: Optional[str] = None
+    meta_message_status: Optional[str] = None
 
 
 @dataclass

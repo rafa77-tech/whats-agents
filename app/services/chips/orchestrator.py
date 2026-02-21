@@ -167,7 +167,8 @@ class ChipOrchestrator:
         Criterios:
         - Trust Score abaixo do threshold degradado
         - Status 'banned'
-        - Desconectado
+        - Desconectado (Evolution/Z-API)
+        - Quality RED (Meta) — Sprint 66
         """
         if not self.config:
             await self.carregar_config()
@@ -184,19 +185,40 @@ class ChipOrchestrator:
         )
 
         degradados = result.data or []
+        degradados_ids = {d["id"] for d in degradados}
 
-        # Chips desconectados
+        # Chips desconectados (Evolution — não aplicável a Meta)
         desconectados = (
             supabase.table("chips")
             .select("*")
             .eq("status", "active")
             .eq("evolution_connected", False)
+            .neq("provider", "meta")  # Sprint 66: Meta não usa evolution_connected
             .execute()
         )
 
         for chip in desconectados.data or []:
-            if chip["id"] not in [d["id"] for d in degradados]:
+            if chip["id"] not in degradados_ids:
                 degradados.append(chip)
+                degradados_ids.add(chip["id"])
+
+        # Sprint 66: Chips Meta com quality RED
+        meta_red = (
+            supabase.table("chips")
+            .select("*")
+            .eq("status", "active")
+            .eq("provider", "meta")
+            .eq("meta_quality_rating", "RED")
+            .execute()
+        )
+
+        for chip in meta_red.data or []:
+            if chip["id"] not in degradados_ids:
+                degradados.append(chip)
+                degradados_ids.add(chip["id"])
+                logger.warning(
+                    f"[Orchestrator] Chip Meta {chip.get('telefone')} quality RED → degradado"
+                )
 
         return degradados
 
@@ -457,12 +479,13 @@ class ChipOrchestrator:
         if not self.config:
             await self.carregar_config()
 
-        # Buscar candidatos
+        # Buscar candidatos (Sprint 66: excluir chips Meta — não precisam de warming)
         result = (
             supabase.table("chips")
             .select("*")
             .eq("status", "warming")
             .eq("fase_warmup", "operacao")
+            .neq("provider", "meta")
             .gte("trust_score", self.config["trust_min_for_ready"])
             .execute()
         )

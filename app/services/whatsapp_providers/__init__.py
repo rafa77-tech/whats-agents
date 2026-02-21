@@ -2,10 +2,12 @@
 WhatsApp Providers - Abstração para múltiplas APIs.
 
 Sprint 26 - E08: Multi-Provider Support
+Sprint 66 - Meta Cloud API Integration
 
 Suporta:
 - Evolution API (self-hosted)
 - Z-API (SaaS)
+- Meta Cloud API (API oficial)
 
 Uso:
     from app.services.whatsapp_providers import get_provider
@@ -28,6 +30,7 @@ from app.services.whatsapp_providers.base import (
 )
 from app.services.whatsapp_providers.evolution import EvolutionProvider
 from app.services.whatsapp_providers.zapi import ZApiProvider
+from app.services.whatsapp_providers.meta_cloud import MetaCloudProvider
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +44,7 @@ __all__ = [
     "ConnectionStatus",
     "EvolutionProvider",
     "ZApiProvider",
+    "MetaCloudProvider",
     "get_provider",
     "get_provider_by_type",
     "clear_provider_cache",
@@ -89,6 +93,22 @@ def get_provider(chip: dict) -> WhatsAppProvider:
             token=token,
             client_token=client_token,
         )
+    elif provider_type == "meta":
+        # Sprint 66: Campos específicos do Meta Cloud API
+        phone_number_id = chip.get("meta_phone_number_id")
+        access_token = chip.get("meta_access_token")
+        waba_id = chip.get("meta_waba_id")
+
+        if not phone_number_id or not access_token:
+            raise ValueError(
+                f"Chip Meta {chip_id} sem meta_phone_number_id ou meta_access_token"
+            )
+
+        provider = MetaCloudProvider(
+            phone_number_id=phone_number_id,
+            access_token=access_token,
+            waba_id=waba_id,
+        )
     else:
         raise ValueError(f"Provider desconhecido: {provider_type}")
 
@@ -105,6 +125,9 @@ def get_provider_by_type(
     zapi_instance_id: Optional[str] = None,
     zapi_token: Optional[str] = None,
     zapi_client_token: Optional[str] = None,
+    meta_phone_number_id: Optional[str] = None,
+    meta_access_token: Optional[str] = None,
+    meta_waba_id: Optional[str] = None,
 ) -> WhatsAppProvider:
     """
     Cria provider diretamente pelo tipo (sem chip).
@@ -112,11 +135,14 @@ def get_provider_by_type(
     Útil para testes e casos especiais.
 
     Args:
-        provider_type: 'evolution' ou 'z-api'
+        provider_type: 'evolution', 'z-api', ou 'meta'
         instance_name: Nome da instância Evolution
         zapi_instance_id: ID da instância Z-API
         zapi_token: Token da instância Z-API
         zapi_client_token: Client token Z-API
+        meta_phone_number_id: Phone Number ID (Meta)
+        meta_access_token: Access Token (Meta)
+        meta_waba_id: WABA ID (Meta)
 
     Returns:
         WhatsAppProvider configurado
@@ -133,6 +159,17 @@ def get_provider_by_type(
             instance_id=zapi_instance_id,
             token=zapi_token,
             client_token=zapi_client_token,
+        )
+
+    elif provider_type == "meta":
+        if not meta_phone_number_id or not meta_access_token:
+            raise ValueError(
+                "meta_phone_number_id e meta_access_token obrigatórios para Meta"
+            )
+        return MetaCloudProvider(
+            phone_number_id=meta_phone_number_id,
+            access_token=meta_access_token,
+            waba_id=meta_waba_id,
         )
 
     else:

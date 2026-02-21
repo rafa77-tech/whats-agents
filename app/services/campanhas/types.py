@@ -94,6 +94,8 @@ class CampanhaData:
     objetivo: Optional[str] = None
     regras: Optional[dict] = None
     escopo_vagas: Optional[dict] = None
+    meta_template_name: Optional[str] = None
+    meta_template_language: str = "pt_BR"
     created_at: Optional[datetime] = None
     iniciada_em: Optional[datetime] = None
     concluida_em: Optional[datetime] = None
@@ -139,6 +141,8 @@ class CampanhaData:
             objetivo=row.get("objetivo"),
             regras=row.get("regras"),
             escopo_vagas=row.get("escopo_vagas"),
+            meta_template_name=row.get("meta_template_name"),
+            meta_template_language=row.get("meta_template_language", "pt_BR"),
             created_at=row.get("created_at"),
             iniciada_em=row.get("iniciada_em"),
             concluida_em=row.get("concluida_em"),

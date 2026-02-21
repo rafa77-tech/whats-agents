@@ -341,6 +341,7 @@ class HealthMonitor:
         Critérios para auto-demove:
         - Trust Score < 20
         - Falhas consecutivas >= 10 (via circuit breaker)
+        - Sprint 66: Chip Meta com quality rating RED
 
         Args:
             chip: Dict com dados do chip
@@ -350,6 +351,27 @@ class HealthMonitor:
         """
         trust = chip.get("trust_score") or 50
         telefone = chip.get("telefone", "N/A")
+
+        # Sprint 66: Chip Meta com quality RED → auto-degradar
+        if chip.get("provider") == "meta" and chip.get("meta_quality_rating") == "RED":
+            logger.warning(
+                f"[HealthMonitor] Chip Meta {telefone} quality RED → auto-demove"
+            )
+            # Criar alerta específico
+            try:
+                supabase.table("chip_alerts").insert(
+                    {
+                        "chip_id": chip["id"],
+                        "severity": "critical",
+                        "tipo": "meta_quality_degraded",
+                        "message": f"Chip Meta {telefone} quality rating RED",
+                    }
+                ).execute()
+            except Exception:
+                pass
+            return await self.auto_demover_chip(
+                chip, motivo="Meta quality rating RED"
+            )
 
         # Verificar Trust Score crítico
         if trust < self.thresholds["trust_auto_demove"]:
@@ -388,16 +410,19 @@ class HealthMonitor:
         alertas = []
         datetime.now(timezone.utc)
 
-        # Buscar chips ativos
+        # Buscar chips ativos (Sprint 66: incluir chips Meta que não usam evolution_connected)
         result = (
             supabase.table("chips")
             .select("*")
             .eq("status", "active")
-            .eq("evolution_connected", True)
             .execute()
         )
 
-        chips = result.data or []
+        # Filtrar: Evolution precisa de evolution_connected, Meta sempre conectado
+        chips = [
+            c for c in (result.data or [])
+            if c.get("provider") == "meta" or c.get("evolution_connected")
+        ]
 
         if not chips:
             # Crítico: nenhum chip disponível
