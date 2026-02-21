@@ -5,7 +5,7 @@ Sprint 58 E04 - Extraido de outbound.py monolitico.
 Helpers para criar OutboundContext facilmente.
 """
 
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from app.services.guardrails import (
     OutboundContext,
@@ -19,6 +19,7 @@ def criar_contexto_campanha(
     cliente_id: str,
     campaign_id: str,
     conversation_id: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> OutboundContext:
     """Cria contexto para envio de campanha."""
     return OutboundContext(
@@ -29,6 +30,7 @@ def criar_contexto_campanha(
         is_proactive=True,
         campaign_id=campaign_id,
         conversation_id=conversation_id,
+        metadata=metadata,
     )
 
 
