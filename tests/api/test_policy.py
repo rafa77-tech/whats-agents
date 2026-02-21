@@ -326,7 +326,7 @@ class TestMetrics:
 class TestDecisions:
     """Testes para endpoints de decisões (debug)."""
 
-    @patch("app.services.supabase.supabase")
+    @patch("app.services.policy.events_repository.supabase")
     def test_get_decisions_by_cliente(self, mock_supabase, client):
         """GET /policy/decisions/cliente/{id} deve retornar decisões."""
         mock_response = MagicMock()
