@@ -184,9 +184,7 @@ export default function EditarCampanhaPage() {
         const res = await fetch('/api/dashboard/meta/templates')
         const data = await res.json()
         if (res.ok && data.data) {
-          const aprovados = data.data.filter(
-            (t: { status: string }) => t.status === 'APPROVED'
-          )
+          const aprovados = data.data.filter((t: { status: string }) => t.status === 'APPROVED')
           setMetaTemplates(aprovados)
         }
       } catch (err) {

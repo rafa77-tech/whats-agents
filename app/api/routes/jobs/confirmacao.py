@@ -161,11 +161,13 @@ async def verificar_otp_confirmacao(telefone: str, codigo: str):
         plantao_id = resultado["plantao_id"]
         confirmacao = await confirmar_plantao_realizado(plantao_id, "otp_meta")
 
-        return JSONResponse({
-            "status": "ok",
-            "plantao_id": plantao_id,
-            "confirmado": confirmacao.sucesso,
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "plantao_id": plantao_id,
+                "confirmado": confirmacao.sucesso,
+            }
+        )
 
     except Exception as e:
         logger.error(f"Erro ao verificar OTP: {e}")

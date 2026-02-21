@@ -399,7 +399,6 @@ class CampanhaRepository:
             logger.error(f"Erro ao atualizar contadores da campanha {campanha_id}: {e}")
             return False
 
-
     async def listar(
         self,
         status: Optional[str] = None,

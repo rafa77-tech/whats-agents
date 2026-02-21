@@ -32,11 +32,7 @@ class GroupEntryRepository:
         """
         try:
             result = (
-                supabase.table(self.LINKS_TABLE)
-                .select("*")
-                .eq("id", link_id)
-                .single()
-                .execute()
+                supabase.table(self.LINKS_TABLE).select("*").eq("id", link_id).single().execute()
             )
             return result.data if result.data else None
         except Exception as e:
@@ -76,12 +72,7 @@ class GroupEntryRepository:
             Dados de configuracao ou None
         """
         try:
-            result = (
-                supabase.table(self.CONFIG_TABLE)
-                .select("*")
-                .limit(1)
-                .execute()
-            )
+            result = supabase.table(self.CONFIG_TABLE).select("*").limit(1).execute()
             return result.data[0] if result.data else None
         except Exception as e:
             logger.error(f"Erro ao buscar config de group entry: {e}")

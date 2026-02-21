@@ -74,9 +74,7 @@ class MetaOtpConfirmation:
             )
 
             # v2: Enviar via Meta AUTHENTICATION template
-            envio_result = await self._enviar_via_meta_template(
-                telefone, codigo, template_name
-            )
+            envio_result = await self._enviar_via_meta_template(telefone, codigo, template_name)
 
             logger.info(
                 "[MetaOTP] Código OTP %s para ***%s, plantão %s",
@@ -167,9 +165,7 @@ class MetaOtpConfirmation:
                 logger.info("[MetaOTP] Template OTP enviado para ***%s", telefone[-4:])
                 return True
 
-            logger.warning(
-                "[MetaOTP] Falha ao enviar template OTP: %s", msg_result.error
-            )
+            logger.warning("[MetaOTP] Falha ao enviar template OTP: %s", msg_result.error)
             return False
 
         except Exception as e:

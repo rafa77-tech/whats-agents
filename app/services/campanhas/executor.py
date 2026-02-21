@@ -474,9 +474,7 @@ class CampanhaExecutor:
             if not vagas:
                 return
 
-            header = campanha.escopo_vagas.get(
-                "header_text", "Vagas disponíveis para você"
-            )
+            header = campanha.escopo_vagas.get("header_text", "Vagas disponíveis para você")
             carousel_payload = carousel_builder.construir_carousel_vagas(
                 vagas=vagas, header_text=header
             )

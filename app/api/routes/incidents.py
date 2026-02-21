@@ -89,9 +89,7 @@ async def listar_incidentes(
     Lista histórico de incidentes.
     """
     try:
-        incidents = await incidents_repository.listar(
-            limit=limit, status=status, since=since
-        )
+        incidents = await incidents_repository.listar(limit=limit, status=status, since=since)
         return {
             "incidents": incidents,
             "total": len(incidents),
