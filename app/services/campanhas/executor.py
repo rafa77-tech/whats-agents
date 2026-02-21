@@ -53,11 +53,14 @@ class CampanhaExecutor:
             logger.error(f"Campanha {campanha_id} nao encontrada")
             return False
 
-        # 2. Validar status - apenas AGENDADA pode ser executada (#111)
-        if campanha.status != StatusCampanha.AGENDADA:
+        # 2. Validar status - AGENDADA ou ATIVA podem ser executadas
+        # Dashboard define status='ativa' antes de chamar o executor,
+        # por isso precisamos aceitar ambos os status aqui.
+        status_permitidos = (StatusCampanha.AGENDADA, StatusCampanha.ATIVA)
+        if campanha.status not in status_permitidos:
             logger.warning(
                 f"Campanha {campanha_id} tem status {campanha.status.value}, "
-                f"apenas 'agendada' pode ser executada"
+                f"apenas 'agendada' ou 'ativa' pode ser executada"
             )
             return False
 

@@ -106,7 +106,7 @@ class PairingEngine:
                 "id, telefone, fase_warmup, trust_score, "
                 "msgs_enviadas_hoje, msgs_recebidas_hoje, ultimo_pareamento"
             )
-            .eq("status", "connected")
+            .in_("status", ["warming", "active"])
             .neq("tipo", "listener")
             .in_("fase_warmup", fases_validas)
             .execute()

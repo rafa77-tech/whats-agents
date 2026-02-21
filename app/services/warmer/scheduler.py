@@ -69,7 +69,6 @@ ATIVIDADES_POR_FASE = {
     "expansao": {
         "atividades": [
             TipoAtividade.CONVERSA_PAR,
-            TipoAtividade.ENTRAR_GRUPO,
             TipoAtividade.MARCAR_LIDO,
             TipoAtividade.ENVIAR_MIDIA,
         ],
@@ -79,9 +78,8 @@ ATIVIDADES_POR_FASE = {
     "pre_operacao": {
         "atividades": [
             TipoAtividade.CONVERSA_PAR,
-            TipoAtividade.MENSAGEM_GRUPO,
             TipoAtividade.ENVIAR_MIDIA,
-            TipoAtividade.ATUALIZAR_PERFIL,
+            TipoAtividade.MARCAR_LIDO,
         ],
         "por_dia": (15, 30),
         "intervalo_min_minutos": 20,
@@ -89,8 +87,8 @@ ATIVIDADES_POR_FASE = {
     "teste_graduacao": {
         "atividades": [
             TipoAtividade.CONVERSA_PAR,
-            TipoAtividade.MENSAGEM_GRUPO,
             TipoAtividade.ENVIAR_MIDIA,
+            TipoAtividade.MARCAR_LIDO,
         ],
         "por_dia": (20, 40),
         "intervalo_min_minutos": 15,
@@ -98,7 +96,7 @@ ATIVIDADES_POR_FASE = {
     "operacao": {
         "atividades": [
             TipoAtividade.CONVERSA_PAR,
-            TipoAtividade.MENSAGEM_GRUPO,
+            TipoAtividade.MARCAR_LIDO,
         ],
         "por_dia": (5, 15),  # Manutenção apenas
         "intervalo_min_minutos": 60,

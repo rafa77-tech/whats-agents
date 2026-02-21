@@ -3,18 +3,20 @@ Warmup Executor - Executa atividades de warmup agendadas.
 
 Sprint 39 - Scheduler de Warmup.
 Sprint 56 - Usa ChipSender para capturar erros corretamente.
+Sprint 65 - Pre-send validation, error handling, stubs warning.
 
 Responsável por executar cada tipo de atividade:
 - conversa_par: Conversa entre dois chips
 - marcar_lido: Marcar mensagens como lidas
-- entrar_grupo: Entrar em grupo WhatsApp
-- mensagem_grupo: Enviar mensagem em grupo
-- atualizar_perfil: Atualizar foto/status
+- entrar_grupo: Entrar em grupo WhatsApp (stub)
+- mensagem_grupo: Enviar mensagem em grupo (stub)
+- atualizar_perfil: Atualizar foto/status (stub)
 - enviar_midia: Enviar mídia (imagem/áudio)
 """
 
 import logging
 import random
+from datetime import datetime, timedelta
 from typing import Optional
 
 from app.core.timezone import agora_brasilia
@@ -23,6 +25,7 @@ from app.services.warmer.scheduler import AtividadeAgendada, TipoAtividade
 from app.services.warmer.conversation_generator import gerar_mensagem_inicial
 from app.services.warmer.pairing_engine import encontrar_par
 from app.services.chips.sender import enviar_via_chip
+from app.services.chips.circuit_breaker import ChipCircuitBreaker
 
 logger = logging.getLogger(__name__)
 
@@ -74,15 +77,22 @@ async def executar_atividade(atividade: AtividadeAgendada) -> bool:
                 return False
 
     except Exception as e:
-        logger.error(f"[WarmupExecutor] Erro ao executar atividade: {e}")
+        logger.error(
+            f"[WarmupExecutor] Erro ao executar atividade "
+            f"tipo={atividade.tipo.value} chip={atividade.chip_id[:8]}: {e}",
+            exc_info=True,
+        )
         return False
 
 
 async def _buscar_chip(chip_id: str) -> Optional[dict]:
-    """Busca dados completos de um chip."""
+    """Busca dados completos de um chip para execução de warmup."""
     result = (
         supabase.table("chips")
-        .select("id, telefone, instance_name, evolution_connected, fase_warmup, provider")
+        .select(
+            "id, telefone, instance_name, evolution_connected, fase_warmup, "
+            "provider, tipo, cooldown_until, ultimo_erro_em, ultimo_erro_msg"
+        )
         .eq("id", chip_id)
         .single()
         .execute()
@@ -91,19 +101,61 @@ async def _buscar_chip(chip_id: str) -> Optional[dict]:
     return result.data
 
 
+def _verificar_pre_send(chip: dict) -> Optional[str]:
+    """
+    Verifica condições pré-envio do chip.
+
+    Returns:
+        None se OK, string com motivo do bloqueio se não pode enviar.
+    """
+    telefone_masked = chip.get("telefone", "????")[-4:]
+
+    # 1. Verificar conexão por provider
+    provider_tipo = chip.get("provider") or "evolution"
+    if provider_tipo == "evolution" and not chip.get("evolution_connected"):
+        return f"Chip {telefone_masked} Evolution desconectado"
+
+    if provider_tipo == "z-api":
+        ultimo_erro_em = chip.get("ultimo_erro_em")
+        if ultimo_erro_em:
+            try:
+                erro_dt = datetime.fromisoformat(str(ultimo_erro_em).replace("Z", "+00:00"))
+                if (agora_brasilia() - erro_dt) < timedelta(minutes=15):
+                    erro_msg = chip.get("ultimo_erro_msg", "N/A")
+                    return f"Chip Z-API {telefone_masked} com erro recente ({erro_msg[:60]})"
+            except (ValueError, TypeError):
+                pass
+
+    # 2. Verificar circuit breaker
+    if not ChipCircuitBreaker.pode_usar_chip(chip["id"]):
+        return f"Circuit breaker ABERTO para {telefone_masked}"
+
+    # 3. Verificar cooldown
+    cooldown_until = chip.get("cooldown_until")
+    if cooldown_until:
+        try:
+            cooldown_dt = datetime.fromisoformat(str(cooldown_until).replace("Z", "+00:00"))
+            if agora_brasilia() < cooldown_dt:
+                return f"Chip {telefone_masked} em cooldown até {cooldown_until}"
+        except (ValueError, TypeError):
+            pass
+
+    return None
+
+
 async def _executar_conversa_par(chip: dict, atividade: AtividadeAgendada) -> bool:
     """
     Executa conversa entre dois chips.
 
     Seleciona um par, gera mensagem contextual e envia.
     Sprint 56: Usa enviar_via_chip para capturar erros corretamente.
+    Sprint 65: Pre-send validation (circuit breaker, cooldown, z-api check).
     """
     try:
-        # Verificar conexão (para Evolution)
-        # Para Z-API, não verifica evolution_connected
-        provider_tipo = chip.get("provider") or "evolution"
-        if provider_tipo == "evolution" and not chip.get("evolution_connected"):
-            logger.warning(f"[WarmupExecutor] Chip {chip['telefone']} desconectado")
+        # Pre-send validation
+        bloqueio = _verificar_pre_send(chip)
+        if bloqueio:
+            logger.warning(f"[WarmupExecutor] Skip conversa_par: {bloqueio}")
             return False
 
         # Selecionar par para conversa
@@ -134,7 +186,10 @@ async def _executar_conversa_par(chip: dict, atividade: AtividadeAgendada) -> bo
         return False
 
     except Exception as e:
-        logger.error(f"[WarmupExecutor] Erro em conversa_par: {e}")
+        logger.error(
+            f"[WarmupExecutor] Erro em conversa_par chip={chip.get('telefone', '?')[-4:]}: {e}",
+            exc_info=True,
+        )
         return False
 
 
@@ -146,8 +201,16 @@ async def _executar_marcar_lido(chip: dict) -> bool:
     Na prática, apenas registra a atividade (WhatsApp não tem API para "marcar lido").
     """
     try:
+        # Pre-send validation (lightweight — só connection check)
         provider_tipo = chip.get("provider") or "evolution"
         if provider_tipo == "evolution" and not chip.get("evolution_connected"):
+            return False
+
+        if not ChipCircuitBreaker.pode_usar_chip(chip["id"]):
+            logger.warning(
+                f"[WarmupExecutor] Circuit breaker ABERTO para {chip['telefone'][-4:]}, "
+                f"skip marcar_lido"
+            )
             return False
 
         # Registrar atividade de "verificação"
@@ -156,7 +219,10 @@ async def _executar_marcar_lido(chip: dict) -> bool:
         return True
 
     except Exception as e:
-        logger.error(f"[WarmupExecutor] Erro em marcar_lido: {e}")
+        logger.error(
+            f"[WarmupExecutor] Erro em marcar_lido chip={chip.get('telefone', '?')[-4:]}: {e}",
+            exc_info=True,
+        )
         return False
 
 
@@ -167,7 +233,10 @@ async def _executar_entrar_grupo(chip: dict) -> bool:
     Nota: Stub — requer link de convite válido. Retorna False para não
     inflar métricas de progresso enquanto não estiver implementado.
     """
-    logger.debug(f"[WarmupExecutor] entrar_grupo não implementado, skip {chip['telefone'][-4:]}")
+    logger.warning(
+        f"[WarmupExecutor] entrar_grupo chamado mas não implementado. "
+        f"chip={chip['telefone'][-4:]}. Esta atividade não deveria ser agendada."
+    )
     return False
 
 
@@ -178,7 +247,10 @@ async def _executar_mensagem_grupo(chip: dict) -> bool:
     Nota: Stub — requer grupo ativo. Retorna False para não
     inflar métricas de progresso enquanto não estiver implementado.
     """
-    logger.debug(f"[WarmupExecutor] mensagem_grupo não implementado, skip {chip['telefone'][-4:]}")
+    logger.warning(
+        f"[WarmupExecutor] mensagem_grupo chamado mas não implementado. "
+        f"chip={chip['telefone'][-4:]}. Esta atividade não deveria ser agendada."
+    )
     return False
 
 
@@ -189,8 +261,9 @@ async def _executar_atualizar_perfil(chip: dict) -> bool:
     Nota: Stub — requer integração com Evolution API. Retorna False para não
     inflar métricas de progresso enquanto não estiver implementado.
     """
-    logger.debug(
-        f"[WarmupExecutor] atualizar_perfil não implementado, skip {chip['telefone'][-4:]}"
+    logger.warning(
+        f"[WarmupExecutor] atualizar_perfil chamado mas não implementado. "
+        f"chip={chip['telefone'][-4:]}. Esta atividade não deveria ser agendada."
     )
     return False
 
@@ -209,7 +282,10 @@ async def _executar_enviar_midia(chip: dict, atividade: AtividadeAgendada) -> bo
         return await _executar_conversa_par(chip, atividade)
 
     except Exception as e:
-        logger.error(f"[WarmupExecutor] Erro em enviar_midia: {e}")
+        logger.error(
+            f"[WarmupExecutor] Erro em enviar_midia chip={chip.get('telefone', '?')[-4:]}: {e}",
+            exc_info=True,
+        )
         return False
 
 
