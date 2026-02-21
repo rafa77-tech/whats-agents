@@ -109,6 +109,10 @@ class Settings(BaseSettings):
     META_BUDGET_DIARIO_USD: float = 50.0
     META_BUDGET_ALERT_THRESHOLD: float = 0.8
 
+    # Meta Cost Optimizer (Sprint 70)
+    # Quando True, envios Meta consultam cost_optimizer antes de enviar
+    META_COST_OPTIMIZER_ENABLED: bool = False
+
     # Meta MM Lite (Sprint 68)
     META_MM_LITE_ENABLED: bool = False
 

@@ -280,17 +280,21 @@ class MetaFlowService:
         """
         Decripta resposta de Flow usando AES-128-GCM.
 
+        Sprint 70 — Epic 70.4: Implementação real da decriptação.
+
+        Formato do encrypted_flow_data (base64):
+        - Primeiros 12 bytes: IV (nonce)
+        - Últimos 16 bytes: Auth Tag (GCM)
+        - Meio: Ciphertext
+
         Args:
             encrypted_response: Dict com encrypted_flow_data
 
         Returns:
-            Dict com dados decriptados ou None
-
-        Raises:
-            NotImplementedError: Decriptação ainda não implementada.
+            Dict com dados decriptados ou None em caso de erro
         """
-        private_key = settings.META_FLOW_PRIVATE_KEY
-        if not private_key:
+        private_key_hex = settings.META_FLOW_PRIVATE_KEY
+        if not private_key_hex:
             logger.warning("[MetaFlow] FLOW_PRIVATE_KEY não configurada, retornando dados raw")
             return encrypted_response
 
@@ -298,11 +302,34 @@ class MetaFlowService:
         if not encrypted_data:
             return encrypted_response
 
-        raise NotImplementedError(
-            "Flow decryption (AES-128-GCM) não implementada. "
-            "Configure META_FLOW_PRIVATE_KEY='' para desabilitar, "
-            "ou implemente usando a lib 'cryptography'."
-        )
+        try:
+            import base64
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+            # Decodificar chave (hex -> bytes, 16 bytes para AES-128)
+            key = bytes.fromhex(private_key_hex)
+
+            # Decodificar payload base64
+            raw = base64.b64decode(encrypted_data)
+
+            # Extrair IV (12 bytes), ciphertext, tag (16 bytes)
+            iv = raw[:12]
+            tag = raw[-16:]
+            ciphertext = raw[12:-16]
+
+            # AES-GCM: ciphertext + tag concatenados para a lib cryptography
+            aesgcm = AESGCM(key)
+            plaintext = aesgcm.decrypt(iv, ciphertext + tag, None)
+
+            # Parse JSON
+            decrypted = json.loads(plaintext.decode("utf-8"))
+
+            logger.info("[MetaFlow] Flow response decriptada com sucesso")
+            return decrypted
+
+        except Exception as e:
+            logger.error("[MetaFlow] Erro ao decriptar flow response: %s", e)
+            return None
 
     async def processar_resposta_flow(
         self,

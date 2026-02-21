@@ -425,7 +425,15 @@ async def _enviar_meta_smart(
 ) -> MessageResult:
     """
     Sprint 66: Envio inteligente para chips Meta respeitando janela 24h.
+    Sprint 70: Integração com cost_optimizer para decisão otimizada.
 
+    Quando META_COST_OPTIMIZER_ENABLED=True:
+    - Consulta cost_optimizer.decidir_tipo_envio() para escolher método
+    - free_window → send_text (grátis)
+    - mm_lite → send_text_mm_lite + registrar_envio_mm_lite
+    - utility_template / marketing_template → send_template
+
+    Quando META_COST_OPTIMIZER_ENABLED=False (fallback original):
     - Dentro da janela: envia texto livre (free-form)
     - Fora da janela + template: envia via template
     - Fora da janela + sem template: retorna erro
@@ -440,6 +448,104 @@ async def _enviar_meta_smart(
     Returns:
         MessageResult
     """
+    from app.core.config import settings
+
+    if settings.META_COST_OPTIMIZER_ENABLED:
+        return await _enviar_meta_com_cost_optimizer(
+            provider, chip, telefone, texto, template_info
+        )
+
+    return await _enviar_meta_fallback(provider, chip, telefone, texto, template_info)
+
+
+async def _enviar_meta_com_cost_optimizer(
+    provider,
+    chip: Dict,
+    telefone: str,
+    texto: str,
+    template_info: Optional[Dict] = None,
+) -> MessageResult:
+    """Sprint 70: Envio Meta via cost_optimizer."""
+    from app.services.meta.cost_optimizer import cost_optimizer
+
+    decision = await cost_optimizer.decidir_tipo_envio(
+        chip_id=chip["id"],
+        telefone=telefone,
+        intent="marketing",
+    )
+
+    logger.info(
+        "[ChipSender] CostOptimizer decision: method=%s, reason=%s",
+        decision.method,
+        decision.reason,
+    )
+
+    result: MessageResult
+
+    if decision.method == "free_window":
+        result = await provider.send_text(telefone, texto)
+
+    elif decision.method == "mm_lite":
+        # MM Lite: Meta decide quando entregar
+        result = await provider.send_text_mm_lite(telefone, texto, mm_lite=True)
+        if result.success:
+            try:
+                from app.services.meta.mm_lite import mm_lite_service
+
+                await mm_lite_service.registrar_envio_mm_lite(
+                    chip_id=chip["id"],
+                    waba_id=chip.get("meta_waba_id", ""),
+                    telefone=telefone,
+                    template_name=template_info["name"] if template_info else "mm_lite_text",
+                )
+            except Exception as e:
+                logger.debug("[ChipSender] Erro ao registrar MM Lite (non-blocking): %s", e)
+
+    elif decision.method in ("utility_template", "marketing_template"):
+        # Sprint 70.3: Auto-template selection quando sem template explícito
+        effective_template = template_info
+        if not effective_template:
+            effective_template = await _buscar_template_auto(chip, decision.method)
+
+        if effective_template:
+            result = await provider.send_template(
+                telefone,
+                effective_template["name"],
+                effective_template.get("language", "pt_BR"),
+                effective_template.get("components"),
+            )
+        else:
+            logger.warning(
+                "[ChipSender] CostOptimizer recomendou template mas nenhum disponível: "
+                "chip=%s, destino=%s",
+                chip.get("telefone", "N/A")[-4:],
+                telefone[-4:],
+            )
+            return MessageResult(
+                success=False,
+                error="meta_fora_janela_sem_template",
+                provider="meta",
+            )
+    else:
+        # Fallback para método desconhecido
+        logger.warning("[ChipSender] CostOptimizer method desconhecido: %s", decision.method)
+        result = await provider.send_text(telefone, texto)
+
+    # Registrar custo (best-effort)
+    if result.success:
+        await _registrar_custo_meta(chip, telefone, template_info, decision.method == "free_window")
+
+    return result
+
+
+async def _enviar_meta_fallback(
+    provider,
+    chip: Dict,
+    telefone: str,
+    texto: str,
+    template_info: Optional[Dict] = None,
+) -> MessageResult:
+    """Fallback original: janela 24h sem cost_optimizer."""
     from app.services.meta.window_tracker import window_tracker
 
     na_janela = await window_tracker.esta_na_janela(chip["id"], telefone)
@@ -464,22 +570,82 @@ async def _enviar_meta_smart(
             provider="meta",
         )
 
-    # Sprint 67: Registrar custo da mensagem (best-effort)
+    # Registrar custo (best-effort)
     if result.success:
-        try:
-            from app.services.meta.conversation_analytics import conversation_analytics
-
-            await conversation_analytics.registrar_custo_mensagem(
-                chip_id=chip["id"],
-                waba_id=chip.get("meta_waba_id", ""),
-                telefone=telefone,
-                template_name=template_info["name"] if template_info else None,
-                is_within_window=na_janela,
-            )
-        except Exception as e:
-            logger.debug("[ChipSender] Erro ao registrar custo Meta (non-blocking): %s", e)
+        await _registrar_custo_meta(chip, telefone, template_info, na_janela)
 
     return result
+
+
+async def _buscar_template_auto(chip: Dict, method: str) -> Optional[Dict]:
+    """
+    Sprint 70.3: Busca template compatível automaticamente.
+
+    Quando o cost_optimizer recomenda template mas nenhum foi fornecido
+    explicitamente, tenta encontrar um template aprovado no banco.
+
+    Args:
+        chip: Dict do chip (precisa de meta_waba_id)
+        method: "utility_template" ou "marketing_template"
+
+    Returns:
+        Dict com name, language, components ou None
+    """
+    try:
+        from app.services.meta.template_service import template_service
+
+        waba_id = chip.get("meta_waba_id")
+        if not waba_id:
+            return None
+
+        category = "UTILITY" if method == "utility_template" else "MARKETING"
+
+        # Buscar templates aprovados da categoria correta
+        templates = await template_service.listar_templates(waba_id, status="APPROVED")
+        compatibles = [
+            t for t in templates if t.get("category") == category
+        ]
+
+        if not compatibles:
+            logger.debug(
+                "[ChipSender] Nenhum template %s aprovado para WABA %s",
+                category,
+                waba_id,
+            )
+            return None
+
+        # Usar o primeiro template compatível
+        tmpl = compatibles[0]
+        return {
+            "name": tmpl["name"],
+            "language": tmpl.get("language", "pt_BR"),
+            "components": tmpl.get("components"),
+        }
+
+    except Exception as e:
+        logger.warning("[ChipSender] Erro ao buscar template auto: %s", e)
+        return None
+
+
+async def _registrar_custo_meta(
+    chip: Dict,
+    telefone: str,
+    template_info: Optional[Dict],
+    is_within_window: bool,
+) -> None:
+    """Registra custo da mensagem Meta (best-effort)."""
+    try:
+        from app.services.meta.conversation_analytics import conversation_analytics
+
+        await conversation_analytics.registrar_custo_mensagem(
+            chip_id=chip["id"],
+            waba_id=chip.get("meta_waba_id", ""),
+            telefone=telefone,
+            template_name=template_info["name"] if template_info else None,
+            is_within_window=is_within_window,
+        )
+    except Exception as e:
+        logger.debug("[ChipSender] Erro ao registrar custo Meta (non-blocking): %s", e)
 
 
 # Alias para retrocompatibilidade

@@ -190,11 +190,12 @@ async def processar_fila():
 
             # Criar contexto com conversa_id já resolvido
             if campaign_id:
-                # Envio de campanha
+                # Envio de campanha (propagar metadata para template info Meta)
                 ctx = criar_contexto_campanha(
                     cliente_id=cliente_id,
                     campaign_id=campaign_id,
                     conversation_id=conversa_id,
+                    metadata=metadata,
                 )
             else:
                 # Followup ou outro tipo
