@@ -18,6 +18,7 @@ from app.services.outbound.multi_chip import (
     _determinar_tipo_mensagem,
     _enviar_via_multi_chip,
 )
+from app.services.outbound.interactive import send_outbound_interactive
 from app.services.outbound.dev_guardrails import _verificar_dev_allowlist
 from app.services.outbound.finalization import (
     _finalizar_envio,
@@ -34,6 +35,7 @@ from app.services.outbound.context_factories import (
 __all__ = [
     # Public API
     "send_outbound_message",
+    "send_outbound_interactive",
     "OutboundResult",
     # Context factories
     "criar_contexto_campanha",

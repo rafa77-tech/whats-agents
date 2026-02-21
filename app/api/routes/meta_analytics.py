@@ -62,6 +62,21 @@ async def analytics_template(
     return JSONResponse({"status": "ok", "data": data, "count": len(data)})
 
 
+@router.get("/mm-lite/stats")
+async def mm_lite_stats(
+    request: Request,
+    waba_id: str = Query(None),
+    days: int = Query(7, ge=1, le=90),
+):
+    """Estatísticas de envios MM Lite."""
+    _verificar_api_key(request)
+
+    from app.services.meta.mm_lite import mm_lite_service
+
+    stats = await mm_lite_service.obter_metricas(waba_id=waba_id, days=days)
+    return JSONResponse({"status": "ok", "data": stats})
+
+
 @router.get("/templates/alerts/low-performance")
 async def templates_baixa_performance(
     request: Request,

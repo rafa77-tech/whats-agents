@@ -142,12 +142,39 @@ class MetaCloudProvider(WhatsAppProvider):
         }
         return await self._post_message(payload)
 
+    async def send_text_mm_lite(
+        self, phone: str, message: str, mm_lite: bool = False
+    ) -> MessageResult:
+        """
+        Envia mensagem de texto com suporte opcional a MM Lite.
+
+        Args:
+            phone: Número do destinatário
+            message: Texto da mensagem
+            mm_lite: Se True, usa MM Lite (Meta decide quando entregar)
+
+        Returns:
+            MessageResult com status do envio
+        """
+        phone_clean = self.format_phone(phone)
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": phone_clean,
+            "type": "text",
+            "text": {"preview_url": False, "body": message},
+        }
+        if mm_lite:
+            payload["biz_opaque_callback_data"] = "mm_lite"
+        return await self._post_message(payload)
+
     async def send_template(
         self,
         phone: str,
         template_name: str,
         language: str = "pt_BR",
         components: Optional[List[dict]] = None,
+        mm_lite: bool = False,
     ) -> MessageResult:
         """
         Envia mensagem de template.
@@ -175,6 +202,8 @@ class MetaCloudProvider(WhatsAppProvider):
             "type": "template",
             "template": template_obj,
         }
+        if mm_lite:
+            payload["biz_opaque_callback_data"] = "mm_lite"
         return await self._post_message(payload)
 
     async def send_interactive(
@@ -263,6 +292,214 @@ class MetaCloudProvider(WhatsAppProvider):
             },
         }
         return await self._post_message(payload)
+
+    async def send_flow(
+        self,
+        phone: str,
+        flow_id: str,
+        flow_token: str,
+        header_text: str = "",
+        body_text: str = "",
+        flow_cta: str = "Abrir",
+        flow_action: str = "navigate",
+        mode: str = "published",
+    ) -> MessageResult:
+        """
+        Envia WhatsApp Flow.
+
+        Args:
+            phone: Número do destinatário
+            flow_id: Meta Flow ID
+            flow_token: Token único para esta sessão
+            header_text: Texto do header
+            body_text: Texto do body
+            flow_cta: Texto do botão CTA
+            flow_action: "navigate" ou "data_exchange"
+            mode: "draft" ou "published"
+
+        Returns:
+            MessageResult com status do envio
+        """
+        phone_clean = self.format_phone(phone)
+        interactive = {
+            "type": "flow",
+            "header": {"type": "text", "text": header_text} if header_text else None,
+            "body": {"text": body_text} if body_text else {"text": " "},
+            "action": {
+                "name": "flow",
+                "parameters": {
+                    "flow_message_version": "3",
+                    "flow_token": flow_token,
+                    "flow_id": flow_id,
+                    "flow_cta": flow_cta,
+                    "flow_action": flow_action,
+                    "mode": mode,
+                },
+            },
+        }
+        # Remove None header
+        if interactive["header"] is None:
+            del interactive["header"]
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": phone_clean,
+            "type": "interactive",
+            "interactive": interactive,
+        }
+        return await self._post_message(payload)
+
+    async def send_product(
+        self,
+        phone: str,
+        catalog_id: str,
+        product_retailer_id: str,
+        body_text: str = "",
+    ) -> MessageResult:
+        """
+        Envia mensagem de produto single.
+
+        Args:
+            phone: Número do destinatário
+            catalog_id: ID do catálogo
+            product_retailer_id: ID do produto no catálogo
+            body_text: Texto do body
+
+        Returns:
+            MessageResult com status do envio
+        """
+        phone_clean = self.format_phone(phone)
+        interactive = {
+            "type": "product",
+            "body": {"text": body_text} if body_text else {"text": " "},
+            "action": {
+                "catalog_id": catalog_id,
+                "product_retailer_id": product_retailer_id,
+            },
+        }
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": phone_clean,
+            "type": "interactive",
+            "interactive": interactive,
+        }
+        return await self._post_message(payload)
+
+    async def send_product_list(
+        self,
+        phone: str,
+        catalog_id: str,
+        sections: List[dict],
+        header_text: str = "",
+        body_text: str = "",
+    ) -> MessageResult:
+        """
+        Envia lista de produtos (multi-product message).
+
+        Args:
+            phone: Número do destinatário
+            catalog_id: ID do catálogo
+            sections: Seções com produtos
+            header_text: Texto do header
+            body_text: Texto do body
+
+        Returns:
+            MessageResult com status do envio
+        """
+        phone_clean = self.format_phone(phone)
+        interactive = {
+            "type": "product_list",
+            "header": {"type": "text", "text": header_text} if header_text else {"type": "text", "text": " "},
+            "body": {"text": body_text} if body_text else {"text": " "},
+            "action": {
+                "catalog_id": catalog_id,
+                "sections": sections,
+            },
+        }
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": phone_clean,
+            "type": "interactive",
+            "interactive": interactive,
+        }
+        return await self._post_message(payload)
+
+    async def send_authentication_template(
+        self,
+        phone: str,
+        template_name: str,
+        language: str = "pt_BR",
+        otp_type: str = "COPY_CODE",
+        **kwargs,
+    ) -> MessageResult:
+        """
+        Envia template de autenticação (OTP).
+
+        Args:
+            phone: Número do destinatário
+            template_name: Nome do template AUTHENTICATION
+            language: Código do idioma
+            otp_type: ONE_TAP, ZERO_TAP ou COPY_CODE
+            **kwargs: Parâmetros adicionais (code, etc.)
+
+        Returns:
+            MessageResult com status do envio
+        """
+        components = []
+        code = kwargs.get("code", "")
+        if code:
+            components.append(
+                {
+                    "type": "body",
+                    "parameters": [{"type": "text", "text": code}],
+                }
+            )
+            components.append(
+                {
+                    "type": "button",
+                    "sub_type": "url",
+                    "index": "0",
+                    "parameters": [{"type": "text", "text": code}],
+                }
+            )
+
+        return await self.send_template(phone, template_name, language, components)
+
+    async def send_carousel(
+        self,
+        phone: str,
+        template_name: str,
+        header_text: str,
+        cards: List[dict],
+        language: str = "pt_BR",
+    ) -> MessageResult:
+        """
+        Envia mensagem carousel (cards horizontais).
+
+        Args:
+            phone: Número do destinatário
+            template_name: Nome do template carousel
+            header_text: Texto do header
+            cards: Lista de cards com componentes
+            language: Código do idioma
+
+        Returns:
+            MessageResult com status do envio
+        """
+        components = [
+            {
+                "type": "body",
+                "parameters": [{"type": "text", "text": header_text}],
+            },
+            {
+                "type": "carousel",
+                "cards": cards,
+            },
+        ]
+        return await self.send_template(phone, template_name, language, components)
 
     async def mark_as_read(self, message_id: str) -> MessageResult:
         """

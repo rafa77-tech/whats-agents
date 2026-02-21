@@ -101,5 +101,70 @@ class TemplateMapper:
         return ""
 
 
+    def mapear_variaveis_com_media(
+        self,
+        template: dict,
+        destinatario: dict,
+        campanha: Optional[dict] = None,
+        media_id: Optional[str] = None,
+    ) -> List[dict]:
+        """
+        Mapeia variáveis com suporte a header de mídia.
+
+        Args:
+            template: Dict do template
+            destinatario: Dict com dados do destinatário
+            campanha: Dict com dados da campanha
+            media_id: ID da mídia uploadada (handle)
+
+        Returns:
+            Lista de components incluindo header de mídia
+        """
+        components = self.mapear_variaveis(template, destinatario, campanha)
+
+        if media_id:
+            header_format = template.get("header_format", "IMAGE").upper()
+            header_component = self._construir_header_parameter(header_format, media_id)
+            if header_component:
+                components.insert(0, header_component)
+
+        return components
+
+    def _construir_header_parameter(
+        self,
+        format_type: str,
+        media_id: str,
+    ) -> Optional[dict]:
+        """
+        Constrói componente header com mídia.
+
+        Args:
+            format_type: IMAGE, VIDEO ou DOCUMENT
+            media_id: ID da mídia
+
+        Returns:
+            Dict com componente header ou None
+        """
+        media_type_map = {
+            "IMAGE": "image",
+            "VIDEO": "video",
+            "DOCUMENT": "document",
+        }
+        media_type = media_type_map.get(format_type.upper())
+        if not media_type:
+            logger.warning("[TemplateMapper] Format type desconhecido: %s", format_type)
+            return None
+
+        return {
+            "type": "header",
+            "parameters": [
+                {
+                    "type": media_type,
+                    media_type: {"id": media_id},
+                }
+            ],
+        }
+
+
 # Singleton
 template_mapper = TemplateMapper()

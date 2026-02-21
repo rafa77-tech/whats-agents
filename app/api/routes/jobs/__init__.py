@@ -21,6 +21,10 @@ from .hospital_cleanup import router as hospital_cleanup_router
 from .hospital_llm_review import router as hospital_llm_review_router
 from .hospital_enrichment import router as hospital_enrichment_router
 from .recovery import router as recovery_router
+from .meta_quality import router as meta_quality_router
+from .meta_analytics import router as meta_analytics_router
+from .meta_mm_lite import router as meta_mm_lite_router
+from .meta_catalog import router as meta_catalog_router
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 router.include_router(core_router)
@@ -37,3 +41,7 @@ router.include_router(hospital_cleanup_router)
 router.include_router(hospital_llm_review_router)
 router.include_router(hospital_enrichment_router)
 router.include_router(recovery_router)
+router.include_router(meta_quality_router)
+router.include_router(meta_analytics_router)
+router.include_router(meta_mm_lite_router)
+router.include_router(meta_catalog_router)

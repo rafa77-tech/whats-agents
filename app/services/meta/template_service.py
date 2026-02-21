@@ -392,5 +392,69 @@ class MetaTemplateService:
         return {"success": True, "total": len(templates), "synced": synced}
 
 
+    async def criar_template_com_media(
+        self,
+        waba_id: str,
+        name: str,
+        category: str,
+        language: str,
+        body_text: str,
+        body_variables: Optional[List[str]] = None,
+        header_format: str = "IMAGE",
+        header_media_url: Optional[str] = None,
+        buttons: Optional[List[dict]] = None,
+    ) -> dict:
+        """
+        Cria template com header de mídia (imagem/vídeo/documento).
+
+        Args:
+            waba_id: WABA ID
+            name: Nome do template
+            category: MARKETING, UTILITY, AUTHENTICATION
+            language: Código do idioma
+            body_text: Texto do body
+            body_variables: Variáveis do body (ex: ["{{1}}", "{{2}}"])
+            header_format: IMAGE, VIDEO ou DOCUMENT
+            header_media_url: URL do exemplo de mídia (para aprovação)
+            buttons: Botões opcionais
+
+        Returns:
+            Dict com resultado da criação
+        """
+        components = []
+
+        # Header com mídia
+        header_component = {
+            "type": "HEADER",
+            "format": header_format.upper(),
+        }
+        if header_media_url:
+            media_key = header_format.lower()
+            header_component["example"] = {
+                "header_handle": [header_media_url],
+            }
+        components.append(header_component)
+
+        # Body
+        body_component = {"type": "BODY", "text": body_text}
+        if body_variables:
+            body_component["example"] = {
+                "body_text": [body_variables],
+            }
+        components.append(body_component)
+
+        # Buttons
+        if buttons:
+            components.append({"type": "BUTTONS", "buttons": buttons})
+
+        return await self.criar_template(
+            waba_id=waba_id,
+            name=name,
+            category=category,
+            language=language,
+            components=components,
+        )
+
+
 # Singleton
 template_service = MetaTemplateService()
