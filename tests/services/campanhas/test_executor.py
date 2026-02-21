@@ -422,14 +422,14 @@ class TestAntiSpam:
         ]
 
     @pytest.mark.asyncio
-    async def test_campanha_ativa_nao_pode_executar(self, executor):
-        """#111: Campanha com status ATIVA nao pode ser executada novamente."""
+    async def test_campanha_concluida_nao_pode_executar(self, executor):
+        """Campanha com status CONCLUIDA nao pode ser executada novamente."""
         campanha = CampanhaData(
             id=100,
             nome_template="Test",
             tipo_campanha=TipoCampanha.DISCOVERY,
             corpo=None,
-            status=StatusCampanha.ATIVA,
+            status=StatusCampanha.CONCLUIDA,
             audience_filters=AudienceFilters(),
         )
 
@@ -441,6 +441,38 @@ class TestAntiSpam:
             assert result is False
             # Nao deve tentar mudar status
             mock_repo.atualizar_status.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_campanha_ativa_pode_executar(self, executor, tres_destinatarios):
+        """Dashboard define status ATIVA antes de chamar executor, deve aceitar."""
+        campanha = CampanhaData(
+            id=100,
+            nome_template="Test",
+            tipo_campanha=TipoCampanha.DISCOVERY,
+            corpo=None,
+            status=StatusCampanha.ATIVA,
+            audience_filters=AudienceFilters(quantidade_alvo=3),
+        )
+
+        with (
+            patch("app.services.campanhas.executor.campanha_repository") as mock_repo,
+            patch("app.services.campanhas.executor.segmentacao_service") as mock_seg,
+            patch.object(executor, "_criar_envio", new_callable=AsyncMock) as mock_envio,
+            patch.object(executor, "_buscar_clientes_ja_enviados", new_callable=AsyncMock) as mock_dedup,
+            patch("app.services.campanhas.executor.check_campaign_cooldown") as mock_cooldown,
+        ):
+            mock_repo.buscar_por_id = AsyncMock(return_value=campanha)
+            mock_repo.atualizar_status = AsyncMock()
+            mock_repo.atualizar_total_destinatarios = AsyncMock()
+            mock_repo.incrementar_enviados = AsyncMock()
+            mock_seg.buscar_alvos_campanha = AsyncMock(return_value=tres_destinatarios)
+            mock_dedup.return_value = set()
+            mock_envio.return_value = True
+            mock_cooldown.return_value = CooldownResult(is_blocked=False)
+
+            result = await executor.executar(100)
+
+            assert result is True
 
     @pytest.mark.asyncio
     async def test_cooldown_bloqueia_destinatario(
