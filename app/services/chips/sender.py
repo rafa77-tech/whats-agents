@@ -250,6 +250,23 @@ async def enviar_media_via_chip(
 
     try:
         provider = get_provider(chip)
+
+        # Sprint 66-fix G1: Chips Meta devem respeitar janela 24h para mídia
+        if chip.get("provider") == "meta":
+            from app.services.meta.window_tracker import window_tracker
+
+            na_janela = await window_tracker.esta_na_janela(chip["id"], telefone)
+            if not na_janela:
+                logger.warning(
+                    f"[ChipSender] Chip Meta fora da janela 24h para mídia: "
+                    f"chip={chip.get('telefone', 'N/A')[-4:]}, destino={telefone[-4:]}"
+                )
+                return MessageResult(
+                    success=False,
+                    error="meta_fora_janela_sem_template",
+                    provider="meta",
+                )
+
         result = await provider.send_media(
             telefone,
             media_url,
