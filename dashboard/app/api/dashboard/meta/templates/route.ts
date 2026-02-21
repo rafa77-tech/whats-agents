@@ -14,7 +14,9 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('meta_templates')
-      .select('id, waba_id, template_name, category, status, language, quality_score, meta_template_id, created_at, updated_at')
+      .select(
+        'id, waba_id, template_name, category, status, language, quality_score, meta_template_id, created_at, updated_at'
+      )
       .order('created_at', { ascending: false })
 
     if (error) throw error

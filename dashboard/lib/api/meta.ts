@@ -39,7 +39,8 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
-    const message = (body as Record<string, unknown>).error ?? response.statusText ?? 'Erro desconhecido'
+    const message =
+      (body as Record<string, unknown>).error ?? response.statusText ?? 'Erro desconhecido'
     throw new MetaApiError(response.status, String(message))
   }
 
