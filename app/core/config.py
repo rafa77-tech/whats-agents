@@ -94,10 +94,34 @@ class Settings(BaseSettings):
     CHIP_ACTIVATOR_URL: str = ""  # URL do VPS (ex: https://165.227.76.85)
     CHIP_ACTIVATOR_API_KEY: str = ""  # API Key para autenticação
 
+    # Meta API Key (autenticação de rotas Meta internas)
+    META_API_KEY: str = ""
+
     # Meta Cloud API (WhatsApp Business API) - Sprint 66
     META_GRAPH_API_VERSION: str = "v21.0"
     META_WEBHOOK_VERIFY_TOKEN: str = ""
     META_APP_SECRET: str = ""
+
+    # Meta Pricing & Budget (Sprint 67)
+    META_PRICING_MARKETING_USD: float = 0.0625
+    META_PRICING_UTILITY_USD: float = 0.0350
+    META_PRICING_AUTHENTICATION_USD: float = 0.0315
+    META_BUDGET_DIARIO_USD: float = 50.0
+    META_BUDGET_ALERT_THRESHOLD: float = 0.8
+
+    # Meta MM Lite (Sprint 68)
+    META_MM_LITE_ENABLED: bool = False
+
+    # Meta WhatsApp Flows (Sprint 68)
+    META_FLOW_PRIVATE_KEY: str = ""
+
+    # Meta Catalog/Commerce (Sprint 68)
+    META_CATALOG_ID: str = ""
+    META_CATALOG_SYNC_ENABLED: bool = False
+
+    # Meta Budget Limits (Sprint 69)
+    META_BUDGET_SEMANAL_USD: float = 300.0
+    META_BUDGET_MENSAL_USD: float = 1200.0
 
     # CORS - origens permitidas (separadas por vírgula)
     # Em produção, definir explicitamente: "https://app.revoluna.com,https://admin.revoluna.com"

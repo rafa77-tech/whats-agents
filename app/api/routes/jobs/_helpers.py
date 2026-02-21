@@ -45,7 +45,7 @@ def job_endpoint(name: str):
             except Exception as e:
                 logger.error(f"Erro no job {name}: {e}")
                 return JSONResponse(
-                    {"status": "error", "message": str(e)},
+                    {"status": "error", "message": f"Erro interno no job {name}"},
                     status_code=500,
                 )
 
