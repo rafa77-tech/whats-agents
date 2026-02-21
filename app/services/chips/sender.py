@@ -451,9 +451,7 @@ async def _enviar_meta_smart(
     from app.core.config import settings
 
     if settings.META_COST_OPTIMIZER_ENABLED:
-        return await _enviar_meta_com_cost_optimizer(
-            provider, chip, telefone, texto, template_info
-        )
+        return await _enviar_meta_com_cost_optimizer(provider, chip, telefone, texto, template_info)
 
     return await _enviar_meta_fallback(provider, chip, telefone, texto, template_info)
 
@@ -602,9 +600,7 @@ async def _buscar_template_auto(chip: Dict, method: str) -> Optional[Dict]:
 
         # Buscar templates aprovados da categoria correta
         templates = await template_service.listar_templates(waba_id, status="APPROVED")
-        compatibles = [
-            t for t in templates if t.get("category") == category
-        ]
+        compatibles = [t for t in templates if t.get("category") == category]
 
         if not compatibles:
             logger.debug(
