@@ -1,7 +1,8 @@
 """
-Job de verificação de qualidade de chips Meta.
+Job de verificação de qualidade de chips Meta e window management.
 
 Sprint 67 - Epic 67.1: Quality Monitor.
+Sprint 71 - Epic 71.4: Window Keeper.
 """
 
 import logging
@@ -28,5 +29,26 @@ async def job_meta_quality_check():
     return {
         "status": "ok",
         "processados": resultado["verificados"],
+        **resultado,
+    }
+
+
+@router.post("/meta-window-keeper")
+@job_endpoint("meta-window-keeper")
+async def job_meta_window_keeper():
+    """
+    Gerencia janelas de conversa proativamente.
+
+    Sprint 71 — Epic 71.4.
+    v2: envia check-in para manter janelas abertas (opt-in por chip).
+
+    Cron: 0 8,10,12,14,16,18 * * 1-5 (a cada 2h, seg-sex)
+    """
+    from app.services.meta.window_keeper import window_keeper
+
+    resultado = await window_keeper.executar_check_in()
+    return {
+        "status": "ok",
+        "processados": resultado.get("enviados", 0),
         **resultado,
     }

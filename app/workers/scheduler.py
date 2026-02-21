@@ -336,6 +336,18 @@ JOBS = [
         "endpoint": "/jobs/meta-catalog-sync",
         "schedule": "0 8 * * 1-5",  # Diário às 8h, seg-sex
     },
+    # Sprint 71: Template Optimization (semanal)
+    {
+        "name": "meta_template_optimization",
+        "endpoint": "/jobs/meta-template-optimization",
+        "schedule": "0 5 * * 1",  # Segunda às 5h
+    },
+    # Sprint 71: Window Keeper (a cada 2h em horário comercial)
+    {
+        "name": "meta_window_keeper",
+        "endpoint": "/jobs/meta-window-keeper",
+        "schedule": "0 8,10,12,14,16,18 * * 1-5",  # 8h-18h, seg-sex, a cada 2h
+    },
 ]
 
 
