@@ -73,15 +73,24 @@ class MetaOtpConfirmation:
                 f"{codigo}:{plantao_id}",
             )
 
-            # Enviar via template
-            # v1: log only, não envia via Meta (precisa template AUTHENTICATION aprovado)
+            # v2: Enviar via Meta AUTHENTICATION template
+            envio_result = await self._enviar_via_meta_template(
+                telefone, codigo, template_name
+            )
+
             logger.info(
-                "[MetaOTP] Código OTP gerado para ***%s, plantão %s",
+                "[MetaOTP] Código OTP %s para ***%s, plantão %s",
+                "enviado" if envio_result else "gerado (sem chip Meta)",
                 telefone[-4:],
                 plantao_id,
             )
 
-            result = {"success": True, "telefone": telefone, "plantao_id": plantao_id}
+            result = {
+                "success": True,
+                "telefone": telefone,
+                "plantao_id": plantao_id,
+                "enviado_via_meta": envio_result,
+            }
 
             # Em dev, incluir código para testes
             if not settings.is_production:
@@ -92,6 +101,80 @@ class MetaOtpConfirmation:
         except Exception as e:
             logger.error("[MetaOTP] Erro ao enviar OTP para ***%s: %s", telefone[-4:], e)
             return {"success": False, "error": "Erro interno ao enviar código OTP"}
+
+    async def _enviar_via_meta_template(
+        self,
+        telefone: str,
+        codigo: str,
+        template_name: str,
+    ) -> bool:
+        """
+        Envia OTP via template AUTHENTICATION da Meta.
+
+        Busca um chip Meta ativo e envia o template com o código OTP.
+        Retorna False se nenhum chip Meta disponível.
+        """
+        try:
+            from app.services.supabase import supabase
+            from app.services.whatsapp_providers.meta_cloud import MetaCloudProvider
+
+            # Buscar chip Meta ativo com credenciais
+            result = (
+                supabase.table("chips")
+                .select("meta_phone_number_id, meta_access_token, meta_waba_id")
+                .eq("provider", "meta")
+                .eq("status", "active")
+                .not_.is_("meta_phone_number_id", "null")
+                .not_.is_("meta_access_token", "null")
+                .order("trust_score", desc=True)
+                .limit(1)
+                .execute()
+            )
+
+            if not result.data:
+                logger.warning("[MetaOTP] Nenhum chip Meta disponível para envio OTP")
+                return False
+
+            chip = result.data[0]
+            provider = MetaCloudProvider(
+                phone_number_id=chip["meta_phone_number_id"],
+                access_token=chip["meta_access_token"],
+                waba_id=chip.get("meta_waba_id"),
+            )
+
+            # Enviar template AUTHENTICATION com código OTP
+            components = [
+                {
+                    "type": "body",
+                    "parameters": [{"type": "text", "text": codigo}],
+                },
+                {
+                    "type": "button",
+                    "sub_type": "url",
+                    "index": "0",
+                    "parameters": [{"type": "text", "text": codigo}],
+                },
+            ]
+
+            msg_result = await provider.send_template(
+                phone=telefone,
+                template_name=template_name,
+                language="pt_BR",
+                components=components,
+            )
+
+            if msg_result.success:
+                logger.info("[MetaOTP] Template OTP enviado para ***%s", telefone[-4:])
+                return True
+
+            logger.warning(
+                "[MetaOTP] Falha ao enviar template OTP: %s", msg_result.error
+            )
+            return False
+
+        except Exception as e:
+            logger.warning("[MetaOTP] Erro ao enviar via Meta: %s", e)
+            return False
 
     async def verificar_codigo_otp(
         self,

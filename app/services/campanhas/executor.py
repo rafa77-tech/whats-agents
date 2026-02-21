@@ -290,6 +290,10 @@ class CampanhaExecutor:
         if campanha.meta_template_name:
             await self._adicionar_meta_template_info(metadata, campanha, destinatario)
 
+        # Sprint 72: Carousel de vagas para campanhas com escopo_vagas
+        if campanha.escopo_vagas and campanha.escopo_vagas.get("vagas"):
+            self._adicionar_carousel_info(metadata, campanha)
+
         # Enfileirar
         await fila_service.enfileirar(
             cliente_id=cliente_id,
@@ -448,6 +452,38 @@ class CampanhaExecutor:
 
         except Exception as e:
             logger.warning(f"Erro ao preparar template Meta para campanha {campanha.id}: {e}")
+
+    def _adicionar_carousel_info(
+        self,
+        metadata: dict,
+        campanha: "CampanhaData",
+    ) -> None:
+        """
+        Sprint 72: Adiciona carousel payload à metadata quando campanha tem vagas.
+
+        Usa carousel_builder para construir cards a partir de escopo_vagas.
+
+        Args:
+            metadata: Dict de metadata do envio (modificado in-place)
+            campanha: Dados da campanha com escopo_vagas
+        """
+        try:
+            from app.services.meta.carousel_builder import carousel_builder
+
+            vagas = campanha.escopo_vagas.get("vagas", [])
+            if not vagas:
+                return
+
+            header = campanha.escopo_vagas.get(
+                "header_text", "Vagas disponíveis para você"
+            )
+            carousel_payload = carousel_builder.construir_carousel_vagas(
+                vagas=vagas, header_text=header
+            )
+            metadata["meta_carousel"] = carousel_payload
+
+        except Exception as e:
+            logger.warning(f"Erro ao construir carousel para campanha {campanha.id}: {e}")
 
     def _formatar_template(
         self,

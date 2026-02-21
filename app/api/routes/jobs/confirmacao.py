@@ -89,6 +89,89 @@ async def listar_pendentes_confirmacao():
     }
 
 
+@router.post("/enviar-otp-confirmacao/{vaga_id}")
+async def enviar_otp_confirmacao(vaga_id: str):
+    """
+    Sprint 72: Envia OTP via Meta AUTHENTICATION template para confirmar plantão.
+
+    Busca o médico associado à vaga e envia código OTP via WhatsApp.
+    """
+    try:
+        from app.services.supabase import supabase
+        from app.services.meta.otp_confirmation import otp_confirmation
+
+        # Buscar vaga com dados do médico
+        vaga = (
+            supabase.table("vagas")
+            .select("id, status, cliente_id, clientes(telefone)")
+            .eq("id", vaga_id)
+            .single()
+            .execute()
+        )
+
+        if not vaga.data:
+            return JSONResponse(
+                {"status": "error", "message": "Vaga não encontrada"},
+                status_code=404,
+            )
+
+        if vaga.data.get("status") != "pendente_confirmacao":
+            return JSONResponse(
+                {"status": "error", "message": "Vaga não está pendente de confirmação"},
+                status_code=400,
+            )
+
+        telefone = (vaga.data.get("clientes") or {}).get("telefone")
+        if not telefone:
+            return JSONResponse(
+                {"status": "error", "message": "Telefone do médico não encontrado"},
+                status_code=400,
+            )
+
+        resultado = await otp_confirmation.enviar_confirmacao_plantao(
+            telefone=telefone,
+            plantao_id=vaga_id,
+        )
+
+        return JSONResponse({"status": "ok", **resultado})
+
+    except Exception as e:
+        logger.error(f"Erro ao enviar OTP para vaga {vaga_id}: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/verificar-otp-confirmacao")
+async def verificar_otp_confirmacao(telefone: str, codigo: str):
+    """
+    Sprint 72: Verifica código OTP e confirma plantão se válido.
+    """
+    try:
+        from app.services.meta.otp_confirmation import otp_confirmation
+        from app.services.confirmacao_plantao import confirmar_plantao_realizado
+
+        resultado = await otp_confirmation.verificar_codigo_otp(telefone, codigo)
+
+        if not resultado.get("valido"):
+            return JSONResponse(
+                {"status": "error", "message": resultado.get("motivo", "Código inválido")},
+                status_code=400,
+            )
+
+        # OTP válido — confirmar plantão
+        plantao_id = resultado["plantao_id"]
+        confirmacao = await confirmar_plantao_realizado(plantao_id, "otp_meta")
+
+        return JSONResponse({
+            "status": "ok",
+            "plantao_id": plantao_id,
+            "confirmado": confirmacao.sucesso,
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao verificar OTP: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
 @router.post("/confirmar-plantao/{vaga_id}")
 async def confirmar_plantao(vaga_id: str, realizado: bool, confirmado_por: str = "api"):
     """
