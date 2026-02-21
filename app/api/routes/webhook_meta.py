@@ -390,7 +390,6 @@ async def _processar_status_mensagem(chip: dict, status_data: dict) -> None:
 
     status = status_data.get("status", "")
     message_id = status_data.get("id")
-    telefone = status_data.get("recipient_id", "")
 
     if not message_id:
         return
