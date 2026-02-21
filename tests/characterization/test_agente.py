@@ -470,7 +470,7 @@ class TestConstantesEHelpers:
         from app.services.agente import JULIA_TOOLS
 
         assert isinstance(JULIA_TOOLS, list)
-        assert len(JULIA_TOOLS) == 7  # 5 base + 2 intermediação
+        assert len(JULIA_TOOLS) == 10  # 5 base + 2 intermediação + 3 interactive
 
         nomes = [t["name"] for t in JULIA_TOOLS]
         assert "buscar_vagas" in nomes
@@ -480,6 +480,9 @@ class TestConstantesEHelpers:
         assert "salvar_memoria" in nomes
         assert "criar_handoff_externo" in nomes
         assert "registrar_status_intermediacao" in nomes
+        assert "enviar_opcoes" in nomes
+        assert "enviar_lista" in nomes
+        assert "enviar_cta" in nomes
 
     def test_resposta_timeout_fallback(self):
         from app.services.agente import RESPOSTA_TIMEOUT_FALLBACK
