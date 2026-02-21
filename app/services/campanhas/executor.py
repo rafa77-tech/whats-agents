@@ -288,9 +288,7 @@ class CampanhaExecutor:
 
         # Sprint 66: Meta template info para envio via template
         if campanha.meta_template_name:
-            await self._adicionar_meta_template_info(
-                metadata, campanha, destinatario
-            )
+            await self._adicionar_meta_template_info(metadata, campanha, destinatario)
 
         # Enfileirar
         await fila_service.enfileirar(
@@ -422,9 +420,7 @@ class CampanhaExecutor:
             from app.services.meta.template_service import template_service
             from app.services.meta.template_mapper import template_mapper
 
-            template = await template_service.buscar_template_por_nome(
-                campanha.meta_template_name
-            )
+            template = await template_service.buscar_template_por_nome(campanha.meta_template_name)
             if not template:
                 logger.warning(
                     f"Template Meta '{campanha.meta_template_name}' não encontrado "
@@ -451,9 +447,7 @@ class CampanhaExecutor:
             }
 
         except Exception as e:
-            logger.warning(
-                f"Erro ao preparar template Meta para campanha {campanha.id}: {e}"
-            )
+            logger.warning(f"Erro ao preparar template Meta para campanha {campanha.id}: {e}")
 
     def _formatar_template(
         self,

@@ -275,16 +275,12 @@ class ChipSelector:
                 # Sprint 66: Meta Cloud API — não precisa de evolution_connected
                 # Sprint 66-fix G3: Verificar credenciais Meta obrigatórias
                 if not chip.get("meta_phone_number_id") or not chip.get("meta_access_token"):
-                    logger.debug(
-                        f"[ChipSelector] Chip Meta {chip['telefone']} sem credenciais"
-                    )
+                    logger.debug(f"[ChipSelector] Chip Meta {chip['telefone']} sem credenciais")
                     chips_desconectados += 1
                     continue
                 # Verificar quality rating
                 if chip.get("meta_quality_rating") == "RED":
-                    logger.debug(
-                        f"[ChipSelector] Chip Meta {chip['telefone']} quality RED"
-                    )
+                    logger.debug(f"[ChipSelector] Chip Meta {chip['telefone']} quality RED")
                     chips_desconectados += 1
                     continue
             else:

@@ -73,9 +73,7 @@ async def enviar_via_chip(
 
         # Sprint 66: Smart routing para chips Meta
         if chip.get("provider") == "meta":
-            result = await _enviar_meta_smart(
-                provider, chip, telefone, texto, template_info
-            )
+            result = await _enviar_meta_smart(provider, chip, telefone, texto, template_info)
         else:
             result = await provider.send_text(telefone, texto)
 
@@ -447,9 +445,9 @@ async def _enviar_meta_smart(
     na_janela = await window_tracker.esta_na_janela(chip["id"], telefone)
 
     if na_janela:
-        return await provider.send_text(telefone, texto)
+        result = await provider.send_text(telefone, texto)
     elif template_info:
-        return await provider.send_template(
+        result = await provider.send_template(
             telefone,
             template_info["name"],
             template_info.get("language", "pt_BR"),
@@ -465,6 +463,23 @@ async def _enviar_meta_smart(
             error="meta_fora_janela_sem_template",
             provider="meta",
         )
+
+    # Sprint 67: Registrar custo da mensagem (best-effort)
+    if result.success:
+        try:
+            from app.services.meta.conversation_analytics import conversation_analytics
+
+            await conversation_analytics.registrar_custo_mensagem(
+                chip_id=chip["id"],
+                waba_id=chip.get("meta_waba_id", ""),
+                telefone=telefone,
+                template_name=template_info["name"] if template_info else None,
+                is_within_window=na_janela,
+            )
+        except Exception as e:
+            logger.debug("[ChipSender] Erro ao registrar custo Meta (non-blocking): %s", e)
+
+    return result
 
 
 # Alias para retrocompatibilidade

@@ -127,9 +127,7 @@ def _validar_signature(request: Request, body: bytes) -> bool:
     return hmac.compare_digest(computed, expected_signature)
 
 
-async def _processar_messages_field(
-    value: dict, background_tasks: BackgroundTasks
-) -> None:
+async def _processar_messages_field(value: dict, background_tasks: BackgroundTasks) -> None:
     """
     Processa campo 'messages' do webhook (mensagens e status).
 
@@ -144,17 +142,13 @@ async def _processar_messages_field(
     # Buscar chip
     chip = await _obter_chip_por_meta_phone_number_id(phone_number_id)
     if not chip:
-        logger.debug(
-            f"[WebhookMeta] Phone number ID desconhecido: {phone_number_id}"
-        )
+        logger.debug(f"[WebhookMeta] Phone number ID desconhecido: {phone_number_id}")
         return
 
     # Processar mensagens recebidas
     for message in value.get("messages", []):
         contacts = value.get("contacts", [])
-        await _processar_mensagem_recebida(
-            chip, message, contacts, background_tasks
-        )
+        await _processar_mensagem_recebida(chip, message, contacts, background_tasks)
 
     # Processar status updates
     for status in value.get("statuses", []):
@@ -205,9 +199,7 @@ async def _processar_mensagem_recebida(
         if cached:
             logger.debug(f"[WebhookMeta] Mensagem {message_id} já processada")
             return
-        await cache_set_json(
-            f"meta:msg:{message_id}", {"processed": True}, ttl=300
-        )
+        await cache_set_json(f"meta:msg:{message_id}", {"processed": True}, ttl=300)
 
     # Registrar métricas via RPC
     try:
@@ -232,15 +224,12 @@ async def _processar_mensagem_recebida(
     # Verificar se chip está ativo para processamento
     if chip.get("status") not in ["active", "warming"]:
         logger.warning(
-            f"[WebhookMeta] Chip {chip.get('telefone')} não ativo "
-            f"(status={chip.get('status')})"
+            f"[WebhookMeta] Chip {chip.get('telefone')} não ativo (status={chip.get('status')})"
         )
         return
 
     # Converter para formato Evolution e processar
-    evolution_data = _converter_meta_para_formato_evolution(
-        message, contacts, chip
-    )
+    evolution_data = _converter_meta_para_formato_evolution(message, contacts, chip)
 
     background_tasks.add_task(_processar_no_pipeline, evolution_data)
 
@@ -279,9 +268,7 @@ def _extrair_texto_mensagem(message: dict) -> str:
     return f"[{msg_type}]"
 
 
-def _converter_meta_para_formato_evolution(
-    message: dict, contacts: list, chip: dict
-) -> dict:
+def _converter_meta_para_formato_evolution(message: dict, contacts: list, chip: dict) -> dict:
     """
     Converte payload Meta para formato Evolution API (compatível com pipeline).
 
@@ -441,9 +428,7 @@ async def _processar_template_status(value: dict) -> None:
     if not template_name:
         return
 
-    logger.info(
-        f"[WebhookMeta] Template status: {template_name} -> {event}"
-    )
+    logger.info(f"[WebhookMeta] Template status: {template_name} -> {event}")
 
     try:
         from datetime import datetime, timezone
@@ -465,11 +450,9 @@ async def _processar_template_status(value: dict) -> None:
             if reason:
                 update_data["rejection_reason"] = reason
 
-        supabase.table("meta_templates").update(update_data).eq(
-            "template_name", template_name
-        ).eq("language", template_language).execute()
+        supabase.table("meta_templates").update(update_data).eq("template_name", template_name).eq(
+            "language", template_language
+        ).execute()
 
     except Exception as e:
-        logger.error(
-            f"[WebhookMeta] Erro ao atualizar template status: {e}"
-        )
+        logger.error(f"[WebhookMeta] Erro ao atualizar template status: {e}")

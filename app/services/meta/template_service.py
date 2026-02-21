@@ -101,9 +101,7 @@ class MetaTemplateService:
 
         try:
             client = await get_http_client()
-            response = await client.post(
-                url, headers=headers, json=payload, timeout=30
-            )
+            response = await client.post(url, headers=headers, json=payload, timeout=30)
             response.raise_for_status()
             data = response.json()
             meta_template_id = str(data.get("id", ""))
@@ -131,10 +129,14 @@ class MetaTemplateService:
         }
 
         try:
-            result = supabase.table("meta_templates").upsert(
-                row,
-                on_conflict="waba_id,template_name,language",
-            ).execute()
+            result = (
+                supabase.table("meta_templates")
+                .upsert(
+                    row,
+                    on_conflict="waba_id,template_name,language",
+                )
+                .execute()
+            )
             return {
                 "success": True,
                 "template": result.data[0] if result.data else row,
@@ -159,11 +161,7 @@ class MetaTemplateService:
         Returns:
             Lista de templates
         """
-        query = (
-            supabase.table("meta_templates")
-            .select("*")
-            .eq("waba_id", waba_id)
-        )
+        query = supabase.table("meta_templates").select("*").eq("waba_id", waba_id)
         if status:
             query = query.eq("status", status)
 
@@ -324,9 +322,9 @@ class MetaTemplateService:
 
         # Deletar do banco local
         try:
-            supabase.table("meta_templates").delete().eq(
-                "waba_id", waba_id
-            ).eq("template_name", template_name).execute()
+            supabase.table("meta_templates").delete().eq("waba_id", waba_id).eq(
+                "template_name", template_name
+            ).execute()
             return {"success": True}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -388,13 +386,9 @@ class MetaTemplateService:
                 ).execute()
                 synced += 1
             except Exception as e:
-                logger.warning(
-                    f"[MetaTemplate] Erro ao upsert '{t.get('name')}': {e}"
-                )
+                logger.warning(f"[MetaTemplate] Erro ao upsert '{t.get('name')}': {e}")
 
-        logger.info(
-            f"[MetaTemplate] Sincronizados {synced}/{len(templates)} templates"
-        )
+        logger.info(f"[MetaTemplate] Sincronizados {synced}/{len(templates)} templates")
         return {"success": True, "total": len(templates), "synced": synced}
 
 

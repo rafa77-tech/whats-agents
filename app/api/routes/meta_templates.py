@@ -101,9 +101,7 @@ async def listar_templates(
     category: Optional[str] = None,
 ):
     """Lista templates do banco local."""
-    templates = await template_service.listar_templates(
-        waba_id=waba_id, status=status
-    )
+    templates = await template_service.listar_templates(waba_id=waba_id, status=status)
     if category:
         templates = [t for t in templates if t.get("category") == category]
     return {"templates": templates, "total": len(templates)}

@@ -100,9 +100,7 @@ def get_provider(chip: dict) -> WhatsAppProvider:
         waba_id = chip.get("meta_waba_id")
 
         if not phone_number_id or not access_token:
-            raise ValueError(
-                f"Chip Meta {chip_id} sem meta_phone_number_id ou meta_access_token"
-            )
+            raise ValueError(f"Chip Meta {chip_id} sem meta_phone_number_id ou meta_access_token")
 
         provider = MetaCloudProvider(
             phone_number_id=phone_number_id,
@@ -163,9 +161,7 @@ def get_provider_by_type(
 
     elif provider_type == "meta":
         if not meta_phone_number_id or not meta_access_token:
-            raise ValueError(
-                "meta_phone_number_id e meta_access_token obrigatórios para Meta"
-            )
+            raise ValueError("meta_phone_number_id e meta_access_token obrigatórios para Meta")
         return MetaCloudProvider(
             phone_number_id=meta_phone_number_id,
             access_token=meta_access_token,

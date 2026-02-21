@@ -354,9 +354,7 @@ class HealthMonitor:
 
         # Sprint 66: Chip Meta com quality RED → auto-degradar
         if chip.get("provider") == "meta" and chip.get("meta_quality_rating") == "RED":
-            logger.warning(
-                f"[HealthMonitor] Chip Meta {telefone} quality RED → auto-demove"
-            )
+            logger.warning(f"[HealthMonitor] Chip Meta {telefone} quality RED → auto-demove")
             # Criar alerta específico
             try:
                 supabase.table("chip_alerts").insert(
@@ -369,9 +367,7 @@ class HealthMonitor:
                 ).execute()
             except Exception:
                 pass
-            return await self.auto_demover_chip(
-                chip, motivo="Meta quality rating RED"
-            )
+            return await self.auto_demover_chip(chip, motivo="Meta quality rating RED")
 
         # Verificar Trust Score crítico
         if trust < self.thresholds["trust_auto_demove"]:
@@ -411,16 +407,12 @@ class HealthMonitor:
         datetime.now(timezone.utc)
 
         # Buscar chips ativos (Sprint 66: incluir chips Meta que não usam evolution_connected)
-        result = (
-            supabase.table("chips")
-            .select("*")
-            .eq("status", "active")
-            .execute()
-        )
+        result = supabase.table("chips").select("*").eq("status", "active").execute()
 
         # Filtrar: Evolution precisa de evolution_connected, Meta sempre conectado
         chips = [
-            c for c in (result.data or [])
+            c
+            for c in (result.data or [])
             if c.get("provider") == "meta" or c.get("evolution_connected")
         ]
 

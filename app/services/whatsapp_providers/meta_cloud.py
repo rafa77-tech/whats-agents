@@ -95,9 +95,7 @@ class MetaCloudProvider(WhatsAppProvider):
 
         except Exception as e:
             error_msg = self._extract_error(e)
-            logger.warning(
-                f"[MetaCloud] Erro ao enviar para {self.phone_number_id}: {error_msg}"
-            )
+            logger.warning(f"[MetaCloud] Erro ao enviar para {self.phone_number_id}: {error_msg}")
             return MessageResult(
                 success=False,
                 error=error_msg,

@@ -108,9 +108,7 @@ class MetaWindowTracker:
             )
             count = len(result.data) if result.data else 0
             if count > 0:
-                logger.info(
-                    f"[WindowTracker] {count} janelas expiradas removidas"
-                )
+                logger.info(f"[WindowTracker] {count} janelas expiradas removidas")
             return count
         except Exception as e:
             logger.error(f"[WindowTracker] Erro ao limpar janelas: {e}")

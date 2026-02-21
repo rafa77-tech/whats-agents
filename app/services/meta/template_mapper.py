@@ -54,8 +54,15 @@ class TemplateMapper:
             escopo = campanha.get("escopo_vagas") or {}
             dados.update(escopo)
             # Campos diretos da campanha
-            for key in ("hospital", "hospital_nome", "data_plantao", "valor",
-                        "horario", "periodo", "setor"):
+            for key in (
+                "hospital",
+                "hospital_nome",
+                "data_plantao",
+                "valor",
+                "horario",
+                "periodo",
+                "setor",
+            ):
                 if key in campanha and campanha[key]:
                     dados[key] = campanha[key]
 
