@@ -14,12 +14,10 @@ Endpoints para:
 import logging
 from pathlib import Path
 from typing import Optional
-from datetime import datetime, UTC
-
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from pydantic import BaseModel
 
-from app.services.supabase import supabase
+from app.services.group_entry.repository import group_entry_repository
 from app.services.group_entry.importer import (
     importar_csv,
     importar_excel,
@@ -197,12 +195,12 @@ async def api_buscar_link(link_id: str):
     """
     Busca um link específico.
     """
-    result = supabase.table("group_links").select("*").eq("id", link_id).single().execute()
+    result = await group_entry_repository.buscar_link_por_id(link_id)
 
-    if not result.data:
+    if not result:
         raise HTTPException(404, "Link não encontrado")
 
-    return result.data
+    return result
 
 
 # =============================================================================
@@ -215,14 +213,12 @@ async def api_validar_link(link_id: str):
     """
     Valida um link específico.
     """
-    result = (
-        supabase.table("group_links").select("invite_code").eq("id", link_id).single().execute()
-    )
+    invite_code = await group_entry_repository.buscar_invite_code(link_id)
 
-    if not result.data:
+    if not invite_code:
         raise HTTPException(404, "Link não encontrado")
 
-    validacao = await validar_link(result.data["invite_code"])
+    validacao = await validar_link(invite_code)
     return ValidationResult(**validacao)
 
 
@@ -371,12 +367,12 @@ async def api_buscar_config():
     """
     Retorna configuração atual.
     """
-    result = supabase.table("group_entry_config").select("*").limit(1).execute()
+    result = await group_entry_repository.buscar_config()
 
-    if not result.data:
+    if not result:
         raise HTTPException(404, "Configuração não encontrada")
 
-    return result.data[0]
+    return result
 
 
 @router.patch("/config")
@@ -390,9 +386,10 @@ async def api_atualizar_config(update: ConfigUpdate):
     if not update_data:
         raise HTTPException(400, "Nenhum campo para atualizar")
 
-    update_data["updated_at"] = datetime.now(UTC).isoformat()
+    success = await group_entry_repository.atualizar_config(update_data)
 
-    supabase.table("group_entry_config").update(update_data).execute()
+    if not success:
+        raise HTTPException(500, "Erro ao atualizar configuração")
 
     return {"atualizado": True, "campos": list(update_data.keys())}
 

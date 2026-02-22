@@ -2,6 +2,7 @@
 Meta Catalog/Commerce Service.
 
 Sprint 68 — Epic 68.4: WhatsApp Catalog.
+Sprint 72: v2 — push real via Graph API POST /{catalog_id}/items_batch.
 Maps vagas (shifts) to WhatsApp catalog products.
 """
 
@@ -12,6 +13,9 @@ from app.core.config import settings
 from app.services.supabase import supabase
 
 logger = logging.getLogger(__name__)
+
+# Batch size for Graph API items_batch endpoint (max 20 per request)
+_GRAPH_API_BATCH_SIZE = 20
 
 
 class MetaCatalogService:
@@ -92,6 +96,9 @@ class MetaCatalogService:
         """
         Sincroniza vagas abertas como produtos no catálogo.
 
+        v2 (Sprint 72): Além de salvar localmente, faz push via Graph API
+        POST /{catalog_id}/items_batch.
+
         Args:
             waba_id: WABA ID
             catalog_id: ID do catálogo Meta
@@ -113,7 +120,9 @@ class MetaCatalogService:
             )
             vagas = vagas_resp.data or []
 
-            synced = 0
+            synced_local = 0
+            produtos_para_push = []
+
             for vaga in vagas:
                 hospital = vaga.get("hospitais")
                 especialidade = vaga.get("especialidades")
@@ -131,16 +140,119 @@ class MetaCatalogService:
                         },
                         on_conflict="vaga_id,catalog_id",
                     ).execute()
-                    synced += 1
+                    synced_local += 1
+                    produtos_para_push.append(produto)
                 except Exception as e:
                     logger.warning("[MetaCatalog] Erro ao sincronizar vaga %s: %s", vaga["id"], e)
 
-            logger.info("[MetaCatalog] Sincronizadas %d/%d vagas", synced, len(vagas))
-            return {"success": True, "total": len(vagas), "synced": synced}
+            # Sprint 72: Push para Graph API
+            pushed = await self._push_items_batch(catalog_id, produtos_para_push)
+
+            logger.info(
+                "[MetaCatalog] Sincronizadas %d/%d vagas (local=%d, meta=%d)",
+                synced_local,
+                len(vagas),
+                synced_local,
+                pushed,
+            )
+            return {
+                "success": True,
+                "total": len(vagas),
+                "synced": synced_local,
+                "pushed_to_meta": pushed,
+            }
 
         except Exception as e:
             logger.error("[MetaCatalog] Erro ao sincronizar: %s", e)
             return {"success": False, "error": "Erro interno ao sincronizar catálogo"}
+
+    async def _push_items_batch(
+        self,
+        catalog_id: str,
+        produtos: List[dict],
+    ) -> int:
+        """
+        Sprint 72: Envia produtos para Graph API via POST /{catalog_id}/items_batch.
+
+        Args:
+            catalog_id: ID do catálogo Meta
+            produtos: Lista de produtos no formato interno
+
+        Returns:
+            Quantidade de produtos enviados com sucesso
+        """
+        if not produtos:
+            return 0
+
+        try:
+            # Buscar access_token de um chip Meta ativo
+            chip_result = (
+                supabase.table("chips")
+                .select("meta_access_token")
+                .eq("provider", "meta")
+                .eq("status", "active")
+                .not_.is_("meta_access_token", "null")
+                .limit(1)
+                .execute()
+            )
+
+            if not chip_result.data:
+                logger.warning("[MetaCatalog] Nenhum chip Meta para push de catálogo")
+                return 0
+
+            access_token = chip_result.data[0]["meta_access_token"]
+            api_version = settings.META_GRAPH_API_VERSION or "v21.0"
+            url = f"https://graph.facebook.com/{api_version}/{catalog_id}/items_batch"
+
+            from app.services.http_client import get_http_client
+
+            client = await get_http_client()
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+            }
+
+            pushed = 0
+            # Processar em batches de _GRAPH_API_BATCH_SIZE
+            for i in range(0, len(produtos), _GRAPH_API_BATCH_SIZE):
+                batch = produtos[i : i + _GRAPH_API_BATCH_SIZE]
+                items = [
+                    {
+                        "method": "UPDATE",
+                        "retailer_id": p["product_retailer_id"],
+                        "data": {
+                            "name": p["name"],
+                            "description": p.get("description", "Plantão médico"),
+                            "price": p["price_milliunits"],
+                            "currency": p.get("currency", "BRL"),
+                            "availability": p.get("availability", "in stock"),
+                        },
+                    }
+                    for p in batch
+                ]
+
+                try:
+                    response = await client.post(
+                        url,
+                        headers=headers,
+                        json={"item_type": "PRODUCT_ITEM", "requests": items},
+                        timeout=30,
+                    )
+                    response.raise_for_status()
+                    pushed += len(batch)
+                except Exception as e:
+                    logger.warning(
+                        "[MetaCatalog] Erro no batch %d-%d: %s",
+                        i,
+                        i + len(batch),
+                        e,
+                    )
+
+            return pushed
+
+        except Exception as e:
+            logger.warning("[MetaCatalog] Erro ao push para Graph API: %s", e)
+            return 0
 
     async def listar_produtos(
         self,

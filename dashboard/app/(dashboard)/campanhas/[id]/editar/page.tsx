@@ -85,6 +85,13 @@ export default function EditarCampanhaPage() {
   const [selectedClienteIds, setSelectedClienteIds] = useState<string[] | undefined>(undefined)
   const [excludedClienteIds, setExcludedClienteIds] = useState<string[] | undefined>(undefined)
 
+  // Meta template selector (Sprint 72)
+  const [metaTemplateName, setMetaTemplateName] = useState<string>('')
+  const [metaTemplates, setMetaTemplates] = useState<
+    Array<{ template_name: string; category: string; status: string; language: string }>
+  >([])
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
+
   const carregarCampanha = useCallback(async () => {
     try {
       setError(null)
@@ -109,6 +116,9 @@ export default function EditarCampanhaPage() {
       setObjetivo(data.objetivo || '')
       setCorpo(data.corpo || '')
       setTom(data.tom || 'amigavel')
+
+      // Sprint 72: Meta template
+      setMetaTemplateName(data.meta_template_name || '')
 
       if (data.audience_filters) {
         setEspecialidades(data.audience_filters.especialidades || [])
@@ -164,6 +174,26 @@ export default function EditarCampanhaPage() {
     }
 
     carregarFiltros()
+  }, [])
+
+  // Sprint 72: Carregar templates Meta aprovados
+  useEffect(() => {
+    const carregarTemplates = async () => {
+      setLoadingTemplates(true)
+      try {
+        const res = await fetch('/api/dashboard/meta/templates')
+        const data = await res.json()
+        if (res.ok && data.data) {
+          const aprovados = data.data.filter((t: { status: string }) => t.status === 'APPROVED')
+          setMetaTemplates(aprovados)
+        }
+      } catch (err) {
+        console.error('Erro ao carregar templates Meta:', err)
+      } finally {
+        setLoadingTemplates(false)
+      }
+    }
+    carregarTemplates()
   }, [])
 
   const handleSave = async () => {
@@ -222,6 +252,7 @@ export default function EditarCampanhaPage() {
         tom,
         agendar_para: agendarParaISO,
         audience_filters: audienceFilters,
+        meta_template_name: metaTemplateName || null,
       }
 
       const res = await fetch(`/api/campanhas/${params.id}`, {
@@ -499,6 +530,36 @@ export default function EditarCampanhaPage() {
               />
               <p className="mt-1 text-xs text-gray-500">
                 Julia gera variacoes automaticamente para cada medico
+              </p>
+            </div>
+
+            {/* Sprint 72: Meta Template Selector */}
+            <div>
+              <Label>Template Meta (opcional)</Label>
+              {loadingTemplates ? (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Carregando templates...
+                </div>
+              ) : metaTemplates.length > 0 ? (
+                <Select value={metaTemplateName} onValueChange={setMetaTemplateName}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Enviar via texto (padrao)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Enviar via texto (padrao)</SelectItem>
+                    {metaTemplates.map((t) => (
+                      <SelectItem key={t.template_name} value={t.template_name}>
+                        {t.template_name} ({t.category})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-gray-500">Nenhum template aprovado disponivel</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Selecione um template Meta para enviar via API oficial (fora da janela 24h)
               </p>
             </div>
           </CardContent>

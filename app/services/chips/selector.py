@@ -131,6 +131,9 @@ class ChipSelector:
             if chip_historico:
                 return chip_historico
 
+        # 3.5 Sprint 72: Multi-WABA — filtrar chips Meta pela WABA selecionada
+        chips = await self._aplicar_filtro_waba(chips, tipo_mensagem, telefone_destino)
+
         # 4. Selecionar por menor uso
         chip_selecionado = await self._selecionar_menor_uso(chips)
 
@@ -584,6 +587,68 @@ class ChipSelector:
             f"para {tipo_mensagem}"
         )
         return None
+
+    async def _aplicar_filtro_waba(
+        self,
+        chips: List[Dict],
+        tipo_mensagem: TipoMensagem,
+        telefone_destino: Optional[str] = None,
+    ) -> List[Dict]:
+        """
+        Sprint 72: Filtra chips Meta pela WABA selecionada pelo waba_selector.
+
+        Chips nao-Meta (Evolution, Z-API) passam sem filtro.
+        Se waba_selector falhar ou nao houver WABA, retorna chips sem filtro.
+
+        Args:
+            chips: Lista de chips elegiveis
+            tipo_mensagem: Tipo da mensagem (para mapear intent)
+            telefone_destino: Telefone destino (para contexto medico)
+
+        Returns:
+            Lista filtrada de chips
+        """
+        meta_chips = [c for c in chips if c.get("provider") == "meta"]
+        if not meta_chips:
+            return chips
+
+        try:
+            from app.services.meta.waba_selector import waba_selector
+
+            intent_map = {
+                "prospeccao": "discovery",
+                "followup": "offer",
+                "resposta": "support",
+            }
+            intent = intent_map.get(tipo_mensagem, "default")
+            medico_context = {"telefone": telefone_destino} if telefone_destino else None
+
+            selection = await waba_selector.selecionar_waba(
+                intent=intent,
+                medico_context=medico_context,
+            )
+
+            if selection:
+                non_meta = [c for c in chips if c.get("provider") != "meta"]
+                meta_filtered = [
+                    c for c in meta_chips if c.get("meta_waba_id") == selection.waba_id
+                ]
+
+                if meta_filtered:
+                    logger.debug(
+                        "[ChipSelector] WABA %s selecionada (%s), %d chips Meta filtrados",
+                        selection.waba_id,
+                        selection.reason,
+                        len(meta_filtered),
+                    )
+                    return non_meta + meta_filtered
+
+            # Fallback: retornar todos se filtro nao encontrou chips
+            return chips
+
+        except Exception as e:
+            logger.debug("[ChipSelector] Erro ao aplicar filtro WABA: %s", e)
+            return chips
 
     async def _registrar_selecao(
         self,

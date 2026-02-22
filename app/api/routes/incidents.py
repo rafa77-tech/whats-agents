@@ -2,9 +2,10 @@
 Rotas de incidentes de saúde.
 
 Sprint 55 - Epic 03
+Sprint 72 - Refatorado para usar IncidentsRepository (DDD Fase 2)
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter
@@ -12,7 +13,7 @@ from pydantic import BaseModel
 
 from app.core.logging import get_logger
 from app.core.timezone import agora_utc
-from app.services.supabase import supabase
+from app.services.health.incidents_repository import incidents_repository
 
 router = APIRouter(tags=["incidents"])
 logger = get_logger(__name__)
@@ -57,23 +58,21 @@ async def registrar_incidente(request: RegistrarIncidenteRequest):
             await _resolver_incidente_ativo()
 
         # Inserir novo incidente
-        result = (
-            supabase.table("health_incidents")
-            .insert(
-                {
-                    "from_status": request.from_status,
-                    "to_status": request.to_status,
-                    "from_score": request.from_score,
-                    "to_score": request.to_score,
-                    "trigger_source": request.trigger_source,
-                    "details": request.details or {},
-                    "started_at": agora_utc().isoformat(),
-                }
-            )
-            .execute()
+        result = await incidents_repository.registrar(
+            {
+                "from_status": request.from_status,
+                "to_status": request.to_status,
+                "from_score": request.from_score,
+                "to_score": request.to_score,
+                "trigger_source": request.trigger_source,
+                "details": request.details or {},
+            }
         )
 
-        return {"success": True, "incident_id": result.data[0]["id"]}
+        if not result:
+            return {"success": False, "error": "Falha ao registrar incidente"}
+
+        return {"success": True, "incident_id": result["id"]}
 
     except Exception as e:
         logger.error(f"Erro ao registrar incidente: {e}")
@@ -90,21 +89,11 @@ async def listar_incidentes(
     Lista histórico de incidentes.
     """
     try:
-        query = supabase.table("health_incidents").select("*")
-
-        if status:
-            query = query.eq("to_status", status)
-
-        if since:
-            query = query.gte("started_at", since)
-
-        result = query.order("started_at", desc=True).limit(limit).execute()
-
+        incidents = await incidents_repository.listar(limit=limit, status=status, since=since)
         return {
-            "incidents": result.data,
-            "total": len(result.data),
+            "incidents": incidents,
+            "total": len(incidents),
         }
-
     except Exception as e:
         logger.error(f"Erro ao listar incidentes: {e}")
         return {"incidents": [], "error": str(e)}
@@ -116,16 +105,7 @@ async def estatisticas_incidentes(dias: int = 30):
     Retorna estatísticas de incidentes.
     """
     try:
-        since = (agora_utc() - timedelta(days=dias)).isoformat()
-
-        result = (
-            supabase.table("health_incidents")
-            .select("to_status, duration_seconds")
-            .gte("started_at", since)
-            .execute()
-        )
-
-        incidents = result.data or []
+        incidents = await incidents_repository.buscar_estatisticas(dias=dias)
 
         # Calcular métricas
         total = len(incidents)
@@ -160,38 +140,19 @@ async def estatisticas_incidentes(dias: int = 30):
 async def _resolver_incidente_ativo():
     """Resolve o incidente crítico ativo (se houver)."""
     try:
-        # Buscar incidente ativo
-        result = (
-            supabase.table("health_incidents")
-            .select("id, started_at")
-            .eq("to_status", "critical")
-            .is_("resolved_at", "null")
-            .order("started_at", desc=True)
-            .limit(1)
-            .execute()
-        )
+        incident = await incidents_repository.buscar_incidente_ativo_critico()
 
-        if not result.data:
+        if not incident:
             return
 
-        incident = result.data[0]
         started = datetime.fromisoformat(incident["started_at"].replace("Z", "+00:00"))
         duration = int((agora_utc() - started).total_seconds())
 
-        # Atualizar como resolvido
-        (
-            supabase.table("health_incidents")
-            .update(
-                {
-                    "resolved_at": agora_utc().isoformat(),
-                    "duration_seconds": duration,
-                }
-            )
-            .eq("id", incident["id"])
-            .execute()
+        await incidents_repository.resolver(
+            incident_id=incident["id"],
+            resolved_at=agora_utc().isoformat(),
+            duration_seconds=duration,
         )
-
-        logger.info(f"Incidente {incident['id']} resolvido após {duration}s")
 
     except Exception as e:
         logger.error(f"Erro ao resolver incidente: {e}")

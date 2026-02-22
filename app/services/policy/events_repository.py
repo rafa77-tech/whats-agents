@@ -316,6 +316,47 @@ async def update_effect_interaction_id(
     return False
 
 
+async def listar_decisoes_por_cliente(
+    cliente_id: str,
+    horas: int = 24,
+    limite: int = 50,
+) -> list[dict]:
+    """
+    Lista decisoes de policy de um cliente em uma janela de tempo.
+
+    Sprint 72 - Epic 02: Expor para rota debug.
+
+    Args:
+        cliente_id: ID do cliente
+        horas: Janela de tempo em horas
+        limite: Maximo de resultados
+
+    Returns:
+        Lista de decisoes ordenadas por ts desc
+    """
+    try:
+        from datetime import timedelta
+
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=horas)
+
+        response = (
+            supabase.table("policy_events")
+            .select("*")
+            .eq("event_type", "decision")
+            .eq("cliente_id", cliente_id)
+            .gte("ts", cutoff.isoformat())
+            .order("ts", desc=True)
+            .limit(limite)
+            .execute()
+        )
+
+        return response.data or []
+
+    except Exception as e:
+        logger.error(f"Erro ao listar decisoes do cliente {cliente_id}: {e}")
+        return []
+
+
 async def count_decisions_by_rule(
     hours: int = 24,
 ) -> list[dict]:

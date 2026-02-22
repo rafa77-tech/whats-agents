@@ -399,6 +399,43 @@ class CampanhaRepository:
             logger.error(f"Erro ao atualizar contadores da campanha {campanha_id}: {e}")
             return False
 
+    async def buscar_stats_fila(self, campanha_id: int) -> dict:
+        """
+        Busca estatisticas de fila para uma campanha.
+
+        Sprint 72 - Epic 04: Mover query de rota para repository.
+
+        Args:
+            campanha_id: ID da campanha
+
+        Returns:
+            Dict com total, enviados, erros, pendentes
+        """
+        try:
+            response = (
+                supabase.table("fila_mensagens")
+                .select("status")
+                .eq("metadata->>campanha_id", str(campanha_id))
+                .execute()
+            )
+
+            envios = response.data or []
+            enviados = len([e for e in envios if e["status"] == "enviada"])
+            erros = len([e for e in envios if e["status"] == "erro"])
+            pendentes = len([e for e in envios if e["status"] == "pendente"])
+
+            return {
+                "total": len(envios),
+                "enviados": enviados,
+                "erros": erros,
+                "pendentes": pendentes,
+                "taxa_entrega": enviados / len(envios) if envios else 0,
+            }
+
+        except Exception as e:
+            logger.error(f"Erro ao buscar stats de fila da campanha {campanha_id}: {e}")
+            return {"total": 0, "enviados": 0, "erros": 0, "pendentes": 0, "taxa_entrega": 0}
+
 
 # Instancia singleton
 campanha_repository = CampanhaRepository()

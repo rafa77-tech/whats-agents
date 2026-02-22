@@ -584,6 +584,8 @@ async def get_decisions_by_cliente(
 
     Útil para debug de comportamento do Policy Engine.
 
+    Sprint 72 - Refatorado para usar events_repository (DDD Fase 2).
+
     Args:
         cliente_id: ID do cliente (médico)
         horas: Período em horas
@@ -592,27 +594,19 @@ async def get_decisions_by_cliente(
     Returns:
         Lista de decisões do cliente
     """
-    from datetime import datetime, timedelta, timezone
-    from app.services.supabase import supabase
+    from app.services.policy.events_repository import listar_decisoes_por_cliente
 
     try:
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=horas)
-
-        response = (
-            supabase.table("policy_events")
-            .select("*")
-            .eq("event_type", "decision")
-            .eq("cliente_id", cliente_id)
-            .gte("ts", cutoff.isoformat())
-            .order("ts", desc=True)
-            .limit(limite)
-            .execute()
+        decisions = await listar_decisoes_por_cliente(
+            cliente_id=cliente_id,
+            horas=horas,
+            limite=limite,
         )
 
         return {
             "cliente_id": cliente_id,
-            "decisions": response.data or [],
-            "count": len(response.data or []),
+            "decisions": decisions,
+            "count": len(decisions),
             "period_hours": horas,
         }
 
