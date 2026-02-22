@@ -17,10 +17,7 @@ export default function CatalogTab() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const [p, m] = await Promise.all([
-        metaApi.getCatalogProducts(),
-        metaApi.getMMLiteMetrics(),
-      ])
+      const [p, m] = await Promise.all([metaApi.getCatalogProducts(), metaApi.getMMLiteMetrics()])
       setProducts(p)
       setMmLite(m)
     } catch (err) {
@@ -113,7 +110,7 @@ export default function CatalogTab() {
                     <div>
                       <p className="text-sm font-medium">{p.name}</p>
                       {p.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">
+                        <p className="line-clamp-1 text-xs text-muted-foreground">
                           {p.description}
                         </p>
                       )}

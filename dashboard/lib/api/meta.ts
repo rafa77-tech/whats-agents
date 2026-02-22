@@ -107,9 +107,7 @@ export async function getCostByTemplate(): Promise<MetaCostByTemplate[]> {
 // ============================================================================
 
 export async function getBudgetStatus(): Promise<MetaBudgetStatus> {
-  const res = await fetchApi<MetaDashboardResponse<MetaBudgetStatus>>(
-    '/api/dashboard/meta/budget'
-  )
+  const res = await fetchApi<MetaDashboardResponse<MetaBudgetStatus>>('/api/dashboard/meta/budget')
   return res.data
 }
 

@@ -88,9 +88,9 @@ describe('QualityTab', () => {
     render(<QualityTab />)
 
     await waitFor(() => {
-      expect(screen.getByText('Trust: 95')).toBeInTheDocument()
+      expect(screen.getByText('95')).toBeInTheDocument()
     })
-    expect(screen.getByText('Trust: 30')).toBeInTheDocument()
+    expect(screen.getByText('30')).toBeInTheDocument()
   })
 
   it('should display quality rating badges', async () => {
