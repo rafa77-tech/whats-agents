@@ -227,6 +227,7 @@ class TestCampanhaCriaConversaAntesDoEnvio:
             cliente_id="cliente-abc",
             campaign_id="20",
             conversation_id="conv-resolved",
+            metadata={"campanha_id": "20"},
         )
 
 
