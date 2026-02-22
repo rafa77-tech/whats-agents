@@ -127,6 +127,37 @@ export interface MetaBudgetStatus {
 }
 
 // ============================================================================
+// MM Lite Types
+// ============================================================================
+
+export interface MetaMMLiteMetrics {
+  total_sent: number
+  delivered: number
+  read: number
+  delivery_rate: number
+  read_rate: number
+  enabled: boolean
+}
+
+// ============================================================================
+// Catalog Types
+// ============================================================================
+
+export interface MetaCatalogProduct {
+  id: string
+  catalog_id: string
+  retailer_id: string
+  name: string
+  description?: string
+  price?: string
+  currency?: string
+  availability: string
+  vaga_id?: string
+  created_at: string
+  updated_at: string
+}
+
+// ============================================================================
 // Flow Types
 // ============================================================================
 
@@ -186,6 +217,23 @@ export interface MetaFlow {
   created_at: string
   updated_at: string
   response_count?: number
+}
+
+// ============================================================================
+// Window Types
+// ============================================================================
+
+export interface MetaWindowSummary {
+  active: number
+  expiring: number
+  expired: number
+  total: number
+  expiring_windows: Array<{
+    chip_id: string
+    telefone: string
+    window_type: string
+    expires_at: string
+  }>
 }
 
 // ============================================================================

@@ -10,6 +10,10 @@ import type {
   MetaCostSummary,
   MetaCostByChip,
   MetaCostByTemplate,
+  MetaBudgetStatus,
+  MetaMMLiteMetrics,
+  MetaCatalogProduct,
+  MetaWindowSummary,
   MetaTemplateWithAnalytics,
   MetaFlow,
   MetaDashboardResponse,
@@ -99,6 +103,48 @@ export async function getCostByTemplate(): Promise<MetaCostByTemplate[]> {
 }
 
 // ============================================================================
+// Budget
+// ============================================================================
+
+export async function getBudgetStatus(): Promise<MetaBudgetStatus> {
+  const res = await fetchApi<MetaDashboardResponse<MetaBudgetStatus>>('/api/dashboard/meta/budget')
+  return res.data
+}
+
+// ============================================================================
+// MM Lite
+// ============================================================================
+
+export async function getMMLiteMetrics(): Promise<MetaMMLiteMetrics> {
+  const res = await fetchApi<MetaDashboardResponse<MetaMMLiteMetrics>>(
+    '/api/dashboard/meta/mm-lite'
+  )
+  return res.data
+}
+
+// ============================================================================
+// Catalog
+// ============================================================================
+
+export async function getCatalogProducts(): Promise<MetaCatalogProduct[]> {
+  const res = await fetchApi<MetaDashboardResponse<MetaCatalogProduct[]>>(
+    '/api/dashboard/meta/catalog'
+  )
+  return res.data
+}
+
+// ============================================================================
+// Windows
+// ============================================================================
+
+export async function getWindowSummary(): Promise<MetaWindowSummary> {
+  const res = await fetchApi<MetaDashboardResponse<MetaWindowSummary>>(
+    '/api/dashboard/meta/windows'
+  )
+  return res.data
+}
+
+// ============================================================================
 // Templates
 // ============================================================================
 
@@ -142,6 +188,10 @@ export const metaApi = {
   getCostSummary,
   getCostByChip,
   getCostByTemplate,
+  getBudgetStatus,
+  getMMLiteMetrics,
+  getCatalogProducts,
+  getWindowSummary,
   getTemplates,
   getFlows,
   getFlow,

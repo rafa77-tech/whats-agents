@@ -24,6 +24,9 @@ vi.mock('@/components/meta/tabs/analytics-tab', () => ({
 vi.mock('@/components/meta/tabs/flows-tab', () => ({
   default: () => <div data-testid="flows-tab">Flows Content</div>,
 }))
+vi.mock('@/components/meta/tabs/catalog-tab', () => ({
+  default: () => <div data-testid="catalog-tab">Catalog Content</div>,
+}))
 
 import { MetaUnifiedPage } from '@/components/meta/meta-unified-page'
 
@@ -34,6 +37,7 @@ describe('MetaUnifiedPage', () => {
     expect(screen.getByRole('tab', { name: 'Qualidade' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Custos' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Flows' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Catalogo' })).toBeInTheDocument()
   })
 
   it('should default to templates tab when no search param', () => {
@@ -49,10 +53,10 @@ describe('MetaUnifiedPage', () => {
     expect(tab).toBeInTheDocument()
   })
 
-  it('should have 4 tab triggers in the list', () => {
+  it('should have 5 tab triggers in the list', () => {
     render(<MetaUnifiedPage />)
     const tabList = screen.getByRole('tablist')
     const tabs = tabList.querySelectorAll('[role="tab"]')
-    expect(tabs).toHaveLength(4)
+    expect(tabs).toHaveLength(5)
   })
 })

@@ -7,13 +7,15 @@ import type { Route } from 'next'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
+import { FileText, Shield, DollarSign, GitBranch, MessageSquare, ShoppingBag } from 'lucide-react'
 
 const TemplatesTab = lazy(() => import('./tabs/templates-tab'))
 const QualityTab = lazy(() => import('./tabs/quality-tab'))
 const AnalyticsTab = lazy(() => import('./tabs/analytics-tab'))
 const FlowsTab = lazy(() => import('./tabs/flows-tab'))
+const CatalogTab = lazy(() => import('./tabs/catalog-tab'))
 
-const TAB_IDS = ['templates', 'quality', 'analytics', 'flows'] as const
+const TAB_IDS = ['templates', 'quality', 'analytics', 'flows', 'catalog'] as const
 type TabId = (typeof TAB_IDS)[number]
 
 function isValidTab(tab: string | null): tab is TabId {
@@ -49,7 +51,7 @@ class TabErrorBoundary extends Component<TabErrorBoundaryProps, TabErrorBoundary
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-sm text-muted-foreground">
-              Erro ao carregar esta aba. Tente recarregar a página.
+              Erro ao carregar esta aba. Tente recarregar a pagina.
             </p>
           </CardContent>
         </Card>
@@ -89,12 +91,39 @@ export function MetaUnifiedPage() {
   return (
     <div className="min-h-screen bg-secondary">
       <div className="mx-auto max-w-[1600px] p-6">
+        {/* Page header */}
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#25D366]/10">
+            <MessageSquare className="h-5 w-5 text-[#25D366]" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">Meta WhatsApp Cloud API</h1>
+            <p className="text-sm text-muted-foreground">Templates, qualidade, custos e flows</p>
+          </div>
+        </div>
+
         <Tabs value={tab} onValueChange={handleTabChange}>
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
-            <TabsTrigger value="templates">Templates</TabsTrigger>
-            <TabsTrigger value="quality">Qualidade</TabsTrigger>
-            <TabsTrigger value="analytics">Custos</TabsTrigger>
-            <TabsTrigger value="flows">Flows</TabsTrigger>
+          <TabsList className="grid w-full max-w-2xl grid-cols-5">
+            <TabsTrigger value="templates" className="gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Templates
+            </TabsTrigger>
+            <TabsTrigger value="quality" className="gap-1.5">
+              <Shield className="h-3.5 w-3.5" />
+              Qualidade
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-1.5">
+              <DollarSign className="h-3.5 w-3.5" />
+              Custos
+            </TabsTrigger>
+            <TabsTrigger value="flows" className="gap-1.5">
+              <GitBranch className="h-3.5 w-3.5" />
+              Flows
+            </TabsTrigger>
+            <TabsTrigger value="catalog" className="gap-1.5">
+              <ShoppingBag className="h-3.5 w-3.5" />
+              Catalogo
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="templates" className="mt-6 space-y-6">
@@ -125,6 +154,14 @@ export function MetaUnifiedPage() {
             <TabErrorBoundary>
               <Suspense fallback={<TabSkeleton />}>
                 <FlowsTab />
+              </Suspense>
+            </TabErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="catalog" className="mt-6 space-y-6">
+            <TabErrorBoundary>
+              <Suspense fallback={<TabSkeleton />}>
+                <CatalogTab />
               </Suspense>
             </TabErrorBoundary>
           </TabsContent>
