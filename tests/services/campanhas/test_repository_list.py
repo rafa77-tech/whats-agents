@@ -17,6 +17,29 @@ def repository():
 
 PATCH_TARGET = "app.services.campanhas.repository.supabase"
 
+# Dados mock completos para CampanhaData.from_db_row
+_ROW_1 = {
+    "id": 1,
+    "nome_template": "Test",
+    "tipo_campanha": "discovery",
+    "status": "rascunho",
+    "total_destinatarios": 0,
+    "enviados": 0,
+    "entregues": 0,
+    "respondidos": 0,
+    "created_at": None,
+    "agendar_para": None,
+    "iniciada_em": None,
+    "concluida_em": None,
+    "corpo": None,
+    "tom": "amigavel",
+    "objetivo": None,
+    "audience_filters": None,
+    "pode_ofertar": True,
+}
+
+_ROW_2 = {**_ROW_1, "id": 2, "nome_template": "Test 2", "status": "ativa"}
+
 
 class TestListar:
     """Testes do metodo listar."""
@@ -25,21 +48,21 @@ class TestListar:
     async def test_sem_filtros(self, repository):
         with patch(PATCH_TARGET) as mock_supabase:
             mock_supabase.table.return_value.select.return_value.order.return_value.limit.return_value.execute.return_value.data = [
-                {"id": 1, "nome_template": "Test", "status": "rascunho"},
-                {"id": 2, "nome_template": "Test 2", "status": "ativa"},
+                _ROW_1,
+                _ROW_2,
             ]
 
             result = await repository.listar()
 
             assert len(result) == 2
-            assert result[0]["id"] == 1
+            assert result[0].id == 1
             mock_supabase.table.assert_called_with("campanhas")
 
     @pytest.mark.asyncio
     async def test_com_filtro_status(self, repository):
         with patch(PATCH_TARGET) as mock_supabase:
             mock_supabase.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
-                {"id": 1, "status": "ativa"},
+                {**_ROW_1, "status": "ativa"},
             ]
 
             result = await repository.listar(status="ativa")
@@ -50,7 +73,7 @@ class TestListar:
     async def test_com_filtro_tipo(self, repository):
         with patch(PATCH_TARGET) as mock_supabase:
             mock_supabase.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
-                {"id": 1, "tipo_campanha": "discovery"},
+                {**_ROW_1, "tipo_campanha": "discovery"},
             ]
 
             result = await repository.listar(tipo="discovery")
