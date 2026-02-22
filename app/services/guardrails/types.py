@@ -202,6 +202,9 @@ class OutboundContext:
     # Bypass humano
     bypass_reason: Optional[str] = None
 
+    # Metadata para propagação de dados (ex: meta_template info)
+    metadata: Optional[Dict[str, Any]] = None
+
     # Extras para auditoria
     extra: Optional[Dict[str, Any]] = None
 
