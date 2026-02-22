@@ -157,7 +157,11 @@ class CampanhasApplicationService:
             raise NotFoundError("Campanha", str(campanha_id))
 
         # 2. Validar a transição de estado
-        estados_executaveis = (StatusCampanha.AGENDADA, StatusCampanha.ATIVA)
+        estados_executaveis = (
+            StatusCampanha.RASCUNHO,
+            StatusCampanha.AGENDADA,
+            StatusCampanha.ATIVA,
+        )
         if campanha.status not in estados_executaveis:
             raise ValidationError(
                 f"Campanha com status '{campanha.status.value}' não pode ser iniciada. "
@@ -197,53 +201,28 @@ class CampanhasApplicationService:
         """
         Caso de Uso: Listar campanhas com filtros opcionais.
 
-        Delega ao repositório existente que já possui método listar_por_status.
-        Para listagem geral, usa busca direta.
+        Delega ao repositório que faz a query com filtros combinados
+        em uma única chamada ao banco.
         """
+        # Validar status se fornecido
         if status:
             try:
-                status_enum = StatusCampanha(status)
-                campanhas = await self._repository.listar_por_status(status_enum)
+                StatusCampanha(status)
             except ValueError:
                 raise ValidationError(
                     f"Status inválido: '{status}'. "
                     f"Valores aceitos: {[s.value for s in StatusCampanha]}",
                 )
-        else:
-            # O repositório existente não tem listar genérico com filtros,
-            # mas listar_ativas/listar_agendadas cobrem os casos de uso.
-            # Para listagem geral, delegamos ao repositório.
-            campanhas = await self._listar_todas(tipo=tipo, limit=limit)
 
-        campanhas_dict = [c.to_dict() for c in campanhas[:limit]]
+        campanhas = await self._repository.listar(status=status, tipo=tipo, limit=limit)
+        campanhas_dict = [c.to_dict() for c in campanhas]
         return {"campanhas": campanhas_dict, "total": len(campanhas_dict)}
-
-    async def _listar_todas(
-        self,
-        tipo: Optional[str] = None,
-        limit: int = 50,
-    ) -> List[CampanhaData]:
-        """
-        Listagem interna que agrega resultados de todos os status.
-
-        Usa os métodos existentes do repositório para evitar duplicação.
-        """
-        todas = []
-        for status_enum in StatusCampanha:
-            campanhas = await self._repository.listar_por_status(status_enum)
-            if tipo:
-                campanhas = [c for c in campanhas if c.tipo_campanha.value == tipo]
-            todas.extend(campanhas)
-
-        # Ordenar por created_at decrescente
-        todas.sort(key=lambda c: c.created_at or "", reverse=True)
-        return todas[:limit]
 
     async def relatorio_campanha(self, campanha_id: int) -> Dict[str, Any]:
         """
         Caso de Uso: Gerar o relatório completo de uma campanha.
 
-        Consolida os dados da campanha com métricas de envio.
+        Consolida os dados da campanha com métricas de envio da fila.
 
         Raises:
             NotFoundError: Se a campanha não for encontrada.
@@ -251,6 +230,13 @@ class CampanhasApplicationService:
         campanha = await self._repository.buscar_por_id(campanha_id)
         if not campanha:
             raise NotFoundError("Campanha", str(campanha_id))
+
+        # Buscar dados de envio da fila_mensagens
+        envios = await self._repository.buscar_envios_da_fila(campanha_id)
+
+        enviados_fila = len([e for e in envios if e["status"] == "enviada"])
+        erros = len([e for e in envios if e["status"] == "erro"])
+        pendentes = len([e for e in envios if e["status"] == "pendente"])
 
         return {
             "campanha_id": campanha_id,
@@ -262,6 +248,13 @@ class CampanhasApplicationService:
                 "enviados": campanha.enviados,
                 "entregues": campanha.entregues,
                 "respondidos": campanha.respondidos,
+            },
+            "fila": {
+                "total": len(envios),
+                "enviados": enviados_fila,
+                "erros": erros,
+                "pendentes": pendentes,
+                "taxa_entrega": enviados_fila / len(envios) if envios else 0,
             },
             "periodo": {
                 "criada_em": campanha.created_at.isoformat() if campanha.created_at else None,

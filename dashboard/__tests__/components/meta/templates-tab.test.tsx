@@ -30,8 +30,17 @@ const mockTemplates: MetaTemplateWithAnalytics[] = [
     category: 'MARKETING',
     status: 'APPROVED',
     language: 'pt_BR',
-    body_text: 'Oi {{1}}',
-    variable_mapping: {},
+    components: [
+      { type: 'BODY', text: 'Oi {{1}}' },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          { type: 'QUICK_REPLY', text: 'Sim' },
+          { type: 'QUICK_REPLY', text: 'Nao' },
+        ],
+      },
+    ],
+    variable_mapping: { '1': 'nome' },
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     analytics: {
@@ -51,8 +60,8 @@ const mockTemplates: MetaTemplateWithAnalytics[] = [
     category: 'AUTHENTICATION',
     status: 'PENDING',
     language: 'pt_BR',
-    body_text: 'Codigo: {{1}}',
-    variable_mapping: {},
+    components: [{ type: 'BODY', text: 'Codigo: {{1}}' }],
+    variable_mapping: { '1': 'codigo' },
     created_at: '2026-01-02T00:00:00Z',
     updated_at: '2026-01-02T00:00:00Z',
   },
@@ -74,14 +83,13 @@ describe('TemplatesTab', () => {
     expect(screen.getByText('Carregando templates...')).toBeInTheDocument()
   })
 
-  it('should render templates table after loading', async () => {
+  it('should render template cards after loading', async () => {
     mockGetTemplates.mockResolvedValue(mockTemplates)
     render(<TemplatesTab />)
 
     await waitFor(() => {
       expect(screen.getByText('discovery_plantao')).toBeInTheDocument()
     })
-    expect(screen.getByText('Templates Meta')).toBeInTheDocument()
     expect(screen.getByText('confirmacao_otp')).toBeInTheDocument()
   })
 
@@ -95,7 +103,7 @@ describe('TemplatesTab', () => {
     expect(screen.getByText('PENDING')).toBeInTheDocument()
   })
 
-  it('should display analytics data when available', async () => {
+  it('should display analytics metrics when available', async () => {
     mockGetTemplates.mockResolvedValue(mockTemplates)
     render(<TemplatesTab />)
 
@@ -106,26 +114,21 @@ describe('TemplatesTab', () => {
     expect(screen.getByText('60%')).toBeInTheDocument()
   })
 
-  it('should show dash when analytics not available', async () => {
-    mockGetTemplates.mockResolvedValue(mockTemplates)
-    render(<TemplatesTab />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('table')).toBeInTheDocument()
-    })
-    const rows = screen.getByRole('table').querySelectorAll('tbody tr')
-    const lastRow = rows[1] as HTMLTableRowElement
-    expect(lastRow).toBeDefined()
-    const cells = lastRow.querySelectorAll('td')
-    expect(cells[3]?.textContent).toBe('-')
-  })
-
   it('should show empty state when no templates', async () => {
     mockGetTemplates.mockResolvedValue([])
     render(<TemplatesTab />)
 
     await waitFor(() => {
       expect(screen.getByText('Nenhum template Meta encontrado.')).toBeInTheDocument()
+    })
+  })
+
+  it('should show WhatsApp preview with body text', async () => {
+    mockGetTemplates.mockResolvedValue(mockTemplates)
+    render(<TemplatesTab />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Sim')).toBeInTheDocument()
     })
   })
 })

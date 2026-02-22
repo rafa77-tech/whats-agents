@@ -1,13 +1,14 @@
 """Testes dos endpoints de campanhas.
 
 Sprint 35 - Epic 05
+Fase 2 DDD: Mocks apontam para o Application Service
 """
+
 import pytest
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-from fastapi.testclient import TestClient
-
+from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
 from app.services.campanhas.types import (
     AudienceFilters,
     CampanhaData,
@@ -38,47 +39,22 @@ def campanha_data():
 
 
 @pytest.fixture
-def mock_repository():
-    """Mock do repository."""
-    with patch("app.api.routes.campanhas.campanha_repository") as mock:
-        yield mock
-
-
-@pytest.fixture
-def mock_executor():
-    """Mock do executor."""
-    with patch("app.api.routes.campanhas.campanha_executor") as mock:
-        yield mock
-
-
-@pytest.fixture
-def mock_segmentacao():
-    """Mock do segmentacao_service."""
-    with patch("app.api.routes.campanhas.segmentacao_service") as mock:
-        yield mock
-
-
-@pytest.fixture
-def mock_supabase():
-    """Mock do supabase."""
-    with patch("app.api.routes.campanhas.supabase") as mock:
-        yield mock
+def mock_service():
+    """Mock do CampanhasApplicationService."""
+    with patch("app.api.routes.campanhas.get_campanhas_service") as mock_factory:
+        service = AsyncMock()
+        mock_factory.return_value = service
+        yield service
 
 
 class TestCriarCampanha:
     """Testes do endpoint POST /campanhas/."""
 
     @pytest.mark.asyncio
-    async def test_criar_campanha_sucesso(
-        self, mock_repository, mock_segmentacao, campanha_data
-    ):
+    async def test_criar_campanha_sucesso(self, mock_service, campanha_data):
         """Testa criacao de campanha com sucesso."""
-        # Setup
-        mock_segmentacao.contar_segmento = AsyncMock(return_value=100)
-        mock_repository.criar = AsyncMock(return_value=campanha_data)
-        mock_repository.atualizar_total_destinatarios = AsyncMock(return_value=True)
+        mock_service.criar_campanha.return_value = campanha_data
 
-        # Import router after mocking
         from app.api.routes.campanhas import criar_campanha, CriarCampanhaRequest
 
         request = CriarCampanhaRequest(
@@ -90,20 +66,22 @@ class TestCriarCampanha:
             quantidade_alvo=50,
         )
 
-        # Execute
         result = await criar_campanha(request)
 
-        # Verify
         assert result.id == 16
         assert result.nome_template == "Piloto Discovery"
         assert result.tipo_campanha == "discovery"
-        mock_repository.criar.assert_called_once()
+        mock_service.criar_campanha.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_criar_campanha_tipo_invalido(self, mock_repository, mock_segmentacao):
+    async def test_criar_campanha_tipo_invalido(self, mock_service):
         """Testa erro ao criar campanha com tipo invalido."""
         from fastapi import HTTPException
         from app.api.routes.campanhas import criar_campanha, CriarCampanhaRequest
+
+        mock_service.criar_campanha.side_effect = ValidationError(
+            "Tipo de campanha invalido: tipo_invalido"
+        )
 
         request = CriarCampanhaRequest(
             nome_template="Campanha",
@@ -114,18 +92,16 @@ class TestCriarCampanha:
             await criar_campanha(request)
 
         assert exc.value.status_code == 400
-        assert "Tipo de campanha invalido" in exc.value.detail
 
     @pytest.mark.asyncio
-    async def test_criar_campanha_erro_repository(
-        self, mock_repository, mock_segmentacao
-    ):
-        """Testa erro quando repository falha."""
+    async def test_criar_campanha_erro_banco(self, mock_service):
+        """Testa erro quando banco falha."""
         from fastapi import HTTPException
         from app.api.routes.campanhas import criar_campanha, CriarCampanhaRequest
 
-        mock_segmentacao.contar_segmento = AsyncMock(return_value=100)
-        mock_repository.criar = AsyncMock(return_value=None)
+        mock_service.criar_campanha.side_effect = DatabaseError(
+            "Erro ao criar campanha no banco de dados."
+        )
 
         request = CriarCampanhaRequest(
             nome_template="Campanha",
@@ -142,12 +118,13 @@ class TestIniciarCampanha:
     """Testes do endpoint POST /campanhas/{id}/iniciar."""
 
     @pytest.mark.asyncio
-    async def test_iniciar_campanha_sucesso(
-        self, mock_repository, mock_executor, campanha_data
-    ):
+    async def test_iniciar_campanha_sucesso(self, mock_service):
         """Testa inicio de campanha com sucesso."""
-        mock_repository.buscar_por_id = AsyncMock(return_value=campanha_data)
-        mock_executor.executar = AsyncMock(return_value=True)
+        mock_service.executar_campanha.return_value = {
+            "status": "iniciada",
+            "campanha_id": 16,
+            "message": "Campanha iniciada com sucesso.",
+        }
 
         from app.api.routes.campanhas import iniciar_campanha
 
@@ -155,15 +132,15 @@ class TestIniciarCampanha:
 
         assert result["status"] == "iniciada"
         assert result["campanha_id"] == 16
-        mock_executor.executar.assert_called_once_with(16)
+        mock_service.executar_campanha.assert_called_once_with(16)
 
     @pytest.mark.asyncio
-    async def test_iniciar_campanha_nao_encontrada(self, mock_repository, mock_executor):
+    async def test_iniciar_campanha_nao_encontrada(self, mock_service):
         """Testa erro quando campanha nao existe."""
         from fastapi import HTTPException
         from app.api.routes.campanhas import iniciar_campanha
 
-        mock_repository.buscar_por_id = AsyncMock(return_value=None)
+        mock_service.executar_campanha.side_effect = NotFoundError("Campanha", "999")
 
         with pytest.raises(HTTPException) as exc:
             await iniciar_campanha(999)
@@ -171,32 +148,29 @@ class TestIniciarCampanha:
         assert exc.value.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_iniciar_campanha_status_invalido(
-        self, mock_repository, mock_executor, campanha_data
-    ):
+    async def test_iniciar_campanha_status_invalido(self, mock_service):
         """Testa erro quando campanha tem status invalido para iniciar."""
         from fastapi import HTTPException
         from app.api.routes.campanhas import iniciar_campanha
 
-        campanha_data.status = StatusCampanha.CONCLUIDA
-        mock_repository.buscar_por_id = AsyncMock(return_value=campanha_data)
+        mock_service.executar_campanha.side_effect = ValidationError(
+            "Campanha com status 'concluida' nao pode ser iniciada"
+        )
 
         with pytest.raises(HTTPException) as exc:
             await iniciar_campanha(16)
 
         assert exc.value.status_code == 400
-        assert "nao pode ser iniciada" in exc.value.detail
 
     @pytest.mark.asyncio
-    async def test_iniciar_campanha_erro_executor(
-        self, mock_repository, mock_executor, campanha_data
-    ):
+    async def test_iniciar_campanha_erro_executor(self, mock_service):
         """Testa erro quando executor falha."""
         from fastapi import HTTPException
         from app.api.routes.campanhas import iniciar_campanha
 
-        mock_repository.buscar_por_id = AsyncMock(return_value=campanha_data)
-        mock_executor.executar = AsyncMock(return_value=False)
+        mock_service.executar_campanha.side_effect = DatabaseError(
+            "Erro interno ao executar a campanha."
+        )
 
         with pytest.raises(HTTPException) as exc:
             await iniciar_campanha(16)
@@ -208,21 +182,34 @@ class TestRelatorioCampanha:
     """Testes do endpoint GET /campanhas/{id}/relatorio."""
 
     @pytest.mark.asyncio
-    async def test_relatorio_campanha_sucesso(
-        self, mock_repository, mock_supabase, campanha_data
-    ):
+    async def test_relatorio_campanha_sucesso(self, mock_service):
         """Testa relatorio de campanha com sucesso."""
-        mock_repository.buscar_por_id = AsyncMock(return_value=campanha_data)
-
-        # Mock da query de fila_mensagens
-        mock_execute = MagicMock()
-        mock_execute.data = [
-            {"status": "enviada"},
-            {"status": "enviada"},
-            {"status": "pendente"},
-            {"status": "erro"},
-        ]
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_execute
+        mock_service.relatorio_campanha.return_value = {
+            "campanha_id": 16,
+            "nome": "Piloto Discovery",
+            "tipo_campanha": "discovery",
+            "status": "agendada",
+            "contadores": {
+                "total_destinatarios": 50,
+                "enviados": 0,
+                "entregues": 0,
+                "respondidos": 0,
+            },
+            "fila": {
+                "total": 4,
+                "enviados": 2,
+                "erros": 1,
+                "pendentes": 1,
+                "taxa_entrega": 0.5,
+            },
+            "periodo": {
+                "criada_em": None,
+                "agendada_para": None,
+                "iniciada_em": None,
+                "concluida_em": None,
+            },
+            "audience_filters": {},
+        }
 
         from app.api.routes.campanhas import relatorio_campanha
 
@@ -237,14 +224,12 @@ class TestRelatorioCampanha:
         assert result["fila"]["erros"] == 1
 
     @pytest.mark.asyncio
-    async def test_relatorio_campanha_nao_encontrada(
-        self, mock_repository, mock_supabase
-    ):
+    async def test_relatorio_campanha_nao_encontrada(self, mock_service):
         """Testa erro quando campanha nao existe."""
         from fastapi import HTTPException
         from app.api.routes.campanhas import relatorio_campanha
 
-        mock_repository.buscar_por_id = AsyncMock(return_value=None)
+        mock_service.relatorio_campanha.side_effect = NotFoundError("Campanha", "999")
 
         with pytest.raises(HTTPException) as exc:
             await relatorio_campanha(999)
@@ -256,13 +241,15 @@ class TestPreviewSegmento:
     """Testes do endpoint POST /campanhas/segmento/preview."""
 
     @pytest.mark.asyncio
-    async def test_preview_segmento_sucesso(self, mock_segmentacao):
+    async def test_preview_segmento_sucesso(self, mock_service):
         """Testa preview de segmento."""
-        mock_segmentacao.contar_segmento = AsyncMock(return_value=100)
-        mock_segmentacao.buscar_segmento = AsyncMock(return_value=[
-            {"primeiro_nome": "Carlos", "especialidade_nome": "Cardiologia", "regiao": "ABC"},
-            {"primeiro_nome": "Maria", "especialidade_nome": "Anestesiologia", "regiao": "SP"},
-        ])
+        mock_service.preview_segmento.return_value = {
+            "total": 100,
+            "amostra": [
+                {"nome": "Carlos", "especialidade": "Cardiologia", "regiao": "ABC"},
+                {"nome": "Maria", "especialidade": "Anestesiologia", "regiao": "SP"},
+            ],
+        }
 
         from app.api.routes.campanhas import preview_segmento
 
@@ -277,36 +264,33 @@ class TestListarCampanhas:
     """Testes do endpoint GET /campanhas/."""
 
     @pytest.mark.asyncio
-    async def test_listar_campanhas_sucesso(self, mock_supabase):
+    async def test_listar_campanhas_sucesso(self, mock_service):
         """Testa listagem de campanhas."""
-        mock_execute = MagicMock()
-        mock_execute.data = [
-            {
-                "id": 16,
-                "nome_template": "Discovery",
-                "tipo_campanha": "discovery",
-                "status": "agendada",
-                "total_destinatarios": 50,
-                "enviados": 0,
-                "entregues": 0,
-                "respondidos": 0,
-                "created_at": "2026-01-21T10:00:00Z",
-                "agendar_para": None,
-            },
-            {
-                "id": 17,
-                "nome_template": "Oferta",
-                "tipo_campanha": "oferta",
-                "status": "ativa",
-                "total_destinatarios": 100,
-                "enviados": 50,
-                "entregues": 45,
-                "respondidos": 10,
-                "created_at": "2026-01-20T10:00:00Z",
-                "agendar_para": None,
-            },
-        ]
-        mock_supabase.table.return_value.select.return_value.order.return_value.limit.return_value.execute.return_value = mock_execute
+        mock_service.listar_campanhas.return_value = {
+            "campanhas": [
+                {
+                    "id": 16,
+                    "nome_template": "Discovery",
+                    "tipo_campanha": "discovery",
+                    "status": "agendada",
+                    "total_destinatarios": 50,
+                    "enviados": 0,
+                    "entregues": 0,
+                    "respondidos": 0,
+                },
+                {
+                    "id": 17,
+                    "nome_template": "Oferta",
+                    "tipo_campanha": "oferta",
+                    "status": "ativa",
+                    "total_destinatarios": 100,
+                    "enviados": 50,
+                    "entregues": 45,
+                    "respondidos": 10,
+                },
+            ],
+            "total": 2,
+        }
 
         from app.api.routes.campanhas import listar_campanhas
 
@@ -317,39 +301,41 @@ class TestListarCampanhas:
         assert result["campanhas"][0]["id"] == 16
 
     @pytest.mark.asyncio
-    async def test_listar_campanhas_com_filtros(self, mock_supabase):
+    async def test_listar_campanhas_com_filtros(self, mock_service):
         """Testa listagem com filtros."""
-        mock_execute = MagicMock()
-        mock_execute.data = [
-            {
-                "id": 16,
-                "nome_template": "Discovery",
-                "tipo_campanha": "discovery",
-                "status": "agendada",
-                "total_destinatarios": 50,
-                "enviados": 0,
-                "entregues": 0,
-                "respondidos": 0,
-                "created_at": "2026-01-21T10:00:00Z",
-                "agendar_para": None,
-            },
-        ]
-        mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_execute
+        mock_service.listar_campanhas.return_value = {
+            "campanhas": [
+                {
+                    "id": 16,
+                    "nome_template": "Discovery",
+                    "tipo_campanha": "discovery",
+                    "status": "agendada",
+                    "total_destinatarios": 50,
+                    "enviados": 0,
+                    "entregues": 0,
+                    "respondidos": 0,
+                },
+            ],
+            "total": 1,
+        }
 
         from app.api.routes.campanhas import listar_campanhas
 
         result = await listar_campanhas(status="agendada", tipo="discovery")
 
         assert result["total"] == 1
+        mock_service.listar_campanhas.assert_called_once_with(
+            status="agendada", tipo="discovery", limit=50
+        )
 
 
 class TestBuscarCampanha:
     """Testes do endpoint GET /campanhas/{id}."""
 
     @pytest.mark.asyncio
-    async def test_buscar_campanha_sucesso(self, mock_repository, campanha_data):
+    async def test_buscar_campanha_sucesso(self, mock_service, campanha_data):
         """Testa busca de campanha por ID."""
-        mock_repository.buscar_por_id = AsyncMock(return_value=campanha_data)
+        mock_service.buscar_campanha.return_value = campanha_data
 
         from app.api.routes.campanhas import buscar_campanha
 
@@ -359,12 +345,12 @@ class TestBuscarCampanha:
         assert result["nome_template"] == "Piloto Discovery"
 
     @pytest.mark.asyncio
-    async def test_buscar_campanha_nao_encontrada(self, mock_repository):
+    async def test_buscar_campanha_nao_encontrada(self, mock_service):
         """Testa erro quando campanha nao existe."""
         from fastapi import HTTPException
         from app.api.routes.campanhas import buscar_campanha
 
-        mock_repository.buscar_por_id = AsyncMock(return_value=None)
+        mock_service.buscar_campanha.side_effect = NotFoundError("Campanha", "999")
 
         with pytest.raises(HTTPException) as exc:
             await buscar_campanha(999)
@@ -376,10 +362,13 @@ class TestAtualizarStatusCampanha:
     """Testes do endpoint PATCH /campanhas/{id}/status."""
 
     @pytest.mark.asyncio
-    async def test_atualizar_status_sucesso(self, mock_repository, campanha_data):
+    async def test_atualizar_status_sucesso(self, mock_service):
         """Testa atualizacao de status com sucesso."""
-        mock_repository.buscar_por_id = AsyncMock(return_value=campanha_data)
-        mock_repository.atualizar_status = AsyncMock(return_value=True)
+        mock_service.atualizar_status.return_value = {
+            "campanha_id": 16,
+            "status_anterior": "agendada",
+            "status_novo": "ativa",
+        }
 
         from app.api.routes.campanhas import atualizar_status_campanha
 
@@ -390,24 +379,27 @@ class TestAtualizarStatusCampanha:
         assert result["status_novo"] == "ativa"
 
     @pytest.mark.asyncio
-    async def test_atualizar_status_invalido(self, mock_repository):
+    async def test_atualizar_status_invalido(self, mock_service):
         """Testa erro ao atualizar para status invalido."""
         from fastapi import HTTPException
         from app.api.routes.campanhas import atualizar_status_campanha
+
+        mock_service.atualizar_status.side_effect = ValidationError(
+            "Status invalido: status_invalido"
+        )
 
         with pytest.raises(HTTPException) as exc:
             await atualizar_status_campanha(16, "status_invalido")
 
         assert exc.value.status_code == 400
-        assert "Status invalido" in exc.value.detail
 
     @pytest.mark.asyncio
-    async def test_atualizar_status_campanha_nao_encontrada(self, mock_repository):
+    async def test_atualizar_status_campanha_nao_encontrada(self, mock_service):
         """Testa erro quando campanha nao existe."""
         from fastapi import HTTPException
         from app.api.routes.campanhas import atualizar_status_campanha
 
-        mock_repository.buscar_por_id = AsyncMock(return_value=None)
+        mock_service.atualizar_status.side_effect = NotFoundError("Campanha", "999")
 
         with pytest.raises(HTTPException) as exc:
             await atualizar_status_campanha(999, "ativa")

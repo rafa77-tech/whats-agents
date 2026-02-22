@@ -196,13 +196,15 @@ class TestListarCampanhas:
     async def test_listar_por_status(
         self, service, mock_repository, campanha_fixture
     ):
-        mock_repository.listar_por_status.return_value = [campanha_fixture]
+        mock_repository.listar.return_value = [campanha_fixture]
 
         result = await service.listar_campanhas(status="agendada")
 
         assert result["total"] == 1
         assert len(result["campanhas"]) == 1
-        mock_repository.listar_por_status.assert_awaited_once_with(StatusCampanha.AGENDADA)
+        mock_repository.listar.assert_awaited_once_with(
+            status="agendada", tipo=None, limit=50
+        )
 
     @pytest.mark.asyncio
     async def test_listar_status_invalido(self, service):
@@ -211,17 +213,14 @@ class TestListarCampanhas:
 
     @pytest.mark.asyncio
     async def test_listar_todas(self, service, mock_repository, campanha_fixture):
-        # Retorna campanha apenas para AGENDADA, vazio para outros status
-        async def listar_por_status_side_effect(status):
-            if status == StatusCampanha.AGENDADA:
-                return [campanha_fixture]
-            return []
-
-        mock_repository.listar_por_status.side_effect = listar_por_status_side_effect
+        mock_repository.listar.return_value = [campanha_fixture]
 
         result = await service.listar_campanhas()
 
         assert result["total"] == 1
+        mock_repository.listar.assert_awaited_once_with(
+            status=None, tipo=None, limit=50
+        )
 
 
 # --- atualizar_status ---
@@ -281,6 +280,11 @@ class TestRelatorioCampanha:
         self, service, mock_repository, campanha_fixture
     ):
         mock_repository.buscar_por_id.return_value = campanha_fixture
+        mock_repository.buscar_envios_da_fila.return_value = [
+            {"status": "enviada"},
+            {"status": "enviada"},
+            {"status": "erro"},
+        ]
 
         result = await service.relatorio_campanha(1)
 
@@ -290,6 +294,7 @@ class TestRelatorioCampanha:
         assert result["status"] == "agendada"
         assert "contadores" in result
         assert "periodo" in result
+        assert result["fila"]["total"] == 3
 
     @pytest.mark.asyncio
     async def test_relatorio_campanha_nao_encontrada(self, service, mock_repository):
